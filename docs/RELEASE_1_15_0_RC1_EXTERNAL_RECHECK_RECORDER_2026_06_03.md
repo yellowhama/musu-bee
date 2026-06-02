@@ -43,6 +43,7 @@ Important fields:
 - `runtime_idle_cpu_valid_machine_count`
 - `runtime_cpu_scenario_matrix_valid_machine_count`
 - `second_pc_reachability`
+- `second_pc_probe_timeout_ms`
 - `p2p_env`
 - `p2p_evidence_result`
 - `go_no_go_blockers`
@@ -53,6 +54,10 @@ Important fields:
 - `record-external-release-gate-recheck.ps1` runs child release scripts through
   timeout-bounded `powershell.exe` child processes and captures stdout, stderr,
   exit code, timeout state, elapsed time, parsed JSON, and raw output.
+- The second-PC reachability probe is bounded. It no longer depends on
+  `Test-NetConnection` default timing; it records source address/interface,
+  bounded ICMP ping timing, bounded TCP connect timing, timeout, and probe
+  errors through `second_pc_reachability`.
 - `audit-desktop-release-readiness.ps1` now checks that the external recheck
   recorder exists.
 - `prepare-final-operator-gate-packet.ps1` copies the recorder and documents
@@ -143,3 +148,31 @@ Key result:
 Remaining blockers are unchanged: second-PC route/CPU/matrix evidence,
 production KV/Upstash owner-scoped P2P lease evidence, `musu@musu.pro` mailbox
 delivery evidence, and Microsoft Store / Partner Center evidence.
+
+## Bounded Second-PC Probe Update
+
+`record-external-release-gate-recheck.ps1` now accepts:
+
+```powershell
+-SecondPcProbeTimeoutMs 3000
+```
+
+The probe uses:
+
+- UDP socket routing to infer `source_address` and `interface_alias`
+- `System.Net.NetworkInformation.Ping.Send(..., timeout)` for bounded ICMP
+- `TcpClient.ConnectAsync(...).Wait(timeout)` for bounded TCP connect
+
+Dirty-tree smoke with `-SecondPcProbeTimeoutMs 500` recorded the expected
+current failure in less than a second for the second-PC subprobe:
+
+- `remote_address=192.168.1.192`
+- `source_address=192.168.1.154`
+- `interface_alias=이더넷 2`
+- `ping_succeeded=false`
+- `tcp_test_succeeded=false`
+- `tcp_error=tcp_connect_timeout`
+
+After this tooling commit, clean external gate evidence must be refreshed again
+so the canonical `docs\evidence\external-gates` snapshot includes
+`probe_method=bounded_ping_and_tcp`.

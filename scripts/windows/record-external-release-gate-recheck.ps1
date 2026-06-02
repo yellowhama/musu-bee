@@ -6,6 +6,7 @@ param(
     [string]$Version,
     [string]$OutputRoot,
     [int]$ScriptTimeoutSeconds = 120,
+    [int]$SecondPcProbeTimeoutMs = 3000,
     [switch]$FailOnNotReady,
     [switch]$FailOnReadyBlockers,
     [switch]$Json
@@ -25,6 +26,9 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 if ($ScriptTimeoutSeconds -lt 1) {
     throw "ScriptTimeoutSeconds must be at least 1."
+}
+if ($SecondPcProbeTimeoutMs -lt 100) {
+    throw "SecondPcProbeTimeoutMs must be at least 100."
 }
 
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
@@ -177,28 +181,163 @@ function ConvertTo-NetAddressString {
     return [string]$Value
 }
 
-function Select-ObjectProperties {
-    param($Object)
-
-    if (-not $Object) {
-        return $null
-    }
-
-    [pscustomobject]@{
-        computer_name = [string]$Object.ComputerName
-        remote_address = ConvertTo-NetAddressString -Value $Object.RemoteAddress
-        remote_port = if ($Object.PSObject.Properties["RemotePort"]) { [int]$Object.RemotePort } else { $null }
-        interface_alias = [string]$Object.InterfaceAlias
-        source_address = ConvertTo-NetAddressString -Value $Object.SourceAddress
-        ping_succeeded = [bool]$Object.PingSucceeded
-        tcp_test_succeeded = [bool]$Object.TcpTestSucceeded
-    }
-}
-
 function ConvertTo-BlockerName {
     param([Parameter(Mandatory = $true)][string]$Text)
 
     return ($Text.ToLowerInvariant() -replace "[^a-z0-9]+", "_" -replace "^_+", "" -replace "_+$", "")
+}
+
+function Resolve-RemoteIPAddress {
+    param([Parameter(Mandatory = $true)][string]$HostName)
+
+    $parsed = $null
+    if ([System.Net.IPAddress]::TryParse($HostName, [ref]$parsed)) {
+        return $parsed
+    }
+
+    $addresses = [System.Net.Dns]::GetHostAddresses($HostName)
+    $selected = @($addresses | Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } | Select-Object -First 1)
+    if ($selected.Count -gt 0) {
+        return $selected[0]
+    }
+    if ($addresses.Count -gt 0) {
+        return $addresses[0]
+    }
+    return $null
+}
+
+function Get-SourceRouteInfo {
+    param(
+        [Parameter(Mandatory = $true)][System.Net.IPAddress]$RemoteAddress,
+        [Parameter(Mandatory = $true)][int]$RemotePort
+    )
+
+    $socket = $null
+    $sourceAddress = ""
+    $interfaceAlias = ""
+    $errorText = $null
+
+    try {
+        $socket = New-Object System.Net.Sockets.Socket($RemoteAddress.AddressFamily, [System.Net.Sockets.SocketType]::Dgram, [System.Net.Sockets.ProtocolType]::Udp)
+        $socket.Connect($RemoteAddress, $RemotePort)
+        $sourceAddress = ConvertTo-NetAddressString -Value $socket.LocalEndPoint.Address
+    }
+    catch {
+        $errorText = $_.Exception.Message
+    }
+    finally {
+        if ($socket) {
+            $socket.Dispose()
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($sourceAddress) -and (Get-Command Get-NetIPAddress -ErrorAction SilentlyContinue)) {
+        try {
+            $ipInfo = Get-NetIPAddress -IPAddress $sourceAddress -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($ipInfo) {
+                $interfaceAlias = [string]$ipInfo.InterfaceAlias
+            }
+        }
+        catch {
+        }
+    }
+
+    [pscustomobject]@{
+        source_address = $sourceAddress
+        interface_alias = $interfaceAlias
+        error = $errorText
+    }
+}
+
+function Test-BoundedReachability {
+    param(
+        [Parameter(Mandatory = $true)][string]$HostName,
+        [Parameter(Mandatory = $true)][int]$Port,
+        [Parameter(Mandatory = $true)][int]$TimeoutMs
+    )
+
+    $remoteAddress = $null
+    $resolveError = $null
+    try {
+        $remoteAddress = Resolve-RemoteIPAddress -HostName $HostName
+    }
+    catch {
+        $resolveError = $_.Exception.Message
+    }
+
+    $routeInfo = $null
+    if ($remoteAddress) {
+        $routeInfo = Get-SourceRouteInfo -RemoteAddress $remoteAddress -RemotePort $Port
+    }
+
+    $pingSucceeded = $false
+    $pingElapsedMs = $null
+    $pingError = $null
+    if ($remoteAddress) {
+        $pingWatch = [Diagnostics.Stopwatch]::StartNew()
+        $ping = New-Object System.Net.NetworkInformation.Ping
+        try {
+            $reply = $ping.Send($remoteAddress, $TimeoutMs)
+            $pingSucceeded = ($reply.Status -eq [System.Net.NetworkInformation.IPStatus]::Success)
+            if ($pingSucceeded -and $reply.RoundtripTime -ge 0) {
+                $pingElapsedMs = [int]$reply.RoundtripTime
+            }
+        }
+        catch {
+            $pingError = $_.Exception.Message
+        }
+        finally {
+            $ping.Dispose()
+            $pingWatch.Stop()
+            if ($null -eq $pingElapsedMs) {
+                $pingElapsedMs = [int]$pingWatch.ElapsedMilliseconds
+            }
+        }
+    }
+
+    $tcpSucceeded = $false
+    $tcpElapsedMs = $null
+    $tcpError = $null
+    if ($remoteAddress) {
+        $tcpWatch = [Diagnostics.Stopwatch]::StartNew()
+        $client = New-Object System.Net.Sockets.TcpClient($remoteAddress.AddressFamily)
+        try {
+            $connectTask = $client.ConnectAsync($remoteAddress, $Port)
+            $tcpSucceeded = $connectTask.Wait($TimeoutMs) -and $client.Connected
+            if (-not $tcpSucceeded -and $connectTask.IsCompleted -and $connectTask.Exception) {
+                $tcpError = $connectTask.Exception.GetBaseException().Message
+            }
+        }
+        catch {
+            $tcpError = $_.Exception.Message
+        }
+        finally {
+            $client.Dispose()
+            $tcpWatch.Stop()
+            $tcpElapsedMs = [int]$tcpWatch.ElapsedMilliseconds
+        }
+        if (-not $tcpSucceeded -and [string]::IsNullOrWhiteSpace($tcpError)) {
+            $tcpError = if ($tcpElapsedMs -ge $TimeoutMs) { "tcp_connect_timeout" } else { "tcp_connect_failed" }
+        }
+    }
+
+    [pscustomobject]@{
+        computer_name = $HostName
+        remote_address = if ($remoteAddress) { $remoteAddress.ToString() } else { $HostName }
+        remote_port = $Port
+        interface_alias = if ($routeInfo) { [string]$routeInfo.interface_alias } else { "" }
+        source_address = if ($routeInfo) { [string]$routeInfo.source_address } else { "" }
+        ping_succeeded = [bool]$pingSucceeded
+        ping_elapsed_ms = $pingElapsedMs
+        tcp_test_succeeded = [bool]$tcpSucceeded
+        tcp_elapsed_ms = $tcpElapsedMs
+        probe_timeout_ms = $TimeoutMs
+        probe_method = "bounded_ping_and_tcp"
+        resolve_error = $resolveError
+        route_error = if ($routeInfo) { $routeInfo.error } else { $null }
+        ping_error = $pingError
+        tcp_error = $tcpError
+    }
 }
 
 $recordedAt = [datetimeoffset]::Now
@@ -213,15 +352,14 @@ $goNoGo = Invoke-JsonScript `
     -Arguments @("-PublicMetadataBaseUrl", $BaseUrl, "-ScriptTimeoutSeconds", ([string]$ScriptTimeoutSeconds), "-Json") `
     -AllowFailure
 
-$secondPcProbe = $null
 $secondPcProbeError = $null
 try {
-    $secondPcProbe = Test-NetConnection -ComputerName $SecondPcHost -Port $SecondPcPort -WarningAction SilentlyContinue
+    $secondPc = Test-BoundedReachability -HostName $SecondPcHost -Port $SecondPcPort -TimeoutMs $SecondPcProbeTimeoutMs
 }
 catch {
     $secondPcProbeError = $_.Exception.Message
+    $secondPc = $null
 }
-$secondPc = Select-ObjectProperties -Object $secondPcProbe
 
 $p2pEnv = Invoke-JsonScript `
     -FilePath (Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1") `
@@ -279,6 +417,7 @@ $result = [pscustomobject]@{
     base_url = $BaseUrl
     second_pc_host = $SecondPcHost
     second_pc_port = $SecondPcPort
+    second_pc_probe_timeout_ms = $SecondPcProbeTimeoutMs
     release_ready = [bool]$releaseReady
     local_artifacts_ready = if ($goNoGo.json) { [bool]$goNoGo.json.local_artifacts_ready } else { $false }
     single_machine_verified = if ($goNoGo.json) { [bool]$goNoGo.json.single_machine_verified } else { $false }
