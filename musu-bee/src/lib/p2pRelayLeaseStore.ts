@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   ensureP2pKvRestEnvAliases,
   hasP2pKvCredentials,
+  p2pKvEnvStatus,
 } from "@/lib/p2pKvEnv";
 
 export type RelayRouteKind = "lan" | "tailscale" | "direct_quic" | "relay";
@@ -40,6 +41,12 @@ export type P2pRelayLeaseQuery = {
   target_node_id?: string;
 };
 
+export type P2pRelayLeaseStoreStatus = {
+  configured: boolean;
+  backend: "vercel_kv" | "upstash_redis" | "file" | "development_file" | "unconfigured";
+  release_grade: boolean;
+};
+
 const KV_KEY = "musu:p2p:relay-leases:v1";
 const DEFAULT_MAX_LEASES = 500;
 const DEFAULT_TTL_SECONDS = 300;
@@ -53,6 +60,43 @@ function shouldUseKv(): boolean {
 
 function hasExplicitFileStore(): boolean {
   return Boolean(process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH?.trim());
+}
+
+export function p2pRelayLeaseStoreStatus(): P2pRelayLeaseStoreStatus {
+  const kvStatus = p2pKvEnvStatus();
+  const kvConfigured = hasP2pKvCredentials();
+  if (kvConfigured) {
+    return {
+      configured: true,
+      backend:
+        kvStatus.url_source === "upstash_redis" || kvStatus.token_source === "upstash_redis"
+          ? "upstash_redis"
+          : "vercel_kv",
+      release_grade: true,
+    };
+  }
+
+  if (hasExplicitFileStore()) {
+    return {
+      configured: true,
+      backend: "file",
+      release_grade: false,
+    };
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return {
+      configured: true,
+      backend: "development_file",
+      release_grade: false,
+    };
+  }
+
+  return {
+    configured: false,
+    backend: "unconfigured",
+    release_grade: false,
+  };
 }
 
 function assertStoreConfigured(): void {

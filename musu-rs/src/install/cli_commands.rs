@@ -749,11 +749,30 @@ struct RelayLeasesReport {
     relay_control_plane_wired: bool,
     relay_transport_wired: bool,
     relay_default_data_path: bool,
+    relay_lease_store_configured: bool,
+    relay_lease_store_backend: Option<String>,
+    relay_lease_store_release_grade: bool,
     count: usize,
     filters: RelayLeasesFilters,
     leases: Vec<crate::cloud::P2pRelayLease>,
     error: Option<String>,
     next_steps: Vec<&'static str>,
+}
+
+fn json_bool_property(value: &serde_json::Value, name: &str) -> Option<bool> {
+    value.get(name).and_then(|property| property.as_bool())
+}
+
+fn json_string_property(value: &serde_json::Value, name: &str) -> Option<String> {
+    value
+        .get(name)
+        .and_then(|property| property.as_str())
+        .map(str::to_string)
+}
+
+fn parse_json_object_from_error_text(text: &str) -> Option<serde_json::Value> {
+    let start = text.find('{')?;
+    serde_json::from_str(&text[start..]).ok()
 }
 
 async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
@@ -880,6 +899,9 @@ async fn run_relay_leases(opts: RelayLeasesOpts) -> Result<()> {
         relay_control_plane_wired: true,
         relay_transport_wired: false,
         relay_default_data_path: false,
+        relay_lease_store_configured: false,
+        relay_lease_store_backend: None,
+        relay_lease_store_release_grade: false,
         count: 0,
         filters,
         leases: vec![],
@@ -906,11 +928,45 @@ async fn run_relay_leases(opts: RelayLeasesOpts) -> Result<()> {
                 report.owner_scoped = response.owner_scoped;
                 report.relay_control_plane_wired = response.relay_control_plane_wired;
                 report.relay_transport_wired = response.relay_transport_wired;
+                report.relay_default_data_path = response.relay_default_data_path;
+                report.relay_lease_store_configured = response.relay_lease_store_configured;
+                report.relay_lease_store_backend = response.relay_lease_store_backend;
+                report.relay_lease_store_release_grade = response.relay_lease_store_release_grade;
                 report.count = response.count;
                 report.leases = response.leases;
             }
             Err(err) => {
-                report.error = Some(err.to_string());
+                let error = err.to_string();
+                if let Some(error_json) = parse_json_object_from_error_text(&error) {
+                    if let Some(value) =
+                        json_bool_property(&error_json, "relay_control_plane_wired")
+                    {
+                        report.relay_control_plane_wired = value;
+                    }
+                    if let Some(value) = json_bool_property(&error_json, "relay_transport_wired") {
+                        report.relay_transport_wired = value;
+                    }
+                    if let Some(value) = json_bool_property(&error_json, "relay_default_data_path")
+                    {
+                        report.relay_default_data_path = value;
+                    }
+                    if let Some(value) =
+                        json_bool_property(&error_json, "relay_lease_store_configured")
+                    {
+                        report.relay_lease_store_configured = value;
+                    }
+                    if let Some(value) =
+                        json_string_property(&error_json, "relay_lease_store_backend")
+                    {
+                        report.relay_lease_store_backend = Some(value);
+                    }
+                    if let Some(value) =
+                        json_bool_property(&error_json, "relay_lease_store_release_grade")
+                    {
+                        report.relay_lease_store_release_grade = value;
+                    }
+                }
+                report.error = Some(error);
             }
         }
     } else {
@@ -936,6 +992,15 @@ async fn run_relay_leases(opts: RelayLeasesOpts) -> Result<()> {
     println!(
         "  relay default data path: {}",
         report.relay_default_data_path
+    );
+    println!(
+        "  relay lease store: configured={}, backend={}, release_grade={}",
+        report.relay_lease_store_configured,
+        report
+            .relay_lease_store_backend
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.relay_lease_store_release_grade
     );
     println!("  count: {}", report.count);
     if let Some(error) = &report.error {

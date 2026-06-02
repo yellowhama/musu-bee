@@ -2153,4 +2153,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/589 index refresh`, `busy-loop process attribution index refresh`,
   `musu-process-ownership-20260603-053549`, and `machine-wide node 16`.
 
+- 2026-06-03 P2P relay lease store status hardening:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_LEASE_STORE_STATUS_HARDENING_2026_06_03.md`
+  (wiki/590) records that relay lease API/CLI/evidence now exposes
+  `relay_lease_store_configured`, `relay_lease_store_backend`, and
+  `relay_lease_store_release_grade`. `verify-p2p-control-plane-evidence.ps1`
+  rejects missing, unconfigured, or non-release-grade relay lease storage.
+  Validation passed `npm run test:p2p` 28/28, `npm run typecheck`, Rust
+  `cargo check --bin musu`, Rust `install::cli_commands` tests 14/14, release
+  evidence verifier regressions 14/14, and `git diff --check`. Search terms
+  should include `GOAL v387`, `wiki/590`,
+  `relay_lease_store_release_grade`, `p2p-bad-store`,
+  `relay lease store status`, and `upstash_redis`.
+
+- 2026-06-03 P2P relay lease store status index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1590 files and 2279 symbols after GOAL v387-v388, wiki/590, P2P
+  relay lease store status hardening, network boundary spec update,
+  WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_p2p_relay_lease_store_status_hardening.md` and
+  `2026-06-03_p2p_relay_lease_store_status_index_refresh.md`. Search terms should
+  include `GOAL v388`, `1590 files`, `2279 symbols`,
+  `wiki/590 index refresh`, `relay_lease_store_backend`, and
+  `p2p relay lease store status index refresh`.
+
 **End of WIKI_INDEX.md.**

@@ -2009,3 +2009,38 @@ Canonical reference:
 
 Index refresh after wiki/589 recorded `1587` files and `2274` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 20. P2P Relay Lease Store Status Hardening (2026-06-03)
+
+wiki/590 records the relay lease store status hardening for the `musu.pro` P2P
+control-plane release gate. Relay lease API/CLI/evidence now exposes
+`relay_lease_store_configured`, `relay_lease_store_backend`, and
+`relay_lease_store_release_grade`.
+
+The accepted public release state is owner-scoped relay lease query success,
+`relay_default_data_path=false`, and release-grade hosted KV/Upstash storage.
+File/dev fallback stores remain local/test diagnostics only.
+
+Validation passed:
+
+- `npm run test:p2p` 28/28
+- `npm run typecheck`
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml install::cli_commands --lib -- --test-threads=1`
+  14/14
+- `test-release-evidence-verifiers.ps1 -Json` 14 cases, 0 failed
+- `git diff --check`
+
+This is not relay payload transport. It closes a release-verifier gap so live
+P2P evidence cannot pass without configured release-grade relay lease storage.
+Because web API, Rust CLI, and verifier source changed, fresh release evidence
+is required after commit/deploy before current-HEAD release claims are restored.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_P2P_RELAY_LEASE_STORE_STATUS_HARDENING_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_p2p_relay_lease_store_status_hardening.md`
+
+Index refresh after wiki/590 recorded `1590` files and `2279` symbols using the
+explicit packaged WindowsApps alias invocation.

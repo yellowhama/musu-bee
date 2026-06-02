@@ -5,6 +5,7 @@ import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   appendRelayLease,
   createRelayLease,
+  p2pRelayLeaseStoreStatus,
   queryRelayLeases,
 } from "@/lib/p2pRelayLeaseStore";
 import type { RelayRouteKind } from "@/lib/p2pRelayLeaseStore";
@@ -72,6 +73,15 @@ function publicLease<T extends { owner_key: string }>(lease: T): Omit<T, "owner_
   return publicRecord;
 }
 
+function relayLeaseStoreFields() {
+  const status = p2pRelayLeaseStoreStatus();
+  return {
+    relay_lease_store_configured: status.configured,
+    relay_lease_store_backend: status.backend,
+    relay_lease_store_release_grade: status.release_grade,
+  };
+}
+
 export async function POST(req: NextRequest) {
   const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
@@ -111,6 +121,7 @@ export async function POST(req: NextRequest) {
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
         relay_default_data_path: false,
+        ...relayLeaseStoreFields(),
         policy: "connect_pro_fallback_only",
         blockers,
       },
@@ -137,6 +148,7 @@ export async function POST(req: NextRequest) {
         ok: false,
         error: "relay_lease_store_failed",
         detail: error instanceof Error ? error.message : "unknown",
+        ...relayLeaseStoreFields(),
       },
       { status: 503 }
     );
@@ -150,6 +162,7 @@ export async function POST(req: NextRequest) {
       relay_control_plane_wired: true,
       relay_transport_wired: true,
       relay_default_data_path: false,
+      ...relayLeaseStoreFields(),
       policy: "connect_pro_fallback_only",
       blockers: [],
       lease: publicLease(lease),
@@ -190,6 +203,8 @@ export async function GET(req: NextRequest) {
       owner_scoped: true,
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
+      relay_default_data_path: false,
+      ...relayLeaseStoreFields(),
       count: leases.length,
       leases: leases.map(publicLease),
     });
@@ -199,6 +214,10 @@ export async function GET(req: NextRequest) {
         ok: false,
         error: "relay_lease_query_failed",
         detail: error instanceof Error ? error.message : "unknown",
+        relay_control_plane_wired: true,
+        relay_transport_wired: relayTransportWired(),
+        relay_default_data_path: false,
+        ...relayLeaseStoreFields(),
       },
       { status: 503 }
     );

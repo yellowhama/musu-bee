@@ -141,7 +141,11 @@ $validP2p = [pscustomobject]@{
         owner_scope_verified = $true
         owner_scoped = $true
         relay_control_plane_wired = $true
+        relay_transport_wired = $true
         relay_default_data_path = $false
+        relay_lease_store_configured = $true
+        relay_lease_store_backend = "upstash_redis"
+        relay_lease_store_release_grade = $true
         count = 0
     }
 }
@@ -308,6 +312,14 @@ $badP2pOwnerScope.relay_leases.owner_scope_verified = $false
 $fixture = Write-Fixture -Name "p2p-bad-owner-scope" -Object $badP2pOwnerScope
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects unverified owner scope" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pStore = Copy-JsonObject -Object $validP2p
+$badP2pStore.relay_leases.relay_lease_store_configured = $false
+$badP2pStore.relay_leases.relay_lease_store_backend = "unconfigured"
+$badP2pStore.relay_leases.relay_lease_store_release_grade = $false
+$fixture = Write-Fixture -Name "p2p-bad-store" -Object $badP2pStore
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects unconfigured relay lease storage" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pDefaultRelay = Copy-JsonObject -Object $validP2p
 $badP2pDefaultRelay.relay_status.relay_default_data_path = $true

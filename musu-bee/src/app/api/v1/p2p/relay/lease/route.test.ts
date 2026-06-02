@@ -108,6 +108,9 @@ test("denies relay lease by default with explicit policy blockers", async () => 
       relay_control_plane_wired: boolean;
       relay_transport_wired: boolean;
       relay_default_data_path: boolean;
+      relay_lease_store_configured: boolean;
+      relay_lease_store_backend: string;
+      relay_lease_store_release_grade: boolean;
       blockers: string[];
     };
     assert.equal(body.lease_issued, false);
@@ -115,6 +118,9 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_default_data_path, false);
+    assert.equal(body.relay_lease_store_configured, true);
+    assert.equal(body.relay_lease_store_backend, "file");
+    assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_disabled/);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
@@ -133,6 +139,9 @@ test("issues an owner-scoped relay fallback lease when policy allows it", async 
       owner_scoped: boolean;
       relay_transport_wired: boolean;
       relay_default_data_path: boolean;
+      relay_lease_store_configured: boolean;
+      relay_lease_store_backend: string;
+      relay_lease_store_release_grade: boolean;
       blockers: string[];
       lease: {
         lease_id: string;
@@ -148,6 +157,9 @@ test("issues an owner-scoped relay fallback lease when policy allows it", async 
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_wired, true);
     assert.equal(body.relay_default_data_path, false);
+    assert.equal(body.relay_lease_store_configured, true);
+    assert.equal(body.relay_lease_store_backend, "file");
+    assert.equal(body.relay_lease_store_release_grade, false);
     assert.deepEqual(body.blockers, []);
     assert.match(body.lease.lease_id, /^relay-lease-/);
     assert.equal(body.lease.owner_key, undefined);
@@ -161,10 +173,16 @@ test("issues an owner-scoped relay fallback lease when policy allows it", async 
     assert.equal(getRes.status, 200);
     const query = (await getRes.json()) as {
       owner_scoped: boolean;
+      relay_lease_store_configured: boolean;
+      relay_lease_store_backend: string;
+      relay_lease_store_release_grade: boolean;
       count: number;
       leases: Array<{ session_id: string; owner_key?: string }>;
     };
     assert.equal(query.owner_scoped, true);
+    assert.equal(query.relay_lease_store_configured, true);
+    assert.equal(query.relay_lease_store_backend, "file");
+    assert.equal(query.relay_lease_store_release_grade, false);
     assert.equal(query.count, 1);
     assert.equal(query.leases[0]?.session_id, "rv_test");
     assert.equal(query.leases[0]?.owner_key, undefined);
@@ -225,6 +243,40 @@ test("queries only relay leases owned by the bearer token", async () => {
     assert.equal(ownerABody.count, 1);
     assert.equal(ownerABody.leases[0]?.session_id, "rv_owner_a");
     assert.equal(ownerABody.leases[0]?.owner_key, undefined);
+  });
+});
+
+test("reports unconfigured production relay lease storage explicitly", async () => {
+  await withRelayEnv(async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const mutableEnv = process.env as Record<string, string | undefined>;
+    delete process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH;
+    mutableEnv.NODE_ENV = "production";
+    try {
+      const { GET } = await loadModule("store-unconfigured");
+      const res = await GET(getReq("?limit=10"));
+      assert.equal(res.status, 503);
+      const body = (await res.json()) as {
+        ok: boolean;
+        error: string;
+        detail: string;
+        relay_lease_store_configured: boolean;
+        relay_lease_store_backend: string;
+        relay_lease_store_release_grade: boolean;
+      };
+      assert.equal(body.ok, false);
+      assert.equal(body.error, "relay_lease_query_failed");
+      assert.match(body.detail, /p2p_relay_lease_kv_not_configured/);
+      assert.equal(body.relay_lease_store_configured, false);
+      assert.equal(body.relay_lease_store_backend, "unconfigured");
+      assert.equal(body.relay_lease_store_release_grade, false);
+    } finally {
+      if (previousNodeEnv === undefined) {
+        delete mutableEnv.NODE_ENV;
+      } else {
+        mutableEnv.NODE_ENV = previousNodeEnv;
+      }
+    }
   });
 });
 

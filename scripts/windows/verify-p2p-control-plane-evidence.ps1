@@ -155,6 +155,9 @@ Add-CheckFromCondition "relay leases owner scope verified" (Get-BoolProperty -Ob
 Add-CheckFromCondition "relay leases owner scoped" (Get-BoolProperty -Object $relayLeases -Name "owner_scoped") "relay leases query is owner-scoped" "relay leases query is not owner-scoped"
 Add-CheckFromCondition "relay leases control-plane wired" (Get-BoolProperty -Object $relayLeases -Name "relay_control_plane_wired") "relay leases control-plane is wired" "relay leases control-plane is not wired"
 Add-CheckFromCondition "relay leases not default data path" (-not (Get-BoolProperty -Object $relayLeases -Name "relay_default_data_path")) "relay leases report relay_default_data_path=false" "relay leases report relay_default_data_path=true"
+Add-CheckFromCondition "relay lease store status present" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayLeases -Name "relay_lease_store_backend"))) "relay lease store backend is present" "relay lease store backend is missing"
+Add-CheckFromCondition "relay lease store configured" (Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured") "relay lease store is configured" "relay lease store is not configured"
+Add-CheckFromCondition "relay lease store release-grade" (Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_release_grade") "relay lease store is release-grade" "relay lease store is not release-grade"
 
 $leaseCount = if ($relayLeases -and $relayLeases.PSObject.Properties["count"]) { [int]$relayLeases.count } else { -1 }
 Add-CheckFromCondition "relay leases count present" ($leaseCount -ge 0) "relay lease count is present" "relay lease count is missing"
@@ -172,6 +175,9 @@ $result = [pscustomobject]@{
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount
+    relay_lease_store_configured = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured"
+    relay_lease_store_backend = Get-StringProperty -Object $relayLeases -Name "relay_lease_store_backend"
+    relay_lease_store_release_grade = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_release_grade"
     checks = $checks.ToArray()
 }
 

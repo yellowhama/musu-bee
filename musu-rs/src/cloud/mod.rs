@@ -211,6 +211,14 @@ pub struct P2pRelayLeaseQueryResponse {
     pub owner_scoped: bool,
     pub relay_control_plane_wired: bool,
     pub relay_transport_wired: bool,
+    #[serde(default)]
+    pub relay_default_data_path: bool,
+    #[serde(default)]
+    pub relay_lease_store_configured: bool,
+    #[serde(default)]
+    pub relay_lease_store_backend: Option<String>,
+    #[serde(default)]
+    pub relay_lease_store_release_grade: bool,
     pub count: usize,
     #[serde(default)]
     pub leases: Vec<P2pRelayLease>,

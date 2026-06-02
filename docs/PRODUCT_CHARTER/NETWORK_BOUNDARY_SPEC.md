@@ -153,6 +153,24 @@ This does not expand the public network claim:
   or internet-P2P claims until route kind, identity, encryption, and payload
   transit are proven on two machines
 
+## 2026-06-03 relay lease store status boundary update
+
+The P2P control-plane release gate now requires explicit relay lease store
+status in the API/CLI/evidence contract.
+
+- `/api/v1/p2p/relay/lease` reports whether the lease audit store is configured,
+  which backend is active, and whether that backend is release-grade.
+- `musu relay leases --json` preserves those fields even when the hosted API
+  returns a storage error body.
+- `verify-p2p-control-plane-evidence.ps1` rejects evidence with missing,
+  unconfigured, or non-release-grade relay lease storage.
+- File and development-file stores are valid for local tests only. Hosted public
+  P2P evidence must use KV/Upstash-backed owner-scoped storage.
+
+This does not make relay the default payload path and does not claim relay
+payload transport is ready. It narrows the remaining `musu.pro` blocker to
+actual hosted storage, owner scope, and later relay/tunnel transport proof.
+
 ## 2026-06-02 post-file-sync primary evidence boundary update
 
 Fresh primary packaged evidence after file sync watcher storm hardening restores
