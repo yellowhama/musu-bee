@@ -1799,3 +1799,40 @@ Canonical reference:
 - `docs/RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
 - `docs/memory/chief_of_staff/2026-06-03_operator_pack_p2p_recheck_0335.md`
 - `docs/memory/chief_of_staff/2026-06-03_operator_pack_p2p_recheck_index_refresh_0336.md`
+
+## 13. Polling Interval Clamp and Primary Evidence (2026-06-03)
+
+wiki/583 records the next frontend busy-loop hardening step. The shared
+`useLowDutyPolling` hook now clamps accidental tight intervals with
+`MIN_LOW_DUTY_POLL_INTERVAL_MS = 5_000`, keeps hidden polling at a 4x effective
+interval, and guards document visibility listener binding for non-browser
+runtimes.
+
+Validation passed runtime-polling tests 11/11, typecheck, production build,
+lint with 0 errors, and diff check.
+
+After rebuilding/replacing the local-sideload MSIX, current primary evidence is:
+
+- single-machine `20260603-035325-HUGH_SECOND`
+- desktop single-instance `20260603-035450-HUGH_SECOND`
+- process ownership `20260603-035436-HUGH_SECOND`
+- desktop-open CPU `20260603-035458-HUGH_SECOND`
+- runtime CPU matrix `20260603-035608-HUGH_SECOND`
+
+Desktop-open CPU reports MUSU `0`, Node `0.03`, WebView2 `0.6`, working set
+`500.44MB`, and hot `0`. The matrix passed all four scenarios with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`.
+
+Clean go/no-go remains public No-Go: runtime idle CPU and matrix are each
+`1/2`, second-PC multi-device evidence is missing, `musu.pro` P2P relay lease
+KV/Upstash evidence is missing, support mailbox and Store evidence are missing,
+and this developer machine still has a local runtime-package alias shadow
+because `C:\Users\empty\.cargo\bin\musu.exe` precedes the WindowsApps alias.
+
+Index refresh after wiki/583 recorded `1551` files and `2274` symbols.
+
+Canonical reference:
+
+- `docs/RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`
+- `docs/memory/chief_of_staff/2026-06-03_polling_interval_clamp_primary_evidence.md`
+- `docs/memory/chief_of_staff/2026-06-03_polling_interval_clamp_index_refresh.md`

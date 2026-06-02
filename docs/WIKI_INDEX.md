@@ -1986,4 +1986,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v370`, `1537 files`, `2274 symbols`,
   `wiki/582 index refresh`, and `operator pack P2P recheck index refresh`.
 
+- 2026-06-03 polling interval clamp and primary evidence:
+  `RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`
+  (wiki/583) records the shared polling minimum interval clamp, fresh packaged
+  primary evidence, and clean go/no-go result. Search terms should include
+  `GOAL v371`, `wiki/583`, `MIN_LOW_DUTY_POLL_INTERVAL_MS`,
+  `LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER`, `20260603-035325-HUGH_SECOND`,
+  `20260603-035450-HUGH_SECOND.desktop-single-instance`,
+  `20260603-035436-HUGH_SECOND.process-ownership`,
+  `20260603-035458-HUGH_SECOND.desktop-open`,
+  `20260603-035608-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`, and
+  `C:\Users\empty\.cargo\bin\musu.exe`.
+
+- 2026-06-03 polling interval clamp index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1551 files and 2274 symbols after GOAL v371-v372, wiki/583, the polling
+  interval clamp source change, fresh primary evidence files, the polling
+  interval clamp primary evidence report, BETA/current-head/WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_polling_interval_clamp_primary_evidence.md` and
+  `2026-06-03_polling_interval_clamp_index_refresh.md`. Search terms should
+  include `GOAL v372`, `1551 files`, `2274 symbols`, `wiki/583 index refresh`,
+  `polling interval clamp index refresh`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`.
+
 **End of WIKI_INDEX.md.**

@@ -1351,3 +1351,38 @@ Second-PC `192.168.1.192:8949` remains unreachable from `HUGH_SECOND`
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
+
+## 2026-06-03 04:01 KST Polling Interval Clamp and Primary Evidence
+
+Shared frontend polling now has an explicit minimum interval floor:
+`MIN_LOW_DUTY_POLL_INTERVAL_MS = 5_000`. Hidden polling uses a 4x effective
+interval, and the poller guards document visibility listener binding for
+non-browser runtimes. This closes another frontend refetch-loop regression
+class without changing the current visible 5s+ callers.
+
+Validation passed runtime-polling tests 11/11, typecheck, production build,
+lint with 0 errors, and diff check.
+
+The local-sideload MSIX was rebuilt/replaced and primary evidence was refreshed:
+
+- single-machine `20260603-035325-HUGH_SECOND`
+- desktop single-instance `20260603-035450-HUGH_SECOND`
+- process ownership `20260603-035436-HUGH_SECOND`
+- desktop-open CPU `20260603-035458-HUGH_SECOND`
+- runtime CPU matrix `20260603-035608-HUGH_SECOND`
+
+Qualitative result: primary machine evidence again does not support the
+reported MUSU-owned 20%-of-one-core busy loop. Desktop-open CPU reports MUSU
+`0`, Node `0.03`, WebView2 `0.6`, working set `500.44MB`, and hot `0`.
+Process ownership reports MUSU-owned Node `0`, owned WebView2 `6`,
+machine-wide Node `18`, and orphan repo helpers `0`.
+
+Clean go/no-go remains public No-Go. Runtime idle CPU and matrix are only
+`1/2 [HUGH_SECOND]`, and second-PC, support mailbox, Store, and P2P
+control-plane gates remain false. `runtime-package` is also false on this
+developer machine because `C:\Users\empty\.cargo\bin\musu.exe` shadows the
+WindowsApps execution alias.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`

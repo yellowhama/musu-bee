@@ -1529,3 +1529,50 @@ Fresh P2P live evidence:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_OPERATOR_PACK_P2P_RECHECK_2026_06_03_0335.md`
+
+## 2026-06-03 04:01 KST Polling Interval Clamp and Primary Evidence
+
+`useLowDutyPolling` now clamps accidental tight frontend intervals:
+
+- `MIN_LOW_DUTY_POLL_INTERVAL_MS = 5_000`
+- hidden polling uses `LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER = 4`
+- effective max backoff is never below the effective interval
+- document visibility binding is guarded with `typeof document !== "undefined"`
+
+Validation passed `npx tsx --test src/app/runtime-polling-contract.test.ts`
+11/11, `npm run test:runtime-polling` 11/11, `npm run typecheck`,
+`npm run build`, `npm run lint` with 0 errors and 74 existing warnings, and
+`git diff --check`.
+
+Fresh packaged primary evidence after MSIX rebuild/install:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-035325-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260603-035450-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260603-035436-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-035458-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-035608-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Desktop-open CPU reports MUSU `0`, Node `0.03`, WebView2 `0.6`, working set
+`500.44MB`, and hot `0`. Matrix route token:
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_035608`.
+
+Clean go/no-go remains No-Go: single-machine, MSIX install, MSIX desktop
+entrypoint, process ownership, startup single-instance, desktop single-instance,
+and public metadata pass, but runtime idle CPU and matrix are still `1/2`.
+Remaining blockers are runtime-package alias shadowing on this dev machine,
+second-PC multi-device/CPU/matrix evidence, support mailbox, Store release, and
+live owner-scoped `musu.pro` P2P relay lease evidence.
+
+Local alias shadowing:
+
+- `C:\Users\empty\.cargo\bin\musu.exe` precedes
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POLLING_INTERVAL_CLAMP_PRIMARY_EVIDENCE_2026_06_03.md`
