@@ -1201,3 +1201,28 @@ Roadmap status:
   next evidence step.
 - P2P/relay public claims remain blocked on live `musu.pro` owner-scoped
   control-plane evidence and release-grade two-machine route proof.
+
+## 2026-06-02 Stop/Desktop Cleanup Evidence Refresh
+
+Post-commit local-sideload MSIX evidence is restored on `HUGH_SECOND` after
+`musu down --include-desktop` was added:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-195058-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-195129-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-195140-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The fresh desktop-open CPU sample reports MUSU `0`, WebView2 `0.39`, owned Node
+`0`, working set `362.27MB`, and hot process count `0`. The matrix route token
+is `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`. Packaged cleanup stopped the
+bridge and one desktop shell with `desktop_pids_after=[]`.
+
+Current hardening verdict: primary busy-loop evidence is not reproduced on the
+current packaged build, but public release remains No-Go until the same CPU and
+matrix proof returns from a real second PC, multi-device route evidence passes,
+the live `musu.pro` P2P control plane is owner-scope verified, and support/Store
+external evidence is recorded.

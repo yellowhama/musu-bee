@@ -1602,4 +1602,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wait_for_pids_exit`, `--include-desktop`, and `stop desktop cleanup index
   refresh`.
 
+- 2026-06-02 post stop/desktop cleanup primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_STOP_DESKTOP_CLEANUP_PRIMARY_EVIDENCE_2026_06_02.md`
+  (wiki/564) records the current primary evidence after rebuilding and
+  installing the local-sideload MSIX with `--include-desktop`. Search terms
+  should include `GOAL v331`, `wiki/564`, `20260602-195914-HUGH_SECOND`,
+  `20260602-195058-HUGH_SECOND.desktop-single-instance`,
+  `20260602-195129-HUGH_SECOND.process-ownership`,
+  `20260602-195140-HUGH_SECOND.desktop-open`,
+  `20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`, `desktop_pids_after=[]`,
+  `machine-wide Node 16`, `MUSU-owned Node 0`, and
+  `post stop/desktop cleanup primary evidence`.
+
+- 2026-06-02 index refresh after post stop/desktop cleanup primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1421 files and 2251 symbols after wiki/564, GOAL v331/v332, the post
+  stop/desktop cleanup primary evidence report, BETA/current-head/runtime
+  roadmap/stop cleanup report updates, WIKI, new evidence files, and CoS
+  memory. Search terms should include `GOAL v332`, `1421 files`,
+  `2251 symbols`, `2026-06-02_2010_kst_post_stop_desktop_primary_evidence_refresh.md`,
+  and `post stop/desktop cleanup primary evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

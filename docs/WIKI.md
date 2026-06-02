@@ -1336,6 +1336,30 @@ Indexer note:
   `--include-desktop`, `desktop_cleanup_attempted`, `desktop_pids_after`, and
   `musu_desktop_pids`.
 
+- 2026-06-02 post stop/desktop cleanup primary evidence refresh:
+  wiki/564 records that the local-sideload MSIX was rebuilt/installed after
+  `--include-desktop` and primary evidence is back to `1/2` on `HUGH_SECOND`.
+  Current evidence includes single-machine `20260602-195914-HUGH_SECOND`,
+  desktop single-instance `20260602-195058-HUGH_SECOND.desktop-single-instance`,
+  process ownership `20260602-195129-HUGH_SECOND.process-ownership`,
+  desktop-open CPU `20260602-195140-HUGH_SECOND.desktop-open`, and runtime
+  matrix `20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix` with route
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`. Packaged
+  `musu down --json --timeout-sec 5 --include-desktop` stopped bridge PID
+  `12472` and desktop PID `16460` with `desktop_pids_after=[]`. Go/no-go
+  remains No-Go because second-PC CPU/matrix/route, live `musu.pro` P2P,
+  `musu@musu.pro`, and Store evidence are still missing.
+
+- 2026-06-02 index refresh after post stop/desktop cleanup primary evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1421 files and 2251 symbols after wiki/564, GOAL v331/v332, the post
+  stop/desktop cleanup primary evidence report, BETA/current-head/runtime
+  roadmap/stop cleanup report updates, WIKI_INDEX, new evidence files, and CoS
+  memory `2026-06-02_2010_kst_post_stop_desktop_primary_evidence_refresh.md`.
+  Search terms should include `GOAL v332`, `1421 files`, `2251 symbols`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`, and
+  `post stop/desktop cleanup primary evidence index refresh`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

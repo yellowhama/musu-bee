@@ -1073,3 +1073,44 @@ again.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1412` files and `2251` symbols after stop/desktop cleanup hardening, docs,
   WIKI, WIKI_INDEX, GOAL, and CoS memory updates.
+
+## 2026-06-02 20:10 KST Post Stop/Desktop Cleanup Primary Evidence
+
+After rebuilding and installing the local-sideload MSIX with
+`--include-desktop`, current primary evidence is restored on `HUGH_SECOND`.
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-195914-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-195058-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-195129-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-195140-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- desktop repeated activation: pass, repeat count `3`, final shell count `1`
+- process ownership: pass, runtime `1`, desktop `1`, MUSU-owned Node `0`,
+  MUSU-owned WebView2 `6`, machine-wide Node `16`, orphan repo helpers `0`
+- desktop-open CPU: pass, MUSU `0`, WebView2 `0.39`, owned Node `0`, working
+  set `362.27MB`, hot `0`
+- runtime CPU matrix: pass, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531`
+- packaged cleanup:
+  `musu down --json --timeout-sec 5 --include-desktop` stopped bridge PID
+  `12472` and desktop PID `16460`, with `desktop_pids_after=[]`
+
+Clean go/no-go remains No-Go: `single_machine=true`, runtime idle CPU `1/2`,
+runtime matrix `1/2`, process ownership true, desktop single-instance true,
+`manifest_dirty=false`. Remaining blockers are real second-PC multi-device
+route evidence, second-PC CPU/matrix evidence, live `musu.pro` P2P
+owner-scoped evidence, `musu@musu.pro` mailbox evidence, and Store evidence.
+
+2026-06-02 20:10 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1421` files and `2251` symbols after the post stop/desktop cleanup primary
+  evidence docs/evidence/wiki updates.

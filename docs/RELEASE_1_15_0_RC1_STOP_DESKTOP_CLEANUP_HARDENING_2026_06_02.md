@@ -78,12 +78,31 @@ Local validation on `HUGH_SECOND`:
   `desktop_cleanup_attempted=true`, empty desktop PID lists, and
   `desktop_errors=[]` on a no-op cleanup machine.
 
+## Post-Commit Packaged Evidence
+
+After the source commit, the local-sideload MSIX was rebuilt and installed as
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Current primary evidence is
+restored on `HUGH_SECOND`:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-195914-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-195058-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-195129-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-195140-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Packaged `musu down --json --timeout-sec 5 --include-desktop` then stopped the
+running bridge and desktop shell with `desktop_pids_after=[]`.
+
 ## Remaining Release Meaning
 
-This is runtime/process hardening, not release evidence completion. Because it
-changes Rust source, current packaged MSIX evidence is stale for this source
-commit until the MSIX is rebuilt/installed and primary smoke/CPU/matrix/process
-evidence are refreshed. Public release remains No-Go until:
+This is runtime/process hardening, not release evidence completion. Current
+primary evidence is refreshed to `1/2` on `HUGH_SECOND`; public release remains
+No-Go until:
 
 - current two-machine runtime idle CPU evidence passes,
 - current two-machine runtime CPU scenario matrix evidence passes,

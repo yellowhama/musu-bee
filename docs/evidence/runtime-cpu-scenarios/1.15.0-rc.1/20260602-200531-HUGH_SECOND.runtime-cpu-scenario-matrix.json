@@ -1,0 +1,200 @@
+﻿{
+    "schema":  "musu.runtime_cpu_scenario_matrix.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "991deec9b7301ff6ebc5b7c486a7c589e242bc9f",
+    "git_dirty":  false,
+    "started_at":  "20260602-200531",
+    "completed_at":  "2026-06-02T20:10:04.9853185+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "sample_seconds":  60,
+    "max_one_core_percent":  5,
+    "max_owned_process_count":  16,
+    "max_owned_webview2_process_count":  8,
+    "max_total_working_set_mb":  1024,
+    "requested_scenarios":  [
+                                "runtime-started",
+                                "dashboard-open",
+                                "desktop-open",
+                                "post-route"
+                            ],
+    "route_probe":  {
+                        "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                        "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                        "output":  "??Sending task to local...\n??Task queued: 4d2e513f-bc3f-46bb-8be0-d9e992854ca1\n??Waiting for task 4d2e513f-bc3f-46bb-8be0-d9e992854ca1...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                        "ok":  true
+                    },
+    "fail_count":  0,
+    "scenarios":  [
+                      {
+                          "scenario":  "runtime-started",
+                          "preparation":  {
+                                              "action":  "musu up --json",
+                                              "bridge":  {
+                                                             "status":  "ok",
+                                                             "local_url":  "http://127.0.0.1:14958",
+                                                             "service_registry_addr":  "127.0.0.1:14958",
+                                                             "service_registry_pid":  12472,
+                                                             "public_url":  "http://127.0.0.1:14958",
+                                                             "public_url_valid":  true,
+                                                             "health_http_status":  200,
+                                                             "health_body":  {
+                                                                                 "status":  "ok",
+                                                                                 "version":  "1.15.0-rc.1",
+                                                                                 "worker_ok":  true,
+                                                                                 "db_size_mb":  0.1640625,
+                                                                                 "disk_free_pct":  0.0,
+                                                                                 "auth_mode":  "production",
+                                                                                 "audit_degraded":  false,
+                                                                                 "schema_applied":  true,
+                                                                                 "relay":  null
+                                                                             },
+                                                             "error":  null,
+                                                             "note":  "Local bridge is reachable."
+                                                         },
+                                              "dashboard":  {
+                                                                "status":  "ok",
+                                                                "dev_url":  "http://127.0.0.1:3000/app",
+                                                                "start_url":  "http://127.0.0.1:3001/app",
+                                                                "reachable_url":  "http://127.0.0.1:3001/app",
+                                                                "note":  "Dashboard is reachable."
+                                                            }
+                                          },
+                          "measurement":  {
+                                              "scenario":  "runtime-started",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260602-200531-HUGH_SECOND\\20260602-200531-HUGH_SECOND.runtime-started.evidence.json",
+                                              "git_commit":  "991deec9b7301ff6ebc5b7c486a7c589e242bc9f",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.065,
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  1,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0.03,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "total_working_set_mb_after":  503.58,
+                                              "total_private_memory_mb_after":  331.28,
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "dashboard-open",
+                          "preparation":  {
+                                              "action":  "Start-Process DashboardUrl",
+                                              "discovery_action":  "none",
+                                              "dashboard_url":  "http://127.0.0.1:3001/app",
+                                              "dashboard_url_source":  "argument",
+                                              "note":  "Browser/WebView ownership depends on the caller; evidence still only budgets MUSU-owned/repo-related processes."
+                                          },
+                          "measurement":  {
+                                              "scenario":  "dashboard-open",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260602-200531-HUGH_SECOND\\20260602-200531-HUGH_SECOND.dashboard-open.evidence.json",
+                                              "git_commit":  "991deec9b7301ff6ebc5b7c486a7c589e242bc9f",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.046,
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  1,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0.03,
+                                                                                   "webview2":  0.23,
+                                                                                   "other":  0
+                                                                               },
+                                              "total_working_set_mb_after":  505.11,
+                                              "total_private_memory_mb_after":  332.55,
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "desktop-open",
+                          "preparation":  {
+                                              "action":  "Start packaged desktop app",
+                                              "desktop_app_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+                                          },
+                          "measurement":  {
+                                              "scenario":  "desktop-open",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260602-200531-HUGH_SECOND\\20260602-200531-HUGH_SECOND.desktop-open.evidence.json",
+                                              "git_commit":  "991deec9b7301ff6ebc5b7c486a7c589e242bc9f",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.047,
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  1,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "total_working_set_mb_after":  503.84,
+                                              "total_private_memory_mb_after":  330.92,
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "post-route",
+                          "preparation":  {
+                                              "action":  "musu route --wait",
+                                              "route_probe":  {
+                                                                  "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                                                                  "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                                                                  "output":  "??Sending task to local...\n??Task queued: 4d2e513f-bc3f-46bb-8be0-d9e992854ca1\n??Waiting for task 4d2e513f-bc3f-46bb-8be0-d9e992854ca1...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260602_200531",
+                                                                  "ok":  true
+                                                              }
+                                          },
+                          "measurement":  {
+                                              "scenario":  "post-route",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260602-200531-HUGH_SECOND\\20260602-200531-HUGH_SECOND.post-route.evidence.json",
+                                              "git_commit":  "991deec9b7301ff6ebc5b7c486a7c589e242bc9f",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.057,
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  1,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0.03,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "total_working_set_mb_after":  503.5,
+                                              "total_private_memory_mb_after":  330.35,
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      }
+                  ],
+    "matrix_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260602-200531-HUGH_SECOND\\20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix.json"
+}

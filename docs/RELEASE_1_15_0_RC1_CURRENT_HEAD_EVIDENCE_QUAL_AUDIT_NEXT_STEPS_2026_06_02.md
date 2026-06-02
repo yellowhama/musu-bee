@@ -826,3 +826,45 @@ support mailbox, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_SECOND_PC_CLEANUP_HARDENING_2026_06_02.md`
+
+## 2026-06-02 20:10 KST Post Stop/Desktop Cleanup Evidence Refresh
+
+The local-sideload MSIX was rebuilt and installed after the stop/desktop cleanup
+source change. Current primary evidence is restored on `HUGH_SECOND`.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-195914-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-195058-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-195129-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-195140-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-200531-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Qualitative result:
+
+- single-machine beta quality is current again on the primary Windows machine
+- the busy-loop report is not reproduced in this packaged desktop-open sample
+- MUSU-owned Node count is `0`; the remaining machine-wide Node processes are
+  outside MUSU ownership
+- `--include-desktop` works in the installed package and stopped one real
+  `musu-desktop.exe` shell after the run
+
+Audit note: desktop activation alone did not start the bridge runtime before
+the process ownership audit. Explicit packaged `musu up --json` restored the
+runtime and produced passing evidence. Treat this as the current runtime-start
+contract unless the product spec is changed to require desktop auto-start.
+
+Go/no-go remains No-Go with `single_machine=true`, runtime idle CPU `1/2`,
+runtime matrix `1/2`, process ownership true, desktop single-instance true, and
+`manifest_dirty=false`. Remaining blockers are second-PC route/CPU/matrix, live
+`musu.pro` P2P owner-scope proof, `musu@musu.pro` mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STOP_DESKTOP_CLEANUP_PRIMARY_EVIDENCE_2026_06_02.md`
