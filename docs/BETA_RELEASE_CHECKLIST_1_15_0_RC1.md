@@ -1012,3 +1012,35 @@ still required for runtime idle CPU, runtime CPU matrix, and route evidence.
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
   `1409` files and `2245` symbols after second-PC runtime cleanup hardening,
   docs/wiki/spec updates, and CoS memory updates.
+
+## 2026-06-02 18:58 KST Current Operator Handoff Refresh
+
+After committing the second-PC runtime cleanup wiring, the clean HEAD
+`a3cfdb5c153da2f3e2fca0f7ad337890290a2ff4` generated and verified the
+current operator handoff artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-185745.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-185802.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260602-185745`
+- support mailbox:
+  `musu@musu.pro`
+
+`verify-final-operator-gate-packet.ps1` passed with `ok=true`,
+`fail_count=0`, and `kit_count=1`. `verify-operator-action-pack.ps1` passed
+with `ok=true` and `fail_count=0`; the second-PC transfer quickstart and nested
+kit README now both verify that `.local-build\runtime-cleanup\*.runtime-cleanup.json`
+is listed for return.
+
+2026-06-02 19:00 KST index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `1410` files and `2245` symbols after the current operator action pack
+  refresh, BETA/current-head/WIKI/WIKI_INDEX/GOAL updates, and CoS memory
+  `2026-06-02_1859_kst_current_operator_action_pack_after_cleanup.md`.

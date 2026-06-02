@@ -242,6 +242,28 @@ post-security primary evidence refresh.
 
 Both regenerated artifacts verify with `ok=true`, `fail_count=0`.
 
+2026-06-02 18:58 KST update: after second-PC runtime cleanup hardening, the
+current handoff artifacts were regenerated from clean HEAD
+`a3cfdb5c153da2f3e2fca0f7ad337890290a2ff4`.
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-185745.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-185802.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260602-185745`
+- support mailbox:
+  `musu@musu.pro`
+
+`verify-final-operator-gate-packet.ps1` passed with `ok=true`,
+`fail_count=0`, and `kit_count=1`. `verify-operator-action-pack.ps1` passed
+with `ok=true` and `fail_count=0`; it specifically verifies that the second-PC
+transfer quickstart explains the return archive and cleanup evidence.
+
 ## 2026-06-02 13:57 KST P2P CI Hardening Update
 
 The P2P control-plane route contract is now covered by the web CI lane:

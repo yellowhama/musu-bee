@@ -1556,4 +1556,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1852_kst_second_pc_runtime_cleanup_hardening.md`, and
   `second-PC cleanup index refresh`.
 
+- 2026-06-02 current operator action pack after cleanup hardening:
+  clean HEAD `a3cfdb5c153da2f3e2fca0f7ad337890290a2ff4` generated final
+  operator packet `musu-final-operator-gates-1.15.0-rc.1-20260602-185745.zip`
+  and action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802.zip`; both verify
+  with `ok=true` and `fail_count=0` (`kit_count=1` for the final packet).
+  Current transfer artifacts are
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802.zip` and
+  `MUSU-1.15.0-rc.1-store-submission-20260602-185802.zip`; support evidence
+  still targets `musu@musu.pro` with verification id
+  `musu-store-support-1.15.0-rc.1-20260602-185745`. Search terms should
+  include `GOAL v327`, `wiki/562`, `20260602-185745`, `20260602-185802`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802`, and
+  `cleanup evidence`.
+
+- 2026-06-02 index refresh after current operator action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1410 files and 2245 symbols after wiki/562, GOAL v327/v328, the current
+  operator action pack refresh, BETA/current-head/WIKI/WIKI_INDEX updates, and
+  CoS memory
+  `2026-06-02_1859_kst_current_operator_action_pack_after_cleanup.md`. Search
+  terms should include `GOAL v328`, `1410 files`, `2245 symbols`,
+  `20260602-185745`, `20260602-185802`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802`, and
+  `current operator action pack after cleanup`.
+
 **End of WIKI_INDEX.md.**

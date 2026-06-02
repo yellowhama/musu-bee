@@ -1284,6 +1284,33 @@ Indexer note:
   report/runtime roadmap updates, WIKI_INDEX, and CoS memory
   `2026-06-02_1852_kst_second_pc_runtime_cleanup_hardening.md`.
 
+- 2026-06-02 current operator action pack after cleanup hardening:
+  wiki/562 records clean HEAD
+  `a3cfdb5c153da2f3e2fca0f7ad337890290a2ff4` generating final operator packet
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260602-185745.zip`
+  and operator action pack
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802.zip`.
+  `verify-final-operator-gate-packet.ps1` passed with `ok=true`,
+  `fail_count=0`, and `kit_count=1`; `verify-operator-action-pack.ps1` passed
+  with `ok=true` and `fail_count=0`. The current second-PC transfer zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802.zip`;
+  the Partner Center zip is
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260602-185802\partner-center\MUSU-1.15.0-rc.1-store-submission-20260602-185802.zip`;
+  support remains `musu@musu.pro` with verification id
+  `musu-store-support-1.15.0-rc.1-20260602-185745`. The action-pack verifier
+  now confirms the second-PC quickstart and nested kit README list runtime
+  cleanup evidence for return.
+
+- 2026-06-02 index refresh after current operator action pack:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1410 files and 2245 symbols after wiki/562, GOAL v327/v328, the current
+  operator action pack refresh, BETA/current-head updates, WIKI_INDEX, and CoS
+  memory `2026-06-02_1859_kst_current_operator_action_pack_after_cleanup.md`.
+  Searches should include `20260602-185745`, `20260602-185802`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260602-185802`,
+  `MUSU-1.15.0-rc.1-store-submission-20260602-185802`,
+  `musu-store-support-1.15.0-rc.1-20260602-185745`, and `cleanup evidence`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:
