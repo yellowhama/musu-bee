@@ -1192,3 +1192,27 @@ Validation passed:
 Release caveat: this is Rust runtime source. Current packaged primary evidence
 is stale until MSIX rebuild/install and fresh single-machine/process/CPU/matrix
 evidence are recorded again.
+
+## 2026-06-02 21:45 KST Post Cloud Hardware Probe Primary Evidence
+
+After rebuilding and installing the local-sideload MSIX from commit
+`9fff34aa1dda3eb58d5b105271f660a0c417efaf`, primary packaged evidence is
+current again.
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-213655-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-213404-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-213412-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-213436-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-213706-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result: desktop activation passed with one final shell; process ownership
+passed with runtime `1`, desktop `1`, owned Node `0`, owned WebView2 `6`, and
+bridge `127.0.0.1:7644`; desktop-open CPU passed with MUSU `0`, Node `0`,
+WebView2 `0.49`, working set `363.18MB`, hot `0`; matrix passed with token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`. Cleanup stopped bridge PID
+`32264`, desktop PID `34248`, and the temporary dashboard process tree.

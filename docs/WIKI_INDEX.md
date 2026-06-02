@@ -1679,4 +1679,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2262 symbols`, `2026-06-02_2110_kst_cloud_hardware_probe_idle_hardening.md`,
   `GlobalMemoryStatusEx`, and `RegGetValueW`.
 
+- 2026-06-02 post cloud hardware probe primary evidence:
+  `RELEASE_1_15_0_RC1_POST_CLOUD_HARDWARE_PROBE_PRIMARY_EVIDENCE_2026_06_02.md`
+  (wiki/568) records fresh packaged primary evidence for commit `9fff34aa`.
+  Search terms should include `GOAL v339`, `wiki/568`,
+  `20260602-213655-HUGH_SECOND`, `20260602-213436-HUGH_SECOND.desktop-open`,
+  `20260602-213706-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`, `WebView2 0.49`, and
+  `post cloud hardware probe primary evidence`.
+
+- 2026-06-02 index refresh after post cloud hardware probe evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1443 files and 2262 symbols after wiki/568, GOAL v339/v340, post evidence
+  report, fresh evidence files, WIKI, BETA/current-head/runtime roadmap updates,
+  and CoS memory. Search terms should include `GOAL v340`, `1443 files`,
+  `2262 symbols`, `2026-06-02_2145_kst_post_cloud_hardware_probe_primary_evidence.md`,
+  and `post cloud hardware probe evidence index refresh`.
+
 **End of WIKI_INDEX.md.**

@@ -1423,6 +1423,25 @@ Indexer note:
   should include `GOAL v338`, `1434 files`, `2262 symbols`,
   `gather_hardware_info_cached`, `GlobalMemoryStatusEx`, and `RegGetValueW`.
 
+- 2026-06-02 post cloud hardware probe primary evidence:
+  wiki/568 records fresh packaged primary evidence after commit `9fff34aa`.
+  Evidence paths include `20260602-213655-HUGH_SECOND` single-machine,
+  `20260602-213404-HUGH_SECOND.desktop-single-instance`,
+  `20260602-213412-HUGH_SECOND.process-ownership`,
+  `20260602-213436-HUGH_SECOND.desktop-open`, and
+  `20260602-213706-HUGH_SECOND.runtime-cpu-scenario-matrix`. Desktop-open CPU
+  reports MUSU `0`, Node `0`, WebView2 `0.49`, working set `363.18MB`, hot
+  `0`; matrix token is `MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`.
+
+- 2026-06-02 index refresh after post cloud hardware probe evidence:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1443 files and 2262 symbols after wiki/568, GOAL v339/v340, post cloud
+  hardware probe primary evidence docs/evidence files, BETA/current-head/runtime
+  roadmap/WIKI_INDEX updates, and CoS memory
+  `2026-06-02_2145_kst_post_cloud_hardware_probe_primary_evidence.md`. Search
+  terms should include `GOAL v340`, `1443 files`, `2262 symbols`,
+  `20260602-213706-HUGH_SECOND`, and `post cloud hardware probe evidence`.
+
 ## 9. musu-system Integration State (2026-05-29)
 
 `yellowhama/musu-system` is a credible adjacent MUSU ecosystem line, not a Rust-core replacement. It contains:

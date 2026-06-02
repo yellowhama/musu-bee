@@ -960,3 +960,26 @@ runtime source changed, the previous packaged primary evidence is stale until
 MSIX build/install and fresh primary smoke/process/CPU/matrix evidence are
 recorded again. Release remains No-Go on second-PC CPU/matrix/route, live
 `musu.pro` P2P owner scope, `musu@musu.pro`, and Store evidence.
+
+## 2026-06-02 21:45 KST Post Cloud Hardware Probe Primary Evidence
+
+The local-sideload MSIX was rebuilt and installed from commit `9fff34aa`.
+Primary evidence is restored:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260602-213655-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260602-213404-HUGH_SECOND.desktop-single-instance.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260602-213412-HUGH_SECOND.process-ownership.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260602-213436-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260602-213706-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Current primary verdict: busy-loop is not reproduced. Desktop-open CPU records
+MUSU `0`, Node `0`, WebView2 `0.49`, working set `363.18MB`, and hot `0`.
+The 4-state matrix passed with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260602_213706`. Public release remains No-Go
+until second-PC CPU/matrix/route, live P2P owner scope, `musu@musu.pro`, and
+Store evidence pass.
