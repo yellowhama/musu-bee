@@ -354,3 +354,20 @@ Next release evidence:
    desktop-open idle CPU, and four-state runtime CPU matrix evidence.
 5. Continue second-PC CPU/matrix/route, live P2P KV owner-scope,
    `musu@musu.pro`, and Store evidence gates.
+
+Post-push status:
+
+- commit: `faf199efafb020e11d304ead5b1d3c617d3c71ea`
+- GitHub Actions: `Tests` run `26801850077` success, `E2E Tests - musu-bee`
+  run `26801850121` success, `Deploy musu-bee to Vercel` run `26801850075`
+  success
+- clean go/no-go: `ready=false`, `single_machine=false`,
+  `runtime_idle=false`, `runtime_matrix=false`, process/startup/desktop
+  single-instance true, `manifest_dirty=false`
+- blockers: `single-machine`, `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`,
+  `store-release`
+
+The post-push verdict is correct: the source hardening is green, but current
+primary runtime release evidence is stale until rebuilt and remeasured from
+this HEAD.

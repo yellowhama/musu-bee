@@ -1068,6 +1068,20 @@ Indexer note:
   update, BETA checklist update, WIKI/WIKI_INDEX/GOAL updates, and CoS
   memories `2026-06-02_1500_kst_runtime_reconnect_backoff_hardening.md` and
   `2026-06-02_1508_kst_runtime_reconnect_backoff_index_refresh.md`.
+- 2026-06-02 post-push reconnect hardening status:
+  commit `faf199efafb020e11d304ead5b1d3c617d3c71ea` passed GitHub Actions
+  `Tests` run `26801850077`, `E2E Tests - musu-bee` run `26801850121`, and
+  `Deploy musu-bee to Vercel` run `26801850075`. Clean go/no-go reports
+  `ready=false`, `single_machine=false`, runtime idle CPU `false`, runtime CPU
+  matrix `false`, process/startup/desktop single-instance true, and
+  `manifest_dirty=false`. This is expected after runtime web source changed;
+  fresh current-HEAD MSIX smoke, desktop-open CPU, and runtime matrix evidence
+  are required before primary release evidence can be claimed again.
+- 2026-06-02 index refresh after post-push reconnect hardening status:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1352 files and 2240 symbols after GOAL v309/v310, WIKI/WIKI_INDEX/current-head
+  report updates, and CoS memory
+  `2026-06-02_1510_kst_runtime_reconnect_post_push_status.md`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

@@ -1385,5 +1385,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-02_1500_kst_runtime_reconnect_backoff_hardening.md`,
   `2026-06-02_1508_kst_runtime_reconnect_backoff_index_refresh.md`, and
   `RELEASE_1_15_0_RC1_RUNTIME_RECONNECT_BACKOFF_HARDENING_2026_06_02.md`.
+- 2026-06-02 post-push reconnect hardening status:
+  GOAL v309 records commit `faf199ef`, GitHub Actions runs `26801850077`,
+  `26801850121`, and `26801850075`, clean go/no-go `ready=false`,
+  `single_machine=false`, `manifest_dirty=false`, and blockers
+  `single-machine`, `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `p2p-control-plane`, `support-mailbox`, and
+  `store-release`. Search terms should include `GOAL v309`, `faf199ef`,
+  `post-push reconnect hardening status`, and
+  `2026-06-02_1510_kst_runtime_reconnect_post_push_status.md`.
+- 2026-06-02 index refresh after post-push reconnect hardening status:
+  GOAL v310 records `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed 1352 files and 2240 symbols. Search terms should include
+  `GOAL v310`, `1352 files`, `2240 symbols`, `runtime source evidence stale`,
+  and `single_machine=false`.
 
 **End of WIKI_INDEX.md.**
