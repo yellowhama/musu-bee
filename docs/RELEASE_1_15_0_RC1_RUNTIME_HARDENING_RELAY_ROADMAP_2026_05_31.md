@@ -1037,3 +1037,20 @@ Roadmap status:
 - Primary busy-loop is not reproduced after the health-poll backoff change.
 - Runtime CPU and matrix gates remain `1/2`; the second Windows PC is still the
   next evidence step.
+
+## 2026-06-02 File Sync Watcher Storm Hardening
+
+The optional file sync path now has explicit storm protection:
+
+- bounded watcher event queue: `1024`
+- max batch size: `256` events
+- max batch collection window: `2s`
+- same-path event coalescing before peer push/delete work
+- `50ms` yield after batch-cap pressure
+
+This keeps file sync aligned with the resource-budget rule for background
+workers. It remains off unless shared roots are configured, but when enabled it
+can no longer collect an unbounded event stream before yielding. Validation
+passed cargo fmt, targeted `install::sync` unit test, and `git diff --check`.
+Fresh runtime evidence is still required after commit because this is Rust
+runtime source.

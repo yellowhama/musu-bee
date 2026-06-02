@@ -1174,6 +1174,21 @@ Indexer note:
   update, current-head report update, WIKI_INDEX update,
   `show-final-release-handoff-status.ps1`, `write-release-go-no-go.ps1`, and
   CoS memory `2026-06-02_1630_kst_release_status_fast_path.md`.
+- 2026-06-02 file sync watcher storm hardening:
+  wiki/557 records that optional file sync now has explicit idle-budget bounds.
+  `musu-rs/src/install/sync.rs` replaced its unbounded watcher event channel
+  with a bounded queue of `1024`, caps each batch at `256` events or `2s`,
+  coalesces same-path events to the latest event before processing, and yields
+  `50ms` after a batch cap hit. Validation passed cargo fmt, targeted
+  `install::sync` unit test, and `git diff --check`. This is runtime Rust
+  source, so primary MSIX/smoke/CPU/matrix evidence must be refreshed after
+  commit.
+- 2026-06-02 index refresh after file sync watcher storm hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1366 files and 2242 symbols after wiki/557, GOAL v317/v318, the file sync
+  hardening audit doc, runtime hardening roadmap update, BETA/current-head
+  report updates, WIKI_INDEX update, `musu-rs/src/install/sync.rs`, and CoS
+  memory `2026-06-02_1650_kst_file_sync_watcher_storm_hardening.md`.
 
 ## 9. musu-system Integration State (2026-05-29)
 

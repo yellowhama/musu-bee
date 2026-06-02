@@ -555,3 +555,38 @@ Current release meaning:
 - It does not close public release gates. Required blockers remain second-PC
   CPU/matrix/route evidence, live `musu.pro` owner-scoped P2P evidence,
   `musu@musu.pro` mailbox evidence, and Store evidence.
+
+## 2026-06-02 16:50 KST File Sync Watcher Storm Hardening
+
+Another optional background-work candidate was hardened: file sync.
+
+Previous risk:
+
+- file sync only starts when shared roots are configured, but the watcher event
+  channel was unbounded
+- a continuous filesystem event stream could keep the debounce collector alive
+  longer than intended
+- same-path repeated events were processed separately instead of being
+  collapsed before peer pushes
+
+Current change:
+
+- `musu-rs/src/install/sync.rs` uses a bounded `mpsc` queue with capacity `1024`
+- batch collection stops at `256` events or `2s`
+- same-path events are coalesced to the latest event
+- a batch-cap hit yields for `50ms`
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check` passed
+- `cargo test --manifest-path .\musu-rs\Cargo.toml install::sync --lib -- --test-threads=1`
+  passed
+- `git diff --check` passed
+
+Release meaning:
+
+- This is a real hardening improvement for file/network watcher budgets.
+- It does not close public release gates.
+- It is runtime Rust source, so after commit the current primary evidence must
+  be treated as stale until MSIX, single-machine smoke, desktop-open CPU, and
+  four-state matrix evidence are refreshed.

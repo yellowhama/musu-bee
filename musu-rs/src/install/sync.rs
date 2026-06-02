@@ -2,11 +2,18 @@
 //!
 //! Watches shared directories for changes and pushes deltas to peers.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc;
+
+const SYNC_EVENT_QUEUE_CAPACITY: usize = 1024;
+const SYNC_BATCH_MAX_EVENTS: usize = 256;
+const SYNC_BATCH_MAX_WINDOW: Duration = Duration::from_secs(2);
+const SYNC_BATCH_COOLDOWN: Duration = Duration::from_millis(50);
+const SYNC_BATCH_DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// File sync event.
 #[derive(Debug, Clone)]
@@ -15,7 +22,7 @@ pub struct SyncEvent {
     pub kind: SyncEventKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncEventKind {
     Created,
     Modified,
@@ -31,8 +38,8 @@ pub enum SyncEventKind {
 /// Returns a receiver that gets `SyncEvent`s and the watcher handle.
 pub fn start_watcher(
     paths: &[PathBuf],
-) -> anyhow::Result<(mpsc::UnboundedReceiver<SyncEvent>, RecommendedWatcher)> {
-    let (tx, rx) = mpsc::unbounded_channel();
+) -> anyhow::Result<(mpsc::Receiver<SyncEvent>, RecommendedWatcher)> {
+    let (tx, rx) = mpsc::channel(SYNC_EVENT_QUEUE_CAPACITY);
 
     let tx_clone = tx.clone();
     let mut watcher =
@@ -45,10 +52,17 @@ pub fn start_watcher(
                     _ => return,
                 };
                 for path in &event.paths {
-                    let _ = tx_clone.send(SyncEvent {
+                    if let Err(e) = tx_clone.try_send(SyncEvent {
                         path: path.clone(),
                         kind: kind.clone(),
-                    });
+                    }) {
+                        tracing::warn!(
+                            path = %path.display(),
+                            err = %e,
+                            capacity = SYNC_EVENT_QUEUE_CAPACITY,
+                            "file sync event queue full; dropping event"
+                        );
+                    }
                 }
             }
             Err(e) => {
@@ -70,30 +84,37 @@ pub fn start_watcher(
 
 /// Sync loop: watches for file changes and pushes them to peers.
 pub async fn run_sync_loop(
-    mut rx: mpsc::UnboundedReceiver<SyncEvent>,
+    mut rx: mpsc::Receiver<SyncEvent>,
     _watcher: RecommendedWatcher,
     peers: Vec<String>,
     token: String,
 ) {
     let client = reqwest::Client::new();
-    // Debounce: collect events for 500ms before processing.
     let mut pending: Vec<SyncEvent> = Vec::new();
-    let debounce = Duration::from_millis(500);
 
     loop {
-        // Wait for first event.
         match rx.recv().await {
             Some(event) => pending.push(event),
             None => break, // channel closed
         }
 
-        // Collect more events within debounce window.
-        while let Ok(Some(event)) = tokio::time::timeout(debounce, rx.recv()).await {
+        let batch_started = tokio::time::Instant::now();
+        while pending.len() < SYNC_BATCH_MAX_EVENTS {
+            let remaining_window = SYNC_BATCH_MAX_WINDOW
+                .saturating_sub(batch_started.elapsed())
+                .min(SYNC_BATCH_DEBOUNCE);
+            if remaining_window.is_zero() {
+                break;
+            }
+
+            let Ok(Some(event)) = tokio::time::timeout(remaining_window, rx.recv()).await else {
+                break;
+            };
             pending.push(event);
         }
 
-        // Process batch.
-        let batch: Vec<SyncEvent> = std::mem::take(&mut pending);
+        let reached_batch_cap = pending.len() >= SYNC_BATCH_MAX_EVENTS;
+        let batch = coalesce_sync_batch(std::mem::take(&mut pending));
         for event in &batch {
             tracing::debug!(
                 path = %event.path.display(),
@@ -179,5 +200,57 @@ pub async fn run_sync_loop(
                 }
             }
         }
+
+        if reached_batch_cap {
+            tracing::warn!(
+                max_events = SYNC_BATCH_MAX_EVENTS,
+                "file sync batch cap reached; yielding before next batch"
+            );
+            tokio::time::sleep(SYNC_BATCH_COOLDOWN).await;
+        }
+    }
+}
+
+fn coalesce_sync_batch(batch: Vec<SyncEvent>) -> Vec<SyncEvent> {
+    let mut by_path: BTreeMap<PathBuf, SyncEventKind> = BTreeMap::new();
+    for event in batch {
+        by_path.insert(event.path, event.kind);
+    }
+
+    by_path
+        .into_iter()
+        .map(|(path, kind)| SyncEvent { path, kind })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn coalesce_sync_batch_keeps_latest_event_for_each_path() {
+        let a = PathBuf::from("a.txt");
+        let b = PathBuf::from("b.txt");
+
+        let batch = coalesce_sync_batch(vec![
+            SyncEvent {
+                path: a.clone(),
+                kind: SyncEventKind::Created,
+            },
+            SyncEvent {
+                path: b.clone(),
+                kind: SyncEventKind::Modified,
+            },
+            SyncEvent {
+                path: a.clone(),
+                kind: SyncEventKind::Deleted,
+            },
+        ]);
+
+        assert_eq!(batch.len(), 2);
+        assert_eq!(batch[0].path, a);
+        assert_eq!(batch[0].kind, SyncEventKind::Deleted);
+        assert_eq!(batch[1].path, b);
+        assert_eq!(batch[1].kind, SyncEventKind::Modified);
     }
 }

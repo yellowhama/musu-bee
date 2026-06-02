@@ -804,6 +804,16 @@ Tauri desktop shell evidence:
   evidence verifier regression passed 13/13. Default operator status command is
   now quick 120s; use deep 240s only for full packet/action pack checksum
   verification.
+- 2026-06-02 16:50 KST file sync watcher storm hardening:
+  optional file sync now has bounded background behavior in
+  `musu-rs/src/install/sync.rs`. The watcher event queue is capped at `1024`,
+  each batch is capped at `256` events or `2s`, same-path events are coalesced
+  to the latest event before processing, and batch-cap hits yield `50ms`.
+  Validation passed cargo fmt, targeted `install::sync` unit test, and
+  `git diff --check`. This reduces a file/network watcher resource-budget risk
+  when shared roots are configured; because this is runtime Rust source, fresh
+  primary MSIX/smoke/desktop-open CPU/runtime-matrix evidence is required after
+  commit before current-HEAD release claims.
 
 Release candidate manifest:
 

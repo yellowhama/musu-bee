@@ -1465,5 +1465,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   include `GOAL v316`, `1364 files`, `2240 symbols`, `PacketVerificationMode`,
   `ActionPackVerificationMode`, `latest-per-machine`, and
   `available_candidate_count`.
+- 2026-06-02 file sync watcher storm hardening:
+  wiki/557 records optional file sync resource-budget hardening in
+  `musu-rs/src/install/sync.rs`. Search terms should include `GOAL v317`,
+  `wiki/557`, `SYNC_EVENT_QUEUE_CAPACITY`, `SYNC_BATCH_MAX_EVENTS`,
+  `SYNC_BATCH_MAX_WINDOW`, `SYNC_BATCH_COOLDOWN`, `coalesce_sync_batch`,
+  `bounded mpsc`, `file sync watcher storm`, and
+  `coalesce_sync_batch_keeps_latest_event_for_each_path`.
+- 2026-06-02 index refresh after file sync watcher storm hardening:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  1366 files and 2242 symbols after wiki/557, GOAL v317/v318,
+  `RELEASE_1_15_0_RC1_FILE_SYNC_WATCHER_STORM_HARDENING_2026_06_02.md`,
+  `musu-rs/src/install/sync.rs`, runtime hardening roadmap/BETA/current-head
+  updates, and CoS memory
+  `2026-06-02_1650_kst_file_sync_watcher_storm_hardening.md`. Search terms
+  should include `GOAL v318`, `1366 files`, `2242 symbols`,
+  `SYNC_BATCH_MAX_EVENTS`, `bounded mpsc`, and `coalesce_sync_batch`.
 
 **End of WIKI_INDEX.md.**
