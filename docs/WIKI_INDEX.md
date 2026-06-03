@@ -3004,4 +3004,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_transport_proof_store_backend_not_release_grade`,
   `P2pRelayTransportProofRequest`, and `test:p2p 45/45`.
 
+- 2026-06-04 post relay transport proof API primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/650) records fresh current-source primary packaged evidence after the
+  relay transport proof record API: single-machine
+  `20260604-000322-HUGH_SECOND`, desktop-open CPU
+  `20260604-000405-HUGH_SECOND.desktop-open`, and five-state runtime matrix
+  `20260604-000535-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `GOAL v460`, `wiki/650`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_000259`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_000535`, `WebView2 0.57`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `049a9a9a`.
+
 **End of WIKI_INDEX.md.**
