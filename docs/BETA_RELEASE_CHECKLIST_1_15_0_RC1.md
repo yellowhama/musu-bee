@@ -2859,6 +2859,50 @@ Release remains No-Go until second-PC runtime/multi-device evidence, hosted
 relay payload transport proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 21:45 KST Post Relay Status Descriptor Primary Evidence Refresh
+
+After commit `16b7373d383751932651c926225aedbf946a9b99`, the local-sideload
+MSIX was rebuilt, installed, and primary-machine packaged evidence was
+refreshed.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-213326-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-213716-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-213849-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_213326`
+- dashboard `http://127.0.0.1:3001`
+- bridge `http://127.0.0.1:8290`
+- desktop-open CPU passed for `60.05s`: MUSU `0`, Node `0`,
+  WebView2 `0.21`, hot `0`, working set `511.57MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_213849`
+- matrix max WebView2 `0.29`
+- matrix max working set `518.07MB`
+
+Dirty-tree go/no-go restored `single_machine_verified=true`, runtime idle CPU
+`1/2`, and runtime CPU matrix `1/2`. Public release remains No-Go until
+second-PC runtime/multi-device evidence, hosted relay payload proof, support
+mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_STATUS_DESCRIPTOR_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1794` files and `2339` symbols after GOAL v452, wiki/642, fresh
+  primary evidence, the primary refresh report, WIKI/WIKI_INDEX updates, and
+  CoS memory `2026-06-03_post_relay_status_descriptor_primary_evidence_refresh.md`
+
 ## 2026-06-03 20:30 KST Rust Background Loop Contract Gate
 
 Added `scripts\windows\audit-rust-background-loop-contract.ps1` and wired it

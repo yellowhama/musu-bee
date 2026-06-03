@@ -3548,3 +3548,47 @@ Canonical report:
   `relay_status_payload_endpoint_wired`,
   `relay_transport_payload_endpoint_wired`, and
   `relay_status_reflects_live_transport_descriptor`
+
+## 2026-06-03 post relay status descriptor primary evidence refresh (wiki/642)
+
+Fresh primary-machine packaged evidence was restored after the relay status
+descriptor gate source/script commit `16b7373d383751932651c926225aedbf946a9b99`.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-213326-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-213716-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-213849-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results: smoke output `MUSU_RELEASE_SMOKE_OK_20260603_213326`, dashboard
+`http://127.0.0.1:3001`, bridge `http://127.0.0.1:8290`, desktop-open CPU
+`60.05s` with MUSU `0`, Node `0`, WebView2 `0.21`, hot `0`, and working set
+`511.57MB`; five-state matrix `ok=true`, `fail_count=0`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_213849`, max WebView2 `0.29`, and max
+working set `518.07MB`.
+
+Dirty-tree go/no-go after adding evidence reports `single_machine_verified=true`,
+runtime idle CPU `1/2`, runtime CPU matrix `1/2`, and public No-Go on the
+expected remaining blockers plus dirty git.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_STATUS_DESCRIPTOR_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1794` files and `2339` symbols after GOAL v452, wiki/642, fresh
+  primary evidence `20260603-213326-HUGH_SECOND`,
+  `20260603-213716-HUGH_SECOND.desktop-open`, and
+  `20260603-213849-HUGH_SECOND.runtime-cpu-scenario-matrix`, the primary
+  refresh report, BETA/WIKI/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_post_relay_status_descriptor_primary_evidence_refresh.md`
+- search terms should include `GOAL v453`, `wiki/643 index refresh`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_213326`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_213849`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`
