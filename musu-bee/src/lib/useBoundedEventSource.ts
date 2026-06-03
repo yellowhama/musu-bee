@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
+import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
+
 export const BOUNDED_SSE_RECONNECT_INITIAL_MS = 1_000;
 export const BOUNDED_SSE_RECONNECT_MAX_MS = 10_000;
 export const BOUNDED_SSE_RECONNECT_MULTIPLIER = 2;
 export const BOUNDED_SSE_MAX_RETRIES = 5;
+export const BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS = 10_000;
 
 type EventHandler = (event: MessageEvent) => void;
 type OpenHandler = (event: Event) => void;
@@ -46,6 +49,7 @@ export function useBoundedEventSource({
   const onOpenRef = useRef(onOpen);
   const onErrorRef = useRef(onError);
   const eventsRef = useRef(events);
+  const reconnectWhenVisibleRef = useRef<() => void>(() => {});
   onMessageRef.current = onMessage;
   onOpenRef.current = onOpen;
   onErrorRef.current = onError;
@@ -53,6 +57,20 @@ export function useBoundedEventSource({
 
   const eventNames = useMemo(() => Object.keys(events ?? {}).sort(), [events]);
   const eventNamesKey = eventNames.join("\u0000");
+
+  useLowDutyPolling(
+    () => {
+      reconnectWhenVisibleRef.current();
+    },
+    {
+      intervalMs: BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS,
+      enabled: enabled && visibleOnly,
+      immediate: false,
+      visibleOnly: true,
+      maxBackoffMs: BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS,
+      taskTimeoutMs: 1_000,
+    },
+  );
 
   useEffect(() => {
     if (!enabled || !url || typeof window === "undefined") return;
@@ -133,31 +151,20 @@ export function useBoundedEventSource({
       };
     };
 
-    const handleVisibilityChange = () => {
-      if (!visibleOnly) return;
-      if (!documentIsVisible()) {
-        clearReconnectTimer();
-        closeSource();
-        return;
-      }
+    reconnectWhenVisibleRef.current = () => {
+      if (cancelled || source) return;
       reconnectAttempts = 0;
       connect();
     };
 
     connect();
 
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
     return () => {
       cancelled = true;
       generation += 1;
+      reconnectWhenVisibleRef.current = () => {};
       clearReconnectTimer();
       closeSource();
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
     };
   }, [
     enabled,

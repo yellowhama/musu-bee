@@ -5,13 +5,14 @@
 //! `manual_peers.toml`, authenticate with `MUSU_BRIDGE_TOKEN` /
 //! `MUSU_TOKEN`, and print operator-friendly output.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Args, Subcommand};
 use serde::Serialize;
 
 use crate::bridge::route_evidence::{
-    build_route_attempt_evidence, elapsed_ms, local_node_id, write_route_attempt_evidence,
-    RouteAttemptEvidenceInput, RouteAttemptEvidenceResult, CLI_ROUTE_EVIDENCE_NOTE,
+    build_route_attempt_evidence, elapsed_ms, https_fingerprint_transport_proof, local_node_id,
+    write_route_attempt_evidence, RouteAttemptEvidenceInput, RouteAttemptEvidenceResult,
+    RouteTransportProof, CLI_ROUTE_EVIDENCE_NOTE,
 };
 
 use super::shares::SharesConfig;
@@ -307,12 +308,37 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         .unwrap_or_else(|| "local".to_string());
     let candidate_addr = addr.clone();
 
-    let url = format!("http://{addr}/api/tasks/delegate");
+    let route_base_url = route_base_url_for_addr(&addr, selected_peer.as_ref());
+    let url = route_delegate_url(&route_base_url);
     let client = reqwest::Client::new();
     let route_started = std::time::Instant::now();
     let handshake_ms: Option<u64>;
     let mut route_result = RouteAttemptEvidenceResult::Failed;
     let mut failure_class: Option<String> = None;
+    let transport_proof: Option<RouteTransportProof>;
+    let expected_tls_fingerprint = route_expected_tls_fingerprint(selected_peer.as_ref());
+    let pinned_client = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
+        match crate::bridge::tls_pin::fingerprint_pinned_client(fingerprint) {
+            Ok(client) => Some(client),
+            Err(err) => {
+                failure_class = Some("submit_tls_client_build_error".to_string());
+                write_route_evidence_if_requested(
+                    &opts,
+                    &candidate_addr,
+                    &target_node_id,
+                    None,
+                    elapsed_ms(route_started.elapsed()),
+                    route_result,
+                    failure_class.clone(),
+                    None,
+                )?;
+                return Err(anyhow!("route TLS client error: {err}"));
+            }
+        }
+    } else {
+        None
+    };
+    let request_client = pinned_client.as_ref().unwrap_or(&client);
 
     println!(
         "→ Sending task to {}...",
@@ -328,7 +354,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     });
 
     let submit_started = std::time::Instant::now();
-    let resp = match client
+    let resp = match request_client
         .post(&url)
         .bearer_auth(&token)
         .json(&body)
@@ -338,6 +364,9 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     {
         Ok(resp) => {
             handshake_ms = Some(elapsed_ms(submit_started.elapsed()));
+            transport_proof = expected_tls_fingerprint
+                .as_deref()
+                .map(https_fingerprint_transport_proof);
             resp
         }
         Err(e) => {
@@ -351,6 +380,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
                 elapsed_ms(route_started.elapsed()),
                 route_result,
                 failure_class.clone(),
+                None,
             )?;
             return Err(e.into());
         }
@@ -369,6 +399,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
                     elapsed_ms(route_started.elapsed()),
                     route_result,
                     failure_class.clone(),
+                    transport_proof.clone(),
                 )?;
                 return Err(e.into());
             }
@@ -382,8 +413,8 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
             let task_id = task_id.to_string();
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                let status_url = format!("http://{}/api/tasks/{}", addr, task_id);
-                let status_resp = client
+                let status_url = route_task_status_url(&route_base_url, &task_id);
+                let status_resp = request_client
                     .get(&status_url)
                     .bearer_auth(&token)
                     .timeout(std::time::Duration::from_secs(10))
@@ -444,8 +475,48 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         elapsed_ms(route_started.elapsed()),
         route_result,
         failure_class,
+        transport_proof,
     )?;
     Ok(())
+}
+
+fn route_base_url_for_addr(
+    addr: &str,
+    peer: Option<&crate::peer::discovery::ResolvedPeer>,
+) -> String {
+    let trimmed = addr.trim().trim_end_matches('/');
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        return trimmed.to_string();
+    }
+    let scheme = peer
+        .map(|peer| candidate_transport_scheme(&peer.addr, peer.meta.as_ref()))
+        .unwrap_or_else(|| "http".to_string());
+    format!("{scheme}://{trimmed}")
+}
+
+fn route_base_url_for_scheme(addr: &str, scheme: &str) -> String {
+    let trimmed = addr.trim().trim_end_matches('/');
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        return trimmed.to_string();
+    }
+    format!("{scheme}://{trimmed}")
+}
+
+fn route_delegate_url(base_url: &str) -> String {
+    format!("{}/api/tasks/delegate", base_url.trim_end_matches('/'))
+}
+
+fn route_task_status_url(base_url: &str, task_id: &str) -> String {
+    format!("{}/api/tasks/{}", base_url.trim_end_matches('/'), task_id)
+}
+
+fn route_expected_tls_fingerprint(
+    peer: Option<&crate::peer::discovery::ResolvedPeer>,
+) -> Option<String> {
+    let peer = peer?;
+    (candidate_transport_scheme(&peer.addr, peer.meta.as_ref()) == "https")
+        .then(|| candidate_peer_public_key(peer.meta.as_ref()))
+        .flatten()
 }
 
 fn write_route_evidence_if_requested(
@@ -456,10 +527,12 @@ fn write_route_evidence_if_requested(
     total_attempt_ms: u64,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
+    transport_proof: Option<RouteTransportProof>,
 ) -> Result<()> {
     let Some(path) = opts.route_evidence_path.as_deref() else {
         return Ok(());
     };
+    let peer_identity = transport_proof.as_ref();
     let evidence = build_route_attempt_evidence(RouteAttemptEvidenceInput {
         source_node_id: local_node_id(),
         target_node_id: target_node_id.to_string(),
@@ -470,11 +543,13 @@ fn write_route_evidence_if_requested(
         result,
         failure_class,
         note: CLI_ROUTE_EVIDENCE_NOTE,
-        peer_identity_verified: false,
-        peer_identity_method: None,
-        peer_public_key: None,
-        encryption: "none_http_bearer".to_string(),
-        transport_verified_by: None,
+        peer_identity_verified: peer_identity.is_some(),
+        peer_identity_method: peer_identity.map(|proof| proof.peer_identity_method.clone()),
+        peer_public_key: peer_identity.map(|proof| proof.peer_public_key.clone()),
+        encryption: peer_identity
+            .map(|proof| proof.encryption.clone())
+            .unwrap_or_else(|| "none_http_bearer".to_string()),
+        transport_verified_by: peer_identity.map(|proof| proof.transport_verified_by.clone()),
         relay_fallback: None,
     });
     write_route_attempt_evidence(path, &evidence)?;
@@ -525,7 +600,7 @@ async fn explain_route(opts: &RouteOpts) -> Result<()> {
     let submission_endpoint = if opts.target.is_some() {
         selected
             .as_ref()
-            .map(|p| format!("http://{}/api/tasks/delegate", p.addr))
+            .map(|p| route_delegate_url(&route_base_url_for_scheme(&p.addr, &p.transport_scheme)))
             .unwrap_or_else(|| format!("{}/api/tasks/delegate", local_bridge_base_url()))
     } else {
         format!("{}/api/tasks/delegate", local_bridge_base_url())
@@ -3591,6 +3666,93 @@ mod tests {
         assert!(candidate.peer_public_key_present);
         assert!(candidate.https_fingerprint_pin_available);
         assert_eq!(candidate.encryption, "none_http_bearer");
+    }
+
+    #[test]
+    fn cli_route_uses_https_endpoint_when_candidate_metadata_requires_it() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "192.168.1.50:8070".to_string(),
+            name: Some("remote".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({
+                "transport_scheme": "https",
+                "peer_public_key": "sha256:abcdef",
+            })),
+        };
+
+        let base = route_base_url_for_addr(&peer.addr, Some(&peer));
+
+        assert_eq!(base, "https://192.168.1.50:8070");
+        assert_eq!(
+            route_delegate_url(&base),
+            "https://192.168.1.50:8070/api/tasks/delegate"
+        );
+        assert_eq!(
+            route_task_status_url(&base, "task-123"),
+            "https://192.168.1.50:8070/api/tasks/task-123"
+        );
+        assert_eq!(
+            route_expected_tls_fingerprint(Some(&peer)).as_deref(),
+            Some("sha256:abcdef")
+        );
+    }
+
+    #[test]
+    fn cli_route_does_not_claim_fingerprint_proof_for_http_candidates() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "192.168.1.50:8070".to_string(),
+            name: Some("remote".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({
+                "transport_scheme": "http",
+                "peer_public_key": "sha256:abcdef",
+            })),
+        };
+
+        assert_eq!(
+            route_base_url_for_addr(&peer.addr, Some(&peer)),
+            "http://192.168.1.50:8070"
+        );
+        assert_eq!(route_expected_tls_fingerprint(Some(&peer)), None);
+    }
+
+    #[test]
+    fn cli_route_evidence_records_successful_fingerprint_pinned_transport() {
+        let tmp = tempfile::tempdir().unwrap();
+        let evidence_path = tmp.path().join("route-evidence.json");
+        let opts = RouteOpts {
+            text: "test".to_string(),
+            target: Some("remote".to_string()),
+            channel: "cli".to_string(),
+            wait: false,
+            gpu: false,
+            explain: false,
+            json: false,
+            route_evidence_path: Some(evidence_path.clone()),
+        };
+
+        write_route_evidence_if_requested(
+            &opts,
+            "192.168.1.50:8070",
+            "remote",
+            Some(12),
+            34,
+            RouteAttemptEvidenceResult::Success,
+            None,
+            Some(https_fingerprint_transport_proof("sha256:abcdef")),
+        )
+        .unwrap();
+
+        let value: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(evidence_path).unwrap()).unwrap();
+        assert_eq!(value["peer_identity_verified"], true);
+        assert_eq!(value["peer_identity_method"], "tls_cert_fingerprint_pin");
+        assert_eq!(value["peer_public_key"], "sha256:abcdef");
+        assert_eq!(value["encryption"], "https_tls_fingerprint_pin");
+        assert_eq!(
+            value["transport_verified_by"],
+            crate::bridge::route_evidence::HTTPS_FINGERPRINT_TRANSPORT_VERIFIER
+        );
     }
 
     #[test]

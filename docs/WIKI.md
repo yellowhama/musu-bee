@@ -3273,3 +3273,49 @@ Canonical report:
   `MUSU_RELEASE_SMOKE_OK_20260603_173611`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`, and
   `post bounded frontend SSE primary evidence refresh`
+
+## 2026-06-03 CLI route pinned transport and bounded SSE visibility (wiki/630)
+
+CLI route evidence now preserves actual HTTPS fingerprint-pinned transport proof
+instead of recording advertised identity as if transport was verified.
+
+Changes:
+
+- added shared rustls fingerprint-pinned reqwest client helper
+  `musu-rs\src\bridge\tls_pin.rs`
+- refactored bridge forwarding to use the shared helper
+- taught `musu route` to select HTTPS endpoints from resolved peer metadata
+- route evidence now records `tls_cert_fingerprint_pin` only after the pinned
+  HTTPS request path succeeds
+- `useBoundedEventSource` now delegates visible reconnect checks through
+  `useLowDutyPolling` and no longer registers a direct `visibilitychange`
+  listener
+
+Validation passed Rust CLI route tests `17/17`, bridge forward tests `4/4`,
+route-evidence tests `7/7`, `cargo check --bin musu`,
+`npm run test:runtime-polling` `14/14`, frontend polling contract audit
+`ok=true`/`fail_count=0`, `npm run typecheck`, `npm run test:p2p` `35/35`,
+and `git diff --check`.
+
+Go/no-go remains public release `false`: local artifacts `true`,
+single-machine `true`, frontend polling contract `true`, runtime idle CPU `1/2`,
+runtime CPU matrix `1/2`, hosted P2P control plane `false`, relay transport
+`false`, relay payload proof `false`, and git dirty on this source change.
+This is not QUIC/TLS relay payload implementation.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_PINNED_TRANSPORT_AND_BOUNDED_SSE_VISIBILITY_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1749` files and `2326` symbols after GOAL v440, wiki/630,
+  `musu-rs\src\bridge\tls_pin.rs`, CLI route pinned transport updates,
+  bounded SSE visible reconnect shared-poller updates, the canonical report,
+  BETA/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility.md`
+- search terms should include `GOAL v441`, `wiki/631 index refresh`,
+  `tls_cert_fingerprint_pin`, `BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS`,
+  and `runtime-polling 14/14`

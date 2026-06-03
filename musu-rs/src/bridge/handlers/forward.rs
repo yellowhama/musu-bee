@@ -9,21 +9,14 @@
 
 use std::net::SocketAddr;
 
-use axum::extract::{ConnectInfo, State};
-use axum::http::StatusCode;
-use axum::Json;
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-
 use crate::bridge::error::{MusuError, Result};
 use crate::bridge::route_evidence::elapsed_ms;
 use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
-
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{verify_tls12_signature, verify_tls13_signature, WebPkiSupportedAlgorithms};
-use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{CertificateError, DigitallySignedStruct, Error, SignatureScheme};
+use axum::extract::{ConnectInfo, State};
+use axum::http::StatusCode;
+use axum::Json;
+use serde::{Deserialize, Serialize};
 
 /// A task forwarded from a peer node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,57 +87,6 @@ pub struct ForwardAttemptError {
     pub total_attempt_ms: u64,
     pub failure_class: String,
     pub relay_fallback: Option<crate::bridge::route_evidence::RouteRelayFallbackEvidence>,
-}
-
-#[derive(Debug)]
-struct FingerprintServerCertVerifier {
-    expected_fingerprint: String,
-    supported: WebPkiSupportedAlgorithms,
-}
-
-impl ServerCertVerifier for FingerprintServerCertVerifier {
-    fn verify_server_cert(
-        &self,
-        end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> std::result::Result<ServerCertVerified, Error> {
-        let actual = format!(
-            "sha256:{}",
-            hex::encode(Sha256::digest(end_entity.as_ref()))
-        );
-        if actual.eq_ignore_ascii_case(self.expected_fingerprint.trim()) {
-            Ok(ServerCertVerified::assertion())
-        } else {
-            Err(Error::InvalidCertificate(
-                CertificateError::ApplicationVerificationFailure,
-            ))
-        }
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> std::result::Result<HandshakeSignatureValid, Error> {
-        verify_tls12_signature(message, cert, dss, &self.supported)
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> std::result::Result<HandshakeSignatureValid, Error> {
-        verify_tls13_signature(message, cert, dss, &self.supported)
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        self.supported.supported_schemes()
-    }
 }
 
 fn peer_meta_string(peer: &ResolvedPeer, key: &str) -> Option<String> {
@@ -225,28 +167,6 @@ fn forwarded_task_audit_note(task_id: &str, req: &ForwardedTask) -> String {
         audit_fragment_or_none(req.rendezvous_session_id.as_deref()),
         audit_fragment_or_none(req.rendezvous_target_node_id.as_deref())
     )
-}
-
-fn fingerprint_pinned_client(
-    expected_fingerprint: &str,
-) -> std::result::Result<reqwest::Client, String> {
-    let provider = rustls::crypto::aws_lc_rs::default_provider();
-    let supported = provider.signature_verification_algorithms;
-    let tls_config = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(provider))
-        .with_safe_default_protocol_versions()
-        .map_err(|err| format!("tls protocol config: {err}"))?
-        .dangerous()
-        .with_custom_certificate_verifier(std::sync::Arc::new(FingerprintServerCertVerifier {
-            expected_fingerprint: expected_fingerprint.to_string(),
-            supported,
-        }))
-        .with_no_client_auth();
-    reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
-        .redirect(reqwest::redirect::Policy::none())
-        .use_preconfigured_tls(tls_config)
-        .build()
-        .map_err(|err| format!("fingerprint-pinned reqwest client: {err}"))
 }
 
 fn relay_fallback_status_label(
@@ -469,14 +389,16 @@ async fn forward_to_peer_attempt(
         .flatten();
     let pinned_client = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
         Some(
-            fingerprint_pinned_client(fingerprint).map_err(|err| ForwardAttemptError {
-                message: format!("forward TLS client error: {err}"),
-                route_peer: peer.clone(),
-                rendezvous_session_id: None,
-                handshake_ms: None,
-                total_attempt_ms: elapsed_ms(total_started.elapsed()),
-                failure_class: "forward_tls_client_build_error".to_string(),
-                relay_fallback: None,
+            crate::bridge::tls_pin::fingerprint_pinned_client(fingerprint).map_err(|err| {
+                ForwardAttemptError {
+                    message: format!("forward TLS client error: {err}"),
+                    route_peer: peer.clone(),
+                    rendezvous_session_id: None,
+                    handshake_ms: None,
+                    total_attempt_ms: elapsed_ms(total_started.elapsed()),
+                    failure_class: "forward_tls_client_build_error".to_string(),
+                    relay_fallback: None,
+                }
             })?,
         )
     } else {

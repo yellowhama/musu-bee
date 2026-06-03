@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::peer::discovery::ResolvedPeer;
 
-pub const CLI_ROUTE_EVIDENCE_NOTE: &str = "Actual CLI route attempt evidence. Current transport is legacy HTTP bearer, so this records timing/result but is intentionally not release-grade until peer identity and QUIC/TLS proof are wired.";
+pub const CLI_ROUTE_EVIDENCE_NOTE: &str = "Actual CLI route attempt evidence. HTTPS peers with advertised sha256 certificate fingerprints are recorded only after a fingerprint-pinned request succeeds; HTTP and advertised-only metadata remain non-release-grade until QUIC/TLS proof is wired.";
 pub const BRIDGE_FORWARD_ROUTE_EVIDENCE_NOTE: &str = "Actual bridge remote forwarding evidence. Release-grade status depends on recorded peer identity and encryption proof; non-QUIC HTTP bearer remains non-release-grade.";
 pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
     "musu_bridge_forward_fingerprint_pinned_client";

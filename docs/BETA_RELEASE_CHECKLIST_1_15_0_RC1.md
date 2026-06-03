@@ -2802,6 +2802,56 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 18:31 KST CLI Route Pinned Transport And Bounded SSE Visibility
+
+CLI route evidence now preserves actual HTTPS fingerprint-pinned transport
+proof. `musu route` selects HTTPS peer metadata when available and records
+`tls_cert_fingerprint_pin` only after the fingerprint-pinned request path
+succeeds.
+
+Frontend bounded SSE visibility handling also moved under the shared low-duty
+poller. `useBoundedEventSource` no longer owns a direct `visibilitychange`
+listener, and the frontend polling contract audit again reports no direct
+visibility listeners outside the shared poller.
+
+Validation:
+
+- Rust CLI route tests passed `17/17`
+- Rust bridge forward tests passed `4/4`
+- Rust route-evidence tests passed `7/7`
+- `cargo check --bin musu` passed
+- `npm run test:runtime-polling` passed `14/14`
+- frontend polling contract audit passed with `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, and `direct_visibility_listener_hit_count=0`
+- `npm run typecheck` passed
+- `npm run test:p2p` passed `35/35`
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is transport proof preservation and polling-contract hardening
+- this is not QUIC/TLS relay payload transport implementation
+- public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted relay payload proof, support mailbox evidence, Store evidence, and
+  current dirty git state
+- because runtime source changed, fresh current-commit MSIX/smoke/CPU/matrix
+  evidence is required before packaged primary evidence can be claimed current
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_PINNED_TRANSPORT_AND_BOUNDED_SSE_VISIBILITY_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1749` files and `2326` symbols after GOAL v440, wiki/630,
+  CLI route pinned transport updates, bounded SSE visible reconnect
+  shared-poller updates, the canonical report, BETA/WIKI/WIKI_INDEX updates,
+  and CoS memories
+  `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility.md` and
+  `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility_index_refresh.md`
+
 2026-06-03 index refresh:
 
 - explicit packaged alias indexing:

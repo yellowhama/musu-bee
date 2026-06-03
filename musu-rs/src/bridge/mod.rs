@@ -22,6 +22,7 @@ pub mod rendezvous;
 pub mod route_evidence;
 pub mod router;
 pub mod services;
+pub mod tls_pin;
 
 use std::io::ErrorKind;
 use std::net::SocketAddr;

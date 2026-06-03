@@ -2757,4 +2757,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`, and
   `post bounded frontend SSE primary evidence refresh`.
 
+- 2026-06-03 CLI route pinned transport and bounded SSE visibility:
+  `RELEASE_1_15_0_RC1_CLI_ROUTE_PINNED_TRANSPORT_AND_BOUNDED_SSE_VISIBILITY_2026_06_03.md`
+  (wiki/630) records that `musu route` now selects HTTPS peer metadata and
+  writes `tls_cert_fingerprint_pin` evidence only after a fingerprint-pinned
+  request path succeeds. It also records that `useBoundedEventSource` delegates
+  visible reconnect checks through `useLowDutyPolling` instead of registering a
+  direct `visibilitychange` listener. Search terms should include
+  `GOAL v440`, `wiki/630`, `tls_cert_fingerprint_pin`,
+  `musu-rs\src\bridge\tls_pin.rs`,
+  `BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS`, `runtime-polling 14/14`,
+  `frontend polling contract ok=true`, and `relay payload proof false`.
+
+- 2026-06-03 CLI route pinned transport and bounded SSE visibility index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1749 files and 2326 symbols after GOAL v440, wiki/630,
+  `musu-rs\src\bridge\tls_pin.rs`, CLI route HTTPS fingerprint-pinned
+  evidence path updates, bounded SSE visible reconnect shared-poller updates,
+  the canonical report, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility.md` and
+  `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility_index_refresh.md`.
+  Search terms should include `GOAL v441`, `1749 files`, `2326 symbols`,
+  `wiki/631 index refresh`, `tls_cert_fingerprint_pin`,
+  `BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS`, and `runtime-polling 14/14`.
+
 **End of WIKI_INDEX.md.**

@@ -114,8 +114,10 @@ test("shared bounded EventSource closes failed streams and caps reconnects", () 
   assert.match(text, /new EventSource\(url\)/);
   assert.match(text, /es\.close\(\)/);
   assert.match(text, /reconnectAttempts\s*>=\s*maxRetries/);
-  assert.match(text, /document\.addEventListener\("visibilitychange"/);
-  assert.match(text, /document\.removeEventListener\("visibilitychange"/);
+  assert.match(text, /useLowDutyPolling/);
+  assert.match(text, /BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS\s*=\s*10_000/);
+  assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
+  assert.doesNotMatch(text, /document\.removeEventListener\("visibilitychange"/);
 });
 
 test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {
