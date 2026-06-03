@@ -1,0 +1,93 @@
+﻿{
+    "schema":  "musu.runtime_cpu_scenario_matrix.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "d26a2b78e3a8684e124aade5108887e261089487",
+    "git_dirty":  false,
+    "started_at":  "20260603-145454",
+    "completed_at":  "2026-06-03T14:56:08.2629644+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "sample_seconds":  60,
+    "max_one_core_percent":  5,
+    "max_owned_process_count":  16,
+    "max_owned_webview2_process_count":  8,
+    "max_total_working_set_mb":  1024,
+    "requested_scenarios":  [
+                                "post-route"
+                            ],
+    "route_probe":  {
+                        "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454",
+                        "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454",
+                        "target":  "HUGH-MAIN",
+                        "command":  "musu route --target HUGH-MAIN --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454\"",
+                        "arguments":  [
+                                          "route",
+                                          "--target",
+                                          "HUGH-MAIN",
+                                          "--wait",
+                                          "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454"
+                                      ],
+                        "exit_code":  0,
+                        "stdout":  "??Sending task to HUGH-MAIN...",
+                        "stderr":  "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+                        "output":  "??Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+                        "ok":  false,
+                        "failure_allowed":  true
+                    },
+    "fail_count":  0,
+    "scenarios":  [
+                      {
+                          "scenario":  "post-route",
+                          "preparation":  {
+                                              "action":  "musu route --target --wait",
+                                              "route_probe":  {
+                                                                  "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454",
+                                                                  "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454",
+                                                                  "target":  "HUGH-MAIN",
+                                                                  "command":  "musu route --target HUGH-MAIN --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454\"",
+                                                                  "arguments":  [
+                                                                                    "route",
+                                                                                    "--target",
+                                                                                    "HUGH-MAIN",
+                                                                                    "--wait",
+                                                                                    "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260603_145454"
+                                                                                ],
+                                                                  "exit_code":  0,
+                                                                  "stdout":  "??Sending task to HUGH-MAIN...",
+                                                                  "stderr":  "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+                                                                  "output":  "??Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+                                                                  "ok":  false,
+                                                                  "failure_allowed":  true
+                                                              }
+                                          },
+                          "measurement":  {
+                                              "scenario":  "post-route",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\runtime-cpu-scenarios\\1.15.0-rc.1\\20260603-145454-HUGH_SECOND.post-route.evidence.json",
+                                              "git_commit":  "d26a2b78e3a8684e124aade5108887e261089487",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.049,
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.1,
+                                                                                   "other":  0
+                                                                               },
+                                              "total_working_set_mb_after":  402.69,
+                                              "total_private_memory_mb_after":  215.18,
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      }
+                  ],
+    "matrix_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\runtime-cpu-scenarios\\1.15.0-rc.1\\20260603-145454-HUGH_SECOND.runtime-cpu-scenario-matrix.json"
+}

@@ -3051,3 +3051,63 @@ Canonical report:
   `RouteTarget`, `AllowFailedRouteProbe`, `ExpectedPostRouteTarget`,
   `RuntimeCpuRouteTarget`, and
   `runtime-matrix-failed-target-route-attempt-allowed`
+
+## 2026-06-03 14:56 KST Targeted Post-Route CPU Evidence
+
+wiki/620 records a real post-route CPU diagnostic after an explicit target
+route attempt to registered peer `HUGH-MAIN`.
+
+Evidence:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- post-route sample:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.post-route.evidence.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.targeted-post-route.verification.json`
+
+Result:
+
+- source commit `d26a2b78e3a8684e124aade5108887e261089487`
+- git clean during matrix: `true`
+- route target: `HUGH-MAIN`
+- route output timed out against `192.168.1.192:8949`
+- verifier `ok=true`, `fail_count=0`
+- sample duration `60.049s`
+- hot process count `0`
+- max CPU: MUSU `0`, Node `0`, WebView2 `0.10`, other `0`
+- process counts: MUSU `2`, Node `0`, WebView2 `6`, other `0`
+- working set `402.69MB`
+- cleanup stopped bridge PID `29652` and desktop PID `37956`
+
+Harness hardening:
+
+- normal runtime CPU matrix route probes now fail when the expected per-run
+  route token is missing
+- `-AllowFailedRouteProbe` remains the explicit diagnostic path for sampling
+  after a bounded failed target route attempt
+
+Release interpretation:
+
+- this proves local runtime/WebView2 CPU stays under budget after a failed
+  target route attempt
+- this does not prove multi-device route success or relay payload transport
+- public release remains No-Go until second-PC runtime/multi-device evidence,
+  hosted P2P release-grade relay payload proof, support mailbox evidence, and
+  Store evidence are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_EVIDENCE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1711` files and `2311` symbols after wiki/620, GOAL v430,
+  targeted post-route CPU evidence JSON, the canonical report,
+  route token-missing fail-fast hardening, BETA/WIKI_INDEX updates, and CoS
+  memories
+- search terms should include `GOAL v431`, `wiki/621 index refresh`,
+  `20260603-145454-HUGH_SECOND`, `targeted-post-route.verification.json`,
+  `HUGH-MAIN`, `192.168.1.192:8949`, `WebView2 0.10`, and `402.69MB`

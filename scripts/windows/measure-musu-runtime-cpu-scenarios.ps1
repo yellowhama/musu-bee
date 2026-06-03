@@ -358,6 +358,9 @@ foreach ($name in $Scenario) {
                 if ($routeResult.exit_code -ne 0 -and -not $AllowFailedRouteProbe) {
                     throw "route probe failed with exit code $($routeResult.exit_code): $routeCommand`n$routeOutput"
                 }
+                if (-not [bool]$routeProbe.ok -and -not $AllowFailedRouteProbe) {
+                    throw "route probe did not produce expected token '$expectedRouteToken': $routeCommand`n$routeOutput"
+                }
             }
             $scenarioResults += [pscustomobject]@{
                 scenario = "post-route"

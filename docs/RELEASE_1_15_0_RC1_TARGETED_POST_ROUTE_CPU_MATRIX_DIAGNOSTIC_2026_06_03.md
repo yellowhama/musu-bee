@@ -58,6 +58,10 @@ The matrix `route_probe` object now records `target`, `command`, `arguments`,
 `exit_code`, `stdout`, `stderr`, combined `output`, `ok`, and
 `failure_allowed`.
 
+Normal route probes also fail when the expected per-run route token is missing,
+even if the process exit code is ambiguous. `-AllowFailedRouteProbe` is the
+only path that permits sampling after a failed or token-missing target attempt.
+
 ## Release Boundary
 
 The normal release matrix without `-AllowFailedRouteProbe` still fails before
@@ -79,6 +83,21 @@ multi-device release gate.
     `-AllowFailedPostRouteProbe`
   - expected target mismatch fails
 - `git diff --check` passed.
+
+## Targeted Evidence Follow-Up
+
+Follow-up evidence was captured after this diagnostic path landed:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_EVIDENCE_2026_06_03.md`
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.targeted-post-route.verification.json`
+
+The `HUGH-MAIN` route attempt timed out, then the local runtime/WebView2 process
+set was sampled for `60.049s` with hot process count `0`, MUSU CPU `0`, Node
+CPU `0`, WebView2 CPU `0.10`, and working set `402.69MB`.
 
 ## Current Release State
 

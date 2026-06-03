@@ -2701,3 +2701,46 @@ Canonical report:
 - indexed `1705` files and `2311` symbols after GOAL v428, wiki/618,
   targeted post-route CPU matrix scripts, the canonical report,
   BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 14:56 KST Targeted Post-Route CPU Evidence
+
+Captured clean post-route CPU attribution after a timed-out target route attempt
+to `HUGH-MAIN`.
+
+Evidence:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- post-route sample:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.post-route.evidence.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-145454-HUGH_SECOND.targeted-post-route.verification.json`
+
+Result:
+
+- verifier `ok=true`, `fail_count=0`
+- route target `HUGH-MAIN`; route output timed out against
+  `192.168.1.192:8949`
+- sample duration `60.049s`
+- hot process count `0`
+- max CPU: MUSU `0`, Node `0`, WebView2 `0.10`, other `0`
+- process counts: MUSU `2`, Node `0`, WebView2 `6`, other `0`
+- working set `402.69MB`
+- cleanup stopped the bridge and desktop shell it opened
+
+Harness hardening:
+
+- normal route probes now fail when the expected per-run route token is
+  missing
+- `-AllowFailedRouteProbe` remains diagnostic-only
+
+This evidence does not close multi-device route success or second-PC release
+CPU gates.
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1711` files and `2311` symbols after GOAL v430, wiki/620,
+  targeted post-route CPU evidence JSON, route token-missing fail-fast
+  hardening, BETA/WIKI/WIKI_INDEX updates, and CoS memories

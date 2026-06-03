@@ -2634,4 +2634,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/619 index refresh`, `RouteTarget`, `AllowFailedRouteProbe`,
   `ExpectedPostRouteTarget`, and `RuntimeCpuRouteTarget`.
 
+- 2026-06-03 targeted post-route CPU evidence:
+  `RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_EVIDENCE_2026_06_03.md`
+  (wiki/620) records clean `post-route` CPU evidence after a timed-out
+  `HUGH-MAIN` target route attempt. Search terms should include
+  `GOAL v430`, `20260603-145454-HUGH_SECOND`,
+  `targeted-post-route.verification.json`, `HUGH-MAIN`, `192.168.1.192:8949`,
+  `WebView2 0.10`, `402.69MB`, `route token missing`, and `fail_count=0`.
+
+- 2026-06-03 targeted post-route CPU evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1711 files and 2311 symbols after GOAL v430, wiki/620, targeted
+  post-route CPU evidence JSON, the canonical report, route token-missing
+  fail-fast hardening, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_targeted_post_route_cpu_evidence.md` and
+  `2026-06-03_targeted_post_route_cpu_evidence_index_refresh.md`. Search terms
+  should include `GOAL v431`, `1711 files`, `2311 symbols`,
+  `wiki/621 index refresh`, `targeted-post-route.verification.json`,
+  `HUGH-MAIN`, `WebView2 0.10`, and `402.69MB`.
+
 **End of WIKI_INDEX.md.**
