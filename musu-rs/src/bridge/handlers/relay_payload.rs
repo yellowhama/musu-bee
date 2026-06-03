@@ -62,6 +62,8 @@ pub struct RelayPayloadDrainItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub delivery_proof: Option<crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_class: Option<String>,
 }
 
@@ -206,8 +208,37 @@ fn drain_item_from_payload(
         accepted: false,
         delivered: false,
         task_id: None,
+        delivery_proof: None,
         failure_class: None,
     }
+}
+
+fn delivery_proof_from_delivered_payload(
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+) -> Option<crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof> {
+    let delivered_at = payload
+        .delivered_at
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?;
+    if payload.status.trim() != "delivered" {
+        return None;
+    }
+
+    Some(
+        crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof {
+            schema: "musu.relay_payload_delivery_proof.v1".to_string(),
+            payload_id: payload.payload_id.clone(),
+            session_id: payload.session_id.clone(),
+            lease_id: payload.lease_id.clone(),
+            source_node_id: payload.source_node_id.clone(),
+            target_node_id: payload.target_node_id.clone(),
+            tunnel_id: payload.tunnel_id.clone(),
+            payload_sha256: payload.payload_sha256.clone(),
+            payload_bytes: payload.payload_bytes,
+            delivered_at: delivered_at.to_string(),
+        },
+    )
 }
 
 pub fn start_relay_payload_poller_if_enabled(state: AppState) {
@@ -413,8 +444,18 @@ pub async fn drain_relay_payloads_for_local_target(
                         Ok(Ok(delivery_response))
                             if delivery_response.ok && delivery_response.delivered =>
                         {
-                            item.delivered = true;
-                            report.delivered_count += 1;
+                            if let Some(proof) = delivery_response
+                                .payload
+                                .as_ref()
+                                .and_then(delivery_proof_from_delivered_payload)
+                            {
+                                item.delivery_proof = Some(proof);
+                                item.delivered = true;
+                                report.delivered_count += 1;
+                            } else {
+                                item.failure_class =
+                                    Some("relay_payload_delivery_proof_missing".to_string());
+                            }
                         }
                         Ok(Ok(_)) => {
                             item.failure_class =
@@ -515,5 +556,58 @@ mod tests {
             normalize_relay_payload_poller_limit(Some("999")),
             MAX_DRAIN_LIMIT
         );
+    }
+
+    fn delivered_payload_record() -> crate::cloud::P2pRelayPayloadStoredRecord {
+        crate::cloud::P2pRelayPayloadStoredRecord {
+            payload_id: "payload-1".to_string(),
+            session_id: "rv-test".to_string(),
+            lease_id: "lease-1".to_string(),
+            source_node_id: "source-node".to_string(),
+            target_node_id: "target-node".to_string(),
+            relay_url: "wss://relay.musu.pro/connect".to_string(),
+            tunnel_id: "relay-tunnel-1".to_string(),
+            payload_kind: "forwarded_task_envelope".to_string(),
+            payload_bytes: 128,
+            payload_sha256: "abc123".to_string(),
+            status: "delivered".to_string(),
+            relay_default_data_path: false,
+            release_grade: false,
+            transport_kind: "relay_payload_queue_preview".to_string(),
+            created_at: "2026-06-04T00:00:00Z".to_string(),
+            expires_at: "2026-06-04T00:05:00Z".to_string(),
+            claimed_by: Some("target-node".to_string()),
+            claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
+            delivered_at: Some("2026-06-04T00:00:02Z".to_string()),
+            payload_base64: None,
+        }
+    }
+
+    #[test]
+    fn delivered_payload_record_builds_delivery_proof() {
+        let proof =
+            delivery_proof_from_delivered_payload(&delivered_payload_record()).expect("proof");
+
+        assert_eq!(proof.schema, "musu.relay_payload_delivery_proof.v1");
+        assert_eq!(proof.payload_id, "payload-1");
+        assert_eq!(proof.session_id, "rv-test");
+        assert_eq!(proof.lease_id, "lease-1");
+        assert_eq!(proof.source_node_id, "source-node");
+        assert_eq!(proof.target_node_id, "target-node");
+        assert_eq!(proof.tunnel_id, "relay-tunnel-1");
+        assert_eq!(proof.payload_sha256, "abc123");
+        assert_eq!(proof.payload_bytes, 128);
+        assert_eq!(proof.delivered_at, "2026-06-04T00:00:02Z");
+    }
+
+    #[test]
+    fn delivery_proof_requires_delivered_status_and_timestamp() {
+        let mut payload = delivered_payload_record();
+        payload.status = "claimed".to_string();
+        assert!(delivery_proof_from_delivered_payload(&payload).is_none());
+
+        payload.status = "delivered".to_string();
+        payload.delivered_at = None;
+        assert!(delivery_proof_from_delivered_payload(&payload).is_none());
     }
 }

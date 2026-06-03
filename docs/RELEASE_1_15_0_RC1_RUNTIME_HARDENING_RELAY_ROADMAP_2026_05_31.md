@@ -1627,3 +1627,32 @@ Roadmap status: this does not make relay transport release-grade and does not
 close the live `musu.pro` P2P gate. It removes a Rust/API contract mismatch so
 future relay fallback evidence can include stored payload delivery proof
 alongside the relay transport proof.
+
+## 2026-06-04 Relay Payload Drain Delivery Proof
+
+The target-side relay payload drain now exposes the delivery proof needed by the
+route-evidence contract:
+
+- `RelayPayloadDrainItem` includes optional `delivery_proof`
+- delivered payload metadata is converted into
+  `musu.relay_payload_delivery_proof.v1`
+- a drain item is only counted as delivered when the delivery response includes
+  a delivered payload record with `delivered_at`
+- missing delivery proof is reported as
+  `relay_payload_delivery_proof_missing` instead of silently counting as
+  evidence-grade delivery
+
+Validation:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml`
+- `git diff --check`
+- `cargo test --manifest-path musu-rs\Cargo.toml --lib -j 1 relay_payload`
+  passed 23/23 focused tests
+- `cargo test --manifest-path musu-rs\Cargo.toml --lib -j 1 route_evidence`
+  passed 12/12 focused tests
+
+Roadmap status: request-driven target drains can now return the exact
+payload-delivery proof shape that hosted route evidence expects. Public P2P
+release remains blocked until the production relay payload/transport path is
+actually proven with release-grade QUIC/TLS relay transport and stored
+owner-scoped evidence.
