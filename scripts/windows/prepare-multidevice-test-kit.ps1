@@ -172,6 +172,10 @@ regressions can be attributed to startup activation, runtime start,
 dashboard/desktop opening, or post-route state. Use
 `-SkipRuntimeCpuScenarioMatrix` on
 `run-second-pc-release-check.ps1` only when debugging install/handoff failures.
+Each scenario measurement must preserve `cpu_attribution` with
+`musu.runtime_idle_cpu_attribution.v1` and `top_processes`, so CPU symptoms are
+traceable to concrete MUSU, Node.js, or WebView2 PIDs instead of aggregate
+percentages only.
 
 The wrapper also writes a process-attribution summary with schema
 `musu.process_attribution_summary.v1`. It separates machine-wide Node.js and

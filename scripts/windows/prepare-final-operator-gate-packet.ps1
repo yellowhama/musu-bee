@@ -462,6 +462,9 @@ two-machine `desktop-open` release CPU gate, but final go/no-go also requires a
 verified 60s matrix on two machines so startup-open, runtime-started,
 dashboard-open, desktop-open, and post-route busy-loop regressions are
 separately attributed.
+Each matrix scenario measurement must include `cpu_attribution` with
+`musu.runtime_idle_cpu_attribution.v1` and `top_processes`, so the operator can
+tie any hot state to specific MUSU, Node.js, or WebView2 PIDs.
 
 ## Gate F - Process ownership evidence
 

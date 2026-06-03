@@ -1515,3 +1515,47 @@ Next release work:
    owner-scoped P2P control-plane evidence.
 4. Implement and prove relay payload transport before claiming release-grade
    `route_kind=relay`.
+
+## 2026-06-04 Runtime Matrix CPU Attribution Gate
+
+The five-state runtime CPU scenario matrix now preserves and verifies the same
+PID/role attribution shape as the primary idle CPU evidence.
+
+Root cause fixed: `measure-musu-idle-cpu.ps1` already emitted
+`cpu_attribution`, but `measure-musu-runtime-cpu-scenarios.ps1` summarized each
+scenario without carrying that field forward. The matrix could prove aggregate
+role CPU and process counts, but it could not show the top PID rows for
+`startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+`post-route`.
+
+Current gate behavior:
+
+- each scenario measurement includes `cpu_sample_count`
+- each scenario measurement includes `cpu_attribution`
+- `verify-runtime-cpu-scenario-matrix.ps1` rejects missing
+  `musu.runtime_idle_cpu_attribution.v1`
+- the verifier checks role sample counts, CPU totals by role, max CPU by role,
+  MUSU role presence, desktop-open WebView2 role presence, `top_processes`, and
+  top-process PID/role/CPU fields
+- `test-release-evidence-verifiers.ps1` now includes
+  `runtime matrix rejects missing CPU attribution`
+
+Fresh primary matrix evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-070330-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-070330-HUGH_SECOND.verification.json`
+- summary:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-070330-HUGH_SECOND.summary.md`
+- `ok=true`, `fail_count=0`, `git_dirty=false`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_070330`
+- max one-core CPU by scenario:
+  - `startup-open`: MUSU `0.05`, Node `0.75`, WebView2 `0.05`
+  - `runtime-started`: MUSU `0.05`, Node `0.70`, WebView2 `0.03`
+  - `dashboard-open`: MUSU `0.18`, Node `0.78`, WebView2 `0.05`
+  - `desktop-open`: MUSU `0.13`, Node `1.01`, WebView2 `0.10`
+  - `post-route`: MUSU `0.13`, Node `1.07`, WebView2 `0.18`
+
+Roadmap status: primary one-machine matrix evidence is again current and now
+has PID/role attribution for every required scenario. Public release still
+requires the same current matrix evidence from a real second Windows PC.
