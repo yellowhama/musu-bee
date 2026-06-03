@@ -39,6 +39,19 @@ test("ignores Next app route handlers", () => {
   assert.deepEqual(result.matchedUiFiles, []);
 });
 
+test("ignores API tests under the app tree", () => {
+  const result = evaluateDesignGate({
+    changedFiles: [
+      "musu-bee/src/app/api/v1/p2p/route-evidence/route.test.ts",
+    ],
+    prBody: "",
+  });
+
+  assert.equal(result.uiTouched, false);
+  assert.equal(result.pass, true);
+  assert.deepEqual(result.matchedUiFiles, []);
+});
+
 test("passes when UI paths are touched with all required evidence", () => {
   const result = evaluateDesignGate({
     changedFiles: ["musu-bee/src/components/Sidebar.tsx"],
