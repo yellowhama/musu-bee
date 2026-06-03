@@ -3657,3 +3657,39 @@ WebView2 `0.44`, and max working set `460.51MB`.
 Clean go/no-go on `faef9398` reports `single_machine_verified=true`, runtime
 idle CPU `1/2`, runtime CPU matrix `1/2`, and public No-Go on the remaining six
 release blockers.
+
+## 2026-06-03 relay transport proof store gate (wiki/647)
+
+Relay route evidence now requires inline `relay_transport_proof` JSON to be
+backed by an owner-scoped stored relay transport proof record.
+
+New source:
+
+- `musu-bee/src/lib/p2pRelayTransportProofStore.ts`
+
+Changed behavior:
+
+- `POST /api/v1/p2p/route-evidence` queries the proof store for
+  `route_kind=relay` evidence that carries `relay_transport_proof`.
+- Matching is owner-scoped and bound to session, lease, source/target node,
+  tunnel, relay URL, transport kind, payload bytes, encryption, and verifier.
+- File/development proof stores are not release-grade proof backends.
+
+New blockers:
+
+- `relay_route_transport_proof_not_stored`
+- `relay_route_transport_proof_store_backend_not_release_grade`
+- `relay_route_transport_proof_store_not_release_grade`
+- `relay_route_transport_proof_store_unavailable:<detail>`
+
+Validation passed `npm run test:p2p` `41/41`, `npm run typecheck`, and
+`git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_STORE_GATE_2026_06_03.md`
+
+This is evidence-chain hardening only. The relay payload endpoint remains
+fail-closed and public release still requires a real QUIC relay/tunnel runtime
+that writes stored owner-scoped proof from actual payload transit, plus fresh
+packaged smoke/CPU/matrix evidence after this source commit.

@@ -2973,4 +2973,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_225507`, `WebView2 0.6`,
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `faef9398`.
 
+- 2026-06-03 relay transport proof store gate:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_STORE_GATE_2026_06_03.md`
+  (wiki/647) records that `route_kind=relay` evidence with inline
+  `relay_transport_proof` must be backed by an owner-scoped stored relay
+  transport proof record. Search terms should include `GOAL v457`,
+  `wiki/647`, `p2pRelayTransportProofStore`,
+  `relay_route_transport_proof_not_stored`,
+  `relay_route_transport_proof_store_backend_not_release_grade`, and
+  `test:p2p 41/41`.
+
 **End of WIKI_INDEX.md.**

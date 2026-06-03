@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
+import {
+  p2pRelayTransportProofStoreStatus,
+  queryRelayTransportProofs,
+} from "@/lib/p2pRelayTransportProofStore";
 import { relayPayloadEndpointWired, relayTransportWired } from "@/lib/p2pRelayPolicy";
 import {
   appendRouteEvidenceRecord,
@@ -197,6 +201,59 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   return blockers;
 }
 
+async function relayTransportProofStoreBlockers(
+  evidence: RouteEvidence,
+  ownerKey: string
+): Promise<string[]> {
+  if (evidence.route_kind !== "relay") {
+    return [];
+  }
+
+  const proof = evidence.relay_transport_proof;
+  if (!proof) {
+    return [];
+  }
+
+  try {
+    const blockers: string[] = [];
+    const storeStatus = p2pRelayTransportProofStoreStatus();
+    if (!storeStatus.release_grade) {
+      blockers.push("relay_route_transport_proof_store_backend_not_release_grade");
+    }
+    const storedProofs = await queryRelayTransportProofs({
+      owner_key: ownerKey,
+      limit: 50,
+      session_id: proof.session_id,
+      lease_id: proof.lease_id,
+      source_node_id: evidence.source_node_id,
+      target_node_id: evidence.target_node_id,
+      tunnel_id: proof.tunnel_id,
+    });
+    const storedProof = storedProofs.find((candidate) => (
+      candidate.relay_url.trim() === proof.relay_url.trim() &&
+      candidate.transport_kind.trim() === proof.transport_kind.trim() &&
+      candidate.payload_bytes_transited === proof.payload_bytes_transited &&
+      candidate.payload_transited_musu_infra === proof.payload_transited_musu_infra &&
+      candidate.encryption.trim().toLowerCase() === proof.encryption.trim().toLowerCase() &&
+      candidate.transport_verified_by.trim() === proof.transport_verified_by.trim()
+    ));
+    if (!storedProof) {
+      blockers.push("relay_route_transport_proof_not_stored");
+      return blockers;
+    }
+    if (!storedProof.release_grade) {
+      blockers.push("relay_route_transport_proof_store_not_release_grade");
+    }
+    return blockers;
+  } catch (error) {
+    return [
+      `relay_route_transport_proof_store_unavailable:${
+        error instanceof Error ? error.message : "unknown"
+      }`,
+    ];
+  }
+}
+
 function relayFallbackPayloadTransportBlockers(evidence: RouteEvidence): string[] {
   const relay = evidence.relay_fallback;
   if (!relay || relay.status !== "issued" || !relay.lease_issued) {
@@ -280,6 +337,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
       }
     }
     blockers.push(...relayTransportProofBlockers(evidence));
+    blockers.push(...(await relayTransportProofStoreBlockers(evidence, ownerKey)));
   }
   if (evidence.route_kind !== "relay" && evidence.payload_transited_musu_infra) {
     blockers.push("direct_route_claims_infra_transit");

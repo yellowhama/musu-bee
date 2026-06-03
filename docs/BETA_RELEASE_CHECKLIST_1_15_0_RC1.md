@@ -2802,6 +2802,32 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 Relay Transport Proof Store Gate
+
+Route-evidence grading now rejects proof-shaped relay payload JSON unless a
+matching owner-scoped relay transport proof record exists in the proof store.
+
+New blockers:
+
+- `relay_route_transport_proof_not_stored`
+- `relay_route_transport_proof_store_backend_not_release_grade`
+- `relay_route_transport_proof_store_not_release_grade`
+- `relay_route_transport_proof_store_unavailable:<detail>`
+
+Validation:
+
+- `npm run test:p2p` passed `41/41`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is evidence-chain hardening, not relay/tunnel payload transport
+  completion
+- `/api/v1/relay/connect` still does not produce release-grade QUIC relay proof
+- fresh packaged primary smoke/CPU/matrix evidence is required after this source
+  change before current-source local runtime evidence is restored
+
 ## 2026-06-03 22:30 KST Relay Transport Proof Binding Gate
 
 Relay route evidence now rejects proof-shaped relay payload transport JSON unless

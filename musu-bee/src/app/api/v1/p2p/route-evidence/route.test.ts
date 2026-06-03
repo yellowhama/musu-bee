@@ -11,6 +11,10 @@ import {
   createRelayLease,
   type StoredP2pRelayLease,
 } from "@/lib/p2pRelayLeaseStore";
+import {
+  appendRelayTransportProof,
+  createRelayTransportProof,
+} from "@/lib/p2pRelayTransportProofStore";
 
 type Module = {
   GET: (req: NextRequest) => Promise<Response>;
@@ -30,6 +34,9 @@ const ENV_KEYS = [
   "MUSU_P2P_RELAY_LEASE_MAX_RECORDS",
   "MUSU_P2P_RELAY_LEASE_STORE_PATH",
   "MUSU_P2P_RELAY_LEASE_TTL_SEC",
+  "MUSU_P2P_RELAY_TRANSPORT_PROOF_MAX_RECORDS",
+  "MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH",
+  "MUSU_P2P_RELAY_TRANSPORT_PROOF_TTL_SEC",
   "MUSU_P2P_RELAY_TRANSPORT_WIRED",
   "MUSU_P2P_RELAY_URL",
   "MUSU_ROUTE_EVIDENCE_MAX_RECORDS",
@@ -114,6 +121,10 @@ async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
   process.env.MUSU_P2P_CONTROL_TOKEN = "test-token";
   process.env.MUSU_ROUTE_EVIDENCE_STORE_PATH = join(tempDir, "route-evidence.json");
   process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH = join(tempDir, "relay-leases.json");
+  process.env.MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH = join(
+    tempDir,
+    "relay-transport-proofs.json"
+  );
   try {
     await fn();
   } finally {
@@ -143,6 +154,26 @@ async function seedRelayLeaseForEvidence(): Promise<StoredP2pRelayLease> {
   });
   await appendRelayLease(lease);
   return lease;
+}
+
+async function seedRelayTransportProofForEvidence(lease: StoredP2pRelayLease): Promise<void> {
+  await appendRelayTransportProof(createRelayTransportProof({
+    owner_key: p2pControlOwnerKey("test-token"),
+    session_id: hardenedEvidence.session_id,
+    lease_id: lease.lease_id,
+    source_node_id: hardenedEvidence.source_node_id,
+    target_node_id: hardenedEvidence.target_node_id,
+    relay_url: "wss://relay.musu.pro/connect",
+    tunnel_id: "relay-tunnel-test",
+    transport_kind: "quic_relay_tunnel",
+    handshake_ms: 23,
+    payload_bytes_transited: 128,
+    payload_transited_musu_infra: true,
+    encryption: "quic_tls_1_3",
+    transport_verified_by: "musu_quic_tls_transport",
+    opened_at: "2026-06-01T01:00:01Z",
+    closed_at: "2026-06-01T01:00:02Z",
+  }));
 }
 
 test("accepts hardened release-grade route evidence", async () => {
@@ -272,6 +303,7 @@ test("keeps transport-proof relay route evidence non release grade until payload
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /relay_route_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
+    assert.match(body.blockers.join(","), /relay_route_transport_proof_not_stored/);
 
     const getRes = await GET(getReq("?route_kind=relay&release_grade=true&limit=10"));
     assert.equal(getRes.status, 200);
@@ -288,6 +320,44 @@ test("keeps transport-proof relay route evidence non release grade until payload
     };
     assert.equal(getBody.count, 0);
     assert.equal(getBody.records.length, 0);
+  });
+});
+
+test("does not accept inline relay transport proof unless it is backed by the proof store", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-inline-transport-proof-store-bound");
+    const lease = await seedRelayLeaseForEvidence();
+    await seedRelayTransportProofForEvidence(lease);
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+      relay_transport_proof: relayTransportProof(lease.lease_id),
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.doesNotMatch(body.blockers.join(","), /relay_route_transport_proof_not_stored/);
+    assert.match(
+      body.blockers.join(","),
+      /relay_route_transport_proof_store_backend_not_release_grade/
+    );
+    assert.match(body.blockers.join(","), /relay_route_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
   });
 });
 
