@@ -224,6 +224,44 @@ pub struct P2pRelayLeaseQueryResponse {
     pub leases: Vec<P2pRelayLease>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[allow(dead_code)] // Route evidence query DTO; used by relay diagnostics and release evidence.
+pub struct RouteEvidenceQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_kind: Option<RouteKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<RouteAttemptResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_grade: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Route evidence query API record DTO.
+pub struct RouteEvidenceRecord {
+    pub id: String,
+    pub received_at: String,
+    pub release_grade: bool,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    pub evidence: RouteEvidence,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Route evidence query API response DTO.
+pub struct RouteEvidenceQueryResponse {
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub count: usize,
+    #[serde(default)]
+    pub records: Vec<RouteEvidenceRecord>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct RouteEvidence {
@@ -563,6 +601,52 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
+    /// GET /api/v1/p2p/route-evidence to inspect owner-scoped route evidence.
+    #[allow(dead_code)] // Used by relay diagnostics and release evidence capture.
+    pub async fn query_route_evidence(
+        &self,
+        query: &RouteEvidenceQuery,
+    ) -> Result<RouteEvidenceQueryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let mut url = reqwest::Url::parse(&format!("{}/api/v1/p2p/route-evidence", self.base_url))?;
+        {
+            let mut pairs = url.query_pairs_mut();
+            if let Some(limit) = query.limit {
+                pairs.append_pair("limit", &limit.to_string());
+            }
+            if let Some(source_node_id) = query.source_node_id.as_deref() {
+                pairs.append_pair("source_node_id", source_node_id);
+            }
+            if let Some(target_node_id) = query.target_node_id.as_deref() {
+                pairs.append_pair("target_node_id", target_node_id);
+            }
+            if let Some(route_kind) = query.route_kind.as_ref() {
+                pairs.append_pair("route_kind", route_kind_query_value(route_kind));
+            }
+            if let Some(result) = query.result.as_ref() {
+                pairs.append_pair("result", route_attempt_result_query_value(result));
+            }
+            if let Some(release_grade) = query.release_grade {
+                pairs.append_pair(
+                    "release_grade",
+                    if release_grade { "true" } else { "false" },
+                );
+            }
+        }
+
+        let resp = self.client.get(url).bearer_auth(token).send().await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to query route evidence: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
     /// POST /api/v1/p2p/route-evidence to record the route that carried work.
     #[allow(dead_code)] // Wired after route execution can produce hardened evidence.
     pub async fn submit_route_evidence(&self, evidence: &RouteEvidence) -> Result<()> {
@@ -586,6 +670,23 @@ impl MusuCloud {
         }
 
         Ok(())
+    }
+}
+
+fn route_kind_query_value(kind: &RouteKind) -> &'static str {
+    match kind {
+        RouteKind::Lan => "lan",
+        RouteKind::Tailscale => "tailscale",
+        RouteKind::DirectQuic => "direct_quic",
+        RouteKind::Relay => "relay",
+        RouteKind::Failed => "failed",
+    }
+}
+
+fn route_attempt_result_query_value(result: &RouteAttemptResult) -> &'static str {
+    match result {
+        RouteAttemptResult::Success => "success",
+        RouteAttemptResult::Failed => "failed",
     }
 }
 

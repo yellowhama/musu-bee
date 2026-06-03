@@ -2404,3 +2404,64 @@ Canonical report:
 
 Index refresh after wiki/598 recorded `1640` files and `2283` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 29. P2P Relay Route Evidence Gate (2026-06-03)
+
+wiki/599 records the release-gate split between relay transport flags and
+actual owner-scoped relay route evidence.
+
+Changed behavior:
+
+- Rust CLI adds `musu relay route-evidence --json`.
+- The command queries owner-scoped route evidence with `route_kind=relay`,
+  `result=success`, and `release_grade=true`.
+- `record-p2p-control-plane-evidence.ps1` stores that output as
+  `relay_route_evidence`.
+- `verify-p2p-control-plane-evidence.ps1` fails unless
+  `relay_route_evidence.count > 0` and
+  `relay_route_evidence.relay_transport_proven=true`.
+- `show-musu-pro-p2p-env-status.ps1` reports
+  `live_evidence_relay_route_not_proven`.
+
+Validation:
+
+- parser checks passed
+- `cargo fmt --check` passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- Rust cloud tests passed `3/3`
+- Rust install CLI tests passed `14/14`
+- `npm run test:p2p` passed `28/28`
+- release evidence verifier regressions passed `19/19`
+- `git diff --check` passed
+
+Fresh live P2P evidence:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-093640-musu.pro.evidence.json`
+- verification `ok=false`, `fail_count=13`
+- `relay_lease_store_backend=unconfigured`
+- `relay_route_evidence_count=0`
+- `relay_payload_transport_proven=false`
+- `relay_transport_wired=false`
+
+Current hosted P2P blockers:
+
+- `missing_kv_rest_api_url_or_upstash_redis_rest_url`
+- `missing_kv_rest_api_token_or_upstash_redis_rest_token`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
+
+Product interpretation:
+
+- KV/Upstash provisioning remains required but is not sufficient.
+- `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is not sufficient.
+- Public P2P readiness requires a real relay route that carried payload and was
+  recorded as owner-scoped release-grade route evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_EVIDENCE_GATE_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_p2p_relay_route_evidence_gate.md`
+
+Index refresh after wiki/599 recorded `1646` files and `2291` symbols using
+the explicit packaged WindowsApps alias invocation.

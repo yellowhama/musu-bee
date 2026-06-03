@@ -172,6 +172,63 @@ $validP2p = [pscustomobject]@{
         relay_lease_store_release_grade = $true
         count = 0
     }
+    relay_route_evidence_exit_code = 0
+    relay_route_evidence = [pscustomobject]@{
+        schema = "musu.relay_route_evidence.v1"
+        registry_url = "https://musu.pro"
+        logged_in = $true
+        ok = $true
+        owner_scope_verified = $true
+        owner_scoped = $true
+        relay_transport_proven = $true
+        count = 1
+        filters = [pscustomobject]@{
+            limit = 5
+            route_kind = "relay"
+            result = "success"
+            release_grade = $true
+            source_node_id = $null
+            target_node_id = $null
+        }
+        records = @(
+            [pscustomobject]@{
+                id = "route-evidence-relay-test"
+                received_at = $now.ToString("o")
+                release_grade = $true
+                blockers = @()
+                evidence = [pscustomobject]@{
+                    schema = "musu.route_evidence.v1"
+                    version = $ExpectedVersion
+                    source_node_id = "pc-a"
+                    target_node_id = "pc-b"
+                    session_id = "rv_test"
+                    route_kind = "relay"
+                    candidate_addr = "relay.musu.pro:443"
+                    handshake_ms = 42
+                    total_attempt_ms = 311
+                    peer_identity_verified = $true
+                    peer_identity_method = "quic_tls_cert_fingerprint"
+                    peer_public_key = "sha256:test"
+                    encryption = "quic_tls_1_3"
+                    transport_verified_by = "musu_quic_tls_transport"
+                    payload_transited_musu_infra = $true
+                    result = "success"
+                    recorded_at = $now.ToString("o")
+                    relay_fallback = [pscustomobject]@{
+                        direct_path_failed = $true
+                        lease_requested = $true
+                        status = "issued"
+                        lease_issued = $true
+                        attempted_route_kinds = @("lan", "tailscale")
+                        requested_capability = "remote_command"
+                        policy = "connect_pro_fallback_only"
+                        blockers = @()
+                        lease_id = "relay-lease-test"
+                    }
+                }
+            }
+        )
+    }
 }
 
 $validMultiDevice = [pscustomobject]@{
@@ -447,6 +504,15 @@ $badP2pRelayTransport.relay_leases.relay_transport_wired = $false
 $fixture = Write-Fixture -Name "p2p-bad-relay-transport" -Object $badP2pRelayTransport
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects lease-only relay without payload transport" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteEvidence = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteEvidence.relay_route_evidence.ok = $false
+$badP2pRelayRouteEvidence.relay_route_evidence.relay_transport_proven = $false
+$badP2pRelayRouteEvidence.relay_route_evidence.count = 0
+$badP2pRelayRouteEvidence.relay_route_evidence.records = @()
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-evidence" -Object $badP2pRelayRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay transport flag without release-grade relay route evidence" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $fixture = Write-Fixture -Name "multidevice-valid" -Object $validMultiDevice
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")

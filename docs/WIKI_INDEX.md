@@ -2355,4 +2355,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/598 index refresh`, `Get-CurrentPowerShellExecutable`,
   `Get-FileHash`, `PSModulePath`, and `local_artifacts_ready=true`.
 
+- 2026-06-03 P2P relay route evidence gate:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_EVIDENCE_GATE_2026_06_03.md`
+  (wiki/599) records that hosted P2P release evidence now requires
+  owner-scoped release-grade relay route evidence in addition to relay status
+  and relay lease transport fields. Search terms should include `GOAL v405`,
+  `wiki/599`, `musu relay route-evidence --json`,
+  `relay_route_evidence_count`, `relay_payload_transport_proven`,
+  `live_evidence_relay_route_not_proven`, `20260603-093640-musu.pro`,
+  `case_count=19`, and `fail_count=13`.
+
+- 2026-06-03 P2P relay route evidence gate index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1646 files and 2291 symbols after GOAL v405-v406, wiki/599, P2P
+  relay route evidence gate code/docs/evidence updates, and CoS memories
+  `2026-06-03_p2p_relay_route_evidence_gate.md` and
+  `2026-06-03_p2p_relay_route_evidence_gate_index_refresh.md`. Search terms
+  should include `GOAL v406`, `1646 files`, `2291 symbols`,
+  `wiki/599 index refresh`, `relay_route_evidence_count`,
+  `relay_payload_transport_proven`, `live_evidence_relay_route_not_proven`,
+  `20260603-093640-musu.pro`, `case_count=19`, and `fail_count=13`.
+
 **End of WIKI_INDEX.md.**

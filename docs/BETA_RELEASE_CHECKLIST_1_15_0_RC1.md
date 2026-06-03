@@ -2080,3 +2080,71 @@ Canonical report:
 - indexed `1637` files and `2283` symbols after wiki/597, GOAL v401-v402,
   P2P relay transport gate tooling/docs/spec updates, WIKI/WIKI_INDEX updates,
   and CoS memories
+
+## 2026-06-03 09:36 KST P2P Relay Route Evidence Gate
+
+Hosted P2P release evidence now rejects env-flag-only relay transport claims.
+
+Changed gate behavior:
+
+- `musu relay route-evidence --json` queries owner-scoped route evidence with
+  `route_kind=relay`, `result=success`, and `release_grade=true`
+- `record-p2p-control-plane-evidence.ps1` records the query output as
+  `relay_route_evidence`
+- `verify-p2p-control-plane-evidence.ps1` requires
+  `relay_route_evidence.relay_transport_proven=true` and
+  `relay_route_evidence.count > 0`
+- `show-musu-pro-p2p-env-status.ps1` reports
+  `live_evidence_relay_route_not_proven`
+
+Validation:
+
+- PowerShell parser passed
+- `cargo fmt --check` passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- Rust cloud tests passed `3/3`
+- Rust install CLI tests passed `14/14`
+- `npm run test:p2p` passed `28/28`
+- release evidence verifier regression passed `19/19`
+- `git diff --check` passed
+
+Fresh live P2P evidence:
+
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-093640-musu.pro.evidence.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-093640-musu.pro.verification.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-093640-musu.pro.summary.md`
+
+Verification remains `ok=false`, `fail_count=13`:
+
+- `relay_lease_store_backend=unconfigured`
+- `relay_lease_store_release_grade=false`
+- `relay_route_evidence_count=0`
+- `relay_payload_transport_proven=false`
+- `relay_transport_wired=false`
+
+Current hosted P2P blockers:
+
+- missing `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`
+- missing `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
+
+Release interpretation:
+
+- KV/Upstash provisioning remains required but is not sufficient.
+- `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is not sufficient.
+- A real relay route must carry payload and be recorded as owner-scoped
+  release-grade route evidence before the hosted P2P gate can pass.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_EVIDENCE_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1646` files and `2291` symbols after wiki/599, GOAL v405-v406,
+  fresh P2P evidence `20260603-093640-musu.pro`, P2P route-evidence gate
+  tooling/docs/spec updates, WIKI/WIKI_INDEX updates, and CoS memories

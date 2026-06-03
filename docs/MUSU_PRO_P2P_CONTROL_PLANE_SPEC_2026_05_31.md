@@ -2,14 +2,16 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` for relay lease audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials before owner-scoped relay lease queries can pass. The 2026-06-02 21:56 KST live evidence shows auth/control-plane wiring reaches the lease endpoint with `relay_default_data_path=false`, then fails closed with `p2p_relay_lease_kv_not_configured`.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay leases --json` and `musu relay route-evidence --json` for owner-scoped audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials plus release-grade relay route evidence before the hosted P2P gate can pass. The 2026-06-03 09:36 KST live evidence shows relay lease storage is unconfigured and owner-scoped relay route evidence count is `0`.
 
 **2026-06-03 gate update**: Hosted P2P release evidence now requires relay
 payload transport proof separately from relay lease control-plane proof.
 `verify-p2p-control-plane-evidence.ps1` fails unless
 `relay_status.relay_transport_wired=true` and
-`relay_leases.relay_transport_wired=true`. KV/Upstash owner-scoped lease storage
-alone is no longer enough to pass the public P2P gate.
+`relay_leases.relay_transport_wired=true`, and the live evidence contains
+owner-scoped release-grade relay route evidence with `count > 0` and
+`relay_transport_proven=true`. KV/Upstash owner-scoped lease storage alone is no
+longer enough to pass the public P2P gate.
 
 ## Product Decision
 
@@ -655,17 +657,24 @@ Required live evidence fields:
 
 - `relay_status.relay_transport_wired=true`
 - `relay_leases.relay_transport_wired=true`
+- `relay_route_evidence.relay_transport_proven=true`
+- `relay_route_evidence.count > 0`
 - `relay_default_data_path=false`
 - owner-scoped relay lease query succeeds against release-grade KV/Upstash
   storage
+- owner-scoped route evidence query filters `route_kind=relay`,
+  `result=success`, and `release_grade=true`
 
-Current live evidence `20260603-070018-musu.pro` fails with `fail_count=8`.
-The failure includes the existing KV/Upstash storage blocker and the explicit
-transport blocker:
+Current live evidence `20260603-093640-musu.pro` fails with `fail_count=13`.
+The failure includes the existing KV/Upstash storage blocker, the explicit
+transport blocker, and the route-evidence proof blocker:
 
 - `relay status transport wired=false`
 - `relay leases transport wired=false`
+- `relay route evidence count=0`
+- `relay payload transport proven=false`
 - `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
 
 Product boundary:
 
@@ -676,4 +685,5 @@ Product boundary:
   carried the payload.
 - Operators must not set `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` as a workaround;
   that flag is only acceptable after real payload transport has been
-  implemented and verified.
+  implemented, used, and recorded as owner-scoped release-grade relay route
+  evidence.

@@ -52,7 +52,7 @@ function Add-CheckFromCondition {
 
 function Get-StringProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        $Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
@@ -68,7 +68,7 @@ function Get-StringProperty {
 
 function Get-BoolProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        $Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
@@ -108,6 +108,7 @@ $recordedAtText = Get-StringProperty -Object $evidence -Name "recorded_at"
 $operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
 $statusExitCode = if ($evidence.PSObject.Properties["relay_status_exit_code"]) { [int]$evidence.relay_status_exit_code } else { -1 }
 $leasesExitCode = if ($evidence.PSObject.Properties["relay_leases_exit_code"]) { [int]$evidence.relay_leases_exit_code } else { -1 }
+$routeEvidenceExitCode = if ($evidence.PSObject.Properties["relay_route_evidence_exit_code"]) { [int]$evidence.relay_route_evidence_exit_code } else { -1 }
 $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
 $recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
 $now = [datetimeoffset]::Now
@@ -115,6 +116,7 @@ $futureTolerance = [timespan]::FromMinutes(5)
 
 $relayStatus = if ($evidence.PSObject.Properties["relay_status"]) { $evidence.relay_status } else { $null }
 $relayLeases = if ($evidence.PSObject.Properties["relay_leases"]) { $evidence.relay_leases } else { $null }
+$relayRouteEvidence = if ($evidence.PSObject.Properties["relay_route_evidence"]) { $evidence.relay_route_evidence } else { $null }
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.p2p_control_plane_live_evidence.v1") "schema is valid" "schema is not musu.p2p_control_plane_live_evidence.v1"
 Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evidence does not report ok=true"
@@ -131,6 +133,7 @@ if ($recordedAt) {
 
 Add-CheckFromCondition "relay status exit" ($statusExitCode -eq 0) "relay status command exited 0" "relay status command exited $statusExitCode"
 Add-CheckFromCondition "relay leases exit" ($leasesExitCode -eq 0) "relay leases command exited 0" "relay leases command exited $leasesExitCode"
+Add-CheckFromCondition "relay route evidence exit" ($routeEvidenceExitCode -eq 0) "relay route evidence command exited 0" "relay route evidence command exited $routeEvidenceExitCode"
 
 $statusSchema = Get-StringProperty -Object $relayStatus -Name "schema"
 $statusRegistryUrl = Get-StringProperty -Object $relayStatus -Name "registry_url"
@@ -164,8 +167,25 @@ Add-CheckFromCondition "relay lease store release-grade" (Get-BoolProperty -Obje
 $leaseCount = if ($relayLeases -and $relayLeases.PSObject.Properties["count"]) { [int]$relayLeases.count } else { -1 }
 Add-CheckFromCondition "relay leases count present" ($leaseCount -ge 0) "relay lease count is present" "relay lease count is missing"
 
+$routeEvidenceSchema = Get-StringProperty -Object $relayRouteEvidence -Name "schema"
+$routeEvidenceRegistryUrl = Get-StringProperty -Object $relayRouteEvidence -Name "registry_url"
+$routeEvidenceFilters = if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["filters"]) { $relayRouteEvidence.filters } else { $null }
+Add-CheckFromCondition "relay route evidence schema" ($routeEvidenceSchema -eq "musu.relay_route_evidence.v1") "relay route evidence schema is valid" "relay route evidence schema is '$routeEvidenceSchema'"
+Add-CheckFromCondition "relay route evidence registry url" ($routeEvidenceRegistryUrl.TrimEnd("/") -eq $ExpectedBaseUrl.TrimEnd("/")) "relay route evidence registry_url matches $ExpectedBaseUrl" "relay route evidence registry_url is '$routeEvidenceRegistryUrl'"
+Add-CheckFromCondition "relay route evidence logged in" (Get-BoolProperty -Object $relayRouteEvidence -Name "logged_in") "relay route evidence query is logged in" "relay route evidence query is not logged in"
+Add-CheckFromCondition "relay route evidence ok" (Get-BoolProperty -Object $relayRouteEvidence -Name "ok") "relay route evidence query reports ok=true" "relay route evidence query does not report ok=true"
+Add-CheckFromCondition "relay route evidence owner scope verified" (Get-BoolProperty -Object $relayRouteEvidence -Name "owner_scope_verified") "relay route evidence owner scope is verified" "relay route evidence owner scope is not verified"
+Add-CheckFromCondition "relay route evidence owner scoped" (Get-BoolProperty -Object $relayRouteEvidence -Name "owner_scoped") "relay route evidence query is owner-scoped" "relay route evidence query is not owner-scoped"
+Add-CheckFromCondition "relay route evidence filter route kind" ((Get-StringProperty -Object $routeEvidenceFilters -Name "route_kind") -eq "relay") "relay route evidence query filters route_kind=relay" "relay route evidence query does not filter route_kind=relay"
+Add-CheckFromCondition "relay route evidence filter result" ((Get-StringProperty -Object $routeEvidenceFilters -Name "result") -eq "success") "relay route evidence query filters result=success" "relay route evidence query does not filter result=success"
+Add-CheckFromCondition "relay route evidence filter release grade" (Get-BoolProperty -Object $routeEvidenceFilters -Name "release_grade") "relay route evidence query filters release_grade=true" "relay route evidence query does not filter release_grade=true"
+$routeEvidenceCount = if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["count"]) { [int]$relayRouteEvidence.count } else { -1 }
+Add-CheckFromCondition "relay route evidence count" ($routeEvidenceCount -gt 0) "release-grade relay route evidence is present" "release-grade relay route evidence is missing"
+Add-CheckFromCondition "relay payload transport proven" (Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven") "relay payload transport is proven by release-grade route evidence" "relay payload transport is not proven by release-grade route evidence"
+
 $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
 $relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
+$relayPayloadTransportProven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
@@ -179,7 +199,10 @@ $result = [pscustomobject]@{
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_status_transport_wired = $relayStatusTransportWired
     relay_leases_transport_wired = $relayLeasesTransportWired
-    relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired)
+    relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
+    relay_route_evidence_count = $routeEvidenceCount
+    relay_payload_transport_proven = $relayPayloadTransportProven
+    relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount
     relay_lease_store_configured = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured"

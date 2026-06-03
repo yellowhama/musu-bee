@@ -77,6 +77,8 @@ pub enum RelayAction {
     Status(RelayStatusOpts),
     /// Query owner-scoped relay lease audit records from musu.pro.
     Leases(RelayLeasesOpts),
+    /// Query owner-scoped release-grade relay route evidence from musu.pro.
+    RouteEvidence(RelayRouteEvidenceOpts),
 }
 
 /// Options for `musu relay status`.
@@ -99,6 +101,23 @@ pub struct RelayLeasesOpts {
     /// Filter by rendezvous session id.
     #[arg(long)]
     pub session_id: Option<String>,
+    /// Filter by source node id.
+    #[arg(long)]
+    pub source_node_id: Option<String>,
+    /// Filter by target node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
+}
+
+/// Options for `musu relay route-evidence`.
+#[derive(Args, Debug)]
+pub struct RelayRouteEvidenceOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum route evidence records to return.
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
     /// Filter by source node id.
     #[arg(long)]
     pub source_node_id: Option<String>,
@@ -703,6 +722,7 @@ pub async fn run_relay(action: RelayAction) -> Result<()> {
     match action {
         RelayAction::Status(opts) => run_relay_status(opts).await,
         RelayAction::Leases(opts) => run_relay_leases(opts).await,
+        RelayAction::RouteEvidence(opts) => run_relay_route_evidence(opts).await,
     }
 }
 
@@ -755,6 +775,32 @@ struct RelayLeasesReport {
     count: usize,
     filters: RelayLeasesFilters,
     leases: Vec<crate::cloud::P2pRelayLease>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayRouteEvidenceFilters {
+    limit: u32,
+    route_kind: &'static str,
+    result: &'static str,
+    release_grade: bool,
+    source_node_id: Option<String>,
+    target_node_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayRouteEvidenceReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    ok: bool,
+    owner_scope_verified: bool,
+    owner_scoped: bool,
+    relay_transport_proven: bool,
+    count: usize,
+    filters: RelayRouteEvidenceFilters,
+    records: Vec<crate::cloud::RouteEvidenceRecord>,
     error: Option<String>,
     next_steps: Vec<&'static str>,
 }
@@ -1014,6 +1060,104 @@ async fn run_relay_leases(opts: RelayLeasesOpts) -> Result<()> {
             lease.source_node_id,
             lease.target_node_id,
             lease.expires_at
+        );
+    }
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+async fn run_relay_route_evidence(opts: RelayRouteEvidenceOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let filters = RelayRouteEvidenceFilters {
+        limit: opts.limit.clamp(1, 200),
+        route_kind: "relay",
+        result: "success",
+        release_grade: true,
+        source_node_id: opts.source_node_id.clone(),
+        target_node_id: opts.target_node_id.clone(),
+    };
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+
+    let mut report = RelayRouteEvidenceReport {
+        schema: "musu.relay_route_evidence.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        ok: false,
+        owner_scope_verified: false,
+        owner_scoped: false,
+        relay_transport_proven: false,
+        count: 0,
+        filters,
+        records: vec![],
+        error: None,
+        next_steps: vec![
+            "run a real relay fallback route after direct path failure",
+            "record release-grade route evidence with route_kind=relay and payload_transited_musu_infra=true",
+            "verify the relay route evidence query is owner-scoped before public P2P release",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        let query = crate::cloud::RouteEvidenceQuery {
+            limit: Some(report.filters.limit),
+            source_node_id: report.filters.source_node_id.clone(),
+            target_node_id: report.filters.target_node_id.clone(),
+            route_kind: Some(crate::cloud::RouteKind::Relay),
+            result: Some(crate::cloud::RouteAttemptResult::Success),
+            release_grade: Some(true),
+        };
+        match cloud.query_route_evidence(&query).await {
+            Ok(response) => {
+                report.owner_scope_verified = true;
+                report.owner_scoped = response.owner_scoped;
+                report.count = response.count;
+                report.records = response.records;
+                report.relay_transport_proven =
+                    report.owner_scoped && report.count > 0 && !report.records.is_empty();
+                report.ok = response.ok && report.relay_transport_proven;
+            }
+            Err(err) => {
+                report.error = Some(err.to_string());
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU relay route evidence");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  ok: {}", report.ok);
+    println!("  owner scope verified: {}", report.owner_scope_verified);
+    println!("  owner scoped: {}", report.owner_scoped);
+    println!(
+        "  relay transport proven: {}",
+        report.relay_transport_proven
+    );
+    println!("  count: {}", report.count);
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    for record in &report.records {
+        println!(
+            "  - {} {} -> {} received={} release_grade={}",
+            record.id,
+            record.evidence.source_node_id,
+            record.evidence.target_node_id,
+            record.received_at,
+            record.release_grade
         );
     }
     println!("  next steps:");
