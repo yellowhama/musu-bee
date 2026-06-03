@@ -1585,3 +1585,36 @@ release-grade peer identity or QUIC/TLS transport proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_BUSY_LOOP_PROCESS_ATTRIBUTION_AUDIT_2026_06_03.md`
+
+## 2026-06-03 13:29 KST Post Transport Descriptor Primary Evidence Refresh
+
+Current primary-machine packaged evidence is restored after the P2P relay
+transport descriptor/preflight gate.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-131556-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-131811-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-131938-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Validation:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- desktop-open CPU `ok=true`, `git_dirty=false`, MUSU `0`, Node `0.05`,
+  WebView2 `0.31`, hot `0`, working set `497.94MB`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_131938`
+
+Clean go/no-go on `2fe8d220` reports `ready=false`,
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+valid machines `1/2`, runtime CPU scenario matrix valid machines `1/2`,
+`p2p_control_plane_verified=false`, `p2p_relay_transport_wired=false`,
+`p2p_relay_route_evidence_count=0`, `p2p_relay_payload_transport_proven=false`,
+and `git_dirty=false`.
+
+Public release remains blocked on second-PC runtime/multi-device evidence,
+hosted P2P release-grade relay payload proof, support mailbox evidence, and
+Store evidence.

@@ -2807,3 +2807,62 @@ Release interpretation:
   `musu.p2p_relay_transport.v1`, `musu.relay_transport.v1`,
   `relay_transport_descriptor_wired`, `payload_transit_requires_lease`,
   `fail_count=31`, and `test:p2p 34/34`
+
+## 2026-06-03 13:29 KST Post Transport Descriptor Primary Evidence Refresh
+
+wiki/612 records the primary-machine evidence refresh after the P2P relay
+transport descriptor gate.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-131556-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-131811-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-131938-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key numbers:
+
+- smoke task `bba38031-b333-4b86-af61-64b65187a82b`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_131531`
+- idle CPU `desktop-open`: MUSU `0`, Node `0.05`, WebView2 `0.31`,
+  working set `497.94MB`, hot `0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_131938`
+- matrix maxes: startup-open WebView2 `0`, runtime-started WebView2 `0`,
+  dashboard-open WebView2 `0`, desktop-open WebView2 `0.73`, post-route
+  WebView2 `0.21`
+
+Validation:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- runtime CPU matrix verifier `ok=true`, `fail_count=0`
+- clean go/no-go on `2fe8d220` reports `single_machine_verified=true`,
+  runtime idle CPU `1/2`, runtime CPU matrix `1/2`,
+  `p2p_control_plane_verified=false`, `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_proven=false`, and `git_dirty=false`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_TRANSPORT_DESCRIPTOR_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_post_transport_descriptor_primary_evidence_refresh.md`
+
+Release interpretation:
+
+- current primary-machine packaged evidence is restored after the relay
+  transport descriptor gate
+- public release remains No-Go until second-PC runtime/multi-device evidence,
+  hosted P2P release-grade relay payload proof, support mailbox evidence, and
+  Store evidence are complete
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1689` files and `2307` symbols after wiki/612, GOAL v422, fresh
+  primary evidence, the primary refresh report, BETA/current-head/WIKI_INDEX
+  updates, and CoS memories
+- search terms should include `GOAL v423`, `wiki/613 index refresh`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_131938`,
+  `post transport descriptor primary evidence refresh`, `runtime idle CPU 1/2`,
+  and `runtime CPU matrix 1/2`
