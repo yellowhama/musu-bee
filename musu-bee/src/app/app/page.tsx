@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 import AppShell from "@/components/AppShell";
@@ -13,14 +14,47 @@ export const metadata: Metadata = {
 
 type PageProps = { searchParams: Promise<{ embed?: string }> };
 
+function normalizeRequestHost(hostHeader: string | null): string {
+  const raw = (hostHeader ?? "").trim().toLowerCase();
+  if (!raw) return "";
+
+  if (raw.startsWith("[")) {
+    const end = raw.indexOf("]");
+    return end >= 0 ? raw.slice(1, end) : raw;
+  }
+
+  const firstColon = raw.indexOf(":");
+  const lastColon = raw.lastIndexOf(":");
+  if (firstColon === lastColon && firstColon >= 0) {
+    return raw.slice(0, firstColon);
+  }
+
+  return raw;
+}
+
+function isLoopbackDashboardHost(hostHeader: string | null): boolean {
+  const host = normalizeRequestHost(hostHeader);
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.startsWith("127.") ||
+    host === "::1" ||
+    host === "0:0:0:0:0:0:0:1"
+  );
+}
+
 export default async function AppPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const isEmbedded = params.embed === "1";
 
   const subscription = await getSubscription();
   const isPaidTier = subscription.plan !== "free";
+  const requestHeaders = await headers();
+  const requestHost =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const isLocalDashboardRequest = isLoopbackDashboardHost(requestHost);
 
-  if (!isPaidTier && !isEmbedded) {
+  if (!isPaidTier && !isEmbedded && !isLocalDashboardRequest) {
     return (
       <div className="app-gate-outer">
         <div className="app-gate-card">
