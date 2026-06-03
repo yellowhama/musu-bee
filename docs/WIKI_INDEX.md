@@ -2455,4 +2455,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/603 index refresh`, `startup-open`, `sample_delay_seconds`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`.
 
+- 2026-06-03 frontend polling contract go/no-go gate:
+  `RELEASE_1_15_0_RC1_FRONTEND_POLLING_CONTRACT_GO_NO_GO_GATE_2026_06_03.md`
+  (wiki/604) records that `scripts\windows\audit-frontend-polling-contract.ps1`
+  now emits `musu.frontend_polling_contract.v1` and `write-release-go-no-go.ps1`
+  blocks on `frontend-polling` if frontend dashboard/refetch/SSE loops are not
+  proven to use cancellable low-duty polling and bounded reconnect. Search
+  terms should include `GOAL v413`, `wiki/604`,
+  `frontend_polling_contract_verified`, `musu.frontend_polling_contract.v1`,
+  `audit-frontend-polling-contract.ps1`, `direct_interval_hit_count=0`,
+  `direct_visibility_listener_hit_count=0`, and `runtime-polling 12/12`.
+
+- 2026-06-03 frontend polling contract go/no-go index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1664 files and 2291 symbols after GOAL v413, wiki/604, the frontend
+  polling audit script, go/no-go frontend polling gate, final operator
+  packet/handoff status wiring, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_frontend_polling_contract_go_no_go_gate.md` and
+  `2026-06-03_frontend_polling_contract_go_no_go_index_refresh.md`. Search
+  terms should include `GOAL v414`, `1664 files`, `2291 symbols`,
+  `wiki/605 index refresh`, `frontend-polling`,
+  `musu.frontend_polling_contract.v1`, and
+  `frontend_polling_contract_verified`.
+
 **End of WIKI_INDEX.md.**

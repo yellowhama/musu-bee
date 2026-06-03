@@ -582,6 +582,7 @@ $commands = [pscustomobject]@{
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
     verify_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-operator-action-pack.ps1 -PackPath .local-build\operator-action-pack\MUSU-$safeVersion-operator-action-pack-latest.zip -Json"
     audit_msix_desktop_entrypoint = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -ExpectedApplicationExecutable musu-desktop.exe -RequireInstalledPackage -Json"
+    audit_frontend_polling_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-frontend-polling-contract.ps1 -FailOnProblem -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
     measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
@@ -672,6 +673,13 @@ if (-not [bool]$goNoGo.runtime_cpu_scenario_matrix_verified) {
         -Gate "runtime-cpu-scenario-matrix" `
         -Summary "Run the 60s startup/runtime/dashboard/desktop/post-route CPU matrix on the primary and second PC, then bring both JSON files back." `
         -Command $commands.measure_runtime_cpu_scenario_matrix
+}
+if (-not [bool]$goNoGo.frontend_polling_contract_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "frontend-polling" `
+        -Summary "Fix dashboard/refetch/SSE polling so frontend loops use cancellable low-duty polling and bounded reconnect, then rerun the audit." `
+        -Command $commands.audit_frontend_polling_contract
 }
 if (-not [bool]$goNoGo.process_ownership_verified) {
     Add-OperatorStep `

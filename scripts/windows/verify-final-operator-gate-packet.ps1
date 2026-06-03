@@ -122,6 +122,7 @@ try {
         "scripts\windows\record-external-release-gate-recheck.ps1",
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
+        "scripts\windows\audit-frontend-polling-contract.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
@@ -185,6 +186,7 @@ try {
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
+        Add-CheckFromCondition "readme frontend polling contract audit" ($readme -like "*audit-frontend-polling-contract.ps1*" -and $readme -like "*musu.frontend_polling_contract.v1*" -and $readme -like "*frontend_polling_contract_verified=true*") "README includes frontend polling contract audit" "README missing frontend polling contract audit"
         Add-CheckFromCondition "readme external recheck recorder doc" ($readme -like "*RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md*" -and $readme -like "*record-external-release-gate-recheck.ps1*") "README points to external recheck recorder doc" "README missing external recheck recorder doc"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
@@ -235,6 +237,11 @@ try {
             ($handoffStatusScript -like "*audit-musu-desktop-single-instance.ps1*" -and $handoffStatusScript -like "*desktop_single_instance_verified*" -and $handoffStatusScript -like "*desktop_single_instance = Get-EvidenceRootStatus*") `
             "packet handoff status script reports packaged desktop single-instance evidence" `
             "packet handoff status script does not report packaged desktop single-instance evidence"
+        Add-CheckFromCondition `
+            "handoff status frontend polling gate" `
+            ($handoffStatusScript -like "*audit-frontend-polling-contract.ps1*" -and $handoffStatusScript -like "*frontend_polling_contract_verified*" -and $handoffStatusScript -like "*frontend-polling*") `
+            "packet handoff status script reports frontend polling contract audit" `
+            "packet handoff status script does not report frontend polling contract audit"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -277,6 +284,16 @@ try {
             "packet local API auth audit does not verify source and docs contract"
     }
 
+    $frontendPollingAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-frontend-polling-contract.ps1"
+    if (Test-Path -LiteralPath $frontendPollingAuditScriptPath) {
+        $frontendPollingAuditScript = Get-Content -LiteralPath $frontendPollingAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "frontend polling contract audit script" `
+            ($frontendPollingAuditScript -like "*musu.frontend_polling_contract.v1*" -and $frontendPollingAuditScript -like "*useLowDutyPolling*" -and $frontendPollingAuditScript -like "*setInterval*" -and $frontendPollingAuditScript -like "*AbortSignal\.timeout*" -and $frontendPollingAuditScript -like "*runtime polling contract test*" -and $frontendPollingAuditScript -like "*npm run test:runtime-polling*") `
+            "packet frontend polling audit verifies low-duty polling, interval bans, abort timeout, and CI coverage" `
+            "packet frontend polling audit does not verify low-duty polling, interval bans, abort timeout, and CI coverage"
+    }
+
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
     if (Test-Path -LiteralPath $goNoGoScriptPath) {
         $goNoGoScript = Get-Content -LiteralPath $goNoGoScriptPath -Raw
@@ -305,6 +322,11 @@ try {
             ($goNoGoScript -like "*runtime_cpu_scenario_matrix_verified*" -and $goNoGoScript -like "*verify-runtime-cpu-scenario-matrix.ps1*" -and $goNoGoScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $goNoGoScript -like "*RequiredRuntimeCpuScenarioMatrixScenarios*" -and $goNoGoScript -like "*startup-open*" -and $goNoGoScript -like "*runtime-started*" -and $goNoGoScript -like "*dashboard-open*" -and $goNoGoScript -like "*desktop-open*" -and $goNoGoScript -like "*post-route*" -and $goNoGoScript -like "*RequirePostRouteProbe*") `
             "packet go/no-go blocks on verified runtime CPU scenario matrix evidence" `
             "packet go/no-go does not block on verified runtime CPU scenario matrix evidence"
+        Add-CheckFromCondition `
+            "go no-go frontend polling contract gate" `
+            ($goNoGoScript -like "*frontend_polling_contract_verified*" -and $goNoGoScript -like "*audit-frontend-polling-contract.ps1*" -and $goNoGoScript -like "*musu.frontend_polling_contract.v1*" -and $goNoGoScript -like "*frontend-polling*" -and $goNoGoScript -like "*cancellable low-duty*") `
+            "packet go/no-go blocks on frontend polling contract audit" `
+            "packet go/no-go does not block on frontend polling contract audit"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `

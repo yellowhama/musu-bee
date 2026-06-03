@@ -87,6 +87,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
     $statusOnlyScripts = @(
         ".github/workflows/deploy-musu-bee.yml",
         "scripts/windows/audit-desktop-release-readiness.ps1",
+        "scripts/windows/audit-frontend-polling-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",

@@ -2625,3 +2625,45 @@ the explicit packaged WindowsApps alias invocation. Search terms should include
 `sample_delay_seconds`, `20260603-105650-HUGH_SECOND`,
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`, and
 `runtime CPU matrix 1/2`.
+
+## 2026-06-03 11:30 KST Frontend Polling Contract Go/No-Go Gate
+
+wiki/604 records that frontend polling busy-loop prevention is now a release
+go/no-go gate.
+
+Implementation:
+
+- Added `scripts\windows\audit-frontend-polling-contract.ps1` with schema
+  `musu.frontend_polling_contract.v1`.
+- `write-release-go-no-go.ps1` now emits
+  `frontend_polling_contract_verified` and `frontend_polling_contract_audit`.
+- Failed audit results add blocker area `frontend-polling`.
+- The final operator packet includes the audit command and packet verifier
+  self-checks the script, README, go/no-go blocker, and handoff status operator
+  step.
+- `verify-single-machine-evidence.ps1`,
+  `verify-runtime-cpu-scenario-matrix.ps1`, and `write-release-go-no-go.ps1`
+  treat the new audit script as status-only so it does not stale existing CPU
+  evidence.
+
+Validation:
+
+- PowerShell parser passed.
+- `audit-frontend-polling-contract.ps1 -Json` passed with `ok=true`,
+  `fail_count=0`, `direct_interval_hit_count=0`, and
+  `direct_visibility_listener_hit_count=0`.
+- `npm run test:runtime-polling` passed 12/12.
+- release evidence verifier regressions passed 20/20.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_CONTRACT_GO_NO_GO_GATE_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_frontend_polling_contract_go_no_go_gate.md`
+
+Index refresh after wiki/604 recorded `1664` files and `2291` symbols using
+the explicit packaged WindowsApps alias invocation. Search terms should include
+`GOAL v414`, `wiki/605 index refresh`,
+`musu.frontend_polling_contract.v1`,
+`frontend_polling_contract_verified`, `frontend-polling`,
+`audit-frontend-polling-contract.ps1`, `direct_interval_hit_count`,
+`direct_visibility_listener_hit_count`, and `runtime-polling 12/12`.

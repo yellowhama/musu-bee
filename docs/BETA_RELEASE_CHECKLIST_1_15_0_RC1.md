@@ -2323,3 +2323,62 @@ Canonical report:
   startup-open CPU matrix gate scripts, primary evidence
   `20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix`, WIKI/WIKI_INDEX
   updates, and CoS memories
+
+## 2026-06-03 11:30 KST Frontend Polling Contract Go/No-Go Gate
+
+The frontend polling hardening is now represented as a release go/no-go gate,
+not only as `npm run test:runtime-polling`.
+
+New audit:
+
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+- schema `musu.frontend_polling_contract.v1`
+- verifies `useLowDutyPolling` timeout/abort/clamp/backoff behavior, dashboard
+  and node panel low-duty refresh wiring, relay on-demand connect and capped
+  reconnect, Chat/Fleet SSE bounded reconnect, Fleet SSE unmount cleanup, no
+  direct non-test `setInterval(`, no direct `visibilitychange` listener outside
+  the shared poller, package script, and CI coverage
+
+Go/no-go now reports:
+
+- `frontend_polling_contract_verified`
+- `frontend_polling_contract_audit`
+
+If the audit fails, go/no-go adds blocker area `frontend-polling`.
+
+Operator packet/handoff changes:
+
+- final operator packet includes `audit-frontend-polling-contract.ps1`
+- packet README includes the audit command and expected schema
+- packet verifier self-checks the script, README, go/no-go blocker, and handoff
+  status operator step
+- handoff status now suggests the audit command if the frontend polling contract
+  is not verified
+
+Validation:
+
+- PowerShell parser passed for changed scripts
+- `audit-frontend-polling-contract.ps1 -Json`: `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run test:runtime-polling`: 12/12
+- release evidence verifier regressions: 20/20
+
+Release interpretation:
+
+- this is release/status tooling, not runtime source
+- current primary CPU evidence remains valid under the release evidence
+  freshness allowlist
+- public release remains No-Go on second-PC, two-machine CPU/matrix, hosted P2P,
+  support mailbox, and Store evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_CONTRACT_GO_NO_GO_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1664` files and `2291` symbols after wiki/604, GOAL v413,
+  frontend polling contract go/no-go gate scripts, operator packet/handoff
+  updates, BETA/WIKI/WIKI_INDEX updates, and CoS memories

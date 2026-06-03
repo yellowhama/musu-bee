@@ -117,6 +117,7 @@ $scriptsToCopy = @(
     "record-external-release-gate-recheck.ps1",
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
+    "audit-frontend-polling-contract.ps1",
     "audit-local-api-auth-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
@@ -393,6 +394,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-
 ```
 
 Expected schema: `musu.local_api_auth_contract.v1`.
+
+## Gate D2 - Frontend polling contract audit
+
+Before final handoff, verify that dashboard, node-panel, onboarding, workflow,
+screen, relay, and SSE refresh paths still use the shared cancellable low-duty
+polling/backoff contracts instead of direct interval or visibility polling.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-frontend-polling-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.frontend_polling_contract.v1`.
+Expected result: `frontend_polling_contract_verified=true`.
 
 ## Gate E - Runtime idle CPU evidence
 
