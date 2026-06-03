@@ -2625,3 +2625,42 @@ Canonical report:
 - indexed `1692` files and `2311` symbols after GOAL v424, wiki/614,
   route-evidence source/tests, Rust cloud DTO updates, P2P spec updates,
   BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 14:25 KST Post Relay Transport Proof Primary Evidence Refresh
+
+Primary-machine evidence was refreshed after the relay transport proof gate.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-141358-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-141524-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-141712-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Validation:
+
+- single-machine verifier: `ok=true`, `fail_count=0`
+- idle CPU: `ok=true`, `git_dirty=false`, MUSU `0`, Node `0.03`,
+  WebView2 `0.44`, hot `0`
+- matrix verifier: `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`
+- clean go/no-go on `2445c3bb`: `local_artifacts_ready=true`,
+  `single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+  `1/2`, P2P control plane false, relay route count `0`, relay payload proof
+  false, and `git_dirty=false`
+
+Release remains No-Go until second-PC runtime/multi-device evidence, hosted P2P
+relay payload proof, support mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1700` files and `2311` symbols after GOAL v426, wiki/616, fresh
+  primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories

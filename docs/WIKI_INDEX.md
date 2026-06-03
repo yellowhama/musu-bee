@@ -2591,4 +2591,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_route_missing_transport_proof`, and
   `musu.relay_transport_proof.v1`.
 
+- 2026-06-03 post relay transport proof primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/616) records the current primary-machine evidence refresh after the
+  relay transport proof gate. Search terms should include `GOAL v426`,
+  `20260603-141358-HUGH_SECOND`,
+  `20260603-141524-HUGH_SECOND.desktop-open`,
+  `20260603-141712-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`,
+  `single_machine_verified=true`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
+- 2026-06-03 post relay transport proof primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1700 files and 2311 symbols after GOAL v426, wiki/616, fresh
+  primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_post_relay_transport_proof_primary_evidence_refresh.md` and
+  `2026-06-03_post_relay_transport_proof_primary_evidence_index_refresh.md`.
+  Search terms should include `GOAL v427`, `1700 files`, `2311 symbols`,
+  `wiki/617 index refresh`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`.
+
 **End of WIKI_INDEX.md.**

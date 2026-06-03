@@ -2926,3 +2926,68 @@ Release interpretation:
   `relay_route_missing_transport_proof`,
   `relay_route_transport_proof_not_verified`, and
   `musu.relay_transport_proof.v1`
+
+## 2026-06-03 14:25 KST Post Relay Transport Proof Primary Evidence Refresh
+
+wiki/616 records the primary-machine evidence refresh after the relay
+transport proof gate.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-141358-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-141524-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-141712-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key numbers:
+
+- smoke task `3e8522a2-73ef-4b51-bb3c-bb0b6bc251af`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_141331`
+- idle CPU `desktop-open`: MUSU `0`, Node `0.03`, WebView2 `0.44`,
+  working set `517.83MB`, hot `0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`
+- matrix maxes: startup-open WebView2 `2.03`, runtime-started WebView2
+  `0.13`, dashboard-open WebView2 `0.18`, desktop-open WebView2 `0.08`,
+  post-route WebView2 `0.16`
+
+Validation:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- runtime CPU matrix verifier `ok=true`, `fail_count=0`
+- clean go/no-go on `2445c3bb` reports `single_machine_verified=true`,
+  runtime idle CPU `1/2`, runtime CPU matrix `1/2`,
+  `p2p_control_plane_verified=false`, `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_proven=false`, and `git_dirty=false`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_post_relay_transport_proof_primary_evidence_refresh.md`
+
+Local dashboard note:
+
+- the production dashboard was served at `http://127.0.0.1:3001/app`
+- `localhost` without a port and `localhost:3000` were expected to refuse
+  connections during this evidence run
+
+Release interpretation:
+
+- current primary-machine packaged evidence is restored after the relay
+  transport proof gate
+- public release remains No-Go until second-PC runtime/multi-device evidence,
+  hosted P2P release-grade relay payload proof, support mailbox evidence, and
+  Store evidence are complete
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1700` files and `2311` symbols after wiki/616, GOAL v426, fresh
+  primary evidence, the primary refresh report, BETA/WIKI_INDEX updates, and
+  CoS memories
+- search terms should include `GOAL v427`, `wiki/617 index refresh`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`,
+  `post relay transport proof primary evidence refresh`, `runtime idle CPU 1/2`,
+  and `runtime CPU matrix 1/2`
