@@ -1342,3 +1342,41 @@ because second-PC evidence is still missing.
 Hardening verdict: the Fleet SSE source change did not introduce a primary
 busy-loop regression. The next release-critical runtime step remains the same
 current CPU/matrix proof on a real second Windows PC.
+
+## 2026-06-04 Control Plane/Product Split Update
+
+The product direction is now explicitly split:
+
+- local MUSU programs are the executors; they own local files, shell/browser/app
+  automation, local bridge/runtime, and P2P mesh traffic
+- `musu.pro` is the web coordination plane; it accepts user work orders,
+  maintains project rooms, brokers rendezvous, records route/session evidence,
+  and issues relay fallback only after direct paths fail
+- `musu.pro` must not become the default execution server or default data path
+
+Project rooms are the intended web UX for multiple local MUSU agents working on
+the same project. A room should hold user work orders, agent presence,
+discussion threads, decisions, task handoffs, transcripts, audit history, and
+route/session status. When an AI accepts work in the room, the matching local
+MUSU program performs the work on its own machine or coordinates with peers over
+the P2P mesh.
+
+The rendezvous contract now returns this fixed path order so clients do not
+invent conflicting priorities:
+
+```json
+["lan", "tailscale", "direct_quic", "relay"]
+```
+
+Release meaning:
+
+- the web can make connection and coordination easier, but it is not proof of a
+  working local runtime
+- real P2P/multi-device evidence requires the same current MUSU build installed
+  and running on the other Windows PC
+- until that second PC is available, the only evidence that can be advanced
+  locally is one-machine packaged smoke, process ownership, idle CPU, and the
+  runtime CPU scenario matrix
+- because recent source commits changed the local dashboard gate and rendezvous
+  contract, fresh one-machine evidence must be recaptured on the current build
+  before second-PC evidence is treated as the remaining runtime blocker

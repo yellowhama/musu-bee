@@ -18,6 +18,12 @@
   `p2p_control_auth_not_configured`; after this code deploy it still requires
   the production env to be set before `musu relay leases --json` can pass.
 - mDNS remains opt-in; IPv6, Tailscale, and common VPN/virtual interfaces each require explicit opt-in.
+- `musu.pro` is the coordination plane, not the executor. It should host
+  project rooms/work-order rooms for user input, local-agent discussion,
+  decisions, handoffs, transcripts, and route/session status while each local
+  MUSU program performs the actual work on its own machine.
+- Rendezvous now exposes a canonical `path_selection_order`:
+  `lan -> tailscale -> direct_quic -> relay`.
 
 ## Code Audit Result
 
@@ -34,14 +40,33 @@ The remaining product risks are:
 
 ## Next Implementation Order
 
-1. Deploy the P2P auth hash-allowlist code and configure production `MUSU_P2P_CONTROL_TOKEN_SHA256S` with the SHA-256 hash of the runtime account token that `MusuCloud` sends. Use `scripts\windows\show-p2p-control-token-hash.ps1 -Json` to compute the value without printing the raw token.
-2. Re-run `musu relay leases --json` against `https://musu.pro` and require `ok=true` or an owner-scoped empty result before treating relay lease evidence as production-queryable.
-3. Capture a live direct-route-failure lease request evidence run against a logged-in control plane. It should prove `direct_path_failed=true`, attempted direct route kinds, `relay_transport_wired=false`, and no payload relay.
-4. Capture real second-PC route evidence with rendezvous candidate selection and HTTPS fingerprint pinning where possible.
-5. Replace bridge HTTP evidence with QUIC/TLS route proof and update the release verifier to accept only `quic_tls_1_3` with `transport_verified_by=musu_quic_tls_transport`.
-6. Implement relay/tunnel transport only after QUIC/TLS direct evidence is stable, and only behind an issued lease.
-7. Capture two-machine `desktop-open` CPU evidence with owned WebView2 attribution on both PCs.
-8. Refresh go/no-go, readiness audit, wiki, and indexer after each code/evidence commit.
+1. Keep `musu.pro` UX scoped to project rooms, work orders, agent presence,
+   discussion, handoff, and evidence. Do not add browser-to-localhost execution
+   as the product path.
+2. Deploy the P2P auth hash-allowlist code and configure production
+   `MUSU_P2P_CONTROL_TOKEN_SHA256S` with the SHA-256 hash of the runtime account
+   token that `MusuCloud` sends. Use
+   `scripts\windows\show-p2p-control-token-hash.ps1 -Json` to compute the value
+   without printing the raw token.
+3. Re-run `musu relay leases --json` against `https://musu.pro` and require
+   `ok=true` or an owner-scoped empty result before treating relay lease
+   evidence as production-queryable.
+4. Capture a live direct-route-failure lease request evidence run against a
+   logged-in control plane. It should prove `direct_path_failed=true`, attempted
+   direct route kinds, `relay_transport_wired=false`, and no payload relay.
+5. Install the same current MUSU build on the second Windows PC before claiming
+   real multi-device progress.
+6. Capture real second-PC route evidence with rendezvous candidate selection,
+   the canonical path order, and HTTPS/QUIC identity pinning where possible.
+7. Replace bridge HTTP evidence with QUIC/TLS route proof and update the release
+   verifier to accept only `quic_tls_1_3` with
+   `transport_verified_by=musu_quic_tls_transport`.
+8. Implement relay/tunnel transport only after QUIC/TLS direct evidence is
+   stable, and only behind an issued lease.
+9. Capture two-machine `desktop-open` CPU evidence with owned WebView2
+   attribution on both PCs.
+10. Refresh go/no-go, readiness audit, wiki, and indexer after each
+    code/evidence commit.
 
 ## Validation Required Before Public Release
 
