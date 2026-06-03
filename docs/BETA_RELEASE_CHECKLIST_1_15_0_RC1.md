@@ -2889,10 +2889,10 @@ Safety behavior:
 - public payload records strip `owner_key`
 - claim responses include `payload_base64` only when `include_payload=true`
 - delivery responses never include payload bytes
-- KV/Upstash claim/delivery fail closed with
-  `relay_payload_claim_kv_not_implemented` and
-  `relay_payload_delivery_kv_not_implemented` until atomic mutation is
-  implemented
+- Follow-up wiki/657 added KV/Upstash claim/delivery via a list-rewrite
+  mutation path, so `relay_payload_claim_kv_not_implemented` and
+  `relay_payload_delivery_kv_not_implemented` are no longer current behavior.
+  Release-grade concurrent atomic claim is still incomplete.
 
 Validation:
 
@@ -2994,6 +2994,36 @@ Release interpretation:
 - this is not runtime relay progress
 - public release remains No-Go on the existing runtime/P2P/release evidence
   blockers
+
+## 2026-06-04 03:03 KST Relay Payload KV Claim/Delivery Store
+
+The hosted relay payload queue now has KV/Upstash claim/delivery support.
+
+Store behavior:
+
+- file and KV paths share the same `queued -> claimed -> delivered` transition
+  logic
+- KV loads fresh records with `lrange`
+- KV rewrites retained records with `del` plus `rpush`
+- delivery before claim still rejects with
+  `relay_payload_delivery_requires_claim`
+- the old placeholder errors `relay_payload_claim_kv_not_implemented` and
+  `relay_payload_delivery_kv_not_implemented` are no longer current behavior
+
+Validation:
+
+- focused relay payload route tests passed 10/10
+- `npm run test:p2p` passed 56/56
+- `npm run typecheck` passed
+
+Release interpretation:
+
+- this is hosted storage capability, not relay transport completion
+- the KV list rewrite is not release-grade concurrent atomic claim
+- no background polling or payload execution was added
+- public release remains No-Go until bounded target polling, execution safety,
+  concurrent claim hardening, release-grade relay proof, and fresh packaged
+  evidence are complete
 
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 

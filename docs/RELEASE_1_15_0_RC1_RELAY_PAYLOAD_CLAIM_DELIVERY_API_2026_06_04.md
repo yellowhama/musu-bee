@@ -54,11 +54,10 @@ Delivery before claim is rejected with:
 - HTTP `409`
 - `relay_payload_delivery_requires_claim`
 
-The KV/Upstash backend deliberately fails closed for claim and delivery until
-atomic mutation is implemented:
-
-- `relay_payload_claim_kv_not_implemented`
-- `relay_payload_delivery_kv_not_implemented`
+2026-06-04 follow-up: wiki/657 added a KV/Upstash list-rewrite mutation path
+for claim and delivery, so those placeholder errors are no longer the current
+behavior. The KV path remains non-release-grade until concurrent atomic claim
+hardening lands.
 
 ## Validation
 

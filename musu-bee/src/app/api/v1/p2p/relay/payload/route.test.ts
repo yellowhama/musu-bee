@@ -11,6 +11,15 @@ import {
   createRelayLease,
   type RelayRouteKind,
 } from "@/lib/p2pRelayLeaseStore";
+import {
+  __setP2pRelayPayloadKvClientForTest,
+  appendRelayPayload,
+  claimRelayPayloads,
+  createRelayPayload,
+  markRelayPayloadDelivered,
+  queryRelayPayloads,
+  type StoredP2pRelayPayload,
+} from "@/lib/p2pRelayPayloadStore";
 import { p2pControlOwnerKey } from "@/lib/p2pControlAuth";
 
 type Module = {
@@ -58,6 +67,55 @@ async function withRelayEnv(fn: () => Promise<void>): Promise<void> {
       }
     }
     await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+function fakeRelayPayloadKv() {
+  const state: { list: StoredP2pRelayPayload[] } = { list: [] };
+  return {
+    state,
+    client: {
+      async del() {
+        state.list = [];
+      },
+      async lpush(_key: string, payload: StoredP2pRelayPayload) {
+        state.list.unshift(payload);
+      },
+      async lrange<T>(_key: string, start: number, stop: number): Promise<T[]> {
+        const end = stop < 0 ? undefined : stop + 1;
+        return state.list.slice(start, end) as T[];
+      },
+      async ltrim(_key: string, start: number, stop: number) {
+        const end = stop < 0 ? undefined : stop + 1;
+        state.list = state.list.slice(start, end);
+      },
+      async rpush(_key: string, payload: StoredP2pRelayPayload) {
+        state.list.push(payload);
+      },
+    },
+  };
+}
+
+async function withRelayPayloadKvEnv(fn: () => Promise<void>): Promise<void> {
+  const previous = new Map<(typeof ENV_KEYS)[number], string | undefined>();
+  for (const key of ENV_KEYS) {
+    previous.set(key, process.env[key]);
+    delete process.env[key];
+  }
+  process.env.KV_REST_API_URL = "https://example-kv.invalid";
+  process.env.KV_REST_API_TOKEN = "test-kv-token";
+  try {
+    await fn();
+  } finally {
+    __setP2pRelayPayloadKvClientForTest(null);
+    for (const key of ENV_KEYS) {
+      const value = previous.get(key);
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
   }
 }
 
@@ -373,6 +431,91 @@ test("rejects delivery before relay payload is claimed", async () => {
     assert.equal(deliveryRes.status, 409);
     const deliveryBody = (await deliveryRes.json()) as { error: string };
     assert.equal(deliveryBody.error, "relay_payload_delivery_requires_claim");
+  });
+});
+
+test("KV relay payload store claims and delivers owner-scoped payloads", async () => {
+  await withRelayPayloadKvEnv(async () => {
+    const { client } = fakeRelayPayloadKv();
+    __setP2pRelayPayloadKvClientForTest(client);
+    const ownerKey = p2pControlOwnerKey("test-token");
+    const payload = createRelayPayload({
+      owner_key: ownerKey,
+      session_id: "session-kv",
+      lease_id: "lease-kv",
+      source_node_id: "node-a",
+      target_node_id: "node-b",
+      relay_url: "wss://relay.musu.pro/api/v1/relay/connect",
+      tunnel_id: "tunnel-kv",
+      payload_kind: "forwarded_task_envelope",
+      payload_base64: payloadBody().payload_base64,
+      payload_sha256: payloadBody().payload_sha256,
+    });
+    await appendRelayPayload(payload);
+
+    const claimed = await claimRelayPayloads({
+      owner_key: ownerKey,
+      target_node_id: "node-b",
+      claimant_node_id: "node-b",
+      session_id: "session-kv",
+      lease_id: "lease-kv",
+      limit: 1,
+      status: "queued",
+    });
+
+    assert.equal(claimed.length, 1);
+    assert.equal(claimed[0]?.status, "claimed");
+    assert.equal(claimed[0]?.claimed_by, "node-b");
+    assert.equal(typeof claimed[0]?.claimed_at, "string");
+
+    const queued = await queryRelayPayloads({ owner_key: ownerKey, status: "queued" });
+    assert.equal(queued.length, 0);
+
+    const delivered = await markRelayPayloadDelivered({
+      owner_key: ownerKey,
+      payload_id: claimed[0]!.payload_id,
+      target_node_id: "node-b",
+    });
+
+    assert.equal(delivered?.status, "delivered");
+    assert.equal(typeof delivered?.delivered_at, "string");
+    const deliveredRecords = await queryRelayPayloads({
+      owner_key: ownerKey,
+      status: "delivered",
+    });
+    assert.equal(deliveredRecords.length, 1);
+    assert.equal(deliveredRecords[0]?.payload_id, claimed[0]?.payload_id);
+  });
+});
+
+test("KV relay payload store rejects delivery before claim", async () => {
+  await withRelayPayloadKvEnv(async () => {
+    const { client } = fakeRelayPayloadKv();
+    __setP2pRelayPayloadKvClientForTest(client);
+    const ownerKey = p2pControlOwnerKey("test-token");
+    const payload = createRelayPayload({
+      owner_key: ownerKey,
+      session_id: "session-kv-unclaimed",
+      lease_id: "lease-kv-unclaimed",
+      source_node_id: "node-a",
+      target_node_id: "node-b",
+      relay_url: "wss://relay.musu.pro/api/v1/relay/connect",
+      tunnel_id: "tunnel-kv-unclaimed",
+      payload_kind: "forwarded_task_envelope",
+      payload_base64: payloadBody().payload_base64,
+      payload_sha256: payloadBody().payload_sha256,
+    });
+    await appendRelayPayload(payload);
+
+    await assert.rejects(
+      () =>
+        markRelayPayloadDelivered({
+          owner_key: ownerKey,
+          payload_id: payload.payload_id,
+          target_node_id: "node-b",
+        }),
+      /relay_payload_delivery_requires_claim/
+    );
   });
 });
 

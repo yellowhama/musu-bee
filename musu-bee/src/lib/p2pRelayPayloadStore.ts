@@ -69,12 +69,30 @@ export type P2pRelayPayloadStoreStatus = {
   release_grade: boolean;
 };
 
+type RelayPayloadKvClient = {
+  del: (key: string) => Promise<unknown>;
+  lpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
+  lrange: <T>(key: string, start: number, stop: number) => Promise<T[]>;
+  ltrim: (key: string, start: number, stop: number) => Promise<unknown>;
+  rpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
+};
+
 const KV_KEY = "musu:p2p:relay-payloads:v1";
 const DEFAULT_MAX_PAYLOADS = 1000;
 const DEFAULT_TTL_SECONDS = 300;
 const DEFAULT_MAX_PAYLOAD_BYTES = 256 * 1024;
 
 let localLockQueue: Promise<void> = Promise.resolve();
+let kvClientForTest: RelayPayloadKvClient | null = null;
+
+export function __setP2pRelayPayloadKvClientForTest(
+  client: RelayPayloadKvClient | null
+): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("relay_payload_kv_test_client_forbidden");
+  }
+  kvClientForTest = client;
+}
 
 function shouldUseKv(): boolean {
   ensureP2pKvRestEnvAliases();
@@ -170,6 +188,32 @@ function emptyState(): P2pRelayPayloadStoreState {
 function payloadFresh(payload: StoredP2pRelayPayload): boolean {
   const expiresAt = Date.parse(payload.expires_at);
   return Number.isFinite(expiresAt) && Date.now() < expiresAt;
+}
+
+async function kvClient(): Promise<RelayPayloadKvClient> {
+  if (kvClientForTest) {
+    return kvClientForTest;
+  }
+  const { kv } = await import("@vercel/kv");
+  return kv as RelayPayloadKvClient;
+}
+
+async function kvGetPayloads(): Promise<StoredP2pRelayPayload[]> {
+  const kv = await kvClient();
+  return (await kv.lrange<StoredP2pRelayPayload>(KV_KEY, 0, maxPayloads() - 1))
+    .filter(isStoredRelayPayload)
+    .filter(payloadFresh)
+    .slice(0, maxPayloads());
+}
+
+async function kvSetPayloads(payloads: StoredP2pRelayPayload[]): Promise<void> {
+  const kv = await kvClient();
+  const retained = payloads.filter(payloadFresh).slice(0, maxPayloads());
+  await kv.del(KV_KEY);
+  for (const payload of retained) {
+    await kv.rpush(KV_KEY, payload);
+  }
+  await kv.ltrim(KV_KEY, 0, maxPayloads() - 1);
 }
 
 function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
@@ -308,7 +352,7 @@ export function createRelayPayload(input: {
 export async function appendRelayPayload(payload: StoredP2pRelayPayload): Promise<void> {
   assertStoreConfigured();
   if (shouldUseKv()) {
-    const { kv } = await import("@vercel/kv");
+    const kv = await kvClient();
     await kv.lpush(KV_KEY, payload);
     await kv.ltrim(KV_KEY, 0, maxPayloads() - 1);
     return;
@@ -328,14 +372,7 @@ export async function queryRelayPayloads(
 ): Promise<StoredP2pRelayPayload[]> {
   assertStoreConfigured();
   const payloads = shouldUseKv()
-    ? (await (async () => {
-        const { kv } = await import("@vercel/kv");
-        return (await kv.lrange<StoredP2pRelayPayload>(
-          KV_KEY,
-          0,
-          maxPayloads() - 1
-        )).filter(isStoredRelayPayload);
-      })())
+    ? await kvGetPayloads()
     : fileGet().payloads;
   const limit = Math.max(1, Math.min(query.limit ?? 50, 200));
 
@@ -374,101 +411,128 @@ export async function claimRelayPayloads(
   input: P2pRelayPayloadClaimInput
 ): Promise<StoredP2pRelayPayload[]> {
   assertStoreConfigured();
-  if (shouldUseKv()) {
-    throw new Error("relay_payload_claim_kv_not_implemented");
-  }
 
   const limit = Math.max(1, Math.min(input.limit ?? 1, 20));
   const now = new Date().toISOString();
   const claimant = input.claimant_node_id?.trim() || input.target_node_id;
 
+  if (shouldUseKv()) {
+    const state = claimPayloadsFromList(await kvGetPayloads(), input, limit, now, claimant);
+    await kvSetPayloads(state.payloads);
+    return state.claimed;
+  }
+
   return withLocalLock(async () => {
     const state = fileGet();
-    const claimedIds = new Set<string>();
-    const claimed: StoredP2pRelayPayload[] = [];
-
-    for (const payload of state.payloads.filter(payloadFresh)) {
-      if (claimed.length >= limit) {
-        break;
-      }
-      if (
-        payload.status === "queued" &&
-        matchesPayloadQuery(payload, {
-          ...input,
-          status: "queued",
-        })
-      ) {
-        claimedIds.add(payload.payload_id);
-        claimed.push({
-          ...payload,
-          status: "claimed" as const,
-          claimed_by: claimant,
-          claimed_at: now,
-        });
-      }
-    }
-
-    if (claimed.length === 0) {
-      fileSet({
-        schema: "musu.p2p_relay_payload_store.v1",
-        payloads: state.payloads.filter(payloadFresh).slice(0, maxPayloads()),
-      });
-      return [];
-    }
+    const next = claimPayloadsFromList(state.payloads, input, limit, now, claimant);
 
     fileSet({
       schema: "musu.p2p_relay_payload_store.v1",
-      payloads: state.payloads
-        .filter(payloadFresh)
-        .map((payload) =>
-          claimedIds.has(payload.payload_id)
-            ? claimed.find((item) => item.payload_id === payload.payload_id) ?? payload
-            : payload
-        )
-        .slice(0, maxPayloads()),
+      payloads: next.payloads,
     });
 
-    return claimed;
+    return next.claimed;
   });
+}
+
+function claimPayloadsFromList(
+  payloads: StoredP2pRelayPayload[],
+  input: P2pRelayPayloadClaimInput,
+  limit: number,
+  now: string,
+  claimant: string
+): { payloads: StoredP2pRelayPayload[]; claimed: StoredP2pRelayPayload[] } {
+  const fresh = payloads.filter(payloadFresh);
+  const claimedIds = new Set<string>();
+  const claimed: StoredP2pRelayPayload[] = [];
+
+  for (const payload of fresh) {
+    if (claimed.length >= limit) {
+      break;
+    }
+    if (
+      payload.status === "queued" &&
+      matchesPayloadQuery(payload, {
+        ...input,
+        status: "queued",
+      })
+    ) {
+      const nextPayload = {
+        ...payload,
+        status: "claimed" as const,
+        claimed_by: claimant,
+        claimed_at: now,
+      };
+      claimedIds.add(payload.payload_id);
+      claimed.push(nextPayload);
+    }
+  }
+
+  return {
+    claimed,
+    payloads: fresh
+      .map((payload) =>
+        claimedIds.has(payload.payload_id)
+          ? claimed.find((item) => item.payload_id === payload.payload_id) ?? payload
+          : payload
+      )
+      .slice(0, maxPayloads()),
+  };
 }
 
 export async function markRelayPayloadDelivered(
   input: P2pRelayPayloadDeliveryInput
 ): Promise<StoredP2pRelayPayload | null> {
   assertStoreConfigured();
-  if (shouldUseKv()) {
-    throw new Error("relay_payload_delivery_kv_not_implemented");
-  }
 
   const deliveredAt = new Date().toISOString();
 
+  if (shouldUseKv()) {
+    const next = deliverPayloadFromList(await kvGetPayloads(), input, deliveredAt);
+    await kvSetPayloads(next.payloads);
+    return next.delivered;
+  }
+
   return withLocalLock(async () => {
     const state = fileGet();
-    let delivered: StoredP2pRelayPayload | null = null;
-    const payloads = state.payloads.filter(payloadFresh).map((payload) => {
-      if (
-        payload.payload_id !== input.payload_id ||
-        payload.owner_key !== input.owner_key ||
-        payload.target_node_id !== input.target_node_id
-      ) {
-        return payload;
-      }
-      if (payload.status !== "claimed") {
-        throw new Error("relay_payload_delivery_requires_claim");
-      }
-      delivered = {
-        ...payload,
-        status: "delivered" as const,
-        delivered_at: deliveredAt,
-      };
-      return delivered;
-    });
+    const next = deliverPayloadFromList(state.payloads, input, deliveredAt);
 
     fileSet({
       schema: "musu.p2p_relay_payload_store.v1",
-      payloads: payloads.slice(0, maxPayloads()),
+      payloads: next.payloads,
     });
 
+    return next.delivered;
+  });
+}
+
+function deliverPayloadFromList(
+  payloads: StoredP2pRelayPayload[],
+  input: P2pRelayPayloadDeliveryInput,
+  deliveredAt: string
+): { payloads: StoredP2pRelayPayload[]; delivered: StoredP2pRelayPayload | null } {
+  let delivered: StoredP2pRelayPayload | null = null;
+  const nextPayloads = payloads.filter(payloadFresh).map((payload) => {
+    if (
+      payload.payload_id !== input.payload_id ||
+      payload.owner_key !== input.owner_key ||
+      payload.target_node_id !== input.target_node_id
+    ) {
+      return payload;
+    }
+    if (payload.status !== "claimed") {
+      throw new Error("relay_payload_delivery_requires_claim");
+    }
+    delivered = {
+      ...payload,
+      status: "delivered" as const,
+      delivered_at: deliveredAt,
+    };
     return delivered;
   });
+
+  return {
+    payloads: nextPayloads.slice(0, maxPayloads()),
+    delivered,
+  };
 }

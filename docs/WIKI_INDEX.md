@@ -3072,4 +3072,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `@vercel/express@0.1.95`, `npx -y vercel@54.7.1 --version`, and
   `Deploy to Vercel`.
 
+- 2026-06-04 relay payload KV claim/delivery store:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_KV_CLAIM_DELIVERY_STORE_2026_06_04.md`
+  (wiki/657) records hosted KV/Upstash claim/delivery support for the relay
+  payload queue. Search terms should include `GOAL v467`, `wiki/657`,
+  `kvSetPayloads`, `__setP2pRelayPayloadKvClientForTest`,
+  `relay_payload_delivery_requires_claim`, `relay_payload_claim_kv_not_implemented`,
+  `KV relay payload store claims and delivers`, and `test:p2p 56/56`.
+
 **End of WIKI_INDEX.md.**

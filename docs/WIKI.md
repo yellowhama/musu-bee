@@ -3917,11 +3917,10 @@ Public response records continue to strip `owner_key`. Claim responses only
 include `payload_base64` when `include_payload=true`, and delivery responses
 never return payload bytes.
 
-KV/Upstash claim and delivery are intentionally fail-closed until atomic
-mutation lands:
-
-- `relay_payload_claim_kv_not_implemented`
-- `relay_payload_delivery_kv_not_implemented`
+2026-06-04 follow-up wiki/657 added a KV/Upstash list-rewrite mutation path, so
+the old `relay_payload_claim_kv_not_implemented` and
+`relay_payload_delivery_kv_not_implemented` placeholders are no longer current
+behavior. Release-grade concurrent atomic claim remains incomplete.
 
 Validation passed `npm run test:p2p` `54/54` and `npm run typecheck`.
 
@@ -3990,3 +3989,32 @@ This is CI/deploy hardening only, not runtime relay progress.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_VERCEL_CLI_PIN_DEPLOY_WORKFLOW_2026_06_04.md`
+
+## 2026-06-04 relay payload KV claim/delivery store (wiki/657)
+
+The relay payload queue now supports claim/delivery on the hosted KV/Upstash
+store path.
+
+`p2pRelayPayloadStore` now shares state-transition logic between file and KV:
+
+- `queued -> claimed -> delivered`
+- owner-scoped target matching
+- claim records `claimed_by` and `claimed_at`
+- delivery records `delivered_at`
+- delivery before claim still returns `relay_payload_delivery_requires_claim`
+
+The KV path loads fresh records with `lrange`, applies the same transition logic
+as the file store, and rewrites retained records with `del` plus `rpush`. This
+removes the old `relay_payload_claim_kv_not_implemented` and
+`relay_payload_delivery_kv_not_implemented` behavior.
+
+Validation passed focused relay payload route tests `10/10`,
+`npm run test:p2p` `56/56`, and `npm run typecheck`.
+
+This is still non-release-grade. The current KV list rewrite is not a concurrent
+atomic claim primitive, and no background polling, payload execution, or
+QUIC/TLS relay proof was added.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_KV_CLAIM_DELIVERY_STORE_2026_06_04.md`

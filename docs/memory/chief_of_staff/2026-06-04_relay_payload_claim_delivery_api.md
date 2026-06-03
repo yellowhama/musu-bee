@@ -21,10 +21,10 @@ Safety/interpretation:
 - public payloads strip `owner_key`
 - claim includes `payload_base64` only when `include_payload=true`
 - delivery never returns payload bytes
-- KV/Upstash claim/delivery fail closed with
+- Follow-up wiki/657 added a KV/Upstash list-rewrite mutation path, so
   `relay_payload_claim_kv_not_implemented` and
-  `relay_payload_delivery_kv_not_implemented` until atomic mutation is
-  implemented
+  `relay_payload_delivery_kv_not_implemented` are no longer current behavior.
+  Release-grade concurrent atomic claim is still not complete.
 - this does not wire background polling, payload execution, or release-grade
   QUIC/TLS relay transport proof
 
