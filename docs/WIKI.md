@@ -3189,3 +3189,41 @@ Canonical report:
 - search terms should include `GOAL v435`, `wiki/625 index refresh`,
   `musu-startup.rs`, `MUSU_RELEASE_SMOKE_OK_20260603_160819`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`
+
+## 2026-06-03 bounded frontend SSE hardening (wiki/626)
+
+Dashboard mount-time SSE subscriptions now use a shared bounded hook instead of
+raw browser `EventSource` auto-retry. `useBoundedEventSource` closes failed
+streams, reconnects on capped exponential backoff from `1s` to `10s`, stops
+after `5` failed attempts, and closes streams while the document is hidden.
+
+Applied surfaces:
+
+- `musu-bee\src\app\fleet\page.tsx`
+- `musu-bee\src\app\c\[id]\page.tsx`
+- `musu-bee\src\app\m\[id]\page.tsx`
+- `musu-bee\src\components\TasksPanel.tsx`
+
+Validation passed `npm run test:runtime-polling` `14/14`, `npm run
+typecheck`, `npm run build`, and `git diff --check` with only the existing CRLF
+normalization warning for `TasksPanel.tsx`.
+
+Go/no-go at 2026-06-03 16:51 KST: public release `false`, local artifacts
+`true`, single-machine `true`, runtime idle CPU `1/2`, runtime CPU matrix
+`1/2`, multi-device `false`, P2P control plane `false`, relay transport
+`false`, relay payload proof `false`, and git dirty on this source change.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_BOUNDED_FRONTEND_SSE_HARDENING_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1732` files and `2318` symbols after GOAL v436, wiki/626,
+  bounded frontend SSE source/tests, the canonical report, BETA/WIKI_INDEX
+  updates, and CoS memory `2026-06-03_bounded_frontend_sse_hardening.md`
+- search terms should include `GOAL v437`, `wiki/627 index refresh`,
+  `useBoundedEventSource`, `BOUNDED_SSE_MAX_RETRIES`, and
+  `runtime-polling 14/14`

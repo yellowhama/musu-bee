@@ -2709,4 +2709,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_RELEASE_SMOKE_OK_20260603_160819`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`.
 
+- 2026-06-03 bounded frontend SSE hardening:
+  `RELEASE_1_15_0_RC1_BOUNDED_FRONTEND_SSE_HARDENING_2026_06_03.md`
+  (wiki/626) records the shared bounded dashboard SSE hook and the migration of
+  fleet, company, machine, and `TasksPanel` mount-time streams away from raw
+  browser auto-retry. Search terms should include `GOAL v436`,
+  `useBoundedEventSource`, `BOUNDED_SSE_MAX_RETRIES`, `Browser auto-retries`,
+  `runtime-polling 14/14`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
+- 2026-06-03 bounded frontend SSE index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1732 files and 2318 symbols after GOAL v436, wiki/626,
+  `useBoundedEventSource`, fleet/company/machine/TasksPanel SSE migration,
+  runtime-polling contract updates, the canonical report, BETA/WIKI/WIKI_INDEX
+  updates, and CoS memory `2026-06-03_bounded_frontend_sse_hardening.md`.
+  Search terms should include `GOAL v437`, `1732 files`, `2318 symbols`,
+  `wiki/627 index refresh`, `useBoundedEventSource`,
+  `BOUNDED_SSE_MAX_RETRIES`, and `runtime-polling 14/14`.
+
 **End of WIKI_INDEX.md.**

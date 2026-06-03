@@ -27,6 +27,7 @@ import { getBridgeUrl } from '../../lib/bridge-config';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DoctorStatusCard from "../../components/DoctorStatusCard";
+import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 const BRIDGE_URL = getBridgeUrl();
@@ -526,9 +527,6 @@ export default function FleetPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const fetchInFlightRef = useRef(false);
 
-  // Bump a counter to force a re-fetch on demand (e.g. after AddPcWizard success).
-  const [refetchTick, setRefetchTick] = useState(0);
-
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     if (fetchInFlightRef.current) return;
     fetchInFlightRef.current = true;
@@ -550,27 +548,12 @@ export default function FleetPage() {
 
   useLowDutyPolling(fetchData, { intervalMs: REFRESH_INTERVAL });
 
-  useEffect(() => {
-    let alive = true;
-
-    // SINGLE EventSource on the `machines` table per OQ-CRIT-4. Low-duty polling
-    // covers `machine_capacity` (slow-moving). Frees 1 SSE slot against
-    // browser HTTP/1.1 6-connections-per-host cap.
-    const es = new EventSource(
-      `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
-    );
-    es.onmessage = () => {
-      if (alive) fetchData();
-    };
-    es.onerror = () => {
-      // Browser auto-retries; polling continues. Don't crash on transient err.
-    };
-
-    return () => {
-      alive = false;
-      es.close();
-    };
-  }, [fetchData, refetchTick]);
+  useBoundedEventSource({
+    url: `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
+    onMessage: () => {
+      void fetchData();
+    },
+  });
 
   return (
     <div
@@ -686,7 +669,6 @@ export default function FleetPage() {
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         onSuccess={() => {
-          setRefetchTick((t) => t + 1);
           void fetchData();
         }}
       />

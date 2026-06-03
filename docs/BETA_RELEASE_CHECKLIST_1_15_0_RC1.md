@@ -2808,3 +2808,51 @@ complete.
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - indexed `1728` files and `2315` symbols after the startup helper source
   primary evidence refresh
+
+## 2026-06-03 16:51 KST Bounded Frontend SSE Hardening
+
+Dashboard mount-time SSE subscriptions now use
+`musu-bee/src/lib/useBoundedEventSource.ts` instead of relying on the browser's
+unbounded `EventSource` auto-retry behavior.
+
+Applied surfaces:
+
+- `/fleet` machines stream
+- `/c/[id]` resource request stream
+- `/m/[id]` resource request and machines streams
+- `TasksPanel` bridge task stream
+
+Contract:
+
+- failed streams are explicitly closed
+- reconnect uses capped exponential backoff from `1s` to `10s`
+- reconnect stops after `5` failed attempts
+- hidden documents close the stream and clear retry timers
+- low-duty polling remains the fallback
+
+Validation:
+
+- `npm run test:runtime-polling` passed `14/14`
+- `npm run typecheck` passed
+- `npm run build` passed
+- `git diff --check` passed with only the existing CRLF normalization warning
+  for `musu-bee/src/components/TasksPanel.tsx`
+
+Release interpretation:
+
+- this removes another frontend busy-loop candidate
+- this is runtime source, so fresh clean MSIX/smoke/CPU/matrix evidence is
+  required after commit before the current source can claim packaged primary
+  evidence
+- public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted relay payload proof, support mailbox evidence, Store evidence, and
+  current dirty git state
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1732` files and `2318` symbols after GOAL v436, wiki/626,
+  bounded frontend SSE source/tests, the canonical report, BETA/WIKI/WIKI_INDEX
+  updates, and CoS memory
+  `2026-06-03_bounded_frontend_sse_hardening.md`

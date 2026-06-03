@@ -104,6 +104,33 @@ test("fleet store SSE reconnect is bounded and explicitly closed", () => {
   assert.match(agentPageText, /return \(\) => closeSSE\(\)/);
 });
 
+test("shared bounded EventSource closes failed streams and caps reconnects", () => {
+  const text = source("src/lib/useBoundedEventSource.ts");
+
+  assert.match(text, /BOUNDED_SSE_RECONNECT_INITIAL_MS\s*=\s*1_000/);
+  assert.match(text, /BOUNDED_SSE_RECONNECT_MAX_MS\s*=\s*10_000/);
+  assert.match(text, /BOUNDED_SSE_RECONNECT_MULTIPLIER\s*=\s*2/);
+  assert.match(text, /BOUNDED_SSE_MAX_RETRIES\s*=\s*5/);
+  assert.match(text, /new EventSource\(url\)/);
+  assert.match(text, /es\.close\(\)/);
+  assert.match(text, /reconnectAttempts\s*>=\s*maxRetries/);
+  assert.match(text, /document\.addEventListener\("visibilitychange"/);
+  assert.match(text, /document\.removeEventListener\("visibilitychange"/);
+});
+
+test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {
+  const fleetText = source("src/app/fleet/page.tsx");
+  const companyText = source("src/app/c/[id]/page.tsx");
+  const machineText = source("src/app/m/[id]/page.tsx");
+  const tasksText = source("src/components/TasksPanel.tsx");
+
+  for (const text of [fleetText, companyText, machineText, tasksText]) {
+    assert.match(text, /useBoundedEventSource/);
+    assert.doesNotMatch(text, /new EventSource\(/);
+    assert.doesNotMatch(text, /Browser auto-retries/);
+  }
+});
+
 test("node panel refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/NodePanel.tsx");
 

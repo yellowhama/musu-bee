@@ -1,8 +1,9 @@
 "use client";
 import { getBridgeUrl } from '../../../lib/bridge-config';
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface InflightRequest {
@@ -106,28 +107,16 @@ export default function CompanyPage() {
 
   useLowDutyPolling(fetchData, { enabled: Boolean(companyId), intervalMs: REFRESH_INTERVAL });
 
-  useEffect(() => {
-    if (!companyId) return;
-    let alive = true;
-    // v21.F — SSE on resource_requests wakes a refresh as soon as the
-    // scheduler binds/runs/completes an agent's request. Client-side
-    // filter by company_id: we don't have that on the wire, so we
-    // refetch and let the totals diff. Low-duty polling is only a safety net.
-    const es = new EventSource(
-      `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
-    );
-    es.onmessage = () => {
-      if (alive) fetchData();
-    };
-    es.onerror = () => {
-      // Browser auto-retries; nothing to do here. Polling still covers.
-    };
-
-    return () => {
-      alive = false;
-      es.close();
-    };
-  }, [companyId, fetchData]);
+  // SSE wakes a refresh as soon as the scheduler binds/runs/completes an
+  // agent's request. The bounded hook closes failed streams and uses capped
+  // reconnects; low-duty polling remains the safety net.
+  useBoundedEventSource({
+    enabled: Boolean(companyId),
+    url: `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
+    onMessage: () => {
+      void fetchData();
+    },
+  });
 
   return (
     <div

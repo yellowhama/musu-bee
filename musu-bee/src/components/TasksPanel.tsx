@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import SprintContractSection from "./SprintContractSection";
 
@@ -149,38 +150,35 @@ export default function TasksPanel({ companyId }: TasksPanelProps = {}) {
     void doFetch();
   }, [statusFilter, channelFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // SSE subscription
   useEffect(() => {
     mountedRef.current = true;
-
-    void doFetch();
-
-    const es = new EventSource("/api/bridge-tasks/events");
-
-    const handleTaskUpdate = (e: MessageEvent) => {
-      try {
-        const event = JSON.parse(e.data as string) as { type: string };
-        if (mountedRef.current && event.type === "task_update") {
-          void doFetch();
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
-
-    es.addEventListener("task_update", handleTaskUpdate);
-    es.onmessage = handleTaskUpdate;
-
-    es.onerror = () => {
-      es.close();
-      if (mountedRef.current) setSseFallbackEnabled(true);
-    };
-
     return () => {
       mountedRef.current = false;
-      es.close();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTaskUpdate = useCallback((e: MessageEvent) => {
+    try {
+      const event = JSON.parse(e.data as string) as { type: string };
+      if (mountedRef.current && event.type === "task_update") {
+        void doFetch();
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, [doFetch]);
+
+  useBoundedEventSource({
+    url: "/api/bridge-tasks/events",
+    events: { task_update: handleTaskUpdate },
+    onMessage: handleTaskUpdate,
+    onOpen: () => {
+      if (mountedRef.current) setSseFallbackEnabled(false);
+    },
+    onError: () => {
+      if (mountedRef.current) setSseFallbackEnabled(true);
+    },
+  });
 
   useLowDutyPolling(doFetch, {
     enabled: sseFallbackEnabled,

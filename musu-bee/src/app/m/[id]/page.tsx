@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 
 interface MachineCapacity {
@@ -125,28 +126,22 @@ export default function MachinePage() {
 
   useLowDutyPolling(fetchData, { enabled: Boolean(machineId), intervalMs: REFRESH_INTERVAL });
 
-  useEffect(() => {
-    if (!machineId) return;
-    let alive = true;
-    // v21.F — subscribe to two streams that affect this machine:
-    //   resource_requests  — binds / runs / completes on this machine
-    //   machines           — capacity heartbeat + status flips
-    const esReq = new EventSource(
-      `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
-    );
-    const esMch = new EventSource(
-      `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
-    );
-    const wake = () => { if (alive) fetchData(); };
-    esReq.onmessage = wake;
-    esMch.onmessage = wake;
+  const wake = useCallback(() => {
+    void fetchData();
+  }, [fetchData]);
 
-    return () => {
-      alive = false;
-      esReq.close();
-      esMch.close();
-    };
-  }, [fetchData, machineId]);
+  // These streams affect this machine. The bounded hook prevents the browser's
+  // unbounded EventSource auto-retry loop from running in the background.
+  useBoundedEventSource({
+    enabled: Boolean(machineId),
+    url: `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
+    onMessage: wake,
+  });
+  useBoundedEventSource({
+    enabled: Boolean(machineId),
+    url: `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
+    onMessage: wake,
+  });
 
   return (
     <div
