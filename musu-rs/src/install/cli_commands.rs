@@ -640,6 +640,7 @@ fn write_route_evidence_if_requested(
             .unwrap_or_else(|| "none_http_bearer".to_string()),
         transport_verified_by: peer_identity.map(|proof| proof.transport_verified_by.clone()),
         relay_fallback: None,
+        relay_payload_delivery_proof: None,
     });
     write_route_attempt_evidence(path, &evidence)?;
     println!("route evidence written: {}", path.display());

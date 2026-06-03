@@ -1591,3 +1591,39 @@ handoff artifacts were regenerated from clean git commit
 both reported `ok=true` and `fail_count=0`. The nested second-PC kit README now
 states that runtime matrix scenario measurements must preserve
 `cpu_attribution`, `musu.runtime_idle_cpu_attribution.v1`, and `top_processes`.
+
+## 2026-06-04 Relay Payload Delivery Proof DTO Alignment
+
+The hosted route-evidence API already accepts
+`relay_payload_delivery_proof` when a relay fallback claims
+`payload_transport_proven=true`. The Rust route-evidence submission DTO did not
+carry that field, which would block the runtime from attaching target-side
+delivery proof once a real relay payload drain succeeds.
+
+Source contract update:
+
+- `musu-rs/src/cloud/mod.rs` now defines
+  `RouteRelayPayloadDeliveryProof`
+- `musu-rs/src/cloud/mod.rs::RouteEvidence` now serializes optional
+  `relay_payload_delivery_proof`
+- `musu-rs/src/bridge/route_evidence.rs` now preserves optional
+  `RouteRelayPayloadDeliveryProof` in local route evidence and maps it into the
+  cloud DTO used by `submit_route_evidence`
+- existing CLI/bridge route evidence generation keeps
+  `relay_payload_delivery_proof=None` until real target-side relay delivery is
+  available
+
+Validation:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml`
+- `git diff --check`
+- `cargo test --manifest-path musu-rs\Cargo.toml --lib -j 1 route_evidence`
+  passed 12/12 focused tests
+- an earlier full `cargo test ... route_evidence` attempt failed before test
+  execution because the running `target\debug\musu.exe` was locked by Windows
+  (`os error 5`), not because of a compile or assertion failure
+
+Roadmap status: this does not make relay transport release-grade and does not
+close the live `musu.pro` P2P gate. It removes a Rust/API contract mismatch so
+future relay fallback evidence can include stored payload delivery proof
+alongside the relay transport proof.

@@ -317,6 +317,21 @@ pub struct RouteRelayTransportProof {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // P2P route evidence DTO; used when relay payload delivery proof is attached.
+pub struct RouteRelayPayloadDeliveryProof {
+    pub schema: String,
+    pub payload_id: String,
+    pub session_id: String,
+    pub lease_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub tunnel_id: String,
+    pub payload_sha256: String,
+    pub payload_bytes: u64,
+    pub delivered_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // Runtime relay/tunnel code records this after actual payload transit lands.
 pub struct P2pRelayTransportProofRequest {
     pub schema: String,
@@ -574,6 +589,8 @@ pub struct RouteEvidence {
     pub relay_fallback: Option<RouteRelayFallbackEvidence>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relay_transport_proof: Option<RouteRelayTransportProof>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_payload_delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
     pub recorded_at: String,
 }
 
@@ -1197,6 +1214,7 @@ mod tests {
             failure_class: None,
             relay_fallback: None,
             relay_transport_proof: None,
+            relay_payload_delivery_proof: None,
             recorded_at: "2026-05-31T09:01:00Z".into(),
         };
 
@@ -1208,6 +1226,59 @@ mod tests {
         assert_eq!(value["transport_verified_by"], "musu_quic_tls_transport");
         assert_eq!(value["payload_transited_musu_infra"], false);
         assert_eq!(value["result"], "success");
+    }
+
+    #[test]
+    fn route_evidence_serializes_relay_payload_delivery_proof() {
+        let evidence = RouteEvidence {
+            schema: "musu.route_evidence.v1".into(),
+            version: "1.15.0-rc.1".into(),
+            source_node_id: "node_src".into(),
+            target_node_id: "node_dst".into(),
+            session_id: Some("rv_123".into()),
+            route_kind: RouteKind::Relay,
+            candidate_addr: "relay.musu.pro:443".into(),
+            handshake_ms: Some(42),
+            total_attempt_ms: 611,
+            peer_identity_verified: true,
+            peer_identity_method: Some("quic_tls_cert_fingerprint".into()),
+            peer_public_key: Some("sha256:test".into()),
+            encryption: "quic_tls_1_3".into(),
+            transport_verified_by: Some("musu_quic_tls_transport".into()),
+            payload_transited_musu_infra: true,
+            result: RouteAttemptResult::Success,
+            failure_class: None,
+            relay_fallback: None,
+            relay_transport_proof: None,
+            relay_payload_delivery_proof: Some(RouteRelayPayloadDeliveryProof {
+                schema: "musu.relay_payload_delivery_proof.v1".into(),
+                payload_id: "payload-1".into(),
+                session_id: "rv_123".into(),
+                lease_id: "lease-1".into(),
+                source_node_id: "node_src".into(),
+                target_node_id: "node_dst".into(),
+                tunnel_id: "relay-tunnel-1".into(),
+                payload_sha256: "abc123".into(),
+                payload_bytes: 128,
+                delivered_at: "2026-06-04T00:00:02Z".into(),
+            }),
+            recorded_at: "2026-06-04T00:00:03Z".into(),
+        };
+
+        let value = serde_json::to_value(evidence).unwrap();
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["schema"],
+            "musu.relay_payload_delivery_proof.v1"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["payload_id"],
+            "payload-1"
+        );
+        assert_eq!(value["relay_payload_delivery_proof"]["payload_bytes"], 128);
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["delivered_at"],
+            "2026-06-04T00:00:02Z"
+        );
     }
 
     #[test]
