@@ -319,6 +319,7 @@ Current `POST /api/v1/p2p/relay/lease` behavior:
 - Default policy is fail-closed. A lease requires:
   - `MUSU_P2P_RELAY_ENABLED=1`
   - `MUSU_P2P_RELAY_TRANSPORT_WIRED=1`
+  - code-level relay payload endpoint implementation marker enabled
   - `MUSU_P2P_RELAY_URL`
   - `MUSU_P2P_RELAY_ENTITLEMENT=connect|pro|enterprise`
   - `direct_path_failed=true`
@@ -689,8 +690,9 @@ Product boundary:
   carried the payload.
 - Operators must not set `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` as a workaround;
   that flag is only acceptable after real payload transport has been
-  implemented, used, and recorded as owner-scoped release-grade relay route
-  evidence.
+  implemented, the payload endpoint implementation marker has been enabled, and
+  owner-scoped release-grade relay route evidence has recorded the actual data
+  path.
 
 ## 2026-06-03 Relay Transport Descriptor Gate
 
@@ -708,6 +710,7 @@ The descriptor is required in live P2P evidence. It must report:
 - `owner_scoped=true`
 - `relay_transport_descriptor_wired=true`
 - `relay_transport_wired=true`
+- `relay_payload_endpoint_wired=true`
 - `relay_default_data_path=false`
 - `payload_transit_requires_lease=true`
 - `relay_url` using `wss://`
@@ -769,3 +772,23 @@ This prevents a stored relay lease from being mistaken for payload transit
 proof. Current bridge forwarding does not emit this proof; future relay/tunnel
 runtime code must generate it from the actual relay data path before hosted
 P2P evidence can pass the release gate.
+
+## 2026-06-03 Relay Payload Endpoint Fail-Closed Gate
+
+`MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is no longer sufficient for hosted P2P relay
+readiness. `relayTransportWired()` now requires both the env flag and an
+explicit code-level payload endpoint implementation marker.
+
+Current source keeps that marker false because `/api/v1/relay/connect` payload
+transport is not implemented. As a result:
+
+- `GET /api/v1/p2p/relay/transport` reports
+  `relay_payload_endpoint_wired=false`.
+- The relay transport preflight includes `relay_payload_endpoint_not_wired`.
+- `POST /api/v1/p2p/relay/lease` refuses env-only fallback leases.
+- Relay route evidence cannot become release-grade while the payload endpoint
+  marker is false, even if a stored lease and `relay_transport_proof` JSON are
+  present.
+
+This is fail-closed release hardening, not relay/tunnel payload transport
+completion.

@@ -4,6 +4,7 @@ export const RELAY_POLICY = "connect_pro_fallback_only";
 export const RELAY_TRANSPORT_KIND = "websocket_tunnel";
 export const RELAY_CONNECT_PATH = "/api/v1/relay/connect";
 export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";
+export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false;
 
 export function envEnabled(name: string): boolean {
   return process.env[name] === "1" || process.env[name]?.toLowerCase() === "true";
@@ -18,8 +19,16 @@ export function hasConnectProEntitlement(): boolean {
   return entitlement === "connect" || entitlement === "pro" || entitlement === "enterprise";
 }
 
-export function relayTransportWired(): boolean {
+export function relayTransportFlagEnabled(): boolean {
   return envEnabled("MUSU_P2P_RELAY_TRANSPORT_WIRED");
+}
+
+export function relayPayloadEndpointWired(): boolean {
+  return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED;
+}
+
+export function relayTransportWired(): boolean {
+  return relayTransportFlagEnabled() && relayPayloadEndpointWired();
 }
 
 export function relayUrlIsWss(value = relayUrl()): boolean {
@@ -56,6 +65,9 @@ export function relayTransportPreflightBlockers(): string[] {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayPayloadEndpointWired()) {
+    blockers.push("relay_payload_endpoint_not_wired");
   }
   if (!url) {
     blockers.push("relay_url_not_configured");

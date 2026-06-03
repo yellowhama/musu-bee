@@ -12,6 +12,7 @@ import {
   envEnabled,
   hasConnectProEntitlement,
   relayLeaseStoreFields,
+  relayPayloadEndpointWired,
   relayTransportWired,
   relayUrl,
   relayUrlIsWss,
@@ -42,6 +43,9 @@ function relayPolicyBlockers(input: {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayPayloadEndpointWired()) {
+    blockers.push("relay_payload_endpoint_not_wired");
   }
   if (!relayUrl()) {
     blockers.push("relay_url_not_configured");
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest) {
         owner_scoped: true,
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
+        relay_payload_endpoint_wired: relayPayloadEndpointWired(),
         relay_default_data_path: false,
         ...relayLeaseStoreFields(),
         policy: "connect_pro_fallback_only",
@@ -144,7 +149,8 @@ export async function POST(req: NextRequest) {
       lease_issued: true,
       owner_scoped: true,
       relay_control_plane_wired: true,
-      relay_transport_wired: true,
+      relay_transport_wired: relayTransportWired(),
+      relay_payload_endpoint_wired: relayPayloadEndpointWired(),
       relay_default_data_path: false,
       ...relayLeaseStoreFields(),
       policy: "connect_pro_fallback_only",
@@ -187,6 +193,7 @@ export async function GET(req: NextRequest) {
       owner_scoped: true,
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
+      relay_payload_endpoint_wired: relayPayloadEndpointWired(),
       relay_default_data_path: false,
       ...relayLeaseStoreFields(),
       count: leases.length,
@@ -200,6 +207,7 @@ export async function GET(req: NextRequest) {
         detail: error instanceof Error ? error.message : "unknown",
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
+        relay_payload_endpoint_wired: relayPayloadEndpointWired(),
         relay_default_data_path: false,
         ...relayLeaseStoreFields(),
       },

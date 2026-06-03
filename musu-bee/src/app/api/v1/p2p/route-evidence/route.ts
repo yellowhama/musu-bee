@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
+import { relayPayloadEndpointWired, relayTransportWired } from "@/lib/p2pRelayPolicy";
 import {
   appendRouteEvidenceRecord,
   createRouteEvidenceId,
@@ -199,6 +200,12 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
     blockers.push("relay_route_missing_infra_transit");
   }
   if (evidence.route_kind === "relay") {
+    if (!relayTransportWired()) {
+      blockers.push("relay_route_transport_not_wired");
+    }
+    if (!relayPayloadEndpointWired()) {
+      blockers.push("relay_route_payload_endpoint_not_wired");
+    }
     const relay = evidence.relay_fallback;
     if (!relay) {
       blockers.push("relay_route_missing_lease_proof");

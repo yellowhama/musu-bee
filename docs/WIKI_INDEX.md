@@ -2654,4 +2654,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/621 index refresh`, `targeted-post-route.verification.json`,
   `HUGH-MAIN`, `WebView2 0.10`, and `402.69MB`.
 
+- 2026-06-03 relay payload endpoint fail-closed hardening:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ENDPOINT_FAIL_CLOSED_2026_06_03.md`
+  (wiki/622) records that `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is no longer
+  sufficient for `relay_transport_wired=true`. Current source keeps
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, reports
+  `relay_payload_endpoint_wired=false`, blocks env-only relay leases with
+  `relay_payload_endpoint_not_wired`, and keeps relay route evidence
+  non-release-grade with `relay_route_payload_endpoint_not_wired`. Validation
+  passed `npm run test:p2p` 35/35, `npm run typecheck`, and release evidence
+  verifier regressions 22/22. Search terms should include `GOAL v432`,
+  `wiki/622`, `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`,
+  `relay_payload_endpoint_wired`, `relay_payload_endpoint_not_wired`, and
+  `relay_route_payload_endpoint_not_wired`.
+
+- 2026-06-03 relay payload endpoint fail-closed index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1715 files and 2312 symbols after GOAL v432, wiki/622, relay
+  payload endpoint fail-closed source/tests, CONFIG/spec/BETA updates,
+  WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_relay_payload_endpoint_fail_closed.md` and
+  `2026-06-03_relay_payload_endpoint_fail_closed_index_refresh.md`. Search terms should
+  include `GOAL v433`, `1715 files`, `2312 symbols`,
+  `wiki/623 index refresh`, `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `relay_payload_endpoint_not_wired`, and
+  `relay_route_payload_endpoint_not_wired`.
+
 **End of WIKI_INDEX.md.**

@@ -2744,3 +2744,26 @@ CPU gates.
 - indexed `1711` files and `2311` symbols after GOAL v430, wiki/620,
   targeted post-route CPU evidence JSON, route token-missing fail-fast
   hardening, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 15:16 KST Relay Payload Endpoint Fail-Closed Hardening
+
+`MUSU_P2P_RELAY_TRANSPORT_WIRED=1` can no longer make hosted relay transport
+readiness pass by itself. Current source keeps
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` because `/api/v1/relay/connect`
+payload transport is not implemented.
+
+Expected current blockers:
+
+- `relay_payload_endpoint_wired=false`
+- `relay_payload_endpoint_not_wired`
+- `relay_route_payload_endpoint_not_wired`
+
+Validation:
+
+- `npm run test:p2p` passed `35/35`
+- `npm run typecheck` passed
+- release evidence verifier regressions passed `22/22`
+
+This is fail-closed hardening only. Public release still requires real
+relay/tunnel payload transport and owner-scoped release-grade relay route
+evidence.

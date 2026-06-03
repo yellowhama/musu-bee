@@ -3111,3 +3111,34 @@ Canonical report:
 - search terms should include `GOAL v431`, `wiki/621 index refresh`,
   `20260603-145454-HUGH_SECOND`, `targeted-post-route.verification.json`,
   `HUGH-MAIN`, `192.168.1.192:8949`, `WebView2 0.10`, and `402.69MB`
+
+## 2026-06-03 relay payload endpoint fail-closed hardening (wiki/622)
+
+Relay transport readiness now requires an actual payload endpoint implementation
+marker in addition to `MUSU_P2P_RELAY_TRANSPORT_WIRED=1`. Current source keeps
+that marker false because `/api/v1/relay/connect` payload transport is not
+implemented. The relay transport descriptor now reports
+`relay_payload_endpoint_wired=false`; transport preflight and relay lease policy
+add `relay_payload_endpoint_not_wired`; and relay route evidence adds
+`relay_route_transport_not_wired` plus `relay_route_payload_endpoint_not_wired`
+so a stored lease plus proof-shaped JSON cannot become release-grade while the
+payload endpoint is absent. Validation passed `npm run test:p2p` 35/35,
+`npm run typecheck`, and release evidence verifier regressions 22/22.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ENDPOINT_FAIL_CLOSED_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1715` files and `2312` symbols after wiki/622, GOAL v432,
+  relay payload endpoint fail-closed source/tests, CONFIG/spec/BETA updates,
+  WIKI_INDEX updates, and CoS memories
+  `2026-06-03_relay_payload_endpoint_fail_closed.md` and
+  `2026-06-03_relay_payload_endpoint_fail_closed_index_refresh.md`
+- search terms should include `GOAL v433`, `wiki/623 index refresh`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `relay_payload_endpoint_wired`, `relay_payload_endpoint_not_wired`, and
+  `relay_route_payload_endpoint_not_wired`

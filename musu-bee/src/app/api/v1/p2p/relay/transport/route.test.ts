@@ -85,6 +85,7 @@ test("reports relay transport preflight blockers by default", async () => {
       owner_scoped: boolean;
       relay_transport_descriptor_wired: boolean;
       relay_transport_wired: boolean;
+      relay_payload_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_lease_store_backend: string;
       relay_lease_store_release_grade: boolean;
@@ -95,11 +96,13 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_backend, "file");
     assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_disabled/);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_url_not_configured/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
     assert.match(body.blockers.join(","), /relay_lease_store_not_release_grade/);
@@ -119,9 +122,9 @@ test("rejects non-wss relay transport URLs", async () => {
   });
 });
 
-test("passes relay transport preflight only with release-grade store and fallback policy", async () => {
+test("keeps relay transport preflight blocked when only env policy is configured", async () => {
   await withRelayEnv(async () => {
-    const { GET } = await loadModule("preflight-ok");
+    const { GET } = await loadModule("preflight-env-only");
     enableRelayTransportPolicy();
     const res = await GET(getReq());
     assert.equal(res.status, 200);
@@ -131,6 +134,7 @@ test("passes relay transport preflight only with release-grade store and fallbac
       relay_control_plane_wired: boolean;
       relay_transport_descriptor_wired: boolean;
       relay_transport_wired: boolean;
+      relay_payload_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_url: string;
       relay_connect_path: string;
@@ -141,11 +145,12 @@ test("passes relay transport preflight only with release-grade store and fallbac
       relay_lease_store_release_grade: boolean;
       blockers: string[];
     };
-    assert.equal(body.ok, true);
+    assert.equal(body.ok, false);
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
-    assert.equal(body.relay_transport_wired, true);
+    assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_url, "wss://relay.musu.pro/api/v1/relay/connect");
     assert.equal(body.relay_connect_path, "/api/v1/relay/connect");
@@ -154,7 +159,8 @@ test("passes relay transport preflight only with release-grade store and fallbac
     assert.equal(body.payload_transit_requires_lease, true);
     assert.equal(body.relay_lease_store_configured, true);
     assert.equal(body.relay_lease_store_release_grade, true);
-    assert.deepEqual(body.blockers, []);
+    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
 
