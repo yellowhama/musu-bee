@@ -44,7 +44,46 @@ function Add-CheckFromCondition {
     }
 }
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
+function Ensure-FileHashCommand {
+    if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    $windowsUtilityModule = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1"
+    if (Test-Path -LiteralPath $windowsUtilityModule) {
+        Import-Module -Name $windowsUtilityModule -ErrorAction SilentlyContinue
+    }
+
+    if (-not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+        throw "Get-FileHash is unavailable; PowerShell module path does not expose Microsoft.PowerShell.Utility."
+    }
+}
+
+$powerShellExecutable = Get-CurrentPowerShellExecutable
+
 try {
+    Ensure-FileHashCommand
+
     if ([string]::IsNullOrWhiteSpace($BundleDir)) {
         $submissionRoot = Join-Path $repoRoot ".local-build\msix\submission-bundles"
         $BundleDir = Get-ChildItem -LiteralPath $submissionRoot -Directory -Filter "store-reviewed-*" -ErrorAction SilentlyContinue |
@@ -117,12 +156,12 @@ try {
         }
 
         $verifyScript = Join-Path $scriptDir "verify-msix-package.ps1"
-        $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -SkipSmoke 2>&1
+        $verifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $verifyScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -SkipSmoke 2>&1
         Add-CheckFromCondition "verify-msix-package" ($LASTEXITCODE -eq 0) "verify-msix-package.ps1 passed" "verify-msix-package.ps1 failed: $($verifyOutput | Out-String)"
 
         $desktopEntrypointScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
         if (Test-Path -LiteralPath $desktopEntrypointScript) {
-            $entrypointOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $desktopEntrypointScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -Json 2>&1
+            $entrypointOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $desktopEntrypointScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -Json 2>&1
             if ($LASTEXITCODE -eq 0) {
                 try {
                     $entrypointAudit = ($entrypointOutput | Out-String).Trim() | ConvertFrom-Json

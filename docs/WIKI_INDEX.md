@@ -2333,4 +2333,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/597 index refresh`, `relay_transport_wired`, and
   `live_evidence_relay_transport_not_wired`.
 
+- 2026-06-03 release gate PowerShell host hardening:
+  `RELEASE_1_15_0_RC1_RELEASE_GATE_POWERSHELL_HOST_HARDENING_2026_06_03.md`
+  (wiki/598) records the fix for a false `runtime-package` blocker caused by
+  launching Windows PowerShell from a PowerShell 7 parent through
+  `System.Diagnostics.ProcessStartInfo`. Search terms should include
+  `GOAL v403`, `wiki/598`, `Get-FileHash`, `PSModulePath`,
+  `Get-CurrentPowerShellExecutable`, `runtime_package_ready=true`,
+  `local_artifacts_ready=true`, `ProcessStartInfo`,
+  `verify-store-submission-bundle.ps1`, `complete-final-operator-gates.ps1`,
+  and `release gate PowerShell host hardening`.
+
+- 2026-06-03 release gate PowerShell host index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1640 files and 2283 symbols after GOAL v403-v404, wiki/598, release
+  gate PowerShell host hardening scripts/docs, and CoS memories
+  `2026-06-03_release_gate_powershell_host_hardening.md` and
+  `2026-06-03_release_gate_powershell_host_index_refresh.md`. Search terms
+  should include `GOAL v404`, `1640 files`, `2283 symbols`,
+  `wiki/598 index refresh`, `Get-CurrentPowerShellExecutable`,
+  `Get-FileHash`, `PSModulePath`, and `local_artifacts_ready=true`.
+
 **End of WIKI_INDEX.md.**

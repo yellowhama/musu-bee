@@ -38,12 +38,34 @@ function Test-JsonFile([string]$Path) {
     return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
 }
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
 function Resolve-TauriPath([string]$RelativePath) {
     if ([string]::IsNullOrWhiteSpace($RelativePath)) {
         return $null
     }
     return Join-Path $tauriRoot $RelativePath
 }
+
+$powerShellExecutable = Get-CurrentPowerShellExecutable
 
 $versionPath = Join-Path $repoRoot "VERSION"
 $repoVersion = if (Test-Path -LiteralPath $versionPath) {
@@ -249,7 +271,7 @@ if (Test-Path -LiteralPath $msixEntrypointAuditScript) {
         }
     )) {
         if (Test-Path -LiteralPath $target.path) {
-            $entrypointOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $msixEntrypointAuditScript -PackagePath $target.path -StartupContract $target.contract -Json 2>&1
+            $entrypointOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $msixEntrypointAuditScript -PackagePath $target.path -StartupContract $target.contract -Json 2>&1
             if ($LASTEXITCODE -eq 0) {
                 try {
                     $entrypointAudit = ($entrypointOutput | Out-String).Trim() | ConvertFrom-Json
@@ -279,7 +301,7 @@ if ($latestBundle) {
     Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
     $bundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
     if (Test-Path -LiteralPath $bundleVerifier) {
-        $bundleVerifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -Json 2>&1
+        $bundleVerifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -Json 2>&1
         if ($LASTEXITCODE -eq 0) {
             $bundleVerify = ($bundleVerifyOutput | Out-String).Trim() | ConvertFrom-Json
             if ([bool]$bundleVerify.ok) {
@@ -373,7 +395,7 @@ if (-not $latestSingleEvidence) {
 }
 else {
     $verifySingleScript = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
-    $verifySingleOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifySingleScript -EvidencePath $latestSingleEvidence.FullName -ExpectedVersion $repoVersion -ExpectedGitCommit $gitCommit -AllowDocumentationOnlyGitDelta -Json 2>&1
+    $verifySingleOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $verifySingleScript -EvidencePath $latestSingleEvidence.FullName -ExpectedVersion $repoVersion -ExpectedGitCommit $gitCommit -AllowDocumentationOnlyGitDelta -Json 2>&1
     $verifySingleExit = $LASTEXITCODE
     if ($verifySingleExit -eq 0) {
         $verifySingleResult = ($verifySingleOutput | Out-String).Trim() | ConvertFrom-Json
@@ -416,7 +438,7 @@ elseif (-not $latestEvidence) {
 }
 else {
     $verifyScript = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
-    $verifyOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $latestEvidence.FullName -ExpectedVersion $repoVersion -Json 2>&1
+    $verifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $latestEvidence.FullName -ExpectedVersion $repoVersion -Json 2>&1
     $verifyExit = $LASTEXITCODE
     if ($verifyExit -eq 0) {
         $verifyResult = ($verifyOutput | Out-String).Trim() | ConvertFrom-Json

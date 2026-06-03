@@ -42,13 +42,35 @@ if ([string]::IsNullOrWhiteSpace($SupportEmail)) {
     $SupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 }
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
+$powerShellExecutable = Get-CurrentPowerShellExecutable
+
 function Invoke-JsonScript {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$Arguments = @()
     )
 
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $FilePath @Arguments 2>&1
+    $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $FilePath @Arguments 2>&1
     $exitCode = $LASTEXITCODE
     $text = ($output | Out-String).Trim()
 
@@ -218,7 +240,7 @@ if (@($storeFieldsProvided).Count -gt 0) {
     }) | Out-Null
 }
 
-$manifestOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "write-release-candidate-manifest.ps1") 2>&1
+$manifestOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "write-release-candidate-manifest.ps1") 2>&1
 if ($LASTEXITCODE -ne 0) {
     throw "Release candidate manifest generation failed.`n$(($manifestOutput | Out-String).Trim())"
 }

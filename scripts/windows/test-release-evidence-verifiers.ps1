@@ -43,13 +43,35 @@ function Write-Fixture {
     return $path
 }
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
+$powerShellExecutable = Get-CurrentPowerShellExecutable
+
 function Invoke-Verifier {
     param(
         [Parameter(Mandatory = $true)][string]$ScriptPath,
         [Parameter(Mandatory = $true)][string[]]$Arguments
     )
 
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
+    $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
     $exitCode = $LASTEXITCODE
     $text = ($output | Out-String).Trim()
     $parsed = $null

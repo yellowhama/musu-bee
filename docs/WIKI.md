@@ -2346,3 +2346,61 @@ Canonical report:
 
 Index refresh after wiki/597 recorded `1637` files and `2283` symbols using the
 explicit packaged WindowsApps alias invocation.
+
+## 28. Release Gate PowerShell Host Hardening (2026-06-03)
+
+wiki/598 records a release-gate false-negative fix for PowerShell host
+selection.
+
+Root cause:
+
+- `write-release-go-no-go.ps1` launched child JSON verifiers with
+  `powershell.exe` through `System.Diagnostics.ProcessStartInfo`.
+- When the parent shell was PowerShell 7, that Windows PowerShell child could
+  inherit a PowerShell 7-first `PSModulePath`.
+- `verify-store-submission-bundle.ps1` then failed to autoload `Get-FileHash`,
+  so the Store bundle verifier failed inside
+  `audit-desktop-release-readiness.ps1`.
+- go/no-go consequently reported a false `runtime-package` blocker even though
+  direct readiness audit reported `runtime_package_ready=true`.
+
+Changed scripts:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+- `scripts\windows\audit-desktop-release-readiness.ps1`
+- `scripts\windows\verify-store-submission-bundle.ps1`
+- `scripts\windows\complete-final-operator-gates.ps1`
+- `scripts\windows\record-external-release-gate-recheck.ps1`
+- `scripts\windows\show-final-release-handoff-status.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+- `scripts\windows\verify-single-machine-evidence.ps1`
+- `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+
+Validation:
+
+- parser checks passed for changed scripts
+- `git diff --check` passed
+- ProcessStartInfo Store bundle reproduction now reports `ok=true` and
+  `fail_count=0`
+- standalone readiness audit reports `runtime_package_ready=true`
+- release verifier regressions passed `18/18`
+- dirty-tree go/no-go reports `local_artifacts_ready=true`,
+  `runtime_package_ready=true`, and no `runtime-package` blocker
+- freshness allowlists classify `complete-final-operator-gates.ps1` and
+  `verify-store-submission-bundle.ps1` as status-only release tooling
+
+Product interpretation:
+
+- This removes a release-gate false negative.
+- It does not complete any external release blocker.
+- Public release remains No-Go until second-PC route/CPU/matrix, two-machine
+  CPU budgets, support mailbox, Store/Partner Center, and hosted P2P relay
+  transport evidence pass.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_GATE_POWERSHELL_HOST_HARDENING_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_release_gate_powershell_host_hardening.md`
+
+Index refresh after wiki/598 recorded `1640` files and `2283` symbols using the
+explicit packaged WindowsApps alias invocation.

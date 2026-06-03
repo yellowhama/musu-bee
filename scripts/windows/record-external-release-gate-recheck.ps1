@@ -34,6 +34,26 @@ if ($SecondPcProbeTimeoutMs -lt 100) {
 
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
 function Invoke-JsonScript {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -57,7 +77,7 @@ function Invoke-JsonScript {
 
     $watch = [Diagnostics.Stopwatch]::StartNew()
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = "powershell.exe"
+    $startInfo.FileName = Get-CurrentPowerShellExecutable
     $startInfo.Arguments = (($processArgs | ForEach-Object { ConvertTo-ProcessArgument -Value ([string]$_) }) -join " ")
     $startInfo.WorkingDirectory = $repoRoot
     $startInfo.UseShellExecute = $false

@@ -30,6 +30,26 @@ if ($ScriptTimeoutSeconds -lt 1) {
     throw "ScriptTimeoutSeconds must be at least 1."
 }
 
+function Get-CurrentPowerShellExecutable {
+    $currentProcessPath = $null
+    try {
+        $currentProcessPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    catch {
+        $currentProcessPath = $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentProcessPath) -and (Test-Path -LiteralPath $currentProcessPath)) {
+        return $currentProcessPath
+    }
+
+    $edition = if ($PSVersionTable.ContainsKey("PSEdition")) { [string]$PSVersionTable.PSEdition } else { "" }
+    if ($edition -eq "Core") {
+        return "pwsh"
+    }
+    return "powershell.exe"
+}
+
 function Invoke-JsonScript {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -53,7 +73,7 @@ function Invoke-JsonScript {
 
     $watch = [Diagnostics.Stopwatch]::StartNew()
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = "powershell.exe"
+    $startInfo.FileName = Get-CurrentPowerShellExecutable
     $startInfo.Arguments = (($processArgs | ForEach-Object { ConvertTo-ProcessArgument -Value ([string]$_) }) -join " ")
     $startInfo.WorkingDirectory = $repoRoot
     $startInfo.UseShellExecute = $false
@@ -177,6 +197,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",
+        "scripts/windows/complete-final-operator-gates.ps1",
         "scripts/windows/configure-musu-pro-p2p-env.ps1",
         "scripts/windows/import-second-pc-return.ps1",
         "scripts/windows/msix-common.ps1",
@@ -194,6 +215,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-p2p-control-plane-evidence.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
+        "scripts/windows/verify-store-submission-bundle.ps1",
         "scripts/windows/show-final-release-handoff-status.ps1",
         "scripts/windows/write-release-go-no-go.ps1",
         "scripts/windows/write-release-candidate-manifest.ps1",
