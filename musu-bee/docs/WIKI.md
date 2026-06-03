@@ -22,5 +22,6 @@ MUSU는 단일 기기를 넘어 다수의 머신(Fleet)을 **단일 컴퓨터처
 ## 4. 인덱스 (Index)
 - [Design Spec](./DESIGN.md): 세부 UI/UX 스펙 및 테마 가이드
 - [Deploy Guide](./DEPLOY.md): 배포 가이드라인
+- [P2P Control Plane](./P2P_CONTROL_PLANE.md): `musu.pro`가 실행 서버가 아니라 작업 주문, rendezvous, route evidence, relay fallback을 담당하는 연결 plane이라는 제품/프로토콜 경계
 - [Next Steps](./NEXT_STEPS_PHASE3.md): 다음 단계 작업 목표
 - [Code Audit](./CODE_AUDIT_2026-05-26.md): 가장 최근의 코드 오딧 보고서

@@ -112,6 +112,7 @@ test("creates and reads a rendezvous session", async () => {
       session_id: string;
       source: { node_id: string; candidate_endpoints: unknown[] };
       target: { node_id: string };
+      path_selection_order: string[];
       approval_required: boolean;
       status: string;
     };
@@ -120,14 +121,24 @@ test("creates and reads a rendezvous session", async () => {
     assert.equal(session.source.node_id, "pc-a");
     assert.deepEqual(session.source.candidate_endpoints, []);
     assert.equal(session.target.node_id, "pc-b");
+    assert.deepEqual(session.path_selection_order, [
+      "lan",
+      "tailscale",
+      "direct_quic",
+      "relay",
+    ]);
     assert.equal(session.approval_required, true);
     assert.equal(session.status, "pending_approval");
 
     const { GET } = await loadSession("get");
     const getRes = await GET(getReq(), ctx(session.session_id));
     assert.equal(getRes.status, 200);
-    const fetched = (await getRes.json()) as { session_id: string };
+    const fetched = (await getRes.json()) as {
+      session_id: string;
+      path_selection_order: string[];
+    };
     assert.equal(fetched.session_id, session.session_id);
+    assert.deepEqual(fetched.path_selection_order, session.path_selection_order);
   });
 });
 
@@ -153,8 +164,15 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
     );
     assert.equal(candidateRes.status, 200);
     const withCandidates = (await candidateRes.json()) as {
+      path_selection_order: string[];
       source: { relay_capable: boolean; candidate_endpoints: Array<{ kind: string; scheme?: string }> };
     };
+    assert.deepEqual(withCandidates.path_selection_order, [
+      "lan",
+      "tailscale",
+      "direct_quic",
+      "relay",
+    ]);
     assert.equal(withCandidates.source.relay_capable, true);
     assert.equal(withCandidates.source.candidate_endpoints[0]?.kind, "lan");
     assert.equal(withCandidates.source.candidate_endpoints[0]?.scheme, "https");

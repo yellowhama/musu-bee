@@ -8,6 +8,14 @@ import {
 } from "@/lib/p2pKvEnv";
 
 export type P2pRouteKind = "lan" | "tailscale" | "direct_quic" | "relay" | "failed";
+export type P2pPathSelectionRouteKind = Exclude<P2pRouteKind, "failed">;
+
+export const P2P_PATH_SELECTION_ORDER: readonly P2pPathSelectionRouteKind[] = [
+  "lan",
+  "tailscale",
+  "direct_quic",
+  "relay",
+];
 
 export type P2pCandidateEndpoint = {
   kind: P2pRouteKind;
@@ -32,6 +40,7 @@ export type StoredP2pRendezvousSession = {
   session_id: string;
   source: P2pNodeCandidateSet;
   target: P2pNodeCandidateSet;
+  path_selection_order: P2pPathSelectionRouteKind[];
   expires_at: string;
   approval_required: boolean;
   status: P2pRendezvousStatus;
@@ -126,6 +135,34 @@ function isSession(value: unknown): value is StoredP2pRendezvousSession {
   );
 }
 
+function pathSelectionOrder(): P2pPathSelectionRouteKind[] {
+  return [...P2P_PATH_SELECTION_ORDER];
+}
+
+function isPathSelectionRouteKind(value: unknown): value is P2pPathSelectionRouteKind {
+  return (
+    value === "lan" ||
+    value === "tailscale" ||
+    value === "direct_quic" ||
+    value === "relay"
+  );
+}
+
+function normalizePathSelectionOrder(value: unknown): P2pPathSelectionRouteKind[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return pathSelectionOrder();
+  }
+  const order = value.filter(isPathSelectionRouteKind);
+  return order.length > 0 ? order : pathSelectionOrder();
+}
+
+function normalizeSession(session: StoredP2pRendezvousSession): StoredP2pRendezvousSession {
+  return {
+    ...session,
+    path_selection_order: normalizePathSelectionOrder(session.path_selection_order),
+  };
+}
+
 function isCandidateSet(value: unknown): value is P2pNodeCandidateSet {
   if (!value || typeof value !== "object") {
     return false;
@@ -167,7 +204,7 @@ function normalizeState(value: unknown): P2pRendezvousStoreState {
   const sessions: Record<string, StoredP2pRendezvousSession> = {};
   for (const [id, session] of Object.entries(input.sessions ?? {})) {
     if (isSession(session)) {
-      sessions[id] = session;
+      sessions[id] = normalizeSession(session);
     }
   }
   const candidatesByNode: Record<string, CachedP2pNodeCandidateSet> = {};
@@ -268,6 +305,7 @@ export function createRendezvousSession(input: {
     session_id: createSessionId(),
     source: seedCandidateSet(input.source_node_id, seeds.source ?? null),
     target: seedCandidateSet(input.target_node_id, seeds.target ?? null),
+    path_selection_order: pathSelectionOrder(),
     expires_at: withExpiry(now),
     approval_required: true,
     status: "pending_approval",
@@ -358,12 +396,12 @@ export async function getRendezvousSession(
   if (shouldUseKv()) {
     const { kv } = await import("@vercel/kv");
     const session = await kv.get<StoredP2pRendezvousSession>(sessionKey(sessionId));
-    return isSession(session) ? session : null;
+    return isSession(session) ? normalizeSession(session) : null;
   }
 
   const state = fileGet();
   const session = state.sessions[sessionId];
-  return isSession(session) ? session : null;
+  return isSession(session) ? normalizeSession(session) : null;
 }
 
 export async function updateRendezvousSession(
