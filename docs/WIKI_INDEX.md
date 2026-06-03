@@ -2428,4 +2428,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_lease_store_release_grade`, and
   `release-grade relay route evidence`.
 
+- 2026-06-03 startup-open CPU matrix gate:
+  `RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_MATRIX_GATE_2026_06_03.md` (wiki/602)
+  records that `measure-musu-runtime-cpu-scenarios.ps1`,
+  `verify-runtime-cpu-scenario-matrix.ps1`, and `write-release-go-no-go.ps1`
+  now require a five-scenario runtime CPU matrix:
+  `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route`. `startup-open` must launch the packaged desktop app and begin
+  sampling within 3s. Primary matrix evidence
+  `20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix.json` passed with
+  route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`, startup-open delay
+  `2.026s`, startup-open WebView2 `1.51`, and all five scenarios hot `0`.
+  Search terms should include `GOAL v411`, `wiki/602`, `startup-open`,
+  `sample_delay_seconds`, `20260603-105650-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`, and `runtime CPU matrix 1/2`.
+
+- 2026-06-03 startup-open CPU matrix gate index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1660 files and 2291 symbols after GOAL v411-v412, wiki/602,
+  startup-open CPU matrix gate scripts, primary evidence
+  `20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix`, WIKI/WIKI_INDEX
+  updates, and CoS memories `2026-06-03_startup_open_cpu_matrix_gate.md` and
+  `2026-06-03_startup_open_cpu_matrix_gate_index_refresh.md`. Search terms
+  should include `GOAL v412`, `1660 files`, `2291 symbols`,
+  `wiki/603 index refresh`, `startup-open`, `sample_delay_seconds`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`.
+
 **End of WIKI_INDEX.md.**

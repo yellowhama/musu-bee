@@ -2573,3 +2573,55 @@ Canonical report:
 
 Index refresh after wiki/601 recorded `1657` files and `2291` symbols using
 the explicit packaged WindowsApps alias invocation.
+
+## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
+
+wiki/602 records that the runtime CPU scenario matrix now release-gates
+`startup-open` in addition to `runtime-started`, `dashboard-open`,
+`desktop-open`, and `post-route`.
+
+Implementation:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` default scenarios now include
+  `startup-open`.
+- `startup-open` launches the packaged desktop app and records
+  `sample_delay_seconds`.
+- `verify-runtime-cpu-scenario-matrix.ps1` rejects `startup-open` unless the app
+  was launched and sampling started within 3s.
+- `write-release-go-no-go.ps1`, `run-second-pc-release-check.ps1`, final
+  operator packet generation/verification, multi-device kit generation, handoff
+  status, and release verifier fixtures now use the five-scenario matrix.
+- `show-final-release-handoff-status.ps1` now emits an operator step for an
+  unverified runtime CPU matrix gate.
+
+Validation:
+
+- PowerShell parser passed.
+- `git diff --check` passed.
+- release evidence verifier regressions passed `20/20`.
+- a first local 5-scenario matrix `20260603-105008-HUGH_SECOND` was rejected by
+  the verifier with `fail_count=1` because dashboard-open did not launch a URL.
+
+Current primary matrix evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- clean commit `2defe28d9ff107813f476ae22720e2d715894f9e`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`
+- verifier `ok=true`, `fail_count=0`
+- startup-open delay `2.026s`
+- WebView2 max one-core CPU: startup-open `1.51`, runtime-started `0.21`,
+  dashboard-open `0.16`, desktop-open `0.03`, post-route `0.05`
+- dirty-tree go/no-go after docs evidence reports `single_machine_verified=true`,
+  runtime idle CPU `1/2`, and runtime CPU matrix `1/2`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_MATRIX_GATE_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_startup_open_cpu_matrix_gate.md`
+
+Index refresh after wiki/602 recorded `1660` files and `2291` symbols using
+the explicit packaged WindowsApps alias invocation. Search terms should include
+`GOAL v412`, `wiki/603 index refresh`, `startup-open`,
+`sample_delay_seconds`, `20260603-105650-HUGH_SECOND`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`, and
+`runtime CPU matrix 1/2`.

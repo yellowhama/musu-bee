@@ -200,6 +200,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/complete-final-operator-gates.ps1",
         "scripts/windows/configure-musu-pro-p2p-env.ps1",
         "scripts/windows/import-second-pc-return.ps1",
+        "scripts/windows/measure-musu-runtime-cpu-scenarios.ps1",
         "scripts/windows/msix-common.ps1",
         "scripts/windows/prepare-final-operator-gate-packet.ps1",
         "scripts/windows/prepare-multidevice-test-kit.ps1",

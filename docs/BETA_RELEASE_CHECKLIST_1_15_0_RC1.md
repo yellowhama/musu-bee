@@ -184,7 +184,7 @@ Multi-device packet:
   archives cannot be mistaken for CPU/matrix release evidence
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
-- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `dashboard-open` now launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op dashboard-open matrices, missing resource-budget fields, working-set overages, and WebView2 process-count overages while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `startup-open` must launch the packaged desktop app and start sampling within 3s, `dashboard-open` launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op startup/dashboard matrices, missing resource-budget fields, working-set overages, and WebView2 process-count overages while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
 - process attribution summary: `scripts\windows\show-musu-process-attribution.ps1` writes `musu.process_attribution_summary.v1`; the second-PC wrapper includes `.local-build\process-attribution\*.process-attribution-summary.json` in the return zip, and the importer copies it back to `.local-build\process-attribution\`. Use this to distinguish machine-wide `node.exe`/WebView2 counts from MUSU-owned helpers before treating Task Manager process counts as release defects.
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`
@@ -2264,3 +2264,62 @@ Canonical report:
 - indexed `1657` files and `2291` symbols after wiki/601, GOAL v409-v410,
   go/no-go P2P route-evidence output hardening, WIKI/WIKI_INDEX updates, and
   CoS memories
+
+## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
+
+The runtime CPU scenario matrix now requires five scenarios:
+
+- `startup-open`
+- `runtime-started`
+- `dashboard-open`
+- `desktop-open`
+- `post-route`
+
+Gate hardening:
+
+- `startup-open` launches the packaged desktop app and records
+  `sample_delay_seconds`.
+- `verify-runtime-cpu-scenario-matrix.ps1` rejects startup evidence unless the
+  packaged app was launched and sampling began within 3s.
+- `write-release-go-no-go.ps1` now requires the five-scenario matrix on primary
+  and second Windows PCs.
+- The second-PC wrapper, final operator packet, multi-device kit, handoff
+  status, and verifier fixture now use the five-scenario command.
+
+New primary matrix evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_105650`
+- verifier `ok=true`, `fail_count=0`
+- startup-open delay `2.026s`
+- startup-open WebView2 `1.51`
+- runtime-started WebView2 `0.21`
+- dashboard-open WebView2 `0.16`
+- desktop-open WebView2 `0.03`
+- post-route WebView2 `0.05`
+- all five scenarios have hot `0` and no resource-budget violations
+
+Dirty-tree go/no-go after evidence and freshness allowlist update reports:
+
+- `single_machine_verified=true`
+- runtime idle CPU valid machines `1`: `HUGH_SECOND`
+- runtime CPU scenario matrix valid machines `1`: `HUGH_SECOND`
+
+Release interpretation:
+
+- current primary five-scenario CPU matrix evidence is restored
+- public release remains No-Go until second-PC route/CPU/matrix, hosted P2P
+  relay proof, support mailbox evidence, and Store/Partner Center evidence pass
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_MATRIX_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1660` files and `2291` symbols after wiki/602, GOAL v411,
+  startup-open CPU matrix gate scripts, primary evidence
+  `20260603-105650-HUGH_SECOND.runtime-cpu-scenario-matrix`, WIKI/WIKI_INDEX
+  updates, and CoS memories
