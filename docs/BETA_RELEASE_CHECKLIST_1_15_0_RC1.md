@@ -2828,6 +2828,32 @@ Release interpretation:
 - fresh packaged primary smoke/CPU/matrix evidence is required after this source
   change before current-source local runtime evidence is restored
 
+## 2026-06-03 Post Relay Proof Store Primary Evidence Refresh
+
+Current-source primary packaged evidence has been restored after the relay proof
+store gate.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-232213-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-232423-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-232620-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_232146`
+- dashboard `http://127.0.0.1:3001`
+- bridge `http://127.0.0.1:11952`
+- desktop-open CPU `60.046s`: MUSU `0`, Node `0.03`, WebView2 `0.39`,
+  hot `0`, working set `462.32MB`
+- matrix verifier `ok=true`, `fail_count=0`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_232620`
+- clean go/no-go on `4ab4281f`: single-machine true, runtime idle CPU `1/2`,
+  runtime CPU matrix `1/2`, public release No-Go with six remaining blockers
+
 ## 2026-06-03 22:30 KST Relay Transport Proof Binding Gate
 
 Relay route evidence now rejects proof-shaped relay payload transport JSON unless

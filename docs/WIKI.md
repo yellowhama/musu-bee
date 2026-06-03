@@ -3693,3 +3693,33 @@ This is evidence-chain hardening only. The relay payload endpoint remains
 fail-closed and public release still requires a real QUIC relay/tunnel runtime
 that writes stored owner-scoped proof from actual payload transit, plus fresh
 packaged smoke/CPU/matrix evidence after this source commit.
+
+## 2026-06-03 post relay proof store primary evidence refresh (wiki/648)
+
+Fresh primary-machine packaged evidence was restored after the relay transport
+proof store gate.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-232213-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-232423-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-232620-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results: smoke output `MUSU_RELEASE_SMOKE_OK_20260603_232146`, dashboard
+`http://127.0.0.1:3001`, bridge `http://127.0.0.1:11952`, desktop-open CPU
+`60.046s` with MUSU `0`, Node `0.03`, WebView2 `0.39`, hot `0`, and working
+set `462.32MB`; five-state matrix `ok=true`, `fail_count=0`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_232620`, startup MUSU `2.37`,
+runtime-started MUSU `2.03`, max WebView2 `0.34`, and max working set
+`472.9MB`.
+
+Clean go/no-go on `4ab4281f` reports `single_machine_verified=true`, runtime
+idle CPU `1/2`, runtime CPU matrix `1/2`, `manifest_dirty=false`, and public
+No-Go on the remaining six release blockers.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_PROOF_STORE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
