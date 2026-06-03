@@ -3067,8 +3067,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELEASE_1_15_0_RC1_VERCEL_CLI_PIN_DEPLOY_WORKFLOW_2026_06_04.md`
   (wiki/656) records deploy CI hardening after `vercel@latest` resolved to a
   package graph with missing `@vercel/express@0.1.96`. Search terms should
-  include `GOAL v466`, `wiki/656`, `VERCEL_CLI_VERSION=44.7.3`,
+  include `GOAL v466`, `wiki/656`, `VERCEL_CLI_VERSION=54.7.1`,
   `vercel@54.8.0`, `@vercel/express@0.1.96`, `npm registry 404`,
-  `npx -y vercel@44.7.3 --version`, and `Deploy to Vercel`.
+  `@vercel/express@0.1.95`, `npx -y vercel@54.7.1 --version`, and
+  `Deploy to Vercel`.
 
 **End of WIKI_INDEX.md.**

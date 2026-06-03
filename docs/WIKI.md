@@ -3974,15 +3974,16 @@ tarball.
 
 `.github/workflows/deploy-musu-bee.yml` now pins:
 
-- `VERCEL_CLI_VERSION=44.7.3`
+- `VERCEL_CLI_VERSION=54.7.1`
 - `npm install -g "vercel@${VERCEL_CLI_VERSION}"`
 - `vercel --version`
 
 The PR path filter also includes `.github/workflows/deploy-musu-bee.yml`.
 
-Validation confirmed the broken latest dependency with `npm view`, confirmed
-`vercel@44.7.3` does not depend on `@vercel/express`, and
-`npx -y vercel@44.7.3 --version` printed `Vercel CLI 44.7.3`.
+Validation confirmed the broken latest dependency with `npm view`; `44.7.3`
+installed but the deploy endpoint rejected it as too old; `54.7.1` uses
+`@vercel/express@0.1.95`, and `npx -y vercel@54.7.1 --version` printed
+`Vercel CLI 54.7.1`.
 
 This is CI/deploy hardening only, not runtime relay progress.
 

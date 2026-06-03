@@ -2968,18 +2968,25 @@ Failure:
 
 Fix:
 
-- set `VERCEL_CLI_VERSION=44.7.3`
+- set `VERCEL_CLI_VERSION=54.7.1`
 - install `npm install -g "vercel@${VERCEL_CLI_VERSION}"`
 - print `vercel --version` in the workflow
 - include `.github/workflows/deploy-musu-bee.yml` in PR path filters
+
+The first pin candidate `44.7.3` installed but was too old for Vercel deploy;
+the endpoint requires `47.2.2` or later. `54.7.1` was selected because it
+satisfies the endpoint and uses `@vercel/express@0.1.95`, avoiding the missing
+`0.1.96` tarball from `54.8.0`.
 
 Validation:
 
 - `npm view vercel dist-tags version dependencies --json` confirmed the broken
   latest package graph
-- `npm view vercel@44.7.3 dependencies.@vercel/express dependencies.@vercel/node dependencies.@vercel/next --json`
-  confirmed the pinned version does not depend on `@vercel/express`
-- `npx -y vercel@44.7.3 --version` printed `Vercel CLI 44.7.3`
+- `npx -y vercel@44.7.3 --version` printed `Vercel CLI 44.7.3`, but PR deploy
+  rejected that version as below the endpoint minimum
+- `npm view vercel@54.7.1 dependencies.@vercel/express dependencies.@vercel/node dependencies.@vercel/next --json`
+  confirmed the final pin uses `@vercel/express=0.1.95`
+- `npx -y vercel@54.7.1 --version` printed `Vercel CLI 54.7.1`
 
 Release interpretation:
 
