@@ -2802,6 +2802,16 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1760` files and `2326` symbols after GOAL v442, wiki/632, fresh
+  primary evidence, the primary refresh report, BETA/WIKI/WIKI_INDEX updates,
+  and CoS memories
+  `2026-06-03_post_cli_route_pinned_transport_primary_evidence_refresh.md` and
+  `2026-06-03_post_cli_route_pinned_transport_primary_evidence_index_refresh.md`
+
 ## 2026-06-03 18:31 KST CLI Route Pinned Transport And Bounded SSE Visibility
 
 CLI route evidence now preserves actual HTTPS fingerprint-pinned transport
@@ -2851,6 +2861,36 @@ Canonical report:
   and CoS memories
   `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility.md` and
   `2026-06-03_cli_route_pinned_transport_and_bounded_sse_visibility_index_refresh.md`
+
+## 2026-06-03 19:23 KST Post CLI Route Pinned Transport Primary Evidence Refresh
+
+After commit `dded9eba67415cfdfd371f9c940fa2d59bd366ac`, the local-sideload
+MSIX was rebuilt and installed, then primary-machine evidence was refreshed.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-190139-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-190450-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-191447-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_190107`
+- CLI route output contained `MUSU_CLI_ROUTE_OK_20260603_190107`
+- desktop-open CPU passed for `60.064s`: MUSU `0`, Node `0`,
+  WebView2 `0.08`, hot `0`, working set `466.26MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix dashboard URL was `http://127.0.0.1:3001/app`
+- matrix route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`
+- matrix max CPU: MUSU `0`, Node `0.03`, WebView2 `0.10`
+- matrix max working set: `595.78MB`
+
+Public release remains No-Go until second-PC runtime/multi-device evidence,
+hosted relay payload proof, support mailbox evidence, and Store evidence are
+complete.
 
 2026-06-03 index refresh:
 

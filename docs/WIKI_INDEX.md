@@ -2782,4 +2782,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/631 index refresh`, `tls_cert_fingerprint_pin`,
   `BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS`, and `runtime-polling 14/14`.
 
+- 2026-06-03 post CLI route pinned transport primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_CLI_ROUTE_PINNED_TRANSPORT_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/632) records fresh primary-machine packaged evidence for commit
+  `dded9eba67415cfdfd371f9c940fa2d59bd366ac`: single-machine smoke
+  `20260603-190139-HUGH_SECOND`, desktop-open CPU
+  `20260603-190450-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-191447-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `GOAL v442`, `wiki/632`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_190107`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, `WebView2 0.08`,
+  `Node 0.03`, `http://127.0.0.1:3001/app`, and `runtime CPU matrix 1/2`.
+
+- 2026-06-03 post CLI route pinned transport primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1760 files and 2326 symbols after GOAL v442, wiki/632, fresh
+  primary evidence `20260603-190139-HUGH_SECOND`,
+  `20260603-190450-HUGH_SECOND.desktop-open`, and
+  `20260603-191447-HUGH_SECOND.runtime-cpu-scenario-matrix`, the primary
+  refresh report, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_post_cli_route_pinned_transport_primary_evidence_refresh.md`
+  and
+  `2026-06-03_post_cli_route_pinned_transport_primary_evidence_index_refresh.md`.
+  Search terms should include `GOAL v443`, `1760 files`, `2326 symbols`,
+  `wiki/633 index refresh`, `MUSU_RELEASE_SMOKE_OK_20260603_190107`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
 **End of WIKI_INDEX.md.**

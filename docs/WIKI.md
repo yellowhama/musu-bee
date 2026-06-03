@@ -3319,3 +3319,48 @@ Canonical report:
 - search terms should include `GOAL v441`, `wiki/631 index refresh`,
   `tls_cert_fingerprint_pin`, `BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS`,
   and `runtime-polling 14/14`
+
+## 2026-06-03 post CLI route pinned transport primary evidence refresh (wiki/632)
+
+Fresh primary-machine packaged evidence was restored for commit
+`dded9eba67415cfdfd371f9c940fa2d59bd366ac` after CLI route pinned transport
+evidence hardening.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-190139-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-190450-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-191447-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results: smoke output `MUSU_RELEASE_SMOKE_OK_20260603_190107`, CLI route
+output `MUSU_CLI_ROUTE_OK_20260603_190107`, desktop-open CPU `60.064s` with
+MUSU `0`, Node `0`, WebView2 `0.08`, hot `0`, and working set `466.26MB`;
+five-state matrix verifier `ok=true`, `fail_count=0`, dashboard URL
+`http://127.0.0.1:3001/app`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, max MUSU `0`, Node `0.03`,
+WebView2 `0.10`, and max working set `595.78MB`.
+
+The first matrix attempt proved CPU budgets but failed the verifier because
+`dashboard-open` did not launch a URL after the dev server was stopped to avoid
+measurement pollution. The accepted matrix used a current production Next build
+on port `3001`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_PINNED_TRANSPORT_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1760` files and `2326` symbols after GOAL v442, wiki/632, fresh
+  primary evidence, the primary refresh report, BETA/WIKI_INDEX updates, and
+  CoS memory
+  `2026-06-03_post_cli_route_pinned_transport_primary_evidence_refresh.md`
+- search terms should include `GOAL v443`, `wiki/633 index refresh`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_190107`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`
