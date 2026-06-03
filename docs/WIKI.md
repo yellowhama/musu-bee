@@ -3964,3 +3964,28 @@ decode/execute payloads, or prove release-grade QUIC/TLS relay transport.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_CLIENT_CLI_2026_06_04.md`
+
+## 2026-06-04 Vercel CLI pin deploy workflow (wiki/656)
+
+PR #8 deploy failed because the workflow installed `vercel@latest`. Current npm
+metadata reported `vercel@latest=54.8.0`, and that version depended on
+`@vercel/express@0.1.96`; the GitHub runner failed with a registry 404 for that
+tarball.
+
+`.github/workflows/deploy-musu-bee.yml` now pins:
+
+- `VERCEL_CLI_VERSION=44.7.3`
+- `npm install -g "vercel@${VERCEL_CLI_VERSION}"`
+- `vercel --version`
+
+The PR path filter also includes `.github/workflows/deploy-musu-bee.yml`.
+
+Validation confirmed the broken latest dependency with `npm view`, confirmed
+`vercel@44.7.3` does not depend on `@vercel/express`, and
+`npx -y vercel@44.7.3 --version` printed `Vercel CLI 44.7.3`.
+
+This is CI/deploy hardening only, not runtime relay progress.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_VERCEL_CLI_PIN_DEPLOY_WORKFLOW_2026_06_04.md`

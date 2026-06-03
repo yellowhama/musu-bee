@@ -13,9 +13,11 @@ on:
       - main
     paths:
       - 'musu-bee/**'
+      - '.github/workflows/deploy-musu-bee.yml'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  VERCEL_CLI_VERSION: "44.7.3"
 
 permissions:
   contents: read
@@ -42,7 +44,9 @@ jobs:
           cache-dependency-path: musu-bee/package-lock.json
 
       - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+        run: |
+          npm install -g "vercel@${VERCEL_CLI_VERSION}"
+          vercel --version
 
       - name: Sync production P2P control-plane env
         if: github.ref == 'refs/heads/main'

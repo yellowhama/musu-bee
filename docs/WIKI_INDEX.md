@@ -3063,4 +3063,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MusuCloud::mark_relay_payload_delivered`, `musu relay payload-claim`,
   `musu relay payload-deliver`, `--local-target`, and `cloud tests 10/10`.
 
+- 2026-06-04 Vercel CLI pin deploy workflow:
+  `RELEASE_1_15_0_RC1_VERCEL_CLI_PIN_DEPLOY_WORKFLOW_2026_06_04.md`
+  (wiki/656) records deploy CI hardening after `vercel@latest` resolved to a
+  package graph with missing `@vercel/express@0.1.96`. Search terms should
+  include `GOAL v466`, `wiki/656`, `VERCEL_CLI_VERSION=44.7.3`,
+  `vercel@54.8.0`, `@vercel/express@0.1.96`, `npm registry 404`,
+  `npx -y vercel@44.7.3 --version`, and `Deploy to Vercel`.
+
 **End of WIKI_INDEX.md.**

@@ -2954,6 +2954,40 @@ Release interpretation:
   production atomic claim/delivery, relay proof, and fresh packaged evidence are
   complete
 
+## 2026-06-04 02:52 KST Vercel CLI Pin Deploy Workflow
+
+PR #8 `Deploy to Vercel` failed after the relay payload claim CLI commit because
+the workflow installed `vercel@latest`.
+
+Failure:
+
+- `vercel@latest` resolved to `54.8.0`
+- `vercel@54.8.0` depended on `@vercel/express@0.1.96`
+- the GitHub runner received npm registry 404 for
+  `@vercel/express-0.1.96.tgz`
+
+Fix:
+
+- set `VERCEL_CLI_VERSION=44.7.3`
+- install `npm install -g "vercel@${VERCEL_CLI_VERSION}"`
+- print `vercel --version` in the workflow
+- include `.github/workflows/deploy-musu-bee.yml` in PR path filters
+
+Validation:
+
+- `npm view vercel dist-tags version dependencies --json` confirmed the broken
+  latest package graph
+- `npm view vercel@44.7.3 dependencies.@vercel/express dependencies.@vercel/node dependencies.@vercel/next --json`
+  confirmed the pinned version does not depend on `@vercel/express`
+- `npx -y vercel@44.7.3 --version` printed `Vercel CLI 44.7.3`
+
+Release interpretation:
+
+- this is deploy CI hardening only
+- this is not runtime relay progress
+- public release remains No-Go on the existing runtime/P2P/release evidence
+  blockers
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the
