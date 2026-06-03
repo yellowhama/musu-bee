@@ -47,3 +47,37 @@ This is operator visibility hardening only. Public release remains No-Go until
 the remaining external gates are complete: second-PC runtime/multi-device
 evidence, live `musu.pro` hosted relay proof with valid delivery proof,
 support mailbox evidence, and Store evidence.
+
+## Clean Evidence Refresh
+
+After commit `1e1fc43cf0da04c4b71621e1b8329496d2c6b810`, external gate recheck
+evidence was recorded with the packaged WindowsApps alias:
+
+- external recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.evidence.json`
+- external summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.summary.md`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.verification.json`
+- live P2P summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.summary.md`
+
+Result:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU valid machines `1/2`
+- runtime CPU matrix valid machines `1/2`
+- `second_pc_reachable=false`
+- `p2p_env_ok=false`
+- `p2p_evidence_ok=false`
+- `p2p_relay_route_evidence_count=0`
+- `p2p_relay_payload_transport_proven=false`
+- `p2p_relay_payload_delivery_proof_valid_count=0`
+
+New external blockers were recorded:
+
+- `p2p_relay_payload_transport_not_proven`
+- `p2p_relay_payload_delivery_proof_missing`

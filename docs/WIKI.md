@@ -4174,3 +4174,32 @@ Validation passed PowerShell parser checks, `git diff --check`, and
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RELAY_PROOF_OUTPUT_2026_06_04.md`
+
+## 2026-06-04 external recheck relay proof evidence (wiki/662)
+
+Clean external gate recheck evidence after commit
+`1e1fc43cf0da04c4b71621e1b8329496d2c6b810`:
+
+- external recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.verification.json`
+
+Result remains No-Go:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- `second_pc_reachable=false`
+- `p2p_env_ok=false`
+- `p2p_evidence_ok=false`
+- `p2p_relay_route_evidence_count=0`
+- `p2p_relay_payload_transport_proven=false`
+- `p2p_relay_payload_delivery_proof_valid_count=0`
+
+The external blockers now explicitly include
+`p2p_relay_payload_transport_not_proven` and
+`p2p_relay_payload_delivery_proof_missing`.

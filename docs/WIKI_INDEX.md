@@ -3125,4 +3125,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_payload_delivery_proof_missing`, and
   `test-release-evidence-verifiers 24/24`.
 
+- 2026-06-04 external recheck relay proof evidence:
+  clean external recheck evidence after `GOAL v471` recorded
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.evidence.json`
+  and live P2P evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.evidence.json`.
+  Search terms should include `GOAL v472`, `wiki/662`,
+  `20260604-084033-HUGH_SECOND.external-gates`,
+  `20260604-084136-musu.pro`, `p2p_evidence_musu_exe_source=parameter`,
+  `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_delivery_proof_valid_count=0`,
+  `p2p_relay_payload_transport_not_proven`, and
+  `p2p_relay_payload_delivery_proof_missing`.
+
 **End of WIKI_INDEX.md.**

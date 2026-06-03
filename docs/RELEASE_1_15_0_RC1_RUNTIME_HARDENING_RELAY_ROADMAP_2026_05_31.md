@@ -1787,3 +1787,15 @@ Roadmap status: this aligns the operator checklist with the local-first web
 coordination model. MUSU programs still do the work locally; `musu.pro` is the
 login/rendezvous/fallback coordination and proof surface. Public release remains
 No-Go until real second-PC evidence and live hosted relay delivery proof exist.
+
+Clean evidence after commit `1e1fc43cf0da04c4b71621e1b8329496d2c6b810`:
+
+- external gate recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.evidence.json`
+- result: `local_artifacts_ready=true`, `single_machine_verified=true`,
+  runtime idle CPU `1/2`, runtime CPU matrix `1/2`,
+  `second_pc_reachable=false`, `p2p_env_ok=false`, `p2p_evidence_ok=false`,
+  route evidence count `0`, payload transport proof `false`, delivery proof
+  valid count `0`

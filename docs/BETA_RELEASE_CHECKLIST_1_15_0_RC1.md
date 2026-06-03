@@ -2371,6 +2371,18 @@ stores release-grade fallback proof. Public release still requires second-PC
 evidence, hosted relay delivery proof, support mailbox evidence, and Store
 evidence.
 
+Clean evidence after commit `1e1fc43cf0da04c4b71621e1b8329496d2c6b810`:
+
+- external gate recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-084033-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-084136-musu.pro.evidence.json`
+- final blockers now include `p2p_relay_payload_transport_not_proven` and
+  `p2p_relay_payload_delivery_proof_missing`
+- release remains No-Go: second PC is unreachable, P2P env/evidence are not
+  ready, route evidence count is `0`, payload transport proof is `false`, and
+  delivery proof valid count is `0`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:
