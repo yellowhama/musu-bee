@@ -224,6 +224,39 @@ pub struct P2pRelayLeaseQueryResponse {
     pub leases: Vec<P2pRelayLease>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Relay transport preflight DTO; used by CLI diagnostics and release evidence.
+pub struct P2pRelayTransportResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub relay_control_plane_wired: bool,
+    pub relay_transport_descriptor_wired: bool,
+    pub relay_transport_wired: bool,
+    #[serde(default)]
+    pub relay_default_data_path: bool,
+    #[serde(default)]
+    pub relay_url: String,
+    #[serde(default)]
+    pub relay_connect_path: String,
+    #[serde(default)]
+    pub relay_transport_kind: String,
+    #[serde(default)]
+    pub release_grade_transport_required: String,
+    #[serde(default)]
+    pub payload_transit_requires_lease: bool,
+    #[serde(default)]
+    pub policy: String,
+    #[serde(default)]
+    pub relay_lease_store_configured: bool,
+    #[serde(default)]
+    pub relay_lease_store_backend: Option<String>,
+    #[serde(default)]
+    pub relay_lease_store_release_grade: bool,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[allow(dead_code)] // Route evidence query DTO; used by relay diagnostics and release evidence.
 pub struct RouteEvidenceQuery {
@@ -596,6 +629,25 @@ impl MusuCloud {
         if !resp.status().is_success() {
             let err = resp.text().await.unwrap_or_default();
             return Err(anyhow!("Failed to query relay leases: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// GET /api/v1/p2p/relay/transport to inspect release relay transport preflight state.
+    #[allow(dead_code)] // Used by `musu relay transport` for operator evidence capture.
+    pub async fn query_relay_transport(&self) -> Result<P2pRelayTransportResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/v1/p2p/relay/transport", self.base_url);
+
+        let resp = self.client.get(&url).bearer_auth(token).send().await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to query relay transport: {err}"));
         }
 
         Ok(resp.json().await?)

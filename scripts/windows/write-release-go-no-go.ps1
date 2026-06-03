@@ -268,7 +268,7 @@ function Test-ReleaseEvidenceFreshnessAllowedDiff {
     if ($normalizedPath -eq "musu-bee/package.json") {
         return (@($changedLines | Where-Object {
             $line = [string]$_
-            $line -notmatch '^\+\s*"test:p2p":\s*"tsx --test src/app/api/v1/p2p/route-evidence/route\.test\.ts src/app/api/v1/p2p/rendezvous/route\.test\.ts src/app/api/v1/p2p/relay/lease/route\.test\.ts",\s*$'
+            $line -notmatch '^\+\s*"test:p2p":\s*"tsx --test src/lib/p2pKvEnv\.test\.ts src/app/api/v1/p2p/route-evidence/route\.test\.ts src/app/api/v1/p2p/rendezvous/route\.test\.ts src/app/api/v1/p2p/relay/lease/route\.test\.ts src/app/api/v1/p2p/relay/transport/route\.test\.ts",\s*$'
         }).Count -eq 0)
     }
 

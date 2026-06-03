@@ -2742,3 +2742,56 @@ Canonical report:
 - search terms should include `GOAL v418`, `wiki/609 index refresh`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`, and
   `post stored-lease primary evidence refresh`
+
+## 2026-06-03 12:47 KST P2P Relay Transport Descriptor Gate
+
+wiki/610 records that hosted P2P evidence now requires a separate relay
+transport descriptor/preflight artifact.
+
+Implementation:
+
+- `GET /api/v1/p2p/relay/transport` emits `musu.p2p_relay_transport.v1`.
+- `musu relay transport --json` emits `musu.relay_transport.v1`.
+- `record-p2p-control-plane-evidence.ps1` captures `relay_transport`.
+- `verify-p2p-control-plane-evidence.ps1` requires owner-scoped transport
+  preflight evidence, `wss://` relay URL, `relay_default_data_path=false`,
+  `payload_transit_requires_lease=true`, release-grade relay lease storage, and
+  release-grade relay route evidence with payload proof.
+
+Existing live P2P evidence `20260603-093640-musu.pro` now fails closed with
+`fail_count=31` because the transport descriptor is missing and relay route
+proof is still absent.
+
+Validation:
+
+- `npm run test:p2p` passed 34/34.
+- `npm run typecheck` passed.
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- PowerShell parser validation passed.
+- release evidence verifier regressions passed 20/20.
+- `git diff --check` passed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_GATE_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_p2p_relay_transport_descriptor_gate.md`
+
+Release interpretation:
+
+- This is a fail-closed evidence/preflight gate, not relay payload transport.
+- `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is still insufficient without actual
+  owner-scoped release-grade relay route evidence.
+- Source changed after the latest primary evidence refresh, so current-HEAD
+  MSIX/smoke/CPU/matrix evidence must be refreshed after commit/build.
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1681` files and `2307` symbols after wiki/610, GOAL v419, relay
+  transport descriptor source/tests, P2P recorder/verifier updates,
+  BETA/spec/WIKI/WIKI_INDEX updates, and CoS memories
+- search terms should include `GOAL v420`, `wiki/611 index refresh`,
+  `musu.p2p_relay_transport.v1`, `musu.relay_transport.v1`,
+  `relay_transport_descriptor_wired`, `payload_transit_requires_lease`,
+  `fail_count=31`, and `test:p2p 34/34`

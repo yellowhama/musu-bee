@@ -2520,4 +2520,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/609 index refresh`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`.
 
+- 2026-06-03 P2P relay transport descriptor gate:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_GATE_2026_06_03.md`
+  (wiki/610) records that hosted P2P evidence now requires
+  `musu relay transport --json` / `musu.relay_transport.v1` in addition to
+  relay status, relay leases, and relay route evidence. Search terms should
+  include `GOAL v419`, `wiki/610`, `musu.p2p_relay_transport.v1`,
+  `musu.relay_transport.v1`, `relay_transport_descriptor_wired`,
+  `payload_transit_requires_lease`, `relay_transport_preflight_ok`,
+  `relay_url`, `wss://`, `fail_count=31`, and `test:p2p 34/34`.
+
+- 2026-06-03 P2P relay transport descriptor index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1681 files and 2307 symbols after GOAL v419, wiki/610, relay
+  transport descriptor source/tests, P2P recorder/verifier updates,
+  BETA/spec/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_p2p_relay_transport_descriptor_gate.md` and
+  `2026-06-03_p2p_relay_transport_descriptor_index_refresh.md`. Search terms
+  should include `GOAL v420`, `1681 files`, `2307 symbols`,
+  `wiki/611 index refresh`, `relay_transport_descriptor_wired`,
+  `payload_transit_requires_lease`, and `fail_count=31`.
+
 **End of WIKI_INDEX.md.**

@@ -189,6 +189,19 @@ test("issues an owner-scoped relay fallback lease when policy allows it", async 
   });
 });
 
+test("requires a wss relay URL before a fallback lease can be issued", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("wss-url");
+    enableRelayLeasePolicy();
+    process.env.MUSU_P2P_RELAY_URL = "ws://relay.musu.pro/connect";
+    const res = await POST(postReq(leaseRequest));
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as { lease_issued: boolean; blockers: string[] };
+    assert.equal(body.lease_issued, false);
+    assert.match(body.blockers.join(","), /relay_url_not_wss/);
+  });
+});
+
 test("requires a direct path failure before relay can be leased", async () => {
   await withRelayEnv(async () => {
     const { POST } = await loadModule("direct-first");

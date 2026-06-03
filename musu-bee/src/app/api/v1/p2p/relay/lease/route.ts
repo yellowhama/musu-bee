@@ -5,10 +5,17 @@ import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   appendRelayLease,
   createRelayLease,
-  p2pRelayLeaseStoreStatus,
   queryRelayLeases,
 } from "@/lib/p2pRelayLeaseStore";
 import type { RelayRouteKind } from "@/lib/p2pRelayLeaseStore";
+import {
+  envEnabled,
+  hasConnectProEntitlement,
+  relayLeaseStoreFields,
+  relayTransportWired,
+  relayUrl,
+  relayUrlIsWss,
+} from "@/lib/p2pRelayPolicy";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,23 +32,6 @@ const RelayLeaseRequestSchema = z.object({
   failure_class: z.string().min(1).nullable().optional(),
 }).passthrough();
 
-function envEnabled(name: string): boolean {
-  return process.env[name] === "1" || process.env[name]?.toLowerCase() === "true";
-}
-
-function relayUrl(): string {
-  return process.env.MUSU_P2P_RELAY_URL?.trim() ?? "";
-}
-
-function hasConnectProEntitlement(): boolean {
-  const entitlement = process.env.MUSU_P2P_RELAY_ENTITLEMENT?.trim().toLowerCase();
-  return entitlement === "connect" || entitlement === "pro" || entitlement === "enterprise";
-}
-
-function relayTransportWired(): boolean {
-  return envEnabled("MUSU_P2P_RELAY_TRANSPORT_WIRED");
-}
-
 function relayPolicyBlockers(input: {
   direct_path_failed: boolean;
   attempted_route_kinds: RelayRouteKind[];
@@ -55,6 +45,9 @@ function relayPolicyBlockers(input: {
   }
   if (!relayUrl()) {
     blockers.push("relay_url_not_configured");
+  }
+  if (relayUrl() && !relayUrlIsWss()) {
+    blockers.push("relay_url_not_wss");
   }
   if (!hasConnectProEntitlement()) {
     blockers.push("connect_pro_entitlement_required");
@@ -71,15 +64,6 @@ function relayPolicyBlockers(input: {
 function publicLease<T extends { owner_key: string }>(lease: T): Omit<T, "owner_key"> {
   const { owner_key: _ownerKey, ...publicRecord } = lease;
   return publicRecord;
-}
-
-function relayLeaseStoreFields() {
-  const status = p2pRelayLeaseStoreStatus();
-  return {
-    relay_lease_store_configured: status.configured,
-    relay_lease_store_backend: status.backend,
-    relay_lease_store_release_grade: status.release_grade,
-  };
 }
 
 export async function POST(req: NextRequest) {

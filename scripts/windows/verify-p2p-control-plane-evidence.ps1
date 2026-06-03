@@ -107,6 +107,7 @@ $baseUrl = Get-StringProperty -Object $evidence -Name "base_url"
 $recordedAtText = Get-StringProperty -Object $evidence -Name "recorded_at"
 $operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
 $statusExitCode = if ($evidence.PSObject.Properties["relay_status_exit_code"]) { [int]$evidence.relay_status_exit_code } else { -1 }
+$transportExitCode = if ($evidence.PSObject.Properties["relay_transport_exit_code"]) { [int]$evidence.relay_transport_exit_code } else { -1 }
 $leasesExitCode = if ($evidence.PSObject.Properties["relay_leases_exit_code"]) { [int]$evidence.relay_leases_exit_code } else { -1 }
 $routeEvidenceExitCode = if ($evidence.PSObject.Properties["relay_route_evidence_exit_code"]) { [int]$evidence.relay_route_evidence_exit_code } else { -1 }
 $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
@@ -115,6 +116,7 @@ $now = [datetimeoffset]::Now
 $futureTolerance = [timespan]::FromMinutes(5)
 
 $relayStatus = if ($evidence.PSObject.Properties["relay_status"]) { $evidence.relay_status } else { $null }
+$relayTransport = if ($evidence.PSObject.Properties["relay_transport"]) { $evidence.relay_transport } else { $null }
 $relayLeases = if ($evidence.PSObject.Properties["relay_leases"]) { $evidence.relay_leases } else { $null }
 $relayRouteEvidence = if ($evidence.PSObject.Properties["relay_route_evidence"]) { $evidence.relay_route_evidence } else { $null }
 
@@ -132,6 +134,7 @@ if ($recordedAt) {
 }
 
 Add-CheckFromCondition "relay status exit" ($statusExitCode -eq 0) "relay status command exited 0" "relay status command exited $statusExitCode"
+Add-CheckFromCondition "relay transport exit" ($transportExitCode -eq 0) "relay transport command exited 0" "relay transport command exited $transportExitCode"
 Add-CheckFromCondition "relay leases exit" ($leasesExitCode -eq 0) "relay leases command exited 0" "relay leases command exited $leasesExitCode"
 Add-CheckFromCondition "relay route evidence exit" ($routeEvidenceExitCode -eq 0) "relay route evidence command exited 0" "relay route evidence command exited $routeEvidenceExitCode"
 
@@ -148,6 +151,31 @@ Add-CheckFromCondition "relay status transport wired" (Get-BoolProperty -Object 
 Add-CheckFromCondition "relay runtime fallback wired" (Get-BoolProperty -Object $relayStatus -Name "relay_runtime_fallback_lease_request_wired") "runtime relay fallback lease request is wired" "runtime relay fallback lease request is not wired"
 Add-CheckFromCondition "release transport requirement" ((Get-StringProperty -Object $relayStatus -Name "release_grade_transport_required") -eq "quic_tls_1_3") "release transport requirement is quic_tls_1_3" "release transport requirement is not quic_tls_1_3"
 Add-CheckFromCondition "relay not default data path" (-not (Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path")) "relay is not the default data path" "relay is incorrectly marked as default data path"
+
+$transportSchema = Get-StringProperty -Object $relayTransport -Name "schema"
+$transportRegistryUrl = Get-StringProperty -Object $relayTransport -Name "registry_url"
+$transportRelayUrl = Get-StringProperty -Object $relayTransport -Name "relay_url"
+$transportReleaseRequirement = Get-StringProperty -Object $relayTransport -Name "release_grade_transport_required"
+$transportBlockersPresent = ($relayTransport -and $relayTransport.PSObject.Properties["blockers"])
+$transportBlockerCount = if ($transportBlockersPresent -and $null -ne $relayTransport.blockers) { @($relayTransport.blockers).Count } else { -1 }
+Add-CheckFromCondition "relay transport schema" ($transportSchema -eq "musu.relay_transport.v1") "relay transport schema is valid" "relay transport schema is '$transportSchema'"
+Add-CheckFromCondition "relay transport registry url" ($transportRegistryUrl.TrimEnd("/") -eq $ExpectedBaseUrl.TrimEnd("/")) "relay transport registry_url matches $ExpectedBaseUrl" "relay transport registry_url is '$transportRegistryUrl'"
+Add-CheckFromCondition "relay transport logged in" (Get-BoolProperty -Object $relayTransport -Name "logged_in") "relay transport query is logged in" "relay transport query is not logged in"
+Add-CheckFromCondition "relay transport ok" (Get-BoolProperty -Object $relayTransport -Name "ok") "relay transport preflight reports ok=true" "relay transport preflight does not report ok=true"
+Add-CheckFromCondition "relay transport owner scope verified" (Get-BoolProperty -Object $relayTransport -Name "owner_scope_verified") "relay transport owner scope is verified" "relay transport owner scope is not verified"
+Add-CheckFromCondition "relay transport owner scoped" (Get-BoolProperty -Object $relayTransport -Name "owner_scoped") "relay transport query is owner-scoped" "relay transport query is not owner-scoped"
+Add-CheckFromCondition "relay transport control-plane wired" (Get-BoolProperty -Object $relayTransport -Name "relay_control_plane_wired") "relay transport control-plane is wired" "relay transport control-plane is not wired"
+Add-CheckFromCondition "relay transport descriptor wired" (Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired") "relay transport descriptor is wired" "relay transport descriptor is not wired"
+Add-CheckFromCondition "relay transport wired" (Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired") "relay transport preflight reports relay transport is wired" "relay transport preflight reports relay transport is not wired"
+Add-CheckFromCondition "relay transport not default data path" (-not (Get-BoolProperty -Object $relayTransport -Name "relay_default_data_path")) "relay transport reports relay_default_data_path=false" "relay transport reports relay_default_data_path=true"
+Add-CheckFromCondition "relay transport URL" ($transportRelayUrl.StartsWith("wss://")) "relay transport URL is wss" "relay transport URL is missing or not wss"
+Add-CheckFromCondition "relay transport kind" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayTransport -Name "relay_transport_kind"))) "relay transport kind is present" "relay transport kind is missing"
+Add-CheckFromCondition "relay transport release requirement" ($transportReleaseRequirement -eq "quic_tls_1_3") "relay transport release requirement is quic_tls_1_3" "relay transport release requirement is '$transportReleaseRequirement'"
+Add-CheckFromCondition "relay payload requires lease" (Get-BoolProperty -Object $relayTransport -Name "payload_transit_requires_lease") "relay payload transit requires a lease" "relay payload transit does not require a lease"
+Add-CheckFromCondition "relay transport blockers empty" ($transportBlockerCount -eq 0) "relay transport preflight has no blockers" "relay transport preflight blockers are present or missing"
+Add-CheckFromCondition "relay transport store status present" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayTransport -Name "relay_lease_store_backend"))) "relay transport lease store backend is present" "relay transport lease store backend is missing"
+Add-CheckFromCondition "relay transport store configured" (Get-BoolProperty -Object $relayTransport -Name "relay_lease_store_configured") "relay transport lease store is configured" "relay transport lease store is not configured"
+Add-CheckFromCondition "relay transport store release-grade" (Get-BoolProperty -Object $relayTransport -Name "relay_lease_store_release_grade") "relay transport lease store is release-grade" "relay transport lease store is not release-grade"
 
 $leasesSchema = Get-StringProperty -Object $relayLeases -Name "schema"
 $leasesRegistryUrl = Get-StringProperty -Object $relayLeases -Name "registry_url"
@@ -184,6 +212,9 @@ Add-CheckFromCondition "relay route evidence count" ($routeEvidenceCount -gt 0) 
 Add-CheckFromCondition "relay payload transport proven" (Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven") "relay payload transport is proven by release-grade route evidence" "relay payload transport is not proven by release-grade route evidence"
 
 $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
+$relayTransportPreflightOk = Get-BoolProperty -Object $relayTransport -Name "ok"
+$relayTransportDescriptorWired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired"
+$relayTransportTransportWired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired"
 $relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
 $relayPayloadTransportProven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
@@ -198,11 +229,16 @@ $result = [pscustomobject]@{
     relay_status_logged_in = Get-BoolProperty -Object $relayStatus -Name "logged_in"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_status_transport_wired = $relayStatusTransportWired
+    relay_transport_preflight_ok = $relayTransportPreflightOk
+    relay_transport_descriptor_wired = $relayTransportDescriptorWired
+    relay_transport_descriptor_ok = ($relayTransportPreflightOk -and $relayTransportDescriptorWired)
+    relay_transport_preflight_transport_wired = $relayTransportTransportWired
+    relay_transport_url = $transportRelayUrl
     relay_leases_transport_wired = $relayLeasesTransportWired
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
     relay_route_evidence_count = $routeEvidenceCount
     relay_payload_transport_proven = $relayPayloadTransportProven
-    relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
+    relay_transport_wired = ($relayStatusTransportWired -and $relayTransportPreflightOk -and $relayTransportDescriptorWired -and $relayTransportTransportWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount
     relay_lease_store_configured = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured"

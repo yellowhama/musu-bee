@@ -118,6 +118,7 @@ $oldCloudBaseUrl = $env:MUSU_CLOUD_BASE_URL
 try {
     $env:MUSU_CLOUD_BASE_URL = $BaseUrl
     $relayStatusResult = Invoke-MusuJson -Arguments @("relay", "status", "--json")
+    $relayTransportResult = Invoke-MusuJson -Arguments @("relay", "transport", "--json")
     $relayLeasesResult = Invoke-MusuJson -Arguments @("relay", "leases", "--json")
     $relayRouteEvidenceResult = Invoke-MusuJson -Arguments @("relay", "route-evidence", "--json", "--limit", "5")
 }
@@ -126,6 +127,7 @@ finally {
 }
 
 $relayStatus = $relayStatusResult.json
+$relayTransport = $relayTransportResult.json
 $relayLeases = $relayLeasesResult.json
 $relayRouteEvidence = $relayRouteEvidenceResult.json
 $statusOk = (
@@ -136,6 +138,20 @@ $statusOk = (
     (Get-BoolProperty -Object $relayStatus -Name "rendezvous_session_wired") -and
     (Get-BoolProperty -Object $relayStatus -Name "relay_control_plane_lease_wired") -and
     -not (Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path")
+)
+$transportOk = (
+    $relayTransportResult.exit_code -eq 0 -and
+    $relayTransport -and
+    [string]$relayTransport.schema -eq "musu.relay_transport.v1" -and
+    (Get-BoolProperty -Object $relayTransport -Name "logged_in") -and
+    (Get-BoolProperty -Object $relayTransport -Name "ok") -and
+    (Get-BoolProperty -Object $relayTransport -Name "owner_scope_verified") -and
+    (Get-BoolProperty -Object $relayTransport -Name "owner_scoped") -and
+    (Get-BoolProperty -Object $relayTransport -Name "relay_control_plane_wired") -and
+    (Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired") -and
+    (Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired") -and
+    -not (Get-BoolProperty -Object $relayTransport -Name "relay_default_data_path") -and
+    (Get-BoolProperty -Object $relayTransport -Name "payload_transit_requires_lease")
 )
 $leasesOk = (
     $relayLeasesResult.exit_code -eq 0 -and
@@ -160,7 +176,7 @@ $routeEvidenceOk = (
 
 $evidence = [pscustomobject]@{
     schema = "musu.p2p_control_plane_live_evidence.v1"
-    ok = [bool]($statusOk -and $leasesOk -and $routeEvidenceOk)
+    ok = [bool]($statusOk -and $transportOk -and $leasesOk -and $routeEvidenceOk)
     version = $Version
     base_url = $BaseUrl
     recorded_at = $recordedAt.ToString("o")
@@ -171,6 +187,9 @@ $evidence = [pscustomobject]@{
     relay_status_exit_code = $relayStatusResult.exit_code
     relay_status = $relayStatus
     relay_status_raw = if ($relayStatus) { $null } else { $relayStatusResult.raw }
+    relay_transport_exit_code = $relayTransportResult.exit_code
+    relay_transport = $relayTransport
+    relay_transport_raw = if ($relayTransport) { $null } else { $relayTransportResult.raw }
     relay_leases_exit_code = $relayLeasesResult.exit_code
     relay_leases = $relayLeases
     relay_leases_raw = if ($relayLeases) { $null } else { $relayLeasesResult.raw }
@@ -207,8 +226,14 @@ $summary = @"
 - Base URL: $BaseUrl
 - Verified: $($verification.ok)
 - Relay status exit code: $($relayStatusResult.exit_code)
+- Relay transport exit code: $($relayTransportResult.exit_code)
 - Relay leases exit code: $($relayLeasesResult.exit_code)
 - Relay route evidence exit code: $($relayRouteEvidenceResult.exit_code)
+- Relay transport ok: $(Get-BoolProperty -Object $relayTransport -Name "ok")
+- Relay transport descriptor wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired")
+- Relay transport wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired")
+- Relay transport URL: $(if ($relayTransport -and $relayTransport.PSObject.Properties["relay_url"]) { $relayTransport.relay_url } else { "" })
+- Relay transport blockers: $(if ($relayTransport -and $relayTransport.PSObject.Properties["blockers"]) { ($relayTransport.blockers -join ", ") } else { "" })
 - Relay leases ok: $(Get-BoolProperty -Object $relayLeases -Name "ok")
 - Owner scope verified: $(Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified")
 - Relay default data path: $(Get-BoolProperty -Object $relayLeases -Name "relay_default_data_path")
@@ -240,6 +265,9 @@ $result = [pscustomobject]@{
     verification_path = (Resolve-Path -LiteralPath $verificationPath).Path
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
+    relay_transport_ok = Get-BoolProperty -Object $relayTransport -Name "ok"
+    relay_transport_descriptor_wired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired"
+    relay_transport_wired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired"
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"

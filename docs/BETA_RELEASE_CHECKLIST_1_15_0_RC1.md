@@ -2467,3 +2467,66 @@ Canonical report:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - indexed `1675` files and `2296` symbols after GOAL v417, wiki/608,
   fresh primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 12:47 KST P2P Relay Transport Descriptor Gate
+
+Hosted P2P evidence now requires a separate relay transport
+descriptor/preflight artifact.
+
+Added:
+
+- `GET /api/v1/p2p/relay/transport`
+- `musu relay transport --json`
+- recorder field `relay_transport`
+- verifier checks for `musu.relay_transport.v1`
+
+The verifier now requires:
+
+- owner-scoped transport descriptor
+- `relay_transport_descriptor_wired=true`
+- `relay_transport_wired=true`
+- `relay_default_data_path=false`
+- `payload_transit_requires_lease=true`
+- `relay_url` starts with `wss://`
+- release-grade relay lease storage
+- release-grade relay route evidence with payload proof and count greater than
+  zero
+
+Existing live P2P evidence
+`docs\evidence\p2p-control-plane\1.15.0-rc.1\20260603-093640-musu.pro.evidence.json`
+now fails closed under the new verifier:
+
+- `ok=false`
+- `fail_count=31`
+- `relay_transport_descriptor_wired=false`
+- `relay_transport_preflight_ok=false`
+- `relay_route_evidence_count=0`
+- `relay_payload_transport_proven=false`
+
+Validation:
+
+- `npm run test:p2p`: 34/34
+- `npm run typecheck`: passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`: passed
+- PowerShell parser validation: passed
+- release evidence verifier regressions: 20/20
+- `git diff --check`: passed
+
+Not release complete:
+
+- this is not relay/tunnel payload transport
+- debug `cargo build --bin musu` was stopped after more than six minutes
+- source changed after the latest primary evidence refresh, so current-HEAD
+  MSIX/smoke/CPU/matrix evidence must be refreshed again after commit/build
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1681` files and `2307` symbols after GOAL v419, wiki/610,
+  relay transport descriptor source/tests, P2P recorder/verifier updates,
+  BETA/spec/WIKI/WIKI_INDEX updates, and CoS memories
