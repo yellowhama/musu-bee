@@ -13,6 +13,9 @@ param(
     [string[]]$RuntimeCpuScenario = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [string]$RuntimeCpuDashboardUrl,
     [switch]$RunRuntimeCpuRouteProbe = $true,
+    [string]$RuntimeCpuRouteTarget,
+    [string]$RuntimeCpuRoutePrompt,
+    [switch]$AllowFailedRuntimeCpuRouteProbe,
     [switch]$SkipRuntimeCpuScenarioMatrix,
     [switch]$FailOnRuntimeCpuScenarioMatrix,
     [switch]$NoReturnZip,
@@ -307,6 +310,15 @@ try {
             if ($RunRuntimeCpuRouteProbe) {
                 $matrixArgs += "-RunRouteProbe"
             }
+            if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) {
+                $matrixArgs += @("-RouteTarget", $RuntimeCpuRouteTarget)
+            }
+            if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRoutePrompt)) {
+                $matrixArgs += @("-RoutePrompt", $RuntimeCpuRoutePrompt)
+            }
+            if ($AllowFailedRuntimeCpuRouteProbe) {
+                $matrixArgs += "-AllowFailedRouteProbe"
+            }
             if ($FailOnRuntimeCpuScenarioMatrix) {
                 $matrixArgs += "-FailOnHot"
             }
@@ -339,6 +351,12 @@ try {
                         "-RequirePostRouteProbe",
                         "-Json"
                     )
+                    if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) {
+                        $verifyArgs += @("-ExpectedPostRouteTarget", $RuntimeCpuRouteTarget)
+                    }
+                    if ($AllowFailedRuntimeCpuRouteProbe) {
+                        $verifyArgs += "-AllowFailedPostRouteProbe"
+                    }
                     $verifyOutput = & powershell @verifyArgs 2>&1
                     $verifyExitCode = $LASTEXITCODE
                     $verifyRaw = ($verifyOutput | Out-String).Trim()
@@ -456,6 +474,8 @@ $result = [pscustomobject]@{
     runtime_idle_cpu_evidence_path = if ($SkipRuntimeIdleCpu) { $null } else { $runtimeIdleCpuEvidencePath }
     runtime_cpu_scenario_output_root = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioOutputRoot }
     runtime_cpu_scenario_matrix_path = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioMatrixPath }
+    runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) { $null } else { $RuntimeCpuRouteTarget }
+    runtime_cpu_route_probe_failure_allowed = [bool]$AllowFailedRuntimeCpuRouteProbe
     runtime_cpu_scenario_matrix_ok = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrix) { [bool]$runtimeCpuScenarioMatrix.ok } else { $false }
     runtime_cpu_scenario_matrix_verified = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrixVerification) { [bool]$runtimeCpuScenarioMatrixVerification.ok } else { $false }
     runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification

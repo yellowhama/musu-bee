@@ -7,6 +7,8 @@ param(
     [int]$MinSampleSeconds = 60,
     [double]$MaxOneCorePercent = 5.0,
     [switch]$RequirePostRouteProbe = $true,
+    [string]$ExpectedPostRouteTarget,
+    [switch]$AllowFailedPostRouteProbe,
     [switch]$Json
 )
 
@@ -354,8 +356,33 @@ if ($matrix) {
 
     if ($RequirePostRouteProbe -and ($RequiredScenarios -contains "post-route")) {
         $routeProbe = Get-JsonPropertyValue -Object $matrix -Name "route_probe"
-        $routeProbeOk = ($null -ne $routeProbe -and $routeProbe.PSObject.Properties["ok"] -and [bool]$routeProbe.ok)
-        Add-CheckFromCondition "post-route route probe" $routeProbeOk "post-route matrix includes a successful route probe" "post-route matrix lacks a successful route probe"
+        $routeProbePresent = ($null -ne $routeProbe)
+        Add-CheckFromCondition "post-route route probe present" $routeProbePresent "post-route matrix includes a route probe" "post-route matrix lacks a route probe"
+        if ($routeProbePresent) {
+            $routeProbeOk = ($routeProbe.PSObject.Properties["ok"] -and [bool]$routeProbe.ok)
+            $routeProbeHasExitCode = ($routeProbe.PSObject.Properties["exit_code"] -and $null -ne $routeProbe.exit_code)
+            $routeProbeFailureAllowed = ($routeProbe.PSObject.Properties["failure_allowed"] -and [bool]$routeProbe.failure_allowed)
+            $routeProbeAccepted = if ($AllowFailedPostRouteProbe) {
+                ($routeProbeOk -or ($routeProbeHasExitCode -and $routeProbeFailureAllowed))
+            }
+            else {
+                $routeProbeOk
+            }
+            Add-CheckFromCondition `
+                "post-route route probe" `
+                $routeProbeAccepted `
+                ($(if ($AllowFailedPostRouteProbe) { "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt" } else { "post-route matrix includes a successful route probe" })) `
+                ($(if ($AllowFailedPostRouteProbe) { "post-route matrix lacks a successful route probe or explicitly allowed failed route attempt" } else { "post-route matrix lacks a successful route probe" }))
+
+            if (-not [string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) {
+                $routeTarget = Get-JsonPropertyString -Object $routeProbe -Name "target"
+                Add-CheckFromCondition `
+                    "post-route route target" `
+                    ($routeTarget -eq $ExpectedPostRouteTarget) `
+                    "post-route route target matches $ExpectedPostRouteTarget" `
+                    "post-route route target is '$routeTarget', expected '$ExpectedPostRouteTarget'"
+            }
+        }
     }
 }
 
@@ -370,6 +397,8 @@ $result = [pscustomobject]@{
     required_scenarios = @($RequiredScenarios)
     present_required_scenarios = @($validScenarioNames)
     require_post_route_probe = [bool]$RequirePostRouteProbe
+    expected_post_route_target = if ([string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) { $null } else { $ExpectedPostRouteTarget }
+    allow_failed_post_route_probe = [bool]$AllowFailedPostRouteProbe
     checks = $checks.ToArray()
 }
 

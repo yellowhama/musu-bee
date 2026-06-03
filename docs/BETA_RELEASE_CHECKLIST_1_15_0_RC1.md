@@ -2664,3 +2664,40 @@ Canonical report:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - indexed `1700` files and `2311` symbols after GOAL v426, wiki/616, fresh
   primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 14:45 KST Targeted Post-Route CPU Matrix Diagnostic
+
+The runtime CPU scenario matrix now supports explicit target route attempts for
+post-route CPU attribution:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
+```
+
+The verifier supports the matching target/failure boundary:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath <MATRIX_JSON> -RequirePostRouteProbe -ExpectedPostRouteTarget PRIMARY-PC -AllowFailedPostRouteProbe -Json
+```
+
+The normal release path without `-AllowFailedRouteProbe` still requires a
+successful post-route probe. The allow-failed target path only records CPU after
+a bounded failed route attempt and does not close the multi-device route proof.
+
+Validation:
+
+- PowerShell parser checks passed
+- release evidence verifier regressions passed `22/22`
+- `git diff --check` passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_MATRIX_DIAGNOSTIC_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1705` files and `2311` symbols after GOAL v428, wiki/618,
+  targeted post-route CPU matrix scripts, the canonical report,
+  BETA/WIKI/WIKI_INDEX updates, and CoS memories

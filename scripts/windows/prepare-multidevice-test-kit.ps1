@@ -146,6 +146,24 @@ The wrapper also captures a diagnostic runtime CPU scenario matrix with
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
+After the peer has been added or named by the primary PC, use a targeted
+post-route attempt to capture CPU behavior immediately after a bounded remote
+route attempt:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
+```
+
+The wrapper exposes the same diagnostic path:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
+```
+
+Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
+diagnose CPU after a failed remote route attempt. The normal release matrix
+without that flag still requires a successful post-route probe.
+
 This matrix is also verified by
 `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`. It does not replace
 the release-grade two-machine `desktop-open` runtime idle CPU evidence, but the
@@ -181,6 +199,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-hando
 Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
 musu down --json
 musu up --json

@@ -372,7 +372,14 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     route_probe = [pscustomobject]@{
         ok = $true
         expected_token = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+        target = $null
+        command = "musu route --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+        arguments = @("route", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+        exit_code = 0
+        stdout = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+        stderr = ""
         output = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+        failure_allowed = $false
     }
     fail_count = 0
     scenarios = @(
@@ -398,7 +405,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         },
         [pscustomobject]@{
             scenario = "post-route"
-            preparation = [pscustomobject]@{ action = "musu route --wait" }
+            preparation = [pscustomobject]@{ action = "musu route --wait"; route_probe = $null }
             measurement = (New-RuntimeMeasurement)
         }
     )
@@ -582,6 +589,30 @@ Add-CaseResult -Cases $cases -Name "multidevice rejects relay route without MUSU
 $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts complete resource-budget evidence" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$allowedFailedRuntimeRouteAttempt = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$allowedFailedRuntimeRouteAttempt.route_probe = [pscustomobject]@{
+    ok = $false
+    expected_token = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+    target = "PRIMARY-PC"
+    command = "musu route --target PRIMARY-PC --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+    arguments = @("route", "--target", "PRIMARY-PC", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+    exit_code = 1
+    stdout = ""
+    stderr = "route failed: peer not reachable"
+    output = "route failed: peer not reachable"
+    failure_allowed = $true
+}
+$allowedFailedRuntimeRouteAttempt.scenarios[4].preparation.action = "musu route --target --wait"
+$allowedFailedRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $allowedFailedRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-allowed" -Object $allowedFailedRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix accepts explicitly allowed failed target route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$targetMismatchRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-target-mismatch" -Object $targetMismatchRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-ExpectedPostRouteTarget", "SECOND-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt for wrong target" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixStartupPrep = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixStartupPrep.scenarios[0].preparation.action = "none"

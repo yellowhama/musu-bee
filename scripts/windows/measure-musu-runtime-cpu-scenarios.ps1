@@ -9,6 +9,8 @@ param(
     [string]$DashboardUrl,
     [switch]$RunRouteProbe,
     [string]$RoutePrompt,
+    [string]$RouteTarget,
+    [switch]$AllowFailedRouteProbe,
     [double]$MaxOneCorePercent = 5.0,
     [int]$MaxOwnedProcessCount = 16,
     [int]$MaxOwnedWebView2ProcessCount = 8,
@@ -331,18 +333,36 @@ foreach ($name in $Scenario) {
         }
         "post-route" {
             if ($RunRouteProbe) {
-                $routeOutput = Invoke-TextCommand -FilePath $MusuExe -Arguments @("route", "--wait", $RoutePrompt) -TimeoutSec $CommandTimeoutSec
+                $routeArgs = @("route")
+                if (-not [string]::IsNullOrWhiteSpace($RouteTarget)) {
+                    $routeArgs += @("--target", $RouteTarget)
+                }
+                $routeArgs += @("--wait", $RoutePrompt)
+                $routeCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeArgs)
+                $routeResult = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeArgs -TimeoutSec $CommandTimeoutSec
+                $routeOutputParts = @($routeResult.stdout, $routeResult.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                $routeOutput = ($routeOutputParts -join "`n").Trim()
                 $routeProbe = [pscustomobject]@{
                     prompt = $RoutePrompt
                     expected_token = $expectedRouteToken
+                    target = if ([string]::IsNullOrWhiteSpace($RouteTarget)) { $null } else { $RouteTarget }
+                    command = $routeCommand
+                    arguments = @($routeArgs)
+                    exit_code = [int]$routeResult.exit_code
+                    stdout = [string]$routeResult.stdout
+                    stderr = [string]$routeResult.stderr
                     output = $routeOutput
-                    ok = ($routeOutput -like "*$expectedRouteToken*")
+                    ok = ($routeResult.exit_code -eq 0 -and $routeOutput -like "*$expectedRouteToken*")
+                    failure_allowed = [bool]$AllowFailedRouteProbe
+                }
+                if ($routeResult.exit_code -ne 0 -and -not $AllowFailedRouteProbe) {
+                    throw "route probe failed with exit code $($routeResult.exit_code): $routeCommand`n$routeOutput"
                 }
             }
             $scenarioResults += [pscustomobject]@{
                 scenario = "post-route"
                 preparation = [pscustomobject]@{
-                    action = if ($RunRouteProbe) { "musu route --wait" } else { "none" }
+                    action = if ($RunRouteProbe -and -not [string]::IsNullOrWhiteSpace($RouteTarget)) { "musu route --target --wait" } elseif ($RunRouteProbe) { "musu route --wait" } else { "none" }
                     route_probe = $routeProbe
                 }
                 measurement = Invoke-MeasureScenario -Name $name

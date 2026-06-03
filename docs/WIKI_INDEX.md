@@ -2613,4 +2613,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/617 index refresh`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`.
 
+- 2026-06-03 targeted post-route CPU matrix diagnostic:
+  `RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_MATRIX_DIAGNOSTIC_2026_06_03.md`
+  (wiki/618) records `-RouteTarget`, `-AllowFailedRouteProbe`,
+  `-ExpectedPostRouteTarget`, and `-AllowFailedPostRouteProbe` for capturing
+  CPU after an explicit target route attempt. Search terms should include
+  `GOAL v428`, `wiki/618`, `RuntimeCpuRouteTarget`,
+  `runtime-matrix-failed-target-route-attempt-allowed`, `case_count=22`, and
+  `target mismatch`.
+
+- 2026-06-03 targeted post-route CPU matrix index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1705 files and 2311 symbols after GOAL v428, wiki/618, targeted
+  post-route CPU matrix scripts, the canonical report, BETA/WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_targeted_post_route_cpu_matrix_diagnostic.md` and
+  `2026-06-03_targeted_post_route_cpu_matrix_index_refresh.md`. Search terms
+  should include `GOAL v429`, `1705 files`, `2311 symbols`,
+  `wiki/619 index refresh`, `RouteTarget`, `AllowFailedRouteProbe`,
+  `ExpectedPostRouteTarget`, and `RuntimeCpuRouteTarget`.
+
 **End of WIKI_INDEX.md.**

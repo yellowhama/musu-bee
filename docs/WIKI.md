@@ -2991,3 +2991,63 @@ Release interpretation:
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_141712`,
   `post relay transport proof primary evidence refresh`, `runtime idle CPU 1/2`,
   and `runtime CPU matrix 1/2`
+
+## 2026-06-03 14:45 KST Targeted Post-Route CPU Matrix Diagnostic
+
+wiki/618 records that the runtime CPU scenario matrix now has a targeted
+post-route diagnostic for second-PC route attempts.
+
+New measurement flags:
+
+- `-RouteTarget <PEER_NAME>`
+- `-AllowFailedRouteProbe`
+
+New verifier flags:
+
+- `-ExpectedPostRouteTarget <PEER_NAME>`
+- `-AllowFailedPostRouteProbe`
+
+New second-PC wrapper flags:
+
+- `-RuntimeCpuRouteTarget <PEER_NAME>`
+- `-RuntimeCpuRoutePrompt <PROMPT>`
+- `-AllowFailedRuntimeCpuRouteProbe`
+
+The matrix `route_probe` now records target, command, arguments, exit code,
+stdout, stderr, output, success state, and whether failure was explicitly
+allowed.
+
+Validation:
+
+- PowerShell parser checks passed
+- release evidence verifier regressions passed `22/22`
+- added passing fixture for explicitly allowed failed target route attempt
+- added failing fixture for target mismatch
+- `git diff --check` passed
+
+Release interpretation:
+
+- normal release matrix verification still requires a successful post-route
+  probe
+- allow-failed target attempts only diagnose CPU after a bounded failed route
+  attempt
+- this does not prove multi-device route success or relay payload transport
+- public release remains No-Go until second-PC runtime/multi-device evidence,
+  hosted P2P release-grade relay payload proof, support mailbox evidence, and
+  Store evidence are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TARGETED_POST_ROUTE_CPU_MATRIX_DIAGNOSTIC_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1705` files and `2311` symbols after wiki/618, GOAL v428,
+  targeted post-route CPU matrix scripts, the canonical report,
+  BETA/WIKI_INDEX updates, and CoS memories
+- search terms should include `GOAL v429`, `wiki/619 index refresh`,
+  `RouteTarget`, `AllowFailedRouteProbe`, `ExpectedPostRouteTarget`,
+  `RuntimeCpuRouteTarget`, and
+  `runtime-matrix-failed-target-route-attempt-allowed`
