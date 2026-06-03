@@ -2829,6 +2829,38 @@ Release interpretation:
 - public release remains No-Go on real relay payload proof, second-PC
   runtime/multi-device evidence, support mailbox evidence, and Store evidence
 
+## 2026-06-03 23:01 KST Post Proof-Binding Primary Evidence Refresh
+
+After the relay transport proof binding gate, current-source primary packaged
+evidence was refreshed on `HUGH_SECOND`.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-225154-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-225332-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-225507-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_225125`
+- dashboard `http://127.0.0.1:3001`
+- bridge `http://127.0.0.1:1037`
+- desktop-open CPU passed for `60.039s`: MUSU `0.03`, Node `0.03`,
+  WebView2 `0.6`, hot `0`, working set `455.37MB`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_225507`
+- matrix max CPU: MUSU `0.44`, Node `0.13`, WebView2 `0.44`
+- matrix max working set: `460.51MB`
+- clean go/no-go reports single-machine true, primary idle CPU `1/2`, primary
+  matrix `1/2`, and six remaining release blockers
+
+Public release remains No-Go until second-PC runtime/multi-device evidence,
+hosted relay payload proof, support mailbox evidence, and Store evidence are
+complete.
+
 ## 2026-06-03 22:09 KST Relay Fallback Payload Gap Gate
 
 Issued relay leases are now explicitly separated from relay payload transport

@@ -2962,4 +2962,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_route_transport_proof_kind_not_release_grade`,
   `relay_route_transport_proof_timestamp_order_invalid`, and `test:p2p 40/40`.
 
+- 2026-06-03 post proof-binding primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_PROOF_BINDING_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/646) records fresh current-source primary packaged evidence after the
+  relay proof binding gate: single-machine `20260603-225154-HUGH_SECOND`,
+  desktop-open CPU `20260603-225332-HUGH_SECOND.desktop-open`, and five-state
+  runtime matrix `20260603-225507-HUGH_SECOND.runtime-cpu-scenario-matrix`.
+  Search terms should include `GOAL v456`, `wiki/646`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_225125`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_225507`, `WebView2 0.6`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `faef9398`.
+
 **End of WIKI_INDEX.md.**
