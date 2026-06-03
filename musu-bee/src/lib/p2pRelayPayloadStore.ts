@@ -30,6 +30,9 @@ export type StoredP2pRelayPayload = {
   transport_kind: "http_store_forward_preview";
   created_at: string;
   expires_at: string;
+  claimed_by?: string;
+  claimed_at?: string;
+  delivered_at?: string;
 };
 
 type P2pRelayPayloadStoreState = {
@@ -46,6 +49,18 @@ export type P2pRelayPayloadQuery = {
   target_node_id?: string;
   tunnel_id?: string;
   status?: RelayPayloadStatus;
+};
+
+export type P2pRelayPayloadClaimInput = P2pRelayPayloadQuery & {
+  owner_key: string;
+  target_node_id: string;
+  claimant_node_id?: string;
+};
+
+export type P2pRelayPayloadDeliveryInput = {
+  owner_key: string;
+  payload_id: string;
+  target_node_id: string;
 };
 
 export type P2pRelayPayloadStoreStatus = {
@@ -182,7 +197,10 @@ function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
     payload.release_grade === false &&
     payload.transport_kind === "http_store_forward_preview" &&
     typeof payload.created_at === "string" &&
-    typeof payload.expires_at === "string"
+    typeof payload.expires_at === "string" &&
+    (payload.claimed_by === undefined || typeof payload.claimed_by === "string") &&
+    (payload.claimed_at === undefined || typeof payload.claimed_at === "string") &&
+    (payload.delivered_at === undefined || typeof payload.delivered_at === "string")
   );
 }
 
@@ -323,29 +341,134 @@ export async function queryRelayPayloads(
 
   return payloads
     .filter(payloadFresh)
-    .filter((payload) => {
-      if (query.owner_key && payload.owner_key !== query.owner_key) {
-        return false;
-      }
-      if (query.session_id && payload.session_id !== query.session_id) {
-        return false;
-      }
-      if (query.lease_id && payload.lease_id !== query.lease_id) {
-        return false;
-      }
-      if (query.source_node_id && payload.source_node_id !== query.source_node_id) {
-        return false;
-      }
-      if (query.target_node_id && payload.target_node_id !== query.target_node_id) {
-        return false;
-      }
-      if (query.tunnel_id && payload.tunnel_id !== query.tunnel_id) {
-        return false;
-      }
-      if (query.status && payload.status !== query.status) {
-        return false;
-      }
-      return true;
-    })
+    .filter((payload) => matchesPayloadQuery(payload, query))
     .slice(0, limit);
+}
+
+function matchesPayloadQuery(payload: StoredP2pRelayPayload, query: P2pRelayPayloadQuery): boolean {
+  if (query.owner_key && payload.owner_key !== query.owner_key) {
+    return false;
+  }
+  if (query.session_id && payload.session_id !== query.session_id) {
+    return false;
+  }
+  if (query.lease_id && payload.lease_id !== query.lease_id) {
+    return false;
+  }
+  if (query.source_node_id && payload.source_node_id !== query.source_node_id) {
+    return false;
+  }
+  if (query.target_node_id && payload.target_node_id !== query.target_node_id) {
+    return false;
+  }
+  if (query.tunnel_id && payload.tunnel_id !== query.tunnel_id) {
+    return false;
+  }
+  if (query.status && payload.status !== query.status) {
+    return false;
+  }
+  return true;
+}
+
+export async function claimRelayPayloads(
+  input: P2pRelayPayloadClaimInput
+): Promise<StoredP2pRelayPayload[]> {
+  assertStoreConfigured();
+  if (shouldUseKv()) {
+    throw new Error("relay_payload_claim_kv_not_implemented");
+  }
+
+  const limit = Math.max(1, Math.min(input.limit ?? 1, 20));
+  const now = new Date().toISOString();
+  const claimant = input.claimant_node_id?.trim() || input.target_node_id;
+
+  return withLocalLock(async () => {
+    const state = fileGet();
+    const claimedIds = new Set<string>();
+    const claimed: StoredP2pRelayPayload[] = [];
+
+    for (const payload of state.payloads.filter(payloadFresh)) {
+      if (claimed.length >= limit) {
+        break;
+      }
+      if (
+        payload.status === "queued" &&
+        matchesPayloadQuery(payload, {
+          ...input,
+          status: "queued",
+        })
+      ) {
+        claimedIds.add(payload.payload_id);
+        claimed.push({
+          ...payload,
+          status: "claimed" as const,
+          claimed_by: claimant,
+          claimed_at: now,
+        });
+      }
+    }
+
+    if (claimed.length === 0) {
+      fileSet({
+        schema: "musu.p2p_relay_payload_store.v1",
+        payloads: state.payloads.filter(payloadFresh).slice(0, maxPayloads()),
+      });
+      return [];
+    }
+
+    fileSet({
+      schema: "musu.p2p_relay_payload_store.v1",
+      payloads: state.payloads
+        .filter(payloadFresh)
+        .map((payload) =>
+          claimedIds.has(payload.payload_id)
+            ? claimed.find((item) => item.payload_id === payload.payload_id) ?? payload
+            : payload
+        )
+        .slice(0, maxPayloads()),
+    });
+
+    return claimed;
+  });
+}
+
+export async function markRelayPayloadDelivered(
+  input: P2pRelayPayloadDeliveryInput
+): Promise<StoredP2pRelayPayload | null> {
+  assertStoreConfigured();
+  if (shouldUseKv()) {
+    throw new Error("relay_payload_delivery_kv_not_implemented");
+  }
+
+  const deliveredAt = new Date().toISOString();
+
+  return withLocalLock(async () => {
+    const state = fileGet();
+    let delivered: StoredP2pRelayPayload | null = null;
+    const payloads = state.payloads.filter(payloadFresh).map((payload) => {
+      if (
+        payload.payload_id !== input.payload_id ||
+        payload.owner_key !== input.owner_key ||
+        payload.target_node_id !== input.target_node_id
+      ) {
+        return payload;
+      }
+      if (payload.status !== "claimed") {
+        throw new Error("relay_payload_delivery_requires_claim");
+      }
+      delivered = {
+        ...payload,
+        status: "delivered" as const,
+        delivered_at: deliveredAt,
+      };
+      return delivered;
+    });
+
+    fileSet({
+      schema: "musu.p2p_relay_payload_store.v1",
+      payloads: payloads.slice(0, maxPayloads()),
+    });
+
+    return delivered;
+  });
 }

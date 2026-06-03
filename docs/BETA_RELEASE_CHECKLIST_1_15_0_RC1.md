@@ -2867,6 +2867,48 @@ Release interpretation:
 - hosted deployment of the payload route is still required before live target
   polling evidence can be captured
 
+## 2026-06-04 02:16 KST Relay Payload Claim/Delivery API
+
+The hosted relay payload queue now has explicit owner-scoped claim and delivery
+transitions through `PATCH /api/v1/p2p/relay/payload`.
+
+New schemas:
+
+- `musu.relay_payload_claim.v1`
+- `musu.relay_payload_delivery.v1`
+
+State flow:
+
+- `queued -> claimed -> delivered`
+- claim records `claimed_by` and `claimed_at`
+- delivery records `delivered_at`
+- delivery before claim returns `409 relay_payload_delivery_requires_claim`
+
+Safety behavior:
+
+- public payload records strip `owner_key`
+- claim responses include `payload_base64` only when `include_payload=true`
+- delivery responses never include payload bytes
+- KV/Upstash claim/delivery fail closed with
+  `relay_payload_claim_kv_not_implemented` and
+  `relay_payload_delivery_kv_not_implemented` until atomic mutation is
+  implemented
+
+Validation:
+
+- `npm run test:p2p` passed 54/54
+- `npm run typecheck` passed
+
+Release interpretation:
+
+- this is API state-transition semantics only
+- this is not background polling
+- this is not payload execution
+- this is not release-grade QUIC/TLS relay transport proof
+- public release remains No-Go until target-side poll/claim/execute,
+  production atomic claim/delivery, release-grade relay proof, and fresh
+  packaged evidence are complete
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the

@@ -3895,3 +3895,40 @@ target poll/claim/execute loop can be wired.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUERY_CLIENT_CLI_2026_06_04.md`
+
+## 2026-06-04 relay payload claim/delivery API (wiki/654)
+
+The hosted relay payload queue now has owner-scoped claim and delivery
+transitions:
+
+- `PATCH /api/v1/p2p/relay/payload` with `musu.relay_payload_claim.v1`
+- `PATCH /api/v1/p2p/relay/payload` with `musu.relay_payload_delivery.v1`
+
+The local/development file store supports:
+
+```text
+queued -> claimed -> delivered
+```
+
+Claim records `claimed_by` and `claimed_at`; delivery records `delivered_at`.
+Delivery before claim returns `409 relay_payload_delivery_requires_claim`.
+
+Public response records continue to strip `owner_key`. Claim responses only
+include `payload_base64` when `include_payload=true`, and delivery responses
+never return payload bytes.
+
+KV/Upstash claim and delivery are intentionally fail-closed until atomic
+mutation lands:
+
+- `relay_payload_claim_kv_not_implemented`
+- `relay_payload_delivery_kv_not_implemented`
+
+Validation passed `npm run test:p2p` `54/54` and `npm run typecheck`.
+
+This is not background target polling, payload execution, or release-grade
+QUIC/TLS relay proof. It is the state-transition API needed before a bounded
+target-side poll/claim/execute loop can be wired.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_API_2026_06_04.md`

@@ -15,6 +15,7 @@ import { p2pControlOwnerKey } from "@/lib/p2pControlAuth";
 
 type Module = {
   GET: (req: NextRequest) => Promise<Response>;
+  PATCH: (req: NextRequest) => Promise<Response>;
   POST: (req: NextRequest) => Promise<Response>;
 };
 
@@ -60,9 +61,10 @@ async function withRelayEnv(fn: () => Promise<void>): Promise<void> {
   }
 }
 
-function bearerReq(url: string, body?: unknown): NextRequest {
+function bearerReq(url: string, body?: unknown, method?: string): NextRequest {
+  const resolvedMethod = method ?? (body === undefined ? "GET" : "POST");
   return new NextRequest(url, {
-    method: body === undefined ? "GET" : "POST",
+    method: resolvedMethod,
     headers: {
       Authorization: "Bearer test-token",
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -207,6 +209,170 @@ test("can return payload bytes only when explicitly requested", async () => {
     assert.equal(getBody.count, 1);
     assert.equal(getBody.payloads[0]?.payload_base64, request.payload_base64);
     assert.equal(getBody.payloads[0]?.payload_sha256, request.payload_sha256);
+  });
+});
+
+test("claims queued relay payloads for the target node", async () => {
+  await withRelayEnv(async () => {
+    await seedLease("lease-claim");
+    const { GET, PATCH, POST } = await loadModule("claim");
+    const request = payloadBody({ lease_id: "lease-claim" });
+    await POST(bearerReq("http://localhost/api/v1/p2p/relay/payload", request));
+
+    const claimRes = await PATCH(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        {
+          schema: "musu.relay_payload_claim.v1",
+          target_node_id: "node-b",
+          claimant_node_id: "node-b",
+          session_id: "session-1",
+          lease_id: "lease-claim",
+          include_payload: true,
+        },
+        "PATCH"
+      )
+    );
+    assert.equal(claimRes.status, 202);
+    const claimBody = (await claimRes.json()) as {
+      schema: string;
+      count: number;
+      payloads: Array<{
+        owner_key?: string;
+        payload_base64?: string;
+        payload_id: string;
+        status: string;
+        claimed_by?: string;
+        claimed_at?: string;
+      }>;
+    };
+    assert.equal(claimBody.schema, "musu.p2p_relay_payload_claim.v1");
+    assert.equal(claimBody.count, 1);
+    assert.equal(claimBody.payloads[0]?.owner_key, undefined);
+    assert.equal(claimBody.payloads[0]?.payload_base64, request.payload_base64);
+    assert.equal(claimBody.payloads[0]?.status, "claimed");
+    assert.equal(claimBody.payloads[0]?.claimed_by, "node-b");
+    assert.equal(typeof claimBody.payloads[0]?.claimed_at, "string");
+
+    const queuedRes = await GET(
+      bearerReq("http://localhost/api/v1/p2p/relay/payload?status=queued")
+    );
+    const queuedBody = (await queuedRes.json()) as { count: number };
+    assert.equal(queuedBody.count, 0);
+
+    const claimedRes = await GET(
+      bearerReq("http://localhost/api/v1/p2p/relay/payload?status=claimed")
+    );
+    const claimedBody = (await claimedRes.json()) as { count: number };
+    assert.equal(claimedBody.count, 1);
+
+    const secondClaimRes = await PATCH(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        {
+          schema: "musu.relay_payload_claim.v1",
+          target_node_id: "node-b",
+          session_id: "session-1",
+          lease_id: "lease-claim",
+        },
+        "PATCH"
+      )
+    );
+    const secondClaimBody = (await secondClaimRes.json()) as { count: number };
+    assert.equal(secondClaimRes.status, 202);
+    assert.equal(secondClaimBody.count, 0);
+  });
+});
+
+test("marks claimed relay payload delivered", async () => {
+  await withRelayEnv(async () => {
+    await seedLease("lease-deliver");
+    const { GET, PATCH, POST } = await loadModule("deliver");
+    await POST(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({ lease_id: "lease-deliver" })
+      )
+    );
+
+    const claimRes = await PATCH(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        {
+          schema: "musu.relay_payload_claim.v1",
+          target_node_id: "node-b",
+          lease_id: "lease-deliver",
+        },
+        "PATCH"
+      )
+    );
+    const claimBody = (await claimRes.json()) as {
+      payloads: Array<{ payload_id: string }>;
+    };
+    const payloadId = claimBody.payloads[0]?.payload_id;
+    assert.equal(typeof payloadId, "string");
+
+    const deliveryRes = await PATCH(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        {
+          schema: "musu.relay_payload_delivery.v1",
+          payload_id: payloadId,
+          target_node_id: "node-b",
+        },
+        "PATCH"
+      )
+    );
+    assert.equal(deliveryRes.status, 202);
+    const deliveryBody = (await deliveryRes.json()) as {
+      schema: string;
+      payload: {
+        owner_key?: string;
+        payload_base64?: string;
+        status: string;
+        delivered_at?: string;
+      };
+    };
+    assert.equal(deliveryBody.schema, "musu.p2p_relay_payload_delivery.v1");
+    assert.equal(deliveryBody.payload.owner_key, undefined);
+    assert.equal(deliveryBody.payload.payload_base64, undefined);
+    assert.equal(deliveryBody.payload.status, "delivered");
+    assert.equal(typeof deliveryBody.payload.delivered_at, "string");
+
+    const deliveredRes = await GET(
+      bearerReq("http://localhost/api/v1/p2p/relay/payload?status=delivered")
+    );
+    const deliveredBody = (await deliveredRes.json()) as { count: number };
+    assert.equal(deliveredBody.count, 1);
+  });
+});
+
+test("rejects delivery before relay payload is claimed", async () => {
+  await withRelayEnv(async () => {
+    await seedLease("lease-unclaimed");
+    const { PATCH, POST } = await loadModule("unclaimed-delivery");
+    const postRes = await POST(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({ lease_id: "lease-unclaimed" })
+      )
+    );
+    const postBody = (await postRes.json()) as { payload: { payload_id: string } };
+
+    const deliveryRes = await PATCH(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        {
+          schema: "musu.relay_payload_delivery.v1",
+          payload_id: postBody.payload.payload_id,
+          target_node_id: "node-b",
+        },
+        "PATCH"
+      )
+    );
+    assert.equal(deliveryRes.status, 409);
+    const deliveryBody = (await deliveryRes.json()) as { error: string };
+    assert.equal(deliveryBody.error, "relay_payload_delivery_requires_claim");
   });
 });
 

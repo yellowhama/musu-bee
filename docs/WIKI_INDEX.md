@@ -3045,4 +3045,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/653`, `--local-target`, `include_payload`, `payload_base64`,
   `relay payloads --json`, and `production 404`.
 
+- 2026-06-04 relay payload claim/delivery API:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_API_2026_06_04.md`
+  (wiki/654) records owner-scoped `PATCH /api/v1/p2p/relay/payload` claim
+  and delivery transitions for the local/development file-backed relay payload
+  queue. Search terms should include `GOAL v464`, `wiki/654`,
+  `musu.relay_payload_claim.v1`, `musu.relay_payload_delivery.v1`,
+  `queued -> claimed -> delivered`, `relay_payload_delivery_requires_claim`,
+  `relay_payload_claim_kv_not_implemented`, and `test:p2p 54/54`.
+
 **End of WIKI_INDEX.md.**

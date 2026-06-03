@@ -5,7 +5,9 @@ import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   appendRelayPayload,
+  claimRelayPayloads,
   createRelayPayload,
+  markRelayPayloadDelivered,
   p2pRelayPayloadStoreStatus,
   queryRelayPayloads,
 } from "@/lib/p2pRelayPayloadStore";
@@ -23,6 +25,24 @@ const PayloadRequestSchema = z.object({
   payload_kind: z.string().min(1),
   payload_base64: z.string().min(1),
   payload_sha256: z.string().min(1).optional(),
+}).passthrough();
+
+const PayloadClaimRequestSchema = z.object({
+  schema: z.literal("musu.relay_payload_claim.v1"),
+  target_node_id: z.string().min(1),
+  claimant_node_id: z.string().min(1).optional(),
+  limit: z.number().int().positive().max(20).optional(),
+  session_id: z.string().min(1).optional(),
+  lease_id: z.string().min(1).optional(),
+  source_node_id: z.string().min(1).optional(),
+  tunnel_id: z.string().min(1).optional(),
+  include_payload: z.boolean().optional(),
+}).passthrough();
+
+const PayloadDeliveryRequestSchema = z.object({
+  schema: z.literal("musu.relay_payload_delivery.v1"),
+  payload_id: z.string().min(1),
+  target_node_id: z.string().min(1),
 }).passthrough();
 
 function parseLimit(value: string | null): number | undefined {
@@ -224,4 +244,149 @@ export async function GET(req: NextRequest) {
       { status: 503 }
     );
   }
+}
+
+export async function PATCH(req: NextRequest) {
+  const failedAuth = authorizeP2pControl(req);
+  if (failedAuth) {
+    return failedAuth;
+  }
+  const principal = p2pControlPrincipal(req);
+
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const schema = json && typeof json === "object" ? (json as { schema?: unknown }).schema : undefined;
+  if (schema === "musu.relay_payload_claim.v1") {
+    const parsed = PayloadClaimRequestSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "invalid_relay_payload_claim_request",
+          issues: parsed.error.issues.map((issue) => ({
+            path: issue.path.join("."),
+            message: issue.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const payloads = await claimRelayPayloads({
+        owner_key: principal.owner_key,
+        target_node_id: parsed.data.target_node_id,
+        claimant_node_id: parsed.data.claimant_node_id,
+        limit: parsed.data.limit,
+        session_id: parsed.data.session_id,
+        lease_id: parsed.data.lease_id,
+        source_node_id: parsed.data.source_node_id,
+        tunnel_id: parsed.data.tunnel_id,
+        status: "queued",
+      });
+      return NextResponse.json(
+        {
+          schema: "musu.p2p_relay_payload_claim.v1",
+          ok: true,
+          owner_scoped: true,
+          accepted: true,
+          claimed: true,
+          relay_payload_queue_endpoint_wired: true,
+          relay_default_data_path: false,
+          release_grade: false,
+          ...relayPayloadStoreFields(),
+          count: payloads.length,
+          payloads: payloads.map((payload) =>
+            publicPayload(payload, parsed.data.include_payload === true)
+          ),
+        },
+        { status: 202 }
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            error instanceof Error && error.message
+              ? error.message
+              : "relay_payload_claim_failed",
+          owner_scoped: true,
+          ...relayPayloadStoreFields(),
+        },
+        { status: 503 }
+      );
+    }
+  }
+
+  if (schema === "musu.relay_payload_delivery.v1") {
+    const parsed = PayloadDeliveryRequestSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "invalid_relay_payload_delivery_request",
+          issues: parsed.error.issues.map((issue) => ({
+            path: issue.path.join("."),
+            message: issue.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const payload = await markRelayPayloadDelivered({
+        owner_key: principal.owner_key,
+        payload_id: parsed.data.payload_id,
+        target_node_id: parsed.data.target_node_id,
+      });
+      if (!payload) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "relay_payload_not_found",
+            owner_scoped: true,
+            ...relayPayloadStoreFields(),
+          },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        {
+          schema: "musu.p2p_relay_payload_delivery.v1",
+          ok: true,
+          owner_scoped: true,
+          accepted: true,
+          delivered: true,
+          relay_default_data_path: false,
+          release_grade: false,
+          ...relayPayloadStoreFields(),
+          payload: publicPayload(payload, false),
+        },
+        { status: 202 }
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error && error.message ? error.message : "relay_payload_delivery_failed";
+      return NextResponse.json(
+        {
+          ok: false,
+          error: errorMessage,
+          owner_scoped: true,
+          ...relayPayloadStoreFields(),
+        },
+        { status: errorMessage === "relay_payload_delivery_requires_claim" ? 409 : 503 }
+      );
+    }
+  }
+
+  return NextResponse.json(
+    { ok: false, error: "invalid_relay_payload_patch_schema" },
+    { status: 400 }
+  );
 }
