@@ -2833,6 +2833,40 @@ Validation:
 - Rust fmt check passed
 - `git diff --check` passed
 
+## 2026-06-04 01:58 KST Relay Payload Query Client CLI
+
+Rust now has on-demand relay payload queue visibility:
+
+- `P2pRelayPayloadQuery`
+- `P2pRelayPayloadQueryResponse`
+- `MusuCloud::query_relay_payloads(...)`
+- `musu relay payloads`
+
+The CLI supports `--local-target` for target-side diagnostics and only includes
+payload bytes in JSON when `--include-payload` is explicitly set. Human output
+does not print `payload_base64`.
+
+Validation:
+
+- Rust cloud tests passed 6/6
+- install CLI relay payload tests passed 2/2
+- `cargo check --bin musu` passed
+- `musu relay payloads --help` listed the new query filters
+- `musu relay payloads --json --local-target --status queued --limit 1`
+  emitted `musu.relay_payloads.v1`, but live production `musu.pro` returned 404
+  for `/api/v1/p2p/relay/payload`
+- Rust fmt check passed
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is target-side visibility only
+- this is not background polling
+- this is not payload execution
+- this is not release-grade relay transport proof
+- hosted deployment of the payload route is still required before live target
+  polling evidence can be captured
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the

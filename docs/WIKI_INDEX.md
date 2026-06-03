@@ -3036,4 +3036,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `payload_transport_attempted=true`, `payload_transport_proven=false`, and
   `test:p2p 51/51`.
 
+- 2026-06-04 relay payload query client CLI:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUERY_CLIENT_CLI_2026_06_04.md`
+  (wiki/653) records Rust on-demand target-side visibility for queued relay
+  payloads through `P2pRelayPayloadQuery`,
+  `P2pRelayPayloadQueryResponse`, `MusuCloud::query_relay_payloads`, and
+  `musu relay payloads`. Search terms should include `GOAL v463`,
+  `wiki/653`, `--local-target`, `include_payload`, `payload_base64`,
+  `relay payloads --json`, and `production 404`.
+
 **End of WIKI_INDEX.md.**

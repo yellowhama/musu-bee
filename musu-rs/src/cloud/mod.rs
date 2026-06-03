@@ -411,6 +411,8 @@ pub struct P2pRelayPayloadStoredRecord {
     pub transport_kind: String,
     pub created_at: String,
     pub expires_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload_base64: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -431,6 +433,44 @@ pub struct P2pRelayPayloadResponse {
     pub relay_payload_store_release_grade: bool,
     #[serde(default)]
     pub payload: Option<P2pRelayPayloadStoredRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[allow(dead_code)] // Relay payload query DTO; used by relay diagnostics and target polling.
+pub struct P2pRelayPayloadQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lease_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tunnel_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub include_payload: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for querying the lease-bound relay payload queue preview API.
+pub struct P2pRelayPayloadQueryResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub relay_payload_queue_endpoint_wired: bool,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
+    pub relay_payload_store_configured: bool,
+    pub relay_payload_store_backend: String,
+    pub relay_payload_store_release_grade: bool,
+    pub count: usize,
+    #[serde(default)]
+    pub payloads: Vec<P2pRelayPayloadStoredRecord>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -924,6 +964,55 @@ impl MusuCloud {
 
         Ok(resp.json().await?)
     }
+
+    /// GET /api/v1/p2p/relay/payload to inspect lease-bound relay payload queue records.
+    #[allow(dead_code)] // Used by relay diagnostics and future target-side polling.
+    pub async fn query_relay_payloads(
+        &self,
+        query: &P2pRelayPayloadQuery,
+    ) -> Result<P2pRelayPayloadQueryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let mut url = reqwest::Url::parse(&format!("{}/api/v1/p2p/relay/payload", self.base_url))?;
+        {
+            let mut pairs = url.query_pairs_mut();
+            if let Some(limit) = query.limit {
+                pairs.append_pair("limit", &limit.to_string());
+            }
+            if let Some(session_id) = query.session_id.as_deref() {
+                pairs.append_pair("session_id", session_id);
+            }
+            if let Some(lease_id) = query.lease_id.as_deref() {
+                pairs.append_pair("lease_id", lease_id);
+            }
+            if let Some(source_node_id) = query.source_node_id.as_deref() {
+                pairs.append_pair("source_node_id", source_node_id);
+            }
+            if let Some(target_node_id) = query.target_node_id.as_deref() {
+                pairs.append_pair("target_node_id", target_node_id);
+            }
+            if let Some(tunnel_id) = query.tunnel_id.as_deref() {
+                pairs.append_pair("tunnel_id", tunnel_id);
+            }
+            if let Some(status) = query.status.as_deref() {
+                pairs.append_pair("status", status);
+            }
+            if query.include_payload {
+                pairs.append_pair("include_payload", "1");
+            }
+        }
+
+        let resp = self.client.get(url).bearer_auth(token).send().await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to query relay payloads: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
 }
 
 fn route_kind_query_value(kind: &RouteKind) -> &'static str {
@@ -1074,5 +1163,48 @@ mod tests {
         assert_eq!(value["payload_kind"], "forwarded_task_envelope");
         assert_eq!(value["payload_base64"], "e30=");
         assert_eq!(value["payload_sha256"], "sha256");
+    }
+
+    #[test]
+    fn relay_payload_query_response_accepts_optional_payload_bytes() {
+        let response: P2pRelayPayloadQueryResponse = serde_json::from_value(serde_json::json!({
+            "schema": "musu.p2p_relay_payloads.v1",
+            "ok": true,
+            "owner_scoped": true,
+            "relay_payload_queue_endpoint_wired": true,
+            "relay_default_data_path": false,
+            "release_grade": false,
+            "relay_payload_store_configured": true,
+            "relay_payload_store_backend": "development_file",
+            "relay_payload_store_release_grade": false,
+            "count": 1,
+            "payloads": [{
+                "payload_id": "payload-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
+                "payload_bytes": 2,
+                "payload_sha256": "abc123",
+                "status": "queued",
+                "relay_default_data_path": false,
+                "release_grade": false,
+                "transport_kind": "http_store_forward_preview",
+                "created_at": "2026-06-04T01:00:00Z",
+                "expires_at": "2026-06-04T01:05:00Z",
+                "payload_base64": "e30="
+            }]
+        }))
+        .expect("relay payload query response");
+
+        assert!(response.ok);
+        assert_eq!(response.count, 1);
+        assert_eq!(response.payloads[0].payload_id, "payload-1");
+        assert_eq!(response.payloads[0].payload_base64.as_deref(), Some("e30="));
+        assert!(!response.release_grade);
+        assert!(!response.payloads[0].relay_default_data_path);
     }
 }

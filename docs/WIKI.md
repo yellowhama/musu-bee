@@ -3861,3 +3861,37 @@ required after this source change.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_RUNTIME_HOOK_2026_06_04.md`
+
+## 2026-06-04 relay payload query client CLI (wiki/653)
+
+Rust now has an on-demand target-side visibility surface for the lease-bound
+relay payload queue.
+
+New Rust client/CLI pieces:
+
+- `P2pRelayPayloadQuery`
+- `P2pRelayPayloadQueryResponse`
+- optional `payload_base64` parsing on relay payload records
+- `MusuCloud::query_relay_payloads(...)`
+- `musu relay payloads`
+
+The CLI supports `--session-id`, `--lease-id`, source/target filters,
+`--local-target`, `--tunnel-id`, `--status queued|claimed|delivered`, and
+explicit `--include-payload`. Human text output omits payload bytes even when
+the JSON path includes them.
+
+Validation passed Rust cloud tests `6/6`, install CLI relay payload tests `2/2`,
+`cargo check --bin musu`, CLI help smoke, JSON local-target smoke, Rust fmt
+check, and `git diff --check`.
+
+Live production `https://musu.pro/api/v1/p2p/relay/payload` returned 404 during
+the JSON CLI smoke, so hosted deployment is still required before live
+target-side polling evidence can be captured.
+
+This is not background polling, payload execution, or release-grade relay
+transport proof. It is the on-demand query surface needed before a bounded
+target poll/claim/execute loop can be wired.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUERY_CLIENT_CLI_2026_06_04.md`
