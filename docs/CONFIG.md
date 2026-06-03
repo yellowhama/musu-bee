@@ -103,6 +103,10 @@ These guard the Next.js operator-facing API routes that proxy worker process or 
 | `MUSU_P2P_RELAY_PAYLOAD_TTL_SEC` | `300` | No | Relay payload queue TTL in seconds. Runtime clamps the value to `60..3600`. |
 | `MUSU_P2P_RELAY_PAYLOAD_MAX_BYTES` | `262144` | No | Maximum accepted base64-decoded relay payload bytes for the preview queue. Runtime clamps the value to `1024..4194304`. |
 | `MUSU_P2P_RELAY_PAYLOAD_DRAIN_TIMEOUT_MS` | `3000` | No | Rust bridge timeout budget for request-driven target-side relay payload claim and delivery calls from `POST /api/relay/payloads/drain`. Runtime clamps the value to `250..10000`. The drain is manual/request-driven and does not start a background poll loop. |
+| `MUSU_ENABLE_RELAY_PAYLOAD_POLLER` | `false` | No | Enables opt-in target-side relay payload polling. Default off for Store-candidate idle CPU evidence; manual drain remains request-driven when unset. |
+| `MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC` | `60` | No | Seconds between opt-in target-side relay payload poll cycles. Runtime enforces a `30s` floor and sleeps before the first cycle. |
+| `MUSU_RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_SEC` | `300` | No | Maximum empty/failure backoff for the opt-in relay payload poller. Runtime enforces at least the active poll interval and caps the setting at `3600s`. |
+| `MUSU_RELAY_PAYLOAD_POLLER_LIMIT` | `1` | No | Maximum queued payloads claimed per opt-in poller cycle. Runtime uses the same bounded drain clamp as manual drain: `1..5`. |
 | `MUSU_RELAY_ENABLED` | `false` | No | Set to `true` to connect to the cloud relay tunnel. |
 | `MUSU_RELAY_URL` | *(empty)* | No | WebSocket URL of the relay server (e.g. `wss://musu-relay-production.up.railway.app`). |
 | `MUSU_RELAY_PORT` | `9900` | No | Port for the relay server (musu-relay service). |

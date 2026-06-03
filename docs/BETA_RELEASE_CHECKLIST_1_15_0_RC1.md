@@ -2802,6 +2802,48 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 03:48 KST Relay Payload Target Poller
+
+Rust bridge relay fallback now has an opt-in target-side payload poller.
+
+Implemented:
+
+- `MUSU_ENABLE_RELAY_PAYLOAD_POLLER=1` gate; default remains off
+- shared `drain_relay_payloads_for_local_target(...)` primitive for HTTP drain
+  and poller
+- poll interval default `60s`, floor `30s`
+- empty/failure backoff default `300s`, hard ceiling `3600s`
+- per-cycle claim limit default `1`, clamp `1..5`
+- sleep before first cycle
+- cancellation-aware sleep with `tokio::select!` and `CancellationToken`
+- `musu doctor` background profile fields for relay payload poller state
+- Rust background-loop audit checks for the poller loop contract
+
+Validation:
+
+- relay payload tests passed `19/19`
+- doctor background tests passed `5/5`
+- `cargo check --bin musu` passed
+- Rust background-loop audit passed with `ok=true`, `fail_count=0`, and
+  `unaudited_loop_hit_count=0`
+- `git diff --check` passed
+
+Release interpretation:
+
+- this closes the "target-side bounded opt-in poller source contract" slice
+- this does not make relay the default data path
+- this does not prove task completion through relay
+- this does not provide release-grade QUIC/TLS relay proof
+- fresh packaged MSIX/smoke/CPU/matrix evidence is required after this source
+  change
+- public release remains No-Go on production atomic claim hardening, hosted
+  relay payload proof, second-PC runtime/multi-device evidence, support mailbox,
+  and Store evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_POLLER_2026_06_04.md`
+
 ## 2026-06-04 01:20 KST Relay Payload Queue Runtime Hook
 
 Rust forwarding fallback now queues the failed forwarded-task envelope to the

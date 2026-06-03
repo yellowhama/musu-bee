@@ -2593,6 +2593,12 @@ struct DoctorBackground {
     file_sync: DoctorBackgroundFeature,
     file_serve_root_count: usize,
     file_serve_writable: bool,
+    relay_payload_poller: DoctorBackgroundFeature,
+    relay_payload_poller_interval_sec: u64,
+    relay_payload_poller_interval_floor_sec: u64,
+    relay_payload_poller_empty_backoff_max_sec: u64,
+    relay_payload_poller_empty_backoff_ceiling_sec: u64,
+    relay_payload_poller_limit: u32,
     planner: DoctorBackgroundFeature,
     planner_interval_sec: u64,
     planner_interval_floor_sec: u64,
@@ -3216,6 +3222,26 @@ fn check_background_features(
     let mdns_tailscale_enabled = env_truthy("MUSU_MDNS_ENABLE_TAILSCALE");
     let mdns_virtual_enabled = env_truthy("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES");
     let clipboard_enabled = env_truthy("MUSU_ENABLE_CLIPBOARD_SYNC");
+    let relay_payload_poller_enabled = env_truthy("MUSU_ENABLE_RELAY_PAYLOAD_POLLER");
+    let relay_payload_poller_interval_sec =
+        crate::bridge::handlers::relay_payload::normalize_relay_payload_poller_interval_sec(
+            std::env::var("MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC")
+                .ok()
+                .as_deref(),
+        );
+    let relay_payload_poller_empty_backoff_max_sec =
+        crate::bridge::handlers::relay_payload::normalize_relay_payload_poller_empty_backoff_max_sec(
+            std::env::var("MUSU_RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_SEC")
+                .ok()
+                .as_deref(),
+            relay_payload_poller_interval_sec,
+        );
+    let relay_payload_poller_limit =
+        crate::bridge::handlers::relay_payload::normalize_relay_payload_poller_limit(
+            std::env::var("MUSU_RELAY_PAYLOAD_POLLER_LIMIT")
+                .ok()
+                .as_deref(),
+        );
     let planner_enabled = env_truthy("MUSU_ENABLE_PLANNER");
     let planner_interval_sec = crate::brain::planner::normalize_planner_interval_sec(
         std::env::var("MUSU_PLANNER_INTERVAL_SEC").ok().as_deref(),
@@ -3241,6 +3267,7 @@ fn check_background_features(
         mdns_virtual_enabled,
         clipboard_enabled,
         file_sync_enabled,
+        relay_payload_poller_enabled,
         planner_enabled,
     ]
     .into_iter()
@@ -3324,6 +3351,24 @@ fn check_background_features(
         },
         file_serve_root_count,
         file_serve_writable,
+        relay_payload_poller: DoctorBackgroundFeature {
+            enabled: relay_payload_poller_enabled,
+            env_var: Some("MUSU_ENABLE_RELAY_PAYLOAD_POLLER"),
+            note: if relay_payload_poller_enabled {
+                format!(
+                    "Relay payload target polling is enabled at a bounded {relay_payload_poller_interval_sec}s interval, limit {relay_payload_poller_limit}, with empty/failure backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
+                )
+            } else {
+                "Relay payload target polling is off by default; manual drain remains request-driven.".into()
+            },
+        },
+        relay_payload_poller_interval_sec,
+        relay_payload_poller_interval_floor_sec:
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC,
+        relay_payload_poller_empty_backoff_max_sec,
+        relay_payload_poller_empty_backoff_ceiling_sec:
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_CEILING_SEC,
+        relay_payload_poller_limit,
         planner: DoctorBackgroundFeature {
             enabled: planner_enabled,
             env_var: Some("MUSU_ENABLE_PLANNER"),
@@ -3699,7 +3744,7 @@ fn print_doctor_report(report: &DoctorReport) {
         &report.background.note,
     );
     println!(
-        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} planner={} planner_interval={}s planner_timeout={}s",
+        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} relay_payload_poller={} relay_interval={}s relay_backoff_max={}s relay_limit={} planner={} planner_interval={}s planner_timeout={}s",
         if report.background.mdns.enabled {
             "on"
         } else {
@@ -3712,6 +3757,14 @@ fn print_doctor_report(report: &DoctorReport) {
         },
         report.background.cloud_heartbeat_interval_sec,
         report.background.file_serve_root_count,
+        if report.background.relay_payload_poller.enabled {
+            "on"
+        } else {
+            "off"
+        },
+        report.background.relay_payload_poller_interval_sec,
+        report.background.relay_payload_poller_empty_backoff_max_sec,
+        report.background.relay_payload_poller_limit,
         if report.background.planner.enabled {
             "on"
         } else {
@@ -4735,6 +4788,20 @@ mod tests {
         assert_eq!(background.cloud_heartbeat_interval_sec, 300);
         assert_eq!(background.cloud_heartbeat_floor_sec, 60);
         assert_eq!(background.file_serve_root_count, 0);
+        assert!(!background.relay_payload_poller.enabled);
+        assert_eq!(
+            background.relay_payload_poller_interval_sec,
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.relay_payload_poller_interval_floor_sec,
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.relay_payload_poller_empty_backoff_max_sec,
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_DEFAULT_EMPTY_BACKOFF_MAX_SEC
+        );
+        assert_eq!(background.relay_payload_poller_limit, 1);
         assert_eq!(
             background.planner_interval_sec,
             crate::brain::planner::PLANNER_DEFAULT_INTERVAL_SEC
@@ -4802,6 +4869,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn doctor_background_warns_and_floors_relay_payload_poller_budget() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        std::env::set_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER", "1");
+        std::env::set_var("MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC", "0");
+        std::env::set_var("MUSU_RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_SEC", "5");
+        std::env::set_var("MUSU_RELAY_PAYLOAD_POLLER_LIMIT", "999");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Warn);
+        assert!(background.relay_payload_poller.enabled);
+        assert_eq!(
+            background.relay_payload_poller_interval_sec,
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC
+        );
+        assert_eq!(
+            background.relay_payload_poller_empty_backoff_max_sec,
+            crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC
+        );
+        assert_eq!(background.relay_payload_poller_limit, 5);
+    }
+
     fn clear_background_env() {
         for name in [
             "MUSU_ENABLE_MDNS",
@@ -4809,6 +4901,10 @@ mod tests {
             "MUSU_MDNS_ENABLE_TAILSCALE",
             "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES",
             "MUSU_ENABLE_CLIPBOARD_SYNC",
+            "MUSU_ENABLE_RELAY_PAYLOAD_POLLER",
+            "MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC",
+            "MUSU_RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_SEC",
+            "MUSU_RELAY_PAYLOAD_POLLER_LIMIT",
             "MUSU_ENABLE_PLANNER",
             "MUSU_PLANNER_INTERVAL_SEC",
             "MUSU_PLANNER_COMMAND_TIMEOUT_SEC",

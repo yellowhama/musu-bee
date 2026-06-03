@@ -153,6 +153,11 @@ pub async fn run() -> Result<()> {
         );
     }
 
+    // Relay payload fallback target polling is opt-in. The default desktop
+    // profile stays request-driven so idle CPU evidence is not polluted by a
+    // cloud queue polling loop.
+    handlers::relay_payload::start_relay_payload_poller_if_enabled(state.clone());
+
     // Build the native router (matched endpoints) + facade fallback.
     let native = handlers::native_router();
 

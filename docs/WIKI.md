@@ -4056,3 +4056,44 @@ fresh packaged evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_DRAIN_2026_06_04.md`
+
+## 2026-06-04 relay payload target poller (wiki/659)
+
+The Rust bridge now has an opt-in target-side relay payload poller for the
+lease-bound relay payload queue.
+
+Default profile:
+
+- off unless `MUSU_ENABLE_RELAY_PAYLOAD_POLLER=1`
+- manual `POST /api/relay/payloads/drain` remains request-driven
+- no default idle background queue polling is added
+
+Runtime contract:
+
+- HTTP drain and poller share
+  `drain_relay_payloads_for_local_target(...)`
+- poll interval defaults to `60s` and floors at `30s`
+- empty/failure backoff defaults to `300s`, never shrinks below the active
+  interval, and hard-caps at `3600s`
+- per-cycle claim limit defaults to `1` and clamps to `1..5`
+- poller sleeps before first work
+- poller sleep runs under `tokio::select!` with a `CancellationToken`
+- delivered payloads reset backoff; empty/failure cycles increase capped
+  backoff
+
+`musu doctor` now reports the relay payload poller in the background profile,
+including enabled state, normalized interval, backoff max, and per-cycle limit.
+
+Validation passed relay payload tests `19/19`, doctor background tests `5/5`,
+`cargo check --bin musu`, `git diff --check`, and the Rust background-loop
+contract audit with `ok=true`, `fail_count=0`, and
+`unaudited_loop_hit_count=0`.
+
+This is bounded opt-in target polling evidence. It is not release-grade relay
+transport completion; production atomic claim hardening, QUIC/TLS relay proof,
+hosted proof evidence, fresh packaged evidence, second-PC evidence, support
+mailbox, and Store evidence remain required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_POLLER_2026_06_04.md`

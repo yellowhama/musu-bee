@@ -3091,4 +3091,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_decoder_accepts_claimed_forwarded_task_for_local_target`,
   `cargo test relay_payload 14/14`, and `unaudited_loop_hit_count=0`.
 
+- 2026-06-04 relay payload target poller:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_POLLER_2026_06_04.md`
+  (wiki/659) records the opt-in target-side relay payload poller, default off
+  behind `MUSU_ENABLE_RELAY_PAYLOAD_POLLER`, shared
+  `drain_relay_payloads_for_local_target`, interval floor/backoff cap,
+  cancellation-aware sleep, and `musu doctor` background profile visibility.
+  Search terms should include `GOAL v469`, `wiki/659`,
+  `MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC`,
+  `MUSU_RELAY_PAYLOAD_POLLER_EMPTY_BACKOFF_MAX_SEC`,
+  `run_relay_payload_poller`, `CancellationToken`,
+  `relay_payload_poller_sleep_duration`, `doctor background tests 5/5`,
+  `cargo test relay_payload 19/19`, and `unaudited_loop_hit_count=0`.
+
 **End of WIKI_INDEX.md.**
