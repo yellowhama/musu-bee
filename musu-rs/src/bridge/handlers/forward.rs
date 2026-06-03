@@ -16,7 +16,9 @@ use crate::peer::discovery::ResolvedPeer;
 use axum::extract::{ConnectInfo, State};
 use axum::http::StatusCode;
 use axum::Json;
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// A task forwarded from a peer node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -169,6 +171,68 @@ fn forwarded_task_audit_note(task_id: &str, req: &ForwardedTask) -> String {
     )
 }
 
+const RELAY_PAYLOAD_SCHEMA: &str = "musu.relay_payload_envelope.v1";
+const RELAY_PAYLOAD_KIND_FORWARDED_TASK: &str = "forwarded_task_envelope";
+const RELAY_PAYLOAD_ID_FRAGMENT_MAX_CHARS: usize = 96;
+
+fn relay_payload_identifier_fragment(value: &str) -> String {
+    let mut out = String::new();
+    for ch in value.trim().chars() {
+        if out.len() >= RELAY_PAYLOAD_ID_FRAGMENT_MAX_CHARS {
+            break;
+        }
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+    if out.is_empty() {
+        "none".to_string()
+    } else {
+        out
+    }
+}
+
+fn relay_payload_tunnel_id(session_id: &str, lease_id: &str) -> String {
+    format!(
+        "relay-payload-{}-{}",
+        relay_payload_identifier_fragment(session_id),
+        relay_payload_identifier_fragment(lease_id)
+    )
+}
+
+fn relay_payload_request_for_forwarded_task(
+    source_node_id: &str,
+    fallback_peer: &ResolvedPeer,
+    relay: &crate::bridge::rendezvous::RelayLeaseFallback,
+    session_id: &str,
+    task: &ForwardedTask,
+) -> std::result::Result<crate::cloud::P2pRelayPayloadRequest, String> {
+    let lease_id = relay
+        .lease_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "relay_payload_queue_missing_lease_id".to_string())?;
+    let payload_json =
+        serde_json::to_vec(task).map_err(|_| "relay_payload_queue_serialize_failed".to_string())?;
+    let payload_sha256 = hex::encode(Sha256::digest(&payload_json));
+    let payload_base64 = BASE64_STANDARD.encode(&payload_json);
+
+    Ok(crate::cloud::P2pRelayPayloadRequest {
+        schema: RELAY_PAYLOAD_SCHEMA.to_string(),
+        session_id: session_id.to_string(),
+        lease_id: lease_id.to_string(),
+        source_node_id: source_node_id.to_string(),
+        target_node_id: crate::bridge::route_evidence::target_node_id(fallback_peer),
+        tunnel_id: relay_payload_tunnel_id(session_id, lease_id),
+        payload_kind: RELAY_PAYLOAD_KIND_FORWARDED_TASK.to_string(),
+        payload_base64,
+        payload_sha256: Some(payload_sha256),
+    })
+}
+
 fn relay_fallback_status_label(
     status: &crate::bridge::rendezvous::RelayLeaseFallbackStatus,
 ) -> &'static str {
@@ -203,17 +267,30 @@ fn relay_fallback_route_evidence(
     fallback_peer: &ResolvedPeer,
     attempted_peers: &[ResolvedPeer],
     requested_capability: Option<&str>,
+    payload_queue: Option<&crate::bridge::rendezvous::RelayPayloadQueueOutcome>,
 ) -> crate::bridge::route_evidence::RouteRelayFallbackEvidence {
     let lease_requested = !matches!(
         relay.status,
         crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoToken
             | crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoSession
     );
-    let payload_transport_failure_class = if matches!(
+    let issued = matches!(
         relay.status,
         crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued
-    ) {
-        Some(crate::bridge::route_evidence::RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED.to_string())
+    );
+    let payload_transport_attempted = payload_queue
+        .map(|outcome| outcome.attempted)
+        .unwrap_or(false);
+    let payload_transport_proven = payload_queue.map(|outcome| outcome.proven).unwrap_or(false);
+    let payload_transport_failure_class = if issued {
+        payload_queue
+            .and_then(|outcome| outcome.failure_class.clone())
+            .or_else(|| {
+                Some(
+                    crate::bridge::route_evidence::RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED
+                        .to_string(),
+                )
+            })
     } else {
         None
     };
@@ -229,8 +306,8 @@ fn relay_fallback_route_evidence(
         blockers: relay.blockers.clone(),
         lease_id: relay.lease_id.clone(),
         failure_class: relay.failure_class.clone(),
-        payload_transport_attempted: false,
-        payload_transport_proven: false,
+        payload_transport_attempted,
+        payload_transport_proven,
         payload_transport_failure_class,
     }
 }
@@ -660,6 +737,36 @@ pub async fn forward_to_peer_with_retry(
         Some("remote_command"),
     )
     .await;
+    let relay_payload_queue = if relay.lease_issued
+        && matches!(
+            relay.status,
+            crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued
+        ) {
+        match session_id.as_deref() {
+            Some(session_id) => match relay_payload_request_for_forwarded_task(
+                &state.config.node_name,
+                peer,
+                &relay,
+                session_id,
+                &task,
+            ) {
+                Ok(payload) => {
+                    crate::bridge::rendezvous::submit_relay_payload_after_lease(
+                        state, &relay, &payload,
+                    )
+                    .await
+                }
+                Err(failure_class) => {
+                    crate::bridge::rendezvous::RelayPayloadQueueOutcome::failed(failure_class)
+                }
+            },
+            None => crate::bridge::rendezvous::RelayPayloadQueueOutcome::failed(
+                "relay_payload_queue_missing_session_id",
+            ),
+        }
+    } else {
+        crate::bridge::rendezvous::RelayPayloadQueueOutcome::not_attempted()
+    };
     tracing::debug!(
         peer = %peer.addr,
         relay_status = ?relay.status,
@@ -668,8 +775,13 @@ pub async fn forward_to_peer_with_retry(
         relay_blockers = ?relay.blockers,
         relay_lease_id = relay.lease_id.as_deref().unwrap_or(""),
         relay_failure_class = relay.failure_class.as_deref().unwrap_or(""),
-        relay_payload_transport_attempted = false,
-        relay_payload_transport_proven = false,
+        relay_payload_transport_attempted = relay_payload_queue.attempted,
+        relay_payload_transport_proven = relay_payload_queue.proven,
+        relay_payload_transport_failure_class =
+            relay_payload_queue.failure_class.as_deref().unwrap_or(""),
+        relay_payload_id = relay_payload_queue.payload_id.as_deref().unwrap_or(""),
+        relay_payload_sha256 = relay_payload_queue.payload_sha256.as_deref().unwrap_or(""),
+        relay_payload_bytes = relay_payload_queue.payload_bytes.unwrap_or(0),
         "relay fallback lease evaluated after failed direct route"
     );
     err.relay_fallback = Some(relay_fallback_route_evidence(
@@ -677,6 +789,7 @@ pub async fn forward_to_peer_with_retry(
         peer,
         &attempted_route_peers,
         Some("remote_command"),
+        Some(&relay_payload_queue),
     ));
     if let Some(session_id) = session_id {
         let musu_home = state
@@ -860,5 +973,103 @@ mod tests {
         assert!(!note.contains("sensitive prompt"));
         assert!(!note.contains("F:/sensitive/workspace"));
         assert!(!note.contains("127.0.0.1/callback"));
+    }
+
+    #[test]
+    fn relay_payload_request_for_forwarded_task_hashes_and_encodes_task() {
+        let target = peer("192.168.1.10:8070", None);
+        let relay = crate::bridge::rendezvous::RelayLeaseFallback {
+            status: crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued,
+            lease_issued: true,
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: vec![],
+            lease_id: Some("lease/1".to_string()),
+            failure_class: None,
+        };
+        let task = ForwardedTask {
+            source_node: "source-node".to_string(),
+            source_task_id: "source-task-123".to_string(),
+            channel: "ops".to_string(),
+            sender_id: "operator".to_string(),
+            text: "prompt body queued only after direct route failure".to_string(),
+            adapter_type: None,
+            model: None,
+            cwd: None,
+            deadline_unix_ms: None,
+            company_id: Some("company-1".to_string()),
+            timeout_sec: Some(30),
+            callback_url: Some("http://127.0.0.1/callback".to_string()),
+            rendezvous_session_id: Some("session/1".to_string()),
+            rendezvous_target_node_id: Some("target-node".to_string()),
+        };
+
+        let req = relay_payload_request_for_forwarded_task(
+            "source-node",
+            &target,
+            &relay,
+            "session/1",
+            &task,
+        )
+        .expect("relay payload request");
+        let decoded = BASE64_STANDARD
+            .decode(&req.payload_base64)
+            .expect("base64 payload");
+        let decoded_task: ForwardedTask =
+            serde_json::from_slice(&decoded).expect("forwarded task payload");
+
+        assert_eq!(req.schema, RELAY_PAYLOAD_SCHEMA);
+        assert_eq!(req.session_id, "session/1");
+        assert_eq!(req.lease_id, "lease/1");
+        assert_eq!(req.source_node_id, "source-node");
+        assert_eq!(req.target_node_id, "target-node");
+        assert_eq!(req.tunnel_id, "relay-payload-session_1-lease_1");
+        assert_eq!(req.payload_kind, RELAY_PAYLOAD_KIND_FORWARDED_TASK);
+        assert_eq!(decoded_task.source_task_id, "source-task-123");
+        assert_eq!(decoded_task.text, task.text);
+        assert_eq!(
+            req.payload_sha256,
+            Some(hex::encode(Sha256::digest(&decoded)))
+        );
+    }
+
+    #[test]
+    fn issued_relay_fallback_records_payload_queue_attempt_gap() {
+        let target = peer("192.168.1.10:8070", None);
+        let relay = crate::bridge::rendezvous::RelayLeaseFallback {
+            status: crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued,
+            lease_issued: true,
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: vec![],
+            lease_id: Some("relay-lease-test".to_string()),
+            failure_class: None,
+        };
+        let payload_queue = crate::bridge::rendezvous::RelayPayloadQueueOutcome {
+            attempted: true,
+            proven: false,
+            failure_class: Some(
+                crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED.to_string(),
+            ),
+            payload_id: Some("relay-payload-test".to_string()),
+            payload_sha256: Some("abc123".to_string()),
+            payload_bytes: Some(256),
+        };
+
+        let evidence = relay_fallback_route_evidence(
+            &relay,
+            &target,
+            &[],
+            Some("remote_command"),
+            Some(&payload_queue),
+        );
+
+        assert!(evidence.direct_path_failed);
+        assert!(evidence.lease_requested);
+        assert!(evidence.lease_issued);
+        assert!(evidence.payload_transport_attempted);
+        assert!(!evidence.payload_transport_proven);
+        assert_eq!(
+            evidence.payload_transport_failure_class.as_deref(),
+            Some(crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED)
+        );
     }
 }

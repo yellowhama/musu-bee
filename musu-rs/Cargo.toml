@@ -55,6 +55,7 @@ sha2 = "0.10"  # used only for dedup cache key (NOT for auth — see C-SEC-7)
 hex = "0.4"
 hostname = "0.4"
 bytes = "1"
+base64 = "0.22"
 http-body-util = "0.1"
 # A-3: WebSocket proxy to musu-port (upstream WS client).
 tokio-tungstenite = "0.24"

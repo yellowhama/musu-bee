@@ -15,6 +15,7 @@ pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
 #[allow(dead_code)]
 pub const QUIC_TLS_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 pub const RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED: &str = "relay_payload_transport_not_implemented";
+pub const RELAY_TARGET_POLLING_NOT_IMPLEMENTED: &str = "relay_target_polling_not_implemented";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteTransportProof {

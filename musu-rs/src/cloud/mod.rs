@@ -379,7 +379,6 @@ pub struct P2pRelayTransportProofResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[allow(dead_code)] // Runtime relay fallback uses this once target relay polling lands.
 pub struct P2pRelayPayloadRequest {
     pub schema: String,
     pub session_id: String,
@@ -900,7 +899,6 @@ impl MusuCloud {
     }
 
     /// POST /api/v1/p2p/relay/payload to enqueue a lease-bound relay payload envelope.
-    #[allow(dead_code)] // Called by relay fallback runtime once target-side relay polling lands.
     pub async fn submit_relay_payload(
         &self,
         payload: &P2pRelayPayloadRequest,

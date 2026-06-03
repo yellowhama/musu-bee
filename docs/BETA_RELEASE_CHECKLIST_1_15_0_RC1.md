@@ -2802,6 +2802,37 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 01:20 KST Relay Payload Queue Runtime Hook
+
+Rust forwarding fallback now queues the failed forwarded-task envelope to the
+hosted relay payload queue after direct peer route failure and issued
+`musu.pro` relay lease.
+
+Release interpretation:
+
+- direct peer routing remains first
+- no issued lease still means payload transport was not attempted
+- issued lease plus stored queue payload now records
+  `payload_transport_attempted=true`
+- queued fallback remains non-release-grade with
+  `payload_transport_proven=false` and
+  `payload_transport_failure_class=relay_target_polling_not_implemented`
+- target-side queue polling/execution and QUIC/TLS relay transport proof remain
+  missing
+- current packaged primary evidence is stale until MSIX rebuild/install plus
+  fresh smoke/CPU/matrix evidence are recorded after this source change
+
+Validation:
+
+- Rust forward tests passed 6/6
+- Rust rendezvous tests passed 5/5
+- Rust cloud tests passed 5/5
+- `cargo check --bin musu` passed
+- `npm run test:p2p` passed 51/51
+- `npm run typecheck` passed
+- Rust fmt check passed
+- `git diff --check` passed
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the

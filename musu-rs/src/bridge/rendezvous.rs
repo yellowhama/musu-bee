@@ -119,6 +119,60 @@ impl RelayLeaseFallback {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct RelayPayloadQueueOutcome {
+    pub attempted: bool,
+    pub proven: bool,
+    pub failure_class: Option<String>,
+    pub payload_id: Option<String>,
+    pub payload_sha256: Option<String>,
+    pub payload_bytes: Option<u64>,
+}
+
+impl RelayPayloadQueueOutcome {
+    pub fn not_attempted() -> Self {
+        Self {
+            attempted: false,
+            proven: false,
+            failure_class: None,
+            payload_id: None,
+            payload_sha256: None,
+            payload_bytes: None,
+        }
+    }
+
+    pub fn failed(failure_class: impl Into<String>) -> Self {
+        Self {
+            attempted: true,
+            proven: false,
+            failure_class: Some(failure_class.into()),
+            payload_id: None,
+            payload_sha256: None,
+            payload_bytes: None,
+        }
+    }
+
+    fn queued(
+        response: crate::cloud::P2pRelayPayloadResponse,
+        request: &crate::cloud::P2pRelayPayloadRequest,
+    ) -> Self {
+        let payload = response.payload;
+        Self {
+            attempted: true,
+            proven: false,
+            failure_class: Some(
+                crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED.to_string(),
+            ),
+            payload_id: payload.as_ref().map(|record| record.payload_id.clone()),
+            payload_sha256: payload
+                .as_ref()
+                .map(|record| record.payload_sha256.clone())
+                .or_else(|| request.payload_sha256.clone()),
+            payload_bytes: payload.as_ref().map(|record| record.payload_bytes),
+        }
+    }
+}
+
 fn rendezvous_timeout() -> Duration {
     let millis = std::env::var("MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS")
         .ok()
@@ -557,6 +611,88 @@ pub async fn request_relay_lease_after_direct_failure(
                 "relay fallback lease request timed out"
             );
             RelayLeaseFallback::timed_out()
+        }
+    }
+}
+
+pub async fn submit_relay_payload_after_lease(
+    state: &AppState,
+    relay: &RelayLeaseFallback,
+    payload: &crate::cloud::P2pRelayPayloadRequest,
+) -> RelayPayloadQueueOutcome {
+    if !relay.lease_issued || !matches!(relay.status, RelayLeaseFallbackStatus::Issued) {
+        return RelayPayloadQueueOutcome::not_attempted();
+    }
+
+    let Some(lease_id) = relay.lease_id.as_deref().filter(|value| !value.is_empty()) else {
+        tracing::warn!("relay payload queue skipped after issued lease without lease id");
+        return RelayPayloadQueueOutcome::failed("relay_payload_queue_missing_lease_id");
+    };
+
+    if lease_id != payload.lease_id {
+        tracing::warn!(
+            lease_id,
+            payload_lease_id = %payload.lease_id,
+            "relay payload queue skipped; lease id mismatch"
+        );
+        return RelayPayloadQueueOutcome::failed("relay_payload_queue_lease_mismatch");
+    }
+
+    let musu_home = musu_home_from_state(state);
+    let Some(cloud) = account_cloud(musu_home) else {
+        tracing::warn!(
+            session_id = %payload.session_id,
+            lease_id,
+            "relay payload queue failed; account token unavailable after lease issue"
+        );
+        return RelayPayloadQueueOutcome::failed("relay_payload_queue_no_account_token");
+    };
+
+    let result =
+        tokio::time::timeout(rendezvous_timeout(), cloud.submit_relay_payload(payload)).await;
+
+    match result {
+        Ok(Ok(response)) if response.ok && response.accepted && response.stored => {
+            let outcome = RelayPayloadQueueOutcome::queued(response, payload);
+            tracing::info!(
+                session_id = %payload.session_id,
+                lease_id,
+                payload_id = outcome.payload_id.as_deref().unwrap_or(""),
+                payload_sha256 = outcome.payload_sha256.as_deref().unwrap_or(""),
+                payload_bytes = outcome.payload_bytes.unwrap_or(0),
+                "relay payload queued after failed direct route"
+            );
+            outcome
+        }
+        Ok(Ok(response)) => {
+            tracing::warn!(
+                session_id = %payload.session_id,
+                lease_id,
+                response_ok = response.ok,
+                accepted = response.accepted,
+                stored = response.stored,
+                release_grade = response.release_grade,
+                release_grade_blockers = ?response.release_grade_blockers,
+                "relay payload queue endpoint did not store payload"
+            );
+            RelayPayloadQueueOutcome::failed("relay_payload_queue_not_stored")
+        }
+        Ok(Err(_err)) => {
+            tracing::warn!(
+                session_id = %payload.session_id,
+                lease_id,
+                "relay payload queue request failed"
+            );
+            RelayPayloadQueueOutcome::failed("relay_payload_queue_failed")
+        }
+        Err(_) => {
+            tracing::warn!(
+                session_id = %payload.session_id,
+                lease_id,
+                timeout_ms = rendezvous_timeout().as_millis(),
+                "relay payload queue request timed out"
+            );
+            RelayPayloadQueueOutcome::failed("relay_payload_queue_timeout")
         }
     }
 }

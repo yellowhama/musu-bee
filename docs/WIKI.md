@@ -3820,9 +3820,44 @@ Validation passed relay payload route tests `5/5`, `npm run test:p2p` `50/50`,
 
 This is the first relay payload data-path slice, not public release relay
 transport. `relay_payload_endpoint_wired=false` and `relay_transport_wired=false`
-remain true because target-side relay polling/execution and release-grade
+remain false because target-side relay polling/execution and release-grade
 QUIC/TLS tunnel proof are still missing.
 
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_API_2026_06_04.md`
+
+## 2026-06-04 relay payload queue runtime hook (wiki/652)
+
+Rust forwarding fallback now enqueues the failed `ForwardedTask` envelope to the
+hosted lease-bound relay payload queue after direct route attempts fail and a
+`musu.pro` relay lease is issued.
+
+Runtime behavior:
+
+- direct peer routes are still attempted first
+- no issued relay lease still records payload transport attempt false
+- issued lease plus stored queue payload records
+  `payload_transport_attempted=true`, `payload_transport_proven=false`, and
+  `payload_transport_failure_class=relay_target_polling_not_implemented`
+- queue failures record attempted-but-not-proven bounded status classes such as
+  `relay_payload_queue_failed`, `relay_payload_queue_timeout`, or
+  `relay_payload_queue_not_stored`
+
+The hosted route-evidence grader now keeps the queued fallback preview
+non-release-grade with `relay_fallback_payload_transport_not_proven`, while no
+longer adding the `relay_fallback_payload_transport_not_attempted` blocker for
+the queued preview case.
+
+Validation passed Rust forward tests `6/6`, rendezvous tests `5/5`, cloud tests
+`5/5`, `cargo check --bin musu`, `npm run test:p2p` `51/51`,
+`npm run typecheck`, Rust fmt check, and `git diff --check`.
+
+This is not public release relay transport and does not make `musu.pro` the
+default central data path. Target-side queue polling/execution and release-grade
+QUIC/TLS relay proof are still missing, and fresh packaged primary evidence is
+required after this source change.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_RUNTIME_HOOK_2026_06_04.md`

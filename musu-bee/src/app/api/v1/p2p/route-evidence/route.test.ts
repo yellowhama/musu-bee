@@ -564,6 +564,62 @@ test("keeps issued relay fallback non release grade until payload transport is p
   });
 });
 
+test("keeps queued relay fallback non release grade until target polling proves transport", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { GET, POST } = await loadModule("relay-fallback-queued-payload-preview");
+    const evidence = {
+      ...hardenedEvidence,
+      route_kind: "tailscale",
+      peer_identity_verified: false,
+      encryption: "none_http_bearer",
+      result: "failed",
+      failure_class: "forward_failed_after_retries",
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["tailscale", "lan"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: "relay-lease-test",
+        payload_transport_attempted: true,
+        payload_transport_proven: false,
+        payload_transport_failure_class: "relay_target_polling_not_implemented",
+      },
+    };
+
+    const res = await POST(postReq(evidence));
+    assert.equal(res.status, 202);
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.doesNotMatch(body.blockers.join(","), /relay_fallback_payload_transport_not_attempted/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_fallback_payload_transport_not_implemented/);
+    assert.match(body.blockers.join(","), /relay_fallback_payload_transport_not_proven/);
+
+    const getRes = await GET(getReq("?limit=1"));
+    assert.equal(getRes.status, 200);
+    const getBody = (await getRes.json()) as {
+      records: Array<{
+        evidence: {
+          relay_fallback?: {
+            payload_transport_attempted?: boolean;
+            payload_transport_proven?: boolean;
+            payload_transport_failure_class?: string;
+          };
+        };
+      }>;
+    };
+    assert.equal(getBody.records[0]?.evidence.relay_fallback?.payload_transport_attempted, true);
+    assert.equal(getBody.records[0]?.evidence.relay_fallback?.payload_transport_proven, false);
+    assert.equal(
+      getBody.records[0]?.evidence.relay_fallback?.payload_transport_failure_class,
+      "relay_target_polling_not_implemented"
+    );
+  });
+});
+
 test("requires identity proof material when evidence claims peer verification", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("missing-identity-proof");

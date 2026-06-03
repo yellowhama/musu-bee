@@ -3026,4 +3026,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `http_store_forward_preview`, `relay_payload_queue_not_quic_tls_transport`,
   and `test:p2p 50/50`.
 
+- 2026-06-04 relay payload queue runtime hook:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_RUNTIME_HOOK_2026_06_04.md`
+  (wiki/652) records the Rust fallback hook that enqueues a failed
+  `ForwardedTask` envelope to the lease-bound relay payload queue after direct
+  route failure and issued relay lease. Search terms should include
+  `GOAL v462`, `wiki/652`, `relay_target_polling_not_implemented`,
+  `RelayPayloadQueueOutcome`, `relay_payload_request_for_forwarded_task`,
+  `payload_transport_attempted=true`, `payload_transport_proven=false`, and
+  `test:p2p 51/51`.
+
 **End of WIKI_INDEX.md.**
