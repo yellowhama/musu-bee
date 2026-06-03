@@ -4018,3 +4018,41 @@ QUIC/TLS relay proof was added.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_KV_CLAIM_DELIVERY_STORE_2026_06_04.md`
+
+## 2026-06-04 relay payload target drain (wiki/658)
+
+The Rust bridge now has a bounded, request-driven target-side relay payload
+drain primitive:
+
+- `POST /api/relay/payloads/drain`
+- response schema `musu.relay_payload_drain.v1`
+- claim schema `musu.relay_payload_claim.v1`
+- delivery schema `musu.relay_payload_delivery.v1`
+
+The endpoint claims owner-scoped payloads for the local node, validates claimed
+`forwarded_task_envelope` payload bytes, decodes them into `ForwardedTask`, and
+accepts them through the existing local forwarded-task runner path. Delivery is
+marked back to `musu.pro` only after local acceptance succeeds.
+
+Safety constraints:
+
+- request-driven only; no idle background poll loop
+- manual drain `limit` defaults to `1` and clamps to `1..5`
+- cloud claim/delivery timeout uses
+  `MUSU_P2P_RELAY_PAYLOAD_DRAIN_TIMEOUT_MS`, default `3000ms`, clamped to
+  `250..10000ms`
+- payload validation checks claimed status, local target, claimant, payload
+  kind, base64 bytes, byte count, SHA-256, source node, rendezvous session, and
+  embedded target node
+
+Validation passed Rust relay payload tests `14/14`, `cargo check --bin musu`,
+Rust fmt, and the Rust background-loop contract with `ok=true`, `fail_count=0`,
+and `unaudited_loop_hit_count=0`.
+
+This is not release-grade relay transport completion. It does not add opt-in
+background polling, production atomic claim semantics, QUIC/TLS relay proof, or
+fresh packaged evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_DRAIN_2026_06_04.md`

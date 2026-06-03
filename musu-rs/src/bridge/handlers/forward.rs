@@ -7,7 +7,7 @@
 //! executing node POSTs a `TaskCallback` to the originating node's
 //! `/api/tasks/callback` endpoint so it can update its local row.
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use crate::bridge::error::{MusuError, Result};
 use crate::bridge::route_evidence::elapsed_ms;
@@ -169,6 +169,69 @@ fn forwarded_task_audit_note(task_id: &str, req: &ForwardedTask) -> String {
         audit_fragment_or_none(req.rendezvous_session_id.as_deref()),
         audit_fragment_or_none(req.rendezvous_target_node_id.as_deref())
     )
+}
+
+pub fn forwarded_task_from_relay_payload(
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    expected_target_node_id: &str,
+) -> std::result::Result<ForwardedTask, String> {
+    let expected_target_node_id = expected_target_node_id.trim();
+    if expected_target_node_id.is_empty() {
+        return Err("relay_payload_expected_target_missing".to_string());
+    }
+    if payload.status.trim() != "claimed" {
+        return Err("relay_payload_not_claimed".to_string());
+    }
+    if payload.target_node_id.trim() != expected_target_node_id {
+        return Err("relay_payload_target_mismatch".to_string());
+    }
+    if let Some(claimed_by) = payload.claimed_by.as_deref() {
+        if claimed_by.trim() != expected_target_node_id {
+            return Err("relay_payload_claimant_mismatch".to_string());
+        }
+    }
+    if payload.payload_kind.trim() != RELAY_PAYLOAD_KIND_FORWARDED_TASK {
+        return Err("relay_payload_kind_unsupported".to_string());
+    }
+
+    let payload_base64 = payload
+        .payload_base64
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "relay_payload_missing_payload_bytes".to_string())?;
+    let decoded = BASE64_STANDARD
+        .decode(payload_base64.as_bytes())
+        .map_err(|_| "relay_payload_base64_decode_failed".to_string())?;
+    if payload.payload_bytes != decoded.len() as u64 {
+        return Err("relay_payload_bytes_mismatch".to_string());
+    }
+    let actual_sha256 = hex::encode(Sha256::digest(&decoded));
+    if !actual_sha256.eq_ignore_ascii_case(payload.payload_sha256.trim()) {
+        return Err("relay_payload_sha256_mismatch".to_string());
+    }
+
+    let task: ForwardedTask = serde_json::from_slice(&decoded)
+        .map_err(|_| "relay_payload_forwarded_task_decode_failed".to_string())?;
+    if task.source_node.trim() != payload.source_node_id.trim() {
+        return Err("relay_payload_source_mismatch".to_string());
+    }
+    if task
+        .rendezvous_session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        != Some(payload.session_id.trim())
+    {
+        return Err("relay_payload_session_mismatch".to_string());
+    }
+    if let Some(target_node_id) = task.rendezvous_target_node_id.as_deref() {
+        if target_node_id.trim() != payload.target_node_id.trim() {
+            return Err("relay_payload_task_target_mismatch".to_string());
+        }
+    }
+
+    Ok(task)
 }
 
 const RELAY_PAYLOAD_SCHEMA: &str = "musu.relay_payload_envelope.v1";
@@ -343,6 +406,27 @@ pub async fn receive_forwarded(
 
     let req = task_req.ok_or_else(|| MusuError::BadRequest("missing task metadata".into()))?;
 
+    let response = accept_forwarded_task(
+        &state,
+        addr.ip(),
+        "POST",
+        "/api/tasks/forward",
+        req,
+        zip_data,
+    )
+    .await?;
+
+    Ok((StatusCode::ACCEPTED, Json(response)))
+}
+
+pub async fn accept_forwarded_task(
+    state: &AppState,
+    actor_ip: IpAddr,
+    method: &'static str,
+    path: &'static str,
+    req: ForwardedTask,
+    zip_data: Option<axum::body::Bytes>,
+) -> Result<ForwardResponse> {
     // Validate
     if req.text.is_empty() || req.text.len() > 10_000 {
         return Err(MusuError::BadRequest("text must be 1..10000 chars".into()));
@@ -426,9 +510,9 @@ pub async fn receive_forwarded(
     state
         .audit
         .write(crate::bridge::audit::AuditEntry {
-            actor_ip: addr.ip(),
-            method: "POST".to_string(),
-            path: "/api/tasks/forward".to_string(),
+            actor_ip,
+            method: method.to_string(),
+            path: path.to_string(),
             status_code: StatusCode::ACCEPTED.as_u16(),
             agent_id: None,
             note: Some(forwarded_task_audit_note(&task_id, &req)),
@@ -454,14 +538,11 @@ pub async fn receive_forwarded(
         );
     }
 
-    Ok((
-        StatusCode::ACCEPTED,
-        Json(ForwardResponse {
-            task_id,
-            status: "queued".into(),
-            node: state.config.node_name.clone(),
-        }),
-    ))
+    Ok(ForwardResponse {
+        task_id,
+        status: "queued".into(),
+        node: state.config.node_name.clone(),
+    })
 }
 
 async fn forward_to_peer_attempt(
@@ -1029,6 +1110,99 @@ mod tests {
         assert_eq!(
             req.payload_sha256,
             Some(hex::encode(Sha256::digest(&decoded)))
+        );
+    }
+
+    fn relay_payload_record_for_task(
+        task: &ForwardedTask,
+        target_node_id: &str,
+    ) -> crate::cloud::P2pRelayPayloadStoredRecord {
+        let payload_json = serde_json::to_vec(task).expect("task json");
+        crate::cloud::P2pRelayPayloadStoredRecord {
+            payload_id: "payload-1".to_string(),
+            session_id: task.rendezvous_session_id.clone().unwrap(),
+            lease_id: "lease-1".to_string(),
+            source_node_id: task.source_node.clone(),
+            target_node_id: target_node_id.to_string(),
+            relay_url: "wss://relay.musu.pro/connect".to_string(),
+            tunnel_id: "relay-payload-session-lease".to_string(),
+            payload_kind: RELAY_PAYLOAD_KIND_FORWARDED_TASK.to_string(),
+            payload_bytes: payload_json.len() as u64,
+            payload_sha256: hex::encode(Sha256::digest(&payload_json)),
+            status: "claimed".to_string(),
+            relay_default_data_path: false,
+            release_grade: false,
+            transport_kind: "relay_payload_queue_preview".to_string(),
+            created_at: "2026-06-04T00:00:00Z".to_string(),
+            expires_at: "2026-06-04T00:05:00Z".to_string(),
+            claimed_by: Some(target_node_id.to_string()),
+            claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
+            delivered_at: None,
+            payload_base64: Some(BASE64_STANDARD.encode(&payload_json)),
+        }
+    }
+
+    #[test]
+    fn relay_payload_decoder_accepts_claimed_forwarded_task_for_local_target() {
+        let task = ForwardedTask {
+            source_node: "source-node".to_string(),
+            source_task_id: "source-task-123".to_string(),
+            channel: "ops".to_string(),
+            sender_id: "operator".to_string(),
+            text: "prompt body".to_string(),
+            adapter_type: None,
+            model: None,
+            cwd: None,
+            deadline_unix_ms: None,
+            company_id: Some("company-1".to_string()),
+            timeout_sec: Some(30),
+            callback_url: Some("http://127.0.0.1:8070/api/tasks/callback".to_string()),
+            rendezvous_session_id: Some("session-1".to_string()),
+            rendezvous_target_node_id: Some("target-node".to_string()),
+        };
+        let record = relay_payload_record_for_task(&task, "target-node");
+
+        let decoded =
+            forwarded_task_from_relay_payload(&record, "target-node").expect("decoded task");
+
+        assert_eq!(decoded.source_task_id, task.source_task_id);
+        assert_eq!(decoded.rendezvous_session_id, task.rendezvous_session_id);
+        assert_eq!(
+            decoded.rendezvous_target_node_id,
+            task.rendezvous_target_node_id
+        );
+        assert_eq!(decoded.text, task.text);
+    }
+
+    #[test]
+    fn relay_payload_decoder_rejects_target_or_hash_mismatch() {
+        let task = ForwardedTask {
+            source_node: "source-node".to_string(),
+            source_task_id: "source-task-123".to_string(),
+            channel: "ops".to_string(),
+            sender_id: "operator".to_string(),
+            text: "prompt body".to_string(),
+            adapter_type: None,
+            model: None,
+            cwd: None,
+            deadline_unix_ms: None,
+            company_id: Some("company-1".to_string()),
+            timeout_sec: Some(30),
+            callback_url: None,
+            rendezvous_session_id: Some("session-1".to_string()),
+            rendezvous_target_node_id: Some("target-node".to_string()),
+        };
+        let mut record = relay_payload_record_for_task(&task, "target-node");
+
+        assert_eq!(
+            forwarded_task_from_relay_payload(&record, "other-node").unwrap_err(),
+            "relay_payload_target_mismatch"
+        );
+
+        record.payload_sha256 = "00".repeat(32);
+        assert_eq!(
+            forwarded_task_from_relay_payload(&record, "target-node").unwrap_err(),
+            "relay_payload_sha256_mismatch"
         );
     }
 

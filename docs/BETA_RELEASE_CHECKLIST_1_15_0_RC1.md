@@ -3025,6 +3025,49 @@ Release interpretation:
   concurrent claim hardening, release-grade relay proof, and fresh packaged
   evidence are complete
 
+## 2026-06-04 03:31 KST Relay Payload Target Drain
+
+The Rust bridge now has a bounded, request-driven target-side drain primitive
+for claimed relay payloads:
+
+- local bridge route `POST /api/relay/payloads/drain`
+- response schema `musu.relay_payload_drain.v1`
+- claim schema `musu.relay_payload_claim.v1`
+- delivery schema `musu.relay_payload_delivery.v1`
+- manual drain `limit` defaults to `1` and clamps to `1..5`
+- cloud claim/delivery timeout uses
+  `MUSU_P2P_RELAY_PAYLOAD_DRAIN_TIMEOUT_MS`, default `3000ms`, clamped to
+  `250..10000ms`
+
+Drain behavior:
+
+- claims owner-scoped payloads for the local target node
+- validates claimed status, local target, claimant, payload kind, base64 bytes,
+  byte count, SHA-256, source node, rendezvous session, and embedded target
+  node
+- decodes `forwarded_task_envelope` bytes into `ForwardedTask`
+- accepts decoded tasks through the existing local forwarded-task runner path
+- marks payloads delivered back to `musu.pro` only after local acceptance
+  succeeds
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml` passed
+- `cargo test --manifest-path .\musu-rs\Cargo.toml relay_payload --lib -- --test-threads=1`
+  passed 14/14
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- Rust background-loop contract passed with `ok=true`, `fail_count=0`, and
+  `unaudited_loop_hit_count=0`
+
+Release interpretation:
+
+- this is request-driven target-side claim/decode/accept/delivery plumbing
+- delivery means accepted by the local task runner, not task completion
+- no idle background poll loop was added
+- public release remains No-Go until opt-in polling evidence, production atomic
+  claim hardening, release-grade QUIC/TLS relay proof, hosted production
+  evidence, and fresh packaged MSIX smoke/CPU/matrix evidence are complete
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the

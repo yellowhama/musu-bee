@@ -24,6 +24,7 @@ pub mod files;
 pub mod fleet;
 // V27-F7: easy token pairing.
 pub mod pair;
+pub mod relay_payload;
 // V27-F10: WebDAV mount endpoint.
 pub mod webdav;
 // Port unification: generic reverse-proxy to internal services.
@@ -68,6 +69,11 @@ pub fn native_router() -> Router<AppState> {
         .route("/api/tasks/forward", post(forward::receive_forwarded))
         // V27-F1: result callback from peer after forwarded task completes.
         .route("/api/tasks/callback", post(forward::receive_callback))
+        // Relay payload target drain. Request-driven only; no idle poll loop.
+        .route(
+            "/api/relay/payloads/drain",
+            post(relay_payload::drain_relay_payloads),
+        )
         .route("/api/nodes/accept-peer", post(nodes::accept_peer))
         // R6 (wiki/496 §3 D10): trigger auto-update via supervisor-spawned
         // detached child. Inherits the bridge's bearer-token auth

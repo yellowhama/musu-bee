@@ -3080,4 +3080,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_delivery_requires_claim`, `relay_payload_claim_kv_not_implemented`,
   `KV relay payload store claims and delivers`, and `test:p2p 56/56`.
 
+- 2026-06-04 relay payload target drain:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_DRAIN_2026_06_04.md`
+  (wiki/658) records the request-driven local bridge endpoint
+  `POST /api/relay/payloads/drain`, schema `musu.relay_payload_drain.v1`,
+  claimed payload validation, local forwarded-task acceptance, and delivery
+  acknowledgement after local acceptance. Search terms should include
+  `GOAL v468`, `wiki/658`, `MUSU_P2P_RELAY_PAYLOAD_DRAIN_TIMEOUT_MS`,
+  `forwarded_task_from_relay_payload`, `accept_forwarded_task`,
+  `relay_payload_decoder_accepts_claimed_forwarded_task_for_local_target`,
+  `cargo test relay_payload 14/14`, and `unaudited_loop_hit_count=0`.
+
 **End of WIKI_INDEX.md.**
