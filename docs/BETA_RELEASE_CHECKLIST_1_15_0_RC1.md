@@ -2767,3 +2767,44 @@ Validation:
 This is fail-closed hardening only. Public release still requires real
 relay/tunnel payload transport and owner-scoped release-grade relay route
 evidence.
+
+## 2026-06-03 16:24 KST Startup Helper Source Primary Evidence Refresh
+
+The packaged startup helper source is now reproducible from a clean checkout.
+Commit `79368c53` tracks `musu-rs\src\bin\musu-startup.rs` and unignores
+`musu-rs\src\bin\*.rs`; `cargo check --bin musu-startup -j 1` passed.
+
+Fresh primary evidence from a clean detached worktree at `79368c53`:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-160842-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-161155-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-161836-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_160819`
+- desktop-open CPU passed for `60.076s`: MUSU `0.03`, Node `0`,
+  WebView2 `0.21`, hot `0`, working set `461.69MB`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`
+- matrix maximum working set was `518.12MB`
+- go/no-go now sees primary idle CPU `1/2` and primary matrix `1/2`
+
+The first CPU attempt with a Next dev dashboard was rejected because the dev
+Node process exceeded the release memory/CPU budget. The accepted idle CPU
+evidence measured the packaged desktop state without Next dev, and the accepted
+matrix used a production dashboard on `http://127.0.0.1:3001/app`.
+
+Public release remains No-Go until second-PC runtime/multi-device evidence,
+hosted relay payload proof, support mailbox evidence, and Store evidence are
+complete.
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1728` files and `2315` symbols after the startup helper source
+  primary evidence refresh

@@ -3142,3 +3142,50 @@ Canonical report:
   `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
   `relay_payload_endpoint_wired`, `relay_payload_endpoint_not_wired`, and
   `relay_route_payload_endpoint_not_wired`
+
+## 2026-06-03 startup helper source primary evidence refresh (wiki/624)
+
+Commit `79368c53` fixed packaged startup helper source reproducibility by
+tracking `musu-rs\src\bin\musu-startup.rs` and unignoring
+`musu-rs\src\bin\*.rs`, after a clean MSIX release build exposed that the root
+`.gitignore` `bin/` rule hid the helper source. `cargo check --bin
+musu-startup -j 1` passed, and a clean detached worktree at `79368c53` built
+and installed the local-sideload MSIX as
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`.
+
+Fresh primary evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-160842-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-161155-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-161836-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results: smoke output `MUSU_RELEASE_SMOKE_OK_20260603_160819`; desktop-open
+CPU `60.076s`, MUSU `0.03`, Node `0`, WebView2 `0.21`, hot `0`, working set
+`461.69MB`; five-state matrix route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`, verifier `ok=true`,
+`fail_count=0`, max working set `518.12MB`. Dirty-tree go/no-go sees
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+valid machines `1/2`, runtime CPU matrix valid machines `1/2`, and public
+release remains No-Go on second-PC runtime/multi-device evidence, hosted relay
+payload proof, support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STARTUP_HELPER_SOURCE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1728` files and `2315` symbols after wiki/624, GOAL v434, tracked
+  `musu-rs\src\bin\musu-startup.rs`, fresh primary evidence
+  `20260603-160842-HUGH_SECOND`, `20260603-161155-HUGH_SECOND.desktop-open`,
+  and `20260603-161836-HUGH_SECOND.runtime-cpu-scenario-matrix`, BETA updates,
+  WIKI_INDEX updates, and CoS memory
+  `2026-06-03_startup_helper_source_primary_evidence_refresh.md`
+- search terms should include `GOAL v435`, `wiki/625 index refresh`,
+  `musu-startup.rs`, `MUSU_RELEASE_SMOKE_OK_20260603_160819`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`

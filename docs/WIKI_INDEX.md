@@ -2681,4 +2681,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_endpoint_not_wired`, and
   `relay_route_payload_endpoint_not_wired`.
 
+- 2026-06-03 startup helper source primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_STARTUP_HELPER_SOURCE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/624) records that commit `79368c53` tracks
+  `musu-rs\src\bin\musu-startup.rs` and unignores
+  `musu-rs\src\bin\*.rs`, restoring clean MSIX release build
+  reproducibility. Fresh primary evidence from clean commit `79368c53`
+  includes single-machine smoke `20260603-160842-HUGH_SECOND`, desktop-open
+  CPU `20260603-161155-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-161836-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `GOAL v434`, `wiki/624`, `musu-startup.rs`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_160819`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
+- 2026-06-03 startup helper source primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1728 files and 2315 symbols after GOAL v434, wiki/624, tracked
+  `musu-rs\src\bin\musu-startup.rs`, fresh primary evidence
+  `20260603-160842-HUGH_SECOND`, `20260603-161155-HUGH_SECOND.desktop-open`,
+  and `20260603-161836-HUGH_SECOND.runtime-cpu-scenario-matrix`, the canonical
+  report, BETA/WIKI/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_startup_helper_source_primary_evidence_refresh.md`. Search terms
+  should include `GOAL v435`, `1728 files`, `2315 symbols`,
+  `wiki/625 index refresh`, `musu-startup.rs`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_160819`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_161836`.
+
 **End of WIKI_INDEX.md.**
