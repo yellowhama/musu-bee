@@ -2802,6 +2802,26 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 19:38 KST Relay Connect Fail-Closed Endpoint
+
+`/api/v1/relay/connect` now returns an explicit fail-closed `501` response with
+schema `musu.relay_connect_unavailable.v1`. It keeps
+`relay_payload_endpoint_wired=false`, `relay_transport_wired=false`, and
+`relay_default_data_path=false`, and it does not emit payload proof.
+
+Validation:
+
+- `npm run test:p2p` passed `37/37`
+- `npm run typecheck` passed
+- `git diff --check` passed
+- dev `/app` returned `200`
+- dev `/api/v1/relay/connect` returned `501`
+
+Fresh local live P2P evidence
+`.local-build\p2p-control-plane\20260603-193609-musu.pro.evidence.json`
+remains `ok=false` with `fail_count=19`. Public release remains No-Go; this is
+failure handling only, not relay payload transport implementation.
+
 2026-06-03 index refresh:
 
 - explicit packaged alias indexing:

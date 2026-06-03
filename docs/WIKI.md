@@ -3364,3 +3364,46 @@ Canonical report:
   `MUSU_RELEASE_SMOKE_OK_20260603_190107`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`
+
+## 2026-06-03 relay connect fail-closed endpoint (wiki/634)
+
+`/api/v1/relay/connect` now has an explicit fail-closed route instead of an
+opaque missing endpoint. It returns HTTP `501` with schema
+`musu.relay_connect_unavailable.v1`, `error=relay_payload_transport_not_implemented`,
+`relay_payload_endpoint_wired=false`, `relay_transport_wired=false`, and
+`relay_default_data_path=false`.
+
+This does not implement relay payload transport. It makes the known blocker
+machine-readable and prevents the release gate from interpreting env flags,
+lease records, or proof-shaped JSON as payload transit.
+
+Validation passed:
+
+- `npm run test:p2p` `37/37`
+- `npm run typecheck`
+- `git diff --check`
+- dev `/app` returned `200`
+- dev `/api/v1/relay/connect` returned `501`
+
+Fresh local live evidence
+`.local-build\p2p-control-plane\20260603-193609-musu.pro.evidence.json`
+remained `ok=false` with `fail_count=19`. Live blockers include missing
+KV/Upstash storage, unwired relay transport, unwired relay payload endpoint,
+and missing release-grade relay route proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_FAIL_CLOSED_ENDPOINT_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1765` files and `2334` symbols after GOAL v444, wiki/634,
+  relay connect fail-closed source/tests, the canonical report,
+  BETA/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_relay_connect_fail_closed_endpoint.md`
+- search terms should include `GOAL v445`, `wiki/635 index refresh`,
+  `musu.relay_connect_unavailable.v1`,
+  `relay_payload_transport_not_implemented`, `test:p2p 37/37`,
+  `20260603-193609-musu.pro`, and `fail_count=19`

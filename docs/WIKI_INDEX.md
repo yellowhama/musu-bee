@@ -2810,4 +2810,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_191447`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`.
 
+- 2026-06-03 relay connect fail-closed endpoint:
+  `RELEASE_1_15_0_RC1_RELAY_CONNECT_FAIL_CLOSED_ENDPOINT_2026_06_03.md`
+  (wiki/634) records that `/api/v1/relay/connect` now returns an explicit
+  `501` fail-closed response with schema `musu.relay_connect_unavailable.v1`
+  while keeping `relay_payload_endpoint_wired=false`,
+  `relay_transport_wired=false`, and `relay_default_data_path=false`. Search
+  terms should include `GOAL v444`, `wiki/634`,
+  `relay_payload_transport_not_implemented`,
+  `musu.relay_connect_unavailable.v1`, `test:p2p 37/37`,
+  `20260603-193609-musu.pro`, and `fail_count=19`.
+
+- 2026-06-03 relay connect fail-closed endpoint index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1765 files and 2334 symbols after GOAL v444, wiki/634, relay
+  connect fail-closed source/tests, the canonical report, BETA/WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_relay_connect_fail_closed_endpoint.md` and
+  `2026-06-03_relay_connect_fail_closed_endpoint_index_refresh.md`. Search
+  terms should include `GOAL v445`, `1765 files`, `2334 symbols`,
+  `wiki/635 index refresh`, `relay_payload_transport_not_implemented`, and
+  `musu.relay_connect_unavailable.v1`.
+
 **End of WIKI_INDEX.md.**
