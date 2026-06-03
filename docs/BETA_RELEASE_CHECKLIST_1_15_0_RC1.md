@@ -2802,6 +2802,63 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 21:10 KST P2P Relay Status Descriptor Gate
+
+Hosted P2P relay status now reports the live transport descriptor instead of
+hiding relay readiness behind hardcoded status output.
+
+Implemented:
+
+- `musu relay status --json` queries hosted relay transport and mirrors
+  preflight, descriptor, payload endpoint, lease store, blockers, and error
+  fields
+- `musu relay transport --json` includes `relay_payload_endpoint_wired`
+- P2P evidence verification requires status preflight, status descriptor,
+  status payload endpoint, empty blockers, release-grade lease storage,
+  transport payload endpoint, and release-grade route proof before
+  `relay_transport_wired=true`
+- P2P recorder and go/no-go output now surface the status/transport payload
+  endpoint fields directly
+
+Validation:
+
+- release evidence verifier regressions `22/22`
+- `cargo check --lib`
+- targeted Rust relay status test `1/1`
+- `npm run test:p2p` `37/37`
+- `git diff --check`
+
+Dirty-tree go/no-go:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU scenario matrix `1/2`
+- `rust_background_loop_contract_verified=true`
+- `p2p_control_plane_verified=false`
+- `p2p_relay_status_transport_preflight_ok=false`
+- `p2p_relay_status_transport_descriptor_wired=false`
+- `p2p_relay_status_payload_endpoint_wired=false`
+- `p2p_relay_transport_payload_endpoint_wired=false`
+- `p2p_relay_payload_transport_proven=false`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_STATUS_DESCRIPTOR_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1786` files and `2339` symbols after GOAL v450, wiki/640, Rust
+  relay status live transport descriptor mapping, P2P recorder/verifier/go-no-go
+  updates, the canonical report, WIKI/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_p2p_relay_status_descriptor_gate.md`
+
+Release remains No-Go until second-PC runtime/multi-device evidence, hosted
+relay payload transport proof, support mailbox evidence, and Store evidence are
+complete.
+
 ## 2026-06-03 20:30 KST Rust Background Loop Contract Gate
 
 Added `scripts\windows\audit-rust-background-loop-contract.ps1` and wired it

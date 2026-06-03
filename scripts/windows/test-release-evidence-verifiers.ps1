@@ -151,10 +151,17 @@ $validP2p = [pscustomobject]@{
         rendezvous_session_wired = $true
         route_evidence_client_wired = $true
         relay_control_plane_lease_wired = $true
+        relay_transport_preflight_ok = $true
+        relay_transport_descriptor_wired = $true
         relay_transport_wired = $true
+        relay_payload_endpoint_wired = $true
         relay_runtime_fallback_lease_request_wired = $true
         release_grade_transport_required = "quic_tls_1_3"
         relay_default_data_path = $false
+        relay_lease_store_configured = $true
+        relay_lease_store_backend = "upstash_redis"
+        relay_lease_store_release_grade = $true
+        relay_transport_blockers = @()
     }
     relay_transport_exit_code = 0
     relay_transport = [pscustomobject]@{
@@ -167,6 +174,7 @@ $validP2p = [pscustomobject]@{
         relay_control_plane_wired = $true
         relay_transport_descriptor_wired = $true
         relay_transport_wired = $true
+        relay_payload_endpoint_wired = $true
         relay_default_data_path = $false
         relay_url = "wss://relay.musu.pro/api/v1/relay/connect"
         relay_connect_path = "/api/v1/relay/connect"
@@ -519,6 +527,11 @@ $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePa
 Add-CaseResult -Cases $cases -Name "p2p rejects unverified owner scope" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pStore = Copy-JsonObject -Object $validP2p
+$badP2pStore.relay_status.relay_transport_preflight_ok = $false
+$badP2pStore.relay_status.relay_lease_store_configured = $false
+$badP2pStore.relay_status.relay_lease_store_backend = "unconfigured"
+$badP2pStore.relay_status.relay_lease_store_release_grade = $false
+$badP2pStore.relay_status.relay_transport_blockers = @("relay_lease_store_not_configured", "relay_lease_store_not_release_grade")
 $badP2pStore.relay_transport.relay_lease_store_configured = $false
 $badP2pStore.relay_transport.relay_lease_store_backend = "unconfigured"
 $badP2pStore.relay_transport.relay_lease_store_release_grade = $false
@@ -538,10 +551,14 @@ $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePa
 Add-CaseResult -Cases $cases -Name "p2p rejects relay as default data path" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayTransport = Copy-JsonObject -Object $validP2p
+$badP2pRelayTransport.relay_status.relay_transport_preflight_ok = $false
 $badP2pRelayTransport.relay_status.relay_transport_wired = $false
+$badP2pRelayTransport.relay_status.relay_payload_endpoint_wired = $false
+$badP2pRelayTransport.relay_status.relay_transport_blockers = @("relay_transport_not_wired", "relay_payload_endpoint_not_wired")
 $badP2pRelayTransport.relay_transport.ok = $false
 $badP2pRelayTransport.relay_transport.relay_transport_wired = $false
-$badP2pRelayTransport.relay_transport.blockers = @("relay_transport_not_wired")
+$badP2pRelayTransport.relay_transport.relay_payload_endpoint_wired = $false
+$badP2pRelayTransport.relay_transport.blockers = @("relay_transport_not_wired", "relay_payload_endpoint_not_wired")
 $badP2pRelayTransport.relay_leases.relay_transport_wired = $false
 $fixture = Write-Fixture -Name "p2p-bad-relay-transport" -Object $badP2pRelayTransport
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")

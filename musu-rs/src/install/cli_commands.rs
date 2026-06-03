@@ -829,8 +829,16 @@ struct RelayStatusReport {
     relay_control_plane_lease_wired: bool,
     relay_lease_endpoint: &'static str,
     relay_runtime_fallback_lease_request_wired: bool,
+    relay_transport_preflight_ok: bool,
+    relay_transport_descriptor_wired: bool,
     relay_transport_wired: bool,
+    relay_payload_endpoint_wired: bool,
     relay_default_data_path: bool,
+    relay_lease_store_configured: bool,
+    relay_lease_store_backend: Option<String>,
+    relay_lease_store_release_grade: bool,
+    relay_transport_blockers: Vec<String>,
+    relay_transport_error: Option<String>,
     release_route_evidence_ready: bool,
     path_priority: Vec<&'static str>,
     next_steps: Vec<&'static str>,
@@ -855,6 +863,7 @@ struct RelayTransportReport {
     relay_control_plane_wired: bool,
     relay_transport_descriptor_wired: bool,
     relay_transport_wired: bool,
+    relay_payload_endpoint_wired: bool,
     relay_default_data_path: bool,
     relay_url: String,
     relay_connect_path: String,
@@ -928,25 +937,86 @@ fn json_string_property(value: &serde_json::Value, name: &str) -> Option<String>
         .map(str::to_string)
 }
 
+fn json_string_array_property(value: &serde_json::Value, name: &str) -> Option<Vec<String>> {
+    value.get(name).and_then(|property| {
+        property.as_array().map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_string))
+                .collect()
+        })
+    })
+}
+
 fn parse_json_object_from_error_text(text: &str) -> Option<serde_json::Value> {
     let start = text.find('{')?;
     serde_json::from_str(&text[start..]).ok()
 }
 
+fn apply_relay_transport_response_to_status(
+    report: &mut RelayStatusReport,
+    response: crate::cloud::P2pRelayTransportResponse,
+) {
+    report.relay_transport_preflight_ok = response.ok;
+    report.relay_control_plane_lease_wired = response.relay_control_plane_wired;
+    report.relay_transport_descriptor_wired = response.relay_transport_descriptor_wired;
+    report.relay_transport_wired = response.relay_transport_wired;
+    report.relay_payload_endpoint_wired = response.relay_payload_endpoint_wired;
+    report.relay_default_data_path = response.relay_default_data_path;
+    report.relay_lease_store_configured = response.relay_lease_store_configured;
+    report.relay_lease_store_backend = response.relay_lease_store_backend;
+    report.relay_lease_store_release_grade = response.relay_lease_store_release_grade;
+    report.relay_transport_blockers = response.blockers;
+}
+
+fn apply_relay_transport_error_json_to_status(
+    report: &mut RelayStatusReport,
+    error_json: &serde_json::Value,
+) {
+    if let Some(value) = json_bool_property(error_json, "relay_control_plane_wired") {
+        report.relay_control_plane_lease_wired = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_transport_descriptor_wired") {
+        report.relay_transport_descriptor_wired = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_transport_wired") {
+        report.relay_transport_wired = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_payload_endpoint_wired") {
+        report.relay_payload_endpoint_wired = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_default_data_path") {
+        report.relay_default_data_path = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_lease_store_configured") {
+        report.relay_lease_store_configured = value;
+    }
+    if let Some(value) = json_string_property(error_json, "relay_lease_store_backend") {
+        report.relay_lease_store_backend = Some(value);
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_lease_store_release_grade") {
+        report.relay_lease_store_release_grade = value;
+    }
+    if let Some(value) = json_string_array_property(error_json, "blockers") {
+        report.relay_transport_blockers = value;
+    }
+}
+
 async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
     let home = musu_home();
-    let token_present =
-        crate::cloud::token::load_token(&home).is_some_and(|token| !token.trim().is_empty());
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
     let cached_registry = crate::peer::discovery::CachedRegistry::load(&home);
     let cached_node_count = cached_registry
         .as_ref()
         .map(|cache| cache.nodes.len())
         .unwrap_or(0);
 
-    let report = RelayStatusReport {
+    let mut report = RelayStatusReport {
         schema: "musu.relay_status.v1",
         registry_url: crate::cloud::base_url_from_env(),
-        logged_in: token_present,
+        logged_in: token.is_some(),
         cached_registry_present: cached_registry.is_some(),
         cached_registry_valid: cached_registry
             .as_ref()
@@ -962,8 +1032,16 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         relay_control_plane_lease_wired: true,
         relay_lease_endpoint: "/api/v1/p2p/relay/lease",
         relay_runtime_fallback_lease_request_wired: true,
+        relay_transport_preflight_ok: false,
+        relay_transport_descriptor_wired: false,
         relay_transport_wired: false,
+        relay_payload_endpoint_wired: false,
         relay_default_data_path: false,
+        relay_lease_store_configured: false,
+        relay_lease_store_backend: None,
+        relay_lease_store_release_grade: false,
+        relay_transport_blockers: vec![],
+        relay_transport_error: None,
         release_route_evidence_ready: false,
         path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
         next_steps: vec![
@@ -972,6 +1050,22 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
             "wire relay/tunnel transport behind the Connect/Pro fallback lease policy",
         ],
     };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&report.registry_url, Some(token));
+        match cloud.query_relay_transport().await {
+            Ok(response) => apply_relay_transport_response_to_status(&mut report, response),
+            Err(err) => {
+                let error = err.to_string();
+                if let Some(error_json) = parse_json_object_from_error_text(&error) {
+                    apply_relay_transport_error_json_to_status(&mut report, &error_json);
+                }
+                report.relay_transport_error = Some(error);
+            }
+        }
+    } else {
+        report.relay_transport_error = Some("not_logged_in".to_string());
+    }
 
     if opts.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
@@ -1017,11 +1111,41 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         "  relay runtime fallback lease request wired: {}",
         report.relay_runtime_fallback_lease_request_wired
     );
+    println!(
+        "  relay transport preflight ok: {}",
+        report.relay_transport_preflight_ok
+    );
+    println!(
+        "  relay transport descriptor wired: {}",
+        report.relay_transport_descriptor_wired
+    );
     println!("  relay transport wired: {}", report.relay_transport_wired);
+    println!(
+        "  relay payload endpoint wired: {}",
+        report.relay_payload_endpoint_wired
+    );
     println!(
         "  relay default data path: {}",
         report.relay_default_data_path
     );
+    println!(
+        "  relay lease store: configured={}, backend={}, release_grade={}",
+        report.relay_lease_store_configured,
+        report
+            .relay_lease_store_backend
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.relay_lease_store_release_grade
+    );
+    if !report.relay_transport_blockers.is_empty() {
+        println!(
+            "  relay transport blockers: {}",
+            report.relay_transport_blockers.join(", ")
+        );
+    }
+    if let Some(error) = &report.relay_transport_error {
+        println!("  relay transport error: {error}");
+    }
     println!(
         "  release route evidence ready: {}",
         report.release_route_evidence_ready
@@ -1051,6 +1175,7 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
         relay_control_plane_wired: true,
         relay_transport_descriptor_wired: false,
         relay_transport_wired: false,
+        relay_payload_endpoint_wired: false,
         relay_default_data_path: false,
         relay_url: String::new(),
         relay_connect_path: String::new(),
@@ -1080,6 +1205,7 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
                 report.relay_control_plane_wired = response.relay_control_plane_wired;
                 report.relay_transport_descriptor_wired = response.relay_transport_descriptor_wired;
                 report.relay_transport_wired = response.relay_transport_wired;
+                report.relay_payload_endpoint_wired = response.relay_payload_endpoint_wired;
                 report.relay_default_data_path = response.relay_default_data_path;
                 report.relay_url = response.relay_url;
                 report.relay_connect_path = response.relay_connect_path;
@@ -1107,6 +1233,11 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
                     }
                     if let Some(value) = json_bool_property(&error_json, "relay_transport_wired") {
                         report.relay_transport_wired = value;
+                    }
+                    if let Some(value) =
+                        json_bool_property(&error_json, "relay_payload_endpoint_wired")
+                    {
+                        report.relay_payload_endpoint_wired = value;
                     }
                     if let Some(value) = json_bool_property(&error_json, "relay_default_data_path")
                     {
@@ -1177,6 +1308,10 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
         report.relay_transport_descriptor_wired
     );
     println!("  relay transport wired: {}", report.relay_transport_wired);
+    println!(
+        "  relay payload endpoint wired: {}",
+        report.relay_payload_endpoint_wired
+    );
     println!(
         "  relay default data path: {}",
         report.relay_default_data_path
@@ -3666,6 +3801,80 @@ mod tests {
         assert!(candidate.peer_public_key_present);
         assert!(candidate.https_fingerprint_pin_available);
         assert_eq!(candidate.encryption, "none_http_bearer");
+    }
+
+    fn relay_status_fixture() -> RelayStatusReport {
+        RelayStatusReport {
+            schema: "musu.relay_status.v1",
+            registry_url: "https://musu.pro".to_string(),
+            logged_in: true,
+            cached_registry_present: false,
+            cached_registry_valid: false,
+            cached_node_count: 0,
+            rust_client_dtos_wired: true,
+            route_evidence_client_wired: true,
+            bridge_path_selection_wired: true,
+            rendezvous_session_wired: true,
+            https_fingerprint_pinning_wired: true,
+            release_grade_transport_required: "quic_tls_1_3",
+            relay_control_plane_lease_wired: true,
+            relay_lease_endpoint: "/api/v1/p2p/relay/lease",
+            relay_runtime_fallback_lease_request_wired: true,
+            relay_transport_preflight_ok: false,
+            relay_transport_descriptor_wired: false,
+            relay_transport_wired: false,
+            relay_payload_endpoint_wired: false,
+            relay_default_data_path: false,
+            relay_lease_store_configured: false,
+            relay_lease_store_backend: None,
+            relay_lease_store_release_grade: false,
+            relay_transport_blockers: vec!["relay_transport_not_wired".to_string()],
+            relay_transport_error: None,
+            release_route_evidence_ready: false,
+            path_priority: vec!["lan", "tailscale", "direct_quic", "relay"],
+            next_steps: vec![],
+        }
+    }
+
+    #[test]
+    fn relay_status_reflects_live_transport_descriptor() {
+        let mut report = relay_status_fixture();
+        apply_relay_transport_response_to_status(
+            &mut report,
+            crate::cloud::P2pRelayTransportResponse {
+                schema: "musu.p2p_relay_transport.v1".to_string(),
+                ok: true,
+                owner_scoped: true,
+                relay_control_plane_wired: true,
+                relay_transport_descriptor_wired: true,
+                relay_transport_wired: true,
+                relay_payload_endpoint_wired: true,
+                relay_default_data_path: false,
+                relay_url: "wss://relay.musu.pro/api/v1/relay/connect".to_string(),
+                relay_connect_path: "/api/v1/relay/connect".to_string(),
+                relay_transport_kind: "websocket_tunnel".to_string(),
+                release_grade_transport_required: "quic_tls_1_3".to_string(),
+                payload_transit_requires_lease: true,
+                policy: "connect_pro_fallback_only".to_string(),
+                relay_lease_store_configured: true,
+                relay_lease_store_backend: Some("upstash_redis".to_string()),
+                relay_lease_store_release_grade: true,
+                blockers: vec![],
+            },
+        );
+
+        assert!(report.relay_transport_preflight_ok);
+        assert!(report.relay_transport_descriptor_wired);
+        assert!(report.relay_transport_wired);
+        assert!(report.relay_payload_endpoint_wired);
+        assert!(!report.relay_default_data_path);
+        assert!(report.relay_lease_store_configured);
+        assert_eq!(
+            report.relay_lease_store_backend.as_deref(),
+            Some("upstash_redis")
+        );
+        assert!(report.relay_lease_store_release_grade);
+        assert!(report.relay_transport_blockers.is_empty());
     }
 
     #[test]

@@ -2884,4 +2884,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `rust_background_loop_contract_verified`, `rust-background-loops`, and
   `unaudited_loop_hit_count=0`.
 
+- 2026-06-03 P2P relay status descriptor gate:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_STATUS_DESCRIPTOR_GATE_2026_06_03.md`
+  (wiki/640) records that `musu relay status --json` now reports the live
+  relay transport descriptor/preflight/payload endpoint/store/blocker state,
+  and that verifier/go-no-go output surfaces the status and transport payload
+  endpoint fields. Search terms should include `GOAL v450`, `wiki/640`,
+  `relay_status_transport_preflight_ok`,
+  `relay_status_transport_descriptor_wired`,
+  `relay_status_payload_endpoint_wired`,
+  `relay_transport_payload_endpoint_wired`, `test:p2p 37/37`, and
+  `relay_status_reflects_live_transport_descriptor`.
+
+- 2026-06-03 P2P relay status descriptor gate index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1786 files and 2339 symbols after GOAL v450, wiki/640, Rust relay
+  status live transport descriptor mapping, P2P recorder/verifier/go-no-go
+  field updates, the canonical report, BETA/WIKI/WIKI_INDEX updates, and CoS
+  memories `2026-06-03_p2p_relay_status_descriptor_gate.md` and
+  `2026-06-03_p2p_relay_status_descriptor_index_refresh.md`. Search terms
+  should include `GOAL v451`, `1786 files`, `2339 symbols`,
+  `wiki/641 index refresh`, `relay_status_transport_preflight_ok`,
+  `relay_status_payload_endpoint_wired`,
+  `relay_transport_payload_endpoint_wired`, and
+  `relay_status_reflects_live_transport_descriptor`.
+
 **End of WIKI_INDEX.md.**

@@ -3496,3 +3496,55 @@ Canonical report:
   `rust_background_loop_contract_verified`, `rust-background-loops`,
   `MUSU_ENABLE_MDNS`, `MUSU_ENABLE_CLIPBOARD_SYNC`, `MUSU_ENABLE_PLANNER`,
   `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC`, and `unaudited_loop_hit_count=0`
+
+## 2026-06-03 P2P relay status descriptor gate (wiki/640)
+
+`musu relay status --json` now reports live hosted relay transport descriptor
+state instead of hiding relay transport readiness behind a hardcoded false
+value. The status command queries the relay transport descriptor, mirrors
+preflight/descriptor/payload endpoint/lease store/blocker/error fields, and
+parses JSON error bodies so failed preflight output is still actionable.
+
+Release evidence now requires status and transport to agree before hosted relay
+transport can count as wired:
+
+- status preflight ok
+- status relay transport descriptor wired
+- status relay payload endpoint wired
+- empty status relay transport blockers
+- release-grade relay lease storage
+- transport payload endpoint wired
+- release-grade route evidence with payload transport proof
+
+Validation passed:
+
+- release evidence verifier regressions `22/22`
+- `cargo check --lib`
+- targeted Rust relay status test `1/1`
+- `npm run test:p2p` `37/37`
+- `git diff --check`
+
+Dirty-tree go/no-go after the change remains public No-Go:
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+`1/2`, runtime CPU matrix `1/2`, `rust_background_loop_contract_verified=true`,
+`p2p_control_plane_verified=false`, and the new relay status/transport payload
+endpoint fields are false.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_STATUS_DESCRIPTOR_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1786` files and `2339` symbols after GOAL v450, wiki/640, Rust
+  relay status live transport descriptor mapping, P2P recorder/verifier/go-no-go
+  field updates, the canonical report, BETA/WIKI/WIKI_INDEX updates, and CoS
+  memory `2026-06-03_p2p_relay_status_descriptor_gate.md`
+- search terms should include `GOAL v451`, `wiki/641 index refresh`,
+  `relay_status_transport_preflight_ok`,
+  `relay_status_transport_descriptor_wired`,
+  `relay_status_payload_endpoint_wired`,
+  `relay_transport_payload_endpoint_wired`, and
+  `relay_status_reflects_live_transport_descriptor`

@@ -1213,10 +1213,26 @@ $p2pRelayRouteEvidenceOk = $false
 $p2pRelayRouteEvidenceCount = -1
 $p2pRelayPayloadTransportProven = $false
 $p2pRelayLeaseStoreReleaseGrade = $false
+$p2pRelayStatusTransportPreflightOk = $false
+$p2pRelayStatusTransportDescriptorWired = $false
+$p2pRelayStatusPayloadEndpointWired = $false
+$p2pRelayTransportPayloadEndpointWired = $false
 $p2pOwnerScopeVerified = $false
 if ($p2pControlPlaneEvidence) {
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_transport_wired"]) {
         $p2pRelayTransportWired = [bool]$p2pControlPlaneEvidence.relay_transport_wired
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_status_transport_preflight_ok"]) {
+        $p2pRelayStatusTransportPreflightOk = [bool]$p2pControlPlaneEvidence.relay_status_transport_preflight_ok
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_status_transport_descriptor_wired"]) {
+        $p2pRelayStatusTransportDescriptorWired = [bool]$p2pControlPlaneEvidence.relay_status_transport_descriptor_wired
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_status_payload_endpoint_wired"]) {
+        $p2pRelayStatusPayloadEndpointWired = [bool]$p2pControlPlaneEvidence.relay_status_payload_endpoint_wired
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_transport_payload_endpoint_wired"]) {
+        $p2pRelayTransportPayloadEndpointWired = [bool]$p2pControlPlaneEvidence.relay_transport_payload_endpoint_wired
     }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_evidence_ok"]) {
         $p2pRelayRouteEvidenceOk = [bool]$p2pControlPlaneEvidence.relay_route_evidence_ok
@@ -1293,7 +1309,7 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not $p2pControlPlaneVerified) {
-    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay_transport_wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true and count > 0."
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true and count > 0."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
@@ -1405,6 +1421,10 @@ $result = [pscustomobject]@{
     p2p_owner_scope_verified = [bool]$p2pOwnerScopeVerified
     p2p_relay_lease_store_release_grade = [bool]$p2pRelayLeaseStoreReleaseGrade
     p2p_relay_transport_wired = [bool]$p2pRelayTransportWired
+    p2p_relay_status_transport_preflight_ok = [bool]$p2pRelayStatusTransportPreflightOk
+    p2p_relay_status_transport_descriptor_wired = [bool]$p2pRelayStatusTransportDescriptorWired
+    p2p_relay_status_payload_endpoint_wired = [bool]$p2pRelayStatusPayloadEndpointWired
+    p2p_relay_transport_payload_endpoint_wired = [bool]$p2pRelayTransportPayloadEndpointWired
     p2p_relay_route_evidence_ok = [bool]$p2pRelayRouteEvidenceOk
     p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
@@ -1446,6 +1466,10 @@ else {
     "p2p_owner_scope_verified: $($result.p2p_owner_scope_verified)"
     "p2p_relay_lease_store_release_grade: $($result.p2p_relay_lease_store_release_grade)"
     "p2p_relay_transport_wired: $($result.p2p_relay_transport_wired)"
+    "p2p_relay_status_transport_preflight_ok: $($result.p2p_relay_status_transport_preflight_ok)"
+    "p2p_relay_status_transport_descriptor_wired: $($result.p2p_relay_status_transport_descriptor_wired)"
+    "p2p_relay_status_payload_endpoint_wired: $($result.p2p_relay_status_payload_endpoint_wired)"
+    "p2p_relay_transport_payload_endpoint_wired: $($result.p2p_relay_transport_payload_endpoint_wired)"
     "p2p_relay_route_evidence_ok: $($result.p2p_relay_route_evidence_ok)"
     "p2p_relay_route_evidence_count: $($result.p2p_relay_route_evidence_count)"
     "p2p_relay_payload_transport_proven: $($result.p2p_relay_payload_transport_proven)"
