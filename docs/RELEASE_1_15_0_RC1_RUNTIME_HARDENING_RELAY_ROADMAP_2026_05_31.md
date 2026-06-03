@@ -1689,3 +1689,38 @@ Roadmap status: this makes the release gate match the new Rust delivery-proof
 contract. It still does not prove live `musu.pro` relay transport; production
 P2P remains No-Go until owner-scoped relay transport and route evidence produce
 at least one valid payload delivery proof.
+
+## 2026-06-04 Primary Evidence Refresh After Relay Proof Gate
+
+Primary-machine release evidence was refreshed after the relay payload delivery
+proof gate changes:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-081248-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-081313-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-081601-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Observed CPU/resource result:
+
+- desktop-open idle CPU passed for `60.064s`: MUSU `0.29`, repo Node `0.73`,
+  owned WebView2 `0.08`, working set `542.72MB`, hot process count `0`
+- runtime matrix passed all five scenarios:
+  `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route`
+- post-route probe succeeded with token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_081601`
+- matrix per-role peaks stayed under one-core `5%`: startup-open
+  MUSU `0.23` / Node `0.78` / WebView2 `0`; runtime-started
+  MUSU `0.21` / Node `0.65` / WebView2 `0.03`; dashboard-open
+  MUSU `0` / Node `0.03` / WebView2 `0.10`; desktop-open
+  MUSU `0` / Node `0.03` / WebView2 `0.05`; post-route
+  MUSU `0` / Node `0` / WebView2 `0.05`
+
+Clean go/no-go on commit `34fa1cf46fe15c698515570483ce5e7065526e8e`
+reported `single_machine_verified=true`, runtime idle CPU valid machines
+`1/2` (`HUGH_SECOND`), runtime CPU scenario matrix valid machines `1/2`
+(`HUGH_SECOND`), and public release still No-Go on second-PC runtime evidence,
+multi-device route evidence, hosted `musu.pro` P2P control-plane proof,
+support mailbox, Store public metadata, and Store release evidence.

@@ -2289,6 +2289,34 @@ Validation:
   proof
 - `git diff --check` passed
 
+## 2026-06-04 08:22 KST Primary Evidence Refresh After Relay Proof Gate
+
+Primary-machine evidence was refreshed after the relay payload delivery proof
+gate commit.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-081248-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-081313-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-081601-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- single-machine smoke passed with task `24aa7a30-f9a2-4084-8226-bfa8b9cf7015`
+  and bridge `http://127.0.0.1:10503`
+- desktop-open CPU passed for `60.064s`: MUSU `0.29`, repo Node `0.73`,
+  owned WebView2 `0.08`, working set `542.72MB`, hot `0`
+- runtime matrix passed startup-open/runtime-started/dashboard-open/
+  desktop-open/post-route with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_081601`
+- clean go/no-go on `34fa1cf46fe15c698515570483ce5e7065526e8e`
+  reports `single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU
+  matrix `1/2`, and public release No-Go on second-PC, P2P, support, Store
+  metadata, and Store release evidence
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:
