@@ -6,6 +6,7 @@ import {
   RELAY_POLICY,
   RELAY_TRANSPORT_KIND,
   relayPayloadEndpointWired,
+  relayPayloadQueueEndpointWired,
   relayTransportPreflightBlockers,
   relayTransportWired,
 } from "@/lib/p2pRelayPolicy";
@@ -34,6 +35,7 @@ function relayConnectUnavailable(req: NextRequest) {
       release_grade_transport_required: RELEASE_GRADE_TRANSPORT_REQUIRED,
       relay_transport_wired: relayTransportWired(),
       relay_payload_endpoint_wired: relayPayloadEndpointWired(),
+      relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
       relay_default_data_path: false,
       payload_transit_requires_lease: true,
       policy: RELAY_POLICY,

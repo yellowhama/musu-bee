@@ -3795,3 +3795,34 @@ Clean go/no-go generated at `2026-06-04T00:16:47.6824922+09:00` on
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 relay payload queue API (wiki/651)
+
+The hosted P2P control plane now has a lease-bound relay payload queue preview
+API:
+
+- `POST /api/v1/p2p/relay/payload`
+- `GET /api/v1/p2p/relay/payload`
+
+The route requires bearer auth and a stored owner-scoped relay lease before it
+accepts `musu.relay_payload_envelope.v1`. Missing leases return
+`409 relay_payload_lease_not_found` without storing. Stored records are
+owner-scoped, TTL-limited, SHA-256 validated when a hash is supplied, and use
+`transport_kind=http_store_forward_preview`.
+
+Rust cloud client now exposes `P2pRelayPayloadRequest`,
+`P2pRelayPayloadResponse`, `P2pRelayPayloadStoredRecord`, and
+`MusuCloud::submit_relay_payload(...)`.
+
+Validation passed relay payload route tests `5/5`, `npm run test:p2p` `50/50`,
+`npm run typecheck`, Rust fmt check, Rust cloud tests `5/5`, and
+`git diff --check`.
+
+This is the first relay payload data-path slice, not public release relay
+transport. `relay_payload_endpoint_wired=false` and `relay_transport_wired=false`
+remain true because target-side relay polling/execution and release-grade
+QUIC/TLS tunnel proof are still missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_API_2026_06_04.md`

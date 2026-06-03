@@ -379,6 +379,62 @@ pub struct P2pRelayTransportProofResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Runtime relay fallback uses this once target relay polling lands.
+pub struct P2pRelayPayloadRequest {
+    pub schema: String,
+    pub session_id: String,
+    pub lease_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub tunnel_id: String,
+    pub payload_kind: String,
+    pub payload_base64: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_sha256: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for the lease-bound relay payload queue preview API.
+pub struct P2pRelayPayloadStoredRecord {
+    pub payload_id: String,
+    pub session_id: String,
+    pub lease_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub relay_url: String,
+    pub tunnel_id: String,
+    pub payload_kind: String,
+    pub payload_bytes: u64,
+    pub payload_sha256: String,
+    pub status: String,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
+    pub transport_kind: String,
+    pub created_at: String,
+    pub expires_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for the lease-bound relay payload queue preview API.
+pub struct P2pRelayPayloadResponse {
+    pub ok: bool,
+    pub accepted: bool,
+    pub stored: bool,
+    pub owner_scoped: bool,
+    pub relay_payload_queue_endpoint_wired: bool,
+    pub relay_default_data_path: bool,
+    pub payload_transit_requires_lease: bool,
+    pub release_grade: bool,
+    #[serde(default)]
+    pub release_grade_blockers: Vec<String>,
+    pub relay_payload_store_configured: bool,
+    pub relay_payload_store_backend: String,
+    pub relay_payload_store_release_grade: bool,
+    #[serde(default)]
+    pub payload: Option<P2pRelayPayloadStoredRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct RouteEvidence {
     pub schema: String,
@@ -842,6 +898,34 @@ impl MusuCloud {
 
         Ok(resp.json().await?)
     }
+
+    /// POST /api/v1/p2p/relay/payload to enqueue a lease-bound relay payload envelope.
+    #[allow(dead_code)] // Called by relay fallback runtime once target-side relay polling lands.
+    pub async fn submit_relay_payload(
+        &self,
+        payload: &P2pRelayPayloadRequest,
+    ) -> Result<P2pRelayPayloadResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/v1/p2p/relay/payload", self.base_url);
+
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(payload)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to submit relay payload: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
 }
 
 fn route_kind_query_value(kind: &RouteKind) -> &'static str {
@@ -965,5 +1049,32 @@ mod tests {
         assert_eq!(value["payload_transited_musu_infra"], true);
         assert_eq!(value["encryption"], "quic_tls_1_3");
         assert_eq!(value["transport_verified_by"], "musu_quic_tls_transport");
+    }
+
+    #[test]
+    fn relay_payload_request_serializes_lease_bound_envelope_fields() {
+        let payload = P2pRelayPayloadRequest {
+            schema: "musu.relay_payload_envelope.v1".into(),
+            session_id: "rv_123".into(),
+            lease_id: "relay-lease-123".into(),
+            source_node_id: "pc-a".into(),
+            target_node_id: "pc-b".into(),
+            tunnel_id: "relay-tunnel-123".into(),
+            payload_kind: "forwarded_task_envelope".into(),
+            payload_base64: "e30=".into(),
+            payload_sha256: Some("sha256".into()),
+        };
+
+        let value = serde_json::to_value(payload).unwrap();
+
+        assert_eq!(value["schema"], "musu.relay_payload_envelope.v1");
+        assert_eq!(value["session_id"], "rv_123");
+        assert_eq!(value["lease_id"], "relay-lease-123");
+        assert_eq!(value["source_node_id"], "pc-a");
+        assert_eq!(value["target_node_id"], "pc-b");
+        assert_eq!(value["tunnel_id"], "relay-tunnel-123");
+        assert_eq!(value["payload_kind"], "forwarded_task_envelope");
+        assert_eq!(value["payload_base64"], "e30=");
+        assert_eq!(value["payload_sha256"], "sha256");
     }
 }

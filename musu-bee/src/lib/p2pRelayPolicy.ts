@@ -5,6 +5,7 @@ export const RELAY_TRANSPORT_KIND = "websocket_tunnel";
 export const RELAY_CONNECT_PATH = "/api/v1/relay/connect";
 export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";
 export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false;
+export const RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED = true;
 
 export function envEnabled(name: string): boolean {
   return process.env[name] === "1" || process.env[name]?.toLowerCase() === "true";
@@ -25,6 +26,10 @@ export function relayTransportFlagEnabled(): boolean {
 
 export function relayPayloadEndpointWired(): boolean {
   return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED;
+}
+
+export function relayPayloadQueueEndpointWired(): boolean {
+  return RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED;
 }
 
 export function relayTransportWired(): boolean {

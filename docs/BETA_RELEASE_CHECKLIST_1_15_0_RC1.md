@@ -2846,6 +2846,38 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted release-grade relay payload proof, support mailbox evidence, and Store
 evidence are complete.
 
+## 2026-06-04 Relay Payload Queue API
+
+Relay fallback now has the first concrete payload data-path slice:
+
+- `POST /api/v1/p2p/relay/payload`
+- `GET /api/v1/p2p/relay/payload`
+- Rust client hook `MusuCloud::submit_relay_payload(...)`
+
+The endpoint requires bearer auth and a stored owner-scoped relay lease before
+it accepts `musu.relay_payload_envelope.v1`. Missing leases return
+`409 relay_payload_lease_not_found` without storing. Stored records validate
+optional SHA-256, keep `relay_default_data_path=false`, strip `owner_key`, and
+return payload bytes only when `include_payload=1`.
+
+Validation:
+
+- relay payload route test passed `5/5`
+- `npm run test:p2p` passed `50/50`
+- `npm run typecheck` passed
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check` passed
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib cloud::tests:: -j 1`
+  passed `5/5`
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is not a central default data path; it requires a relay lease, and relay
+  leases still require direct route failure
+- this is not release-grade QUIC/TLS relay transport
+- `relay_payload_endpoint_wired=false` and `relay_transport_wired=false` remain
+  until target-side relay polling/execution and release-grade tunnel proof land
+
 ## 2026-06-03 Relay Transport Proof Store Gate
 
 Route-evidence grading now rejects proof-shaped relay payload JSON unless a

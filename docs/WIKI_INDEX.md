@@ -3016,4 +3016,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_000535`, `WebView2 0.57`,
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `049a9a9a`.
 
+- 2026-06-04 relay payload queue API:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_QUEUE_API_2026_06_04.md` (wiki/651)
+  records the new lease-bound owner-scoped relay payload queue endpoint
+  `POST/GET /api/v1/p2p/relay/payload` and Rust
+  `MusuCloud::submit_relay_payload` client hook. Search terms should include
+  `GOAL v461`, `wiki/651`, `musu.relay_payload_envelope.v1`,
+  `p2pRelayPayloadStore`, `relay_payload_queue_endpoint_wired`,
+  `http_store_forward_preview`, `relay_payload_queue_not_quic_tls_transport`,
+  and `test:p2p 50/50`.
+
 **End of WIKI_INDEX.md.**
