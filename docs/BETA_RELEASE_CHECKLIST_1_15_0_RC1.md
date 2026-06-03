@@ -2854,6 +2854,35 @@ Results:
 - clean go/no-go on `4ab4281f`: single-machine true, runtime idle CPU `1/2`,
   runtime CPU matrix `1/2`, public release No-Go with six remaining blockers
 
+## 2026-06-03 Relay Transport Proof Record API
+
+The hosted control-plane now exposes:
+
+- `POST /api/v1/p2p/relay/transport-proof`
+- `GET /api/v1/p2p/relay/transport-proof`
+
+The POST route is owner-scoped, requires a matching stored relay lease, and
+returns 409 without storing proof for `relay_transport_proof_lease_not_found`.
+Local file proof stores remain non-release-grade and surface
+`relay_transport_proof_store_backend_not_release_grade`.
+
+Rust cloud client now includes `MusuCloud::submit_relay_transport_proof(...)`
+for future relay/tunnel runtime code.
+
+Validation:
+
+- `npm run test:p2p` passed `45/45`
+- `npm run typecheck` passed
+- Rust cloud tests passed `4/4`
+- `git diff --check` passed
+
+Release interpretation:
+
+- this adds the proof recording contract
+- it does not implement relay payload transit
+- current-source packaged primary evidence must be refreshed after this source
+  change
+
 ## 2026-06-03 22:30 KST Relay Transport Proof Binding Gate
 
 Relay route evidence now rejects proof-shaped relay payload transport JSON unless

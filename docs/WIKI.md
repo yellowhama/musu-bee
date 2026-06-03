@@ -3723,3 +3723,40 @@ No-Go on the remaining six release blockers.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_PROOF_STORE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+## 2026-06-03 relay transport proof record API (wiki/649)
+
+The hosted P2P control-plane now has a lease-bound owner-scoped route for future
+relay/tunnel runtime code to record payload transport proof:
+
+- `POST /api/v1/p2p/relay/transport-proof`
+- `GET /api/v1/p2p/relay/transport-proof`
+
+The POST route requires bearer auth, schema `musu.relay_transport_proof.v1`,
+`session_id`, `lease_id`, `source_node_id`, `target_node_id`, relay URL, tunnel
+ID, payload byte count, encryption/verifier fields, and timestamps. It queries
+the owner-scoped relay lease store before storing proof and returns 409 without
+storing when the lease is missing.
+
+New proof-recording blockers include
+`relay_transport_proof_lease_not_found`,
+`relay_transport_proof_relay_url_mismatch`,
+`relay_transport_proof_kind_not_release_grade`,
+`relay_transport_proof_no_infra_transit`,
+`relay_transport_proof_not_quic_tls`,
+`relay_transport_proof_not_verified`, timestamp blockers, and
+`relay_transport_proof_store_backend_not_release_grade`.
+
+Rust cloud client now exposes `MusuCloud::submit_relay_transport_proof(...)`
+with typed request/response DTOs.
+
+Validation passed `npm run test:p2p` `45/45`, `npm run typecheck`,
+`cargo test --manifest-path .\musu-rs\Cargo.toml --lib cloud::tests:: -j 1`
+`4/4`, and `git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_RECORD_API_2026_06_03.md`
+
+This is not relay payload transport completion. `/api/v1/relay/connect` remains
+fail-closed until real QUIC relay/tunnel payload transit lands.

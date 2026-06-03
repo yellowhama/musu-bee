@@ -2994,4 +2994,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_232620`, `WebView2 0.39`,
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `4ab4281f`.
 
+- 2026-06-03 relay transport proof record API:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_RECORD_API_2026_06_03.md`
+  (wiki/649) records the new owner-scoped
+  `POST/GET /api/v1/p2p/relay/transport-proof` API and Rust
+  `MusuCloud::submit_relay_transport_proof` client contract. Search terms
+  should include `GOAL v459`, `wiki/649`,
+  `relay_transport_proof_lease_not_found`,
+  `relay_transport_proof_store_backend_not_release_grade`,
+  `P2pRelayTransportProofRequest`, and `test:p2p 45/45`.
+
 **End of WIKI_INDEX.md.**
