@@ -2833,4 +2833,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/635 index refresh`, `relay_payload_transport_not_implemented`, and
   `musu.relay_connect_unavailable.v1`.
 
+- 2026-06-03 post relay connect primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/636) records fresh current-HEAD primary-machine packaged evidence for
+  commit `e592bf608341f0461b03d55c7c0845ccf7781be0`: single-machine smoke
+  `20260603-195528-HUGH_SECOND`, desktop-open CPU
+  `20260603-195742-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-195917-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `GOAL v446`, `wiki/636`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_195506`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_195917`, `WebView2 0.39`,
+  `matrix max WebView2 0.42`, and `runtime CPU matrix 1/2`.
+
+- 2026-06-03 post relay connect primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1779 files and 2334 symbols after GOAL v446, wiki/636, fresh
+  primary evidence `20260603-195528-HUGH_SECOND`,
+  `20260603-195742-HUGH_SECOND.desktop-open`, and
+  `20260603-195917-HUGH_SECOND.runtime-cpu-scenario-matrix`, the primary
+  refresh report, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_post_relay_connect_primary_evidence_refresh.md` and
+  `2026-06-03_post_relay_connect_primary_evidence_index_refresh.md`. Search
+  terms should include `GOAL v447`, `1779 files`, `2334 symbols`,
+  `wiki/637 index refresh`, `MUSU_RELEASE_SMOKE_OK_20260603_195506`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_195917`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
 **End of WIKI_INDEX.md.**
