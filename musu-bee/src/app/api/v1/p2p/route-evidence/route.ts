@@ -35,6 +35,9 @@ const RelayFallbackSchema = z.object({
   blockers: z.array(z.string().min(1)).optional(),
   lease_id: z.string().min(1).nullable().optional(),
   failure_class: z.string().min(1).nullable().optional(),
+  payload_transport_attempted: z.boolean().optional(),
+  payload_transport_proven: z.boolean().optional(),
+  payload_transport_failure_class: z.string().min(1).nullable().optional(),
 });
 
 const RelayTransportProofSchema = z.object({
@@ -166,6 +169,25 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   return blockers;
 }
 
+function relayFallbackPayloadTransportBlockers(evidence: RouteEvidence): string[] {
+  const relay = evidence.relay_fallback;
+  if (!relay || relay.status !== "issued" || !relay.lease_issued) {
+    return [];
+  }
+
+  const blockers: string[] = [];
+  if (relay.payload_transport_attempted !== true) {
+    blockers.push("relay_fallback_payload_transport_not_attempted");
+  }
+  if (relay.payload_transport_proven !== true) {
+    blockers.push("relay_fallback_payload_transport_not_proven");
+  }
+  if (relay.payload_transport_failure_class?.trim() === "relay_payload_transport_not_implemented") {
+    blockers.push("relay_fallback_payload_transport_not_implemented");
+  }
+  return blockers;
+}
+
 async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
   const blockers: string[] = [];
 
@@ -238,6 +260,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
     blockers.push("missing_handshake_timing");
   }
 
+  blockers.push(...relayFallbackPayloadTransportBlockers(evidence));
   blockers.push(...(await relayLeaseStoreBlockers(evidence, ownerKey)));
   return blockers;
 }

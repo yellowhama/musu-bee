@@ -36,6 +36,9 @@ export type RouteEvidencePayload = {
     blockers?: string[];
     lease_id?: string | null;
     failure_class?: string | null;
+    payload_transport_attempted?: boolean;
+    payload_transport_proven?: boolean;
+    payload_transport_failure_class?: string | null;
   };
   relay_transport_proof?: {
     schema: "musu.relay_transport_proof.v1";

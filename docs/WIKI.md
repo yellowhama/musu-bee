@@ -3592,3 +3592,23 @@ Canonical report:
   `MUSU_RELEASE_SMOKE_OK_20260603_213326`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_213849`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`
+
+## 2026-06-03 relay fallback payload gap gate (wiki/644)
+
+Runtime relay fallback evidence now records the payload transport gap when a
+relay lease is issued but no relay payload path is attempted. Current bridge
+forwarding writes `payload_transport_attempted=false`,
+`payload_transport_proven=false`, and
+`payload_transport_failure_class=relay_payload_transport_not_implemented`.
+
+Hosted route-evidence grading now treats issued fallback addenda without
+payload proof as non-release-grade with blockers
+`relay_fallback_payload_transport_not_attempted`,
+`relay_fallback_payload_transport_not_proven`, and
+`relay_fallback_payload_transport_not_implemented`.
+
+Validation passed `git diff --check`, Rust fmt check, `npm run test:p2p`
+`38/38`, `npm run typecheck`, `cargo check --lib`, and Rust route-evidence
+tests `10/10`. This is evidence hardening only; relay/tunnel payload transport
+is still unwired, and fresh clean packaged primary evidence is required after
+this runtime/web source change.

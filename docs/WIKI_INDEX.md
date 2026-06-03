@@ -2937,4 +2937,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_213849`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`.
 
+- 2026-06-03 relay fallback payload gap gate:
+  `RELEASE_1_15_0_RC1_RELAY_FALLBACK_PAYLOAD_GAP_GATE_2026_06_03.md`
+  (wiki/644) records that issued runtime relay fallback leases now carry
+  explicit payload transport gap evidence:
+  `payload_transport_attempted=false`,
+  `payload_transport_proven=false`, and
+  `payload_transport_failure_class=relay_payload_transport_not_implemented`.
+  Hosted route-evidence grading adds blockers
+  `relay_fallback_payload_transport_not_attempted`,
+  `relay_fallback_payload_transport_not_proven`, and
+  `relay_fallback_payload_transport_not_implemented`. Search terms should
+  include `GOAL v454`, `wiki/644`, `payload_transport_attempted`,
+  `payload_transport_proven`, `relay_payload_transport_not_implemented`,
+  `test:p2p 38/38`, and `route-evidence 10/10`.
+
 **End of WIKI_INDEX.md.**

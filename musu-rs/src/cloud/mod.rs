@@ -367,6 +367,12 @@ pub struct RouteRelayFallbackEvidence {
     pub lease_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_class: Option<String>,
+    #[serde(default)]
+    pub payload_transport_attempted: bool,
+    #[serde(default)]
+    pub payload_transport_proven: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload_transport_failure_class: Option<String>,
 }
 
 impl MusuCloud {

@@ -2802,6 +2802,45 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 22:09 KST Relay Fallback Payload Gap Gate
+
+Issued relay leases are now explicitly separated from relay payload transport
+proof in runtime and hosted route evidence.
+
+New `relay_fallback` fields:
+
+- `payload_transport_attempted`
+- `payload_transport_proven`
+- `payload_transport_failure_class`
+
+Current bridge forwarding records an issued lease with
+`payload_transport_attempted=false`, `payload_transport_proven=false`, and
+`payload_transport_failure_class=relay_payload_transport_not_implemented`
+because the relay payload path is still not wired.
+
+Hosted route-evidence release grading now adds blockers:
+
+- `relay_fallback_payload_transport_not_attempted`
+- `relay_fallback_payload_transport_not_proven`
+- `relay_fallback_payload_transport_not_implemented`
+
+Validation:
+
+- `git diff --check`: passed
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`: passed
+- `npm run test:p2p`: `38/38`
+- `npm run typecheck`: passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --lib -j 1`: passed
+- Rust route-evidence tests: `10/10`
+
+Release interpretation:
+
+- this is evidence hardening, not relay payload transport implementation
+- public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted relay payload proof, support mailbox evidence, and Store evidence
+- current packaged primary evidence is historical until clean post-commit
+  MSIX/smoke/CPU/matrix evidence is refreshed
+
 ## 2026-06-03 21:10 KST P2P Relay Status Descriptor Gate
 
 Hosted P2P relay status now reports the live transport descriptor instead of

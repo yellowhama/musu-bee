@@ -17,6 +17,13 @@ evidence contains owner-scoped release-grade relay route evidence with
 `count > 0` and `relay_transport_proven=true`. KV/Upstash owner-scoped lease
 storage alone is no longer enough to pass the public P2P gate.
 
+**2026-06-03 relay fallback payload-gap update**: Runtime
+`relay_fallback` evidence now records whether relay payload transport was
+attempted and proven. Current bridge forwarding records
+`payload_transport_attempted=false`, `payload_transport_proven=false`, and
+`payload_transport_failure_class=relay_payload_transport_not_implemented` when
+a relay lease is issued because the relay payload path remains unwired.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P
@@ -245,7 +252,10 @@ evidence can include an optional addendum:
     "policy": "connect_pro_fallback_only",
     "blockers": ["relay_transport_not_wired"],
     "lease_id": null,
-    "failure_class": "relay_lease_denied"
+    "failure_class": "relay_lease_denied",
+    "payload_transport_attempted": false,
+    "payload_transport_proven": false,
+    "payload_transport_failure_class": null
   }
 }
 ```
@@ -271,6 +281,11 @@ Current `POST /api/v1/p2p/route-evidence` behavior:
 - Validates and stores the optional `relay_fallback` addendum for terminal
   direct-route failures. Valid statuses are `skipped_no_token`,
   `skipped_no_session`, `denied`, `issued`, `failed`, and `timed_out`.
+- Treats issued relay fallback addenda as non-release-grade unless payload
+  transport state is explicit. Current runtime-issued fallback evidence records
+  `payload_transport_attempted=false`, `payload_transport_proven=false`, and
+  `payload_transport_failure_class=relay_payload_transport_not_implemented`
+  because the relay payload path is still not wired.
 - Stores valid evidence and returns `202`, including `stored=true`,
   `evidence_id`, `owner_scoped=true`, `release_grade`, and `blockers`.
 - Stores an `owner_key` derived from the accepted Bearer token's SHA-256 hash,
@@ -548,6 +563,23 @@ route cannot become release-grade by simply claiming `route_kind=relay` and
 infra transit. Missing or denied lease proof remains stored as audit evidence
 with blockers such as `relay_route_missing_lease_proof`,
 `relay_route_lease_not_issued`, or `relay_route_lease_blocked`.
+
+## 2026-06-03 Relay Fallback Payload-Gap Requirement
+
+Relay lease issuance is not relay payload transport proof. Runtime
+`relay_fallback` evidence now carries `payload_transport_attempted`,
+`payload_transport_proven`, and optional `payload_transport_failure_class`.
+
+Current bridge forwarding sets both booleans to `false` and records
+`relay_payload_transport_not_implemented` when a relay lease is issued after
+terminal direct-route failure. Hosted route-evidence grading adds blockers
+`relay_fallback_payload_transport_not_attempted`,
+`relay_fallback_payload_transport_not_proven`, and
+`relay_fallback_payload_transport_not_implemented` for issued fallback addenda
+that lack actual payload transport proof.
+
+This keeps `musu.pro` on the control-plane and policy boundary until real
+relay/tunnel transport can emit release-grade `musu.relay_transport_proof.v1`.
 
 ## 2026-06-03 Post Forwarded-Task Audit Evidence Update
 

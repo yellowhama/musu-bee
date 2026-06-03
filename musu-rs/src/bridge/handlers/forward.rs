@@ -209,6 +209,14 @@ fn relay_fallback_route_evidence(
         crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoToken
             | crate::bridge::rendezvous::RelayLeaseFallbackStatus::SkippedNoSession
     );
+    let payload_transport_failure_class = if matches!(
+        relay.status,
+        crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued
+    ) {
+        Some(crate::bridge::route_evidence::RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED.to_string())
+    } else {
+        None
+    };
 
     crate::bridge::route_evidence::RouteRelayFallbackEvidence {
         direct_path_failed: true,
@@ -221,6 +229,9 @@ fn relay_fallback_route_evidence(
         blockers: relay.blockers.clone(),
         lease_id: relay.lease_id.clone(),
         failure_class: relay.failure_class.clone(),
+        payload_transport_attempted: false,
+        payload_transport_proven: false,
+        payload_transport_failure_class,
     }
 }
 
@@ -657,6 +668,8 @@ pub async fn forward_to_peer_with_retry(
         relay_blockers = ?relay.blockers,
         relay_lease_id = relay.lease_id.as_deref().unwrap_or(""),
         relay_failure_class = relay.failure_class.as_deref().unwrap_or(""),
+        relay_payload_transport_attempted = false,
+        relay_payload_transport_proven = false,
         "relay fallback lease evaluated after failed direct route"
     );
     err.relay_fallback = Some(relay_fallback_route_evidence(

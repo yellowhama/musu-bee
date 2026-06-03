@@ -14,6 +14,7 @@ pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
     "musu_bridge_forward_fingerprint_pinned_client";
 #[allow(dead_code)]
 pub const QUIC_TLS_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
+pub const RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED: &str = "relay_payload_transport_not_implemented";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteTransportProof {
@@ -56,6 +57,10 @@ pub struct RouteRelayFallbackEvidence {
     pub lease_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_class: Option<String>,
+    pub payload_transport_attempted: bool,
+    pub payload_transport_proven: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_transport_failure_class: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -183,6 +188,9 @@ fn cloud_relay_fallback(
         blockers: evidence.blockers.clone(),
         lease_id: evidence.lease_id.clone(),
         failure_class: evidence.failure_class.clone(),
+        payload_transport_attempted: evidence.payload_transport_attempted,
+        payload_transport_proven: evidence.payload_transport_proven,
+        payload_transport_failure_class: evidence.payload_transport_failure_class.clone(),
     }
 }
 
@@ -629,6 +637,9 @@ mod tests {
                 blockers: vec!["relay_transport_not_wired".to_string()],
                 lease_id: None,
                 failure_class: Some("relay_lease_denied".to_string()),
+                payload_transport_attempted: false,
+                payload_transport_proven: false,
+                payload_transport_failure_class: None,
             }),
         });
 
@@ -663,6 +674,40 @@ mod tests {
         assert_eq!(
             relay.blockers,
             vec!["relay_transport_not_wired".to_string()]
+        );
+        assert!(!relay.payload_transport_attempted);
+        assert!(!relay.payload_transport_proven);
+        assert_eq!(relay.payload_transport_failure_class, None);
+    }
+
+    #[test]
+    fn issued_relay_fallback_records_payload_transport_gap() {
+        let fallback = RouteRelayFallbackEvidence {
+            direct_path_failed: true,
+            lease_requested: true,
+            status: "issued".to_string(),
+            lease_issued: true,
+            attempted_route_kinds: vec!["lan".to_string(), "tailscale".to_string()],
+            requested_capability: Some("remote_command".to_string()),
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: Vec::new(),
+            lease_id: Some("relay-lease-test".to_string()),
+            failure_class: None,
+            payload_transport_attempted: false,
+            payload_transport_proven: false,
+            payload_transport_failure_class: Some(
+                RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED.to_string(),
+            ),
+        };
+        let value = serde_json::to_value(&fallback).unwrap();
+
+        assert_eq!(value["status"], "issued");
+        assert_eq!(value["lease_issued"], true);
+        assert_eq!(value["payload_transport_attempted"], false);
+        assert_eq!(value["payload_transport_proven"], false);
+        assert_eq!(
+            value["payload_transport_failure_class"],
+            RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED
         );
     }
 }
