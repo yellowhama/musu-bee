@@ -2705,3 +2705,40 @@ the explicit packaged WindowsApps alias invocation. Search terms should include
 `GOAL v416`, `wiki/607 index refresh`, `relay_route_lease_not_found`,
 `relay_route_lease_attempts_mismatch`, `relay_route_lease_store_unavailable`,
 `queryRelayLeases`, `owner-scoped stored relay lease`, and `test:p2p 29/29`.
+
+## 2026-06-03 12:17 KST Post Stored-Lease Primary Evidence Refresh
+
+wiki/608 records the primary-machine evidence refresh after the stored relay
+lease route evidence gate.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-120751-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-120903-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-121028-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key numbers:
+
+- smoke task `afb7e08d-427b-4307-bdd5-4d5b165dd026`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260603_120729`
+- idle CPU `desktop-open`: MUSU `0`, Node `0.05`, WebView2 `0.08`,
+  working set `496.49MB`, hot `0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STORED_LEASE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_post_stored_lease_primary_evidence_refresh.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1675` files and `2296` symbols after wiki/608, GOAL v417,
+  fresh primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+- search terms should include `GOAL v418`, `wiki/609 index refresh`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`, and
+  `post stored-lease primary evidence refresh`

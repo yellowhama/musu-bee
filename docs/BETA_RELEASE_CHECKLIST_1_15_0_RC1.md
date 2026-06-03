@@ -2431,3 +2431,39 @@ Canonical report:
 - indexed `1667` files and `2296` symbols after wiki/606, GOAL v415,
   route-evidence stored lease gate source/tests, P2P spec update,
   BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 12:17 KST Post Stored-Lease Primary Evidence Refresh
+
+Primary-machine evidence was refreshed after the stored relay lease route
+evidence gate commit `ec9db1d29fa350f256ddc6fc9ae8e54ebb2435e5`.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-120751-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-120903-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-121028-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Validation:
+
+- single-machine verifier: `ok=true`, `fail_count=0`
+- idle CPU: `ok=true`, `git_dirty=false`, MUSU `0`, Node `0.05`,
+  WebView2 `0.08`, hot `0`
+- matrix verifier: `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`
+
+Release remains No-Go until second-PC runtime evidence, hosted P2P relay
+payload proof, support mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STORED_LEASE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1675` files and `2296` symbols after GOAL v417, wiki/608,
+  fresh primary evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories

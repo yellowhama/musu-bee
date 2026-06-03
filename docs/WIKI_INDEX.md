@@ -2500,4 +2500,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/607 index refresh`, `queryRelayLeases`,
   `relay_route_lease_not_found`, and `owner-scoped stored relay lease`.
 
+- 2026-06-03 post stored-lease primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_STORED_LEASE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/608) records the current primary-machine evidence refresh after the
+  stored relay lease gate. Search terms should include `GOAL v417`,
+  `20260603-120751-HUGH_SECOND`, `20260603-120903-HUGH_SECOND.desktop-open`,
+  `20260603-121028-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`, `single_machine_verified`,
+  and `five-state runtime CPU matrix`.
+
+- 2026-06-03 post stored-lease primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1675 files and 2296 symbols after GOAL v417, wiki/608, fresh primary
+  evidence, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_post_stored_lease_primary_evidence_refresh.md` and
+  `2026-06-03_post_stored_lease_primary_evidence_index_refresh.md`. Search
+  terms should include `GOAL v418`, `1675 files`, `2296 symbols`,
+  `wiki/609 index refresh`, and
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_121028`.
+
 **End of WIKI_INDEX.md.**
