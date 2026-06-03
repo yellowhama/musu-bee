@@ -124,6 +124,7 @@ Canonical references:
 - `docs/RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md` (wiki/521, historical final qualitative evaluation / code audit / next-step roadmap)
 - `docs/RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522, current status audit / product spec lock / code audit / next-step roadmap)
 - `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md` (wiki/523, runtime idle CPU / relay-control P0 roadmap)
+- `docs/P2P_CONTROL_PLANE.md` (local program executes work; `musu.pro` is the work-order, project-room, rendezvous, path-selection, and relay-fallback control plane)
 - `docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md` (wiki/524, registry/rendezvous/path-selection/relay route-evidence implementation spec)
 - `docs/MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md` (wiki/525, concrete execution plan for idle CPU, `musu.pro` P2P assistance, and desktop hardening)
 - `docs/MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md` (wiki/526, Store/MSIX runtime-only package finding and desktop entrypoint release gate)
