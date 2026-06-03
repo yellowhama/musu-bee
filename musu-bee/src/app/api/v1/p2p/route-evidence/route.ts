@@ -84,6 +84,15 @@ type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
+const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+
+function parseIsoTimestamp(value: string | null | undefined): number | null {
+  if (!value?.trim()) {
+    return null;
+  }
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
 
 function sameRouteKindSet(left: string[], right: string[]): boolean {
   const leftSet = new Set(left);
@@ -126,10 +135,15 @@ async function relayLeaseStoreBlockers(evidence: RouteEvidence, ownerKey: string
     if (!lease) {
       return ["relay_route_lease_not_found"];
     }
+    const blockers: string[] = [];
     if (!sameRouteKindSet(lease.attempted_route_kinds, relay.attempted_route_kinds)) {
-      return ["relay_route_lease_attempts_mismatch"];
+      blockers.push("relay_route_lease_attempts_mismatch");
     }
-    return [];
+    const proofRelayUrl = evidence.relay_transport_proof?.relay_url.trim();
+    if (proofRelayUrl && proofRelayUrl !== lease.relay_url.trim()) {
+      blockers.push("relay_route_transport_proof_relay_url_mismatch");
+    }
+    return blockers;
   } catch (error) {
     return [`relay_route_lease_store_unavailable:${error instanceof Error ? error.message : "unknown"}`];
   }
@@ -156,6 +170,9 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   if (!proof.relay_url.trim().startsWith("wss://")) {
     blockers.push("relay_route_transport_proof_relay_url_not_wss");
   }
+  if (!RELEASE_GRADE_RELAY_TRANSPORT_KINDS.has(proof.transport_kind.trim())) {
+    blockers.push("relay_route_transport_proof_kind_not_release_grade");
+  }
   if (!proof.payload_transited_musu_infra) {
     blockers.push("relay_route_transport_proof_no_infra_transit");
   }
@@ -164,6 +181,17 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   }
   if (proof.transport_verified_by.trim() !== "musu_quic_tls_transport") {
     blockers.push("relay_route_transport_proof_not_verified");
+  }
+  const openedAt = parseIsoTimestamp(proof.opened_at);
+  const closedAt = parseIsoTimestamp(proof.closed_at);
+  if (openedAt === null) {
+    blockers.push("relay_route_transport_proof_opened_at_invalid");
+  }
+  if (proof.closed_at?.trim() && closedAt === null) {
+    blockers.push("relay_route_transport_proof_closed_at_invalid");
+  }
+  if (openedAt !== null && closedAt !== null && closedAt < openedAt) {
+    blockers.push("relay_route_transport_proof_timestamp_order_invalid");
   }
 
   return blockers;

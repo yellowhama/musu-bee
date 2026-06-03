@@ -2952,4 +2952,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `payload_transport_proven`, `relay_payload_transport_not_implemented`,
   `test:p2p 38/38`, and `route-evidence 10/10`.
 
+- 2026-06-03 relay transport proof binding gate:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_BINDING_GATE_2026_06_03.md`
+  (wiki/645) records that relay route evidence now rejects proof-shaped relay
+  payload JSON unless the proof `relay_url` matches the stored owner-scoped
+  relay lease URL, `transport_kind` is `quic_relay_tunnel`, and proof
+  timestamps parse in order. Search terms should include `GOAL v455`,
+  `wiki/645`, `relay_route_transport_proof_relay_url_mismatch`,
+  `relay_route_transport_proof_kind_not_release_grade`,
+  `relay_route_transport_proof_timestamp_order_invalid`, and `test:p2p 40/40`.
+
 **End of WIKI_INDEX.md.**

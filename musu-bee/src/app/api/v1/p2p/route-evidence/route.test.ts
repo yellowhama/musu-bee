@@ -291,6 +291,75 @@ test("keeps transport-proof relay route evidence non release grade until payload
   });
 });
 
+test("keeps relay transport proof non release grade when it is not bound to the stored lease URL", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-transport-proof-url-mismatch");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+      relay_transport_proof: relayTransportProof(lease.lease_id, {
+        relay_url: "wss://unexpected-relay.example/connect",
+      }),
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_transport_proof_relay_url_mismatch/);
+  });
+});
+
+test("keeps relay transport proof non release grade when kind or timestamps are invalid", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-transport-proof-invalid-kind-time");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+      relay_transport_proof: relayTransportProof(lease.lease_id, {
+        transport_kind: "websocket_tunnel",
+        opened_at: "2026-06-01T01:00:02Z",
+        closed_at: "2026-06-01T01:00:01Z",
+      }),
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_transport_proof_kind_not_release_grade/);
+    assert.match(body.blockers.join(","), /relay_route_transport_proof_timestamp_order_invalid/);
+  });
+});
+
 test("accepts legacy debug evidence but marks it non release grade", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("legacy");

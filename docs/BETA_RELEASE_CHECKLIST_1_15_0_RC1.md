@@ -2802,6 +2802,33 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 22:30 KST Relay Transport Proof Binding Gate
+
+Relay route evidence now rejects proof-shaped relay payload transport JSON unless
+it is bound to the stored owner-scoped relay lease and release transport
+contract.
+
+New blockers:
+
+- `relay_route_transport_proof_relay_url_mismatch`
+- `relay_route_transport_proof_kind_not_release_grade`
+- `relay_route_transport_proof_opened_at_invalid`
+- `relay_route_transport_proof_closed_at_invalid`
+- `relay_route_transport_proof_timestamp_order_invalid`
+
+Validation:
+
+- `npm run test:p2p` passed `40/40`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+Release interpretation:
+
+- this hardens relay evidence integrity
+- this does not implement relay/tunnel payload transport
+- public release remains No-Go on real relay payload proof, second-PC
+  runtime/multi-device evidence, support mailbox evidence, and Store evidence
+
 ## 2026-06-03 22:09 KST Relay Fallback Payload Gap Gate
 
 Issued relay leases are now explicitly separated from relay payload transport

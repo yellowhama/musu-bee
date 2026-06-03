@@ -3612,3 +3612,23 @@ Validation passed `git diff --check`, Rust fmt check, `npm run test:p2p`
 tests `10/10`. This is evidence hardening only; relay/tunnel payload transport
 is still unwired, and fresh clean packaged primary evidence is required after
 this runtime/web source change.
+
+## 2026-06-03 relay transport proof binding gate (wiki/645)
+
+Relay route evidence now keeps proof-shaped relay payload JSON non-release-grade
+unless it is bound to the stored owner-scoped relay lease and the release
+transport contract.
+
+New blockers:
+
+- `relay_route_transport_proof_relay_url_mismatch`
+- `relay_route_transport_proof_kind_not_release_grade`
+- `relay_route_transport_proof_opened_at_invalid`
+- `relay_route_transport_proof_closed_at_invalid`
+- `relay_route_transport_proof_timestamp_order_invalid`
+
+Validation passed `npm run test:p2p` `40/40`, `npm run typecheck`, and
+`git diff --check`. This is evidence hardening only; relay/tunnel payload
+transport is still unwired and public release remains No-Go on real relay
+payload proof, second-PC runtime/multi-device evidence, support mailbox
+evidence, and Store evidence.
