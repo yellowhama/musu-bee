@@ -2729,4 +2729,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/627 index refresh`, `useBoundedEventSource`,
   `BOUNDED_SSE_MAX_RETRIES`, and `runtime-polling 14/14`.
 
+- 2026-06-03 post bounded frontend SSE primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_BOUNDED_FRONTEND_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+  (wiki/628) records fresh primary-machine packaged evidence for commit
+  `4f52269e66c3e1ffdbde9d7936bcd83e4fb4a22c`: single-machine smoke
+  `20260603-173637-HUGH_SECOND`, desktop-open CPU
+  `20260603-174002-HUGH_SECOND.desktop-open`, and runtime CPU matrix
+  `20260603-174322-HUGH_SECOND.runtime-cpu-scenario-matrix`. Search terms
+  should include `GOAL v438`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_173611`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`,
+  `9048EA2A9C0891A574C62F9DF2C1D0DA873952DE`,
+  `ReferenceError: self is not defined`, `runtime idle CPU 1/2`, and
+  `runtime CPU matrix 1/2`.
+
+- 2026-06-03 post bounded frontend SSE primary evidence index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1745 files and 2318 symbols after GOAL v438, wiki/628, fresh
+  primary evidence `20260603-173637-HUGH_SECOND`,
+  `20260603-174002-HUGH_SECOND.desktop-open`, and
+  `20260603-174322-HUGH_SECOND.runtime-cpu-scenario-matrix`, the primary
+  refresh report, BETA/WIKI/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_post_bounded_frontend_sse_primary_evidence_refresh.md`. Search
+  terms should include `GOAL v439`, `1745 files`, `2318 symbols`,
+  `wiki/629 index refresh`, `MUSU_RELEASE_SMOKE_OK_20260603_173611`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`, and
+  `post bounded frontend SSE primary evidence refresh`.
+
 **End of WIKI_INDEX.md.**

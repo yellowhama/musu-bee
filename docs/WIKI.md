@@ -3227,3 +3227,49 @@ Canonical report:
 - search terms should include `GOAL v437`, `wiki/627 index refresh`,
   `useBoundedEventSource`, `BOUNDED_SSE_MAX_RETRIES`, and
   `runtime-polling 14/14`
+
+## 2026-06-03 post bounded frontend SSE primary evidence refresh (wiki/628)
+
+Fresh primary-machine packaged evidence was restored for commit
+`4f52269e66c3e1ffdbde9d7936bcd83e4fb4a22c` after bounded frontend SSE
+hardening.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-173637-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-174002-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-174322-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results: smoke output `MUSU_RELEASE_SMOKE_OK_20260603_173611`; desktop-open
+CPU `60.044s`, MUSU `0`, Node `0`, WebView2 `0.29`, hot `0`, working set
+`382.17MB`; five-state matrix route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`, verifier `ok=true`,
+`fail_count=0`, max MUSU `0.03`, Node `0.03`, WebView2 `0.39`, and max working
+set `518.26MB`.
+
+The local-sideload package was repacked with the existing LocalMachine-trusted
+cert `9048EA2A9C0891A574C62F9DF2C1D0DA873952DE` after the first generated cert
+stalled in non-interactive `certutil`. Production Next stderr also logged
+`ReferenceError: self is not defined` from
+`.next\server\app\m\[id]\workstation\page.js`; the matrix did not exercise that
+route, so this remains a separate workstation SSR hardening item.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_BOUNDED_FRONTEND_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1745` files and `2318` symbols after GOAL v438, wiki/628, fresh
+  primary evidence, the primary refresh report, BETA/WIKI_INDEX updates, and
+  CoS memory
+  `2026-06-03_post_bounded_frontend_sse_primary_evidence_refresh.md`
+- search terms should include `GOAL v439`, `wiki/629 index refresh`,
+  `MUSU_RELEASE_SMOKE_OK_20260603_173611`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_174322`, and
+  `post bounded frontend SSE primary evidence refresh`
