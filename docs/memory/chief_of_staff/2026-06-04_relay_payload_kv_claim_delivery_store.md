@@ -13,8 +13,9 @@ Code:
 
 Interpretation:
 
-- This is not release-grade atomic claim yet.
-- `relay_payload_store_release_grade` remains false.
+- Follow-up atomic KV mutation hardening replaced the list rewrite with Redis
+  Lua `EVAL`; configured KV/Upstash stores now report
+  `relay_payload_store_release_grade=true`.
 - No background polling or payload execution was added.
 - `musu.pro` remains a control plane/fallback coordinator, not the default data
   path.

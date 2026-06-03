@@ -3076,7 +3076,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_KV_CLAIM_DELIVERY_STORE_2026_06_04.md`
   (wiki/657) records hosted KV/Upstash claim/delivery support for the relay
   payload queue. Search terms should include `GOAL v467`, `wiki/657`,
-  `kvSetPayloads`, `__setP2pRelayPayloadKvClientForTest`,
+  `__setP2pRelayPayloadKvClientForTest`,
   `relay_payload_delivery_requires_claim`, `relay_payload_claim_kv_not_implemented`,
   `KV relay payload store claims and delivers`, and `test:p2p 56/56`.
 
@@ -3103,5 +3103,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `run_relay_payload_poller`, `CancellationToken`,
   `relay_payload_poller_sleep_duration`, `doctor background tests 5/5`,
   `cargo test relay_payload 19/19`, and `unaudited_loop_hit_count=0`.
+
+- 2026-06-04 relay payload atomic KV mutation:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ATOMIC_KV_MUTATION_2026_06_04.md`
+  (wiki/660) records Redis Lua `EVAL` mutation hardening for hosted KV/Upstash
+  relay payload append, claim, and delivery. Search terms should include
+  `GOAL v470`, `wiki/660`, `musu_relay_payload_claim_v1`,
+  `musu_relay_payload_deliver_v1`, `relay_payload_store_release_grade=true`,
+  `relay_payload_atomic_kv_eval_unavailable`,
+  `KV relay payload store atomically prevents duplicate concurrent claims`,
+  `test:p2p 57/57`, and `route tests 11/11`.
 
 **End of WIKI_INDEX.md.**

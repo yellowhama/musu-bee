@@ -4049,9 +4049,10 @@ Validation passed Rust relay payload tests `14/14`, `cargo check --bin musu`,
 Rust fmt, and the Rust background-loop contract with `ok=true`, `fail_count=0`,
 and `unaudited_loop_hit_count=0`.
 
-This is not release-grade relay transport completion. It does not add opt-in
-background polling, production atomic claim semantics, QUIC/TLS relay proof, or
-fresh packaged evidence.
+This is not release-grade relay transport completion. Follow-up target poller
+and atomic KV mutation hardening closed the opt-in polling source-contract and
+hosted concurrent claim blockers. QUIC/TLS relay proof and fresh packaged
+evidence remain required.
 
 Canonical report:
 
@@ -4090,10 +4091,53 @@ contract audit with `ok=true`, `fail_count=0`, and
 `unaudited_loop_hit_count=0`.
 
 This is bounded opt-in target polling evidence. It is not release-grade relay
-transport completion; production atomic claim hardening, QUIC/TLS relay proof,
-hosted proof evidence, fresh packaged evidence, second-PC evidence, support
-mailbox, and Store evidence remain required.
+transport completion; follow-up atomic KV mutation hardening closed hosted
+concurrent claim hardening. QUIC/TLS relay proof, hosted proof evidence, fresh
+packaged evidence, second-PC evidence, support mailbox, and Store evidence
+remain required.
 
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_POLLER_2026_06_04.md`
+
+## 2026-06-04 relay payload atomic KV mutation (wiki/660)
+
+The hosted KV/Upstash relay payload queue now uses Redis Lua `EVAL` for all
+mutation paths:
+
+- append queued payload
+- claim queued payloads
+- mark claimed payload delivered
+
+This replaces the previous app-level `lrange` plus retained-list rewrite with
+`del`/`rpush`. Claim and delivery now complete inside a single Redis operation,
+which prevents two concurrent target claimers from claiming the same queued
+payload.
+
+Contract:
+
+- owner-scoped records are still required
+- target-node matching is still required
+- optional session, lease, source, and tunnel filters are preserved
+- delivery before claim still returns `relay_payload_delivery_requires_claim`
+- KV reads accept both object records and JSON string records
+- configured KV/Upstash stores report `relay_payload_store_release_grade=true`
+
+Payload transport interpretation is unchanged:
+
+- payload records remain `release_grade=false`
+- payload records remain `transport_kind=http_store_forward_preview`
+- `musu.pro` remains a control plane/fallback coordinator, not the default data
+  path
+
+Validation passed focused relay payload route tests `11/11`,
+`npm run test:p2p` `57/57`, and `npm run typecheck`.
+
+This closes hosted concurrent claim hardening. It is not release-grade relay
+transport completion; QUIC/TLS relay proof, hosted proof evidence, fresh
+packaged evidence, second-PC evidence, support mailbox evidence, and Store
+evidence remain required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ATOMIC_KV_MUTATION_2026_06_04.md`

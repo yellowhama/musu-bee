@@ -2836,13 +2836,51 @@ Release interpretation:
 - this does not provide release-grade QUIC/TLS relay proof
 - fresh packaged MSIX/smoke/CPU/matrix evidence is required after this source
   change
-- public release remains No-Go on production atomic claim hardening, hosted
-  relay payload proof, second-PC runtime/multi-device evidence, support mailbox,
-  and Store evidence
+- follow-up atomic KV mutation hardening now closes the hosted concurrent claim
+  blocker; public release remains No-Go on hosted relay payload proof,
+  second-PC runtime/multi-device evidence, support mailbox, and Store evidence
 
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_TARGET_POLLER_2026_06_04.md`
+
+## 2026-06-04 Relay Payload Atomic KV Mutation
+
+Hosted KV/Upstash relay payload mutations now run atomically inside Redis Lua
+`EVAL` scripts.
+
+Store behavior:
+
+- append, claim, and delivery each use a single Redis `EVAL`
+- claim no longer performs app-level `lrange` plus `del`/`rpush` retained-list
+  rewrites
+- owner scoping, target matching, and optional session/lease/source/tunnel
+  filters are preserved
+- delivery before claim still rejects with
+  `relay_payload_delivery_requires_claim`
+- KV reads accept both object records and JSON string records
+- configured KV/Upstash stores report `relay_payload_store_release_grade=true`
+
+Validation:
+
+- focused relay payload route tests passed 11/11
+- `npm run test:p2p` passed 57/57
+- `npm run typecheck` passed
+
+Release interpretation:
+
+- this closes hosted concurrent claim hardening
+- payload records still remain `release_grade=false` and
+  `transport_kind=http_store_forward_preview`
+- this is not release-grade QUIC/TLS relay payload transport
+- fresh packaged MSIX/smoke/CPU/matrix evidence is required after this source
+  change
+- public release remains No-Go on hosted relay proof, second-PC runtime and
+  route evidence, support mailbox, and Store evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ATOMIC_KV_MUTATION_2026_06_04.md`
 
 ## 2026-06-04 01:20 KST Relay Payload Queue Runtime Hook
 
@@ -2931,10 +2969,11 @@ Safety behavior:
 - public payload records strip `owner_key`
 - claim responses include `payload_base64` only when `include_payload=true`
 - delivery responses never include payload bytes
-- Follow-up wiki/657 added KV/Upstash claim/delivery via a list-rewrite
-  mutation path, so `relay_payload_claim_kv_not_implemented` and
-  `relay_payload_delivery_kv_not_implemented` are no longer current behavior.
-  Release-grade concurrent atomic claim is still incomplete.
+- Follow-up wiki/657 added KV/Upstash claim/delivery, and follow-up wiki/660
+  replaced the list-rewrite mutation path with Redis Lua `EVAL`. The old
+  placeholder errors `relay_payload_claim_kv_not_implemented` and
+  `relay_payload_delivery_kv_not_implemented` are no longer current behavior,
+  and hosted concurrent atomic claim hardening is now closed.
 
 Validation:
 
@@ -2948,8 +2987,8 @@ Release interpretation:
 - this is not payload execution
 - this is not release-grade QUIC/TLS relay transport proof
 - public release remains No-Go until target-side poll/claim/execute,
-  production atomic claim/delivery, release-grade relay proof, and fresh
-  packaged evidence are complete
+  release-grade relay proof, hosted proof evidence, and fresh packaged evidence
+  are complete
 
 ## 2026-06-04 02:42 KST Relay Payload Claim/Delivery Client CLI
 
@@ -2992,9 +3031,10 @@ Release interpretation:
 - this is not background polling
 - this is not payload execution
 - this is not release-grade QUIC/TLS relay transport proof
-- public release remains No-Go until bounded polling, execution safety,
-  production atomic claim/delivery, relay proof, and fresh packaged evidence are
-  complete
+- follow-up target poller and atomic KV mutation hardening closed bounded
+  polling source-contract and hosted concurrent claim blockers
+- public release remains No-Go until execution safety, relay proof, hosted proof
+  evidence, and fresh packaged evidence are complete
 
 ## 2026-06-04 02:52 KST Vercel CLI Pin Deploy Workflow
 
@@ -3061,11 +3101,12 @@ Validation:
 Release interpretation:
 
 - this is hosted storage capability, not relay transport completion
-- the KV list rewrite is not release-grade concurrent atomic claim
+- follow-up wiki/660 replaces the KV list rewrite with Redis Lua `EVAL` and
+  closes hosted concurrent atomic claim hardening
 - no background polling or payload execution was added
 - public release remains No-Go until bounded target polling, execution safety,
-  concurrent claim hardening, release-grade relay proof, and fresh packaged
-  evidence are complete
+  release-grade relay proof, hosted proof evidence, and fresh packaged evidence
+  are complete
 
 ## 2026-06-04 03:31 KST Relay Payload Target Drain
 
@@ -3106,9 +3147,10 @@ Release interpretation:
 - this is request-driven target-side claim/decode/accept/delivery plumbing
 - delivery means accepted by the local task runner, not task completion
 - no idle background poll loop was added
-- public release remains No-Go until opt-in polling evidence, production atomic
-  claim hardening, release-grade QUIC/TLS relay proof, hosted production
-  evidence, and fresh packaged MSIX smoke/CPU/matrix evidence are complete
+- follow-up wiki/660 closes hosted concurrent claim hardening
+- public release remains No-Go until opt-in polling evidence, release-grade
+  QUIC/TLS relay proof, hosted production evidence, and fresh packaged MSIX
+  smoke/CPU/matrix evidence are complete
 
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 

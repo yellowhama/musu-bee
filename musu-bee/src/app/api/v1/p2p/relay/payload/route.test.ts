@@ -17,6 +17,7 @@ import {
   claimRelayPayloads,
   createRelayPayload,
   markRelayPayloadDelivered,
+  p2pRelayPayloadStoreStatus,
   queryRelayPayloads,
   type StoredP2pRelayPayload,
 } from "@/lib/p2pRelayPayloadStore";
@@ -71,14 +72,120 @@ async function withRelayEnv(fn: () => Promise<void>): Promise<void> {
 }
 
 function fakeRelayPayloadKv() {
-  const state: { list: StoredP2pRelayPayload[] } = { list: [] };
+  const state: {
+    delCalls: number;
+    evalCommands: string[];
+    list: StoredP2pRelayPayload[];
+    lpushCalls: number;
+    ltrimCalls: number;
+    rpushCalls: number;
+  } = {
+    delCalls: 0,
+    evalCommands: [],
+    list: [],
+    lpushCalls: 0,
+    ltrimCalls: 0,
+    rpushCalls: 0,
+  };
   return {
     state,
     client: {
       async del() {
+        state.delCalls += 1;
         state.list = [];
       },
+      async eval<T = unknown>(script: string, _keys: string[], args: string[]): Promise<T> {
+        if (script.includes("musu_relay_payload_append_v1")) {
+          state.evalCommands.push("append");
+          const payload = JSON.parse(args[0] ?? "{}") as StoredP2pRelayPayload;
+          const maxRecords = Number.parseInt(args[1] ?? "1000", 10);
+          state.list = [payload, ...state.list].slice(0, maxRecords);
+          return JSON.stringify({ ok: true }) as T;
+        }
+
+        if (script.includes("musu_relay_payload_claim_v1")) {
+          state.evalCommands.push("claim");
+          const [
+            maxRecordsText,
+            now,
+            ownerKey,
+            targetNodeId,
+            sessionId,
+            leaseId,
+            sourceNodeId,
+            tunnelId,
+            limitText,
+            claimant,
+          ] = args;
+          const maxRecords = Number.parseInt(maxRecordsText ?? "1000", 10);
+          const limit = Number.parseInt(limitText ?? "1", 10);
+          const claimed: StoredP2pRelayPayload[] = [];
+          state.list = state.list
+            .filter((payload) => now < payload.expires_at)
+            .map((payload) => {
+              if (
+                claimed.length < limit &&
+                payload.status === "queued" &&
+                payload.owner_key === ownerKey &&
+                payload.target_node_id === targetNodeId &&
+                (!sessionId || payload.session_id === sessionId) &&
+                (!leaseId || payload.lease_id === leaseId) &&
+                (!sourceNodeId || payload.source_node_id === sourceNodeId) &&
+                (!tunnelId || payload.tunnel_id === tunnelId)
+              ) {
+                const next = {
+                  ...payload,
+                  status: "claimed" as const,
+                  claimed_by: claimant,
+                  claimed_at: now,
+                };
+                claimed.push(next);
+                return next;
+              }
+              return payload;
+            })
+            .slice(0, maxRecords);
+          return JSON.stringify(claimed) as T;
+        }
+
+        if (script.includes("musu_relay_payload_deliver_v1")) {
+          state.evalCommands.push("deliver");
+          const [maxRecordsText, deliveredAt, ownerKey, payloadId, targetNodeId] = args;
+          const maxRecords = Number.parseInt(maxRecordsText ?? "1000", 10);
+          let result:
+            | { status: "delivered"; payload: StoredP2pRelayPayload }
+            | { status: "not_found" }
+            | { status: "requires_claim" } = { status: "not_found" };
+          state.list = state.list
+            .filter((payload) => deliveredAt < payload.expires_at)
+            .map((payload) => {
+              if (
+                payload.payload_id !== payloadId ||
+                payload.owner_key !== ownerKey ||
+                payload.target_node_id !== targetNodeId
+              ) {
+                return payload;
+              }
+              if (payload.status !== "claimed") {
+                result = { status: "requires_claim" };
+                return payload;
+              }
+              const delivered = {
+                ...payload,
+                status: "delivered" as const,
+                delivered_at: deliveredAt,
+              };
+              result = { status: "delivered", payload: delivered };
+              return delivered;
+            })
+            .slice(0, maxRecords);
+          return JSON.stringify(result) as T;
+        }
+
+        throw new Error("unexpected_relay_payload_kv_eval_script");
+      },
       async lpush(_key: string, payload: StoredP2pRelayPayload) {
+        state.lpushCalls += 1;
         state.list.unshift(payload);
       },
       async lrange<T>(_key: string, start: number, stop: number): Promise<T[]> {
@@ -86,10 +193,12 @@ function fakeRelayPayloadKv() {
         return state.list.slice(start, end) as T[];
       },
       async ltrim(_key: string, start: number, stop: number) {
+        state.ltrimCalls += 1;
         const end = stop < 0 ? undefined : stop + 1;
         state.list = state.list.slice(start, end);
       },
       async rpush(_key: string, payload: StoredP2pRelayPayload) {
+        state.rpushCalls += 1;
         state.list.push(payload);
       },
     },
@@ -436,8 +545,11 @@ test("rejects delivery before relay payload is claimed", async () => {
 
 test("KV relay payload store claims and delivers owner-scoped payloads", async () => {
   await withRelayPayloadKvEnv(async () => {
-    const { client } = fakeRelayPayloadKv();
+    const { client, state } = fakeRelayPayloadKv();
     __setP2pRelayPayloadKvClientForTest(client);
+    const status = p2pRelayPayloadStoreStatus();
+    assert.equal(status.configured, true);
+    assert.equal(status.release_grade, true);
     const ownerKey = p2pControlOwnerKey("test-token");
     const payload = createRelayPayload({
       owner_key: ownerKey,
@@ -452,6 +564,7 @@ test("KV relay payload store claims and delivers owner-scoped payloads", async (
       payload_sha256: payloadBody().payload_sha256,
     });
     await appendRelayPayload(payload);
+    assert.deepEqual(state.evalCommands, ["append"]);
 
     const claimed = await claimRelayPayloads({
       owner_key: ownerKey,
@@ -467,6 +580,7 @@ test("KV relay payload store claims and delivers owner-scoped payloads", async (
     assert.equal(claimed[0]?.status, "claimed");
     assert.equal(claimed[0]?.claimed_by, "node-b");
     assert.equal(typeof claimed[0]?.claimed_at, "string");
+    assert.deepEqual(state.evalCommands, ["append", "claim"]);
 
     const queued = await queryRelayPayloads({ owner_key: ownerKey, status: "queued" });
     assert.equal(queued.length, 0);
@@ -479,18 +593,72 @@ test("KV relay payload store claims and delivers owner-scoped payloads", async (
 
     assert.equal(delivered?.status, "delivered");
     assert.equal(typeof delivered?.delivered_at, "string");
+    assert.deepEqual(state.evalCommands, ["append", "claim", "deliver"]);
     const deliveredRecords = await queryRelayPayloads({
       owner_key: ownerKey,
       status: "delivered",
     });
     assert.equal(deliveredRecords.length, 1);
     assert.equal(deliveredRecords[0]?.payload_id, claimed[0]?.payload_id);
+    assert.equal(state.delCalls, 0);
+    assert.equal(state.lpushCalls, 0);
+    assert.equal(state.ltrimCalls, 0);
+    assert.equal(state.rpushCalls, 0);
+  });
+});
+
+test("KV relay payload store atomically prevents duplicate concurrent claims", async () => {
+  await withRelayPayloadKvEnv(async () => {
+    const { client, state } = fakeRelayPayloadKv();
+    __setP2pRelayPayloadKvClientForTest(client);
+    const ownerKey = p2pControlOwnerKey("test-token");
+    const payload = createRelayPayload({
+      owner_key: ownerKey,
+      session_id: "session-kv-race",
+      lease_id: "lease-kv-race",
+      source_node_id: "node-a",
+      target_node_id: "node-b",
+      relay_url: "wss://relay.musu.pro/api/v1/relay/connect",
+      tunnel_id: "tunnel-kv-race",
+      payload_kind: "forwarded_task_envelope",
+      payload_base64: payloadBody().payload_base64,
+      payload_sha256: payloadBody().payload_sha256,
+    });
+    await appendRelayPayload(payload);
+
+    const [firstClaim, secondClaim] = await Promise.all([
+      claimRelayPayloads({
+        owner_key: ownerKey,
+        target_node_id: "node-b",
+        claimant_node_id: "node-b",
+        session_id: "session-kv-race",
+        lease_id: "lease-kv-race",
+        limit: 1,
+        status: "queued",
+      }),
+      claimRelayPayloads({
+        owner_key: ownerKey,
+        target_node_id: "node-b",
+        claimant_node_id: "node-b-alt",
+        session_id: "session-kv-race",
+        lease_id: "lease-kv-race",
+        limit: 1,
+        status: "queued",
+      }),
+    ]);
+
+    assert.equal(firstClaim.length + secondClaim.length, 1);
+    const claimed = [...firstClaim, ...secondClaim][0];
+    assert.equal(claimed?.payload_id, payload.payload_id);
+    assert.equal(state.evalCommands.filter((command) => command === "claim").length, 2);
+    assert.equal(state.delCalls, 0);
+    assert.equal(state.rpushCalls, 0);
   });
 });
 
 test("KV relay payload store rejects delivery before claim", async () => {
   await withRelayPayloadKvEnv(async () => {
-    const { client } = fakeRelayPayloadKv();
+    const { client, state } = fakeRelayPayloadKv();
     __setP2pRelayPayloadKvClientForTest(client);
     const ownerKey = p2pControlOwnerKey("test-token");
     const payload = createRelayPayload({
@@ -516,6 +684,9 @@ test("KV relay payload store rejects delivery before claim", async () => {
         }),
       /relay_payload_delivery_requires_claim/
     );
+    assert.deepEqual(state.evalCommands, ["append", "deliver"]);
+    assert.equal(state.delCalls, 0);
+    assert.equal(state.rpushCalls, 0);
   });
 });
 

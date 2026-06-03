@@ -23,8 +23,10 @@ Interpretation:
 - Delivery means accepted by the local task runner, not task completion.
 - `musu.pro` remains a control plane/fallback coordinator, not the default data
   path.
-- Public release still needs opt-in poller evidence, atomic claim hardening,
-  release-grade QUIC/TLS relay proof, and fresh packaged evidence.
+- Follow-up target poller evidence and atomic KV mutation hardening closed the
+  opt-in polling source contract and hosted concurrent claim blockers. Public
+  release still needs release-grade QUIC/TLS relay proof and fresh packaged
+  evidence.
 
 Validation:
 

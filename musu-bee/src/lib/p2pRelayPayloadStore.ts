@@ -71,8 +71,9 @@ export type P2pRelayPayloadStoreStatus = {
 
 type RelayPayloadKvClient = {
   del: (key: string) => Promise<unknown>;
+  eval?: <T = unknown>(script: string, keys: string[], args: string[]) => Promise<T>;
   lpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
-  lrange: <T>(key: string, start: number, stop: number) => Promise<T[]>;
+  lrange: <T = unknown>(key: string, start: number, stop: number) => Promise<T[]>;
   ltrim: (key: string, start: number, stop: number) => Promise<unknown>;
   rpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
 };
@@ -81,6 +82,125 @@ const KV_KEY = "musu:p2p:relay-payloads:v1";
 const DEFAULT_MAX_PAYLOADS = 1000;
 const DEFAULT_TTL_SECONDS = 300;
 const DEFAULT_MAX_PAYLOAD_BYTES = 256 * 1024;
+
+const KV_APPEND_PAYLOAD_SCRIPT = `
+-- musu_relay_payload_append_v1
+local key = KEYS[1]
+local payload_json = ARGV[1]
+local max_records = tonumber(ARGV[2])
+
+redis.call("LPUSH", key, payload_json)
+redis.call("LTRIM", key, 0, max_records - 1)
+
+return cjson.encode({ ok = true })
+`;
+
+const KV_CLAIM_PAYLOADS_SCRIPT = `
+-- musu_relay_payload_claim_v1
+local key = KEYS[1]
+local max_records = tonumber(ARGV[1])
+local now = ARGV[2]
+local owner_key = ARGV[3]
+local target_node_id = ARGV[4]
+local session_id = ARGV[5]
+local lease_id = ARGV[6]
+local source_node_id = ARGV[7]
+local tunnel_id = ARGV[8]
+local claim_limit = tonumber(ARGV[9])
+local claimant = ARGV[10]
+
+local records = redis.call("LRANGE", key, 0, max_records - 1)
+local retained = {}
+local claimed = {}
+
+local function has_value(value)
+  return value ~= nil and value ~= ""
+end
+
+local function matches(payload)
+  if payload.owner_key ~= owner_key then
+    return false
+  end
+  if payload.target_node_id ~= target_node_id then
+    return false
+  end
+  if payload.status ~= "queued" then
+    return false
+  end
+  if has_value(session_id) and payload.session_id ~= session_id then
+    return false
+  end
+  if has_value(lease_id) and payload.lease_id ~= lease_id then
+    return false
+  end
+  if has_value(source_node_id) and payload.source_node_id ~= source_node_id then
+    return false
+  end
+  if has_value(tunnel_id) and payload.tunnel_id ~= tunnel_id then
+    return false
+  end
+  return true
+end
+
+for _, raw in ipairs(records) do
+  local ok, payload = pcall(cjson.decode, raw)
+  if ok and type(payload) == "table" and type(payload.expires_at) == "string" and now < payload.expires_at then
+    if #claimed < claim_limit and matches(payload) then
+      payload.status = "claimed"
+      payload.claimed_by = claimant
+      payload.claimed_at = now
+      table.insert(claimed, payload)
+    end
+    table.insert(retained, cjson.encode(payload))
+  end
+end
+
+redis.call("DEL", key)
+for _, raw in ipairs(retained) do
+  redis.call("RPUSH", key, raw)
+end
+redis.call("LTRIM", key, 0, max_records - 1)
+
+return cjson.encode(claimed)
+`;
+
+const KV_DELIVER_PAYLOAD_SCRIPT = `
+-- musu_relay_payload_deliver_v1
+local key = KEYS[1]
+local max_records = tonumber(ARGV[1])
+local delivered_at = ARGV[2]
+local owner_key = ARGV[3]
+local payload_id = ARGV[4]
+local target_node_id = ARGV[5]
+
+local records = redis.call("LRANGE", key, 0, max_records - 1)
+local retained = {}
+local result = { status = "not_found" }
+
+for _, raw in ipairs(records) do
+  local ok, payload = pcall(cjson.decode, raw)
+  if ok and type(payload) == "table" and type(payload.expires_at) == "string" and delivered_at < payload.expires_at then
+    if payload.payload_id == payload_id and payload.owner_key == owner_key and payload.target_node_id == target_node_id then
+      if payload.status ~= "claimed" then
+        result = { status = "requires_claim" }
+      else
+        payload.status = "delivered"
+        payload.delivered_at = delivered_at
+        result = { status = "delivered", payload = payload }
+      end
+    end
+    table.insert(retained, cjson.encode(payload))
+  end
+end
+
+redis.call("DEL", key)
+for _, raw in ipairs(retained) do
+  redis.call("RPUSH", key, raw)
+end
+redis.call("LTRIM", key, 0, max_records - 1)
+
+return cjson.encode(result)
+`;
 
 let localLockQueue: Promise<void> = Promise.resolve();
 let kvClientForTest: RelayPayloadKvClient | null = null;
@@ -113,7 +233,7 @@ export function p2pRelayPayloadStoreStatus(): P2pRelayPayloadStoreStatus {
         kvStatus.url_source === "upstash_redis" || kvStatus.token_source === "upstash_redis"
           ? "upstash_redis"
           : "vercel_kv",
-      release_grade: false,
+      release_grade: true,
     };
   }
 
@@ -198,22 +318,25 @@ async function kvClient(): Promise<RelayPayloadKvClient> {
   return kv as RelayPayloadKvClient;
 }
 
-async function kvGetPayloads(): Promise<StoredP2pRelayPayload[]> {
+async function kvEvalJson<T>(script: string, args: string[]): Promise<T> {
   const kv = await kvClient();
-  return (await kv.lrange<StoredP2pRelayPayload>(KV_KEY, 0, maxPayloads() - 1))
-    .filter(isStoredRelayPayload)
-    .filter(payloadFresh)
-    .slice(0, maxPayloads());
+  if (typeof kv.eval !== "function") {
+    throw new Error("relay_payload_atomic_kv_eval_unavailable");
+  }
+  const raw = await kv.eval<unknown>(script, [KV_KEY], args);
+  if (typeof raw === "string") {
+    return JSON.parse(raw) as T;
+  }
+  return raw as T;
 }
 
-async function kvSetPayloads(payloads: StoredP2pRelayPayload[]): Promise<void> {
+async function kvGetPayloads(): Promise<StoredP2pRelayPayload[]> {
   const kv = await kvClient();
-  const retained = payloads.filter(payloadFresh).slice(0, maxPayloads());
-  await kv.del(KV_KEY);
-  for (const payload of retained) {
-    await kv.rpush(KV_KEY, payload);
-  }
-  await kv.ltrim(KV_KEY, 0, maxPayloads() - 1);
+  return (await kv.lrange<unknown>(KV_KEY, 0, maxPayloads() - 1))
+    .map(coerceStoredRelayPayload)
+    .filter((payload): payload is StoredP2pRelayPayload => payload !== null)
+    .filter(payloadFresh)
+    .slice(0, maxPayloads());
 }
 
 function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
@@ -248,6 +371,18 @@ function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
   );
 }
 
+function coerceStoredRelayPayload(value: unknown): StoredP2pRelayPayload | null {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return isStoredRelayPayload(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isStoredRelayPayload(value) ? value : null;
+}
+
 function normalizeState(value: unknown): P2pRelayPayloadStoreState {
   if (!value || typeof value !== "object") {
     return emptyState();
@@ -256,7 +391,11 @@ function normalizeState(value: unknown): P2pRelayPayloadStoreState {
   return {
     schema: "musu.p2p_relay_payload_store.v1",
     payloads: Array.isArray(state.payloads)
-      ? state.payloads.filter(isStoredRelayPayload).filter(payloadFresh).slice(0, maxPayloads())
+      ? state.payloads
+          .map(coerceStoredRelayPayload)
+          .filter((payload): payload is StoredP2pRelayPayload => payload !== null)
+          .filter(payloadFresh)
+          .slice(0, maxPayloads())
       : [],
   };
 }
@@ -352,9 +491,10 @@ export function createRelayPayload(input: {
 export async function appendRelayPayload(payload: StoredP2pRelayPayload): Promise<void> {
   assertStoreConfigured();
   if (shouldUseKv()) {
-    const kv = await kvClient();
-    await kv.lpush(KV_KEY, payload);
-    await kv.ltrim(KV_KEY, 0, maxPayloads() - 1);
+    await kvEvalJson<{ ok: true }>(KV_APPEND_PAYLOAD_SCRIPT, [
+      JSON.stringify(payload),
+      String(maxPayloads()),
+    ]);
     return;
   }
 
@@ -417,9 +557,18 @@ export async function claimRelayPayloads(
   const claimant = input.claimant_node_id?.trim() || input.target_node_id;
 
   if (shouldUseKv()) {
-    const state = claimPayloadsFromList(await kvGetPayloads(), input, limit, now, claimant);
-    await kvSetPayloads(state.payloads);
-    return state.claimed;
+    return kvEvalJson<StoredP2pRelayPayload[]>(KV_CLAIM_PAYLOADS_SCRIPT, [
+      String(maxPayloads()),
+      now,
+      input.owner_key,
+      input.target_node_id,
+      input.session_id ?? "",
+      input.lease_id ?? "",
+      input.source_node_id ?? "",
+      input.tunnel_id ?? "",
+      String(limit),
+      claimant,
+    ]);
   }
 
   return withLocalLock(async () => {
@@ -488,9 +637,21 @@ export async function markRelayPayloadDelivered(
   const deliveredAt = new Date().toISOString();
 
   if (shouldUseKv()) {
-    const next = deliverPayloadFromList(await kvGetPayloads(), input, deliveredAt);
-    await kvSetPayloads(next.payloads);
-    return next.delivered;
+    const result = await kvEvalJson<
+      | { status: "delivered"; payload: StoredP2pRelayPayload }
+      | { status: "not_found" }
+      | { status: "requires_claim" }
+    >(KV_DELIVER_PAYLOAD_SCRIPT, [
+      String(maxPayloads()),
+      deliveredAt,
+      input.owner_key,
+      input.payload_id,
+      input.target_node_id,
+    ]);
+    if (result.status === "requires_claim") {
+      throw new Error("relay_payload_delivery_requires_claim");
+    }
+    return result.status === "delivered" ? result.payload : null;
   }
 
   return withLocalLock(async () => {

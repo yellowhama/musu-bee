@@ -24,6 +24,7 @@ Validation:
 - `git diff --check` passed
 
 Interpretation: this is bounded opt-in target polling evidence, not
-release-grade relay transport. Public release still needs production atomic
-claim hardening, QUIC/TLS relay proof, hosted proof evidence, fresh packaged
-evidence, second-PC evidence, support mailbox evidence, and Store evidence.
+release-grade relay transport. Follow-up atomic KV mutation hardening closed the
+hosted concurrent claim blocker. Public release still needs QUIC/TLS relay
+proof, hosted proof evidence, fresh packaged evidence, second-PC evidence,
+support mailbox evidence, and Store evidence.
