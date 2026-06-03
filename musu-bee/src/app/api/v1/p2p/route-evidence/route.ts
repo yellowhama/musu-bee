@@ -7,6 +7,10 @@ import {
   p2pRelayTransportProofStoreStatus,
   queryRelayTransportProofs,
 } from "@/lib/p2pRelayTransportProofStore";
+import {
+  p2pRelayPayloadStoreStatus,
+  queryRelayPayloads,
+} from "@/lib/p2pRelayPayloadStore";
 import { relayPayloadEndpointWired, relayTransportWired } from "@/lib/p2pRelayPolicy";
 import {
   appendRouteEvidenceRecord,
@@ -60,6 +64,19 @@ const RelayTransportProofSchema = z.object({
   closed_at: z.string().min(1).nullable().optional(),
 }).passthrough();
 
+const RelayPayloadDeliveryProofSchema = z.object({
+  schema: z.literal("musu.relay_payload_delivery_proof.v1"),
+  payload_id: z.string().min(1),
+  session_id: z.string().min(1),
+  lease_id: z.string().min(1),
+  source_node_id: z.string().min(1),
+  target_node_id: z.string().min(1),
+  tunnel_id: z.string().min(1),
+  payload_sha256: z.string().min(1),
+  payload_bytes: z.number().int().positive(),
+  delivered_at: z.string().min(1),
+}).passthrough();
+
 const RouteEvidenceSchema = z.object({
   schema: z.literal("musu.route_evidence.v1"),
   version: z.string().min(1),
@@ -80,6 +97,7 @@ const RouteEvidenceSchema = z.object({
   failure_class: z.string().nullable().optional(),
   relay_fallback: RelayFallbackSchema.optional(),
   relay_transport_proof: RelayTransportProofSchema.optional(),
+  relay_payload_delivery_proof: RelayPayloadDeliveryProofSchema.optional(),
   recorded_at: z.string().min(1),
 }).passthrough();
 
@@ -273,6 +291,87 @@ function relayFallbackPayloadTransportBlockers(evidence: RouteEvidence): string[
   return blockers;
 }
 
+async function relayPayloadDeliveryProofBlockers(
+  evidence: RouteEvidence,
+  ownerKey: string
+): Promise<string[]> {
+  const relay = evidence.relay_fallback;
+  if (!relay || relay.status !== "issued" || !relay.lease_issued) {
+    return [];
+  }
+  if (relay.payload_transport_proven !== true) {
+    return [];
+  }
+
+  const proof = evidence.relay_payload_delivery_proof;
+  if (!proof) {
+    return ["relay_fallback_payload_delivery_proof_missing"];
+  }
+
+  const blockers: string[] = [];
+  if (evidence.session_id?.trim() && proof.session_id.trim() !== evidence.session_id.trim()) {
+    blockers.push("relay_fallback_payload_delivery_proof_session_mismatch");
+  }
+  if (relay.lease_id?.trim() && proof.lease_id.trim() !== relay.lease_id.trim()) {
+    blockers.push("relay_fallback_payload_delivery_proof_lease_mismatch");
+  }
+  if (proof.source_node_id.trim() !== evidence.source_node_id.trim()) {
+    blockers.push("relay_fallback_payload_delivery_proof_source_mismatch");
+  }
+  if (proof.target_node_id.trim() !== evidence.target_node_id.trim()) {
+    blockers.push("relay_fallback_payload_delivery_proof_target_mismatch");
+  }
+  const transportTunnelId = evidence.relay_transport_proof?.tunnel_id.trim();
+  if (transportTunnelId && proof.tunnel_id.trim() !== transportTunnelId) {
+    blockers.push("relay_fallback_payload_delivery_proof_tunnel_mismatch");
+  }
+  if (parseIsoTimestamp(proof.delivered_at) === null) {
+    blockers.push("relay_fallback_payload_delivery_proof_delivered_at_invalid");
+  }
+
+  const storeStatus = p2pRelayPayloadStoreStatus();
+  if (!storeStatus.release_grade) {
+    blockers.push("relay_fallback_payload_store_backend_not_release_grade");
+  }
+
+  try {
+    const payloads = await queryRelayPayloads({
+      owner_key: ownerKey,
+      limit: 50,
+      session_id: proof.session_id,
+      lease_id: proof.lease_id,
+      source_node_id: proof.source_node_id,
+      target_node_id: proof.target_node_id,
+      tunnel_id: proof.tunnel_id,
+      status: "delivered",
+    });
+    const storedPayload = payloads.find((payload) => payload.payload_id === proof.payload_id);
+    if (!storedPayload) {
+      blockers.push("relay_fallback_payload_delivery_proof_not_stored");
+      return blockers;
+    }
+    if (storedPayload.payload_sha256.trim().toLowerCase() !== proof.payload_sha256.trim().toLowerCase()) {
+      blockers.push("relay_fallback_payload_delivery_proof_sha256_mismatch");
+    }
+    if (storedPayload.payload_bytes !== proof.payload_bytes) {
+      blockers.push("relay_fallback_payload_delivery_proof_bytes_mismatch");
+    }
+    if (!storedPayload.delivered_at?.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_delivery_missing");
+    } else if (storedPayload.delivered_at.trim() !== proof.delivered_at.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_delivered_at_mismatch");
+    }
+  } catch (error) {
+    blockers.push(
+      `relay_fallback_payload_delivery_proof_store_unavailable:${
+        error instanceof Error ? error.message : "unknown"
+      }`
+    );
+  }
+
+  return blockers;
+}
+
 async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
   const blockers: string[] = [];
 
@@ -347,6 +446,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
   }
 
   blockers.push(...relayFallbackPayloadTransportBlockers(evidence));
+  blockers.push(...(await relayPayloadDeliveryProofBlockers(evidence, ownerKey)));
   blockers.push(...(await relayLeaseStoreBlockers(evidence, ownerKey)));
   return blockers;
 }

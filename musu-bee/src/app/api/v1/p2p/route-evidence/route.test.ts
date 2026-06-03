@@ -12,6 +12,13 @@ import {
   type StoredP2pRelayLease,
 } from "@/lib/p2pRelayLeaseStore";
 import {
+  appendRelayPayload,
+  claimRelayPayloads,
+  createRelayPayload,
+  markRelayPayloadDelivered,
+  type StoredP2pRelayPayload,
+} from "@/lib/p2pRelayPayloadStore";
+import {
   appendRelayTransportProof,
   createRelayTransportProof,
 } from "@/lib/p2pRelayTransportProofStore";
@@ -34,6 +41,7 @@ const ENV_KEYS = [
   "MUSU_P2P_RELAY_LEASE_MAX_RECORDS",
   "MUSU_P2P_RELAY_LEASE_STORE_PATH",
   "MUSU_P2P_RELAY_LEASE_TTL_SEC",
+  "MUSU_P2P_RELAY_PAYLOAD_STORE_PATH",
   "MUSU_P2P_RELAY_TRANSPORT_PROOF_MAX_RECORDS",
   "MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH",
   "MUSU_P2P_RELAY_TRANSPORT_PROOF_TTL_SEC",
@@ -121,6 +129,7 @@ async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
   process.env.MUSU_P2P_CONTROL_TOKEN = "test-token";
   process.env.MUSU_ROUTE_EVIDENCE_STORE_PATH = join(tempDir, "route-evidence.json");
   process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH = join(tempDir, "relay-leases.json");
+  process.env.MUSU_P2P_RELAY_PAYLOAD_STORE_PATH = join(tempDir, "relay-payloads.json");
   process.env.MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH = join(
     tempDir,
     "relay-transport-proofs.json"
@@ -174,6 +183,87 @@ async function seedRelayTransportProofForEvidence(lease: StoredP2pRelayLease): P
     opened_at: "2026-06-01T01:00:01Z",
     closed_at: "2026-06-01T01:00:02Z",
   }));
+}
+
+async function seedDeliveredRelayPayloadForEvidence(
+  lease: StoredP2pRelayLease
+): Promise<StoredP2pRelayPayload> {
+  const payloadBytes = Buffer.from(JSON.stringify({ task: "relay-route-proof", n: 1 }), "utf8");
+  const payload = createRelayPayload({
+    owner_key: p2pControlOwnerKey("test-token"),
+    session_id: hardenedEvidence.session_id,
+    lease_id: lease.lease_id,
+    source_node_id: hardenedEvidence.source_node_id,
+    target_node_id: hardenedEvidence.target_node_id,
+    relay_url: "wss://relay.musu.pro/connect",
+    tunnel_id: "relay-tunnel-test",
+    payload_kind: "forwarded_task_envelope",
+    payload_base64: payloadBytes.toString("base64"),
+  });
+  await appendRelayPayload(payload);
+  const claimed = await claimRelayPayloads({
+    owner_key: p2pControlOwnerKey("test-token"),
+    target_node_id: hardenedEvidence.target_node_id,
+    claimant_node_id: hardenedEvidence.target_node_id,
+    session_id: hardenedEvidence.session_id,
+    lease_id: lease.lease_id,
+    source_node_id: hardenedEvidence.source_node_id,
+    tunnel_id: "relay-tunnel-test",
+    limit: 1,
+    status: "queued",
+  });
+  assert.equal(claimed.length, 1);
+  const delivered = await markRelayPayloadDelivered({
+    owner_key: p2pControlOwnerKey("test-token"),
+    payload_id: claimed[0]!.payload_id,
+    target_node_id: hardenedEvidence.target_node_id,
+  });
+  assert.ok(delivered);
+  assert.equal(delivered.status, "delivered");
+  assert.equal(typeof delivered.delivered_at, "string");
+  return delivered;
+}
+
+function relayPayloadDeliveryProof(payload: StoredP2pRelayPayload) {
+  return {
+    schema: "musu.relay_payload_delivery_proof.v1",
+    payload_id: payload.payload_id,
+    session_id: payload.session_id,
+    lease_id: payload.lease_id,
+    source_node_id: payload.source_node_id,
+    target_node_id: payload.target_node_id,
+    tunnel_id: payload.tunnel_id,
+    payload_sha256: payload.payload_sha256,
+    payload_bytes: payload.payload_bytes,
+    delivered_at: payload.delivered_at ?? "",
+  };
+}
+
+function relayRouteEvidenceForLease(
+  lease: StoredP2pRelayLease,
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    ...hardenedEvidence,
+    route_kind: "relay",
+    candidate_addr: "relay.musu.pro:443",
+    payload_transited_musu_infra: true,
+    relay_fallback: {
+      direct_path_failed: true,
+      lease_requested: true,
+      status: "issued",
+      lease_issued: true,
+      attempted_route_kinds: ["lan", "tailscale"],
+      requested_capability: "remote_command",
+      policy: "connect_pro_fallback_only",
+      blockers: [],
+      lease_id: lease.lease_id,
+      payload_transport_attempted: true,
+      payload_transport_proven: true,
+    },
+    relay_transport_proof: relayTransportProof(lease.lease_id),
+    ...overrides,
+  };
 }
 
 test("accepts hardened release-grade route evidence", async () => {
@@ -358,6 +448,79 @@ test("does not accept inline relay transport proof unless it is backed by the pr
     );
     assert.match(body.blockers.join(","), /relay_route_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
+  });
+});
+
+test("requires payload delivery proof when relay fallback claims payload transport proven", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-payload-proof-missing");
+    const lease = await seedRelayLeaseForEvidence();
+    await seedRelayTransportProofForEvidence(lease);
+
+    const res = await POST(postReq(relayRouteEvidenceForLease(lease)));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.doesNotMatch(body.blockers.join(","), /relay_fallback_payload_transport_not_proven/);
+    assert.match(
+      body.blockers.join(","),
+      /relay_fallback_payload_delivery_proof_missing/
+    );
+  });
+});
+
+test("keeps payload delivery proof non release grade unless it is backed by the payload store", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-payload-proof-not-stored");
+    const lease = await seedRelayLeaseForEvidence();
+    await seedRelayTransportProofForEvidence(lease);
+
+    const res = await POST(postReq(relayRouteEvidenceForLease(lease, {
+      relay_payload_delivery_proof: {
+        schema: "musu.relay_payload_delivery_proof.v1",
+        payload_id: "relay-payload-missing",
+        session_id: hardenedEvidence.session_id,
+        lease_id: lease.lease_id,
+        source_node_id: hardenedEvidence.source_node_id,
+        target_node_id: hardenedEvidence.target_node_id,
+        tunnel_id: "relay-tunnel-test",
+        payload_sha256: "sha256:missing",
+        payload_bytes: 128,
+        delivered_at: "2026-06-01T01:00:02Z",
+      },
+    })));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(
+      body.blockers.join(","),
+      /relay_fallback_payload_delivery_proof_not_stored/
+    );
+  });
+});
+
+test("accepts stored delivered relay payload proof while keeping file-store proof non release grade", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-payload-proof-stored");
+    const lease = await seedRelayLeaseForEvidence();
+    await seedRelayTransportProofForEvidence(lease);
+    const deliveredPayload = await seedDeliveredRelayPayloadForEvidence(lease);
+
+    const res = await POST(postReq(relayRouteEvidenceForLease(lease, {
+      relay_payload_delivery_proof: relayPayloadDeliveryProof(deliveredPayload),
+    })));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_missing/);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_not_stored/);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_sha256_mismatch/);
+    assert.match(blockers, /relay_fallback_payload_store_backend_not_release_grade/);
+    assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
   });
 });
 
