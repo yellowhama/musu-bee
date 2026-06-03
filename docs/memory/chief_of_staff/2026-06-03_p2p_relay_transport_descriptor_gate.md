@@ -22,6 +22,13 @@ Validation:
 - Release evidence verifier regressions passed 20/20.
 - Existing live P2P evidence `20260603-093640-musu.pro` failed closed under the
   new verifier with `fail_count=31`.
+- After commit `654b9dcb` deployed to Vercel, direct authenticated endpoint
+  probe of `https://musu.pro/api/v1/p2p/relay/transport` returned
+  `schema=musu.p2p_relay_transport.v1`, `owner_scoped=true`,
+  `relay_transport_descriptor_wired=true`, `ok=false`,
+  `relay_transport_wired=false`, `relay_url=""`, store backend `unconfigured`,
+  and blockers for disabled relay, missing transport, missing relay URL, missing
+  entitlement, and non-release-grade store.
 - `git diff --check` passed.
 
 Release interpretation:

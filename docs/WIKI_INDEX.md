@@ -2529,6 +2529,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.relay_transport.v1`, `relay_transport_descriptor_wired`,
   `payload_transit_requires_lease`, `relay_transport_preflight_ok`,
   `relay_url`, `wss://`, `fail_count=31`, and `test:p2p 34/34`.
+  Post-deploy direct endpoint probe after `654b9dcb` confirmed
+  `relay_transport_descriptor_wired=true`, `ok=false`,
+  `relay_transport_wired=false`, blank `relay_url`, store backend
+  `unconfigured`, and fail-closed blockers including `relay_disabled` and
+  `relay_url_not_configured`.
 
 - 2026-06-03 P2P relay transport descriptor index refresh:
   Explicit packaged alias indexing

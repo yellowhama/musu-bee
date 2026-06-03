@@ -71,6 +71,29 @@ No fresh live P2P capture was recorded in this pass because the debug
 `cargo build --bin musu` link step was stopped after more than six minutes with
 no output. Source compilation was still validated with `cargo check`.
 
+## Post-Deploy Endpoint Probe
+
+After commit `654b9dcb` deployed to Vercel, a direct authenticated request to
+`https://musu.pro/api/v1/p2p/relay/transport` confirmed the new endpoint is live
+and fails closed:
+
+- schema `musu.p2p_relay_transport.v1`
+- `ok=false`
+- `owner_scoped=true`
+- `relay_transport_descriptor_wired=true`
+- `relay_transport_wired=false`
+- `relay_default_data_path=false`
+- `relay_url=""`
+- `relay_lease_store_backend=unconfigured`
+- `relay_lease_store_release_grade=false`
+- blockers: `relay_disabled`, `relay_transport_not_wired`,
+  `relay_url_not_configured`, `connect_pro_entitlement_required`,
+  `relay_lease_store_not_configured`, and
+  `relay_lease_store_not_release_grade`
+
+This is a live endpoint probe, not a full `musu.p2p_control_plane_live_evidence.v1`
+capture.
+
 ## Validation
 
 Passed:
@@ -83,6 +106,8 @@ Passed:
 - `scripts\windows\test-release-evidence-verifiers.ps1 -Json` (`20/20`)
 - `verify-p2p-control-plane-evidence.ps1` re-verification of existing live
   evidence failed closed with `fail_count=31`
+- direct post-deploy endpoint probe confirmed
+  `relay_transport_descriptor_wired=true` and `ok=false`
 - `git diff --check`
 
 Not completed:

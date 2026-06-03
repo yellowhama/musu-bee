@@ -2762,6 +2762,18 @@ Existing live P2P evidence `20260603-093640-musu.pro` now fails closed with
 `fail_count=31` because the transport descriptor is missing and relay route
 proof is still absent.
 
+Post-deploy endpoint probe after `654b9dcb`:
+
+- direct authenticated `GET https://musu.pro/api/v1/p2p/relay/transport`
+- schema `musu.p2p_relay_transport.v1`
+- `relay_transport_descriptor_wired=true`
+- `ok=false`
+- `relay_transport_wired=false`
+- `relay_url=""`
+- `relay_lease_store_backend=unconfigured`
+- fail-closed blockers include disabled relay, missing transport, missing relay
+  URL, missing entitlement, and non-release-grade lease storage
+
 Validation:
 
 - `npm run test:p2p` passed 34/34.

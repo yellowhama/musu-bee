@@ -2523,6 +2523,21 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_GATE_2026_06_03.md`
 
+Post-deploy endpoint probe:
+
+- direct authenticated `GET https://musu.pro/api/v1/p2p/relay/transport`
+- schema `musu.p2p_relay_transport.v1`
+- `relay_transport_descriptor_wired=true`
+- `ok=false`
+- `relay_transport_wired=false`
+- `relay_url=""`
+- `relay_lease_store_backend=unconfigured`
+- blockers include `relay_disabled`, `relay_transport_not_wired`,
+  `relay_url_not_configured`, `connect_pro_entitlement_required`,
+  `relay_lease_store_not_configured`, and
+  `relay_lease_store_not_release_grade`
+- not a full P2P live evidence capture
+
 2026-06-03 index refresh:
 
 - explicit packaged alias indexing:
