@@ -154,6 +154,35 @@ P2P control-plane evidence is acceptable only when:
 - no `p2p_control_auth_not_configured`
 - no `p2p_relay_lease_kv_not_configured`
 
+## 2026-06-04 Product Direction Update
+
+The local program and the public web surface are separate products that work
+together:
+
+- the installed MUSU program on each device is the executor; it owns local
+  files, shell/browser/app automation, the local bridge, and P2P traffic
+- `musu.pro` is the coordination surface; it accepts remote user work orders,
+  shows project rooms, brokers rendezvous, and records route/session evidence
+- the web surface may queue or dispatch user input to an authenticated local
+  MUSU runtime, but it must not pretend to execute local work in the cloud
+- after `musu.pro` helps devices discover each other, clients should prefer the
+  P2P mesh path order `lan`, `tailscale`, `direct_quic`, then `relay`
+
+Project rooms are the intended collaboration model for multiple local MUSU
+programs and their attached AIs working on the same project. A room should hold
+work orders, presence, discussion, decisions, task handoffs, transcripts, audit
+history, and route/session status. Actual work still runs on the participating
+local machines.
+
+Testing implication:
+
+- a true other-computer connection test requires the current MUSU build
+  installed and running on that other computer
+- until then, current testing is one-machine only: local smoke, process
+  ownership, idle CPU, runtime CPU matrix, and packaged artifact verification
+- second-PC evidence must be imported before claiming multi-device/P2P release
+  readiness
+
 ## Relay Policy Boundary
 
 Do not claim production relay payload transport until transport evidence exists.

@@ -219,6 +219,29 @@ This does not expand public network claims:
 - relay payload transport must be separately implemented and proven before
   `route_kind=relay` can be marketed as release-grade
 
+## 2026-06-04 local-first web coordination update
+
+MUSU must preserve a hard boundary between local execution and web
+coordination.
+
+- `localhost` / `127.0.0.1` remains the local dashboard and developer/operator
+  surface for the installed program on that device.
+- `musu.pro` is the remote account and coordination surface. It can accept user
+  input from another place, show project rooms, bind devices, broker rendezvous,
+  and display status.
+- Local work is executed by the installed MUSU program on each participating
+  device. The web service should deliver instructions to that runtime; it
+  should not become the default execution server.
+- Cross-device setup may use `musu.pro` for initial discovery and lease/session
+  coordination, then prefer direct P2P mesh transport. Relay/tunnel remains a
+  fallback path and a Connect feature, not the default Core data path.
+- A real multi-device claim requires the same current MUSU build installed and
+  running on the other device, plus imported second-PC evidence.
+
+This keeps the simple product rule intact: local and trusted-network execution
+is Core; remote web input, hosted rendezvous, relay/tunnel, and project-room
+coordination are Connect.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

@@ -1380,3 +1380,41 @@ Release meaning:
 - because recent source commits changed the local dashboard gate and rendezvous
   contract, fresh one-machine evidence must be recaptured on the current build
   before second-PC evidence is treated as the remaining runtime blocker
+
+## 2026-06-04 Current One-Machine Evidence and Handoff Refresh
+
+Fresh one-machine evidence is restored on `HUGH_SECOND` after relay payload
+proof hardening and runtime CPU route-probe retry hardening.
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-062335-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-060949-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-061059-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The current runtime matrix includes retry/backoff evidence for the post-route
+probe so a transient hosted route rate limit is recorded as attempts instead of
+silently losing the scenario context.
+
+The second-PC kit and operator artifacts were regenerated from current source:
+
+- kit:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260604-063002.zip`
+- final operator gate packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-063025.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-063024.zip`
+
+Both final packet verification and operator action pack verification pass with
+`ok=true` and `fail_count=0`.
+
+Roadmap status:
+
+- current local runtime/package evidence is one-machine ready on `HUGH_SECOND`
+- public release remains No-Go because runtime CPU and matrix gates are still
+  `1/2`; the same build must run on a real second Windows PC
+- `musu.pro` should be treated as the web coordination plane, not as the local
+  runtime host
+- live P2P remains blocked until production KV/Upstash, owner-scoped relay lease
+  evidence, relay payload delivery proof, and release-grade route evidence pass
