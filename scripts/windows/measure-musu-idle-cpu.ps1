@@ -507,6 +507,70 @@ foreach ($sample in $samples) {
         $maxOneCorePercentByRole[$role] = $value
     }
 }
+$sampleCountByRole = [ordered]@{
+    musu = 0
+    node = 0
+    webview2 = 0
+    other = 0
+}
+$totalCpuSecondsByRole = [ordered]@{
+    musu = 0.0
+    node = 0.0
+    webview2 = 0.0
+    other = 0.0
+}
+foreach ($sample in $samples) {
+    $role = [string]$sample.process_role
+    if (-not $sampleCountByRole.Contains($role)) {
+        $role = "other"
+    }
+    $sampleCountByRole[$role] = [int]$sampleCountByRole[$role] + 1
+    $totalCpuSecondsByRole[$role] = [Math]::Round(([double]$totalCpuSecondsByRole[$role] + [double]$sample.cpu_seconds_delta), 3)
+}
+$rolesObserved = @(
+    $sampleCountByRole.Keys |
+        Where-Object { [int]$sampleCountByRole[$_] -gt 0 }
+)
+$topCpuProcesses = @(
+    $samples |
+        Sort-Object cpu_pct_one_core -Descending |
+        Select-Object -First 10 |
+        ForEach-Object {
+            [pscustomobject]@{
+                id = $_.id
+                process_name = $_.process_name
+                process_role = $_.process_role
+                cpu_seconds_delta = $_.cpu_seconds_delta
+                cpu_pct_one_core = $_.cpu_pct_one_core
+                working_set_mb = $_.working_set_mb
+                parent_process_id = $_.parent_process_id
+                is_descendant_of_musu = $_.is_descendant_of_musu
+                is_repo_related = $_.is_repo_related
+                classification_reason = $_.classification_reason
+                command_line_present = $_.command_line_present
+                command_line_sha256 = $_.command_line_sha256
+                command_line_hint = $_.command_line_hint
+            }
+        }
+)
+$cpuAttribution = [ordered]@{
+    schema = "musu.runtime_idle_cpu_attribution.v1"
+    attribution_scope = if ($IncludeUnrelatedHelpers) {
+        "all_matching_process_names"
+    } else {
+        "musu_process_tree_or_repo_related"
+    }
+    sample_count = @($samples).Count
+    roles_observed = @($rolesObserved)
+    sample_count_by_role = $sampleCountByRole
+    total_cpu_seconds_by_role = $totalCpuSecondsByRole
+    max_one_core_percent_by_role = $maxOneCorePercentByRole
+    top_processes = @($topCpuProcesses)
+    required_roles_present = [ordered]@{
+        musu = ([int]$sampleCountByRole.musu -gt 0)
+        webview2 = if ($RequireOwnedWebView2) { [int]$sampleCountByRole.webview2 -gt 0 } else { $true }
+    }
+}
 $result = [ordered]@{
     schema = "musu.runtime_idle_cpu_evidence.v1"
     ok = ($musuProcessCountAfter -gt 0 -and $hot.Count -eq 0 -and $resourceBudgetViolations.Count -eq 0)
@@ -549,6 +613,7 @@ $result = [ordered]@{
     resource_budget_violations = @($resourceBudgetViolations)
     max_one_core_percent_by_role = $maxOneCorePercentByRole
     hot_process_count = $hot.Count
+    cpu_attribution = $cpuAttribution
     samples = @($samples | Sort-Object cpu_pct_one_core -Descending)
     note = if ($after.Count -eq 0) {
         "No target MUSU processes were running during this sample."

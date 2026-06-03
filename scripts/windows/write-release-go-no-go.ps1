@@ -484,6 +484,54 @@ function Test-RuntimeIdleCpuEvidence {
             }
         }
         $checks.Add((New-Check -Name "max one-core CPU" -Status ($(if ($maxSample -le $MaxOneCorePercent) { "pass" } else { "fail" })) -Message ($(if ($maxSample -le $MaxOneCorePercent) { "max one-core CPU $maxSample <= $MaxOneCorePercent" } else { "max one-core CPU $maxSample > $MaxOneCorePercent" })))) | Out-Null
+
+        $cpuAttribution = if ($evidence.PSObject.Properties["cpu_attribution"]) { $evidence.cpu_attribution } else { $null }
+        $cpuAttributionPresent = ($null -ne $cpuAttribution)
+        $checks.Add((New-Check -Name "CPU attribution present" -Status ($(if ($cpuAttributionPresent) { "pass" } else { "fail" })) -Message ($(if ($cpuAttributionPresent) { "runtime idle evidence includes PID/role CPU attribution summary" } else { "runtime idle evidence is missing cpu_attribution" })))) | Out-Null
+        if ($cpuAttributionPresent) {
+            $attributionSchema = if ($cpuAttribution.PSObject.Properties["schema"]) { [string]$cpuAttribution.schema } else { "" }
+            $checks.Add((New-Check -Name "CPU attribution schema" -Status ($(if ($attributionSchema -eq "musu.runtime_idle_cpu_attribution.v1") { "pass" } else { "fail" })) -Message ($(if ($attributionSchema -eq "musu.runtime_idle_cpu_attribution.v1") { "CPU attribution schema is valid" } else { "CPU attribution schema is '$attributionSchema'" })))) | Out-Null
+
+            $attributionSampleCount = if ($cpuAttribution.PSObject.Properties["sample_count"]) { [int]$cpuAttribution.sample_count } else { -1 }
+            $checks.Add((New-Check -Name "CPU attribution sample count" -Status ($(if ($attributionSampleCount -eq $sampleCount -and $attributionSampleCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($attributionSampleCount -eq $sampleCount -and $attributionSampleCount -gt 0) { "CPU attribution sample count matches samples" } else { "CPU attribution sample count $attributionSampleCount does not match samples $sampleCount" })))) | Out-Null
+
+            $sampleCountByRolePresent = ($cpuAttribution.PSObject.Properties["sample_count_by_role"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["musu"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["webview2"])
+            $checks.Add((New-Check -Name "CPU attribution role counts" -Status ($(if ($sampleCountByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($sampleCountByRolePresent) { "CPU attribution records sample counts by role" } else { "CPU attribution is missing role sample counts" })))) | Out-Null
+
+            $totalCpuByRolePresent = ($cpuAttribution.PSObject.Properties["total_cpu_seconds_by_role"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["musu"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["webview2"])
+            $checks.Add((New-Check -Name "CPU attribution totals by role" -Status ($(if ($totalCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($totalCpuByRolePresent) { "CPU attribution records total CPU seconds by role" } else { "CPU attribution is missing CPU totals by role" })))) | Out-Null
+
+            $maxCpuByRolePresent = ($cpuAttribution.PSObject.Properties["max_one_core_percent_by_role"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["musu"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["webview2"])
+            $checks.Add((New-Check -Name "CPU attribution max by role" -Status ($(if ($maxCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($maxCpuByRolePresent) { "CPU attribution records max one-core CPU by role" } else { "CPU attribution is missing max CPU by role" })))) | Out-Null
+
+            $requiredRoles = if ($cpuAttribution.PSObject.Properties["required_roles_present"]) { $cpuAttribution.required_roles_present } else { $null }
+            $musuRolePresent = ($requiredRoles -and $requiredRoles.PSObject.Properties["musu"] -and [bool]$requiredRoles.musu)
+            $checks.Add((New-Check -Name "CPU attribution MUSU role" -Status ($(if ($musuRolePresent) { "pass" } else { "fail" })) -Message ($(if ($musuRolePresent) { "CPU attribution includes MUSU process role" } else { "CPU attribution is missing MUSU process role" })))) | Out-Null
+            $webView2RoleRequiredAndPresent = (-not $requireOwnedWebView2 -or ($requiredRoles -and $requiredRoles.PSObject.Properties["webview2"] -and [bool]$requiredRoles.webview2))
+            $checks.Add((New-Check -Name "CPU attribution WebView2 role" -Status ($(if ($webView2RoleRequiredAndPresent) { "pass" } else { "fail" })) -Message ($(if ($webView2RoleRequiredAndPresent) { "CPU attribution includes required owned WebView2 role" } else { "CPU attribution is missing required owned WebView2 role" })))) | Out-Null
+
+            $topProcesses = @(
+                if ($cpuAttribution.PSObject.Properties["top_processes"]) {
+                    @($cpuAttribution.top_processes)
+                }
+            )
+            $topProcessesPresent = ($topProcesses.Count -gt 0)
+            $checks.Add((New-Check -Name "CPU attribution top processes" -Status ($(if ($topProcessesPresent) { "pass" } else { "fail" })) -Message ($(if ($topProcessesPresent) { "$($topProcesses.Count) top CPU process attribution row(s) recorded" } else { "CPU attribution top_processes is empty" })))) | Out-Null
+
+            $badTopProcessRows = @(
+                foreach ($row in $topProcesses) {
+                    $rowId = if ($row.PSObject.Properties["id"]) { [int]$row.id } else { 0 }
+                    $rowName = if ($row.PSObject.Properties["process_name"]) { [string]$row.process_name } else { "" }
+                    $rowRole = if ($row.PSObject.Properties["process_role"]) { [string]$row.process_role } else { "" }
+                    $hasCpuDelta = $row.PSObject.Properties["cpu_seconds_delta"]
+                    $hasCpuPct = $row.PSObject.Properties["cpu_pct_one_core"]
+                    if ($rowId -le 0 -or [string]::IsNullOrWhiteSpace($rowName) -or ($rowRole -notin @("musu", "node", "webview2", "other")) -or -not $hasCpuDelta -or -not $hasCpuPct) {
+                        $row
+                    }
+                }
+            )
+            $checks.Add((New-Check -Name "CPU attribution top process fields" -Status ($(if ($badTopProcessRows.Count -eq 0 -and $topProcessesPresent) { "pass" } else { "fail" })) -Message ($(if ($badTopProcessRows.Count -eq 0 -and $topProcessesPresent) { "top CPU process rows include PID, role, and CPU delta fields" } else { "$($badTopProcessRows.Count) top CPU process row(s) are missing required attribution fields" })))) | Out-Null
+        }
     }
 
     $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
