@@ -3932,3 +3932,35 @@ target-side poll/claim/execute loop can be wired.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_API_2026_06_04.md`
+
+## 2026-06-04 relay payload claim/delivery client CLI (wiki/655)
+
+Rust now has manual target-side claim/delivery diagnostics for the relay payload
+queue:
+
+- `P2pRelayPayloadClaimRequest`
+- `P2pRelayPayloadClaimResponse`
+- `P2pRelayPayloadDeliveryRequest`
+- `P2pRelayPayloadDeliveryResponse`
+- `MusuCloud::claim_relay_payloads(...)`
+- `MusuCloud::mark_relay_payload_delivered(...)`
+- `musu relay payload-claim`
+- `musu relay payload-deliver`
+
+`payload-claim` and `payload-deliver` both require an explicit target through
+`--target-node-id` or `--local-target`. Text output omits payload bytes; claim
+JSON includes bytes only when `--include-payload` is set.
+
+Validation passed Rust cloud tests `10/10`, install CLI relay payload tests
+`4/4`, `cargo check --bin musu`, Rust fmt check, and CLI help smoke for
+`payload-claim` and `payload-deliver`.
+
+No live production mutation smoke was run because claim and delivery change
+queue state.
+
+This remains on-demand diagnostics. It does not start background polling,
+decode/execute payloads, or prove release-grade QUIC/TLS relay transport.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_CLIENT_CLI_2026_06_04.md`

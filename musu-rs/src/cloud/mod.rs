@@ -412,6 +412,12 @@ pub struct P2pRelayPayloadStoredRecord {
     pub created_at: String,
     pub expires_at: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claimed_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claimed_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivered_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload_base64: Option<String>,
 }
 
@@ -471,6 +477,71 @@ pub struct P2pRelayPayloadQueryResponse {
     pub count: usize,
     #[serde(default)]
     pub payloads: Vec<P2pRelayPayloadStoredRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for target-side relay payload claiming.
+pub struct P2pRelayPayloadClaimRequest {
+    pub schema: String,
+    pub target_node_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claimant_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lease_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tunnel_id: Option<String>,
+    #[serde(default)]
+    pub include_payload: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for target-side relay payload claim responses.
+pub struct P2pRelayPayloadClaimResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub accepted: bool,
+    pub claimed: bool,
+    pub relay_payload_queue_endpoint_wired: bool,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
+    pub relay_payload_store_configured: bool,
+    pub relay_payload_store_backend: String,
+    pub relay_payload_store_release_grade: bool,
+    pub count: usize,
+    #[serde(default)]
+    pub payloads: Vec<P2pRelayPayloadStoredRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for target-side relay payload delivery acknowledgement.
+pub struct P2pRelayPayloadDeliveryRequest {
+    pub schema: String,
+    pub payload_id: String,
+    pub target_node_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for target-side relay payload delivery responses.
+pub struct P2pRelayPayloadDeliveryResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub owner_scoped: bool,
+    pub accepted: bool,
+    pub delivered: bool,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
+    pub relay_payload_store_configured: bool,
+    pub relay_payload_store_backend: String,
+    pub relay_payload_store_release_grade: bool,
+    #[serde(default)]
+    pub payload: Option<P2pRelayPayloadStoredRecord>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1013,6 +1084,62 @@ impl MusuCloud {
 
         Ok(resp.json().await?)
     }
+
+    /// PATCH /api/v1/p2p/relay/payload to claim queued relay payloads for this target.
+    #[allow(dead_code)] // Used by manual diagnostics and the future bounded target poller.
+    pub async fn claim_relay_payloads(
+        &self,
+        claim: &P2pRelayPayloadClaimRequest,
+    ) -> Result<P2pRelayPayloadClaimResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/v1/p2p/relay/payload", self.base_url);
+
+        let resp = self
+            .client
+            .patch(&url)
+            .bearer_auth(token)
+            .json(claim)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to claim relay payloads: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// PATCH /api/v1/p2p/relay/payload to mark one claimed payload delivered.
+    #[allow(dead_code)] // Used by manual diagnostics and the future bounded target poller.
+    pub async fn mark_relay_payload_delivered(
+        &self,
+        delivery: &P2pRelayPayloadDeliveryRequest,
+    ) -> Result<P2pRelayPayloadDeliveryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/v1/p2p/relay/payload", self.base_url);
+
+        let resp = self
+            .client
+            .patch(&url)
+            .bearer_auth(token)
+            .json(delivery)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to mark relay payload delivered: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
 }
 
 fn route_kind_query_value(kind: &RouteKind) -> &'static str {
@@ -1206,5 +1333,145 @@ mod tests {
         assert_eq!(response.payloads[0].payload_base64.as_deref(), Some("e30="));
         assert!(!response.release_grade);
         assert!(!response.payloads[0].relay_default_data_path);
+    }
+
+    #[test]
+    fn relay_payload_claim_request_serializes_target_claim_fields() {
+        let claim = P2pRelayPayloadClaimRequest {
+            schema: "musu.relay_payload_claim.v1".into(),
+            target_node_id: "pc-b".into(),
+            claimant_node_id: Some("pc-b".into()),
+            limit: Some(2),
+            session_id: Some("rv_123".into()),
+            lease_id: Some("relay-lease-123".into()),
+            source_node_id: Some("pc-a".into()),
+            tunnel_id: Some("relay-tunnel-123".into()),
+            include_payload: true,
+        };
+
+        let value = serde_json::to_value(claim).unwrap();
+
+        assert_eq!(value["schema"], "musu.relay_payload_claim.v1");
+        assert_eq!(value["target_node_id"], "pc-b");
+        assert_eq!(value["claimant_node_id"], "pc-b");
+        assert_eq!(value["limit"], 2);
+        assert_eq!(value["session_id"], "rv_123");
+        assert_eq!(value["lease_id"], "relay-lease-123");
+        assert_eq!(value["source_node_id"], "pc-a");
+        assert_eq!(value["tunnel_id"], "relay-tunnel-123");
+        assert_eq!(value["include_payload"], true);
+    }
+
+    #[test]
+    fn relay_payload_claim_response_accepts_claim_metadata() {
+        let response: P2pRelayPayloadClaimResponse = serde_json::from_value(serde_json::json!({
+            "schema": "musu.p2p_relay_payload_claim.v1",
+            "ok": true,
+            "owner_scoped": true,
+            "accepted": true,
+            "claimed": true,
+            "relay_payload_queue_endpoint_wired": true,
+            "relay_default_data_path": false,
+            "release_grade": false,
+            "relay_payload_store_configured": true,
+            "relay_payload_store_backend": "development_file",
+            "relay_payload_store_release_grade": false,
+            "count": 1,
+            "payloads": [{
+                "payload_id": "payload-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
+                "payload_bytes": 2,
+                "payload_sha256": "abc123",
+                "status": "claimed",
+                "relay_default_data_path": false,
+                "release_grade": false,
+                "transport_kind": "http_store_forward_preview",
+                "created_at": "2026-06-04T01:00:00Z",
+                "expires_at": "2026-06-04T01:05:00Z",
+                "claimed_by": "pc-b",
+                "claimed_at": "2026-06-04T01:00:01Z",
+                "payload_base64": "e30="
+            }]
+        }))
+        .expect("relay payload claim response");
+
+        assert!(response.ok);
+        assert!(response.claimed);
+        assert_eq!(response.count, 1);
+        assert_eq!(response.payloads[0].status, "claimed");
+        assert_eq!(response.payloads[0].claimed_by.as_deref(), Some("pc-b"));
+        assert_eq!(
+            response.payloads[0].claimed_at.as_deref(),
+            Some("2026-06-04T01:00:01Z")
+        );
+        assert_eq!(response.payloads[0].payload_base64.as_deref(), Some("e30="));
+    }
+
+    #[test]
+    fn relay_payload_delivery_request_serializes_payload_ack_fields() {
+        let delivery = P2pRelayPayloadDeliveryRequest {
+            schema: "musu.relay_payload_delivery.v1".into(),
+            payload_id: "payload-1".into(),
+            target_node_id: "pc-b".into(),
+        };
+
+        let value = serde_json::to_value(delivery).unwrap();
+
+        assert_eq!(value["schema"], "musu.relay_payload_delivery.v1");
+        assert_eq!(value["payload_id"], "payload-1");
+        assert_eq!(value["target_node_id"], "pc-b");
+    }
+
+    #[test]
+    fn relay_payload_delivery_response_accepts_delivered_metadata_without_payload_bytes() {
+        let response: P2pRelayPayloadDeliveryResponse = serde_json::from_value(serde_json::json!({
+            "schema": "musu.p2p_relay_payload_delivery.v1",
+            "ok": true,
+            "owner_scoped": true,
+            "accepted": true,
+            "delivered": true,
+            "relay_default_data_path": false,
+            "release_grade": false,
+            "relay_payload_store_configured": true,
+            "relay_payload_store_backend": "development_file",
+            "relay_payload_store_release_grade": false,
+            "payload": {
+                "payload_id": "payload-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
+                "payload_bytes": 2,
+                "payload_sha256": "abc123",
+                "status": "delivered",
+                "relay_default_data_path": false,
+                "release_grade": false,
+                "transport_kind": "http_store_forward_preview",
+                "created_at": "2026-06-04T01:00:00Z",
+                "expires_at": "2026-06-04T01:05:00Z",
+                "claimed_by": "pc-b",
+                "claimed_at": "2026-06-04T01:00:01Z",
+                "delivered_at": "2026-06-04T01:00:02Z"
+            }
+        }))
+        .expect("relay payload delivery response");
+
+        let payload = response.payload.expect("delivered payload");
+        assert!(response.delivered);
+        assert_eq!(payload.status, "delivered");
+        assert_eq!(
+            payload.delivered_at.as_deref(),
+            Some("2026-06-04T01:00:02Z")
+        );
+        assert_eq!(payload.payload_base64, None);
     }
 }

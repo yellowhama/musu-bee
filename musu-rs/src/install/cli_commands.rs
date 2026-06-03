@@ -82,6 +82,10 @@ pub enum RelayAction {
     Leases(RelayLeasesOpts),
     /// Query owner-scoped relay payload queue records from musu.pro.
     Payloads(RelayPayloadsOpts),
+    /// Claim queued owner-scoped relay payloads for a target node.
+    PayloadClaim(RelayPayloadClaimOpts),
+    /// Mark one claimed owner-scoped relay payload delivered.
+    PayloadDeliver(RelayPayloadDeliverOpts),
     /// Query owner-scoped release-grade relay route evidence from musu.pro.
     RouteEvidence(RelayRouteEvidenceOpts),
 }
@@ -155,6 +159,54 @@ pub struct RelayPayloadsOpts {
     /// Include payload bytes in JSON output. Human text output still omits them.
     #[arg(long)]
     pub include_payload: bool,
+}
+
+/// Options for `musu relay payload-claim`.
+#[derive(Args, Debug)]
+pub struct RelayPayloadClaimOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum payload records to claim.
+    #[arg(long, default_value_t = 1)]
+    pub limit: u32,
+    /// Filter by rendezvous session id.
+    #[arg(long)]
+    pub session_id: Option<String>,
+    /// Filter by relay lease id.
+    #[arg(long)]
+    pub lease_id: Option<String>,
+    /// Filter by source node id.
+    #[arg(long)]
+    pub source_node_id: Option<String>,
+    /// Claim payloads for this target node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
+    /// Claim payloads for the current local node id.
+    #[arg(long)]
+    pub local_target: bool,
+    /// Filter by relay tunnel id.
+    #[arg(long)]
+    pub tunnel_id: Option<String>,
+    /// Include payload bytes in JSON output. Human text output still omits them.
+    #[arg(long)]
+    pub include_payload: bool,
+}
+
+/// Options for `musu relay payload-deliver`.
+#[derive(Args, Debug)]
+pub struct RelayPayloadDeliverOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Claimed payload id to acknowledge as delivered.
+    pub payload_id: String,
+    /// Deliver payload for this target node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
+    /// Deliver payload for the current local node id.
+    #[arg(long)]
+    pub local_target: bool,
 }
 
 /// Options for `musu relay route-evidence`.
@@ -846,6 +898,8 @@ pub async fn run_relay(action: RelayAction) -> Result<()> {
         RelayAction::Transport(opts) => run_relay_transport(opts).await,
         RelayAction::Leases(opts) => run_relay_leases(opts).await,
         RelayAction::Payloads(opts) => run_relay_payloads(opts).await,
+        RelayAction::PayloadClaim(opts) => run_relay_payload_claim(opts).await,
+        RelayAction::PayloadDeliver(opts) => run_relay_payload_deliver(opts).await,
         RelayAction::RouteEvidence(opts) => run_relay_route_evidence(opts).await,
     }
 }
@@ -901,6 +955,25 @@ struct RelayPayloadsFilters {
     tunnel_id: Option<String>,
     status: Option<String>,
     include_payload: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayPayloadClaimFilters {
+    limit: u32,
+    session_id: Option<String>,
+    lease_id: Option<String>,
+    source_node_id: Option<String>,
+    target_node_id: String,
+    local_target: bool,
+    tunnel_id: Option<String>,
+    include_payload: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayPayloadDeliverFilters {
+    payload_id: String,
+    target_node_id: String,
+    local_target: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -973,6 +1046,50 @@ struct RelayPayloadsReport {
 }
 
 #[derive(Debug, Serialize)]
+struct RelayPayloadClaimReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    ok: bool,
+    owner_scope_verified: bool,
+    owner_scoped: bool,
+    accepted: bool,
+    claimed: bool,
+    relay_payload_queue_endpoint_wired: bool,
+    relay_default_data_path: bool,
+    release_grade: bool,
+    relay_payload_store_configured: bool,
+    relay_payload_store_backend: Option<String>,
+    relay_payload_store_release_grade: bool,
+    count: usize,
+    filters: RelayPayloadClaimFilters,
+    payloads: Vec<crate::cloud::P2pRelayPayloadStoredRecord>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RelayPayloadDeliverReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    ok: bool,
+    owner_scope_verified: bool,
+    owner_scoped: bool,
+    accepted: bool,
+    delivered: bool,
+    relay_default_data_path: bool,
+    release_grade: bool,
+    relay_payload_store_configured: bool,
+    relay_payload_store_backend: Option<String>,
+    relay_payload_store_release_grade: bool,
+    filters: RelayPayloadDeliverFilters,
+    payload: Option<crate::cloud::P2pRelayPayloadStoredRecord>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
 struct RelayRouteEvidenceFilters {
     limit: u32,
     route_kind: &'static str,
@@ -1039,13 +1156,16 @@ fn relay_payload_status_filter(status: Option<String>) -> Result<Option<String>>
     }
 }
 
-fn relay_payload_target_filter(opts: &RelayPayloadsOpts) -> Result<Option<String>> {
-    if !opts.local_target {
-        return Ok(opts.target_node_id.clone());
+fn resolve_relay_payload_target(
+    target_node_id: Option<&str>,
+    local_target: bool,
+) -> Result<Option<String>> {
+    if !local_target {
+        return Ok(target_node_id.map(str::to_string));
     }
 
     let local = local_node_id();
-    if let Some(target_node_id) = opts.target_node_id.as_deref() {
+    if let Some(target_node_id) = target_node_id {
         if target_node_id != local {
             return Err(anyhow!(
                 "--local-target conflicts with --target-node-id {}; local node is {}",
@@ -1055,6 +1175,36 @@ fn relay_payload_target_filter(opts: &RelayPayloadsOpts) -> Result<Option<String
         }
     }
     Ok(Some(local))
+}
+
+fn relay_payload_target_filter(opts: &RelayPayloadsOpts) -> Result<Option<String>> {
+    resolve_relay_payload_target(opts.target_node_id.as_deref(), opts.local_target)
+}
+
+fn required_relay_payload_target(
+    target_node_id: Option<&str>,
+    local_target: bool,
+) -> Result<String> {
+    resolve_relay_payload_target(target_node_id, local_target)?.ok_or_else(|| {
+        anyhow!("target node required; pass --target-node-id <id> or --local-target")
+    })
+}
+
+fn apply_relay_payload_error_json_to_store_fields(
+    relay_payload_store_configured: &mut bool,
+    relay_payload_store_backend: &mut Option<String>,
+    relay_payload_store_release_grade: &mut bool,
+    error_json: &serde_json::Value,
+) {
+    if let Some(value) = json_bool_property(error_json, "relay_payload_store_configured") {
+        *relay_payload_store_configured = value;
+    }
+    if let Some(value) = json_string_property(error_json, "relay_payload_store_backend") {
+        *relay_payload_store_backend = Some(value);
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_payload_store_release_grade") {
+        *relay_payload_store_release_grade = value;
+    }
 }
 
 fn apply_relay_transport_response_to_status(
@@ -1638,7 +1788,8 @@ async fn run_relay_payloads(opts: RelayPayloadsOpts) -> Result<()> {
         next_steps: vec![
             "run this on the target node with --local-target --status queued to inspect queued fallback envelopes",
             "keep this as on-demand diagnostics until target-side polling has bounded sleep/backoff/cancellation",
-            "decode and execute queued payloads only after claim/delivery semantics and relay transport proof are wired",
+            "claim payloads manually with `musu relay payload-claim --local-target` before wiring execution",
+            "decode and execute claimed payloads only after execution safety and relay transport proof are wired",
         ],
     };
 
@@ -1673,21 +1824,12 @@ async fn run_relay_payloads(opts: RelayPayloadsOpts) -> Result<()> {
             Err(err) => {
                 let error = err.to_string();
                 if let Some(error_json) = parse_json_object_from_error_text(&error) {
-                    if let Some(value) =
-                        json_bool_property(&error_json, "relay_payload_store_configured")
-                    {
-                        report.relay_payload_store_configured = value;
-                    }
-                    if let Some(value) =
-                        json_string_property(&error_json, "relay_payload_store_backend")
-                    {
-                        report.relay_payload_store_backend = Some(value);
-                    }
-                    if let Some(value) =
-                        json_bool_property(&error_json, "relay_payload_store_release_grade")
-                    {
-                        report.relay_payload_store_release_grade = value;
-                    }
+                    apply_relay_payload_error_json_to_store_fields(
+                        &mut report.relay_payload_store_configured,
+                        &mut report.relay_payload_store_backend,
+                        &mut report.relay_payload_store_release_grade,
+                        &error_json,
+                    );
                 }
                 report.error = Some(error);
             }
@@ -1744,6 +1886,283 @@ async fn run_relay_payloads(opts: RelayPayloadsOpts) -> Result<()> {
         if report.filters.include_payload && payload.payload_base64.is_some() {
             println!("    payload_base64: omitted in text output; use --json to print explicitly");
         }
+    }
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+async fn run_relay_payload_claim(opts: RelayPayloadClaimOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let target_node_id =
+        required_relay_payload_target(opts.target_node_id.as_deref(), opts.local_target)?;
+    let filters = RelayPayloadClaimFilters {
+        limit: opts.limit.clamp(1, 20),
+        session_id: opts.session_id.clone(),
+        lease_id: opts.lease_id.clone(),
+        source_node_id: opts.source_node_id.clone(),
+        target_node_id,
+        local_target: opts.local_target,
+        tunnel_id: opts.tunnel_id.clone(),
+        include_payload: opts.include_payload,
+    };
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+
+    let mut report = RelayPayloadClaimReport {
+        schema: "musu.relay_payload_claim_report.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        ok: false,
+        owner_scope_verified: false,
+        owner_scoped: false,
+        accepted: false,
+        claimed: false,
+        relay_payload_queue_endpoint_wired: true,
+        relay_default_data_path: false,
+        release_grade: false,
+        relay_payload_store_configured: false,
+        relay_payload_store_backend: None,
+        relay_payload_store_release_grade: false,
+        count: 0,
+        filters,
+        payloads: vec![],
+        error: None,
+        next_steps: vec![
+            "inspect claimed payloads manually before wiring a bounded target poller",
+            "keep claim attempts on demand until sleep/backoff/cancellation and execution safety are implemented",
+            "mark successfully handled payloads with `musu relay payload-deliver <payload-id> --local-target`",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        let claim = crate::cloud::P2pRelayPayloadClaimRequest {
+            schema: "musu.relay_payload_claim.v1".to_string(),
+            target_node_id: report.filters.target_node_id.clone(),
+            claimant_node_id: Some(report.filters.target_node_id.clone()),
+            limit: Some(report.filters.limit),
+            session_id: report.filters.session_id.clone(),
+            lease_id: report.filters.lease_id.clone(),
+            source_node_id: report.filters.source_node_id.clone(),
+            tunnel_id: report.filters.tunnel_id.clone(),
+            include_payload: report.filters.include_payload,
+        };
+        match cloud.claim_relay_payloads(&claim).await {
+            Ok(response) => {
+                report.ok = response.ok;
+                report.owner_scope_verified = true;
+                report.owner_scoped = response.owner_scoped;
+                report.accepted = response.accepted;
+                report.claimed = response.claimed;
+                report.relay_payload_queue_endpoint_wired =
+                    response.relay_payload_queue_endpoint_wired;
+                report.relay_default_data_path = response.relay_default_data_path;
+                report.release_grade = response.release_grade;
+                report.relay_payload_store_configured = response.relay_payload_store_configured;
+                report.relay_payload_store_backend = Some(response.relay_payload_store_backend);
+                report.relay_payload_store_release_grade =
+                    response.relay_payload_store_release_grade;
+                report.count = response.count;
+                report.payloads = response.payloads;
+            }
+            Err(err) => {
+                let error = err.to_string();
+                if let Some(error_json) = parse_json_object_from_error_text(&error) {
+                    apply_relay_payload_error_json_to_store_fields(
+                        &mut report.relay_payload_store_configured,
+                        &mut report.relay_payload_store_backend,
+                        &mut report.relay_payload_store_release_grade,
+                        &error_json,
+                    );
+                }
+                report.error = Some(error);
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU relay payload claim");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  ok: {}", report.ok);
+    println!("  owner scope verified: {}", report.owner_scope_verified);
+    println!("  owner scoped: {}", report.owner_scoped);
+    println!("  accepted: {}", report.accepted);
+    println!("  claimed: {}", report.claimed);
+    println!(
+        "  relay payload queue endpoint wired: {}",
+        report.relay_payload_queue_endpoint_wired
+    );
+    println!(
+        "  relay default data path: {}",
+        report.relay_default_data_path
+    );
+    println!("  release grade: {}", report.release_grade);
+    println!(
+        "  relay payload store: configured={}, backend={}, release_grade={}",
+        report.relay_payload_store_configured,
+        report
+            .relay_payload_store_backend
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.relay_payload_store_release_grade
+    );
+    println!("  count: {}", report.count);
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    for payload in &report.payloads {
+        println!(
+            "  - {} status={} session={} lease={} {} -> {} bytes={} claimed_by={} expires={}",
+            payload.payload_id,
+            payload.status,
+            payload.session_id,
+            payload.lease_id,
+            payload.source_node_id,
+            payload.target_node_id,
+            payload.payload_bytes,
+            payload.claimed_by.as_deref().unwrap_or("unknown"),
+            payload.expires_at
+        );
+        if report.filters.include_payload && payload.payload_base64.is_some() {
+            println!("    payload_base64: omitted in text output; use --json to print explicitly");
+        }
+    }
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+async fn run_relay_payload_deliver(opts: RelayPayloadDeliverOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let target_node_id =
+        required_relay_payload_target(opts.target_node_id.as_deref(), opts.local_target)?;
+    let filters = RelayPayloadDeliverFilters {
+        payload_id: opts.payload_id.clone(),
+        target_node_id,
+        local_target: opts.local_target,
+    };
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+
+    let mut report = RelayPayloadDeliverReport {
+        schema: "musu.relay_payload_delivery_report.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        ok: false,
+        owner_scope_verified: false,
+        owner_scoped: false,
+        accepted: false,
+        delivered: false,
+        relay_default_data_path: false,
+        release_grade: false,
+        relay_payload_store_configured: false,
+        relay_payload_store_backend: None,
+        relay_payload_store_release_grade: false,
+        filters,
+        payload: None,
+        error: None,
+        next_steps: vec![
+            "delivery only acknowledges a claimed payload; it does not prove QUIC/TLS relay transport",
+            "record release-grade relay transport proof only after actual payload transit is implemented",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        let delivery = crate::cloud::P2pRelayPayloadDeliveryRequest {
+            schema: "musu.relay_payload_delivery.v1".to_string(),
+            payload_id: report.filters.payload_id.clone(),
+            target_node_id: report.filters.target_node_id.clone(),
+        };
+        match cloud.mark_relay_payload_delivered(&delivery).await {
+            Ok(response) => {
+                report.ok = response.ok;
+                report.owner_scope_verified = true;
+                report.owner_scoped = response.owner_scoped;
+                report.accepted = response.accepted;
+                report.delivered = response.delivered;
+                report.relay_default_data_path = response.relay_default_data_path;
+                report.release_grade = response.release_grade;
+                report.relay_payload_store_configured = response.relay_payload_store_configured;
+                report.relay_payload_store_backend = Some(response.relay_payload_store_backend);
+                report.relay_payload_store_release_grade =
+                    response.relay_payload_store_release_grade;
+                report.payload = response.payload;
+            }
+            Err(err) => {
+                let error = err.to_string();
+                if let Some(error_json) = parse_json_object_from_error_text(&error) {
+                    apply_relay_payload_error_json_to_store_fields(
+                        &mut report.relay_payload_store_configured,
+                        &mut report.relay_payload_store_backend,
+                        &mut report.relay_payload_store_release_grade,
+                        &error_json,
+                    );
+                }
+                report.error = Some(error);
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU relay payload delivery");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  ok: {}", report.ok);
+    println!("  owner scope verified: {}", report.owner_scope_verified);
+    println!("  owner scoped: {}", report.owner_scoped);
+    println!("  accepted: {}", report.accepted);
+    println!("  delivered: {}", report.delivered);
+    println!(
+        "  relay default data path: {}",
+        report.relay_default_data_path
+    );
+    println!("  release grade: {}", report.release_grade);
+    println!(
+        "  relay payload store: configured={}, backend={}, release_grade={}",
+        report.relay_payload_store_configured,
+        report
+            .relay_payload_store_backend
+            .as_deref()
+            .unwrap_or("unknown"),
+        report.relay_payload_store_release_grade
+    );
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    if let Some(payload) = &report.payload {
+        println!(
+            "  payload: {} status={} session={} lease={} {} -> {} delivered_at={}",
+            payload.payload_id,
+            payload.status,
+            payload.session_id,
+            payload.lease_id,
+            payload.source_node_id,
+            payload.target_node_id,
+            payload.delivered_at.as_deref().unwrap_or("unknown")
+        );
     }
     println!("  next steps:");
     for step in &report.next_steps {
@@ -3943,6 +4362,29 @@ mod tests {
             relay_payload_target_filter(&opts).unwrap(),
             Some("local-node".to_string())
         );
+
+        std::env::remove_var("MUSU_NODE_NAME");
+    }
+
+    #[test]
+    fn relay_payload_claim_requires_target_or_local_target() {
+        assert!(required_relay_payload_target(None, false).is_err());
+        assert_eq!(
+            required_relay_payload_target(Some("node-b"), false).unwrap(),
+            "node-b".to_string()
+        );
+    }
+
+    #[test]
+    fn relay_payload_required_target_uses_local_node_id() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        std::env::set_var("MUSU_NODE_NAME", "local-node");
+
+        assert_eq!(
+            required_relay_payload_target(None, true).unwrap(),
+            "local-node".to_string()
+        );
+        assert!(required_relay_payload_target(Some("other-node"), true).is_err());
 
         std::env::remove_var("MUSU_NODE_NAME");
     }

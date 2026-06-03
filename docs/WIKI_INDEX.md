@@ -3054,4 +3054,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `queued -> claimed -> delivered`, `relay_payload_delivery_requires_claim`,
   `relay_payload_claim_kv_not_implemented`, and `test:p2p 54/54`.
 
+- 2026-06-04 relay payload claim/delivery client CLI:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_CLAIM_DELIVERY_CLIENT_CLI_2026_06_04.md`
+  (wiki/655) records Rust client and manual target-side CLI diagnostics for
+  relay payload claim/delivery. Search terms should include `GOAL v465`,
+  `wiki/655`, `P2pRelayPayloadClaimRequest`,
+  `P2pRelayPayloadDeliveryResponse`, `MusuCloud::claim_relay_payloads`,
+  `MusuCloud::mark_relay_payload_delivered`, `musu relay payload-claim`,
+  `musu relay payload-deliver`, `--local-target`, and `cloud tests 10/10`.
+
 **End of WIKI_INDEX.md.**

@@ -2909,6 +2909,51 @@ Release interpretation:
   production atomic claim/delivery, release-grade relay proof, and fresh
   packaged evidence are complete
 
+## 2026-06-04 02:42 KST Relay Payload Claim/Delivery Client CLI
+
+Rust now has manual target-side claim/delivery diagnostics for the hosted relay
+payload queue.
+
+New Rust surface:
+
+- `P2pRelayPayloadClaimRequest`
+- `P2pRelayPayloadClaimResponse`
+- `P2pRelayPayloadDeliveryRequest`
+- `P2pRelayPayloadDeliveryResponse`
+- `MusuCloud::claim_relay_payloads(...)`
+- `MusuCloud::mark_relay_payload_delivered(...)`
+- `musu relay payload-claim`
+- `musu relay payload-deliver`
+
+CLI behavior:
+
+- `payload-claim` and `payload-deliver` require `--target-node-id` or
+  `--local-target`
+- text output omits payload bytes
+- claim JSON includes payload bytes only when `--include-payload` is set
+- no live production mutation smoke was run because claim/deliver changes queue
+  state
+
+Validation:
+
+- Rust cloud tests passed 10/10
+- install CLI relay payload tests passed 4/4
+- `cargo check --bin musu` passed
+- Rust fmt check passed
+- `musu relay payload-claim --help` listed target filters and
+  `--include-payload`
+- `musu relay payload-deliver --help` listed payload id and target filters
+
+Release interpretation:
+
+- this is on-demand target-side diagnostics only
+- this is not background polling
+- this is not payload execution
+- this is not release-grade QUIC/TLS relay transport proof
+- public release remains No-Go until bounded polling, execution safety,
+  production atomic claim/delivery, relay proof, and fresh packaged evidence are
+  complete
+
 ## 2026-06-04 Post Relay Transport Proof API Primary Evidence Refresh
 
 After the lease-bound relay transport proof record API source change, the
