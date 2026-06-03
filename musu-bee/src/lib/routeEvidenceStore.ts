@@ -21,6 +21,7 @@ export type RouteEvidencePayload = {
   peer_identity_method?: string | null;
   peer_public_key?: string | null;
   encryption: string;
+  transport_verified_by?: string | null;
   payload_transited_musu_infra: boolean;
   result: "success" | "failed";
   failure_class?: string | null;
@@ -35,6 +36,21 @@ export type RouteEvidencePayload = {
     blockers?: string[];
     lease_id?: string | null;
     failure_class?: string | null;
+  };
+  relay_transport_proof?: {
+    schema: "musu.relay_transport_proof.v1";
+    session_id: string;
+    lease_id: string;
+    transport_kind: string;
+    relay_url: string;
+    tunnel_id: string;
+    handshake_ms: number;
+    payload_bytes_transited: number;
+    payload_transited_musu_infra: boolean;
+    encryption: string;
+    transport_verified_by: string;
+    opened_at: string;
+    closed_at?: string | null;
   };
   recorded_at: string;
 };
@@ -130,6 +146,28 @@ function isStoredRouteEvidenceRecord(value: unknown): value is StoredRouteEviden
     typeof evidence.target_node_id === "string" &&
     typeof evidence.route_kind === "string" &&
     typeof evidence.result === "string"
+  );
+}
+
+function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean {
+  if (evidence.route_kind !== "relay") {
+    return true;
+  }
+  const proof = evidence.relay_transport_proof;
+  return Boolean(
+    proof &&
+      proof.schema === "musu.relay_transport_proof.v1" &&
+      proof.lease_id?.trim() &&
+      proof.session_id?.trim() &&
+      proof.tunnel_id?.trim() &&
+      proof.relay_url?.trim().startsWith("wss://") &&
+      Number.isInteger(proof.handshake_ms) &&
+      proof.handshake_ms >= 0 &&
+      Number.isInteger(proof.payload_bytes_transited) &&
+      proof.payload_bytes_transited > 0 &&
+      proof.payload_transited_musu_infra === true &&
+      proof.encryption.trim().toLowerCase() === "quic_tls_1_3" &&
+      proof.transport_verified_by.trim() === "musu_quic_tls_transport"
   );
 }
 
@@ -235,6 +273,9 @@ export async function queryRouteEvidenceRecords(
         return false;
       }
       if (query.release_grade !== undefined && record.release_grade !== query.release_grade) {
+        return false;
+      }
+      if (query.release_grade === true && !hasCurrentRelayTransportProof(record.evidence)) {
         return false;
       }
       return true;

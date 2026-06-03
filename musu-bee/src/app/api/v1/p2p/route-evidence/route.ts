@@ -36,6 +36,22 @@ const RelayFallbackSchema = z.object({
   failure_class: z.string().min(1).nullable().optional(),
 });
 
+const RelayTransportProofSchema = z.object({
+  schema: z.literal("musu.relay_transport_proof.v1"),
+  session_id: z.string().min(1),
+  lease_id: z.string().min(1),
+  transport_kind: z.string().min(1),
+  relay_url: z.string().min(1),
+  tunnel_id: z.string().min(1),
+  handshake_ms: z.number().int().nonnegative(),
+  payload_bytes_transited: z.number().int().positive(),
+  payload_transited_musu_infra: z.boolean(),
+  encryption: z.string().min(1),
+  transport_verified_by: z.string().min(1),
+  opened_at: z.string().min(1),
+  closed_at: z.string().min(1).nullable().optional(),
+}).passthrough();
+
 const RouteEvidenceSchema = z.object({
   schema: z.literal("musu.route_evidence.v1"),
   version: z.string().min(1),
@@ -55,6 +71,7 @@ const RouteEvidenceSchema = z.object({
   result: z.enum(["success", "failed"]),
   failure_class: z.string().nullable().optional(),
   relay_fallback: RelayFallbackSchema.optional(),
+  relay_transport_proof: RelayTransportProofSchema.optional(),
   recorded_at: z.string().min(1),
 }).passthrough();
 
@@ -114,6 +131,40 @@ async function relayLeaseStoreBlockers(evidence: RouteEvidence, ownerKey: string
   }
 }
 
+function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
+  if (evidence.route_kind !== "relay") {
+    return [];
+  }
+
+  const blockers: string[] = [];
+  const proof = evidence.relay_transport_proof;
+  if (!proof) {
+    return ["relay_route_missing_transport_proof"];
+  }
+
+  const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
+  if (proof.lease_id.trim() !== relayLeaseId) {
+    blockers.push("relay_route_transport_proof_lease_mismatch");
+  }
+  if (evidence.session_id?.trim() && proof.session_id.trim() !== evidence.session_id.trim()) {
+    blockers.push("relay_route_transport_proof_session_mismatch");
+  }
+  if (!proof.relay_url.trim().startsWith("wss://")) {
+    blockers.push("relay_route_transport_proof_relay_url_not_wss");
+  }
+  if (!proof.payload_transited_musu_infra) {
+    blockers.push("relay_route_transport_proof_no_infra_transit");
+  }
+  if (proof.encryption.trim().toLowerCase() !== "quic_tls_1_3") {
+    blockers.push("relay_route_transport_proof_not_quic_tls");
+  }
+  if (proof.transport_verified_by.trim() !== "musu_quic_tls_transport") {
+    blockers.push("relay_route_transport_proof_not_verified");
+  }
+
+  return blockers;
+}
+
 async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
   const blockers: string[] = [];
 
@@ -171,6 +222,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
         blockers.push("relay_route_lease_blocked");
       }
     }
+    blockers.push(...relayTransportProofBlockers(evidence));
   }
   if (evidence.route_kind !== "relay" && evidence.payload_transited_musu_infra) {
     blockers.push("direct_route_claims_infra_transit");

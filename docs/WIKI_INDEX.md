@@ -2569,4 +2569,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/613 index refresh`, and
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_131938`.
 
+- 2026-06-03 relay transport proof gate:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_GATE_2026_06_03.md` (wiki/614)
+  records that `route_kind=relay` release-grade route evidence now requires
+  `relay_transport_proof` schema `musu.relay_transport_proof.v1` in addition
+  to owner-scoped stored relay lease proof. Search terms should include
+  `GOAL v424`, `wiki/614`, `relay_route_missing_transport_proof`,
+  `relay_route_transport_proof_lease_mismatch`,
+  `relay_route_transport_proof_not_verified`, `musu_quic_tls_transport`,
+  `test:p2p 35/35`, and `release verifier 20/20`.
+
+- 2026-06-03 relay transport proof index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1692 files and 2311 symbols after GOAL v424, wiki/614,
+  `musu.relay_transport_proof.v1`, route-evidence source/tests, Rust cloud DTO
+  updates, P2P spec updates, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_relay_transport_proof_gate.md` and
+  `2026-06-03_relay_transport_proof_index_refresh.md`. Search terms should
+  include `GOAL v425`, `1692 files`, `2311 symbols`, `wiki/615 index refresh`,
+  `relay_route_missing_transport_proof`, and
+  `musu.relay_transport_proof.v1`.
+
 **End of WIKI_INDEX.md.**

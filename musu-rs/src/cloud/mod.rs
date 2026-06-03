@@ -297,6 +297,25 @@ pub struct RouteEvidenceQueryResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
+pub struct RouteRelayTransportProof {
+    pub schema: String,
+    pub session_id: String,
+    pub lease_id: String,
+    pub transport_kind: String,
+    pub relay_url: String,
+    pub tunnel_id: String,
+    pub handshake_ms: u64,
+    pub payload_bytes_transited: u64,
+    pub payload_transited_musu_infra: bool,
+    pub encryption: String,
+    pub transport_verified_by: String,
+    pub opened_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct RouteEvidence {
     pub schema: String,
     pub version: String,
@@ -323,6 +342,8 @@ pub struct RouteEvidence {
     pub failure_class: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relay_fallback: Option<RouteRelayFallbackEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_transport_proof: Option<RouteRelayTransportProof>,
     pub recorded_at: String,
 }
 
@@ -779,6 +800,7 @@ mod tests {
             result: RouteAttemptResult::Success,
             failure_class: None,
             relay_fallback: None,
+            relay_transport_proof: None,
             recorded_at: "2026-05-31T09:01:00Z".into(),
         };
 

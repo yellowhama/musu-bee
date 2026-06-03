@@ -2586,3 +2586,42 @@ Canonical report:
 - indexed `1689` files and `2307` symbols after GOAL v422, wiki/612,
   fresh primary evidence, BETA/current-head/WIKI/WIKI_INDEX updates, and CoS
   memories
+
+## 2026-06-03 13:50 KST Relay Transport Proof Gate
+
+Hosted P2P relay route evidence now requires explicit payload transport proof.
+
+New contract:
+
+- field `relay_transport_proof`
+- schema `musu.relay_transport_proof.v1`
+- required for `route_kind=relay` release grading
+- must match the issued relay lease and route session
+- must prove `wss://` relay URL, positive payload byte transit,
+  `payload_transited_musu_infra=true`, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`
+
+Validation:
+
+- `npm run test:p2p`: 35/35
+- `npm run typecheck`: passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`: passed
+- focused Rust route-evidence serialization test: passed
+- release evidence verifier regressions: 20/20
+- `git diff --check`: passed
+
+This is evidence-chain hardening, not relay/tunnel payload transport. Because
+web and Rust source changed, current packaged primary evidence is stale until
+MSIX/smoke/CPU/matrix evidence is refreshed after this commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1692` files and `2311` symbols after GOAL v424, wiki/614,
+  route-evidence source/tests, Rust cloud DTO updates, P2P spec updates,
+  BETA/WIKI/WIKI_INDEX updates, and CoS memories

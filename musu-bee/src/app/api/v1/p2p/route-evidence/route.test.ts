@@ -51,6 +51,25 @@ const hardenedEvidence = {
   recorded_at: "2026-06-01T01:00:00Z",
 };
 
+function relayTransportProof(leaseId: string, overrides: Record<string, unknown> = {}) {
+  return {
+    schema: "musu.relay_transport_proof.v1",
+    session_id: hardenedEvidence.session_id,
+    lease_id: leaseId,
+    transport_kind: "quic_relay_tunnel",
+    relay_url: "wss://relay.musu.pro/connect",
+    tunnel_id: "relay-tunnel-test",
+    handshake_ms: 23,
+    payload_bytes_transited: 128,
+    payload_transited_musu_infra: true,
+    encryption: "quic_tls_1_3",
+    transport_verified_by: "musu_quic_tls_transport",
+    opened_at: "2026-06-01T01:00:01Z",
+    closed_at: "2026-06-01T01:00:02Z",
+    ...overrides,
+  };
+}
+
 async function loadModule(caseName: string): Promise<Module> {
   return (await import(`./route?case=${caseName}-${Date.now()}`)) as Module;
 }
@@ -194,10 +213,10 @@ test("keeps issued-looking relay route evidence non release grade without stored
   });
 });
 
-test("accepts release-grade relay route evidence only with owner-scoped stored lease", async () => {
+test("keeps stored-lease relay route evidence non release grade without transport proof", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST: postLease } = await loadRelayLeaseModule("relay-route-backed-lease-issue");
-    const { POST } = await loadModule("relay-route-backed-lease-proof");
+    const { POST } = await loadModule("relay-route-backed-lease-without-transport-proof");
     enableRelayLeasePolicy();
 
     const leaseRes = await postLease(relayLeasePostReq({
@@ -236,8 +255,79 @@ test("accepts release-grade relay route evidence only with owner-scoped stored l
     assert.equal(res.status, 202);
 
     const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_missing_transport_proof/);
+  });
+});
+
+test("accepts release-grade relay route evidence only with stored lease and transport proof", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST: postLease } = await loadRelayLeaseModule("relay-route-backed-proof-lease-issue");
+    const { GET, POST } = await loadModule("relay-route-backed-transport-proof");
+    enableRelayLeasePolicy();
+
+    const leaseRes = await postLease(relayLeasePostReq({
+      session_id: hardenedEvidence.session_id,
+      source_node_id: hardenedEvidence.source_node_id,
+      target_node_id: hardenedEvidence.target_node_id,
+      requested_capability: "remote_command",
+      attempted_route_kinds: ["lan", "tailscale"],
+      direct_path_failed: true,
+      failure_class: "connect_timeout",
+    }));
+    assert.equal(leaseRes.status, 201);
+    const leaseBody = (await leaseRes.json()) as {
+      lease: {
+        lease_id: string;
+      };
+    };
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: leaseBody.lease.lease_id,
+      },
+      relay_transport_proof: relayTransportProof(leaseBody.lease.lease_id),
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
     assert.equal(body.release_grade, true);
     assert.deepEqual(body.blockers, []);
+
+    const getRes = await GET(getReq("?route_kind=relay&release_grade=true&limit=10"));
+    assert.equal(getRes.status, 200);
+    const getBody = (await getRes.json()) as {
+      count: number;
+      records: Array<{
+        evidence: {
+          relay_transport_proof?: {
+            schema: string;
+            lease_id: string;
+          };
+        };
+      }>;
+    };
+    assert.equal(getBody.count, 1);
+    assert.equal(
+      getBody.records[0]?.evidence.relay_transport_proof?.schema,
+      "musu.relay_transport_proof.v1"
+    );
+    assert.equal(
+      getBody.records[0]?.evidence.relay_transport_proof?.lease_id,
+      leaseBody.lease.lease_id
+    );
   });
 });
 

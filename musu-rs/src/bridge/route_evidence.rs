@@ -160,6 +160,7 @@ pub fn cloud_route_evidence(evidence: &RouteAttemptEvidence) -> crate::cloud::Ro
         result: cloud_route_result(evidence.result),
         failure_class: evidence.failure_class.clone(),
         relay_fallback: evidence.relay_fallback.as_ref().map(cloud_relay_fallback),
+        relay_transport_proof: None,
         recorded_at: evidence.recorded_at.clone(),
     }
 }

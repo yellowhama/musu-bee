@@ -2866,3 +2866,63 @@ Release interpretation:
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_131938`,
   `post transport descriptor primary evidence refresh`, `runtime idle CPU 1/2`,
   and `runtime CPU matrix 1/2`
+
+## 2026-06-03 13:50 KST Relay Transport Proof Gate
+
+wiki/614 records that hosted P2P relay route evidence now requires an explicit
+payload transport proof object before it can become release-grade.
+
+New route-evidence proof:
+
+- field: `relay_transport_proof`
+- schema: `musu.relay_transport_proof.v1`
+- required only for `route_kind=relay` release grading
+- must match `relay_fallback.lease_id` and route `session_id`
+- must prove `wss://` relay URL, positive payload byte transit,
+  `payload_transited_musu_infra=true`, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`
+
+New blockers include:
+
+- `relay_route_missing_transport_proof`
+- `relay_route_transport_proof_lease_mismatch`
+- `relay_route_transport_proof_session_mismatch`
+- `relay_route_transport_proof_relay_url_not_wss`
+- `relay_route_transport_proof_no_infra_transit`
+- `relay_route_transport_proof_not_quic_tls`
+- `relay_route_transport_proof_not_verified`
+
+Stored route-evidence queries with `release_grade=true` now exclude older relay
+records that lack the current `musu.relay_transport_proof.v1` proof contract.
+
+Validation:
+
+- `npm run test:p2p` passed 35/35
+- `npm run typecheck` passed
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed
+- focused Rust route-evidence serialization test passed
+- release evidence verifier regressions passed 20/20
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is evidence-chain hardening, not relay/tunnel payload transport
+- current bridge route evidence still submits no relay transport proof
+- public release still needs real relay transport code that generates
+  `musu.relay_transport_proof.v1`, live owner-scoped KV/Upstash storage,
+  second-PC runtime/multi-device evidence, support mailbox evidence, and Store
+  evidence
+- web and Rust source changed, so current packaged MSIX/smoke/CPU/matrix
+  evidence must be refreshed after this commit
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1692` files and `2311` symbols after wiki/614, GOAL v424,
+  route-evidence source/tests, Rust cloud DTO updates, P2P spec updates, the
+  canonical report, BETA/WIKI_INDEX updates, and CoS memories
+- search terms should include `GOAL v425`, `wiki/615 index refresh`,
+  `relay_route_missing_transport_proof`,
+  `relay_route_transport_proof_not_verified`, and
+  `musu.relay_transport_proof.v1`
