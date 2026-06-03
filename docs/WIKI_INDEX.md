@@ -2377,4 +2377,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_transport_proven`, `live_evidence_relay_route_not_proven`,
   `20260603-093640-musu.pro`, `case_count=19`, and `fail_count=13`.
 
+- 2026-06-03 post relay route evidence primary refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_ROUTE_EVIDENCE_PRIMARY_REFRESH_2026_06_03.md`
+  (wiki/600) records the current primary-machine MSIX/smoke/CPU/matrix
+  evidence refresh after P2P relay route evidence gate hardening. Search terms
+  should include `GOAL v407`, `wiki/600`,
+  `20260603-101716-HUGH_SECOND`, `20260603-100903-HUGH_SECOND.desktop-open`,
+  `20260603-101013-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_101013`, `WebView2 0.52`,
+  `single_machine_verified=true`, `runtime idle CPU valid machines 1`, and
+  `runtime CPU matrix valid machines 1`.
+
+- 2026-06-03 post relay route evidence primary refresh index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1654 files and 2291 symbols after GOAL v407-v408, wiki/600, fresh
+  primary MSIX/smoke/CPU/matrix evidence, BETA checklist updates, WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_post_relay_route_evidence_primary_refresh.md` and
+  `2026-06-03_post_relay_route_evidence_primary_refresh_index_refresh.md`.
+  Search terms should include `GOAL v408`, `1654 files`, `2291 symbols`,
+  `wiki/600 index refresh`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_101013`,
+  `WebView2 0.52`, `single_machine_verified=true`,
+  `runtime idle CPU valid machines 1`, and
+  `runtime CPU matrix valid machines 1`.
+
 **End of WIKI_INDEX.md.**

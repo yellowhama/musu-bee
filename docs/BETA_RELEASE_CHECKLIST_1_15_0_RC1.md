@@ -2148,3 +2148,75 @@ Canonical report:
 - indexed `1646` files and `2291` symbols after wiki/599, GOAL v405-v406,
   fresh P2P evidence `20260603-093640-musu.pro`, P2P route-evidence gate
   tooling/docs/spec updates, WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 10:17 KST Post Relay Route Evidence Primary Refresh
+
+Fresh primary-machine evidence was restored after P2P relay route evidence gate
+hardening changed current HEAD.
+
+MSIX refresh:
+
+- `scripts\windows\run-msix-workflow.ps1 -Configuration release -StartupContract local-sideload-manual -AttemptInstall -VerifyInstalled -ReplaceExisting`
+- Rust release build passed in `9m 55s`
+- Tauri shell and local-sideload MSIX packaging passed
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- runtime evidence used the explicit WindowsApps alias because
+  `C:\Users\empty\.cargo\bin\musu.exe` still shadows PATH
+
+Current primary evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-101716-HUGH_SECOND.evidence.json`
+- single-machine verification:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-101716-HUGH_SECOND.verification.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-100903-HUGH_SECOND.desktop-open.evidence.json`
+- runtime matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-101013-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- route token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_101013`
+
+Primary CPU result:
+
+- desktop-open `60.069s`
+- MUSU `0`
+- Node `0.03`
+- WebView2 `0.52`
+- hot `0`
+- process counts: MUSU `2`, Node `1`, WebView2 `6`
+- working set `496.76MB`
+
+Runtime matrix result:
+
+- `runtime-started`: MUSU `0`, Node `0`, WebView2 `0.13`
+- `dashboard-open`: MUSU `0`, Node `0`, WebView2 `0.18`
+- `desktop-open`: MUSU `0`, Node `0`, WebView2 `0.26`
+- `post-route`: MUSU `0`, Node `0`, WebView2 `0.10`
+- all four scenarios have hot `0` and no resource-budget violations
+
+Dirty-tree go/no-go after adding evidence recognized:
+
+- `single_machine_verified=true`
+- runtime idle CPU valid machines `1`: `HUGH_SECOND`
+- runtime CPU matrix valid machines `1`: `HUGH_SECOND`
+
+Release interpretation:
+
+- current primary-machine packaged evidence is restored
+- public release remains No-Go until second-PC route/CPU/matrix, hosted P2P
+  relay proof, support mailbox evidence, and Store/Partner Center evidence pass
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_ROUTE_EVIDENCE_PRIMARY_REFRESH_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1654` files and `2291` symbols after wiki/600, GOAL v407-v408,
+  fresh primary evidence `20260603-101716-HUGH_SECOND`,
+  `20260603-100903-HUGH_SECOND.desktop-open`, and
+  `20260603-101013-HUGH_SECOND.runtime-cpu-scenario-matrix`, WIKI/WIKI_INDEX
+  updates, and CoS memories

@@ -2465,3 +2465,54 @@ Canonical report:
 
 Index refresh after wiki/599 recorded `1646` files and `2291` symbols using
 the explicit packaged WindowsApps alias invocation.
+
+## 30. Post Relay Route Evidence Primary Refresh (2026-06-03)
+
+wiki/600 records the primary-machine evidence refresh after the hosted P2P
+relay route evidence gate hardening.
+
+Evidence:
+
+- current local-sideload MSIX rebuilt and installed as
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- single-machine evidence:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260603-101716-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260603-100903-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260603-101013-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- route token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_101013`
+
+Primary-machine CPU result:
+
+- desktop-open `60.069s`
+- MUSU `0`
+- Node `0.03`
+- WebView2 `0.52`
+- hot process count `0`
+- owned process counts: MUSU `2`, Node `1`, WebView2 `6`
+- working set `496.76MB`
+
+Matrix result:
+
+- `runtime-started`: MUSU `0`, Node `0`, WebView2 `0.13`
+- `dashboard-open`: MUSU `0`, Node `0`, WebView2 `0.18`
+- `desktop-open`: MUSU `0`, Node `0`, WebView2 `0.26`
+- `post-route`: MUSU `0`, Node `0`, WebView2 `0.10`
+- all scenarios had hot `0` and no resource-budget violations
+
+Product interpretation:
+
+- Current primary-machine packaged evidence is restored.
+- The reported idle busy-loop is not reproduced on the packaged desktop path.
+- Public release still needs second-PC route/CPU/matrix, hosted P2P relay
+  proof, support mailbox evidence, and Store/Partner Center evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_ROUTE_EVIDENCE_PRIMARY_REFRESH_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_post_relay_route_evidence_primary_refresh.md`
+
+Index refresh after wiki/600 recorded `1654` files and `2291` symbols using
+the explicit packaged WindowsApps alias invocation.
