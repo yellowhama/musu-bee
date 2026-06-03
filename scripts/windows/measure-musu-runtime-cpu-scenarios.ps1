@@ -10,6 +10,8 @@ param(
     [switch]$RunRouteProbe,
     [string]$RoutePrompt,
     [string]$RouteTarget,
+    [int]$RouteProbeMaxAttempts = 3,
+    [int]$RouteProbeRetryDelaySec = 3,
     [switch]$AllowFailedRouteProbe,
     [double]$MaxOneCorePercent = 5.0,
     [int]$MaxOwnedProcessCount = 16,
@@ -36,6 +38,12 @@ if (-not (Test-Path -LiteralPath $MusuExe)) {
 }
 if ($SampleSeconds -lt 3) {
     throw "SampleSeconds must be at least 3."
+}
+if ($RouteProbeMaxAttempts -lt 1) {
+    throw "RouteProbeMaxAttempts must be at least 1."
+}
+if ($RouteProbeRetryDelaySec -lt 1) {
+    throw "RouteProbeRetryDelaySec must be at least 1."
 }
 
 $knownScenarioNames = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
@@ -135,6 +143,25 @@ function Invoke-CapturedCommand {
         }
         Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
     }
+}
+
+function Get-RouteProbeRetryAfterSec {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $null
+    }
+    $match = [regex]::Match($Text, '"retry_after_s"\s*:\s*(\d+)')
+    if ($match.Success) {
+        $value = [int]$match.Groups[1].Value
+        if ($value -gt 0) {
+            return $value
+        }
+    }
+    if ($Text -match "429 Too Many Requests" -or $Text -match "rate_limited") {
+        return $RouteProbeRetryDelaySec
+    }
+    return $null
 }
 
 function Invoke-TextCommand {
@@ -339,15 +366,42 @@ foreach ($name in $Scenario) {
                 }
                 $routeArgs += @("--wait", $RoutePrompt)
                 $routeCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeArgs)
-                $routeResult = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeArgs -TimeoutSec $CommandTimeoutSec
-                $routeOutputParts = @($routeResult.stdout, $routeResult.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-                $routeOutput = ($routeOutputParts -join "`n").Trim()
+                $routeAttempts = New-Object System.Collections.Generic.List[object]
+                $routeResult = $null
+                $routeOutput = ""
+                for ($attempt = 1; $attempt -le $RouteProbeMaxAttempts; $attempt++) {
+                    $attemptStartedAt = (Get-Date).ToString("o")
+                    $candidateResult = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeArgs -TimeoutSec $CommandTimeoutSec
+                    $routeOutputParts = @($candidateResult.stdout, $candidateResult.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                    $candidateOutput = ($routeOutputParts -join "`n").Trim()
+                    $candidateOk = ($candidateResult.exit_code -eq 0 -and $candidateOutput -like "*$expectedRouteToken*")
+                    $retryAfterSec = if ($candidateOk) { $null } else { Get-RouteProbeRetryAfterSec -Text $candidateOutput }
+                    $routeAttempts.Add([pscustomobject]@{
+                        attempt = $attempt
+                        started_at = $attemptStartedAt
+                        exit_code = [int]$candidateResult.exit_code
+                        stdout = [string]$candidateResult.stdout
+                        stderr = [string]$candidateResult.stderr
+                        output = $candidateOutput
+                        ok = [bool]$candidateOk
+                        retry_after_s = $retryAfterSec
+                    }) | Out-Null
+                    $routeResult = $candidateResult
+                    $routeOutput = $candidateOutput
+                    if ($candidateOk -or $attempt -ge $RouteProbeMaxAttempts -or $null -eq $retryAfterSec) {
+                        break
+                    }
+                    Start-Sleep -Seconds ([Math]::Max($RouteProbeRetryDelaySec, [int]$retryAfterSec))
+                }
                 $routeProbe = [pscustomobject]@{
                     prompt = $RoutePrompt
                     expected_token = $expectedRouteToken
                     target = if ([string]::IsNullOrWhiteSpace($RouteTarget)) { $null } else { $RouteTarget }
                     command = $routeCommand
                     arguments = @($routeArgs)
+                    max_attempts = $RouteProbeMaxAttempts
+                    attempt_count = $routeAttempts.Count
+                    attempts = $routeAttempts.ToArray()
                     exit_code = [int]$routeResult.exit_code
                     stdout = [string]$routeResult.stdout
                     stderr = [string]$routeResult.stderr
