@@ -1199,6 +1199,33 @@ if ($p2pControlPlaneEvidenceCandidate) {
     }
 }
 
+$p2pRelayTransportWired = $false
+$p2pRelayRouteEvidenceOk = $false
+$p2pRelayRouteEvidenceCount = -1
+$p2pRelayPayloadTransportProven = $false
+$p2pRelayLeaseStoreReleaseGrade = $false
+$p2pOwnerScopeVerified = $false
+if ($p2pControlPlaneEvidence) {
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_transport_wired"]) {
+        $p2pRelayTransportWired = [bool]$p2pControlPlaneEvidence.relay_transport_wired
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_evidence_ok"]) {
+        $p2pRelayRouteEvidenceOk = [bool]$p2pControlPlaneEvidence.relay_route_evidence_ok
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_evidence_count"]) {
+        $p2pRelayRouteEvidenceCount = [int]$p2pControlPlaneEvidence.relay_route_evidence_count
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_transport_proven"]) {
+        $p2pRelayPayloadTransportProven = [bool]$p2pControlPlaneEvidence.relay_payload_transport_proven
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_lease_store_release_grade"]) {
+        $p2pRelayLeaseStoreReleaseGrade = [bool]$p2pControlPlaneEvidence.relay_lease_store_release_grade
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["owner_scope_verified"]) {
+        $p2pOwnerScopeVerified = [bool]$p2pControlPlaneEvidence.owner_scope_verified
+    }
+}
+
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 $blockers = New-Object System.Collections.Generic.List[object]
 $warnings = New-Object System.Collections.Generic.List[object]
@@ -1251,7 +1278,7 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not $p2pControlPlaneVerified) {
-    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped relay lease queries with relay_default_data_path=false and relay_transport_wired=true."
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay_transport_wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true and count > 0."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
@@ -1334,6 +1361,12 @@ $result = [pscustomobject]@{
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
     p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
+    p2p_owner_scope_verified = [bool]$p2pOwnerScopeVerified
+    p2p_relay_lease_store_release_grade = [bool]$p2pRelayLeaseStoreReleaseGrade
+    p2p_relay_transport_wired = [bool]$p2pRelayTransportWired
+    p2p_relay_route_evidence_ok = [bool]$p2pRelayRouteEvidenceOk
+    p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
+    p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
     p2p_control_plane_evidence = $p2pControlPlaneEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
@@ -1367,6 +1400,12 @@ else {
     "support_mailbox_verified: $($result.support_mailbox_verified)"
     "store_release_verified: $($result.store_release_verified)"
     "p2p_control_plane_verified: $($result.p2p_control_plane_verified)"
+    "p2p_owner_scope_verified: $($result.p2p_owner_scope_verified)"
+    "p2p_relay_lease_store_release_grade: $($result.p2p_relay_lease_store_release_grade)"
+    "p2p_relay_transport_wired: $($result.p2p_relay_transport_wired)"
+    "p2p_relay_route_evidence_ok: $($result.p2p_relay_route_evidence_ok)"
+    "p2p_relay_route_evidence_count: $($result.p2p_relay_route_evidence_count)"
+    "p2p_relay_payload_transport_proven: $($result.p2p_relay_payload_transport_proven)"
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap

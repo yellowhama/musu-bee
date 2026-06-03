@@ -2220,3 +2220,47 @@ Canonical report:
   `20260603-100903-HUGH_SECOND.desktop-open`, and
   `20260603-101013-HUGH_SECOND.runtime-cpu-scenario-matrix`, WIKI/WIKI_INDEX
   updates, and CoS memories
+
+## 2026-06-03 10:35 KST Go/No-Go P2P Route Evidence Output
+
+Release go/no-go output now surfaces hosted P2P route-evidence proof directly.
+
+Changed output:
+
+- `p2p_owner_scope_verified`
+- `p2p_relay_lease_store_release_grade`
+- `p2p_relay_transport_wired`
+- `p2p_relay_route_evidence_ok`
+- `p2p_relay_route_evidence_count`
+- `p2p_relay_payload_transport_proven`
+
+The `p2p-control-plane` blocker now requires owner-scoped release-grade relay
+lease storage, `relay_default_data_path=false`, `relay_transport_wired=true`,
+and owner-scoped release-grade relay route evidence with
+`relay_payload_transport_proven=true` and `count > 0`.
+
+Current output remains No-Go:
+
+- `p2p_control_plane_verified=false`
+- `p2p_relay_route_evidence_count=0`
+- `p2p_relay_payload_transport_proven=false`
+
+Validation:
+
+- PowerShell parser passed
+- JSON go/no-go output includes the new fields
+- non-JSON go/no-go output prints the new fields
+- release evidence verifier regression passed `19/19`
+- `git diff --check` passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_GO_NO_GO_P2P_ROUTE_EVIDENCE_OUTPUT_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1657` files and `2291` symbols after wiki/601, GOAL v409-v410,
+  go/no-go P2P route-evidence output hardening, WIKI/WIKI_INDEX updates, and
+  CoS memories

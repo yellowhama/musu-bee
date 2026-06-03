@@ -2516,3 +2516,60 @@ Canonical report:
 
 Index refresh after wiki/600 recorded `1654` files and `2291` symbols using
 the explicit packaged WindowsApps alias invocation.
+
+## 31. Go/No-Go P2P Route Evidence Output (2026-06-03)
+
+wiki/601 records release go/no-go output alignment with the stricter hosted P2P
+relay route evidence gate.
+
+Changed behavior:
+
+- `write-release-go-no-go.ps1` now emits `p2p_owner_scope_verified`.
+- It emits `p2p_relay_lease_store_release_grade`.
+- It emits `p2p_relay_transport_wired`.
+- It emits `p2p_relay_route_evidence_ok`.
+- It emits `p2p_relay_route_evidence_count`.
+- It emits `p2p_relay_payload_transport_proven`.
+- The same fields appear in non-JSON output.
+
+The `p2p-control-plane` blocker now explicitly requires:
+
+- owner-scoped release-grade relay lease storage
+- `relay_default_data_path=false`
+- `relay_transport_wired=true`
+- owner-scoped release-grade relay route evidence
+- `relay_payload_transport_proven=true`
+- route evidence `count > 0`
+
+Current result:
+
+- `p2p_control_plane_verified=false`
+- `p2p_owner_scope_verified=false`
+- `p2p_relay_lease_store_release_grade=false`
+- `p2p_relay_transport_wired=false`
+- `p2p_relay_route_evidence_ok=false`
+- `p2p_relay_route_evidence_count=0`
+- `p2p_relay_payload_transport_proven=false`
+
+Validation:
+
+- PowerShell parser passed
+- JSON go/no-go output includes the new fields
+- non-JSON go/no-go output prints the new fields
+- release evidence verifier regressions passed `19/19`
+- `git diff --check` passed
+
+Product interpretation:
+
+- This is release-gate output fidelity, not P2P completion.
+- Public P2P remains blocked on release-grade relay lease storage, real
+  relay/tunnel payload transport, and release-grade owner-scoped relay route
+  evidence proving payload transit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_GO_NO_GO_P2P_ROUTE_EVIDENCE_OUTPUT_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_go_no_go_p2p_route_evidence_output.md`
+
+Index refresh after wiki/601 recorded `1657` files and `2291` symbols using
+the explicit packaged WindowsApps alias invocation.

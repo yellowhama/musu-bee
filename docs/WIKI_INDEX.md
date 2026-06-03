@@ -2402,4 +2402,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU valid machines 1`, and
   `runtime CPU matrix valid machines 1`.
 
+- 2026-06-03 go/no-go P2P route evidence output:
+  `RELEASE_1_15_0_RC1_GO_NO_GO_P2P_ROUTE_EVIDENCE_OUTPUT_2026_06_03.md`
+  (wiki/601) records that `write-release-go-no-go.ps1` now surfaces
+  `p2p_relay_route_evidence_ok`, `p2p_relay_route_evidence_count`, and
+  `p2p_relay_payload_transport_proven` in both JSON and non-JSON output. The
+  P2P blocker now explicitly requires owner-scoped release-grade relay lease
+  storage, `relay_transport_wired=true`, and release-grade relay route evidence
+  with payload proof and `count > 0`. Search terms should include `GOAL v409`,
+  `wiki/601`, `p2p_relay_route_evidence_count`, `p2p_relay_payload_transport_proven`,
+  `p2p_relay_lease_store_release_grade`, `release-grade relay route evidence`,
+  and `count > 0`.
+
+- 2026-06-03 go/no-go P2P route evidence output index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1657 files and 2291 symbols after GOAL v409-v410, wiki/601,
+  go/no-go P2P output hardening, BETA checklist updates, WIKI/WIKI_INDEX
+  updates, and CoS memories
+  `2026-06-03_go_no_go_p2p_route_evidence_output.md` and
+  `2026-06-03_go_no_go_p2p_route_evidence_output_index_refresh.md`. Search
+  terms should include `GOAL v410`, `1657 files`, `2291 symbols`,
+  `wiki/601 index refresh`, `p2p_relay_route_evidence_count`,
+  `p2p_relay_payload_transport_proven`,
+  `p2p_relay_lease_store_release_grade`, and
+  `release-grade relay route evidence`.
+
 **End of WIKI_INDEX.md.**
