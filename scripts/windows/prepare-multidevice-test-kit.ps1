@@ -139,19 +139,20 @@ diagnosing install/handoff failures; a skipped CPU sample cannot close the
 public runtime idle CPU gate.
 
 The wrapper also captures a diagnostic runtime CPU scenario matrix with
-`musu.runtime_cpu_scenario_matrix.v1` across `runtime-started`,
+`musu.runtime_cpu_scenario_matrix.v1` across `startup-open`, `runtime-started`,
 `dashboard-open`, `desktop-open`, and `post-route`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
 This matrix is also verified by
 `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`. It does not replace
 the release-grade two-machine `desktop-open` runtime idle CPU evidence, but the
 final go/no-go now requires a clean 60s matrix on two machines so busy-loop
-regressions can be attributed to runtime start, dashboard/desktop opening, or
-post-route state. Use `-SkipRuntimeCpuScenarioMatrix` on
+regressions can be attributed to startup activation, runtime start,
+dashboard/desktop opening, or post-route state. Use
+`-SkipRuntimeCpuScenarioMatrix` on
 `run-second-pc-release-check.ps1` only when debugging install/handoff failures.
 
 The wrapper also writes a process-attribution summary with schema
@@ -179,7 +180,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-ev
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
-powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
 musu down --json
 musu up --json

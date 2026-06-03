@@ -51,19 +51,23 @@ exits nonzero when `ok=false`.
 
 Supported matrix scenarios:
 
+- `startup-open`
 - `runtime-started`
 - `dashboard-open`
 - `desktop-open`
 - `post-route`
 
-The base idle sampler now also accepts diagnostic scenario labels
-`runtime-started`, `dashboard-open`, and `startup-open`, in addition to the
-existing `bridge-only`, `desktop-open`, `post-route`, and `diagnostic` labels.
+The base idle sampler accepts the same diagnostic scenario labels in addition
+to the existing `bridge-only` and `diagnostic` labels.
 
 The matrix script still does not replace the public release CPU gate. It exists
 beside the two-machine 60s `desktop-open` evidence so a future busy-loop report
-can be attributed to the runtime start, dashboard/desktop opening, or post-route
-state before release is allowed.
+can be attributed to startup activation, runtime start, dashboard/desktop
+opening, or post-route state before release is allowed.
+
+Current verifier behavior rejects a no-op `startup-open` scenario. The scenario
+must launch the packaged desktop app and begin sampling within 3s of activation,
+so a stale already-open desktop state cannot satisfy the startup busy-loop gate.
 
 Current verifier behavior also rejects a no-op `dashboard-open` scenario. If
 `-DashboardUrl` is not supplied, the matrix runner now uses only the
@@ -112,7 +116,7 @@ Additional audit points:
   only any historical `MUSU_CPU_SCENARIO_ROUTE_OK_*` output.
 - Manual matrix commands must pass multiple scenarios as a comma-separated
   value, for example
-  `-Scenario runtime-started,dashboard-open,desktop-open,post-route`. A
+  `-Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route`. A
   space-separated `-Scenario runtime-started dashboard-open ...` invocation was
   observed under `powershell -File` to bind only the first scenario, so operator
   packet/runbook commands now use the comma form and the runner normalizes
@@ -163,7 +167,7 @@ Result:
 Current release-grade primary matrix:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -CommandTimeoutSec 180 -MusuExe .\musu-rs\target\debug\musu.exe -DashboardUrl http://127.0.0.1:3001/app -OpenDesktopApp -RunRouteProbe -FailOnHot -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -CommandTimeoutSec 180 -MusuExe .\musu-rs\target\debug\musu.exe -DashboardUrl http://127.0.0.1:3001/app -OpenDesktopApp -RunRouteProbe -FailOnHot -Json
 ```
 
 Result:

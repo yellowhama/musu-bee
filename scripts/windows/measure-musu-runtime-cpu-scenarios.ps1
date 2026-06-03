@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string[]]$Scenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
+    [string[]]$Scenario = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [int]$SampleSeconds = 60,
     [int]$CommandTimeoutSec = 90,
     [string]$MusuExe,
@@ -36,7 +36,7 @@ if ($SampleSeconds -lt 3) {
     throw "SampleSeconds must be at least 3."
 }
 
-$knownScenarioNames = @("runtime-started", "dashboard-open", "desktop-open", "post-route")
+$knownScenarioNames = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
 $normalizedScenarios = New-Object System.Collections.Generic.List[string]
 $extraScenarioArgs = @()
 if ($null -ne $MyInvocation.UnboundArguments) {
@@ -247,6 +247,26 @@ function Resolve-DashboardUrlFromUpResult {
 $scenarioResults = @()
 foreach ($name in $Scenario) {
     switch ($name) {
+        "startup-open" {
+            $openedAt = $null
+            $sampleDelaySeconds = $null
+            if ($OpenDesktopApp) {
+                Start-Process explorer.exe ("shell:AppsFolder\{0}" -f $DesktopAppId)
+                $openedAt = Get-Date
+                Start-Sleep -Seconds 2
+                $sampleDelaySeconds = [Math]::Round(((Get-Date) - $openedAt).TotalSeconds, 3)
+            }
+            $scenarioResults += [pscustomobject]@{
+                scenario = "startup-open"
+                preparation = [pscustomobject]@{
+                    action = if ($OpenDesktopApp) { "Start packaged desktop app" } else { "none" }
+                    desktop_app_id = $DesktopAppId
+                    sample_delay_seconds = $sampleDelaySeconds
+                    note = "Samples immediately after packaged app activation to catch startup busy-loop regressions."
+                }
+                measurement = Invoke-MeasureScenario -Name $name
+            }
+        }
         "runtime-started" {
             $up = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json") -TimeoutSec $CommandTimeoutSec
             $resolvedDashboardUrl = Resolve-DashboardUrlFromUpResult -UpResult $up

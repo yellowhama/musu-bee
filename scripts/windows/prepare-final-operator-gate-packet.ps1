@@ -420,14 +420,15 @@ For hot-state attribution, the second-PC wrapper also returns a diagnostic
 runtime CPU scenario matrix. If you need to rerun it manually, use:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
 This writes `musu.runtime_cpu_scenario_matrix.v1` under
 `.local-build\runtime-cpu-scenarios\`. It still does not replace the
 two-machine `desktop-open` release CPU gate, but final go/no-go also requires a
-verified 60s matrix on two machines so runtime-started, dashboard-open,
-desktop-open, and post-route busy-loop regressions are separately attributed.
+verified 60s matrix on two machines so startup-open, runtime-started,
+dashboard-open, desktop-open, and post-route busy-loop regressions are
+separately attributed.
 
 ## Gate F - Process ownership evidence
 

@@ -9,8 +9,8 @@ param(
     [int]$RuntimeIdleCpuSampleSeconds = 60,
     [switch]$SkipRuntimeIdleCpu,
     [int]$RuntimeCpuScenarioMatrixSampleSeconds = 60,
-    [ValidateSet("runtime-started", "dashboard-open", "desktop-open", "post-route")]
-    [string[]]$RuntimeCpuScenario = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
+    [ValidateSet("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")]
+    [string[]]$RuntimeCpuScenario = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [string]$RuntimeCpuDashboardUrl,
     [switch]$RunRuntimeCpuRouteProbe = $true,
     [switch]$SkipRuntimeCpuScenarioMatrix,

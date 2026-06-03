@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$EvidencePath,
     [string]$ExpectedVersion,
     [string]$ExpectedGitCommit,
-    [string[]]$RequiredScenarios = @("runtime-started", "dashboard-open", "desktop-open", "post-route"),
+    [string[]]$RequiredScenarios = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [int]$MinSampleSeconds = 60,
     [double]$MaxOneCorePercent = 5.0,
     [switch]$RequirePostRouteProbe = $true,
@@ -278,8 +278,15 @@ if ($matrix) {
 
         $entry = $matches | Select-Object -First 1
         [void]$validScenarioNames.Add($required)
+        $preparation = Get-JsonPropertyValue -Object $entry -Name "preparation"
+        if ($required -eq "startup-open") {
+            $preparationAction = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "action" } else { "" }
+            $desktopAppId = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "desktop_app_id" } else { "" }
+            $sampleDelaySeconds = if ($null -ne $preparation -and $preparation.PSObject.Properties["sample_delay_seconds"] -and $null -ne $preparation.sample_delay_seconds) { [double]$preparation.sample_delay_seconds } else { -1.0 }
+            Add-CheckFromCondition "startup app opened" ($preparationAction -eq "Start packaged desktop app" -and -not [string]::IsNullOrWhiteSpace($desktopAppId)) "startup-open launched the packaged desktop app" "startup-open did not launch the packaged desktop app"
+            Add-CheckFromCondition "startup sample delay" ($sampleDelaySeconds -ge 0.0 -and $sampleDelaySeconds -le 3.0) "startup-open sample delay ${sampleDelaySeconds}s <= 3s" "startup-open sample delay is ${sampleDelaySeconds}s, expected <= 3s"
+        }
         if ($required -eq "dashboard-open") {
-            $preparation = Get-JsonPropertyValue -Object $entry -Name "preparation"
             $preparationAction = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "action" } else { "" }
             $dashboardUrl = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "dashboard_url" } else { "" }
             Add-CheckFromCondition "dashboard opened" ($preparationAction -eq "Start-Process DashboardUrl" -and -not [string]::IsNullOrWhiteSpace($dashboardUrl)) "dashboard-open launched a dashboard URL" "dashboard-open did not launch a dashboard URL"
