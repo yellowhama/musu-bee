@@ -2348,6 +2348,29 @@ still lacks `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
 KV/Upstash provisioning and deployment before owner-scoped relay route proof can
 be captured.
 
+## 2026-06-04 08:37 KST External Recheck Relay Proof Output
+
+The external gate recheck and final handoff status now surface relay proof
+requirements directly:
+
+- `record-p2p-control-plane-evidence.ps1` final JSON includes
+  `relay_route_evidence_count`
+- `record-external-release-gate-recheck.ps1` final JSON and summary include
+  `p2p_relay_route_evidence_count`,
+  `p2p_relay_payload_transport_proven`, and
+  `p2p_relay_payload_delivery_proof_valid_count`
+- external recheck adds blockers
+  `p2p_relay_payload_transport_not_proven` and
+  `p2p_relay_payload_delivery_proof_missing`
+- `show-final-release-handoff-status.ps1` gate output includes owner scope,
+  route evidence count, payload transport proof, and delivery proof count
+
+This keeps the operator checklist aligned with the roadmap: local MUSU programs
+perform work on each device, while `musu.pro` coordinates login/rendezvous and
+stores release-grade fallback proof. Public release still requires second-PC
+evidence, hosted relay delivery proof, support mailbox evidence, and Store
+evidence.
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

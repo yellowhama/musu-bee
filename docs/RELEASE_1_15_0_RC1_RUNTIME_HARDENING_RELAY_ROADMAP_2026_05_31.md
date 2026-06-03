@@ -1761,3 +1761,29 @@ Roadmap status: production P2P remains No-Go. The next external action is still
 KV/Upstash provisioning and deployment; after that, release requires actual
 owner-scoped relay route evidence with payload transport proof and at least one
 valid payload delivery proof.
+
+## 2026-06-04 External Recheck Relay Proof Output
+
+The operator-facing external gate recheck and final handoff status now mirror
+the stricter hosted P2P proof gate.
+
+Output changes:
+
+- `record-p2p-control-plane-evidence.ps1` now returns
+  `relay_route_evidence_count`
+- `record-external-release-gate-recheck.ps1` now promotes
+  `p2p_relay_route_evidence_count`,
+  `p2p_relay_payload_transport_proven`, and
+  `p2p_relay_payload_delivery_proof_valid_count` to top-level JSON and summary
+  output
+- external recheck now adds explicit blockers for
+  `p2p_relay_payload_transport_not_proven` and
+  `p2p_relay_payload_delivery_proof_missing`
+- `show-final-release-handoff-status.ps1` now includes owner scope, route
+  evidence count, payload transport proof, and delivery proof count in its
+  `gates` snapshot
+
+Roadmap status: this aligns the operator checklist with the local-first web
+coordination model. MUSU programs still do the work locally; `musu.pro` is the
+login/rendezvous/fallback coordination and proof surface. Public release remains
+No-Go until real second-PC evidence and live hosted relay delivery proof exist.

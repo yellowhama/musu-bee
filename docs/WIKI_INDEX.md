@@ -3114,4 +3114,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `KV relay payload store atomically prevents duplicate concurrent claims`,
   `test:p2p 57/57`, and `route tests 11/11`.
 
+- 2026-06-04 external recheck relay proof output:
+  `RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RELAY_PROOF_OUTPUT_2026_06_04.md`
+  (wiki/661) records operator-facing relay proof count output for external
+  gate rechecks and final handoff status. Search terms should include
+  `GOAL v471`, `wiki/661`, `p2p_relay_route_evidence_count`,
+  `p2p_relay_payload_transport_proven`,
+  `p2p_relay_payload_delivery_proof_valid_count`,
+  `p2p_relay_payload_transport_not_proven`,
+  `p2p_relay_payload_delivery_proof_missing`, and
+  `test-release-evidence-verifiers 24/24`.
+
 **End of WIKI_INDEX.md.**

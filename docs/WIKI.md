@@ -4142,3 +4142,35 @@ evidence remain required.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_ATOMIC_KV_MUTATION_2026_06_04.md`
+
+## 2026-06-04 external recheck relay proof output (wiki/661)
+
+The external gate recheck and final handoff status now expose hosted relay proof
+requirements at the operator-facing level.
+
+Changed output:
+
+- `record-p2p-control-plane-evidence.ps1` final JSON returns
+  `relay_route_evidence_count`
+- `record-external-release-gate-recheck.ps1` final JSON and summary include
+  `p2p_relay_route_evidence_count`,
+  `p2p_relay_payload_transport_proven`, and
+  `p2p_relay_payload_delivery_proof_valid_count`
+- external recheck adds blockers
+  `p2p_relay_payload_transport_not_proven` and
+  `p2p_relay_payload_delivery_proof_missing`
+- `show-final-release-handoff-status.ps1` gate output includes owner scope,
+  route evidence count, payload transport proof, and delivery proof count
+
+This is operator visibility hardening for the local-first web coordination
+roadmap: local MUSU programs do the work on each device, while `musu.pro`
+coordinates login/rendezvous/fallback proof. It does not close public release;
+second-PC evidence, live hosted relay delivery proof, support mailbox evidence,
+and Store evidence remain required.
+
+Validation passed PowerShell parser checks, `git diff --check`, and
+`test-release-evidence-verifiers.ps1 -Json` `24/24`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RELAY_PROOF_OUTPUT_2026_06_04.md`

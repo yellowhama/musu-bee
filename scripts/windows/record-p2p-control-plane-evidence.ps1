@@ -280,6 +280,7 @@ $result = [pscustomobject]@{
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
+    relay_route_evidence_count = if ($verification -and $verification.PSObject.Properties["relay_route_evidence_count"]) { [int]$verification.relay_route_evidence_count } else { 0 }
     relay_payload_transport_proven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
     relay_payload_delivery_proof_valid_count = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { [int]$verification.relay_payload_delivery_proof_valid_count } else { 0 }
     musu_exe = $MusuExe

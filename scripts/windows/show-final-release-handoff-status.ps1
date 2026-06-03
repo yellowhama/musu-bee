@@ -751,7 +751,7 @@ if (-not [bool]$goNoGo.p2p_control_plane_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "p2p-control-plane" `
-        -Summary "Provision production KV/Upstash storage and relay transport proof for https://musu.pro, then record owner-scoped P2P control-plane evidence." `
+        -Summary "Provision production KV/Upstash storage, real relay payload transport, and per-record delivery proof for https://musu.pro, then record owner-scoped release-grade P2P control-plane evidence." `
         -Command $commands.show_musu_pro_p2p_env_status
 }
 
@@ -799,9 +799,13 @@ $result = [pscustomobject]@{
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
         store_release_verified = [bool]$goNoGo.store_release_verified
         p2p_control_plane_verified = [bool]$goNoGo.p2p_control_plane_verified
+        p2p_owner_scope_verified = [bool]$goNoGo.p2p_owner_scope_verified
         p2p_relay_lease_store_release_grade = [bool]$goNoGo.p2p_relay_lease_store_release_grade
         p2p_relay_transport_wired = [bool]$goNoGo.p2p_relay_transport_wired
+        p2p_relay_route_evidence_ok = [bool]$goNoGo.p2p_relay_route_evidence_ok
+        p2p_relay_route_evidence_count = [int]$goNoGo.p2p_relay_route_evidence_count
         p2p_relay_payload_transport_proven = [bool]$goNoGo.p2p_relay_payload_transport_proven
+        p2p_relay_payload_delivery_proof_valid_count = [int]$goNoGo.p2p_relay_payload_delivery_proof_valid_count
         manifest_git_dirty = if ($goNoGo.manifest_git) { [bool]$goNoGo.manifest_git.dirty } else { $null }
     }
     blockers = $goNoGo.blockers

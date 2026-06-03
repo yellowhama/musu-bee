@@ -176,6 +176,23 @@ function Get-BoolProperty {
     return [bool]$property.Value
 }
 
+function Get-IntProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [int]$Default = 0
+    )
+
+    if (-not $Object) {
+        return $Default
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return $Default
+    }
+    return [int]$property.Value
+}
+
 function ConvertTo-NetAddressString {
     param($Value)
 
@@ -401,6 +418,9 @@ $releaseReady = ($goNoGo.json -and [bool]$goNoGo.json.ready_for_public_desktop_r
 $secondPcReachable = ($secondPc -and [bool]$secondPc.tcp_test_succeeded)
 $p2pEnvOk = ($p2pEnv.json -and [bool]$p2pEnv.json.ok)
 $p2pEvidenceOk = ($p2pEvidence.json -and [bool]$p2pEvidence.json.ok)
+$p2pRelayRouteEvidenceCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_evidence_count" -Default 0
+$p2pRelayPayloadTransportProven = Get-BoolProperty -Object $p2pEvidence.json -Name "relay_payload_transport_proven"
+$p2pRelayPayloadDeliveryProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_valid_count" -Default 0
 
 $goNoGoBlockers = @()
 if ($goNoGo.json -and $goNoGo.json.PSObject.Properties["blockers"]) {
@@ -431,6 +451,12 @@ if (-not $p2pEnvOk) {
 }
 if (-not $p2pEvidenceOk) {
     [void]$blockers.Add("p2p_control_plane_evidence_not_verified")
+}
+if ($p2pEvidence.json -and -not $p2pRelayPayloadTransportProven) {
+    [void]$blockers.Add("p2p_relay_payload_transport_not_proven")
+}
+if ($p2pEvidence.json -and $p2pRelayPayloadDeliveryProofValidCount -le 0) {
+    [void]$blockers.Add("p2p_relay_payload_delivery_proof_missing")
 }
 
 $result = [pscustomobject]@{
@@ -467,6 +493,9 @@ $result = [pscustomobject]@{
     p2p_verification_path = if ($p2pEvidence.json) { [string]$p2pEvidence.json.verification_path } else { $null }
     p2p_evidence_musu_exe = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe } else { $null }
     p2p_evidence_musu_exe_source = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe_source } else { $null }
+    p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
+    p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
+    p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
     blockers = $blockers.ToArray()
     go_no_go_blockers = $goNoGoBlockers
     go_no_go = $goNoGo.json
@@ -499,6 +528,9 @@ $summary = @"
 - P2P evidence: $($result.p2p_evidence_path)
 - P2P evidence MUSU exe: $($result.p2p_evidence_musu_exe)
 - P2P evidence MUSU exe source: $($result.p2p_evidence_musu_exe_source)
+- P2P relay route evidence count: $($result.p2p_relay_route_evidence_count)
+- P2P relay payload transport proven: $($result.p2p_relay_payload_transport_proven)
+- P2P relay payload delivery proof valid count: $($result.p2p_relay_payload_delivery_proof_valid_count)
 - Blockers: $blockerText
 - Evidence: $([System.IO.Path]::GetFileName($evidencePath))
 - Evidence SHA256: $($hash.Hash.ToLowerInvariant())
@@ -523,6 +555,9 @@ $final = [pscustomobject]@{
     p2p_evidence_path = $result.p2p_evidence_path
     p2p_evidence_musu_exe = $result.p2p_evidence_musu_exe
     p2p_evidence_musu_exe_source = $result.p2p_evidence_musu_exe_source
+    p2p_relay_route_evidence_count = [int]$result.p2p_relay_route_evidence_count
+    p2p_relay_payload_transport_proven = [bool]$result.p2p_relay_payload_transport_proven
+    p2p_relay_payload_delivery_proof_valid_count = [int]$result.p2p_relay_payload_delivery_proof_valid_count
     blockers = $result.blockers
 }
 
