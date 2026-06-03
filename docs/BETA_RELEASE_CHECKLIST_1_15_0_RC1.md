@@ -2317,6 +2317,37 @@ Result:
   matrix `1/2`, and public release No-Go on second-PC, P2P, support, Store
   metadata, and Store release evidence
 
+## 2026-06-04 08:29 KST Live P2P Recheck And Proof-Count Status
+
+Fresh hosted P2P control-plane evidence was recorded with the packaged
+WindowsApps alias:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.verification.json`
+- summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.summary.md`
+
+Current live result:
+
+- verifier `ok=false`, `fail_count=27`
+- `relay_status_transport_wired=false`
+- `relay_status_payload_endpoint_wired=false`
+- `relay_transport_payload_endpoint_wired=false`
+- `relay_route_evidence_count=0`
+- `relay_payload_transport_proven=false`
+- `relay_payload_delivery_proof_valid_count=0`
+- live error remains `p2p_relay_lease_kv_not_configured`
+
+`show-musu-pro-p2p-env-status.ps1` now reports relay payload delivery proof
+counts and adds the blocker
+`live_evidence_relay_payload_delivery_proof_missing`. GitHub secret-name status
+still lacks `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+`KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`, so the next external action is
+KV/Upstash provisioning and deployment before owner-scoped relay route proof can
+be captured.
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

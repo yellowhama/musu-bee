@@ -1724,3 +1724,40 @@ reported `single_machine_verified=true`, runtime idle CPU valid machines
 (`HUGH_SECOND`), and public release still No-Go on second-PC runtime evidence,
 multi-device route evidence, hosted `musu.pro` P2P control-plane proof,
 support mailbox, Store public metadata, and Store release evidence.
+
+## 2026-06-04 Live P2P Control-Plane Recheck After Primary Evidence Refresh
+
+Fresh live `musu.pro` P2P evidence was recorded:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.evidence.json`
+- verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.verification.json`
+- summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-082740-musu.pro.summary.md`
+
+Result:
+
+- verifier `ok=false`, `fail_count=27`
+- GitHub secret-name status has `MUSU_P2P_CONTROL_TOKEN_SHA256S`
+- GitHub secret/variable names still lack
+  `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL` and
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+- live relay lease query still fails with `p2p_relay_lease_kv_not_configured`
+- relay status/leases report transport not wired
+- relay route evidence count is `0`
+- `relay_payload_transport_proven=false`
+- `relay_payload_delivery_proof_valid_count=0`
+
+`show-musu-pro-p2p-env-status.ps1` now mirrors the stricter release gate by
+surfacing `relay_payload_delivery_proof_valid_count`,
+`relay_payload_delivery_proof_required_count`, and
+`relay_payload_delivery_proof_invalid_count` in its evidence summary. It also
+adds `live_evidence_relay_payload_delivery_proof_missing` plus next steps that
+require per-record `relay_payload_delivery_proof` before the hosted P2P gate can
+pass.
+
+Roadmap status: production P2P remains No-Go. The next external action is still
+KV/Upstash provisioning and deployment; after that, release requires actual
+owner-scoped relay route evidence with payload transport proof and at least one
+valid payload delivery proof.
