@@ -28,6 +28,17 @@ test("fails when UI paths are touched without required evidence", () => {
   ]);
 });
 
+test("ignores Next app route handlers", () => {
+  const result = evaluateDesignGate({
+    changedFiles: ["musu-bee/src/app/api/v1/p2p/route-evidence/route.ts"],
+    prBody: "",
+  });
+
+  assert.equal(result.uiTouched, false);
+  assert.equal(result.pass, true);
+  assert.deepEqual(result.matchedUiFiles, []);
+});
+
 test("passes when UI paths are touched with all required evidence", () => {
   const result = evaluateDesignGate({
     changedFiles: ["musu-bee/src/components/Sidebar.tsx"],

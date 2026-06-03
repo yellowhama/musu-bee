@@ -6,6 +6,9 @@ const UI_PATH_PREFIXES = [
   "musu-bee/public/",
 ];
 
+const NEXT_APP_ROUTE_HANDLER_RE =
+  /^musu-bee\/src\/app\/(?:.*\/)?route\.[jt]sx?$/;
+
 const DESIGN_APPROVED_TOKEN_RE = /\bDesign:\s*Approved\b/i;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
 const PAPERCLIP_ISSUE_URL_RE =
@@ -24,8 +27,10 @@ function evaluateDesignGate({ changedFiles, prBody }) {
   const body = typeof prBody === "string" ? prBody : "";
   const urls = extractUrls(body);
 
-  const matchedUiFiles = files.filter((file) =>
-    UI_PATH_PREFIXES.some((prefix) => file.startsWith(prefix))
+  const matchedUiFiles = files.filter(
+    (file) =>
+      UI_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)) &&
+      !NEXT_APP_ROUTE_HANDLER_RE.test(file)
   );
   const uiTouched = matchedUiFiles.length > 0;
 
@@ -106,6 +111,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  NEXT_APP_ROUTE_HANDLER_RE,
   UI_PATH_PREFIXES,
   evaluateDesignGate,
 };
