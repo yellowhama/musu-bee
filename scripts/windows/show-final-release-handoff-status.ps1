@@ -533,6 +533,16 @@ $runtimeIdleCpuRoots = @(
         filter = "*.json"
     }
 )
+$runtimeCpuScenarioMatrixRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\runtime-cpu-scenarios\{0}" -f $version))
+        filter = "*.runtime-cpu-scenario-matrix.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\runtime-cpu-scenarios")
+        filter = "*.runtime-cpu-scenario-matrix.json"
+    }
+)
 $processOwnershipRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\process-ownership\{0}" -f $version))
@@ -573,6 +583,16 @@ $storeRoots = @(
         filter = "*.evidence.json"
     }
 )
+$p2pControlPlaneRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\p2p-control-plane\{0}" -f $version))
+        filter = "*.evidence.json"
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\p2p-control-plane")
+        filter = "*.evidence.json"
+    }
+)
 
 $commands = [pscustomobject]@{
     show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
@@ -590,6 +610,8 @@ $commands = [pscustomobject]@{
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
     audit_desktop_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json"
+    show_musu_pro_p2p_env_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json"
+    record_p2p_control_plane = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -Json"
     final_completion = @"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
@@ -725,6 +747,13 @@ if (-not [bool]$goNoGo.store_release_verified) {
         -Summary "Verify the Store submission bundle, reserve the Partner Center product name, submit the package, wait for Microsoft certification/restricted capability approval, then record Store release evidence." `
         -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification and restricted capability review approved" -Json'
 }
+if (-not [bool]$goNoGo.p2p_control_plane_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "p2p-control-plane" `
+        -Summary "Provision production KV/Upstash storage and relay transport proof for https://musu.pro, then record owner-scoped P2P control-plane evidence." `
+        -Command $commands.show_musu_pro_p2p_env_status
+}
 
 $result = [pscustomobject]@{
     schema = "musu.final_release_handoff_status.v1"
@@ -756,6 +785,12 @@ $result = [pscustomobject]@{
         runtime_idle_cpu_valid_machine_count = $goNoGo.runtime_idle_cpu_valid_machine_count
         runtime_idle_cpu_valid_machines = @($goNoGo.runtime_idle_cpu_valid_machines)
         runtime_idle_cpu_candidate_count = $goNoGo.runtime_idle_cpu_candidate_count
+        runtime_cpu_scenario_matrix_verified = [bool]$goNoGo.runtime_cpu_scenario_matrix_verified
+        runtime_cpu_scenario_matrix_min_machine_count = $goNoGo.runtime_cpu_scenario_matrix_min_machine_count
+        runtime_cpu_scenario_matrix_valid_machine_count = $goNoGo.runtime_cpu_scenario_matrix_valid_machine_count
+        runtime_cpu_scenario_matrix_valid_machines = @($goNoGo.runtime_cpu_scenario_matrix_valid_machines)
+        runtime_cpu_scenario_matrix_candidate_count = $goNoGo.runtime_cpu_scenario_matrix_candidate_count
+        runtime_cpu_scenario_matrix_required_scenarios = @($goNoGo.runtime_cpu_scenario_matrix_required_scenarios)
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
         desktop_single_instance_verified = [bool]$goNoGo.desktop_single_instance_verified
@@ -763,6 +798,10 @@ $result = [pscustomobject]@{
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
         store_release_verified = [bool]$goNoGo.store_release_verified
+        p2p_control_plane_verified = [bool]$goNoGo.p2p_control_plane_verified
+        p2p_relay_lease_store_release_grade = [bool]$goNoGo.p2p_relay_lease_store_release_grade
+        p2p_relay_transport_wired = [bool]$goNoGo.p2p_relay_transport_wired
+        p2p_relay_payload_transport_proven = [bool]$goNoGo.p2p_relay_payload_transport_proven
         manifest_git_dirty = if ($goNoGo.manifest_git) { [bool]$goNoGo.manifest_git.dirty } else { $null }
     }
     blockers = $goNoGo.blockers
@@ -771,12 +810,14 @@ $result = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
         msix_desktop_entrypoint = Get-EvidenceRootStatus -Roots $msixDesktopEntrypointRoots
         runtime_idle_cpu = Get-EvidenceRootStatus -Roots $runtimeIdleCpuRoots
+        runtime_cpu_scenario_matrix = Get-EvidenceRootStatus -Roots $runtimeCpuScenarioMatrixRoots
         process_ownership = Get-EvidenceRootStatus -Roots $processOwnershipRoots
         startup_single_instance = Get-EvidenceRootStatus -Roots $startupSingleInstanceRoots
         desktop_single_instance = Get-EvidenceRootStatus -Roots $desktopSingleInstanceRoots
         multi_device = Get-EvidenceRootStatus -Roots $multiDeviceRoots
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots
+        p2p_control_plane = Get-EvidenceRootStatus -Roots $p2pControlPlaneRoots
     }
     operator_steps = $operatorSteps.ToArray()
     commands = $commands
