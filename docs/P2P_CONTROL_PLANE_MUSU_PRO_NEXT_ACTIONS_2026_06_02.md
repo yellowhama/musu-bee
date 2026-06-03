@@ -206,3 +206,32 @@ Even after KV is fixed, public desktop release still needs:
 - release-grade multi-device route evidence
 - `musu@musu.pro` receive/forward delivery proof
 - Partner Center / Microsoft Store evidence
+
+## 2026-06-04 Live Env Recheck
+
+`show-musu-pro-p2p-env-status.ps1 -Json` was re-run against
+`https://musu.pro` at `2026-06-04T06:54:28+09:00`.
+
+Status:
+
+- `ok=false`
+- `MUSU_P2P_CONTROL_TOKEN_SHA256S` is present
+- no KV/Upstash REST URL is configured
+- no KV/Upstash REST token is configured
+- latest live evidence still reports
+  `p2p_relay_lease_kv_not_configured`
+- relay payload transport is not wired
+- release-grade relay route evidence count is `0`
+
+Current blockers remain:
+
+- `missing_kv_rest_api_url_or_upstash_redis_rest_url`
+- `missing_kv_rest_api_token_or_upstash_redis_rest_token`
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
+
+The product direction does not change: `musu.pro` is the user input,
+coordination, project-room, and rendezvous surface; installed local MUSU
+programs remain the executors, and the data path should move to P2P after web
+assisted discovery whenever possible.

@@ -1453,3 +1453,65 @@ Fresh primary attribution evidence:
 Roadmap status: primary one-machine idle CPU remains within budget with
 process-level attribution. The public release gate still requires the same
 attribution-backed `desktop-open` CPU evidence from a real second Windows PC.
+
+## 2026-06-04 Post-Attribution Handoff Refresh
+
+After adding the CPU attribution requirement, the current one-machine smoke and
+handoff artifacts were refreshed again from clean git commit
+`4fe71b93d5b7854b6a1b750bd64454a92dbddfda`.
+
+Fresh single-machine evidence:
+
+- `docs\evidence\single-machine\1.15.0-rc.1\20260604-064815-HUGH_SECOND.evidence.json`
+- verified `true`
+- dashboard task id `9a8302da-8e79-4747-a2f3-17cea580da1a`
+- bridge URL `http://127.0.0.1:10503`
+- CLI route checked `true`
+
+Verifier status:
+
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `22/22` cases,
+  `failed_case_count=0`
+- `write-release-go-no-go.ps1 -SkipPublicMetadata -Json`:
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `msix_install_verified=true`, `multi_device_verified=false`,
+  `runtime_idle_cpu_verified=false`, `runtime_cpu_scenario_matrix_verified=false`,
+  `manifest_git.dirty=false`
+
+The remaining runtime false values are expected on one machine because the
+release gate requires second-PC evidence for both desktop-open idle CPU and the
+runtime CPU scenario matrix.
+
+Regenerated handoff artifacts:
+
+- multi-device kit:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260604-065234.zip`
+- final operator gate packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-065325.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-065348.zip`
+
+`verify-final-operator-gate-packet.ps1` and `verify-operator-action-pack.ps1`
+both report `ok=true` and `fail_count=0`. The nested second-PC kit contains the
+updated `measure-musu-idle-cpu.ps1` with `cpu_attribution`,
+`musu.runtime_idle_cpu_attribution.v1`, and `top_processes`.
+
+Live `musu.pro` P2P environment recheck at `2026-06-04T06:54:28+09:00` remains
+blocked by:
+
+- missing `KV_REST_API_URL` or `UPSTASH_REDIS_REST_URL`
+- missing `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_TOKEN`
+- `p2p_relay_lease_kv_not_configured`
+- relay payload transport not wired
+- relay route evidence not proven
+
+Next release work:
+
+1. Install the current MUSU build on a real second Windows PC and run the
+   regenerated second-PC transfer kit.
+2. Import second-PC install, idle CPU, runtime matrix, and multi-device route
+   evidence into this repo.
+3. Provision production KV/Upstash for `musu.pro`, deploy, and recapture
+   owner-scoped P2P control-plane evidence.
+4. Implement and prove relay payload transport before claiming release-grade
+   `route_kind=relay`.
