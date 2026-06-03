@@ -1353,13 +1353,27 @@ The product direction is now explicitly split:
   maintains project rooms, brokers rendezvous, records route/session evidence,
   and issues relay fallback only after direct paths fail
 - `musu.pro` must not become the default execution server or default data path
+- `localhost` dashboards are local operator/dev surfaces; when a user needs to
+  submit work from another device or place, the product entrypoint should be the
+  real `musu.pro` website
+- web-originated commands are control-plane envelopes only: work order,
+  acceptance, status, route offers, audit records, and relay requests; local
+  MUSU programs still perform the actual work
 
 Project rooms are the intended web UX for multiple local MUSU agents working on
 the same project. A room should hold user work orders, agent presence,
 discussion threads, decisions, task handoffs, transcripts, audit history, and
-route/session status. When an AI accepts work in the room, the matching local
-MUSU program performs the work on its own machine or coordinates with peers over
-the P2P mesh.
+route/session status. Company/project rooms can act like shared meeting rooms
+for local agents assigned to the same project, but execution remains bound to a
+specific local node. When an AI accepts work in the room, the matching local MUSU
+program performs the work on its own machine or coordinates with peers over the
+P2P mesh.
+
+The preferred connection flow is web-assisted bootstrap followed by P2P work:
+`musu.pro` helps peers discover each other, exchange signed route offers, and
+fall back to relay leases when direct routes fail. After a viable peer path is
+established, the local programs should talk through the P2P mesh while
+`musu.pro` remains the room/audit/rendezvous plane.
 
 The rendezvous contract now returns this fixed path order so clients do not
 invent conflicting priorities:
@@ -1559,3 +1573,21 @@ Fresh primary matrix evidence:
 Roadmap status: primary one-machine matrix evidence is again current and now
 has PID/role attribution for every required scenario. Public release still
 requires the same current matrix evidence from a real second Windows PC.
+
+## 2026-06-04 Matrix Attribution Handoff Refresh
+
+After the runtime matrix attribution gate and evidence refresh, the operator
+handoff artifacts were regenerated from clean git commit
+`4f89db8ecc4b42295eb2872bcc702e760f5c4682`.
+
+- multi-device kit:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.1-20260604-071712.zip`
+- final operator gate packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-071728.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-071749.zip`
+
+`verify-final-operator-gate-packet.ps1` and `verify-operator-action-pack.ps1`
+both reported `ok=true` and `fail_count=0`. The nested second-PC kit README now
+states that runtime matrix scenario measurements must preserve
+`cpu_attribution`, `musu.runtime_idle_cpu_attribution.v1`, and `top_processes`.
