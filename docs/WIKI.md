@@ -2667,3 +2667,41 @@ the explicit packaged WindowsApps alias invocation. Search terms should include
 `frontend_polling_contract_verified`, `frontend-polling`,
 `audit-frontend-polling-contract.ps1`, `direct_interval_hit_count`,
 `direct_visibility_listener_hit_count`, and `runtime-polling 12/12`.
+
+## 2026-06-03 11:50 KST Relay Route Evidence Stored Lease Gate
+
+wiki/606 records that relay route evidence must now be backed by a real
+owner-scoped stored relay lease before it can be release-grade.
+
+Implementation:
+
+- `POST /api/v1/p2p/route-evidence` imports `queryRelayLeases`.
+- For `route_kind=relay`, issued lease proof now queries the relay lease store
+  by owner key, `session_id`, `source_node_id`, and `target_node_id`.
+- The stored lease must match `relay_fallback.lease_id`.
+- The stored lease attempted route kind set must match the route evidence
+  fallback attempted route kind set.
+
+New non-release-grade blockers:
+
+- `relay_route_lease_not_found`
+- `relay_route_lease_attempts_mismatch`
+- `relay_route_lease_store_unavailable:<detail>`
+
+Validation:
+
+- route-evidence API test passed 13/13.
+- `npm run test:p2p` passed 29/29.
+- `npm run typecheck` passed.
+- `git diff --check` passed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STORED_LEASE_GATE_2026_06_03.md`
+- `docs\memory\chief_of_staff\2026-06-03_relay_route_evidence_stored_lease_gate.md`
+
+Index refresh after wiki/606 recorded `1667` files and `2296` symbols using
+the explicit packaged WindowsApps alias invocation. Search terms should include
+`GOAL v416`, `wiki/607 index refresh`, `relay_route_lease_not_found`,
+`relay_route_lease_attempts_mismatch`, `relay_route_lease_store_unavailable`,
+`queryRelayLeases`, `owner-scoped stored relay lease`, and `test:p2p 29/29`.

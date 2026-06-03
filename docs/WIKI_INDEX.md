@@ -2479,4 +2479,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.frontend_polling_contract.v1`, and
   `frontend_polling_contract_verified`.
 
+- 2026-06-03 relay route evidence stored lease gate:
+  `RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STORED_LEASE_GATE_2026_06_03.md`
+  (wiki/606) records that `POST /api/v1/p2p/route-evidence` now checks
+  `route_kind=relay` release-grade evidence against the owner-scoped relay
+  lease store. Search terms should include `GOAL v415`,
+  `relay_route_lease_not_found`, `relay_route_lease_attempts_mismatch`,
+  `queryRelayLeases`, `owner-scoped stored relay lease`, `route-evidence 13/13`,
+  and `test:p2p 29/29`.
+
+- 2026-06-03 relay route evidence stored lease index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1667 files and 2296 symbols after GOAL v415, wiki/606,
+  route-evidence stored lease gate source/tests, P2P spec update,
+  BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_relay_route_evidence_stored_lease_gate.md` and
+  `2026-06-03_relay_route_evidence_stored_lease_index_refresh.md`. Search terms
+  should include `GOAL v416`, `1667 files`, `2296 symbols`,
+  `wiki/607 index refresh`, `queryRelayLeases`,
+  `relay_route_lease_not_found`, and `owner-scoped stored relay lease`.
+
 **End of WIKI_INDEX.md.**

@@ -2382,3 +2382,52 @@ Canonical report:
 - indexed `1664` files and `2291` symbols after wiki/604, GOAL v413,
   frontend polling contract go/no-go gate scripts, operator packet/handoff
   updates, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+
+## 2026-06-03 11:50 KST Relay Route Evidence Stored Lease Gate
+
+`route_kind=relay` route evidence can no longer become release-grade using only
+an issued-looking `relay_fallback.lease_id`.
+
+`POST /api/v1/p2p/route-evidence` now checks the owner-scoped relay lease store
+and requires a stored lease matching:
+
+- owner key from the bearer token
+- `session_id`
+- `source_node_id`
+- `target_node_id`
+- `lease_id`
+- attempted route kind set
+
+New non-release-grade blockers:
+
+- `relay_route_lease_not_found`
+- `relay_route_lease_attempts_mismatch`
+- `relay_route_lease_store_unavailable:<detail>`
+
+Validation:
+
+- route-evidence API test: 13/13
+- `npm run test:p2p`: 29/29
+- `npm run typecheck`: passed
+- `git diff --check`: passed
+
+Release interpretation:
+
+- this hardens P2P evidence integrity
+- it does not implement relay/tunnel payload transport
+- runtime web source changed, so fresh current-HEAD MSIX/smoke/CPU/matrix
+  evidence is required before primary release evidence can be claimed current
+- public release remains No-Go on second-PC, two-machine CPU/matrix, hosted P2P
+  relay payload proof, support mailbox, and Store evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STORED_LEASE_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1667` files and `2296` symbols after wiki/606, GOAL v415,
+  route-evidence stored lease gate source/tests, P2P spec update,
+  BETA/WIKI/WIKI_INDEX updates, and CoS memories

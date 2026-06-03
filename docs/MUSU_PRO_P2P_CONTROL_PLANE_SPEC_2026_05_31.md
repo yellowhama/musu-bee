@@ -687,3 +687,32 @@ Product boundary:
   that flag is only acceptable after real payload transport has been
   implemented, used, and recorded as owner-scoped release-grade relay route
   evidence.
+
+## 2026-06-03 Relay Route Evidence Stored Lease Gate
+
+`POST /api/v1/p2p/route-evidence` now verifies release-grade
+`route_kind=relay` evidence against the owner-scoped relay lease store.
+
+Relay route evidence cannot become release-grade by presenting only an
+issued-looking `relay_fallback.lease_id`. The route evidence API now requires a
+stored relay lease matching:
+
+- owner key derived from the bearer token
+- `session_id`
+- `source_node_id`
+- `target_node_id`
+- `lease_id`
+- attempted route kind set
+
+New non-release-grade blockers:
+
+- `relay_route_lease_not_found`
+- `relay_route_lease_attempts_mismatch`
+- `relay_route_lease_store_unavailable:<detail>`
+
+Validation passed `npx tsx --test src/app/api/v1/p2p/route-evidence/route.test.ts`
+13/13, `npm run test:p2p` 29/29, `npm run typecheck`, and `git diff --check`.
+
+This is evidence-chain hardening, not relay payload transport completion. Public
+release still requires real relay/tunnel payload transport and live
+owner-scoped release-grade relay route evidence on `musu.pro`.

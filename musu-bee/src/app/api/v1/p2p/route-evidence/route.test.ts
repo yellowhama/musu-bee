@@ -18,6 +18,13 @@ const ENV_KEYS = [
   "MUSU_P2P_CONTROL_TOKEN",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
+  "MUSU_P2P_RELAY_ENABLED",
+  "MUSU_P2P_RELAY_ENTITLEMENT",
+  "MUSU_P2P_RELAY_LEASE_MAX_RECORDS",
+  "MUSU_P2P_RELAY_LEASE_STORE_PATH",
+  "MUSU_P2P_RELAY_LEASE_TTL_SEC",
+  "MUSU_P2P_RELAY_TRANSPORT_WIRED",
+  "MUSU_P2P_RELAY_URL",
   "MUSU_ROUTE_EVIDENCE_MAX_RECORDS",
   "MUSU_ROUTE_EVIDENCE_STORE_PATH",
   "MUSU_ROUTE_EVIDENCE_TOKEN",
@@ -48,12 +55,28 @@ async function loadModule(caseName: string): Promise<Module> {
   return (await import(`./route?case=${caseName}-${Date.now()}`)) as Module;
 }
 
+async function loadRelayLeaseModule(caseName: string): Promise<Module> {
+  return (await import(`../relay/lease/route?case=${caseName}-${Date.now()}`)) as Module;
+}
+
 function postReq(body: unknown, token: string | null = "test-token"): NextRequest {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
   return new NextRequest("http://localhost/api/v1/p2p/route-evidence", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
+function relayLeasePostReq(body: unknown, token: string | null = "test-token"): NextRequest {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return new NextRequest("http://localhost/api/v1/p2p/relay/lease", {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -80,6 +103,7 @@ async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
   }
   process.env.MUSU_P2P_CONTROL_TOKEN = "test-token";
   process.env.MUSU_ROUTE_EVIDENCE_STORE_PATH = join(tempDir, "route-evidence.json");
+  process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH = join(tempDir, "relay-leases.json");
   try {
     await fn();
   } finally {
@@ -93,6 +117,13 @@ async function withRouteEvidenceToken(fn: () => Promise<void>): Promise<void> {
     }
     await rm(tempDir, { recursive: true, force: true });
   }
+}
+
+function enableRelayLeasePolicy(): void {
+  process.env.MUSU_P2P_RELAY_ENABLED = "1";
+  process.env.MUSU_P2P_RELAY_TRANSPORT_WIRED = "1";
+  process.env.MUSU_P2P_RELAY_URL = "wss://relay.musu.pro/connect";
+  process.env.MUSU_P2P_RELAY_ENTITLEMENT = "pro";
 }
 
 test("accepts hardened release-grade route evidence", async () => {
@@ -135,9 +166,9 @@ test("keeps relay route evidence non release grade without relay lease proof", a
   });
 });
 
-test("accepts release-grade relay route evidence only with issued lease proof", async () => {
+test("keeps issued-looking relay route evidence non release grade without stored lease", async () => {
   await withRouteEvidenceToken(async () => {
-    const { POST } = await loadModule("relay-route-issued-lease-proof");
+    const { POST } = await loadModule("relay-route-unbacked-lease-proof");
     const res = await POST(postReq({
       ...hardenedEvidence,
       route_kind: "relay",
@@ -153,6 +184,53 @@ test("accepts release-grade relay route evidence only with issued lease proof", 
         policy: "connect_pro_fallback_only",
         blockers: [],
         lease_id: "lease_test_123",
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_lease_not_found/);
+  });
+});
+
+test("accepts release-grade relay route evidence only with owner-scoped stored lease", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST: postLease } = await loadRelayLeaseModule("relay-route-backed-lease-issue");
+    const { POST } = await loadModule("relay-route-backed-lease-proof");
+    enableRelayLeasePolicy();
+
+    const leaseRes = await postLease(relayLeasePostReq({
+      session_id: hardenedEvidence.session_id,
+      source_node_id: hardenedEvidence.source_node_id,
+      target_node_id: hardenedEvidence.target_node_id,
+      requested_capability: "remote_command",
+      attempted_route_kinds: ["lan", "tailscale"],
+      direct_path_failed: true,
+      failure_class: "connect_timeout",
+    }));
+    assert.equal(leaseRes.status, 201);
+    const leaseBody = (await leaseRes.json()) as {
+      lease: {
+        lease_id: string;
+      };
+    };
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: leaseBody.lease.lease_id,
       },
     }));
     assert.equal(res.status, 202);

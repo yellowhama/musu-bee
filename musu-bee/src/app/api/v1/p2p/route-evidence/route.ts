@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   appendRouteEvidenceRecord,
   createRouteEvidenceId,
@@ -63,7 +64,57 @@ const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unkn
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 
-function releaseBlockers(evidence: RouteEvidence): string[] {
+function sameRouteKindSet(left: string[], right: string[]): boolean {
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  if (leftSet.size !== rightSet.size) {
+    return false;
+  }
+  for (const value of leftSet) {
+    if (!rightSet.has(value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function relayLeaseStoreBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
+  if (evidence.route_kind !== "relay") {
+    return [];
+  }
+
+  const relay = evidence.relay_fallback;
+  const leaseId = relay?.lease_id?.trim();
+  if (!relay || relay.status !== "issued" || !relay.lease_issued || !leaseId) {
+    return [];
+  }
+
+  if (!evidence.session_id?.trim()) {
+    return ["relay_route_missing_session_id"];
+  }
+
+  try {
+    const leases = await queryRelayLeases({
+      owner_key: ownerKey,
+      limit: 50,
+      session_id: evidence.session_id,
+      source_node_id: evidence.source_node_id,
+      target_node_id: evidence.target_node_id,
+    });
+    const lease = leases.find((candidate) => candidate.lease_id === leaseId);
+    if (!lease) {
+      return ["relay_route_lease_not_found"];
+    }
+    if (!sameRouteKindSet(lease.attempted_route_kinds, relay.attempted_route_kinds)) {
+      return ["relay_route_lease_attempts_mismatch"];
+    }
+    return [];
+  } catch (error) {
+    return [`relay_route_lease_store_unavailable:${error instanceof Error ? error.message : "unknown"}`];
+  }
+}
+
+async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
   const blockers: string[] = [];
 
   if (evidence.result !== "success") {
@@ -128,6 +179,7 @@ function releaseBlockers(evidence: RouteEvidence): string[] {
     blockers.push("missing_handshake_timing");
   }
 
+  blockers.push(...(await relayLeaseStoreBlockers(evidence, ownerKey)));
   return blockers;
 }
 
@@ -178,7 +230,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const blockers = releaseBlockers(parsed.data);
+  const blockers = await releaseBlockers(parsed.data, principal.owner_key);
   const receivedAt = new Date().toISOString();
   const evidenceId = createRouteEvidenceId();
   try {
