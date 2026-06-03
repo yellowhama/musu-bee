@@ -245,6 +245,7 @@ $summary = @"
 - Relay route evidence owner scope verified: $(Get-BoolProperty -Object $relayRouteEvidence -Name "owner_scope_verified")
 - Relay payload transport proven: $(Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven")
 - Relay route evidence count: $(if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["count"]) { $relayRouteEvidence.count } else { "" })
+- Relay payload delivery proof valid count: $(if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { $verification.relay_payload_delivery_proof_valid_count } else { "" })
 - Relay lease store configured: $(Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured")
 - Relay lease store backend: $(if ($relayLeases -and $relayLeases.PSObject.Properties["relay_lease_store_backend"]) { $relayLeases.relay_lease_store_backend } else { "" })
 - Relay lease store release-grade: $(Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_release_grade")
@@ -280,6 +281,7 @@ $result = [pscustomobject]@{
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
     relay_payload_transport_proven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
+    relay_payload_delivery_proof_valid_count = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { [int]$verification.relay_payload_delivery_proof_valid_count } else { 0 }
     musu_exe = $MusuExe
     musu_exe_source = [string]$musuExeResolution.source
 }

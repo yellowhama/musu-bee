@@ -256,6 +256,18 @@ $validP2p = [pscustomobject]@{
                         blockers = @()
                         lease_id = "relay-lease-test"
                     }
+                    relay_payload_delivery_proof = [pscustomobject]@{
+                        schema = "musu.relay_payload_delivery_proof.v1"
+                        payload_id = "relay-payload-test"
+                        session_id = "rv_test"
+                        lease_id = "relay-lease-test"
+                        source_node_id = "pc-a"
+                        target_node_id = "pc-b"
+                        tunnel_id = "relay-tunnel-test"
+                        payload_sha256 = "sha256:relay-payload-test"
+                        payload_bytes = 128
+                        delivered_at = $now.ToString("o")
+                    }
                 }
             }
         )
@@ -620,6 +632,13 @@ $badP2pRelayTransport.relay_leases.relay_transport_wired = $false
 $fixture = Write-Fixture -Name "p2p-bad-relay-transport" -Object $badP2pRelayTransport
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects lease-only relay without payload transport" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayPayloadProof = Copy-JsonObject -Object $validP2p
+$badP2pRelayPayloadProofRecord = @($badP2pRelayPayloadProof.relay_route_evidence.records)[0]
+$badP2pRelayPayloadProofRecord.evidence.relay_payload_delivery_proof = $null
+$fixture = Write-Fixture -Name "p2p-bad-relay-payload-proof" -Object $badP2pRelayPayloadProof
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence without payload delivery proof" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayRouteEvidence = Copy-JsonObject -Object $validP2p
 $badP2pRelayRouteEvidence.relay_route_evidence.ok = $false

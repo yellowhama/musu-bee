@@ -82,6 +82,27 @@ function Get-BoolProperty {
     return [bool]$property.Value
 }
 
+function Get-NumberProperty {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if (-not $Object) {
+        return $null
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return $null
+    }
+    try {
+        return [double]$property.Value
+    }
+    catch {
+        return $null
+    }
+}
+
 function Try-ParseDateTimeOffset {
     param([string]$Text)
 
@@ -219,6 +240,70 @@ $routeEvidenceCount = if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.
 Add-CheckFromCondition "relay route evidence count" ($routeEvidenceCount -gt 0) "release-grade relay route evidence is present" "release-grade relay route evidence is missing"
 Add-CheckFromCondition "relay payload transport proven" (Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven") "relay payload transport is proven by release-grade route evidence" "relay payload transport is not proven by release-grade route evidence"
 
+$routeEvidenceRecords = [object[]]@()
+if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["records"] -and $null -ne $relayRouteEvidence.records) {
+    $routeEvidenceRecords = [object[]]@($relayRouteEvidence.records)
+}
+$routeEvidenceRecordCount = [int]$routeEvidenceRecords.Length
+$relayPayloadProofRequiredCount = 0
+$relayPayloadProofValidCount = 0
+$relayPayloadProofInvalidCount = 0
+foreach ($record in $routeEvidenceRecords) {
+    $recordEvidence = if ($record -and $record.PSObject.Properties["evidence"]) { $record.evidence } else { $null }
+    if (-not $recordEvidence) {
+        continue
+    }
+
+    $recordRouteKind = Get-StringProperty -Object $recordEvidence -Name "route_kind"
+    $recordResult = Get-StringProperty -Object $recordEvidence -Name "result"
+    $recordPayloadTransited = Get-BoolProperty -Object $recordEvidence -Name "payload_transited_musu_infra"
+    if ($recordRouteKind -ne "relay" -or $recordResult -ne "success" -or -not $recordPayloadTransited) {
+        continue
+    }
+
+    $relayPayloadProofRequiredCount += 1
+    $proof = if ($recordEvidence.PSObject.Properties["relay_payload_delivery_proof"]) { $recordEvidence.relay_payload_delivery_proof } else { $null }
+    $proofDeliveredAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $proof -Name "delivered_at")
+    $proofPayloadBytes = Get-NumberProperty -Object $proof -Name "payload_bytes"
+    $proofSessionId = Get-StringProperty -Object $proof -Name "session_id"
+    $recordSessionId = Get-StringProperty -Object $recordEvidence -Name "session_id"
+    $proofLeaseId = Get-StringProperty -Object $proof -Name "lease_id"
+    $proofSourceNodeId = Get-StringProperty -Object $proof -Name "source_node_id"
+    $recordSourceNodeId = Get-StringProperty -Object $recordEvidence -Name "source_node_id"
+    $proofTargetNodeId = Get-StringProperty -Object $proof -Name "target_node_id"
+    $recordTargetNodeId = Get-StringProperty -Object $recordEvidence -Name "target_node_id"
+    $relayFallback = if ($recordEvidence.PSObject.Properties["relay_fallback"]) { $recordEvidence.relay_fallback } else { $null }
+    $fallbackLeaseId = Get-StringProperty -Object $relayFallback -Name "lease_id"
+
+    $proofValid = (
+        (Get-StringProperty -Object $proof -Name "schema") -eq "musu.relay_payload_delivery_proof.v1" -and
+        -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $proof -Name "payload_id")) -and
+        -not [string]::IsNullOrWhiteSpace($proofSessionId) -and
+        -not [string]::IsNullOrWhiteSpace($proofLeaseId) -and
+        -not [string]::IsNullOrWhiteSpace($proofSourceNodeId) -and
+        -not [string]::IsNullOrWhiteSpace($proofTargetNodeId) -and
+        -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $proof -Name "tunnel_id")) -and
+        -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $proof -Name "payload_sha256")) -and
+        $null -ne $proofPayloadBytes -and
+        $proofPayloadBytes -gt 0 -and
+        $null -ne $proofDeliveredAt -and
+        (([string]::IsNullOrWhiteSpace($recordSessionId)) -or $proofSessionId -eq $recordSessionId) -and
+        (([string]::IsNullOrWhiteSpace($recordSourceNodeId)) -or $proofSourceNodeId -eq $recordSourceNodeId) -and
+        (([string]::IsNullOrWhiteSpace($recordTargetNodeId)) -or $proofTargetNodeId -eq $recordTargetNodeId) -and
+        (([string]::IsNullOrWhiteSpace($fallbackLeaseId)) -or $proofLeaseId -eq $fallbackLeaseId)
+    )
+
+    if ($proofValid) {
+        $relayPayloadProofValidCount += 1
+    }
+    else {
+        $relayPayloadProofInvalidCount += 1
+    }
+}
+Add-CheckFromCondition "relay route evidence records present" ($routeEvidenceRecordCount -ge $routeEvidenceCount -and $routeEvidenceCount -gt 0) "relay route evidence records are present" "relay route evidence records are missing or fewer than count"
+Add-CheckFromCondition "relay payload delivery proof present" ($relayPayloadProofValidCount -gt 0) "relay payload delivery proof is present in release-grade relay route evidence" "relay payload delivery proof is missing from release-grade relay route evidence"
+Add-CheckFromCondition "relay payload delivery proof coverage" ($relayPayloadProofRequiredCount -gt 0 -and $relayPayloadProofInvalidCount -eq 0) "all returned relay success route records include valid payload delivery proof" "one or more returned relay success route records lack valid payload delivery proof"
+
 $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
 $relayStatusTransportPreflightOk = Get-BoolProperty -Object $relayStatus -Name "relay_transport_preflight_ok"
 $relayStatusTransportDescriptorWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired"
@@ -254,6 +339,9 @@ $result = [pscustomobject]@{
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
     relay_route_evidence_count = $routeEvidenceCount
     relay_payload_transport_proven = $relayPayloadTransportProven
+    relay_payload_delivery_proof_required_count = $relayPayloadProofRequiredCount
+    relay_payload_delivery_proof_valid_count = $relayPayloadProofValidCount
+    relay_payload_delivery_proof_invalid_count = $relayPayloadProofInvalidCount
     relay_transport_wired = ($relayStatusTransportWired -and $relayStatusTransportPreflightOk -and $relayStatusTransportDescriptorWired -and $relayStatusPayloadEndpointWired -and $relayTransportPreflightOk -and $relayTransportDescriptorWired -and $relayTransportTransportWired -and $relayTransportPayloadEndpointWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount

@@ -2265,6 +2265,30 @@ Canonical report:
   go/no-go P2P route-evidence output hardening, WIKI/WIKI_INDEX updates, and
   CoS memories
 
+## 2026-06-04 08:05 KST Relay Payload Delivery Proof Gate
+
+The hosted P2P release gate now requires per-record relay payload delivery
+proof, not only `relay_payload_transport_proven=true`.
+
+Changed output:
+
+- `p2p_relay_payload_delivery_proof_valid_count`
+
+The `p2p-control-plane` blocker now also requires owner-scoped release-grade
+relay route evidence to include `relay_payload_delivery_proof` for returned
+relay success records. The verifier checks schema
+`musu.relay_payload_delivery_proof.v1`, payload/session/lease/source/target
+identity, tunnel id, payload hash, positive payload byte count, and parseable
+`delivered_at`.
+
+Validation:
+
+- PowerShell parser passed for the touched release scripts
+- release evidence verifier regression passed `24/24`
+- the new negative case rejects relay route evidence without payload delivery
+  proof
+- `git diff --check` passed
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

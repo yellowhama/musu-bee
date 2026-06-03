@@ -1656,3 +1656,36 @@ payload-delivery proof shape that hosted route evidence expects. Public P2P
 release remains blocked until the production relay payload/transport path is
 actually proven with release-grade QUIC/TLS relay transport and stored
 owner-scoped evidence.
+
+## 2026-06-04 Relay Payload Delivery Proof Release Gate
+
+The P2P control-plane verifier now rejects a hosted relay route-evidence query
+that claims `relay_transport_proven=true` without a per-record
+`relay_payload_delivery_proof`.
+
+Gate update:
+
+- `verify-p2p-control-plane-evidence.ps1` requires returned relay success
+  records to include `musu.relay_payload_delivery_proof.v1`
+- the proof must include payload id, session id, lease id, source/target node
+  ids, tunnel id, payload hash, positive payload byte count, and a parseable
+  `delivered_at`
+- source/target node ids must match the route evidence record when present
+- session id and relay fallback lease id must match the proof when present
+- `write-release-go-no-go.ps1` now surfaces
+  `p2p_relay_payload_delivery_proof_valid_count`
+- `record-p2p-control-plane-evidence.ps1` includes the verifier's valid proof
+  count in the operator summary/result
+
+Validation:
+
+- PowerShell parser checks passed for the touched release scripts
+- `git diff --check`
+- `test-release-evidence-verifiers.ps1 -Json` passed 24/24 regression cases,
+  including the new negative case:
+  `p2p rejects relay route evidence without payload delivery proof`
+
+Roadmap status: this makes the release gate match the new Rust delivery-proof
+contract. It still does not prove live `musu.pro` relay transport; production
+P2P remains No-Go until owner-scoped relay transport and route evidence produce
+at least one valid payload delivery proof.

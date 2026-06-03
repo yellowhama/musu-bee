@@ -1260,6 +1260,7 @@ $p2pRelayTransportWired = $false
 $p2pRelayRouteEvidenceOk = $false
 $p2pRelayRouteEvidenceCount = -1
 $p2pRelayPayloadTransportProven = $false
+$p2pRelayPayloadDeliveryProofValidCount = 0
 $p2pRelayLeaseStoreReleaseGrade = $false
 $p2pRelayStatusTransportPreflightOk = $false
 $p2pRelayStatusTransportDescriptorWired = $false
@@ -1290,6 +1291,9 @@ if ($p2pControlPlaneEvidence) {
     }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_transport_proven"]) {
         $p2pRelayPayloadTransportProven = [bool]$p2pControlPlaneEvidence.relay_payload_transport_proven
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) {
+        $p2pRelayPayloadDeliveryProofValidCount = [int]$p2pControlPlaneEvidence.relay_payload_delivery_proof_valid_count
     }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_lease_store_release_grade"]) {
         $p2pRelayLeaseStoreReleaseGrade = [bool]$p2pControlPlaneEvidence.relay_lease_store_release_grade
@@ -1357,7 +1361,7 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not $p2pControlPlaneVerified) {
-    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true and count > 0."
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true, count > 0, and relay_payload_delivery_proof present."
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
@@ -1476,6 +1480,7 @@ $result = [pscustomobject]@{
     p2p_relay_route_evidence_ok = [bool]$p2pRelayRouteEvidenceOk
     p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
+    p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
     p2p_control_plane_evidence = $p2pControlPlaneEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
@@ -1521,6 +1526,7 @@ else {
     "p2p_relay_route_evidence_ok: $($result.p2p_relay_route_evidence_ok)"
     "p2p_relay_route_evidence_count: $($result.p2p_relay_route_evidence_count)"
     "p2p_relay_payload_transport_proven: $($result.p2p_relay_payload_transport_proven)"
+    "p2p_relay_payload_delivery_proof_valid_count: $($result.p2p_relay_payload_delivery_proof_valid_count)"
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap
