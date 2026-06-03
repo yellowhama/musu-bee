@@ -1418,3 +1418,38 @@ Roadmap status:
   runtime host
 - live P2P remains blocked until production KV/Upstash, owner-scoped relay lease
   evidence, relay payload delivery proof, and release-grade route evidence pass
+
+## 2026-06-04 Runtime CPU Attribution Gate
+
+The idle CPU gate now requires explicit PID/role attribution in
+`musu.runtime_idle_cpu_evidence.v1`.
+
+`scripts\windows\measure-musu-idle-cpu.ps1` writes
+`cpu_attribution.schema=musu.runtime_idle_cpu_attribution.v1` with:
+
+- sample counts by role: `musu`, `node`, `webview2`, `other`
+- total CPU seconds by role
+- max one-core CPU percent by role
+- top CPU process rows with PID, role, parent PID, ownership classification,
+  command-line hash, and redacted command-line hint
+- required-role checks for MUSU runtime and owned WebView2 in `desktop-open`
+  evidence
+
+`scripts\windows\write-release-go-no-go.ps1` now rejects runtime idle CPU
+evidence that omits this attribution summary or its top-process fields. This
+makes the operator-reported 20% CPU symptom auditable by process role instead
+of only by aggregate pass/fail.
+
+Fresh primary attribution evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-064426-HUGH_SECOND.desktop-open.evidence.json`
+- `ok=true`, `git_dirty=false`, sample `60.06s`
+- observed roles: `musu`, `node`, `webview2`
+- max one-core CPU by role: MUSU `0.16`, repo-related Node `0.57`, WebView2
+  `0.05`
+- owned process profile: MUSU `2`, repo-related Node `1`, owned WebView2 `6`,
+  total working set `523.65MB`, hot processes `0`
+
+Roadmap status: primary one-machine idle CPU remains within budget with
+process-level attribution. The public release gate still requires the same
+attribution-backed `desktop-open` CPU evidence from a real second Windows PC.
