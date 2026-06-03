@@ -241,8 +241,10 @@ function Invoke-MeasureScenario {
         git_commit = [string]$evidence.git_commit
         git_dirty = [bool]$evidence.git_dirty
         sample_seconds = [double]$evidence.sample_seconds
+        cpu_sample_count = @($evidence.samples).Count
         process_counts_by_role = $evidence.process_counts_by_role
         max_one_core_percent_by_role = $evidence.max_one_core_percent_by_role
+        cpu_attribution = $evidence.cpu_attribution
         total_working_set_mb_after = [double]$evidence.total_working_set_mb_after
         total_private_memory_mb_after = [double]$evidence.total_private_memory_mb_after
         resource_budget_violations = @($evidence.resource_budget_violations)

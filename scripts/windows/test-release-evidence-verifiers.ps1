@@ -329,13 +329,15 @@ function New-RuntimeMeasurement {
     param(
         [int]$WebView2Count = 6,
         [double]$WorkingSetMb = 512.0,
-        [switch]$OmitResourceBudgetViolations
+        [switch]$OmitResourceBudgetViolations,
+        [switch]$OmitCpuAttribution
     )
 
     $measurement = [pscustomobject]@{
         ok = $true
         git_dirty = $false
         sample_seconds = 60
+        cpu_sample_count = 3
         process_counts_by_role = [pscustomobject]@{
             musu = 2
             node = 0
@@ -352,10 +354,65 @@ function New-RuntimeMeasurement {
         total_private_memory_mb_after = 320.0
         resource_budget_violations = @()
         hot_process_count = 0
+        cpu_attribution = [pscustomobject]@{
+            schema = "musu.runtime_idle_cpu_attribution.v1"
+            attribution_scope = "musu_process_tree_or_repo_related"
+            sample_count = 3
+            roles_observed = @("musu", "webview2")
+            sample_count_by_role = [pscustomobject]@{
+                musu = 2
+                node = 0
+                webview2 = 1
+                other = 0
+            }
+            total_cpu_seconds_by_role = [pscustomobject]@{
+                musu = 0.01
+                node = 0.0
+                webview2 = 0.02
+                other = 0.0
+            }
+            max_one_core_percent_by_role = [pscustomobject]@{
+                musu = 0.1
+                node = 0.0
+                webview2 = 0.2
+                other = 0.0
+            }
+            top_processes = @(
+                [pscustomobject]@{
+                    id = 1234
+                    process_name = "musu"
+                    process_role = "musu"
+                    cpu_seconds_delta = 0.01
+                    cpu_pct_one_core = 0.1
+                    parent_process_id = 4321
+                    ownership_classification = "musu_process_name"
+                    command_line_hash = "fixture"
+                    command_line_hint = "musu"
+                },
+                [pscustomobject]@{
+                    id = 5678
+                    process_name = "msedgewebview2"
+                    process_role = "webview2"
+                    cpu_seconds_delta = 0.02
+                    cpu_pct_one_core = 0.2
+                    parent_process_id = 1234
+                    ownership_classification = "owned_by_musu_process_tree"
+                    command_line_hash = "fixture"
+                    command_line_hint = "msedgewebview2"
+                }
+            )
+            required_roles_present = [pscustomobject]@{
+                musu = $true
+                webview2 = ($WebView2Count -gt 0)
+            }
+        }
     }
 
     if ($OmitResourceBudgetViolations) {
         $measurement.PSObject.Properties.Remove("resource_budget_violations")
+    }
+    if ($OmitCpuAttribution) {
+        $measurement.PSObject.Properties.Remove("cpu_attribution")
     }
 
     return $measurement
@@ -643,6 +700,12 @@ $badRuntimeMatrixMissingBudgetField.scenarios[0].measurement.PSObject.Properties
 $fixture = Write-Fixture -Name "runtime-matrix-missing-resource-budget-field" -Object $badRuntimeMatrixMissingBudgetField
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing resource budget field" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixMissingCpuAttribution = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingCpuAttribution.scenarios[0].measurement.PSObject.Properties.Remove("cpu_attribution")
+$fixture = Write-Fixture -Name "runtime-matrix-missing-cpu-attribution" -Object $badRuntimeMatrixMissingCpuAttribution
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing CPU attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixWorkingSet = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixWorkingSet.scenarios[1].measurement.total_working_set_mb_after = 2048.0

@@ -309,6 +309,55 @@ if ($matrix) {
         $measurementSampleSeconds = if ($measurement.PSObject.Properties["sample_seconds"]) { [double]$measurement.sample_seconds } else { 0.0 }
         Add-CheckFromCondition "measurement duration: $required" ($measurementSampleSeconds -ge $MinSampleSeconds) "scenario '$required' sample duration is at least ${MinSampleSeconds}s" "scenario '$required' sample duration is ${measurementSampleSeconds}s"
 
+        $cpuAttribution = Get-JsonPropertyValue -Object $measurement -Name "cpu_attribution"
+        $cpuAttributionPresent = ($null -ne $cpuAttribution)
+        Add-CheckFromCondition "CPU attribution present: $required" $cpuAttributionPresent "scenario '$required' records PID/role CPU attribution" "scenario '$required' lacks cpu_attribution"
+        if ($cpuAttributionPresent) {
+            $attributionSchema = Get-JsonPropertyString -Object $cpuAttribution -Name "schema"
+            Add-CheckFromCondition "CPU attribution schema: $required" ($attributionSchema -eq "musu.runtime_idle_cpu_attribution.v1") "scenario '$required' CPU attribution schema is valid" "scenario '$required' CPU attribution schema is '$attributionSchema'"
+
+            $cpuSampleCount = if ($measurement.PSObject.Properties["cpu_sample_count"]) { [int]$measurement.cpu_sample_count } else { -1 }
+            $attributionSampleCount = if ($cpuAttribution.PSObject.Properties["sample_count"]) { [int]$cpuAttribution.sample_count } else { -1 }
+            Add-CheckFromCondition "CPU attribution sample count: $required" ($cpuSampleCount -gt 0 -and $attributionSampleCount -eq $cpuSampleCount) "scenario '$required' CPU attribution sample count matches measurement" "scenario '$required' CPU attribution sample count $attributionSampleCount does not match measurement sample count $cpuSampleCount"
+
+            $sampleCountByRolePresent = ($cpuAttribution.PSObject.Properties["sample_count_by_role"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["musu"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["webview2"])
+            Add-CheckFromCondition "CPU attribution role counts: $required" ([bool]$sampleCountByRolePresent) "scenario '$required' CPU attribution records role sample counts" "scenario '$required' CPU attribution lacks role sample counts"
+
+            $totalCpuByRolePresent = ($cpuAttribution.PSObject.Properties["total_cpu_seconds_by_role"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["musu"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["webview2"])
+            Add-CheckFromCondition "CPU attribution totals by role: $required" ([bool]$totalCpuByRolePresent) "scenario '$required' CPU attribution records CPU totals by role" "scenario '$required' CPU attribution lacks CPU totals by role"
+
+            $maxCpuByRolePresent = ($cpuAttribution.PSObject.Properties["max_one_core_percent_by_role"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["musu"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["webview2"])
+            Add-CheckFromCondition "CPU attribution max by role: $required" ([bool]$maxCpuByRolePresent) "scenario '$required' CPU attribution records max CPU by role" "scenario '$required' CPU attribution lacks max CPU by role"
+
+            $requiredRoles = Get-JsonPropertyValue -Object $cpuAttribution -Name "required_roles_present"
+            $musuRolePresent = ($requiredRoles -and $requiredRoles.PSObject.Properties["musu"] -and [bool]$requiredRoles.musu)
+            Add-CheckFromCondition "CPU attribution MUSU role: $required" ([bool]$musuRolePresent) "scenario '$required' CPU attribution includes MUSU role" "scenario '$required' CPU attribution is missing MUSU role"
+            if ($required -eq "desktop-open") {
+                $webView2RolePresent = ($requiredRoles -and $requiredRoles.PSObject.Properties["webview2"] -and [bool]$requiredRoles.webview2)
+                Add-CheckFromCondition "CPU attribution WebView2 role: $required" ([bool]$webView2RolePresent) "desktop-open CPU attribution includes owned WebView2 role" "desktop-open CPU attribution is missing owned WebView2 role"
+            }
+
+            $topProcesses = @(
+                if ($cpuAttribution.PSObject.Properties["top_processes"]) {
+                    @($cpuAttribution.top_processes)
+                }
+            )
+            Add-CheckFromCondition "CPU attribution top processes: $required" ($topProcesses.Count -gt 0) "scenario '$required' records top CPU processes" "scenario '$required' CPU attribution top_processes is empty"
+            $badTopProcessRows = @(
+                foreach ($row in $topProcesses) {
+                    $rowId = if ($row.PSObject.Properties["id"]) { [int]$row.id } else { 0 }
+                    $rowName = if ($row.PSObject.Properties["process_name"]) { [string]$row.process_name } else { "" }
+                    $rowRole = if ($row.PSObject.Properties["process_role"]) { [string]$row.process_role } else { "" }
+                    $hasCpuDelta = $row.PSObject.Properties["cpu_seconds_delta"]
+                    $hasCpuPct = $row.PSObject.Properties["cpu_pct_one_core"]
+                    if ($rowId -le 0 -or [string]::IsNullOrWhiteSpace($rowName) -or ($rowRole -notin @("musu", "node", "webview2", "other")) -or -not $hasCpuDelta -or -not $hasCpuPct) {
+                        $row
+                    }
+                }
+            )
+            Add-CheckFromCondition "CPU attribution top process fields: $required" ($topProcesses.Count -gt 0 -and $badTopProcessRows.Count -eq 0) "scenario '$required' top CPU process rows include PID, role, and CPU fields" "scenario '$required' has $($badTopProcessRows.Count) malformed top CPU process row(s)"
+        }
+
         foreach ($role in @("musu", "node", "webview2", "other")) {
             $roleCpu = Get-RoleMaxCpu -Measurement $measurement -Role $role
             Add-CheckFromCondition "role CPU $required/$role" ($roleCpu -le $MaxOneCorePercent) "scenario '$required' role '$role' CPU ${roleCpu}% <= ${MaxOneCorePercent}%" "scenario '$required' role '$role' CPU ${roleCpu}% exceeds ${MaxOneCorePercent}%"
