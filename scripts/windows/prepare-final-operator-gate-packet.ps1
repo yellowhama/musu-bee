@@ -118,6 +118,7 @@ $scriptsToCopy = @(
     "verify-store-submission-bundle.ps1",
     "audit-msix-desktop-entrypoint.ps1",
     "audit-frontend-polling-contract.ps1",
+    "audit-rust-background-loop-contract.ps1",
     "audit-local-api-auth-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
@@ -407,6 +408,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-fronte
 
 Expected schema: `musu.frontend_polling_contract.v1`.
 Expected result: `frontend_polling_contract_verified=true`.
+
+## Gate D3 - Rust background loop contract audit
+
+Before final handoff, verify that bridge/runtime background loops still keep the
+default desktop path low-duty: planner, clipboard, and mDNS are opt-in; cloud
+registration, file sync, mDNS browse, and auto-update health polling are
+sleep/backoff/timeout bounded.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-rust-background-loop-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.rust_background_loop_contract.v1`.
+Expected result: `rust_background_loop_contract_verified=true`.
 
 ## Gate E - Runtime idle CPU evidence
 

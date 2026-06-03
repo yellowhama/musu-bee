@@ -3446,3 +3446,53 @@ Canonical report:
   `MUSU_RELEASE_SMOKE_OK_20260603_195506`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_195917`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`
+
+## 2026-06-03 Rust background loop contract gate (wiki/638)
+
+Rust bridge/runtime background-loop contracts are now release-gated through
+`scripts\windows\audit-rust-background-loop-contract.ps1`, which emits schema
+`musu.rust_background_loop_contract.v1`.
+
+The audit verifies planner, clipboard, and mDNS opt-in gates; mDNS IPv6,
+Tailscale, and virtual/VPN interface separate opt-ins; duration-bounded mDNS
+browse with 1s receive timeout and disconnect break; low-duty cloud
+registration heartbeat default `300s` with `60s` floor plus failure backoff
+sleep; bounded file-sync queues, batches, timeouts, and cooldown; and
+auto-update supervise/health-poll sleep contracts. New Rust `loop {` or
+`while true` constructs outside the audited allowlist fail until reviewed.
+
+`write-release-go-no-go.ps1` now emits
+`rust_background_loop_contract_verified` and
+`rust_background_loop_contract_audit`, and adds a `rust-background-loops`
+blocker when the audit fails. `show-final-release-handoff-status.ps1`,
+`prepare-final-operator-gate-packet.ps1`, and
+`verify-final-operator-gate-packet.ps1` now carry the same gate.
+
+Validation passed:
+
+- `audit-rust-background-loop-contract.ps1 -FailOnProblem -Json`: `ok=true`,
+  `fail_count=0`, `unaudited_loop_hit_count=0`
+- dirty-tree go/no-go: `rust_background_loop_contract_verified=true`,
+  `rust_fail_count=0`
+- `audit-desktop-release-readiness.ps1 -Json`: local package, desktop shell,
+  and single-machine true; only the existing second-PC multi-device evidence
+  failed
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_BACKGROUND_LOOP_CONTRACT_GATE_2026_06_03.md`
+
+2026-06-03 index refresh:
+
+- explicit packaged alias indexing:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- indexed `1783` files and `2334` symbols after GOAL v448, wiki/638,
+  Rust background-loop audit source, go/no-go/handoff/packet wiring, the
+  canonical report, BETA/WIKI/WIKI_INDEX updates, and CoS memory
+  `2026-06-03_rust_background_loop_contract_gate.md`
+- search terms should include `GOAL v449`, `wiki/639 index refresh`,
+  `musu.rust_background_loop_contract.v1`,
+  `rust_background_loop_contract_verified`, `rust-background-loops`,
+  `MUSU_ENABLE_MDNS`, `MUSU_ENABLE_CLIPBOARD_SYNC`, `MUSU_ENABLE_PLANNER`,
+  `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC`, and `unaudited_loop_hit_count=0`

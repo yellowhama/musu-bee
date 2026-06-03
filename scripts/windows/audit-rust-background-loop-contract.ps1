@@ -1,0 +1,204 @@
+[CmdletBinding()]
+param(
+    [switch]$Json,
+    [switch]$FailOnProblem
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+
+$checks = New-Object System.Collections.Generic.List[object]
+
+function Add-Check {
+    param(
+        [Parameter(Mandatory = $true)][string]$Scope,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][bool]$Passed,
+        [Parameter(Mandatory = $true)][string]$Message,
+        [string]$Path = ""
+    )
+
+    $checks.Add([pscustomobject]@{
+        scope = $Scope
+        name = $Name
+        status = if ($Passed) { "pass" } else { "fail" }
+        path = $Path
+        message = $Message
+    }) | Out-Null
+}
+
+function Get-RepoText {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path)) {
+        Add-Check -Scope "file" -Name "exists: $RelativePath" -Passed $false -Path $RelativePath -Message "$RelativePath is missing."
+        return ""
+    }
+
+    Add-Check -Scope "file" -Name "exists: $RelativePath" -Passed $true -Path $RelativePath -Message "$RelativePath exists."
+    return Get-Content -LiteralPath $path -Raw
+}
+
+function Add-RegexCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Scope,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Pattern,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    Add-Check `
+        -Scope $Scope `
+        -Name $Name `
+        -Passed (-not [string]::IsNullOrWhiteSpace($Text) -and [regex]::IsMatch($Text, $Pattern)) `
+        -Path $Path `
+        -Message $Message
+}
+
+function Add-NoRegexCheck {
+    param(
+        [Parameter(Mandatory = $true)][string]$Scope,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Pattern,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    Add-Check `
+        -Scope $Scope `
+        -Name $Name `
+        -Passed (-not [regex]::IsMatch($Text, $Pattern)) `
+        -Path $Path `
+        -Message $Message
+}
+
+$bridgePath = "musu-rs\src\bridge\mod.rs"
+$bridgeText = Get-RepoText $bridgePath
+Add-RegexCheck -Scope "planner" -Name "planner opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_PLANNER' -Path $bridgePath -Message "Planner loop only starts behind MUSU_ENABLE_PLANNER."
+Add-RegexCheck -Scope "clipboard" -Name "clipboard opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_CLIPBOARD_SYNC' -Path $bridgePath -Message "Clipboard polling only starts behind MUSU_ENABLE_CLIPBOARD_SYNC."
+Add-RegexCheck -Scope "mdns" -Name "mDNS opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_MDNS' -Path $bridgePath -Message "mDNS discovery only starts behind MUSU_ENABLE_MDNS."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat interval env" -Text $bridgeText -Pattern 'MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC' -Path $bridgePath -Message "Cloud registration heartbeat interval is explicit."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat default" -Text $bridgeText -Pattern 'unwrap_or\(300\)' -Path $bridgePath -Message "Cloud registration heartbeat defaults to 300s."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat minimum floor" -Text $bridgeText -Pattern '\.max\(60\)' -Path $bridgePath -Message "Cloud registration heartbeat clamps to at least 60s."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff exponent" -Text $bridgeText -Pattern 'consecutive_failures' -Path $bridgePath -Message "Cloud registration loop tracks consecutive failures."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff sleep" -Text $bridgeText -Pattern 'sleep_for\s*=\s*Duration::from_secs[\s\S]*tokio::time::sleep\(sleep_for\)\.await' -Path $bridgePath -Message "Cloud registration loop sleeps with failure backoff."
+
+$plannerPath = "musu-rs\src\brain\planner.rs"
+$plannerText = Get-RepoText $plannerPath
+Add-RegexCheck -Scope "planner" -Name "planner default low duty interval" -Text $plannerText -Pattern 'PLANNER_DEFAULT_INTERVAL_SEC:\s*u64\s*=\s*300' -Path $plannerPath -Message "Planner defaults to a 300s cadence."
+Add-RegexCheck -Scope "planner" -Name "planner minimum interval" -Text $plannerText -Pattern 'PLANNER_MIN_INTERVAL_SEC:\s*u64\s*=\s*60' -Path $plannerPath -Message "Planner interval clamps to at least 60s."
+Add-RegexCheck -Scope "planner" -Name "planner command timeout cap" -Text $plannerText -Pattern 'PLANNER_MAX_COMMAND_TIMEOUT_SEC:\s*u64\s*=\s*120' -Path $plannerPath -Message "Planner command timeout is capped."
+Add-RegexCheck -Scope "planner" -Name "planner sleeps before work" -Text $plannerText -Pattern 'sleep\(Duration::from_secs\(interval\)\)\.await' -Path $plannerPath -Message "Planner loop sleeps every cycle."
+Add-RegexCheck -Scope "planner" -Name "planner child kill on drop" -Text $plannerText -Pattern '\.kill_on_drop\(true\)' -Path $plannerPath -Message "Planner child process is killed when dropped."
+Add-RegexCheck -Scope "planner" -Name "planner timeout wrapper" -Text $plannerText -Pattern 'timeout\(Duration::from_secs\(command_timeout\),\s*cmd\.output\(\)\)' -Path $plannerPath -Message "Planner child execution is timeout-bound."
+
+$clipboardPath = "musu-rs\src\io\clipboard.rs"
+$clipboardText = Get-RepoText $clipboardPath
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor sleep" -Text $clipboardText -Pattern 'std::thread::sleep\(Duration::from_secs\(2\)\)' -Path $clipboardPath -Message "Clipboard monitor sleeps between polls."
+
+$mdnsPath = "musu-rs\src\peer\mdns.rs"
+$mdnsText = Get-RepoText $mdnsPath
+Add-RegexCheck -Scope "mdns" -Name "IPv6 separate opt-in" -Text $mdnsText -Pattern 'MUSU_MDNS_ENABLE_IPV6' -Path $mdnsPath -Message "mDNS IPv6 has its own opt-in gate."
+Add-RegexCheck -Scope "mdns" -Name "Tailscale separate opt-in" -Text $mdnsText -Pattern 'MUSU_MDNS_ENABLE_TAILSCALE' -Path $mdnsPath -Message "mDNS Tailscale interfaces have their own opt-in gate."
+Add-RegexCheck -Scope "mdns" -Name "virtual interfaces separate opt-in" -Text $mdnsText -Pattern 'MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES' -Path $mdnsPath -Message "mDNS virtual/VPN interfaces have their own opt-in gate."
+Add-RegexCheck -Scope "mdns" -Name "browse bounded by deadline" -Text $mdnsText -Pattern 'deadline\s*=\s*tokio::time::Instant::now\(\)\s*\+\s*duration' -Path $mdnsPath -Message "mDNS browse loop is bounded by a caller-supplied duration."
+Add-RegexCheck -Scope "mdns" -Name "recv timeout bounded" -Text $mdnsText -Pattern 'recv_timeout\(Duration::from_secs\(1\)\)' -Path $mdnsPath -Message "mDNS blocking receive uses a 1s timeout."
+Add-RegexCheck -Scope "mdns" -Name "disconnect breaks browse" -Text $mdnsText -Pattern 'MdnsRecvTimeoutKind::Disconnected[\s\S]*break;' -Path $mdnsPath -Message "mDNS browse exits early when the receiver disconnects."
+
+$syncPath = "musu-rs\src\install\sync.rs"
+$syncText = Get-RepoText $syncPath
+Add-RegexCheck -Scope "file-sync" -Name "bounded event queue" -Text $syncText -Pattern 'SYNC_EVENT_QUEUE_CAPACITY:\s*usize\s*=\s*1024' -Path $syncPath -Message "File sync watcher queue is bounded."
+Add-RegexCheck -Scope "file-sync" -Name "bounded batch size" -Text $syncText -Pattern 'SYNC_BATCH_MAX_EVENTS:\s*usize\s*=\s*256' -Path $syncPath -Message "File sync batches are capped."
+Add-RegexCheck -Scope "file-sync" -Name "bounded debounce window" -Text $syncText -Pattern 'SYNC_BATCH_MAX_WINDOW:\s*Duration\s*=\s*Duration::from_secs\(2\)' -Path $syncPath -Message "File sync batching has a bounded max window."
+Add-RegexCheck -Scope "file-sync" -Name "try_send drops overflow" -Text $syncText -Pattern 'tx_clone\.try_send' -Path $syncPath -Message "File sync watcher does not block indefinitely on queue overflow."
+Add-RegexCheck -Scope "file-sync" -Name "recv await blocks when idle" -Text $syncText -Pattern 'rx\.recv\(\)\.await' -Path $syncPath -Message "File sync loop waits on receiver when idle."
+Add-RegexCheck -Scope "file-sync" -Name "batch cap cooldown" -Text $syncText -Pattern 'SYNC_BATCH_COOLDOWN' -Path $syncPath -Message "File sync loop yields after batch-cap churn."
+Add-RegexCheck -Scope "file-sync" -Name "peer write timeout" -Text $syncText -Pattern '\.timeout\(Duration::from_secs\(30\)\)' -Path $syncPath -Message "File sync peer write requests are timeout-bound."
+
+$autoUpdatePath = "musu-rs\src\install\auto_update.rs"
+$autoUpdateText = Get-RepoText $autoUpdatePath
+Add-RegexCheck -Scope "auto-update" -Name "config minimum interval" -Text $autoUpdateText -Pattern 'check_interval_minutes\s*<\s*5' -Path $autoUpdatePath -Message "Auto-update supervise interval refuses values below 5 minutes."
+Add-RegexCheck -Scope "auto-update" -Name "first tick skipped" -Text $autoUpdateText -Pattern 'ticker\.tick\(\)\.await;[\s\S]*loop\s*\{[\s\S]*ticker\.tick\(\)\.await;' -Path $autoUpdatePath -Message "Auto-update supervise loop skips immediate boot-time update and then waits on interval ticks."
+Add-RegexCheck -Scope "auto-update" -Name "health poll initial backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_INITIAL_MS:\s*u64\s*=\s*250' -Path $autoUpdatePath -Message "Auto-update health poll starts with a bounded delay."
+Add-RegexCheck -Scope "auto-update" -Name "health poll max backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_MAX_MS:\s*u64\s*=\s*2_000' -Path $autoUpdatePath -Message "Auto-update health poll delay is capped."
+Add-RegexCheck -Scope "auto-update" -Name "health poll sleep" -Text $autoUpdateText -Pattern 'let delay = health_poll_delay\(attempt\)\.min\(remaining\);[\s\S]*tokio::time::sleep\(delay\)\.await' -Path $autoUpdatePath -Message "Auto-update health polling sleeps between attempts."
+
+$rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
+$rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
+if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
+    Add-Check -Scope "source" -Name "rust source root exists" -Passed $false -Path "musu-rs\src" -Message "Rust source root is missing."
+}
+else {
+    $allowlistedLoopFiles = @(
+        "musu-rs\src\adapter\claude.rs",
+        "musu-rs\src\brain\planner.rs",
+        "musu-rs\src\bridge\mod.rs",
+        "musu-rs\src\bridge\handlers\pty.rs",
+        "musu-rs\src\bridge\services.rs",
+        "musu-rs\src\control\http_server.rs",
+        "musu-rs\src\indexer\watch.rs",
+        "musu-rs\src\install\auto_update.rs",
+        "musu-rs\src\install\cli_commands.rs",
+        "musu-rs\src\install\sync.rs",
+        "musu-rs\src\io\clipboard.rs",
+        "musu-rs\src\io\webrtc.rs",
+        "musu-rs\src\peer\hardware.rs",
+        "musu-rs\src\peer\mdns.rs",
+        "musu-rs\src\workflow\executor.rs",
+        "musu-rs\src\writer\runner.rs"
+    )
+
+    $rustFiles = Get-ChildItem -LiteralPath $rustSourceRoot -Recurse -File -Filter "*.rs"
+    foreach ($file in $rustFiles) {
+        $relative = $file.FullName
+        if ($relative.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $relative = $relative.Substring($repoRoot.Length).TrimStart("\", "/")
+        }
+        $relative = $relative.Replace("/", "\")
+        $text = Get-Content -LiteralPath $file.FullName -Raw
+        if ([regex]::IsMatch($text, 'while\s+true|loop\s*\{') -and ($relative -notin $allowlistedLoopFiles)) {
+            $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+        }
+    }
+
+    Add-Check `
+        -Scope "source" `
+        -Name "new rust loops must be audited" `
+        -Passed ($rawBusyLoopHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($rawBusyLoopHits.Count -eq 0) { "No unaudited Rust loop constructs found outside the allowlist." } else { "Unaudited Rust loop constructs found: $(@($rawBusyLoopHits | ForEach-Object { $_.path }) -join ', ')." }))
+}
+
+$failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+$result = [pscustomobject]@{
+    schema = "musu.rust_background_loop_contract.v1"
+    ok = ($failCount -eq 0)
+    generated_at = [datetimeoffset]::Now.ToString("o")
+    fail_count = $failCount
+    unaudited_loop_hit_count = $rawBusyLoopHits.Count
+    unaudited_loop_hits = $rawBusyLoopHits.ToArray()
+    checks = $checks.ToArray()
+}
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 8
+}
+else {
+    "MUSU Rust background loop contract audit"
+    "ok: $($result.ok)"
+    "fail_count: $($result.fail_count)"
+    "unaudited_loop_hit_count: $($result.unaudited_loop_hit_count)"
+    ""
+    $checks | Format-Table scope, name, status, path, message -Wrap
+}
+
+if ($FailOnProblem -and -not $result.ok) {
+    exit 1
+}

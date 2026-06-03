@@ -2802,6 +2802,31 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-03 20:30 KST Rust Background Loop Contract Gate
+
+Added `scripts\windows\audit-rust-background-loop-contract.ps1` and wired it
+into final go/no-go, final handoff status, and final operator packet
+generation/verification.
+
+The new gate verifies Rust bridge/runtime loop contracts for planner,
+clipboard, mDNS, cloud registration heartbeat, file sync, and auto-update
+health polling. It also fails new unaudited Rust loop constructs outside the
+reviewed allowlist.
+
+Validation:
+
+- Rust background-loop audit passed with `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+- dirty-tree go/no-go reported `rust_background_loop_contract_verified=true`
+  and `rust_fail_count=0`
+- desktop release readiness still only fails on existing second-PC
+  multi-device evidence
+- `git diff --check` passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_BACKGROUND_LOOP_CONTRACT_GATE_2026_06_03.md`
+
 ## 2026-06-03 19:38 KST Relay Connect Fail-Closed Endpoint
 
 `/api/v1/relay/connect` now returns an explicit fail-closed `501` response with

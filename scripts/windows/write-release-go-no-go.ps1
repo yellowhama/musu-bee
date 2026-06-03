@@ -195,6 +195,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         ".github/workflows/deploy-musu-bee.yml",
         "scripts/windows/audit-desktop-release-readiness.ps1",
         "scripts/windows/audit-frontend-polling-contract.ps1",
+        "scripts/windows/audit-rust-background-loop-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",
@@ -711,6 +712,7 @@ function Test-DesktopSingleInstanceEvidence {
 
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $frontendPollingAuditScript = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
+$rustBackgroundLoopAuditScript = Join-Path $scriptDir "audit-rust-background-loop-contract.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
@@ -725,6 +727,8 @@ $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
 $audit = $auditResult.json
 $frontendPollingAuditResult = Invoke-JsonScript -FilePath $frontendPollingAuditScript -Arguments @("-Json") -AllowFailure
 $frontendPollingContractVerified = ($frontendPollingAuditResult.json -and [bool]$frontendPollingAuditResult.json.ok)
+$rustBackgroundLoopAuditResult = Invoke-JsonScript -FilePath $rustBackgroundLoopAuditScript -Arguments @("-Json") -AllowFailure
+$rustBackgroundLoopContractVerified = ($rustBackgroundLoopAuditResult.json -and [bool]$rustBackgroundLoopAuditResult.json.ok)
 $msixStoreDesktopEntrypointArtifactAuditResult = Invoke-JsonScript `
     -FilePath $msixDesktopEntrypointAuditScript `
     -Arguments @("-StartupContract", "store-reviewed-immediate-registration", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-Json") `
@@ -1262,6 +1266,9 @@ if (-not $runtimeCpuScenarioMatrixVerified) {
 if (-not $frontendPollingContractVerified) {
     Add-Blocker -List $blockers -Area "frontend-polling" -Message "Frontend polling contract audit (musu.frontend_polling_contract.v1) failed; dashboard/refetch/SSE loops are not proven to use cancellable low-duty polling and bounded reconnect."
 }
+if (-not $rustBackgroundLoopContractVerified) {
+    Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
+}
 if (-not $processOwnershipVerified) {
     Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
 }
@@ -1308,6 +1315,7 @@ $manualInternalGates = @(
     "Runtime idle CPU verification on second Windows PC",
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
+    "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
@@ -1371,6 +1379,18 @@ $result = [pscustomobject]@{
             raw = $frontendPollingAuditResult.raw
         }
     }
+    rust_background_loop_contract_verified = [bool]$rustBackgroundLoopContractVerified
+    rust_background_loop_contract_audit = if ($rustBackgroundLoopAuditResult.json) {
+        $rustBackgroundLoopAuditResult.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            exit_code = $rustBackgroundLoopAuditResult.exit_code
+            timed_out = $rustBackgroundLoopAuditResult.timed_out
+            raw = $rustBackgroundLoopAuditResult.raw
+        }
+    }
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence
     startup_single_instance_verified = [bool]$startupSingleInstanceVerified
@@ -1414,6 +1434,7 @@ else {
     "runtime_cpu_scenario_matrix_verified: $($result.runtime_cpu_scenario_matrix_verified)"
     "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
     "frontend_polling_contract_verified: $($result.frontend_polling_contract_verified)"
+    "rust_background_loop_contract_verified: $($result.rust_background_loop_contract_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"
     "desktop_single_instance_verified: $($result.desktop_single_instance_verified)"

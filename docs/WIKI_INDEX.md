@@ -2860,4 +2860,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260603_195917`, `runtime idle CPU 1/2`, and
   `runtime CPU matrix 1/2`.
 
+- 2026-06-03 Rust background loop contract gate:
+  `RELEASE_1_15_0_RC1_RUST_BACKGROUND_LOOP_CONTRACT_GATE_2026_06_03.md`
+  (wiki/638) records the new release gate
+  `audit-rust-background-loop-contract.ps1` and schema
+  `musu.rust_background_loop_contract.v1`. Search terms should include
+  `GOAL v448`, `wiki/638`, `rust_background_loop_contract_verified`,
+  `rust-background-loops`, `MUSU_ENABLE_MDNS`,
+  `MUSU_ENABLE_CLIPBOARD_SYNC`, `MUSU_ENABLE_PLANNER`,
+  `MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC`, `unaudited_loop_hit_count=0`, and
+  `fail_count=0`.
+
+- 2026-06-03 Rust background loop contract gate index refresh:
+  Explicit packaged alias indexing
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed 1783 files and 2334 symbols after GOAL v448, wiki/638, Rust
+  background-loop audit source, go/no-go/handoff/packet wiring, the canonical
+  report, BETA/WIKI/WIKI_INDEX updates, and CoS memories
+  `2026-06-03_rust_background_loop_contract_gate.md` and
+  `2026-06-03_rust_background_loop_contract_index_refresh.md`. Search terms
+  should include `GOAL v449`, `1783 files`, `2334 symbols`,
+  `wiki/639 index refresh`, `musu.rust_background_loop_contract.v1`,
+  `rust_background_loop_contract_verified`, `rust-background-loops`, and
+  `unaudited_loop_hit_count=0`.
+
 **End of WIKI_INDEX.md.**

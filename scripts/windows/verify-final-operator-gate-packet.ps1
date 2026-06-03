@@ -123,6 +123,7 @@ try {
         "scripts\windows\verify-store-submission-bundle.ps1",
         "scripts\windows\audit-msix-desktop-entrypoint.ps1",
         "scripts\windows\audit-frontend-polling-contract.ps1",
+        "scripts\windows\audit-rust-background-loop-contract.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
@@ -187,6 +188,7 @@ try {
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
         Add-CheckFromCondition "readme frontend polling contract audit" ($readme -like "*audit-frontend-polling-contract.ps1*" -and $readme -like "*musu.frontend_polling_contract.v1*" -and $readme -like "*frontend_polling_contract_verified=true*") "README includes frontend polling contract audit" "README missing frontend polling contract audit"
+        Add-CheckFromCondition "readme rust background loop contract audit" ($readme -like "*audit-rust-background-loop-contract.ps1*" -and $readme -like "*musu.rust_background_loop_contract.v1*" -and $readme -like "*rust_background_loop_contract_verified=true*") "README includes Rust background loop contract audit" "README missing Rust background loop contract audit"
         Add-CheckFromCondition "readme external recheck recorder doc" ($readme -like "*RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md*" -and $readme -like "*record-external-release-gate-recheck.ps1*") "README points to external recheck recorder doc" "README missing external recheck recorder doc"
         Add-CheckFromCondition "readme Store run card" ($readme -like "*MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md*") "README points to the Store release run card" "README missing Store release run card reference"
         Add-CheckFromCondition "readme msix install gate" ($readme -like "*record-msix-install-evidence.ps1*" -and $readme -like "*msix_install_verified=true*") "README includes MSIX install evidence gate" "README missing MSIX install evidence gate"
@@ -242,6 +244,11 @@ try {
             ($handoffStatusScript -like "*audit-frontend-polling-contract.ps1*" -and $handoffStatusScript -like "*frontend_polling_contract_verified*" -and $handoffStatusScript -like "*frontend-polling*") `
             "packet handoff status script reports frontend polling contract audit" `
             "packet handoff status script does not report frontend polling contract audit"
+        Add-CheckFromCondition `
+            "handoff status rust background loop gate" `
+            ($handoffStatusScript -like "*audit-rust-background-loop-contract.ps1*" -and $handoffStatusScript -like "*rust_background_loop_contract_verified*" -and $handoffStatusScript -like "*rust-background-loops*") `
+            "packet handoff status script reports Rust background loop contract audit" `
+            "packet handoff status script does not report Rust background loop contract audit"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -294,6 +301,16 @@ try {
             "packet frontend polling audit does not verify low-duty polling, interval bans, abort timeout, and CI coverage"
     }
 
+    $rustBackgroundLoopAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-rust-background-loop-contract.ps1"
+    if (Test-Path -LiteralPath $rustBackgroundLoopAuditScriptPath) {
+        $rustBackgroundLoopAuditScript = Get-Content -LiteralPath $rustBackgroundLoopAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "rust background loop contract audit script" `
+            ($rustBackgroundLoopAuditScript -like "*musu.rust_background_loop_contract.v1*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_MDNS*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_CLIPBOARD_SYNC*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_PLANNER*" -and $rustBackgroundLoopAuditScript -like "*MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC*" -and $rustBackgroundLoopAuditScript -like "*new rust loops must be audited*") `
+            "packet Rust background loop audit verifies opt-in/background-loop contracts" `
+            "packet Rust background loop audit does not verify opt-in/background-loop contracts"
+    }
+
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"
     if (Test-Path -LiteralPath $goNoGoScriptPath) {
         $goNoGoScript = Get-Content -LiteralPath $goNoGoScriptPath -Raw
@@ -327,6 +344,11 @@ try {
             ($goNoGoScript -like "*frontend_polling_contract_verified*" -and $goNoGoScript -like "*audit-frontend-polling-contract.ps1*" -and $goNoGoScript -like "*musu.frontend_polling_contract.v1*" -and $goNoGoScript -like "*frontend-polling*" -and $goNoGoScript -like "*cancellable low-duty*") `
             "packet go/no-go blocks on frontend polling contract audit" `
             "packet go/no-go does not block on frontend polling contract audit"
+        Add-CheckFromCondition `
+            "go no-go rust background loop contract gate" `
+            ($goNoGoScript -like "*rust_background_loop_contract_verified*" -and $goNoGoScript -like "*audit-rust-background-loop-contract.ps1*" -and $goNoGoScript -like "*musu.rust_background_loop_contract.v1*" -and $goNoGoScript -like "*rust-background-loops*" -and $goNoGoScript -like "*opt-in, low-duty, timeout-bound*") `
+            "packet go/no-go blocks on Rust background loop contract audit" `
+            "packet go/no-go does not block on Rust background loop contract audit"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `
