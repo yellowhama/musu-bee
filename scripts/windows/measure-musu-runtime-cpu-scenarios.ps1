@@ -4,6 +4,7 @@ param(
     [int]$SampleSeconds = 60,
     [int]$CommandTimeoutSec = 90,
     [string]$MusuExe,
+    [switch]$AllowDeveloperRuntime,
     [switch]$OpenDesktopApp,
     [string]$DesktopAppId = "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
     [string]$DashboardUrl,
@@ -30,11 +31,41 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $measureScript = Join-Path $scriptDir "measure-musu-idle-cpu.ps1"
 
+function Get-DefaultMusuExe {
+    $windowsAppsAlias = if ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    }
+    else {
+        $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($windowsAppsAlias) -and (Test-Path -LiteralPath $windowsAppsAlias)) {
+        return $windowsAppsAlias
+    }
+
+    return (Join-Path $repoRoot "musu-rs\target\debug\musu.exe")
+}
+
+function Test-PackagedMusuCommandPath([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    $lower = $Path.ToLowerInvariant()
+    return (
+        $lower.Contains("\microsoft\windowsapps\musu.exe") -or
+        $lower.Contains("\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\program files\windowsapps\yellowhama.musu_")
+    )
+}
+
 if ([string]::IsNullOrWhiteSpace($MusuExe)) {
-    $MusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
+    $MusuExe = Get-DefaultMusuExe
 }
 if (-not (Test-Path -LiteralPath $MusuExe)) {
     throw "MusuExe not found: $MusuExe"
+}
+if (-not $AllowDeveloperRuntime -and -not (Test-PackagedMusuCommandPath $MusuExe)) {
+    throw "Runtime CPU scenario matrix must use the packaged WindowsApps MUSU command for release evidence. Got: $MusuExe. Pass -AllowDeveloperRuntime only for diagnostic developer runs."
 }
 if ($SampleSeconds -lt 3) {
     throw "SampleSeconds must be at least 3."
@@ -442,6 +473,9 @@ $result = [ordered]@{
     completed_at = (Get-Date).ToString("o")
     operator_machine = $machine
     operator_user = $env:USERNAME
+    musu_exe = $MusuExe
+    allow_developer_runtime = [bool]$AllowDeveloperRuntime
+    musu_exe_release_identity = [bool](Test-PackagedMusuCommandPath $MusuExe)
     sample_seconds = $SampleSeconds
     max_one_core_percent = $MaxOneCorePercent
     max_owned_process_count = $MaxOwnedProcessCount

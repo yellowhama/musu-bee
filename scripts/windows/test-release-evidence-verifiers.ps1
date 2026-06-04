@@ -508,6 +508,9 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     completed_at = $now.ToString("o")
     operator_machine = "VERIFIER-TEST"
     operator_user = "verifier-test"
+    musu_exe = "C:\Users\verifier\AppData\Local\Microsoft\WindowsApps\musu.exe"
+    allow_developer_runtime = $false
+    musu_exe_release_identity = $true
     sample_seconds = 60
     max_one_core_percent = 5.0
     max_owned_process_count = 16
@@ -784,6 +787,13 @@ Add-CaseResult -Cases $cases -Name "multidevice rejects relay route without MUSU
 $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts complete resource-budget evidence" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$badRuntimeMatrixMusuExe = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMusuExe.musu_exe = "F:\workspace\musu-bee\musu-rs\target\debug\musu.exe"
+$badRuntimeMatrixMusuExe.musu_exe_release_identity = $false
+$fixture = Write-Fixture -Name "runtime-matrix-debug-musu-exe" -Object $badRuntimeMatrixMusuExe
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects debug MUSU executable identity" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $allowedFailedRuntimeRouteAttempt = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $allowedFailedRuntimeRouteAttempt.route_probe = [pscustomobject]@{

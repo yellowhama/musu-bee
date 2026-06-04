@@ -6619,3 +6619,45 @@ Live HUGH_SECOND validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_REPAIR_RUNBOOK_2026_06_05.md`
+
+## 2026-06-05 Runtime CPU matrix packaged executable identity gate (wiki/724)
+
+Runtime CPU scenario matrix evidence now has to prove it was captured through
+the installed packaged MUSU runtime.
+
+`measure-musu-runtime-cpu-scenarios.ps1` now defaults to the WindowsApps
+`musu.exe` alias, rejects repo/debug runtime paths unless
+`-AllowDeveloperRuntime` is supplied, and records:
+
+- `musu_exe`
+- `allow_developer_runtime`
+- `musu_exe_release_identity`
+
+`verify-runtime-cpu-scenario-matrix.ps1` rejects release matrix evidence unless
+the executable identity points at the WindowsApps MUSU alias or installed
+`Yellowhama.MUSU_...` package path.
+
+Validation:
+
+- parser checks passed for the changed PowerShell scripts
+- short diagnostic `runtime-started` sample passed with
+  `musu_exe=C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`,
+  `musu_exe_release_identity=true`, bridge `http://127.0.0.1:7555`, and max
+  MUSU CPU `0`
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=30`, and `failed_case_count=0`
+- the new negative fixture proves a debug `musu-rs\target\debug\musu.exe`
+  matrix is rejected
+- `git diff --check` passed
+
+Older CPU matrix evidence without packaged executable identity is no longer
+release-grade. A fresh clean 60-second packaged runtime matrix is required
+after this commit.
+
+`127.0.0.1:3001/app` can remain connection-refused in the repaired state because
+the workspace dashboard is separate from the packaged local runtime bridge at
+`127.0.0.1:7555`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_PACKAGED_EXE_IDENTITY_GATE_2026_06_05.md`

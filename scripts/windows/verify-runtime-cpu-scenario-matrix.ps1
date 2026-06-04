@@ -278,6 +278,23 @@ if ($matrix) {
     $gitDirty = ($gitDirtyPresent -and [bool]$matrix.git_dirty)
     Add-CheckFromCondition "git clean during matrix" ($gitDirtyPresent -and -not $gitDirty) "matrix was captured from clean git state" "matrix was captured dirty or git_dirty is missing"
 
+    $musuExe = Get-JsonPropertyString -Object $matrix -Name "musu_exe"
+    $musuExeLower = $musuExe.ToLowerInvariant()
+    $musuExeReleaseIdentity = (
+        $matrix.PSObject.Properties["musu_exe_release_identity"] -and
+        [bool]$matrix.musu_exe_release_identity -and
+        (
+            $musuExeLower.Contains("\microsoft\windowsapps\musu.exe") -or
+            $musuExeLower.Contains("\windowsapps\yellowhama.musu_") -or
+            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_")
+        )
+    )
+    Add-CheckFromCondition `
+        "MUSU executable release identity" `
+        $musuExeReleaseIdentity `
+        "matrix used the packaged WindowsApps MUSU command" `
+        "matrix did not prove packaged WindowsApps MUSU command identity; musu_exe='$musuExe'"
+
     $operatorMachine = Get-JsonPropertyString -Object $matrix -Name "operator_machine"
     Add-CheckFromCondition "operator machine" (-not [string]::IsNullOrWhiteSpace($operatorMachine)) "operator_machine is present" "operator_machine is missing"
 

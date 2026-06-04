@@ -3901,4 +3901,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `packaged bridge 127.0.0.1:7555`, `process ownership ok`, and `startup
   single-instance ok`.
 
+- 2026-06-05 runtime CPU matrix packaged executable identity gate:
+  `RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_PACKAGED_EXE_IDENTITY_GATE_2026_06_05.md`
+  (wiki/724) makes runtime CPU scenario matrix release evidence prove it used
+  the installed packaged WindowsApps MUSU runtime, not repo/debug
+  `musu-rs\target\debug\musu.exe`. Search terms should include `GOAL v537`,
+  `wiki/724`, `musu_exe_release_identity`, `allow_developer_runtime`,
+  `AllowDeveloperRuntime`, `WindowsApps musu.exe`, `Yellowhama.MUSU`,
+  `runtime matrix rejects debug MUSU executable identity`,
+  `case_count=30`, `127.0.0.1:7555`, `127.0.0.1:3001 connection refused`,
+  `fresh clean 60-second packaged runtime matrix required`, and
+  `local bridge separate from workspace dashboard`.
+
 **End of WIKI_INDEX.md.**
