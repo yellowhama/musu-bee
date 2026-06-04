@@ -2416,6 +2416,52 @@ the Rust runtime route-evidence change. Refresh packaged primary smoke, idle
 CPU, and runtime CPU matrix evidence after this source commit before treating
 primary runtime gates as current again.
 
+## 2026-06-04 09:38 KST Post Relay-Drain Primary Evidence Refresh
+
+Fresh current-source packaged primary evidence is restored.
+
+Setup correction:
+
+- User PATH now places
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps` before
+  `C:\Users\empty\.cargo\bin`
+- strict MSIX evidence now passes with `alias_shadowing_mode=fail`
+- no developer binary was deleted
+
+Fresh evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-093646-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-092446-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-092544-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-092758-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- stale same-session smoke evidence `20260604-092004-HUGH_SECOND` was removed
+  because an old repo debug bridge was still registered
+- replacement smoke used packaged bridge
+  `C:\Program Files\WindowsApps\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\musu.exe`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_092419`
+- desktop-open CPU passed for `60.071s`: MUSU `0`, Node `0`,
+  WebView2 `0.57`, hot `0`, working set `506.43MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_092758`
+- matrix max CPU: MUSU `0.03`, Node `0.10`, WebView2 `1.41`
+- matrix max working set: `508.66MB`
+
+Clean go/no-go on `83e7e5db06cb2706f2350683a78f67c00f461e37` reports
+`ready_for_public_desktop_release=false`, `local_artifacts_ready=true`,
+`single_machine_verified=true`, `msix_install_verified=true`, and
+`manifest_git.dirty=false`.
+
+Public release remains No-Go because the release gate still requires second-PC
+runtime/multi-device evidence, live `musu.pro` relay proof, support mailbox
+evidence, and Store/Partner Center evidence.
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

@@ -4240,3 +4240,50 @@ tests `22/22`, and `git diff --check`.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DRAIN_ROUTE_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 post relay-drain primary evidence refresh (wiki/664)
+
+Fresh packaged primary evidence was restored after the relay-drain route
+evidence source change.
+
+Environment correction:
+
+- User PATH now places
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps` before
+  `C:\Users\empty\.cargo\bin`
+- strict MSIX install evidence passes with `alias_shadowing_mode=fail`
+- first `musu.exe` resolves to the packaged WindowsApps alias
+- stale same-session smoke evidence `20260604-092004-HUGH_SECOND` was removed
+  because an old repo debug bridge was still registered
+
+Fresh evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-093646-HUGH_SECOND.evidence.json`
+- packaged bridge smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-092446-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-092544-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-092758-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_092419`
+- desktop-open CPU maxes: MUSU `0`, Node `0`, WebView2 `0.57`, hot `0`,
+  working set `506.43MB`
+- matrix verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_092758`
+- matrix max CPU: MUSU `0.03`, Node `0.10`, WebView2 `1.41`
+- matrix max working set `508.66MB`
+
+Clean go/no-go on `83e7e5db06cb2706f2350683a78f67c00f461e37` reports
+`local_artifacts_ready=true`, `single_machine_verified=true`,
+`msix_install_verified=true`, and `manifest_git.dirty=false`.
+
+Public release remains No-Go on second-PC runtime/multi-device evidence, live
+`musu.pro` relay proof, support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_DRAIN_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

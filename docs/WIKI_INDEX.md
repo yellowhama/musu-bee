@@ -3156,4 +3156,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2777554e`, `single_machine_verified=false`, `source freshness`, and
   `fresh MSIX smoke CPU matrix required`.
 
+- 2026-06-04 post relay-drain primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_DRAIN_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/664) records fresh current-source packaged primary evidence after
+  relay-drain route evidence. Search terms should include `GOAL v475`,
+  `wiki/664`, `83e7e5db`, `20260604-093646-HUGH_SECOND`,
+  `20260604-092446-HUGH_SECOND`, `20260604-092544-HUGH_SECOND.desktop-open`,
+  `20260604-092758-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_092758`,
+  `alias_shadowing_mode=fail`, `WindowsApps before .cargo`, and
+  `single_machine_verified=true`.
+
 **End of WIKI_INDEX.md.**
