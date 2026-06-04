@@ -5933,3 +5933,46 @@ operator packets must be regenerated after commit.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_SECRET_STORAGE_CONTRACT_HARDENING_2026_06_04.md`
+
+## 2026-06-04 Post secret storage primary evidence refresh (wiki/708)
+
+Fresh primary-machine packaged evidence was restored after secret storage
+contract hardening.
+
+Build/install:
+
+- `run-msix-workflow.ps1 -Configuration release -StartupContract
+  local-sideload-manual -AttemptInstall -VerifyInstalled -ReplaceExisting`
+- release runtime build passed
+- Tauri desktop shell build passed
+- local-sideload MSIX packed, signed, installed, and verified
+- packaged startup smoke passed
+- HUGH_SECOND still has warning-mode `.cargo\bin\musu.exe` PATH shadowing, so
+  packaged checks used the explicit WindowsApps alias
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-232809-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-233024-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-233135-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_232737`
+- desktop-open CPU passed for `60.063s`: MUSU `0.05`, Node `0.03`,
+  WebView2 `0.6`, owned WebView2 `6`, working set `487.21MB`, hot `0`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_233135`
+- matrix max role CPU: MUSU `0`, Node `0.03`, WebView2 `0.39`
+- matrix max working set: `490.08MB`
+
+Go/no-go sees primary runtime CPU/matrix valid on `HUGH_SECOND`; public release
+remains No-Go until the second-PC, hosted P2P, support mailbox, and Store gates
+are closed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_SECRET_STORAGE_CONTRACT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

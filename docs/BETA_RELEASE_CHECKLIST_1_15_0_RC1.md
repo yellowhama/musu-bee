@@ -3266,6 +3266,48 @@ Release note:
   hosted `musu.pro` P2P control-plane/relay proof, support mailbox evidence,
   and Store evidence
 
+## 2026-06-04 23:40 KST Post Secret Storage Primary Evidence Refresh
+
+After commit `26294fa2`, the local-sideload MSIX was rebuilt and reinstalled
+with current source.
+
+Build/install:
+
+- `run-msix-workflow.ps1` passed release runtime build, Tauri desktop build,
+  MSIX packing/signing, packaged startup smoke, install, and installed package
+  contract verification
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- HUGH_SECOND still has warning-mode `.cargo\bin\musu.exe` PATH shadowing; use
+  the explicit WindowsApps alias for packaged checks
+
+Fresh packaged primary evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-232809-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-233024-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-233135-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Evidence highlights:
+
+- smoke output: `MUSU_RELEASE_SMOKE_OK_20260604_232737`
+- desktop-open CPU: MUSU `0.05`, Node `0.03`, WebView2 `0.6`, owned WebView2
+  `6`, working set `487.21MB`, hot `0`
+- matrix route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_233135`
+- matrix max role CPU: MUSU `0`, Node `0.03`, WebView2 `0.39`
+- matrix max working set: `490.08MB`
+
+Release note:
+
+- primary-machine packaged evidence is current again for commit `26294fa2`
+- runtime CPU and matrix gates still require second-PC evidence before public
+  release
+- public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted `musu.pro` P2P control-plane/relay proof, support mailbox evidence,
+  and Store evidence
+
 ## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
 
 Final release status now exposes the hardening gates needed for the

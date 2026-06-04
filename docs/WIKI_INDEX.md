@@ -3698,4 +3698,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `configure-musu-pro-p2p-env.ps1`, `runtime evidence redaction`,
   `token-bearing files`, `docs\PRODUCTION.md`, and `packaged evidence stale`.
 
+- 2026-06-04 post secret storage primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_SECRET_STORAGE_CONTRACT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/708) records fresh current-commit primary packaged evidence after
+  secret storage hardening. Search terms should include `GOAL v521`,
+  `wiki/708`, `26294fa2`, `run-msix-workflow.ps1`,
+  `20260604-232809-HUGH_SECOND`, `20260604-233024-HUGH_SECOND.desktop-open`,
+  `20260604-233135-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_232737`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_233135`, `WebView2 0.6`,
+  `owned WebView2 6`, `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `PATH warning .cargo bin`, and `secret storage primary evidence`.
+
 **End of WIKI_INDEX.md.**
