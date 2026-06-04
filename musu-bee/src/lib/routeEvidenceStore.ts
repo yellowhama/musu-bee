@@ -186,6 +186,59 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
   );
 }
 
+function hasCurrentRelayFallbackProof(evidence: RouteEvidencePayload): boolean {
+  if (evidence.route_kind !== "relay") {
+    return true;
+  }
+  const relay = evidence.relay_fallback;
+  return Boolean(
+    relay &&
+      relay.direct_path_failed === true &&
+      relay.lease_requested === true &&
+      relay.status === "issued" &&
+      relay.lease_issued === true &&
+      relay.lease_id?.trim() &&
+      relay.attempted_route_kinds.some((kind) => kind !== "relay") &&
+      relay.payload_transport_attempted === true &&
+      relay.payload_transport_proven === true
+  );
+}
+
+function hasCurrentRelayPayloadDeliveryProof(evidence: RouteEvidencePayload): boolean {
+  if (evidence.route_kind !== "relay") {
+    return true;
+  }
+
+  const proof = evidence.relay_payload_delivery_proof;
+  const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
+  const transportTunnelId = evidence.relay_transport_proof?.tunnel_id.trim() ?? "";
+  return Boolean(
+    proof &&
+      proof.schema === "musu.relay_payload_delivery_proof.v1" &&
+      proof.payload_id?.trim() &&
+      proof.session_id?.trim() &&
+      (!evidence.session_id?.trim() || proof.session_id.trim() === evidence.session_id.trim()) &&
+      proof.lease_id?.trim() &&
+      (!relayLeaseId || proof.lease_id.trim() === relayLeaseId) &&
+      proof.source_node_id.trim() === evidence.source_node_id.trim() &&
+      proof.target_node_id.trim() === evidence.target_node_id.trim() &&
+      proof.tunnel_id?.trim() &&
+      (!transportTunnelId || proof.tunnel_id.trim() === transportTunnelId) &&
+      proof.payload_sha256?.trim() &&
+      Number.isInteger(proof.payload_bytes) &&
+      proof.payload_bytes > 0 &&
+      Number.isFinite(Date.parse(proof.delivered_at))
+  );
+}
+
+function hasCurrentReleaseGradeProofs(evidence: RouteEvidencePayload): boolean {
+  return (
+    hasCurrentRelayFallbackProof(evidence) &&
+    hasCurrentRelayTransportProof(evidence) &&
+    hasCurrentRelayPayloadDeliveryProof(evidence)
+  );
+}
+
 function fileGet(): RouteEvidenceStoreState {
   try {
     return normalizeState(JSON.parse(fs.readFileSync(storePath(), "utf8")) as unknown);
@@ -290,7 +343,7 @@ export async function queryRouteEvidenceRecords(
       if (query.release_grade !== undefined && record.release_grade !== query.release_grade) {
         return false;
       }
-      if (query.release_grade === true && !hasCurrentRelayTransportProof(record.evidence)) {
+      if (query.release_grade === true && !hasCurrentReleaseGradeProofs(record.evidence)) {
         return false;
       }
       return true;

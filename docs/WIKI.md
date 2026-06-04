@@ -6702,3 +6702,33 @@ Validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_PACKAGED_RUNTIME_DASHBOARD_ABSENCE_CPU_GATE_2026_06_05.md`
+
+## 2026-06-05 Relay route query delivery proof hardening (wiki/726)
+
+Release-grade relay route evidence queries now revalidate current proof shape
+instead of trusting only the stored `release_grade=true` flag.
+
+For relay records, `release_grade=true` query results now require:
+
+- issued fallback lease proof
+- attempted non-relay route kinds
+- proven relay payload transport
+- current `musu.relay_transport_proof.v1`
+- current `musu.relay_payload_delivery_proof.v1`
+
+Regression coverage now seeds an old
+`stale-relay-transport-only-release-grade` record and verifies it is excluded
+from release-grade query results.
+
+Validation:
+
+- `npm run test:p2p` passed `79/79`
+- `npm run typecheck` passed
+- `audit-p2p-store-forward-relay-contract.ps1 -Json` passed with `ok=true`
+  and `fail_count=0`
+- new audit check: `release-grade query revalidates relay delivery proof`
+- `git diff --check` passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_QUERY_DELIVERY_PROOF_HARDENING_2026_06_05.md`

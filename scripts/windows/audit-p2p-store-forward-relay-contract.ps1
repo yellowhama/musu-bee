@@ -58,6 +58,7 @@ $leaseRoutePath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.ts"
 $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
 $routeEvidencePath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.ts"
 $routeEvidenceTestPath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.test.ts"
+$routeEvidenceStorePath = "musu-bee\src\lib\routeEvidenceStore.ts"
 $rendezvousPath = "musu-rs\src\bridge\rendezvous.rs"
 $relayPayloadDrainPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
@@ -72,6 +73,7 @@ $leaseRoute = Get-RepoText $leaseRoutePath
 $transportRoute = Get-RepoText $transportRoutePath
 $routeEvidence = Get-RepoText $routeEvidencePath
 $routeEvidenceTest = Get-RepoText $routeEvidenceTestPath
+$routeEvidenceStore = Get-RepoText $routeEvidenceStorePath
 $rendezvous = Get-RepoText $rendezvousPath
 $relayPayloadDrain = Get-RepoText $relayPayloadDrainPath
 $forward = Get-RepoText $forwardPath
@@ -181,6 +183,23 @@ Add-Check `
     ) `
     -Path $routeEvidencePath `
     -Message "Queue fallback delivery proof alone cannot create release-grade relay route evidence."
+
+Add-Check `
+    -Scope "route-evidence" `
+    -Name "release-grade query revalidates relay delivery proof" `
+    -Passed (
+        Test-ContainsAll -Text $routeEvidenceStore -Needles @(
+            "hasCurrentRelayFallbackProof",
+            "hasCurrentRelayTransportProof",
+            "hasCurrentRelayPayloadDeliveryProof",
+            "hasCurrentReleaseGradeProofs",
+            "relay.payload_transport_proven === true",
+            "musu.relay_payload_delivery_proof.v1",
+            "query.release_grade === true && !hasCurrentReleaseGradeProofs"
+        )
+    ) `
+    -Path $routeEvidenceStorePath `
+    -Message "Release-grade queries filter stale relay records unless current fallback, transport, and delivery proof shapes are present."
 
 Add-Check `
     -Scope "rust-source" `

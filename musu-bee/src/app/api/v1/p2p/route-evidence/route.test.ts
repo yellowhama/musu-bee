@@ -77,7 +77,10 @@ const hardenedEvidence = {
   recorded_at: "2026-06-01T01:00:00Z",
 } as const satisfies RouteEvidencePayload;
 
-function relayTransportProof(leaseId: string, overrides: Record<string, unknown> = {}) {
+function relayTransportProof(
+  leaseId: string,
+  overrides: Partial<NonNullable<RouteEvidencePayload["relay_transport_proof"]>> = {}
+): NonNullable<RouteEvidencePayload["relay_transport_proof"]> {
   return {
     schema: "musu.relay_transport_proof.v1",
     session_id: hardenedEvidence.session_id,
@@ -940,6 +943,17 @@ test("excludes stale relay records without current transport proof from release-
       blockers: [],
       evidence: staleRelayEvidence,
     });
+    await appendRouteEvidenceRecord({
+      id: "stale-relay-transport-only-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:04Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...staleRelayEvidence,
+        relay_transport_proof: relayTransportProof("stale-relay-lease"),
+      },
+    });
 
     const filteredRes = await GET(getReq("?release_grade=true&limit=10"));
     assert.equal(filteredRes.status, 200);
@@ -951,6 +965,10 @@ test("excludes stale relay records without current transport proof from release-
     assert.equal(filteredBody.records[0]?.evidence.route_kind, "direct_quic");
     assert.equal(
       filteredBody.records.some((record) => record.id === "stale-relay-release-grade"),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-relay-transport-only-release-grade"),
       false
     );
   });

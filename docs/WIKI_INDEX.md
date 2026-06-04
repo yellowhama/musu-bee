@@ -3927,4 +3927,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `095647cf-83da-46eb-81ec-bd79a81402eb`, `case_count=31`,
   `runtime idle CPU 1/2`, `runtime matrix 1/2`, and `HUGH_SECOND`.
 
+- 2026-06-05 relay route query delivery proof hardening:
+  `RELEASE_1_15_0_RC1_RELAY_ROUTE_QUERY_DELIVERY_PROOF_HARDENING_2026_06_05.md`
+  (wiki/726) makes `release_grade=true` relay route queries revalidate current
+  fallback, relay transport proof, and relay payload delivery proof shape
+  before returning stored records. Search terms should include `GOAL v539`,
+  `wiki/726`, `hasCurrentReleaseGradeProofs`,
+  `hasCurrentRelayPayloadDeliveryProof`,
+  `stale-relay-transport-only-release-grade`,
+  `release-grade query revalidates relay delivery proof`,
+  `musu.relay_payload_delivery_proof.v1`, `npm run test:p2p 79/79`,
+  `source_release_relay_connect_endpoint_not_implemented`, and
+  `live relay payload delivery proof missing`.
+
 **End of WIKI_INDEX.md.**
