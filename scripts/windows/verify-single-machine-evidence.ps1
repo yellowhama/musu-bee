@@ -246,11 +246,13 @@ $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
 $schema = Get-StringProperty -Object $evidence -Name "schema"
 $version = Get-StringProperty -Object $evidence -Name "version"
 $gitCommit = Get-StringProperty -Object $evidence -Name "git_commit"
+$musuExe = Get-StringProperty -Object $evidence -Name "musu_exe"
 $startedAtText = Get-StringProperty -Object $evidence -Name "started_at"
 $completedAtText = Get-StringProperty -Object $evidence -Name "completed_at"
 $dashboardBaseUrl = Get-StringProperty -Object $evidence -Name "dashboard_base_url"
 $dashboardBaseUrlSource = Get-StringProperty -Object $evidence -Name "dashboard_base_url_source"
 $dashboardReachableUrl = Get-StringProperty -Object $evidence -Name "dashboard_reachable_url"
+$singleMachineSurface = Get-StringProperty -Object $evidence -Name "single_machine_surface"
 $bridgeUrl = Get-StringProperty -Object $evidence -Name "bridge_url"
 $doctorOverall = Get-StringProperty -Object $evidence -Name "doctor_overall"
 $dashboardDoctorOverall = Get-StringProperty -Object $evidence -Name "dashboard_doctor_overall"
@@ -263,6 +265,13 @@ $expectedCliOutput = Get-StringProperty -Object $evidence -Name "expected_cli_ou
 $cliRouteOutput = Get-StringProperty -Object $evidence -Name "cli_route_output"
 $evidenceOk = Get-BoolProperty -Object $evidence -Name "ok"
 $cliRouteChecked = Get-BoolProperty -Object $evidence -Name "cli_route_checked"
+$allowDeveloperRuntime = Get-BoolProperty -Object $evidence -Name "allow_developer_runtime"
+$dashboardRequired = $true
+$dashboardRequiredProperty = $evidence.PSObject.Properties["dashboard_required"]
+if ($dashboardRequiredProperty -and $null -ne $dashboardRequiredProperty.Value) {
+    $dashboardRequired = [bool]$dashboardRequiredProperty.Value
+}
+$bridgeOnlyEvidence = (-not $dashboardRequired) -and ($singleMachineSurface -eq "local-bridge-only") -and ($dashboardBaseUrlSource -eq "bridge-only-packaged-runtime")
 $startedAt = Try-ParseDateTimeOffset -Text $startedAtText
 $completedAt = Try-ParseDateTimeOffset -Text $completedAtText
 $now = [datetimeoffset]::Now
@@ -285,6 +294,12 @@ Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evi
 Add-CheckFromCondition "version" (-not [string]::IsNullOrWhiteSpace($version)) "version is present" "version is missing"
 Add-CheckFromCondition "expected version" ($version -eq $ExpectedVersion) "version matches $ExpectedVersion" "version is '$version', expected '$ExpectedVersion'"
 Add-CheckFromCondition "git commit" ($gitCommit -match "^[0-9a-f]{40}$") "git commit is present" "git commit is missing or invalid"
+$packagedMusuExe = (
+    $musuExe -match "\\Microsoft\\WindowsApps\\musu\.exe$" -or
+    $musuExe -match "\\Program Files\\WindowsApps\\.*\\musu\.exe$"
+)
+Add-CheckFromCondition "musu executable" (-not [string]::IsNullOrWhiteSpace($musuExe)) "musu_exe is present" "musu_exe is missing"
+Add-CheckFromCondition "release runtime identity" (-not $allowDeveloperRuntime -and $packagedMusuExe) "single-machine smoke used the packaged WindowsApps MUSU runtime" "single-machine smoke did not prove packaged WindowsApps runtime identity"
 $gitCommitMatchesExpected = ($gitCommit -eq $ExpectedGitCommit)
 $documentationOrStatusOnlyGitDelta = $false
 if (-not $gitCommitMatchesExpected -and $AllowDocumentationOnlyGitDelta) {
@@ -310,20 +325,22 @@ foreach ($timestamp in @(
         Add-CheckFromCondition "$($timestamp.name) not future" ($timestamp.value -le ($now + $futureTolerance)) "$($timestamp.name) is not in the future" "$($timestamp.name) is more than 5 minutes in the future"
     }
 }
-Add-CheckFromCondition "dashboard base url" (-not [string]::IsNullOrWhiteSpace($dashboardBaseUrl)) "dashboard_base_url is present" "dashboard_base_url is missing"
+Add-CheckFromCondition "dashboard surface mode" ($bridgeOnlyEvidence -or $singleMachineSurface -eq "dashboard" -or [string]::IsNullOrWhiteSpace($singleMachineSurface)) "single-machine surface mode is valid" "single-machine surface mode is invalid"
+Add-CheckFromCondition "dashboard required flag" ($dashboardRequired -or $bridgeOnlyEvidence) "dashboard_required is valid for the recorded surface" "dashboard_required=false must use bridge-only packaged runtime evidence"
+Add-CheckFromCondition "dashboard base url" ($bridgeOnlyEvidence -or -not [string]::IsNullOrWhiteSpace($dashboardBaseUrl)) "dashboard_base_url is present or intentionally absent for bridge-only packaged runtime" "dashboard_base_url is missing"
 Add-CheckFromCondition "dashboard base url source" (-not [string]::IsNullOrWhiteSpace($dashboardBaseUrlSource)) "dashboard_base_url_source is present" "dashboard_base_url_source is missing"
-Add-CheckFromCondition "dashboard url auto-discovered" ($dashboardBaseUrlSource -match "^musu (up|doctor)\.dashboard\.reachable_url$") "dashboard URL came from runtime reachable_url" "dashboard URL was not discovered from runtime reachable_url"
-Add-CheckFromCondition "dashboard reachable url" (-not [string]::IsNullOrWhiteSpace($dashboardReachableUrl)) "dashboard_reachable_url is present" "dashboard_reachable_url is missing"
-Add-CheckFromCondition "dashboard no dev-port default" ($dashboardBaseUrl -notmatch "^http://127\.0\.0\.1:3000/?$") "dashboard_base_url is not the dev dashboard default" "dashboard_base_url still points at the dev dashboard default"
+Add-CheckFromCondition "dashboard url auto-discovered" ($bridgeOnlyEvidence -or $dashboardBaseUrlSource -match "^musu (up|doctor)\.dashboard\.reachable_url$") "dashboard URL came from runtime reachable_url or is intentionally absent for bridge-only packaged runtime" "dashboard URL was not discovered from runtime reachable_url"
+Add-CheckFromCondition "dashboard reachable url" ($bridgeOnlyEvidence -or -not [string]::IsNullOrWhiteSpace($dashboardReachableUrl)) "dashboard_reachable_url is present or intentionally absent for bridge-only packaged runtime" "dashboard_reachable_url is missing"
+Add-CheckFromCondition "dashboard no dev-port default" ($bridgeOnlyEvidence -or $dashboardBaseUrl -notmatch "^http://127\.0\.0\.1:3000/?$") "dashboard_base_url is not the dev dashboard default" "dashboard_base_url still points at the dev dashboard default"
 Add-CheckFromCondition "bridge url" ($bridgeUrl -match "^http://127\.0\.0\.1:\d+") "bridge_url is localhost" "bridge_url is missing or not localhost"
 Add-CheckFromCondition "doctor overall" ($doctorOverall -ne "fail" -and -not [string]::IsNullOrWhiteSpace($doctorOverall)) "doctor overall is not fail" "doctor overall is fail or missing"
 Add-CheckFromCondition "dashboard doctor overall" ($dashboardDoctorOverall -ne "fail" -and -not [string]::IsNullOrWhiteSpace($dashboardDoctorOverall)) "dashboard doctor overall is not fail" "dashboard doctor overall is fail or missing"
-Add-CheckFromCondition "device nodes" ($deviceNodeCount -ge 1) "device-status returned at least one node" "device-status returned no nodes"
-Add-CheckFromCondition "dashboard task id" (-not [string]::IsNullOrWhiteSpace($dashboardTaskId)) "dashboard task id is present" "dashboard task id is missing"
-Add-CheckFromCondition "dashboard task status" ($dashboardTaskStatus -eq "done") "dashboard task status is done" "dashboard task status is not done"
-Add-CheckFromCondition "dashboard output" (-not [string]::IsNullOrWhiteSpace($expectedDashboardOutput) -and $dashboardOutput.Contains($expectedDashboardOutput)) "dashboard output contains expected text" "dashboard output does not contain expected text"
-Add-CheckFromCondition "SSE status" ($sseStatusCode -eq 200) "SSE endpoint returned 200" "SSE endpoint did not return 200"
-Add-CheckFromCondition "SSE content-type" ($sseContentType.Contains("text/event-stream")) "SSE endpoint returned text/event-stream" "SSE endpoint did not return text/event-stream"
+Add-CheckFromCondition "device nodes" ($bridgeOnlyEvidence -or $deviceNodeCount -ge 1) "device-status returned at least one node or is intentionally skipped for bridge-only packaged runtime" "device-status returned no nodes"
+Add-CheckFromCondition "dashboard task id" ($bridgeOnlyEvidence -or -not [string]::IsNullOrWhiteSpace($dashboardTaskId)) "dashboard task id is present or intentionally skipped for bridge-only packaged runtime" "dashboard task id is missing"
+Add-CheckFromCondition "dashboard task status" ($bridgeOnlyEvidence -or $dashboardTaskStatus -eq "done") "dashboard task status is done or intentionally skipped for bridge-only packaged runtime" "dashboard task status is not done"
+Add-CheckFromCondition "dashboard output" ($bridgeOnlyEvidence -or (-not [string]::IsNullOrWhiteSpace($expectedDashboardOutput) -and $dashboardOutput.Contains($expectedDashboardOutput))) "dashboard output contains expected text or is intentionally skipped for bridge-only packaged runtime" "dashboard output does not contain expected text"
+Add-CheckFromCondition "SSE status" ($bridgeOnlyEvidence -or $sseStatusCode -eq 200) "SSE endpoint returned 200 or is intentionally skipped for bridge-only packaged runtime" "SSE endpoint did not return 200"
+Add-CheckFromCondition "SSE content-type" ($bridgeOnlyEvidence -or $sseContentType.Contains("text/event-stream")) "SSE endpoint returned text/event-stream or is intentionally skipped for bridge-only packaged runtime" "SSE endpoint did not return text/event-stream"
 if ($cliRouteChecked) {
     Add-CheckFromCondition "CLI output" (-not [string]::IsNullOrWhiteSpace($expectedCliOutput) -and $cliRouteOutput.Contains($expectedCliOutput)) "CLI route output contains expected text" "CLI route output does not contain expected text"
 }
@@ -335,8 +352,12 @@ $result = [pscustomobject]@{
     fail_count = $failCount
     version = $version
     git_commit = $gitCommit
+    musu_exe = $musuExe
+    allow_developer_runtime = $allowDeveloperRuntime
     dashboard_base_url = $dashboardBaseUrl
     dashboard_base_url_source = $dashboardBaseUrlSource
+    dashboard_required = $dashboardRequired
+    single_machine_surface = $singleMachineSurface
     dashboard_task_id = $dashboardTaskId
     bridge_url = $bridgeUrl
     cli_route_checked = $cliRouteChecked

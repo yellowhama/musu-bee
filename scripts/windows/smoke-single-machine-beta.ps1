@@ -12,7 +12,8 @@ param(
     [switch]$SkipCliRoute,
     [string]$EvidencePath,
     [string]$EvidenceRoot,
-    [string]$Version
+    [string]$Version,
+    [switch]$AllowDeveloperRuntime
 )
 
 Set-StrictMode -Version Latest
@@ -21,8 +22,23 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 
+$developerMusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
 if (-not $MusuExe) {
-    $MusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
+    $windowsAppsMusuExe = if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    }
+    else {
+        ""
+    }
+    if (-not [string]::IsNullOrWhiteSpace($windowsAppsMusuExe) -and (Test-Path -LiteralPath $windowsAppsMusuExe)) {
+        $MusuExe = $windowsAppsMusuExe
+    }
+    elseif ($AllowDeveloperRuntime) {
+        $MusuExe = $developerMusuExe
+    }
+    else {
+        throw "Packaged WindowsApps musu.exe was not found. Install the MSIX or pass -AllowDeveloperRuntime for a non-release diagnostic smoke."
+    }
 }
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -201,16 +217,26 @@ function Resolve-DashboardBaseUrlCandidate {
 }
 
 Assert-True (Test-Path -LiteralPath $MusuExe) "musu.exe not found at $MusuExe"
+$resolvedMusuExe = (Resolve-Path -LiteralPath $MusuExe).Path
+$resolvedDeveloperMusuExe = if (Test-Path -LiteralPath $developerMusuExe) { (Resolve-Path -LiteralPath $developerMusuExe).Path } else { $developerMusuExe }
+if (-not $AllowDeveloperRuntime -and [string]::Equals($resolvedMusuExe, $resolvedDeveloperMusuExe, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Single-machine release smoke must use the packaged WindowsApps MUSU runtime. Pass -AllowDeveloperRuntime only for diagnostics."
+}
 
 $dashboardBaseUrlWasExplicit = ($PSBoundParameters.ContainsKey("DashboardBaseUrl") -and -not [string]::IsNullOrWhiteSpace($DashboardBaseUrl))
 $resolvedDashboardSource = "argument"
 $resolvedDashboardRawUrl = $DashboardBaseUrl
+$dashboardRequired = $true
+$bridgeOnlyPackage = $false
 
 Write-Step "Run first-start helper"
 $up = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json")
 Assert-True ([bool]$up.ok) "musu up did not report ok"
 Assert-True ($up.bridge.status -eq "ok") "bridge status was not ok"
-Assert-True ($up.dashboard.status -eq "ok") "dashboard status was not ok"
+if ($up.dashboard.PSObject.Properties.Name -contains "required") {
+    $dashboardRequired = [bool]$up.dashboard.required
+}
+Assert-True (($up.dashboard.status -eq "ok") -or -not $dashboardRequired) "dashboard status was not ok"
 
 Write-Step "Run local doctor"
 $doctor = $null
@@ -218,11 +244,17 @@ $doctorError = $null
 for ($attempt = 1; $attempt -le $ReadinessRetryCount; $attempt++) {
     try {
         $candidate = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json")
-        if ($candidate.overall -ne "fail" -and $candidate.bridge.status -eq "ok" -and $candidate.dashboard.status -eq "ok") {
+        $candidateDashboardRequired = $dashboardRequired
+        if ($candidate.dashboard.PSObject.Properties.Name -contains "required") {
+            $candidateDashboardRequired = [bool]$candidate.dashboard.required
+        }
+        $candidateDashboardReady = (($candidate.dashboard.status -eq "ok") -or -not $candidateDashboardRequired)
+        if ($candidate.overall -ne "fail" -and $candidate.bridge.status -eq "ok" -and $candidateDashboardReady) {
             $doctor = $candidate
+            $dashboardRequired = $candidateDashboardRequired
             break
         }
-        $doctorError = "overall=$($candidate.overall), bridge=$($candidate.bridge.status), dashboard=$($candidate.dashboard.status)"
+        $doctorError = "overall=$($candidate.overall), bridge=$($candidate.bridge.status), dashboard=$($candidate.dashboard.status), dashboard_required=$candidateDashboardRequired"
     }
     catch {
         $doctorError = $_.Exception.Message
@@ -239,18 +271,41 @@ if ($dashboardBaseUrlWasExplicit) {
     Assert-True (-not [string]::IsNullOrWhiteSpace($DashboardBaseUrl)) "DashboardBaseUrl is not a valid absolute URL."
 }
 else {
-    $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $up -SourceName "musu up"
-    if ($null -eq $resolvedDashboard) {
-        $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $doctor -SourceName "musu doctor"
+    if (-not $dashboardRequired) {
+        $bridgeOnlyPackage = $true
+        $DashboardBaseUrl = ""
+        $resolvedDashboardSource = "bridge-only-packaged-runtime"
+        $resolvedDashboardRawUrl = ""
     }
-    Assert-True ($null -ne $resolvedDashboard) "dashboard reachable_url was not reported by musu up or doctor; pass -DashboardBaseUrl explicitly."
-    $DashboardBaseUrl = [string]$resolvedDashboard.base_url
-    $resolvedDashboardSource = [string]$resolvedDashboard.source
-    $resolvedDashboardRawUrl = [string]$resolvedDashboard.raw_url
+    else {
+        $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $up -SourceName "musu up"
+        if ($null -eq $resolvedDashboard) {
+            $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $doctor -SourceName "musu doctor"
+        }
+        Assert-True ($null -ne $resolvedDashboard) "dashboard reachable_url was not reported by musu up or doctor; pass -DashboardBaseUrl explicitly."
+        $DashboardBaseUrl = [string]$resolvedDashboard.base_url
+        $resolvedDashboardSource = [string]$resolvedDashboard.source
+        $resolvedDashboardRawUrl = [string]$resolvedDashboard.raw_url
+    }
 }
 
-Write-Step "Resolved dashboard base URL: $DashboardBaseUrl ($resolvedDashboardSource)"
+if ($bridgeOnlyPackage) {
+    Write-Step "Resolved local runtime surface: packaged bridge only ($($up.bridge.local_url))"
+}
+else {
+    Write-Step "Resolved dashboard base URL: $DashboardBaseUrl ($resolvedDashboardSource)"
+}
 
+$dashboardDoctor = $null
+$deviceNodes = @()
+$task = $null
+$taskResult = $null
+$taskPollErrorCount = 0
+$taskPollLastError = $null
+$sse = $null
+$sseContentType = ""
+
+if (-not $bridgeOnlyPackage) {
 Write-Step "Check dashboard APIs"
 $dashboardDoctor = $null
 $dashboardDoctorError = $null
@@ -325,6 +380,7 @@ $sse = Invoke-WebRequest -Uri "$DashboardBaseUrl/api/bridge-tasks/events" -Metho
 Assert-True ($sse.StatusCode -eq 200) "SSE endpoint did not return 200 OK"
 $sseContentType = [string]$sse.Headers["Content-Type"]
 Assert-True ($sseContentType.Contains("text/event-stream")) "SSE endpoint did not return text/event-stream"
+}
 
 $cliRouteOutput = $null
 if (-not $SkipCliRoute) {
@@ -343,25 +399,29 @@ $evidence = [pscustomobject]@{
     ok = $true
     version = $Version
     git_commit = $gitCommit
+    musu_exe = $resolvedMusuExe
+    allow_developer_runtime = [bool]$AllowDeveloperRuntime
     smoke_run_id = $smokeRunId
     started_at = $startedAt.ToString("o")
     completed_at = (Get-Date).ToString("o")
     machine = $env:COMPUTERNAME
+    dashboard_required = $dashboardRequired
+    single_machine_surface = if ($bridgeOnlyPackage) { "local-bridge-only" } else { "dashboard" }
     dashboard_base_url = $DashboardBaseUrl
     dashboard_base_url_source = $resolvedDashboardSource
     dashboard_reachable_url = $resolvedDashboardRawUrl
     bridge_url = $up.bridge.local_url
     workspace_uri = $WorkspaceUri
     doctor_overall = $doctor.overall
-    dashboard_doctor_overall = $dashboardDoctor.overall
+    dashboard_doctor_overall = if ($bridgeOnlyPackage) { $doctor.overall } else { $dashboardDoctor.overall }
     device_node_count = $deviceNodes.Count
-    dashboard_task_id = $task.task_id
-    dashboard_task_status = $taskResult.status
+    dashboard_task_id = if ($bridgeOnlyPackage) { $null } else { $task.task_id }
+    dashboard_task_status = if ($bridgeOnlyPackage) { $null } else { $taskResult.status }
     dashboard_task_poll_error_count = $taskPollErrorCount
     dashboard_task_poll_last_error = $taskPollLastError
-    expected_dashboard_output = $ExpectedDashboardOutput
-    dashboard_output = $taskResult.output
-    sse_status_code = $sse.StatusCode
+    expected_dashboard_output = if ($bridgeOnlyPackage) { $null } else { $ExpectedDashboardOutput }
+    dashboard_output = if ($bridgeOnlyPackage) { $null } else { $taskResult.output }
+    sse_status_code = if ($bridgeOnlyPackage) { 0 } else { $sse.StatusCode }
     sse_content_type = $sseContentType
     cli_route_checked = -not $SkipCliRoute
     expected_cli_output = if ($SkipCliRoute) { $null } else { $ExpectedCliOutput }
@@ -374,9 +434,11 @@ Write-Step "Single-machine beta smoke passed"
     ok = $true
     dashboard_base_url = $DashboardBaseUrl
     dashboard_base_url_source = $resolvedDashboardSource
+    dashboard_required = $dashboardRequired
+    single_machine_surface = if ($bridgeOnlyPackage) { "local-bridge-only" } else { "dashboard" }
     bridge_url = $up.bridge.local_url
-    dashboard_task_id = $task.task_id
-    dashboard_output = $taskResult.output
+    dashboard_task_id = if ($bridgeOnlyPackage) { $null } else { $task.task_id }
+    dashboard_output = if ($bridgeOnlyPackage) { $null } else { $taskResult.output }
     cli_route_checked = -not $SkipCliRoute
     evidence_path = (Resolve-Path -LiteralPath $EvidencePath).Path
 }

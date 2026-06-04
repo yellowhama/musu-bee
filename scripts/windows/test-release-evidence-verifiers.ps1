@@ -163,6 +163,41 @@ function Test-TestSourceFilesAllowedAsStatusOnly {
 }
 
 $now = [datetimeoffset]::Now
+$currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+
+$validBridgeOnlySingleMachine = [pscustomobject]@{
+    schema = "musu.single_machine_smoke_evidence.v1"
+    ok = $true
+    version = $ExpectedVersion
+    git_commit = $currentGitCommit
+    musu_exe = "C:\Users\verifier\AppData\Local\Microsoft\WindowsApps\musu.exe"
+    allow_developer_runtime = $false
+    smoke_run_id = "VERIFIER_TEST_BRIDGE_ONLY"
+    started_at = $now.AddSeconds(-30).ToString("o")
+    completed_at = $now.ToString("o")
+    machine = "VERIFIER-TEST"
+    dashboard_required = $false
+    single_machine_surface = "local-bridge-only"
+    dashboard_base_url = ""
+    dashboard_base_url_source = "bridge-only-packaged-runtime"
+    dashboard_reachable_url = ""
+    bridge_url = "http://127.0.0.1:8377"
+    workspace_uri = "file:///F:/workspace/musu-bee"
+    doctor_overall = "ok"
+    dashboard_doctor_overall = "ok"
+    device_node_count = 0
+    dashboard_task_id = $null
+    dashboard_task_status = $null
+    dashboard_task_poll_error_count = 0
+    dashboard_task_poll_last_error = $null
+    expected_dashboard_output = $null
+    dashboard_output = $null
+    sse_status_code = 0
+    sse_content_type = ""
+    cli_route_checked = $true
+    expected_cli_output = "MUSU_CLI_ROUTE_OK_VERIFIER_TEST"
+    cli_route_output = "MUSU_CLI_ROUTE_OK_VERIFIER_TEST"
+}
 
 $validP2p = [pscustomobject]@{
     schema = "musu.p2p_control_plane_live_evidence.v1"
@@ -657,6 +692,10 @@ foreach ($classifierScript in $freshnessClassifierScripts) {
         -ShouldPass $true `
         -Invocation $invocation
 }
+
+$fixture = Write-Fixture -Name "single-machine-valid-bridge-only-packaged-runtime" -Object $validBridgeOnlySingleMachine
+$invocation = Invoke-Verifier -ScriptPath $singleMachineVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedGitCommit", $currentGitCommit, "-Json")
+Add-CaseResult -Cases $cases -Name "single-machine accepts packaged bridge-only local runtime evidence" -Verifier "verify-single-machine-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
 $fixture = Write-Fixture -Name "msix-valid-clean-alias" -Object (New-MsixInstallEvidence)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")

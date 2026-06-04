@@ -84,8 +84,12 @@ $summary = @"
 - Version: $Version
 - Verified: $($verification.ok)
 - Git commit: $($verification.git_commit)
+- MUSU executable: $($verification.musu_exe)
+- Developer runtime allowed: $($verification.allow_developer_runtime)
 - Dashboard URL: $($verification.dashboard_base_url)
 - Dashboard URL source: $($verification.dashboard_base_url_source)
+- Dashboard required: $($verification.dashboard_required)
+- Local surface: $($verification.single_machine_surface)
 - Dashboard task id: $($verification.dashboard_task_id)
 - Bridge URL: $($verification.bridge_url)
 - CLI route checked: $($verification.cli_route_checked)
@@ -110,8 +114,12 @@ $result = [pscustomobject]@{
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     git_commit = [string]$verification.git_commit
+    musu_exe = [string]$verification.musu_exe
+    allow_developer_runtime = [bool]$verification.allow_developer_runtime
     dashboard_base_url = [string]$verification.dashboard_base_url
     dashboard_base_url_source = [string]$verification.dashboard_base_url_source
+    dashboard_required = [bool]$verification.dashboard_required
+    single_machine_surface = [string]$verification.single_machine_surface
     dashboard_task_id = [string]$verification.dashboard_task_id
     bridge_url = [string]$verification.bridge_url
     cli_route_checked = [bool]$verification.cli_route_checked

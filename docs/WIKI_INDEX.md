@@ -3940,4 +3940,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_connect_endpoint_not_implemented`, and
   `live relay payload delivery proof missing`.
 
+- 2026-06-05 packaged local runtime / web split alignment:
+  `RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_WEB_SPLIT_ALIGNMENT_2026_06_05.md`
+  (wiki/727) decouples packaged local runtime health from workspace dashboard
+  ports. Search terms should include `GOAL v540`, `wiki/727`,
+  `dashboard.required=false`, `single_machine_surface=local-bridge-only`,
+  `bridge-only-packaged-runtime`, `AllowDeveloperRuntime`,
+  `WindowsApps MUSU runtime`, `MUSU.PRO remote input`,
+  `127.0.0.1:3001 optional dashboard`, `musu route --wait`, `case_count=32`,
+  and
+  `http://127.0.0.1:3591`.
+
 **End of WIKI_INDEX.md.**

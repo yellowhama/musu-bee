@@ -3105,6 +3105,7 @@ struct DoctorDashboard {
     dev_url: String,
     start_url: String,
     reachable_url: Option<String>,
+    required: bool,
     note: String,
 }
 
@@ -3283,12 +3284,11 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         },
     };
 
+    let distribution_mode = crate::install::distribution::DistributionMode::current();
+    let distribution = distribution_mode.as_str().to_string();
     let bridge_check = check_bridge(&home).await;
-    let dashboard_check = check_dashboard().await;
+    let dashboard_check = check_dashboard(distribution_mode).await;
     let background_check = check_background_features(&home, account_token_present);
-    let distribution = crate::install::distribution::DistributionMode::current()
-        .as_str()
-        .to_string();
     let package_status = if cfg!(windows) {
         DoctorLevel::Ok
     } else {
@@ -3323,6 +3323,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         &account_check,
         bridge_check.status,
         dashboard_check.status,
+        dashboard_check.required,
         bridge_check.public_url_valid,
     );
 
@@ -3404,15 +3405,21 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         bridge = wait_for_bridge(&home, std::time::Duration::from_secs(opts.timeout_sec)).await;
     }
 
-    let dashboard = check_dashboard().await;
+    let distribution = crate::install::distribution::DistributionMode::current();
+    let dashboard = check_dashboard(distribution).await;
     let mut dashboard_open_error = None;
     if opts.open_dashboard {
-        let url = dashboard
+        if let Some(url) = dashboard
             .reachable_url
             .as_deref()
-            .unwrap_or(dashboard.dev_url.as_str());
-        if let Err(err) = open_url(url) {
-            dashboard_open_error = Some(err.to_string());
+            .or_else(|| dashboard.required.then_some(dashboard.dev_url.as_str()))
+        {
+            if let Err(err) = open_url(url) {
+                dashboard_open_error = Some(err.to_string());
+            }
+        } else {
+            dashboard_open_error =
+                Some("No local dashboard URL is required for the packaged local runtime.".into());
         }
     }
 
@@ -3425,12 +3432,16 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
             bridge_log_path.display()
         ));
     }
-    if dashboard.status != DoctorLevel::Ok {
+    if dashboard.required && dashboard.status != DoctorLevel::Ok {
         next_steps
             .push("Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into());
     }
     if next_steps.is_empty() {
-        next_steps.push("Open the dashboard and run a first agent task.".into());
+        if dashboard.reachable_url.is_some() {
+            next_steps.push("Open the dashboard and run a first agent task.".into());
+        } else {
+            next_steps.push("Local runtime is ready. Use MUSU.PRO remote input or `musu route --wait <task>` to run work on this device.".into());
+        }
     }
 
     let report = UpReport {
@@ -3714,7 +3725,9 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
     }
 }
 
-async fn check_dashboard() -> DoctorDashboard {
+async fn check_dashboard(
+    distribution: crate::install::distribution::DistributionMode,
+) -> DoctorDashboard {
     let candidates = [
         ("http://127.0.0.1:3000/app", "dev"),
         ("http://127.0.0.1:3001/app", "start"),
@@ -3733,10 +3746,22 @@ async fn check_dashboard() -> DoctorDashboard {
                     dev_url: "http://127.0.0.1:3000/app".into(),
                     start_url: "http://127.0.0.1:3001/app".into(),
                     reachable_url: Some(url.into()),
+                    required: !distribution.is_store_msix(),
                     note: "Dashboard is reachable.".into(),
                 };
             }
         }
+    }
+
+    if distribution.is_store_msix() {
+        return DoctorDashboard {
+            status: DoctorLevel::Ok,
+            dev_url: String::new(),
+            start_url: String::new(),
+            reachable_url: None,
+            required: false,
+            note: "Packaged local runtime does not require a workspace dashboard; web input should arrive through MUSU.PRO or another connected operator surface.".into(),
+        };
     }
 
     DoctorDashboard {
@@ -3744,6 +3769,7 @@ async fn check_dashboard() -> DoctorDashboard {
         dev_url: "http://127.0.0.1:3000/app".into(),
         start_url: "http://127.0.0.1:3001/app".into(),
         reachable_url: None,
+        required: true,
         note: "Dashboard is not reachable from this shell. Start `musu-bee` with `npm run dev` or `npm start`.".into(),
     }
 }
@@ -4142,6 +4168,7 @@ fn next_steps_for(
     account: &DoctorAccount,
     bridge: DoctorLevel,
     dashboard: DoctorLevel,
+    dashboard_required: bool,
     public_url_valid: bool,
 ) -> Vec<String> {
     let mut steps = Vec::new();
@@ -4160,12 +4187,12 @@ fn next_steps_for(
     if !public_url_valid {
         steps.push("Set MUSU_BRIDGE_PUBLIC_URL to an http:// or https:// URL if cloud registration rejects the computed URL.".into());
     }
-    if matches!(dashboard, DoctorLevel::Warn | DoctorLevel::Fail) {
+    if dashboard_required && matches!(dashboard, DoctorLevel::Warn | DoctorLevel::Fail) {
         steps.push("Start the dashboard from `musu-bee`: `npm run dev` for port 3000 or `npm start` for port 3001.".into());
     }
     if steps.is_empty() {
         steps.push(
-            "System looks ready. Use the dashboard or `musu route --wait <task>` to run work."
+            "System looks ready. Use MUSU.PRO, a connected dashboard, or `musu route --wait <task>` to run work."
                 .into(),
         );
     }
@@ -4345,8 +4372,12 @@ fn print_up_report(report: &UpReport) {
     }
     println!("bridge log: {}", report.bridge_log_path);
     println!("dashboard: {}", report.dashboard.status.label());
-    println!("dashboard dev: {}", report.dashboard.dev_url);
-    println!("dashboard start: {}", report.dashboard.start_url);
+    if !report.dashboard.dev_url.is_empty() {
+        println!("dashboard dev: {}", report.dashboard.dev_url);
+    }
+    if !report.dashboard.start_url.is_empty() {
+        println!("dashboard start: {}", report.dashboard.start_url);
+    }
     if let Some(err) = &report.dashboard_open_error {
         println!("dashboard open failed: {err}");
     }
@@ -4912,6 +4943,37 @@ mod tests {
             .map(|attempt| bridge_health_poll_delay(attempt).as_millis() as u64)
             .collect();
         assert_eq!(samples, vec![250, 500, 1_000, 2_000, 2_000, 2_000]);
+    }
+
+    #[test]
+    fn packaged_runtime_dashboard_absence_does_not_request_dev_server() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Ok,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, false, true);
+
+        assert!(!steps.iter().any(|step| step.contains("npm run dev")));
+        assert!(steps.iter().any(|step| step.contains("MUSU.PRO")));
+    }
+
+    #[test]
+    fn developer_dashboard_absence_keeps_dev_server_hint() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Ok,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, true, true);
+
+        assert!(steps.iter().any(|step| step.contains("npm run dev")));
     }
 
     #[test]

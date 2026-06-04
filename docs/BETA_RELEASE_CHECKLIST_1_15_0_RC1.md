@@ -7,10 +7,11 @@ Date: 2026-05-29
 `1.15.0-rc.1` is beta-ready when a fresh Windows operator can:
 
 1. run `musu up`,
-2. open the dashboard,
-3. see doctor/readiness status as healthy,
-4. delegate one local agent task,
-5. observe the result from the dashboard task APIs.
+2. see local bridge/doctor readiness as healthy,
+3. delegate one local agent task from the installed local program or CLI,
+4. optionally attach a same-machine dashboard,
+5. accept authenticated remote input from `https://musu.pro` without moving
+   execution off the local device.
 
 ## Product Split
 
@@ -42,15 +43,22 @@ Repeatable script:
 powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1
 ```
 
-The script discovers the packaged dashboard URL from `musu up --json` /
-`musu doctor --json` `dashboard.reachable_url`. Do not hardcode the development
-dashboard port `http://127.0.0.1:3000` for release evidence.
+The script defaults to the packaged WindowsApps `musu.exe`. Debug
+`musu-rs\target\debug\musu.exe` is only accepted with `-AllowDeveloperRuntime`
+and is not release evidence.
+
+For packaged local runtimes, a workspace dashboard is optional. When
+`musu up --json` / `musu doctor --json` report `dashboard.required=false`, the
+single-machine smoke records bridge-only evidence and checks CLI routing
+without starting or requiring `127.0.0.1:3000` / `127.0.0.1:3001`. When a
+dashboard URL is explicitly supplied, the script still checks the dashboard
+APIs.
 
 Manual equivalent:
 
 ```powershell
-.\musu-rs\target\debug\musu.exe up --json
-.\musu-rs\target\debug\musu.exe doctor --json
+& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" up --json
+& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" doctor --json
 ```
 
 Expected:
@@ -58,10 +66,10 @@ Expected:
 - account token present or an actionable `musu login` next step
 - bridge token present from `~\.musu\bridge.env`
 - bridge `/health` returns `status=ok`
-- dashboard reachable when running on the standard app port
+- `dashboard.required=false` is acceptable for packaged local runtime evidence
 - Windows alias shadowing is reported as a warning, not hidden
 
-Dashboard API smoke:
+Optional same-machine dashboard API smoke:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3001/api/doctor

@@ -336,19 +336,33 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machin
 $singleSmokeScript = Join-Path $scriptDir "smoke-single-machine-beta.ps1"
 if (Test-Path -LiteralPath $singleSmokeScript) {
     $singleSmokeText = Get-Content -LiteralPath $singleSmokeScript -Raw
-    $discoversReachableDashboard = (
+    $supportsReachableDashboard = (
         $singleSmokeText -match "Resolve-DashboardBaseUrlCandidate" -and
         $singleSmokeText -match "reachable_url" -and
         $singleSmokeText -match "dashboard_base_url_source"
     )
-    Add-Check "release-smoke" "single-machine dashboard URL discovery" `
-        ($(if ($discoversReachableDashboard) { "pass" } else { "fail" })) `
-        ($(if ($discoversReachableDashboard) { "single-machine smoke discovers the packaged dashboard reachable_url." } else { "single-machine smoke does not prove dashboard reachable_url discovery." }))
+    $supportsBridgeOnlyPackage = (
+        $singleSmokeText -match "bridge-only-packaged-runtime" -and
+        $singleSmokeText -match "dashboard_required" -and
+        $singleSmokeText -match "local-bridge-only"
+    )
+    Add-Check "release-smoke" "single-machine local runtime surface" `
+        ($(if ($supportsReachableDashboard -and $supportsBridgeOnlyPackage) { "pass" } else { "fail" })) `
+        ($(if ($supportsReachableDashboard -and $supportsBridgeOnlyPackage) { "single-machine smoke supports reachable dashboards and packaged bridge-only runtime evidence." } else { "single-machine smoke does not prove both reachable-dashboard and packaged bridge-only runtime contracts." }))
 
     $hasDevDashboardDefault = ($singleSmokeText -match 'DashboardBaseUrl\s*=\s*"http://127\.0\.0\.1:3000"')
     Add-Check "release-smoke" "single-machine smoke no dev-port default" `
         ($(if (-not $hasDevDashboardDefault) { "pass" } else { "fail" })) `
         ($(if (-not $hasDevDashboardDefault) { "single-machine smoke no longer defaults to the dev dashboard port." } else { "single-machine smoke still defaults to the dev dashboard port." }))
+
+    $requiresPackagedRuntimeByDefault = (
+        $singleSmokeText -match "Microsoft\\WindowsApps\\musu.exe" -and
+        $singleSmokeText -match "AllowDeveloperRuntime" -and
+        $singleSmokeText -match "Single-machine release smoke must use the packaged WindowsApps MUSU runtime"
+    )
+    Add-Check "release-smoke" "single-machine packaged runtime default" `
+        ($(if ($requiresPackagedRuntimeByDefault) { "pass" } else { "fail" })) `
+        ($(if ($requiresPackagedRuntimeByDefault) { "single-machine smoke defaults to the packaged WindowsApps runtime and gates developer runtime opt-in." } else { "single-machine smoke can still default to or silently accept developer runtime evidence." }))
 }
 
 $privacyPage = Join-Path $appRoot "src\app\privacy\page.tsx"
