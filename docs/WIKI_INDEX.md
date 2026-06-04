@@ -3224,4 +3224,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `cargo test --lib route_wait_timeout_is_bounded`, and
   `manifest_git.dirty=true`.
 
+- 2026-06-04 post CLI route wait primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/670) records current primary MSIX/smoke/CPU/matrix evidence after the
+  bounded route wait hardening and local-executor roadmap update. Search terms
+  should include `GOAL v481`, `wiki/670`, `20260604-112129-HUGH_SECOND`,
+  `20260604-112308-HUGH_SECOND`, `20260604-112809-HUGH_SECOND.desktop-open`,
+  `20260604-112954-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_112241`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_112954`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `manifest_git.dirty=false`, and `blocker count 6`.
+
 **End of WIKI_INDEX.md.**

@@ -2596,6 +2596,41 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_STALE_PROOF_EVIDENCE_2026_06_04.md`
 
+## 2026-06-04 11:38 KST Post CLI Route Wait Primary Evidence Refresh
+
+Fresh primary-machine evidence is restored after the CLI route wait hardening
+and web-input/local-executor roadmap update.
+
+Fresh evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-112129-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-112308-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-112809-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-112954-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_112241`
+- smoke bridge `http://127.0.0.1:3153`
+- desktop-open CPU passed for `60.062s`: MUSU `0`, Node `0.03`,
+  WebView2 `0.39`, hot `0`, working set `489.98MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_112954`
+- matrix max CPU: MUSU `0.13`, Node `0.05`, WebView2 `0.13`
+- matrix max working set `490.17MB`
+
+Clean go/no-go on `c9ada37b` reports `local_artifacts_ready=true`,
+`single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+`1/2`, `manifest_dirty=false`, and blocker count `6`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

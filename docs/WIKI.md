@@ -4465,3 +4465,44 @@ Dirty-tree go/no-go reports `ready=false`, `local_artifacts_ready=true`,
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`
+
+## 2026-06-04 post CLI route wait primary evidence refresh (wiki/670)
+
+Fresh primary-machine evidence is restored after the CLI route wait hardening
+and web-input/local-executor roadmap update.
+
+Evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-112129-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-112308-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-112809-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-112954-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_112241`
+- bridge `http://127.0.0.1:3153`
+- dashboard task `051218dc-059c-4eda-9254-fee608e44701`
+- desktop-open CPU passed for `60.062s`: MUSU `0`, Node `0.03`,
+  WebView2 `0.39`, owned WebView2 `6`, hot `0`, working set `489.98MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_112954`
+- matrix max CPU: MUSU `0.13`, Node `0.05`, WebView2 `0.13`
+- matrix max working set `490.17MB`
+
+Clean go/no-go on `c9ada37ba675cff59b259bec05f30a72272d9641` reports
+`ready_for_public_desktop_release=false`, `local_artifacts_ready=true`,
+`single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+`1/2`, `manifest_git.dirty=false`, and blocker count `6`.
+
+Public release remains No-Go on second-PC runtime/multi-device evidence, live
+owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

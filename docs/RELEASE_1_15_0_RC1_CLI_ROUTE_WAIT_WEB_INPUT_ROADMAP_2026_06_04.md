@@ -87,3 +87,28 @@ Public release remains No-Go on:
 - live owner-scoped `musu.pro` relay route and payload proof
 - `musu@musu.pro` support mailbox delivery evidence
 - Store/Partner Center evidence
+
+## Post-Commit Primary Evidence Refresh
+
+After committing the route-wait source change, the local-sideload MSIX was
+rebuilt and installed, then primary-machine evidence was refreshed.
+
+Fresh evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-112129-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-112308-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-112809-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-112954-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go on `c9ada37ba675cff59b259bec05f30a72272d9641` now reports
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+`1/2`, runtime CPU matrix `1/2`, `manifest_git.dirty=false`, and blocker count
+`6`.
+
+Canonical follow-up report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
