@@ -119,9 +119,20 @@ test("shared bounded EventSource closes failed streams and caps reconnects", () 
   assert.match(text, /es\.close\(\)/);
   assert.match(text, /reconnectAttempts\s*>=\s*maxRetries/);
   assert.match(text, /useLowDutyPolling/);
+  assert.match(text, /useLowDutyPolling\(\s*\(signal\)\s*=>/);
+  assert.match(text, /if \(signal\.aborted\) return/);
   assert.match(text, /BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS\s*=\s*10_000/);
   assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
   assert.doesNotMatch(text, /document\.removeEventListener\("visibilitychange"/);
+});
+
+test("frontend polling audit inventories all low-duty call sites", () => {
+  const text = source("../scripts/windows/audit-frontend-polling-contract.ps1");
+
+  assert.match(text, /low_duty_polling_call_site_count/);
+  assert.match(text, /low_duty_polling_signal_gap_count/);
+  assert.match(text, /low-duty polling callbacks expose abort signals/);
+  assert.match(text, /polling callback does not expose AbortSignal/);
 });
 
 test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {

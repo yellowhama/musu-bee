@@ -59,7 +59,8 @@ export function useBoundedEventSource({
   const eventNamesKey = eventNames.join("\u0000");
 
   useLowDutyPolling(
-    () => {
+    (signal) => {
+      if (signal.aborted) return;
       reconnectWhenVisibleRef.current();
     },
     {

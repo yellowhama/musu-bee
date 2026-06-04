@@ -13,6 +13,8 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $checks = New-Object System.Collections.Generic.List[object]
 $directIntervalHits = New-Object System.Collections.Generic.List[object]
 $directVisibilityListenerHits = New-Object System.Collections.Generic.List[object]
+$lowDutyPollingCallSites = New-Object System.Collections.Generic.List[object]
+$lowDutyPollingSignalGaps = New-Object System.Collections.Generic.List[object]
 
 function Add-Check {
     param(
@@ -262,7 +264,8 @@ foreach ($marker in @(
     "node panel refresh loop stays on shared low-duty polling",
     "MCP app views use cancellable low-duty polling instead of setInterval",
     "shared low-duty polling supports bounded task timeout cancellation",
-    "shared low-duty polling clamps accidental tight intervals"
+    "shared low-duty polling clamps accidental tight intervals",
+    "frontend polling audit inventories all low-duty call sites"
 )) {
     Add-Check `
         -Scope "test" `
@@ -316,6 +319,30 @@ foreach ($file in $sourceFiles) {
     }
     $relative = $relative.Replace("/", "\")
     $text = Get-Content -LiteralPath $file.FullName -Raw
+    $isSharedPollerDefinition = $relative -in @($pollerPath, $viewsPollerPath)
+    $lowDutyMatches = [regex]::Matches($text, 'useLowDutyPolling\s*\(')
+    if (-not $isSharedPollerDefinition -and $lowDutyMatches.Count -gt 0) {
+        $signalAware = (
+            [regex]::IsMatch($text, 'useLowDutyPolling\s*\(\s*(?:async\s*)?\(?\s*signal\b') -or
+            [regex]::IsMatch($text, 'useLowDutyPolling\s*\(\s*(?:async\s*)?\(\s*signal\s*:\s*AbortSignal') -or
+            [regex]::IsMatch($text, 'function\s+\w+\s*\([^)]*\bsignal\b') -or
+            [regex]::IsMatch($text, '(?:const|let)\s+\w+\s*=\s*(?:useCallback\s*\(\s*)?(?:async\s*)?\([^)]*\bsignal\b') -or
+            [regex]::IsMatch($text, '(?:const|let)\s+\w+\s*=\s*(?:useCallback\s*\(\s*)?async\s+\([^)]*\bsignal\b')
+        )
+        $site = [pscustomobject]@{
+            path = $relative
+            call_count = $lowDutyMatches.Count
+            signal_aware = [bool]$signalAware
+        }
+        $lowDutyPollingCallSites.Add($site) | Out-Null
+        if (-not $signalAware) {
+            $lowDutyPollingSignalGaps.Add([pscustomobject]@{
+                path = $relative
+                call_count = $lowDutyMatches.Count
+                reason = "polling callback does not expose AbortSignal"
+            }) | Out-Null
+        }
+    }
     if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
         $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
     }
@@ -336,6 +363,18 @@ Add-Check `
     -Passed ($directVisibilityListenerHits.Count -eq 0) `
     -Path ($sourceRoots -join ", ") `
     -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers." } else { "Direct visibilitychange listeners found outside shared pollers: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
+Add-Check `
+    -Scope "source" `
+    -Name "low-duty polling call-site inventory" `
+    -Passed ($lowDutyPollingCallSites.Count -ge 20) `
+    -Path ($sourceRoots -join ", ") `
+    -Message "Found $($lowDutyPollingCallSites.Count) non-test low-duty polling call-site file(s)."
+Add-Check `
+    -Scope "source" `
+    -Name "low-duty polling callbacks expose abort signals" `
+    -Passed ($lowDutyPollingSignalGaps.Count -eq 0) `
+    -Path ($sourceRoots -join ", ") `
+    -Message ($(if ($lowDutyPollingSignalGaps.Count -eq 0) { "All inventoried low-duty polling call sites expose AbortSignal-aware callbacks." } else { "Low-duty polling signal gaps found: $(@($lowDutyPollingSignalGaps | ForEach-Object { $_.path }) -join ', ')." }))
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
@@ -343,6 +382,10 @@ $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
     generated_at = [datetimeoffset]::Now.ToString("o")
     fail_count = $failCount
+    low_duty_polling_call_site_count = $lowDutyPollingCallSites.Count
+    low_duty_polling_call_sites = $lowDutyPollingCallSites.ToArray()
+    low_duty_polling_signal_gap_count = $lowDutyPollingSignalGaps.Count
+    low_duty_polling_signal_gaps = $lowDutyPollingSignalGaps.ToArray()
     direct_interval_hit_count = $directIntervalHits.Count
     direct_interval_hits = $directIntervalHits.ToArray()
     direct_visibility_listener_hit_count = $directVisibilityListenerHits.Count
@@ -357,6 +400,8 @@ else {
     "MUSU frontend polling contract audit"
     "ok: $($result.ok)"
     "fail_count: $($result.fail_count)"
+    "low_duty_polling_call_site_count: $($result.low_duty_polling_call_site_count)"
+    "low_duty_polling_signal_gap_count: $($result.low_duty_polling_signal_gap_count)"
     "direct_interval_hit_count: $($result.direct_interval_hit_count)"
     "direct_visibility_listener_hit_count: $($result.direct_visibility_listener_hit_count)"
     ""
