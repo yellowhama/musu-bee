@@ -2383,6 +2383,31 @@ Clean evidence after commit `1e1fc43cf0da04c4b71621e1b8329496d2c6b810`:
   ready, route evidence count is `0`, payload transport proof is `false`, and
   delivery proof valid count is `0`
 
+## 2026-06-04 09:02 KST Relay Payload Drain Route Evidence
+
+Target-side relay payload delivery now produces route evidence:
+
+- Rust route evidence added
+  `record_relay_payload_delivery_route_evidence(...)`
+- relay delivery evidence uses `route_kind=relay`,
+  `payload_transited_musu_infra=true`, `result=success`, and
+  `relay_payload_delivery_proof`
+- relay payload drain now writes local route evidence and attempts bounded
+  submit to `musu.pro` after delivery proof is confirmed
+- drain item output includes `route_evidence_recorded`,
+  `route_evidence_submitted`, `route_evidence_path`, and
+  `route_evidence_failure_class`
+- drain `ok=true` now requires route evidence to be recorded and submitted
+- `RouteEvidencePayload` TypeScript type now includes
+  `relay_payload_delivery_proof`
+
+Validation passed Rust relay payload tests `24/24`, Rust route evidence tests
+`13/13`, `cargo check --bin musu`, `npm run typecheck`, route-evidence API
+tests `22/22`, and `git diff --check`.
+
+Public release remains No-Go because this is still preview relay payload queue
+evidence, not release-grade QUIC/TLS relay transport proof.
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

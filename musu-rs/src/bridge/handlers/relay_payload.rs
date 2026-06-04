@@ -59,12 +59,18 @@ pub struct RelayPayloadDrainItem {
     pub payload_sha256: String,
     pub accepted: bool,
     pub delivered: bool,
+    pub route_evidence_recorded: bool,
+    pub route_evidence_submitted: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_evidence_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delivery_proof: Option<crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_evidence_failure_class: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -207,9 +213,13 @@ fn drain_item_from_payload(
         payload_sha256: payload.payload_sha256.clone(),
         accepted: false,
         delivered: false,
+        route_evidence_recorded: false,
+        route_evidence_submitted: false,
         task_id: None,
+        route_evidence_path: None,
         delivery_proof: None,
         failure_class: None,
+        route_evidence_failure_class: None,
     }
 }
 
@@ -419,6 +429,7 @@ pub async fn drain_relay_payloads_for_local_target(
     report.claimed_count = claim_response.payloads.len();
 
     for payload in claim_response.payloads {
+        let payload_started = std::time::Instant::now();
         let mut item = drain_item_from_payload(&payload);
         match forward::forwarded_task_from_relay_payload(&payload, &target_node_id) {
             Ok(task) => match forward::accept_forwarded_task(
@@ -449,6 +460,55 @@ pub async fn drain_relay_payloads_for_local_target(
                                 .as_ref()
                                 .and_then(delivery_proof_from_delivered_payload)
                             {
+                                let route_record =
+                                    crate::bridge::route_evidence::record_relay_payload_delivery_route_evidence(
+                                        musu_home_from_state(state),
+                                        &payload,
+                                        proof.clone(),
+                                        crate::bridge::route_evidence::elapsed_ms(
+                                            payload_started.elapsed(),
+                                        ),
+                                    );
+                                match route_record {
+                                    Ok(record) => {
+                                        item.route_evidence_recorded = true;
+                                        item.route_evidence_path =
+                                            Some(record.path.display().to_string());
+                                        match tokio::time::timeout(
+                                            drain_timeout(),
+                                            crate::bridge::route_evidence::submit_recorded_route_evidence_if_configured(
+                                                musu_home_from_state(state),
+                                                &record,
+                                            ),
+                                        )
+                                        .await
+                                        {
+                                            Ok(Ok(
+                                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::Submitted,
+                                            )) => {
+                                                item.route_evidence_submitted = true;
+                                            }
+                                            Ok(Ok(
+                                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::SkippedNoToken,
+                                            )) => {
+                                                item.route_evidence_failure_class =
+                                                    Some("relay_route_evidence_submit_skipped_no_token".to_string());
+                                            }
+                                            Ok(Err(_)) => {
+                                                item.route_evidence_failure_class =
+                                                    Some("relay_route_evidence_submit_failed".to_string());
+                                            }
+                                            Err(_) => {
+                                                item.route_evidence_failure_class =
+                                                    Some("relay_route_evidence_submit_timeout".to_string());
+                                            }
+                                        }
+                                    }
+                                    Err(_) => {
+                                        item.route_evidence_failure_class =
+                                            Some("relay_route_evidence_record_failed".to_string());
+                                    }
+                                }
                                 item.delivery_proof = Some(proof);
                                 item.delivered = true;
                                 report.delivered_count += 1;
@@ -483,10 +543,12 @@ pub async fn drain_relay_payloads_for_local_target(
     report.ok = claim_response.ok
         && claim_response.owner_scoped
         && report.claimed_count == report.delivered_count
-        && report
-            .payloads
-            .iter()
-            .all(|item| item.accepted && item.delivered);
+        && report.payloads.iter().all(|item| {
+            item.accepted
+                && item.delivered
+                && item.route_evidence_recorded
+                && item.route_evidence_submitted
+        });
     Ok(report)
 }
 

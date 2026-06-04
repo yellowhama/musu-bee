@@ -3138,4 +3138,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_payload_transport_not_proven`, and
   `p2p_relay_payload_delivery_proof_missing`.
 
+- 2026-06-04 relay payload drain route evidence:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DRAIN_ROUTE_EVIDENCE_2026_06_04.md`
+  (wiki/663) records target-side relay payload delivery proof being written and
+  submitted as hosted route evidence. Search terms should include
+  `GOAL v473`, `wiki/663`, `record_relay_payload_delivery_route_evidence`,
+  `route_evidence_recorded`, `route_evidence_submitted`,
+  `relay_payload_delivery_proof`, `payload_transited_musu_infra=true`,
+  `route_kind=relay`, `relay_payload 24/24`, `route_evidence 13/13`, and
+  `route-evidence API 22/22`.
+
 **End of WIKI_INDEX.md.**

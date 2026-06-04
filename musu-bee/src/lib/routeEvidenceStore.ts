@@ -55,6 +55,18 @@ export type RouteEvidencePayload = {
     opened_at: string;
     closed_at?: string | null;
   };
+  relay_payload_delivery_proof?: {
+    schema: "musu.relay_payload_delivery_proof.v1";
+    payload_id: string;
+    session_id: string;
+    lease_id: string;
+    source_node_id: string;
+    target_node_id: string;
+    tunnel_id: string;
+    payload_sha256: string;
+    payload_bytes: number;
+    delivered_at: string;
+  };
   recorded_at: string;
 };
 

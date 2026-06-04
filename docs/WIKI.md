@@ -4203,3 +4203,35 @@ Result remains No-Go:
 The external blockers now explicitly include
 `p2p_relay_payload_transport_not_proven` and
 `p2p_relay_payload_delivery_proof_missing`.
+
+## 2026-06-04 relay payload drain route evidence (wiki/663)
+
+Target-side relay payload drain now records route evidence after delivery proof
+is confirmed.
+
+Implementation:
+
+- `record_relay_payload_delivery_route_evidence(...)` builds explicit
+  `route_kind=relay` evidence
+- relay delivery route evidence sets `payload_transited_musu_infra=true`
+- relay delivery route evidence attaches `relay_payload_delivery_proof`
+- target-side drain writes local route evidence and attempts bounded hosted
+  submit to `musu.pro`
+- drain item output reports `route_evidence_recorded`,
+  `route_evidence_submitted`, `route_evidence_path`, and
+  `route_evidence_failure_class`
+- drain `ok=true` now requires accepted payloads to be delivered and route
+  evidence to be recorded/submitted
+- `RouteEvidencePayload` includes `relay_payload_delivery_proof`
+
+This closes the proof-chain gap from local target acceptance to hosted route
+evidence. It remains non-release-grade until real QUIC/TLS relay transport
+proof and production proof stores are live.
+
+Validation passed Rust relay payload tests `24/24`, Rust route evidence tests
+`13/13`, `cargo check --bin musu`, `npm run typecheck`, route-evidence API
+tests `22/22`, and `git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DRAIN_ROUTE_EVIDENCE_2026_06_04.md`

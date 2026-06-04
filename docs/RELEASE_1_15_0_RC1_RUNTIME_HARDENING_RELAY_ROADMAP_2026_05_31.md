@@ -1799,3 +1799,23 @@ Clean evidence after commit `1e1fc43cf0da04c4b71621e1b8329496d2c6b810`:
   `second_pc_reachable=false`, `p2p_env_ok=false`, `p2p_evidence_ok=false`,
   route evidence count `0`, payload transport proof `false`, delivery proof
   valid count `0`
+
+## 2026-06-04 Relay Payload Drain Route Evidence
+
+Target-side relay payload drain now carries delivery proof into route evidence.
+
+Runtime change:
+
+- `record_relay_payload_delivery_route_evidence(...)` builds explicit
+  `route_kind=relay` records instead of deriving route kind from an endpoint
+  address
+- relay delivery route evidence records `payload_transited_musu_infra=true`
+  and attaches `relay_payload_delivery_proof`
+- after a target drain accepts a relay payload locally and confirms delivery,
+  it writes local route evidence and attempts bounded submit to `musu.pro`
+- drain item output now includes route-evidence recorded/submitted state and
+  failure class
+
+Roadmap status: this closes the runtime proof-chain gap between target-side
+payload delivery and hosted route evidence. It remains non-release-grade until
+real QUIC/TLS relay transport proof and production proof stores are configured.
