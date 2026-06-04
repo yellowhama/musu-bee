@@ -3264,6 +3264,34 @@ Release interpretation:
   two-machine CPU/matrix evidence, hosted P2P control-plane proof, support
   mailbox evidence, and Store evidence
 
+## 2026-06-04 21:28 KST Post MCP App Views Low-Duty Polling Primary Evidence Refresh
+
+After the MCP app views polling hardening, current primary-machine packaged
+evidence was refreshed.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-211929-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-212016-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-212147-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_211856`
+- desktop-open CPU passed for `60.041s`: MUSU `0`, Node `0.05`,
+  WebView2 `0.49`, owned WebView2 `6`, hot `0`, working set `490.13MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_212147`
+- matrix max CPU: MUSU `0.03`, Node `0.03`, WebView2 `0.39`
+- matrix max working set: `494.64MB`
+
+Public release remains No-Go until actual second-PC runtime/multi-device
+evidence, two-machine CPU/matrix evidence, hosted P2P control-plane proof,
+support mailbox evidence, and Store evidence are complete.
+
 ## 2026-06-04 20:18 KST Room Presence Client CLI
 
 Local Rust CLI support now connects installed MUSU programs to the MUSU.PRO

@@ -5708,3 +5708,36 @@ after commit until rebuilt/refreshed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MCP_APP_VIEWS_LOW_DUTY_POLLING_HARDENING_2026_06_04.md`
+
+## 2026-06-04 Post MCP app views low-duty polling primary evidence refresh (wiki/702)
+
+Fresh primary-machine packaged evidence was restored after the MCP app views
+low-duty polling hardening.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-211929-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-212016-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-212147-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- local-sideload MSIX was rebuilt and install verification passed
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_211856`
+- desktop-open CPU `60.041s`, `git_dirty=false`,
+  `require_owned_webview2=true`, MUSU `0`, Node `0.05`, WebView2 `0.49`,
+  owned WebView2 `6`, working set `490.13MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_212147`, max role CPU MUSU `0.03`,
+  Node `0.03`, WebView2 `0.39`, max working set `494.64MB`, hot `0`
+
+Public release remains blocked on actual second-PC multi-device evidence,
+two-machine CPU/matrix evidence, hosted `musu.pro` P2P control-plane proof,
+support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_MCP_APP_VIEWS_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

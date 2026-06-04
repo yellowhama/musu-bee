@@ -3619,4 +3619,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   16/16`, `npm run build in musu-bee\views`, `npx tsc --noEmit`,
   `frontend interval refetch loop`, and `packaged evidence stale`.
 
+- 2026-06-04 post MCP app views low-duty polling primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_MCP_APP_VIEWS_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/702) records current primary-machine evidence after MCP app views
+  low-duty polling hardening. Search terms should include `GOAL v515`,
+  `wiki/702`, `20260604-211929-HUGH_SECOND`,
+  `20260604-212016-HUGH_SECOND.desktop-open`,
+  `20260604-212147-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_211856`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_212147`, `WebView2 0.49`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `HUGH_SECOND`,
+  `PATH warning .cargo bin`, and `MCP app view polling primary evidence`.
+
 **End of WIKI_INDEX.md.**
