@@ -3292,6 +3292,43 @@ Public release remains No-Go until actual second-PC runtime/multi-device
 evidence, two-machine CPU/matrix evidence, hosted P2P control-plane proof,
 support mailbox evidence, and Store evidence are complete.
 
+## 2026-06-04 21:56 KST MCP App View Abort-Signal Hardening And Primary Evidence Refresh
+
+The MCP app view low-duty poller now passes its `AbortSignal` into actual
+`app.callServerTool` requests for `poll_agents` and `poll_tasks`, and stale
+results after abort are ignored.
+
+Validation:
+
+- `npm run test:runtime-polling` passed `16/16`
+- `audit-frontend-polling-contract.ps1 -Json` passed with `ok=true`,
+  `fail_count=0`, `direct_interval_hit_count=0`, and
+  `direct_visibility_listener_hit_count=0`
+- `npx tsc --noEmit` and `npm run build` passed in `musu-bee\views`
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-214647-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-214900-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-215050-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_214623`
+- desktop-open CPU passed for `60.061s`: MUSU `0`, Node `0.1`,
+  WebView2 `0.1`, owned WebView2 `6`, hot `0`, working set `492.61MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_215050`
+- matrix max CPU: MUSU `0`, Node `0.03`, WebView2 `0.26`
+- matrix max working set: `495.13MB`
+
+Public release remains No-Go until actual second-PC runtime/multi-device
+evidence, two-machine CPU/matrix evidence, hosted P2P control-plane proof,
+support mailbox evidence, and Store evidence are complete.
+
 ## 2026-06-04 20:18 KST Room Presence Client CLI
 
 Local Rust CLI support now connects installed MUSU programs to the MUSU.PRO

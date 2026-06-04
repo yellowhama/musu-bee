@@ -5741,3 +5741,39 @@ support mailbox evidence, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_MCP_APP_VIEWS_LOW_DUTY_POLLING_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 MCP App View Abort-Signal Hardening And Primary Evidence Refresh
+
+The MCP app views now pass the low-duty poller's `AbortSignal` into actual
+`app.callServerTool` requests. This closes the remaining MCP view polling gap:
+timeouts existed in the shared poller, but `NodesView` and `TasksView` did not
+previously propagate the signal to `poll_agents` / `poll_tasks`.
+
+Fresh primary-machine packaged evidence was restored after the change:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-214647-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-214900-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-215050-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- `npm run test:runtime-polling` passed `16/16`
+- frontend polling audit passed with `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_214623`
+- desktop-open CPU `60.061s`, `git_dirty=false`, MUSU `0`, Node `0.1`,
+  WebView2 `0.1`, owned WebView2 `6`, working set `492.61MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_215050`, max role CPU MUSU `0`,
+  Node `0.03`, WebView2 `0.26`, max working set `495.13MB`
+
+Public release remains No-Go on actual second-PC multi-device evidence,
+two-machine CPU/matrix evidence, hosted `musu.pro` P2P control-plane proof,
+support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MCP_APP_VIEW_ABORT_SIGNAL_HARDENING_AND_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

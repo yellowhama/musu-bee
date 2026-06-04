@@ -3631,4 +3631,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `HUGH_SECOND`,
   `PATH warning .cargo bin`, and `MCP app view polling primary evidence`.
 
+- 2026-06-04 MCP app view abort-signal hardening and primary evidence refresh:
+  `RELEASE_1_15_0_RC1_MCP_APP_VIEW_ABORT_SIGNAL_HARDENING_AND_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/703) records abort-signal propagation from the MCP app view
+  low-duty poller into `app.callServerTool`, plus current primary-machine
+  evidence after the change. Search terms should include `GOAL v516`,
+  `wiki/703`, `NodesView.tsx`, `TasksView.tsx`, `abort signal option`,
+  `poll_agents`, `poll_tasks`,
+  `20260604-214647-HUGH_SECOND`, `20260604-214900-HUGH_SECOND.desktop-open`,
+  `20260604-215050-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_214623`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_215050`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `HUGH_SECOND`, and
+  `PATH warning .cargo bin`.
+
 **End of WIKI_INDEX.md.**
