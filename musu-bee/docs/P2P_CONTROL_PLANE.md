@@ -9,6 +9,24 @@ MUSU has two separate surfaces.
 
 `musu.pro` must not become the default execution server or the default data path. A web request can create a work order or rendezvous session, but the local MUSU programs execute the work and exchange payloads peer-to-peer whenever a direct path is available.
 
+## Local dashboard vs web control plane
+
+`localhost` and `127.0.0.1` always refer to the current machine. A dashboard at
+`http://127.0.0.1:3001/app` is therefore a local operator/developer surface,
+not a remote cloud dashboard. It only works while that machine's local MUSU
+runtime and dashboard are running.
+
+The intended remote UX is `musu.pro`: the user can enter a work order, approve
+actions, inspect project state, and start a connection from another location.
+The target device still needs an installed local MUSU program. That local
+program keeps an authenticated outbound control connection to `musu.pro`,
+receives the web work order, and performs the work locally.
+
+This is the Codex/GitHub-style product shape: the cloud service owns identity,
+project/repository context, work orders, presence, and coordination. The local
+program owns execution, local files, local app/browser/shell automation, and
+machine-to-machine transport.
+
 ## Connection flow
 
 1. A user enters a work order on `musu.pro`.
@@ -65,3 +83,8 @@ The release gate is not satisfied by a web dashboard that can call a local bridg
 - fall back to relay only after direct failure,
 - record release-grade route evidence, and
 - remain inside the idle CPU/resource budget while waiting for work.
+
+Current validation can progress on one machine for local runtime, dashboard URL
+discovery, idle CPU, and control-plane contract checks. Multi-device route proof
+cannot be completed until the same current MUSU build is installed and run on a
+second Windows PC.

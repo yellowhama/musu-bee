@@ -4793,3 +4793,38 @@ support mailbox evidence, and Store evidence are complete.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MULTIDEVICE_ROUTE_EXPLAIN_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 MUSU.PRO control-plane roadmap and control SSE audit (wiki/677)
+
+The local-executor product direction is now recorded in the control-plane docs
+and runtime roadmap.
+
+Decision:
+
+- `localhost` and `127.0.0.1` dashboards are local-only operator/developer
+  surfaces
+- `musu.pro` is the real web input, project room, company meeting room,
+  rendezvous, path-selection, relay-fallback coordination, and evidence plane
+- local MUSU programs receive authenticated web work orders and execute the
+  work on the target devices
+- local programs own files, shell/app/browser automation, local bridge work,
+  and P2P mesh traffic
+- `musu.pro` can coordinate discovery and fallback relay, but it must not
+  become the default data path or execution server
+- current validation remains one-machine until the same current MUSU build is
+  installed and run on a second Windows PC
+
+The Rust background-loop contract audit now explicitly covers
+`musu-rs\src\control\http_server.rs` control SSE heartbeat behavior. The audit
+checks the bounded 30s interval, heartbeat event, and interval-stream mapping.
+This is an audit/gate change only; Rust runtime source was not modified.
+
+Validation passed:
+
+- PowerShell parser check for `audit-rust-background-loop-contract.ps1`
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MUSU_PRO_CONTROL_PLANE_ROADMAP_AND_CONTROL_SSE_AUDIT_2026_06_04.md`

@@ -3310,4 +3310,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-final-operator-gates-1.15.0-rc.1-20260604-132819.zip`,
   `case_count=25`, and `4ed47213`.
 
+- 2026-06-04 MUSU.PRO control-plane roadmap and control SSE audit:
+  `RELEASE_1_15_0_RC1_MUSU_PRO_CONTROL_PLANE_ROADMAP_AND_CONTROL_SSE_AUDIT_2026_06_04.md`
+  (wiki/677) records the local-executor product decision: `localhost` and
+  `127.0.0.1` dashboards are local-only, `musu.pro` is the web input/project
+  room/rendezvous/path-selection/relay-fallback/evidence plane, and local MUSU
+  programs execute work on each device. It also records that the Rust
+  background-loop audit now covers control SSE heartbeat behavior in
+  `musu-rs\src\control\http_server.rs`. Search terms should include
+  `GOAL v488`, `wiki/677`, `Codex/GitHub-style product shape`,
+  `control-sse`, `control SSE heartbeat interval`,
+  `unaudited_loop_hit_count=0`, `musu.pro web input`,
+  `local MUSU programs execute the work`, and
+  `second Windows PC`.
+
 **End of WIKI_INDEX.md.**

@@ -155,6 +155,12 @@ Add-RegexCheck -Scope "cli-route-wait" -Name "route wait request timeout" -Text 
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait sleep" -Text $cliText -Pattern 'let sleep_for\s*=\s*std::time::Duration::from_secs\(ROUTE_WAIT_POLL_INTERVAL_SECS\)[\s\S]*tokio::time::sleep\(sleep_for\)\.await' -Path $cliPath -Message "CLI route --wait sleeps between status polls."
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait timeout evidence class" -Text $cliText -Pattern 'remote_task_wait_timeout' -Path $cliPath -Message "CLI route --wait records timeout as a failed wait class instead of spinning forever."
 
+$controlHttpPath = "musu-rs\src\control\http_server.rs"
+$controlHttpText = Get-RepoText $controlHttpPath
+Add-RegexCheck -Scope "control-sse" -Name "control SSE heartbeat interval" -Text $controlHttpText -Pattern 'IntervalStream::new\(\s*tokio::time::interval\(\s*std::time::Duration::from_secs\(30\)\s*,?\s*\)\s*\)' -Path $controlHttpPath -Message "Control-plane SSE heartbeat uses a bounded 30s interval."
+Add-RegexCheck -Scope "control-sse" -Name "control SSE heartbeat event" -Text $controlHttpText -Pattern '\.event\("heartbeat"\)' -Path $controlHttpPath -Message "Control-plane SSE stream emits heartbeat events instead of spinning on an empty stream."
+Add-RegexCheck -Scope "control-sse" -Name "control SSE interval stream mapping" -Text $controlHttpText -Pattern 'IntervalStream::new[\s\S]*\.map\(\|_\|\s*\{[\s\S]*Event::default\(\)[\s\S]*\.event\("heartbeat"\)' -Path $controlHttpPath -Message "Control-plane SSE maps interval ticks to heartbeat events."
+
 $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {

@@ -2003,3 +2003,46 @@ and six remaining blockers.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MULTIDEVICE_ROUTE_EXPLAIN_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 MUSU.PRO Control Plane Roadmap and Control SSE Audit
+
+The product roadmap is now explicitly locked to the local-executor model:
+
+- `localhost` and `127.0.0.1` dashboards are local-only operator/developer
+  surfaces, not cloud dashboard access
+- `musu.pro` is the real web input, project room, company meeting room,
+  rendezvous, path-selection, relay-fallback coordination, and evidence plane
+- local MUSU programs receive authenticated work orders from `musu.pro`, then
+  do the actual work on each device
+- local programs own file access, shell/app/browser automation, local bridge
+  execution, and P2P mesh traffic
+- `musu.pro` can coordinate discovery and relay fallback, but it must not become
+  the default data path or execution server
+- project rooms can let AI workers attached to the same project coordinate
+  decisions, handoffs, and meeting notes while the local machines execute work
+
+This matches the Codex/GitHub-style product shape: cloud identity, repository
+or project context, work orders, presence, and coordination; local execution and
+machine-to-machine transport.
+
+Release implication: current validation is still one-machine for local runtime,
+dashboard URL discovery, idle CPU, route explain diagnostics, and control-plane
+contract checks. Multi-device proof requires installing and running the same
+current MUSU build on a second Windows PC.
+
+Background-loop hardening update: the Rust background-loop contract audit now
+explicitly covers `musu-rs\src\control\http_server.rs` by checking the control
+SSE heartbeat interval, heartbeat event, and interval-stream mapping. This is a
+gate/audit change only; Rust runtime source was not modified, so current
+packaged one-machine evidence does not need a fresh MSIX rebuild for this
+change.
+
+Validation passed:
+
+- PowerShell parser check for `audit-rust-background-loop-contract.ps1`
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MUSU_PRO_CONTROL_PLANE_ROADMAP_AND_CONTROL_SSE_AUDIT_2026_06_04.md`
