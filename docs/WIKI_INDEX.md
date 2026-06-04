@@ -3685,4 +3685,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `operator-api-security`, `local-api-auth`, `musu.pro remote input`, and
   `status/packet hardening`.
 
+- 2026-06-04 secret storage contract hardening:
+  `RELEASE_1_15_0_RC1_SECRET_STORAGE_CONTRACT_HARDENING_2026_06_04.md`
+  (wiki/707) records the dedicated secret storage release gate for the
+  local-program/web-input roadmap. Search terms should include `GOAL v520`,
+  `wiki/707`, `musu.secret_storage_contract.v1`,
+  `secret_storage_contract_verified`, `secret-storage`,
+  `audit-secret-storage-contract.ps1`, `musu-rs\src\cloud\token.rs`,
+  `restrict_acl_to_current_user(&token_path)`, `icacls`,
+  `USERDOMAIN\USERNAME`, `~\.musu\token`, `~/.musu/bridge.env`, `~/.musu/bridge_token`,
+  `show-p2p-control-token-hash.ps1`, `Raw token was not printed`,
+  `configure-musu-pro-p2p-env.ps1`, `runtime evidence redaction`,
+  `token-bearing files`, `docs\PRODUCTION.md`, and `packaged evidence stale`.
+
 **End of WIKI_INDEX.md.**

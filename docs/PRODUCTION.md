@@ -25,6 +25,7 @@ Do not add that opt-out to `~/.musu/bridge.env` on production or shared machines
 ```bash
 # Bridge token (min 32 chars in production)
 openssl rand -hex 32 > ~/.musu/bridge_token
+chmod 600 ~/.musu/bridge_token
 export MUSU_BRIDGE_TOKEN=$(cat ~/.musu/bridge_token)
 ```
 
@@ -65,9 +66,14 @@ BRIDGE_HOST=0.0.0.0
 cp ~/.musu/db/musu.db ~/.musu/db/musu.db.bak.$(date +%Y%m%d)
 find ~/.musu/db/ -name "*.bak.*" -mtime +7 -delete
 
-# Config backup
-tar czf ~/.musu/config-backup.tar.gz ~/.musu/nodes.toml ~/.musu/bridge.env
+# Non-secret config backup
+tar czf ~/.musu/config-backup.tar.gz ~/.musu/nodes.toml
 ```
+
+Do not include token-bearing files such as `~/.musu/bridge.env`,
+`~/.musu/bridge_token`, or `~/.musu/token` in ordinary config backups. If you
+must back them up, use an encrypted secret store or an encrypted archive that is
+handled separately from routine diagnostics and support bundles.
 
 ## Token Rotation
 

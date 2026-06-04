@@ -76,7 +76,7 @@ pub fn ensure_bridge_token(home: &Path) -> Result<String> {
 
     #[cfg(windows)]
     {
-        let user = std::env::var("USERNAME").context("USERNAME env var")?;
+        let user = windows_acl_principal()?;
         let output = std::process::Command::new("icacls")
             .arg(&path)
             .arg("/inheritance:r")
@@ -91,6 +91,17 @@ pub fn ensure_bridge_token(home: &Path) -> Result<String> {
     }
 
     Ok(token)
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String> {
+    let user = std::env::var("USERNAME").context("USERNAME env var")?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
 }
 
 #[cfg(test)]

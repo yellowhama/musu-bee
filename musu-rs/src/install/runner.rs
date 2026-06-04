@@ -331,7 +331,7 @@ fn ensure_bridge_env(home: &Path) -> Result<String> {
 
 #[cfg(windows)]
 fn restrict_acl_to_current_user(path: &Path) -> Result<()> {
-    let user = std::env::var("USERNAME").context("USERNAME env var")?;
+    let user = windows_acl_principal()?;
     // icacls <path> /inheritance:r /grant:r <user>:F
     let output = std::process::Command::new("icacls")
         .arg(path)
@@ -345,6 +345,17 @@ fn restrict_acl_to_current_user(path: &Path) -> Result<()> {
         anyhow::bail!("icacls failed: {}", err.trim());
     }
     Ok(())
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String> {
+    let user = std::env::var("USERNAME").context("USERNAME env var")?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
 }
 
 fn write_update_toml(home: &Path) -> Result<()> {

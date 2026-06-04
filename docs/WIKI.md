@@ -5888,3 +5888,48 @@ and Store gates.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_HARDENING_GATE_SURFACE_ALIGNMENT_2026_06_04.md`
+
+## 2026-06-04 Secret storage contract hardening (wiki/707)
+
+Secret storage is now a first-class release gate for the
+local-program/web-input roadmap.
+
+Why:
+
+- `musu.pro` coordinates remote input, rooms, presence, rendezvous,
+  path-selection, fallback relay, and evidence.
+- local MUSU programs execute work and prefer P2P mesh after web-assisted
+  rendezvous.
+- because web-originated work can reach local executors, bridge/account/P2P
+  credentials must stay out of ordinary output, backups, and support bundles.
+
+Changed:
+
+- `musu-rs\src\cloud\token.rs` restricts saved account-token files on Windows
+  with `icacls`; Unix remains `0600`.
+- Windows ACL helpers now prefer `USERDOMAIN\USERNAME` when available.
+- `docs\PRODUCTION.md` backs up only non-secret config by default and warns not
+  to include `bridge.env`, `bridge_token`, or `token` in routine backups.
+- Added `scripts\windows\audit-secret-storage-contract.ps1` with schema
+  `musu.secret_storage_contract.v1`.
+- `write-release-go-no-go.ps1` now emits
+  `secret_storage_contract_verified` and blocks on `secret-storage`.
+- `show-final-release-handoff-status.ps1`, the final operator packet, packet
+  verifier, and desktop release readiness inventory now include the secret
+  storage audit.
+
+Validation:
+
+- parser checks passed for the changed PowerShell scripts
+- secret-storage audit: `ok=true`, `fail_count=0`
+- targeted Rust token test passed `1/1`
+- `cargo fmt --check` passed
+- `git diff --check` passed with only the existing `docs/PRODUCTION.md` CRLF
+  normalization warning
+
+This is Rust runtime source plus gate hardening, so packaged evidence and
+operator packets must be regenerated after commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECRET_STORAGE_CONTRACT_HARDENING_2026_06_04.md`

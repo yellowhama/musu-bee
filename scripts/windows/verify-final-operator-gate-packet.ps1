@@ -128,6 +128,7 @@ try {
         "scripts\windows\audit-rust-background-loop-contract.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
         "scripts\windows\audit-operator-api-security-contract.ps1",
+        "scripts\windows\audit-secret-storage-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
@@ -191,6 +192,7 @@ try {
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
         Add-CheckFromCondition "readme operator API security contract audit" ($readme -like "*audit-operator-api-security-contract.ps1*" -and $readme -like "*musu.operator_api_security_contract.v1*" -and $readme -like "*operator_api_security_contract_verified=true*") "README includes operator API security contract audit" "README missing operator API security contract audit"
+        Add-CheckFromCondition "readme secret storage contract audit" ($readme -like "*audit-secret-storage-contract.ps1*" -and $readme -like "*musu.secret_storage_contract.v1*" -and $readme -like "*secret_storage_contract_verified=true*") "README includes secret storage contract audit" "README missing secret storage contract audit"
         Add-CheckFromCondition "readme frontend polling contract audit" ($readme -like "*audit-frontend-polling-contract.ps1*" -and $readme -like "*musu.frontend_polling_contract.v1*" -and $readme -like "*frontend_polling_contract_verified=true*") "README includes frontend polling contract audit" "README missing frontend polling contract audit"
         Add-CheckFromCondition "readme rust background loop contract audit" ($readme -like "*audit-rust-background-loop-contract.ps1*" -and $readme -like "*musu.rust_background_loop_contract.v1*" -and $readme -like "*rust_background_loop_contract_verified=true*") "README includes Rust background loop contract audit" "README missing Rust background loop contract audit"
         Add-CheckFromCondition "readme external recheck recorder doc" ($readme -like "*RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md*" -and $readme -like "*record-external-release-gate-recheck.ps1*") "README points to external recheck recorder doc" "README missing external recheck recorder doc"
@@ -263,6 +265,11 @@ try {
             ($handoffStatusScript -like "*audit-operator-api-security-contract.ps1*" -and $handoffStatusScript -like "*operator_api_security_contract_verified*" -and $handoffStatusScript -like "*operator-api-security*") `
             "packet handoff status script reports operator API security contract audit" `
             "packet handoff status script does not report operator API security contract audit"
+        Add-CheckFromCondition `
+            "handoff status secret storage gate" `
+            ($handoffStatusScript -like "*audit-secret-storage-contract.ps1*" -and $handoffStatusScript -like "*secret_storage_contract_verified*" -and $handoffStatusScript -like "*secret-storage*") `
+            "packet handoff status script reports secret storage contract audit" `
+            "packet handoff status script does not report secret storage contract audit"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -313,6 +320,16 @@ try {
             ($operatorApiSecurityAuditScript -like "*musu.operator_api_security_contract.v1*" -and $operatorApiSecurityAuditScript -like "*requireOperator*" -and $operatorApiSecurityAuditScript -like "*MUSU_NODE_EXECUTE_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_PROCESS_START_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_ENABLE_PROCESS_KILL*" -and $operatorApiSecurityAuditScript -like "*appendControlAudit*") `
             "packet operator API security audit verifies auth, allowlists, explicit kill enablement, and audit logging" `
             "packet operator API security audit does not verify auth, allowlists, explicit kill enablement, and audit logging"
+    }
+
+    $secretStorageAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-secret-storage-contract.ps1"
+    if (Test-Path -LiteralPath $secretStorageAuditScriptPath) {
+        $secretStorageAuditScript = Get-Content -LiteralPath $secretStorageAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "secret storage contract audit script" `
+            ($secretStorageAuditScript -like "*musu.secret_storage_contract.v1*" -and $secretStorageAuditScript -like "*musu-rs\\src\\cloud\\token.rs*" -and $secretStorageAuditScript -like "*restrict_acl_to_current_user(&token_path)*" -and $secretStorageAuditScript -like "*show-p2p-control-token-hash.ps1*" -and $secretStorageAuditScript -like "*Raw token was not printed*" -and $secretStorageAuditScript -like "*Do not include token-bearing files*") `
+            "packet secret storage audit verifies token ACLs, raw-token redaction, and backup docs" `
+            "packet secret storage audit does not verify token ACLs, raw-token redaction, and backup docs"
     }
 
     $frontendPollingAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-frontend-polling-contract.ps1"
@@ -383,6 +400,11 @@ try {
             ($goNoGoScript -like "*operator_api_security_contract_verified*" -and $goNoGoScript -like "*audit-operator-api-security-contract.ps1*" -and $goNoGoScript -like "*musu.operator_api_security_contract.v1*" -and $goNoGoScript -like "*operator-api-security*" -and $goNoGoScript -like "*authenticated operators, command allowlists*") `
             "packet go/no-go blocks on operator API security contract audit" `
             "packet go/no-go does not block on operator API security contract audit"
+        Add-CheckFromCondition `
+            "go no-go secret storage contract gate" `
+            ($goNoGoScript -like "*secret_storage_contract_verified*" -and $goNoGoScript -like "*audit-secret-storage-contract.ps1*" -and $goNoGoScript -like "*musu.secret_storage_contract.v1*" -and $goNoGoScript -like "*secret-storage*" -and $goNoGoScript -like "*raw-token redaction*") `
+            "packet go/no-go blocks on secret storage contract audit" `
+            "packet go/no-go does not block on secret storage contract audit"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `

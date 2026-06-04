@@ -3230,6 +3230,42 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 23:04 KST Secret Storage Contract Hardening
+
+Secret storage is now an explicit hardening gate for the
+local-program/web-input roadmap:
+
+- `musu.pro` remains the remote input, room, presence, rendezvous,
+  path-selection, fallback-relay coordination, and evidence plane
+- local MUSU programs still execute work and prefer P2P mesh after
+  web-assisted rendezvous
+- bridge/account/P2P credentials must not appear in ordinary web output,
+  release evidence, routine config backups, or support bundles
+
+New gate:
+
+- `scripts\windows\audit-secret-storage-contract.ps1`
+- schema `musu.secret_storage_contract.v1`
+- go/no-go field `secret_storage_contract_verified`
+- blocker area `secret-storage`
+
+Validation:
+
+- secret-storage audit passed with `ok=true`, `fail_count=0`
+- targeted Rust token storage test passed `1/1`
+- `cargo fmt --check` passed
+- `git diff --check` passed with only the existing `docs/PRODUCTION.md` CRLF
+  normalization warning
+
+Release note:
+
+- this changed Rust runtime source, so packaged MSIX/smoke/CPU/matrix evidence
+  and final operator packets must be regenerated from the resulting commit
+  before this source can claim current packaged evidence
+- public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted `musu.pro` P2P control-plane/relay proof, support mailbox evidence,
+  and Store evidence
+
 ## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
 
 Final release status now exposes the hardening gates needed for the
