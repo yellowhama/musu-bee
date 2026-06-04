@@ -198,6 +198,25 @@ $agentPagePath = "musu-bee\src\app\dashboard\agent\[id]\page.tsx"
 $agentPageText = Get-RepoText $agentPagePath
 Add-RegexCheck -Scope "sse" -Name "agent page closes SSE on unmount" -Text $agentPageText -Pattern 'return \(\) => closeSSE\(\)' -Path $agentPagePath -Message "Agent dashboard closes SSE on unmount."
 
+$boundedSsePath = "musu-bee\src\lib\useBoundedEventSource.ts"
+$boundedSseText = Get-RepoText $boundedSsePath
+Add-RegexCheck -Scope "sse" -Name "bounded SSE initial reconnect" -Text $boundedSseText -Pattern 'BOUNDED_SSE_RECONNECT_INITIAL_MS\s*=\s*1_000' -Path $boundedSsePath -Message "Shared bounded EventSource reconnect starts at 1s."
+Add-RegexCheck -Scope "sse" -Name "bounded SSE max reconnect" -Text $boundedSseText -Pattern 'BOUNDED_SSE_RECONNECT_MAX_MS\s*=\s*10_000' -Path $boundedSsePath -Message "Shared bounded EventSource reconnect caps at 10s."
+Add-RegexCheck -Scope "sse" -Name "bounded SSE retry cap" -Text $boundedSseText -Pattern 'BOUNDED_SSE_MAX_RETRIES\s*=\s*5' -Path $boundedSsePath -Message "Shared bounded EventSource reconnect attempts are capped."
+Add-RegexCheck -Scope "sse" -Name "bounded SSE visibility reconnect poller" -Text $boundedSseText -Pattern 'useLowDutyPolling[\s\S]*BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS' -Path $boundedSsePath -Message "Shared bounded EventSource uses low-duty visibility reconnect checks."
+Add-RegexCheck -Scope "sse" -Name "bounded SSE closes failed stream" -Text $boundedSseText -Pattern 'es\.close\(\)[\s\S]*reconnectAttempts\s*>=\s*maxRetries' -Path $boundedSsePath -Message "Shared bounded EventSource closes failed streams and respects retry cap."
+Add-NoRegexCheck -Scope "sse" -Name "bounded SSE no visibility listener" -Text $boundedSseText -Pattern 'document\.addEventListener\("visibilitychange"' -Path $boundedSsePath -Message "Shared bounded EventSource delegates visibility cadence to the low-duty poller."
+
+$ceoChatPath = "musu-bee\src\components\dispatch\CeoChatClient.tsx"
+$ceoChatText = Get-RepoText $ceoChatPath
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch streams tracked" -Text $ceoChatText -Pattern 'runStreamsRef\s*=\s*useRef<Map<string,\s*EventSource>>\(new Map\(\)\)' -Path $ceoChatPath -Message "CEO dispatch run streams are tracked for cleanup."
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch close helper" -Text $ceoChatText -Pattern 'closeRunStream' -Path $ceoChatPath -Message "CEO dispatch run streams have an explicit close helper."
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch stream registered" -Text $ceoChatText -Pattern 'runStreamsRef\.current\.set\(runId,\s*es\)' -Path $ceoChatPath -Message "CEO dispatch registers each EventSource by run id."
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch stream removed" -Text $ceoChatText -Pattern 'runStreamsRef\.current\.delete\(runId\)' -Path $ceoChatPath -Message "CEO dispatch removes EventSources when closing them."
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch unmount cleanup" -Text $ceoChatText -Pattern 'runStreamsRef\.current\.values\(\)[\s\S]*stream\.close\(\)[\s\S]*runStreamsRef\.current\.clear\(\)' -Path $ceoChatPath -Message "CEO dispatch closes active run streams on unmount."
+Add-RegexCheck -Scope "sse" -Name "CEO dispatch error closes stream" -Text $ceoChatText -Pattern 'es\.onerror\s*=\s*\(\)\s*=>\s*\{[\s\S]*closeCurrentStream\(\)' -Path $ceoChatPath -Message "CEO dispatch closes run streams on SSE errors."
+Add-NoRegexCheck -Scope "sse" -Name "CEO dispatch no interval" -Text $ceoChatText -Pattern 'setInterval\s*\(' -Path $ceoChatPath -Message "CEO dispatch does not use interval polling."
+
 $contractTestPath = "musu-bee\src\app\runtime-polling-contract.test.ts"
 $contractTestText = Get-RepoText $contractTestPath
 foreach ($marker in @(
@@ -205,6 +224,9 @@ foreach ($marker in @(
     "dashboard relay reconnect stays bounded with capped backoff",
     "chat SSE reconnect is capped and ignores stale generations",
     "fleet store SSE reconnect is bounded and explicitly closed",
+    "shared bounded EventSource closes failed streams and caps reconnects",
+    "dashboard axis pages use bounded EventSource instead of browser auto-retry",
+    "CEO dispatch run streams are explicitly closed",
     "node panel refresh loop stays on shared low-duty polling",
     "shared low-duty polling supports bounded task timeout cancellation",
     "shared low-duty polling clamps accidental tight intervals"

@@ -3211,6 +3211,35 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
+
+CEO dispatch run streams now have explicit frontend cleanup:
+
+- active dispatch run `EventSource` instances are tracked in `runStreamsRef`
+- duplicate subscriptions for the same run id close the previous stream first
+- terminal stream messages close and unregister the stream
+- SSE errors close and unregister the stream and mark still-streaming runs as
+  error
+- component unmount closes all active run streams
+- frontend polling audit now checks shared bounded EventSource and CEO dispatch
+  stream cleanup contracts
+
+Validation passed:
+
+- `npm run test:runtime-polling` `15/15`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run typecheck`
+- `npm run build`
+
+Release meaning: this is a frontend runtime source change. Fresh packaged
+single-machine smoke, idle CPU, and runtime CPU matrix evidence are required
+after commit before current-source release gates can pass again.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CEO_DISPATCH_SSE_CLEANUP_HARDENING_2026_06_04.md`
+
 ## 2026-06-04 12:00 KST Chat SSE Retry Cap and Local-Executor Roadmap
 
 `useChat` now stops retrying a failed bridge task SSE stream after a bounded

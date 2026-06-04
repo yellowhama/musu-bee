@@ -54,6 +54,23 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
   } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const runStreamsRef = useRef<Map<string, EventSource>>(new Map());
+
+  const closeRunStream = useCallback((runId: string) => {
+    const stream = runStreamsRef.current.get(runId);
+    if (!stream) return;
+    stream.close();
+    runStreamsRef.current.delete(runId);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      for (const stream of runStreamsRef.current.values()) {
+        stream.close();
+      }
+      runStreamsRef.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +102,16 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
   }, [lines]);
 
   const subscribeToRun = useCallback((runId: string, indentLevel: number) => {
+    closeRunStream(runId);
     const es = new EventSource(`/api/dispatch/runs/${runId}/stream`);
+    runStreamsRef.current.set(runId, es);
+
+    const closeCurrentStream = () => {
+      if (runStreamsRef.current.get(runId) === es) {
+        runStreamsRef.current.delete(runId);
+      }
+      es.close();
+    };
 
     setLines((prev) => [
       ...prev,
@@ -122,7 +148,7 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
               : l,
           ),
         );
-        es.close();
+        closeCurrentStream();
       } else if (data.type === "error") {
         setLines((prev) =>
           prev.map((l) =>
@@ -131,7 +157,7 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
               : l,
           ),
         );
-        es.close();
+        closeCurrentStream();
       } else if (data.type === "stream_timeout") {
         setLines((prev) =>
           prev.map((l) =>
@@ -140,14 +166,21 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
               : l,
           ),
         );
-        es.close();
+        closeCurrentStream();
       }
     };
 
     es.onerror = () => {
-      es.close();
+      closeCurrentStream();
+      setLines((prev) =>
+        prev.map((l) =>
+          l.kind === "run" && l.runId === runId && l.status === "streaming"
+            ? { ...l, status: "error", error: "stream connection closed" }
+            : l,
+        ),
+      );
     };
-  }, []);
+  }, [closeRunStream]);
 
   const handleDelegate = async (
     parentRunId: string,

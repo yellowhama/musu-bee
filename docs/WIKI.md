@@ -4833,3 +4833,37 @@ Validation passed:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MUSU_PRO_CONTROL_PLANE_ROADMAP_AND_CONTROL_SSE_AUDIT_2026_06_04.md`
+
+## 2026-06-04 CEO dispatch SSE cleanup hardening (wiki/678)
+
+The CEO dispatch chat stream now explicitly owns its active `EventSource`
+lifecycle.
+
+Changes:
+
+- `CeoChatClient` stores active run streams in `runStreamsRef`
+- starting a stream closes any previous stream for the same run id
+- terminal messages close and unregister the stream
+- SSE errors close and unregister the stream and mark still-streaming runs as
+  errored
+- component unmount closes all active run streams and clears the map
+- frontend polling audit now checks shared bounded EventSource and CEO dispatch
+  stream cleanup contracts
+- runtime-polling tests now include
+  `CEO dispatch run streams are explicitly closed`
+
+Validation passed:
+
+- `npm run test:runtime-polling` `15/15`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run typecheck`
+- `npm run build`
+
+Release meaning: this is a frontend runtime source change. Fresh packaged
+single-machine smoke, idle CPU, and runtime CPU matrix evidence are required
+after commit before current-source release gates can pass again.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CEO_DISPATCH_SSE_CLEANUP_HARDENING_2026_06_04.md`

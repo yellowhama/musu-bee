@@ -3332,4 +3332,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-bee/docs/*`, `release freshness`, `status-only`, and
   `P2P_CONTROL_PLANE.md`.
 
+- 2026-06-04 CEO dispatch SSE cleanup hardening:
+  `RELEASE_1_15_0_RC1_CEO_DISPATCH_SSE_CLEANUP_HARDENING_2026_06_04.md`
+  (wiki/678) records active `EventSource` lifecycle cleanup for
+  `CeoChatClient`: `runStreamsRef`, duplicate-run close, terminal/error
+  unregister, unmount close-all, and a new runtime-polling contract marker
+  `CEO dispatch run streams are explicitly closed`. Search terms should include
+  `GOAL v490`, `wiki/678`, `CeoChatClient`, `runStreamsRef`,
+  `closeRunStream`, `stream connection closed`, `test:runtime-polling 15/15`,
+  `frontend polling audit ok=true`, and `fresh packaged evidence required`.
+
 **End of WIKI_INDEX.md.**

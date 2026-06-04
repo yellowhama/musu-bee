@@ -137,6 +137,19 @@ test("dashboard axis pages use bounded EventSource instead of browser auto-retry
   }
 });
 
+test("CEO dispatch run streams are explicitly closed", () => {
+  const text = source("src/components/dispatch/CeoChatClient.tsx");
+
+  assert.match(text, /runStreamsRef/);
+  assert.match(text, /useRef<Map<string,\s*EventSource>>\(new Map\(\)\)/);
+  assert.match(text, /closeRunStream/);
+  assert.match(text, /runStreamsRef\.current\.set\(runId,\s*es\)/);
+  assert.match(text, /runStreamsRef\.current\.delete\(runId\)/);
+  assert.match(text, /runStreamsRef\.current\.clear\(\)/);
+  assert.match(text, /stream connection closed/);
+  assert.doesNotMatch(text, /setInterval\s*\(/);
+});
+
 test("node panel refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/NodePanel.tsx");
 
