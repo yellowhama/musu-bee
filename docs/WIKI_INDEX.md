@@ -3494,4 +3494,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `local bridge /api/tasks/delegate`, `test:routes 18/18`, `room route 4/4`,
   `Next build`, and `fresh packaged primary evidence required`.
 
+- 2026-06-04 post room work-order API primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/692) records current primary-machine evidence after the room work-order
+  API. Search terms should include `GOAL v505`, `wiki/692`, `b3776f0c`,
+  `20260604-175043-HUGH_SECOND`, `20260604-175223-HUGH_SECOND.desktop-open`,
+  `20260604-175413-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_175010`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_175413`, `http://127.0.0.1:3001`,
+  `runtime idle CPU 1/2 [HUGH_SECOND]`, `runtime CPU matrix 1/2 [HUGH_SECOND]`,
+  `msix_install_verified=true`, `manifest_git.dirty=false`,
+  `warning-mode MSIX diagnostic-only`, `musu.pro room work order`, and
+  `local MUSU programs execute work`.
+
 **End of WIKI_INDEX.md.**

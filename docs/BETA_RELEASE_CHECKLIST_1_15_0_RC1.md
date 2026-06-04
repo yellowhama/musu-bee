@@ -3230,6 +3230,46 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 18:02 KST Post Room Work-Order API Primary Evidence Refresh
+
+After adding `POST /api/rooms/[roomId]/work-orders`, the local-sideload MSIX
+was rebuilt/reinstalled and primary-machine evidence was refreshed.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-175043-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-175223-HUGH_SECOND.desktop-open.evidence.json`
+- five-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-175413-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke passed on `http://127.0.0.1:3001` with bridge
+  `http://127.0.0.1:2001` and output
+  `MUSU_RELEASE_SMOKE_OK_20260604_175010`
+- desktop-open CPU passed for `60.052s`: MUSU `0.03`, Node `0.05`,
+  WebView2 `0.6`, owned WebView2 `6`, working set `480.89MB`, hot `0`
+- matrix verifier passed `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_175413`, max CPU MUSU `0.31`,
+  Node `0.05`, WebView2 `0.47`, max working set `483.12MB`, hot `0`
+- clean go/no-go on `b3776f0c` reports `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU matrix
+  `1/2 [HUGH_SECOND]`, `public_metadata_ok=true`, `manifest_git.dirty=false`,
+  and blocker count `6`
+
+HUGH_SECOND's fresh warning-mode MSIX install capture remains diagnostic-only
+because developer PATH currently shadows WindowsApps with
+`C:\Users\empty\.cargo\bin\musu.exe`. Canonical MSIX install evidence remains
+strict release evidence.
+
+Public release remains No-Go until the second Windows PC has the same current
+build installed and records multi-device, runtime idle CPU, and runtime CPU
+matrix evidence, plus hosted `musu.pro` P2P control-plane proof, support mailbox
+proof, and Store evidence.
+
 ## 2026-06-04 17:44 KST MUSU.PRO Room Work-Order API
 
 `musu.pro` company/project rooms now have an explicit work-order input API:
