@@ -3838,4 +3838,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `audit-rust-background-loop-contract`, and
   `two-machine idle CPU gate still open`.
 
+- 2026-06-05 P2P store-forward queue status alignment:
+  `RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_QUEUE_STATUS_ALIGNMENT_2026_06_05.md`
+  (wiki/719) separates implemented lease-bound store-forward relay queue
+  fallback source wiring from missing release-grade tunnel endpoints. Search
+  terms should include `GOAL v532`, `wiki/719`,
+  `relay_payload_queue_fallback_implemented=true`,
+  `web_queue_store_claim_deliver=true`, `rust_enqueue_after_lease=true`,
+  `rust_target_drain_and_delivery_proof=true`,
+  `source_release_relay_connect_endpoint_not_implemented`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `store-forward queue fallback`, and `release tunnel endpoint still missing`.
+
 **End of WIKI_INDEX.md.**

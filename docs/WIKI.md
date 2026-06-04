@@ -6398,3 +6398,39 @@ on second-PC, hosted P2P, support mailbox, and Store gates.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_LOG_TELEMETRY_IDLE_CANDIDATE_GATE_2026_06_05.md`
+
+## 2026-06-05 P2P store-forward queue status alignment (wiki/719)
+
+`show-musu-pro-p2p-env-status.ps1` now separates implemented store-forward
+relay queue fallback source wiring from missing release-grade tunnel endpoints.
+
+New source fields:
+
+- `relay_payload_queue_fallback_implemented`
+- `relay_payload_queue_fallback_components.policy_marker`
+- `relay_payload_queue_fallback_components.web_queue_store_claim_deliver`
+- `relay_payload_queue_fallback_components.rust_enqueue_after_lease`
+- `relay_payload_queue_fallback_components.rust_target_drain_and_delivery_proof`
+
+Local source validation reported:
+
+- `relay_payload_queue_fallback_implemented=true`
+- `policy_marker=true`
+- `web_queue_store_claim_deliver=true`
+- `rust_enqueue_after_lease=true`
+- `rust_target_drain_and_delivery_proof=true`
+
+The generic source endpoint blockers are now release-specific:
+
+- `source_release_relay_connect_endpoint_not_implemented`
+- `source_release_relay_payload_endpoint_not_implemented`
+
+This prevents the status report from implying that the lease-bound queue
+fallback is absent. It still keeps public P2P release No-Go because the
+release-grade `/api/v1/relay/connect` tunnel/payload endpoint, production
+KV/Upstash evidence, release relay route evidence, and per-record delivery
+proof are still missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_QUEUE_STATUS_ALIGNMENT_2026_06_05.md`
