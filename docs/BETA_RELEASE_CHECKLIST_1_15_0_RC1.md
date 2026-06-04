@@ -3230,6 +3230,33 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 17:44 KST MUSU.PRO Room Work-Order API
+
+`musu.pro` company/project rooms now have an explicit work-order input API:
+
+- `POST /api/rooms/[roomId]/work-orders`
+
+The endpoint stamps `origin=musu.pro`, defaults `channel=company-room` and
+`sender_id=musu.pro-room`, preserves bounded `company_id`, `project_id`,
+`room_id`, and `work_order_id`, generates a bounded `work_order_id` when
+omitted, normalizes `file://` workspace URIs, and forwards the envelope to the
+local bridge `/api/tasks/delegate`.
+
+Validation:
+
+- `npm run test:routes` passed `18/18`
+- direct room route test passed `4/4`
+- `npm run typecheck` passed
+- `npm run build` passed
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is web runtime source, so current packaged MSIX/smoke/CPU evidence is
+  stale until rebuilt/refreshed after commit
+- this does not close second-PC, hosted P2P relay proof, support mailbox, or
+  Store gates
+
 ## 2026-06-04 MUSU.PRO Work-Order Context Hardening
 
 The roadmap split is now implemented in the task forwarding contract:

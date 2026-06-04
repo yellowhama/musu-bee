@@ -3485,4 +3485,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Connect/Pro boundary`, `relay fallback after direct-route failure`, and
   `second PC current build required`.
 
+- 2026-06-04 MUSU.PRO room work-order API:
+  `RELEASE_1_15_0_RC1_MUSU_PRO_ROOM_WORK_ORDER_API_2026_06_04.md`
+  (wiki/691) records `POST /api/rooms/[roomId]/work-orders` as the explicit
+  room-scoped web input endpoint. Search terms should include `GOAL v504`,
+  `wiki/691`, `room work-order API`, `origin=musu.pro`,
+  `channel=company-room`, `sender_id=musu.pro-room`, `generated work_order_id`,
+  `local bridge /api/tasks/delegate`, `test:routes 18/18`, `room route 4/4`,
+  `Next build`, and `fresh packaged primary evidence required`.
+
 **End of WIKI_INDEX.md.**

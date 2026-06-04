@@ -5302,3 +5302,27 @@ CPU/matrix evidence still require that second machine.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_LOCAL_PROGRAM_WEB_INPUT_ROADMAP_ALIGNMENT_2026_06_04.md`
+
+## 2026-06-04 MUSU.PRO room work-order API (wiki/691)
+
+Added the first explicit room work-order API for the web-input/local-executor
+roadmap:
+
+- `POST /api/rooms/[roomId]/work-orders`
+
+The route accepts a room-scoped work order from `musu.pro`, stamps
+`origin=musu.pro`, defaults `channel=company-room` and
+`sender_id=musu.pro-room`, preserves bounded `company_id`, `project_id`, and
+`work_order_id`, generates a bounded `work_order_id` when omitted, normalizes
+`file://` workspace URIs, and forwards the envelope to the local bridge
+`/api/tasks/delegate`.
+
+This makes the company/project room a real web input surface while preserving
+the execution boundary: the local MUSU program still executes the work.
+
+Validation passed `npm run test:routes` `18/18`, direct room route test `4/4`,
+`npm run typecheck`, `npm run build`, and `git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MUSU_PRO_ROOM_WORK_ORDER_API_2026_06_04.md`
