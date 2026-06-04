@@ -3951,4 +3951,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   and
   `http://127.0.0.1:3591`.
 
+- 2026-06-05 post packaged local runtime / web split primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_PACKAGED_LOCAL_RUNTIME_WEB_SPLIT_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/728) records fresh one-machine evidence that the installed packaged
+  local runtime works without a workspace `localhost:3001` dashboard. Search
+  terms should include `GOAL v541`, `wiki/728`,
+  `20260605-060842-HUGH_SECOND.evidence.json`,
+  `20260605-061127-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-061306-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `dashboard_required=false`, `bridge-only-packaged-runtime`,
+  `local-bridge-only`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_061306`,
+  `75d47304-7992-4741-b85f-27b315e8dbdc`, `bridge PID 39052`,
+  `127.0.0.1:3591`, and `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**
