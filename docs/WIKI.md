@@ -6216,3 +6216,51 @@ Store gates are closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RENDEZVOUS_OWNER_SCOPE_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Relay payload delivery proof response (wiki/715)
+
+Relay payload delivery acknowledgement now returns a canonical
+`musu.relay_payload_delivery_proof.v1` object.
+
+Changed:
+
+- `p2pRelayPayloadStore.ts` exports `RelayPayloadDeliveryProof`.
+- `relayPayloadDeliveryProofFromDeliveredPayload(payload)` builds the proof
+  only for `delivered` payload records with `delivered_at`.
+- `PATCH /api/v1/p2p/relay/payload` with
+  `musu.relay_payload_delivery.v1` returns `delivery_proof` alongside the
+  sanitized delivered payload.
+- `P2pRelayPayloadDeliveryResponse` accepts optional `delivery_proof`.
+- Target-side relay payload drain prefers API-provided delivery proof and falls
+  back to deriving it from the delivered payload for older servers.
+- `musu relay payload-deliver --json` includes `delivery_proof`.
+
+Validation:
+
+- `npm run test:p2p` passed `79/79`
+- `npm run typecheck` passed
+- `npm run build` passed
+- `cargo test --lib relay_payload` passed `24/24`
+- `cargo check --bin musu` passed
+- `cargo fmt --check` passed
+- Rust background-loop audit passed with `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+- `git diff --check` passed
+- P2P env status still reports source relay connect/payload markers false
+- direct go/no-go on this commit reports
+  `ready_for_public_desktop_release=false`, `single_machine_verified=false`,
+  `multi_device_verified=false`, and `manifest_git.dirty=false`
+
+This is not release-grade relay transport completion:
+
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
+
+This is web/Rust runtime source, so packaged primary evidence is stale until
+rebuilt and refreshed from this commit. Public release remains No-Go until
+second-PC, hosted P2P, support mailbox, and Store gates are closed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RESPONSE_2026_06_05.md`

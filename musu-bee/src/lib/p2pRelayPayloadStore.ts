@@ -35,6 +35,19 @@ export type StoredP2pRelayPayload = {
   delivered_at?: string;
 };
 
+export type RelayPayloadDeliveryProof = {
+  schema: "musu.relay_payload_delivery_proof.v1";
+  payload_id: string;
+  session_id: string;
+  lease_id: string;
+  source_node_id: string;
+  target_node_id: string;
+  tunnel_id: string;
+  payload_sha256: string;
+  payload_bytes: number;
+  delivered_at: string;
+};
+
 type P2pRelayPayloadStoreState = {
   schema: "musu.p2p_relay_payload_store.v1";
   payloads: StoredP2pRelayPayload[];
@@ -665,6 +678,30 @@ export async function markRelayPayloadDelivered(
 
     return next.delivered;
   });
+}
+
+export function relayPayloadDeliveryProofFromDeliveredPayload(
+  payload: StoredP2pRelayPayload
+): RelayPayloadDeliveryProof | null {
+  if (payload.status !== "delivered") {
+    return null;
+  }
+  const deliveredAt = payload.delivered_at?.trim();
+  if (!deliveredAt) {
+    return null;
+  }
+  return {
+    schema: "musu.relay_payload_delivery_proof.v1",
+    payload_id: payload.payload_id,
+    session_id: payload.session_id,
+    lease_id: payload.lease_id,
+    source_node_id: payload.source_node_id,
+    target_node_id: payload.target_node_id,
+    tunnel_id: payload.tunnel_id,
+    payload_sha256: payload.payload_sha256,
+    payload_bytes: payload.payload_bytes,
+    delivered_at: deliveredAt,
+  };
 }
 
 function deliverPayloadFromList(

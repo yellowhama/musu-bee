@@ -19,6 +19,7 @@ import {
   markRelayPayloadDelivered,
   p2pRelayPayloadStoreStatus,
   queryRelayPayloads,
+  relayPayloadDeliveryProofFromDeliveredPayload,
   type StoredP2pRelayPayload,
 } from "@/lib/p2pRelayPayloadStore";
 import { p2pControlOwnerKey } from "@/lib/p2pControlAuth";
@@ -493,9 +494,29 @@ test("marks claimed relay payload delivered", async () => {
     assert.equal(deliveryRes.status, 202);
     const deliveryBody = (await deliveryRes.json()) as {
       schema: string;
+      delivery_proof?: {
+        schema: string;
+        payload_id: string;
+        session_id: string;
+        lease_id: string;
+        source_node_id: string;
+        target_node_id: string;
+        tunnel_id: string;
+        payload_sha256: string;
+        payload_bytes: number;
+        delivered_at: string;
+      };
       payload: {
         owner_key?: string;
         payload_base64?: string;
+        payload_id: string;
+        session_id: string;
+        lease_id: string;
+        source_node_id: string;
+        target_node_id: string;
+        tunnel_id: string;
+        payload_sha256: string;
+        payload_bytes: number;
         status: string;
         delivered_at?: string;
       };
@@ -505,6 +526,16 @@ test("marks claimed relay payload delivered", async () => {
     assert.equal(deliveryBody.payload.payload_base64, undefined);
     assert.equal(deliveryBody.payload.status, "delivered");
     assert.equal(typeof deliveryBody.payload.delivered_at, "string");
+    assert.equal(deliveryBody.delivery_proof?.schema, "musu.relay_payload_delivery_proof.v1");
+    assert.equal(deliveryBody.delivery_proof?.payload_id, deliveryBody.payload.payload_id);
+    assert.equal(deliveryBody.delivery_proof?.session_id, deliveryBody.payload.session_id);
+    assert.equal(deliveryBody.delivery_proof?.lease_id, deliveryBody.payload.lease_id);
+    assert.equal(deliveryBody.delivery_proof?.source_node_id, deliveryBody.payload.source_node_id);
+    assert.equal(deliveryBody.delivery_proof?.target_node_id, deliveryBody.payload.target_node_id);
+    assert.equal(deliveryBody.delivery_proof?.tunnel_id, deliveryBody.payload.tunnel_id);
+    assert.equal(deliveryBody.delivery_proof?.payload_sha256, deliveryBody.payload.payload_sha256);
+    assert.equal(deliveryBody.delivery_proof?.payload_bytes, deliveryBody.payload.payload_bytes);
+    assert.equal(deliveryBody.delivery_proof?.delivered_at, deliveryBody.payload.delivered_at);
 
     const deliveredRes = await GET(
       bearerReq("http://localhost/api/v1/p2p/relay/payload?status=delivered")
@@ -593,6 +624,14 @@ test("KV relay payload store claims and delivers owner-scoped payloads", async (
 
     assert.equal(delivered?.status, "delivered");
     assert.equal(typeof delivered?.delivered_at, "string");
+    const proof = delivered
+      ? relayPayloadDeliveryProofFromDeliveredPayload(delivered)
+      : null;
+    assert.equal(proof?.schema, "musu.relay_payload_delivery_proof.v1");
+    assert.equal(proof?.payload_id, delivered?.payload_id);
+    assert.equal(proof?.payload_sha256, delivered?.payload_sha256);
+    assert.equal(proof?.payload_bytes, delivered?.payload_bytes);
+    assert.equal(proof?.delivered_at, delivered?.delivered_at);
     assert.deepEqual(state.evalCommands, ["append", "claim", "deliver"]);
     const deliveredRecords = await queryRelayPayloads({
       owner_key: ownerKey,

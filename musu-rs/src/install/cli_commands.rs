@@ -1225,6 +1225,7 @@ struct RelayPayloadDeliverReport {
     relay_payload_store_release_grade: bool,
     filters: RelayPayloadDeliverFilters,
     payload: Option<crate::cloud::P2pRelayPayloadStoredRecord>,
+    delivery_proof: Option<crate::cloud::RouteRelayPayloadDeliveryProof>,
     error: Option<String>,
     next_steps: Vec<&'static str>,
 }
@@ -2307,6 +2308,7 @@ async fn run_relay_payload_deliver(opts: RelayPayloadDeliverOpts) -> Result<()> 
         relay_payload_store_release_grade: false,
         filters,
         payload: None,
+        delivery_proof: None,
         error: None,
         next_steps: vec![
             "delivery only acknowledges a claimed payload; it does not prove QUIC/TLS relay transport",
@@ -2334,6 +2336,7 @@ async fn run_relay_payload_deliver(opts: RelayPayloadDeliverOpts) -> Result<()> 
                 report.relay_payload_store_backend = Some(response.relay_payload_store_backend);
                 report.relay_payload_store_release_grade =
                     response.relay_payload_store_release_grade;
+                report.delivery_proof = response.delivery_proof;
                 report.payload = response.payload;
             }
             Err(err) => {
@@ -2393,6 +2396,17 @@ async fn run_relay_payload_deliver(opts: RelayPayloadDeliverOpts) -> Result<()> 
             payload.source_node_id,
             payload.target_node_id,
             payload.delivered_at.as_deref().unwrap_or("unknown")
+        );
+    }
+    if let Some(proof) = &report.delivery_proof {
+        println!(
+            "  delivery proof: {} session={} lease={} tunnel={} bytes={} delivered_at={}",
+            proof.payload_id,
+            proof.session_id,
+            proof.lease_id,
+            proof.tunnel_id,
+            proof.payload_bytes,
+            proof.delivered_at
         );
     }
     println!("  next steps:");

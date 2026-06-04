@@ -10,6 +10,7 @@ import {
   markRelayPayloadDelivered,
   p2pRelayPayloadStoreStatus,
   queryRelayPayloads,
+  relayPayloadDeliveryProofFromDeliveredPayload,
 } from "@/lib/p2pRelayPayloadStore";
 
 export const dynamic = "force-dynamic";
@@ -367,6 +368,7 @@ export async function PATCH(req: NextRequest) {
           release_grade: false,
           ...relayPayloadStoreFields(),
           payload: publicPayload(payload, false),
+          delivery_proof: relayPayloadDeliveryProofFromDeliveredPayload(payload),
         },
         { status: 202 }
       );

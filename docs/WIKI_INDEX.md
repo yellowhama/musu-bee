@@ -3786,4 +3786,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.pro control plane`, `company meeting room`, `web input only`, and
   `P2P mesh bootstrap`.
 
+- 2026-06-05 relay payload delivery proof response:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RESPONSE_2026_06_05.md`
+  (wiki/715) records the hosted relay payload delivery acknowledgement returning
+  canonical `musu.relay_payload_delivery_proof.v1` proof. Search terms should
+  include `GOAL v528`, `wiki/715`,
+  `relayPayloadDeliveryProofFromDeliveredPayload`,
+  `PATCH /api/v1/p2p/relay/payload`, `delivery_proof`,
+  `P2pRelayPayloadDeliveryResponse`, `musu relay payload-deliver --json`,
+  `cargo test --lib relay_payload 24/24`, `npm run test:p2p 79/79`,
+  `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=false`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`, and
+  `packaged evidence stale`.
+
 **End of WIKI_INDEX.md.**

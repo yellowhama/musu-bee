@@ -671,6 +671,8 @@ pub struct P2pRelayPayloadDeliveryResponse {
     pub relay_payload_store_release_grade: bool,
     #[serde(default)]
     pub payload: Option<P2pRelayPayloadStoredRecord>,
+    #[serde(default)]
+    pub delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1823,12 +1825,35 @@ mod tests {
                 "claimed_by": "pc-b",
                 "claimed_at": "2026-06-04T01:00:01Z",
                 "delivered_at": "2026-06-04T01:00:02Z"
+            },
+            "delivery_proof": {
+                "schema": "musu.relay_payload_delivery_proof.v1",
+                "payload_id": "payload-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "tunnel_id": "relay-tunnel-123",
+                "payload_sha256": "abc123",
+                "payload_bytes": 2,
+                "delivered_at": "2026-06-04T01:00:02Z"
             }
         }))
         .expect("relay payload delivery response");
 
+        let proof = response.delivery_proof.expect("delivery proof");
         let payload = response.payload.expect("delivered payload");
         assert!(response.delivered);
+        assert_eq!(proof.schema, "musu.relay_payload_delivery_proof.v1");
+        assert_eq!(proof.payload_id, payload.payload_id);
+        assert_eq!(proof.session_id, payload.session_id);
+        assert_eq!(proof.lease_id, payload.lease_id);
+        assert_eq!(proof.source_node_id, payload.source_node_id);
+        assert_eq!(proof.target_node_id, payload.target_node_id);
+        assert_eq!(proof.tunnel_id, payload.tunnel_id);
+        assert_eq!(proof.payload_sha256, payload.payload_sha256);
+        assert_eq!(proof.payload_bytes, payload.payload_bytes);
+        assert_eq!(proof.delivered_at, payload.delivered_at.clone().unwrap());
         assert_eq!(payload.status, "delivered");
         assert_eq!(
             payload.delivered_at.as_deref(),

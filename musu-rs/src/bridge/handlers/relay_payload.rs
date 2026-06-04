@@ -251,6 +251,23 @@ fn delivery_proof_from_delivered_payload(
     )
 }
 
+fn delivery_proof_from_cloud_proof(
+    proof: &crate::cloud::RouteRelayPayloadDeliveryProof,
+) -> crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof {
+    crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof {
+        schema: proof.schema.clone(),
+        payload_id: proof.payload_id.clone(),
+        session_id: proof.session_id.clone(),
+        lease_id: proof.lease_id.clone(),
+        source_node_id: proof.source_node_id.clone(),
+        target_node_id: proof.target_node_id.clone(),
+        tunnel_id: proof.tunnel_id.clone(),
+        payload_sha256: proof.payload_sha256.clone(),
+        payload_bytes: proof.payload_bytes,
+        delivered_at: proof.delivered_at.clone(),
+    }
+}
+
 pub fn start_relay_payload_poller_if_enabled(state: AppState) {
     if !relay_payload_poller_enabled() {
         tracing::info!(
@@ -455,11 +472,17 @@ pub async fn drain_relay_payloads_for_local_target(
                         Ok(Ok(delivery_response))
                             if delivery_response.ok && delivery_response.delivered =>
                         {
-                            if let Some(proof) = delivery_response
-                                .payload
+                            let proof = delivery_response
+                                .delivery_proof
                                 .as_ref()
-                                .and_then(delivery_proof_from_delivered_payload)
-                            {
+                                .map(delivery_proof_from_cloud_proof)
+                                .or_else(|| {
+                                    delivery_response
+                                        .payload
+                                        .as_ref()
+                                        .and_then(delivery_proof_from_delivered_payload)
+                                });
+                            if let Some(proof) = proof {
                                 let route_record =
                                     crate::bridge::route_evidence::record_relay_payload_delivery_route_evidence(
                                         musu_home_from_state(state),
