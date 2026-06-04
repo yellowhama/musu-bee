@@ -96,6 +96,21 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
         candidate_endpoints: [
           { kind: "lan", addr: "192.168.1.192:8949", observed_at: "2026-06-04T00:00:00Z", scheme: "https" },
           { kind: "tailscale", addr: "100.64.1.192:8949", observed_at: "2026-06-04T00:00:01Z" },
+          {
+            kind: "direct_quic",
+            addr: "198.51.100.192:8949",
+            observed_at: "2026-06-04T00:00:02Z",
+            public_addr: "198.51.100.192:8949",
+            nat_type: "open_internet",
+            nat_observed_by: "stun:musu.pro",
+          },
+          {
+            kind: "relay",
+            addr: "relay.musu.pro:443",
+            observed_at: "2026-06-04T00:00:03Z",
+            relay_url: "https://relay.musu.pro/r/lease-pc-b",
+            relay_protocol: "websocket_tunnel",
+          },
         ],
       }
     );
@@ -121,7 +136,17 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
       session: {
         owner_key: string;
         source: { node_id: string };
-        target: { node_id: string; candidate_endpoints: Array<{ kind: string; addr: string }> };
+        target: {
+          node_id: string;
+          candidate_endpoints: Array<{
+            kind: string;
+            addr: string;
+            public_addr?: string;
+            nat_type?: string;
+            relay_url?: string;
+            relay_protocol?: string;
+          }>;
+        };
         path_selection_order: string[];
         requested_capability: string;
         context: {
@@ -142,6 +167,10 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
     assert.equal(body.session.target.node_id, "pc-b");
     assert.equal(body.session.target.candidate_endpoints[0]?.kind, "lan");
     assert.equal(body.session.target.candidate_endpoints[0]?.addr, "192.168.1.192:8949");
+    assert.equal(body.session.target.candidate_endpoints[2]?.public_addr, "198.51.100.192:8949");
+    assert.equal(body.session.target.candidate_endpoints[2]?.nat_type, "open_internet");
+    assert.equal(body.session.target.candidate_endpoints[3]?.relay_url, "https://relay.musu.pro/r/lease-pc-b");
+    assert.equal(body.session.target.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
     assert.deepEqual(body.session.path_selection_order, ["lan", "tailscale", "direct_quic", "relay"]);
     assert.equal(body.session.requested_capability, "remote_command");
     assert.deepEqual(body.session.context, {

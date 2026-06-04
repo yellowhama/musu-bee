@@ -59,6 +59,13 @@ $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
 $routeEvidencePath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.ts"
 $routeEvidenceTestPath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.test.ts"
 $routeEvidenceStorePath = "musu-bee\src\lib\routeEvidenceStore.ts"
+$rendezvousStorePath = "musu-bee\src\lib\p2pRendezvousStore.ts"
+$rendezvousCandidatesRoutePath = "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\candidates\route.ts"
+$roomPresenceRoutePath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.ts"
+$roomPresenceStorePath = "musu-bee\src\lib\roomPresenceStore.ts"
+$rendezvousRouteTestPath = "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts"
+$roomPresenceRouteTestPath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.test.ts"
+$roomRendezvousRouteTestPath = "musu-bee\src\app\api\rooms\[roomId]\rendezvous\route.test.ts"
 $rendezvousPath = "musu-rs\src\bridge\rendezvous.rs"
 $relayPayloadDrainPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
@@ -74,6 +81,13 @@ $transportRoute = Get-RepoText $transportRoutePath
 $routeEvidence = Get-RepoText $routeEvidencePath
 $routeEvidenceTest = Get-RepoText $routeEvidenceTestPath
 $routeEvidenceStore = Get-RepoText $routeEvidenceStorePath
+$rendezvousStore = Get-RepoText $rendezvousStorePath
+$rendezvousCandidatesRoute = Get-RepoText $rendezvousCandidatesRoutePath
+$roomPresenceRoute = Get-RepoText $roomPresenceRoutePath
+$roomPresenceStore = Get-RepoText $roomPresenceStorePath
+$rendezvousRouteTest = Get-RepoText $rendezvousRouteTestPath
+$roomPresenceRouteTest = Get-RepoText $roomPresenceRouteTestPath
+$roomRendezvousRouteTest = Get-RepoText $roomRendezvousRouteTestPath
 $rendezvous = Get-RepoText $rendezvousPath
 $relayPayloadDrain = Get-RepoText $relayPayloadDrainPath
 $forward = Get-RepoText $forwardPath
@@ -168,6 +182,56 @@ Add-Check `
     ) `
     -Path $transportRoutePath `
     -Message "Relay transport preflight reports queue endpoint, release payload endpoint, and release transport separately."
+
+Add-Check `
+    -Scope "web-rendezvous" `
+    -Name "candidate endpoint metadata is preserved through web control plane" `
+    -Passed (
+        (Test-ContainsAll -Text $rendezvousStore -Needles @(
+            "public_addr?: string | null",
+            "nat_type?: P2pNatType | null",
+            "nat_observed_by?: string | null",
+            "relay_url?: string | null",
+            "relay_protocol?: P2pRelayProtocol | null",
+            "normalizeCandidateEndpoints(input.candidate_endpoints)"
+        )) -and
+        (Test-ContainsAll -Text $roomPresenceStore -Needles @(
+            'import { normalizeCandidateEndpoints } from "@/lib/p2pRendezvousStore"',
+            "candidate_endpoints: normalizeCandidateEndpoints(input.candidate_endpoints)"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousCandidatesRoute -Needles @(
+            "public_addr",
+            "nat_type",
+            "nat_observed_by",
+            "relay_url",
+            "relay_protocol"
+        )) -and
+        (Test-ContainsAll -Text $roomPresenceRoute -Needles @(
+            "public_addr",
+            "nat_type",
+            "nat_observed_by",
+            "relay_url",
+            "relay_protocol"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
+            "203.0.113.10:8949",
+            "symmetric",
+            "https://relay.musu.pro/r/lease-pc-a",
+            "port_restricted_cone"
+        )) -and
+        (Test-ContainsAll -Text $roomPresenceRouteTest -Needles @(
+            "203.0.113.100:8949",
+            "restricted_cone",
+            "https://relay.musu.pro/r/lease-pc-a"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
+            "198.51.100.192:8949",
+            "open_internet",
+            "https://relay.musu.pro/r/lease-pc-b"
+        ))
+    ) `
+    -Path $rendezvousStorePath `
+    -Message "musu.pro room presence and rendezvous candidate exchange preserve public endpoint, NAT, and relay descriptors used for P2P path selection."
 
 Add-Check `
     -Scope "route-evidence" `

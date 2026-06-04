@@ -9,8 +9,8 @@ import {
 import type {
   P2pCandidateEndpoint,
   P2pNodeCandidateSet,
-  P2pRouteKind,
 } from "@/lib/p2pRendezvousStore";
+import { normalizeCandidateEndpoints } from "@/lib/p2pRendezvousStore";
 
 export const ROOM_PRESENCE_STATUSES = ["online", "idle", "busy", "offline"] as const;
 
@@ -61,7 +61,6 @@ const MAX_CONTEXT_VALUE_CHARS = 160;
 const MAX_PUBLIC_KEY_CHARS = 512;
 const MAX_CAPABILITIES = 64;
 const MAX_ACTIVE_WORK_ORDERS = 32;
-const MAX_CANDIDATE_ENDPOINTS = 32;
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -125,54 +124,6 @@ function isRoomPresenceStatus(value: unknown): value is RoomPresenceStatus {
 
 function normalizeStatus(value: unknown): RoomPresenceStatus {
   return isRoomPresenceStatus(value) ? value : "online";
-}
-
-function isRouteKind(value: unknown): value is P2pRouteKind {
-  return (
-    value === "lan" ||
-    value === "tailscale" ||
-    value === "direct_quic" ||
-    value === "relay" ||
-    value === "failed"
-  );
-}
-
-function normalizeObservedAt(value: unknown): string {
-  const text = normalizeContextValue(value, 64);
-  if (!text) {
-    return new Date().toISOString();
-  }
-  const millis = Date.parse(text);
-  return Number.isFinite(millis) ? new Date(millis).toISOString() : new Date().toISOString();
-}
-
-function normalizeCandidateEndpoint(value: unknown): P2pCandidateEndpoint | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const input = value as Partial<P2pCandidateEndpoint>;
-  const kind = isRouteKind(input.kind) ? input.kind : null;
-  const addr = normalizeContextValue(input.addr, 256);
-  if (!kind || !addr) {
-    return null;
-  }
-  const scheme = input.scheme === "http" || input.scheme === "https" ? input.scheme : null;
-  return {
-    kind,
-    addr,
-    observed_at: normalizeObservedAt(input.observed_at),
-    ...(scheme ? { scheme } : {}),
-  };
-}
-
-function normalizeCandidateEndpoints(value: unknown): P2pCandidateEndpoint[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .slice(0, MAX_CANDIDATE_ENDPOINTS)
-    .map(normalizeCandidateEndpoint)
-    .filter((endpoint): endpoint is P2pCandidateEndpoint => Boolean(endpoint));
 }
 
 function normalizeStringArray(value: unknown, maxItems: number, maxChars = 96): string[] {

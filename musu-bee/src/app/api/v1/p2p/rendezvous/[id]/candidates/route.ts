@@ -18,6 +18,22 @@ const CandidateEndpointSchema = z.object({
   addr: z.string().min(1),
   observed_at: z.string().min(1),
   scheme: z.enum(["http", "https"]).nullable().optional(),
+  public_addr: z.string().min(1).nullable().optional(),
+  nat_type: z.enum([
+    "unknown",
+    "open_internet",
+    "full_cone",
+    "restricted_cone",
+    "port_restricted_cone",
+    "symmetric",
+  ]).nullable().optional(),
+  nat_observed_by: z.string().min(1).nullable().optional(),
+  relay_url: z.string().min(1).nullable().optional(),
+  relay_protocol: z.enum([
+    "quic_tls_1_3",
+    "websocket_tunnel",
+    "store_forward_queue",
+  ]).nullable().optional(),
 });
 
 const CandidatesSchema = z.object({

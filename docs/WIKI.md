@@ -6879,3 +6879,52 @@ hosted P2P, support mailbox, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUST_LOOP_AUDIT_WEBRTC_TELEMETRY_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 P2P candidate endpoint metadata preservation (wiki/733)
+
+`musu.pro` room presence and rendezvous candidate exchange now preserve the
+endpoint metadata needed for practical P2P path selection between installed
+local MUSU programs.
+
+Preserved candidate metadata:
+
+- `public_addr`
+- `nat_type`
+- `nat_observed_by`
+- `relay_url`
+- `relay_protocol`
+
+Implementation:
+
+- `P2pCandidateEndpoint` now includes public endpoint, NAT, and relay
+  descriptor fields.
+- `p2pRendezvousStore.ts` centralizes candidate endpoint normalization.
+- `roomPresenceStore.ts` reuses the shared rendezvous normalizer instead of
+  truncating candidate endpoints to only `kind`, `addr`, `observed_at`, and
+  `scheme`.
+- Rendezvous candidate and room presence routes accept the same metadata.
+- The P2P store-forward relay contract audit now checks
+  `candidate endpoint metadata is preserved through web control plane`.
+
+Root cause note for the observed browser error:
+
+- `127.0.0.1:3001` had no listener, so `http://127.0.0.1:3001/app` correctly
+  returned connection refused.
+- The installed local MUSU bridge was healthy at `127.0.0.1:8186/health`.
+- `localhost:3001` is an optional workspace dashboard, not the installed local
+  MUSU program.
+
+Validation:
+
+- `npm run test:p2p` passed `79/79`
+- `npm run typecheck` passed
+- `audit-p2p-store-forward-relay-contract.ps1 -Json -FailOnProblem` passed
+  with `ok=true` and `fail_count=0`
+- `git diff --check` passed
+
+This is P2P metadata/control-plane hardening. It does not close second-PC,
+hosted P2P release proof, support mailbox, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_CANDIDATE_ENDPOINT_METADATA_PRESERVATION_2026_06_05.md`

@@ -4031,4 +4031,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `rust_background_loop_contract_verified=true`, `runtime idle CPU 1/2`,
   `runtime matrix 1/2`, and `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 P2P candidate endpoint metadata preservation:
+  `RELEASE_1_15_0_RC1_P2P_CANDIDATE_ENDPOINT_METADATA_PRESERVATION_2026_06_05.md`
+  (wiki/733) preserves public endpoint, NAT, and relay descriptor metadata
+  through MUSU.PRO room presence, candidate cache seeding, and room-scoped
+  rendezvous creation. Search terms should include `GOAL v546`, `wiki/733`,
+  `public_addr`, `nat_type`, `nat_observed_by`, `relay_url`,
+  `relay_protocol`, `normalizeCandidateEndpoints(input.candidate_endpoints)`,
+  `candidate endpoint metadata is preserved through web control plane`,
+  `203.0.113.10:8949`, `198.51.100.192:8949`,
+  `https://relay.musu.pro/r/lease-pc-a`, `localhost:3001 optional dashboard`,
+  `127.0.0.1:8186/health`, `npm run test:p2p 79/79`, and
+  `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**

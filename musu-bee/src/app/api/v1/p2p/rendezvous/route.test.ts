@@ -164,6 +164,21 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
         candidate_endpoints: [
           { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z", scheme: "https" },
           { kind: "tailscale", addr: "100.64.1.10:8070", observed_at: "2026-06-01T00:00:01Z" },
+          {
+            kind: "direct_quic",
+            addr: "203.0.113.10:8949",
+            observed_at: "2026-06-01T00:00:02Z",
+            public_addr: "203.0.113.10:8949",
+            nat_type: "symmetric",
+            nat_observed_by: "stun:musu.pro",
+          },
+          {
+            kind: "relay",
+            addr: "relay.musu.pro:443",
+            observed_at: "2026-06-01T00:00:03Z",
+            relay_url: "https://relay.musu.pro/r/lease-pc-a",
+            relay_protocol: "websocket_tunnel",
+          },
         ],
         relay_capable: true,
         public_key: "pk_test",
@@ -174,7 +189,18 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
     assert.equal(candidateRes.status, 200);
     const withCandidates = (await candidateRes.json()) as {
       path_selection_order: string[];
-      source: { relay_capable: boolean; candidate_endpoints: Array<{ kind: string; scheme?: string }> };
+      source: {
+        relay_capable: boolean;
+        candidate_endpoints: Array<{
+          kind: string;
+          scheme?: string;
+          public_addr?: string;
+          nat_type?: string;
+          nat_observed_by?: string;
+          relay_url?: string;
+          relay_protocol?: string;
+        }>;
+      };
     };
     assert.deepEqual(withCandidates.path_selection_order, [
       "lan",
@@ -185,6 +211,11 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
     assert.equal(withCandidates.source.relay_capable, true);
     assert.equal(withCandidates.source.candidate_endpoints[0]?.kind, "lan");
     assert.equal(withCandidates.source.candidate_endpoints[0]?.scheme, "https");
+    assert.equal(withCandidates.source.candidate_endpoints[2]?.public_addr, "203.0.113.10:8949");
+    assert.equal(withCandidates.source.candidate_endpoints[2]?.nat_type, "symmetric");
+    assert.equal(withCandidates.source.candidate_endpoints[2]?.nat_observed_by, "stun:musu.pro");
+    assert.equal(withCandidates.source.candidate_endpoints[3]?.relay_url, "https://relay.musu.pro/r/lease-pc-a");
+    assert.equal(withCandidates.source.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
 
     const { POST: approve } = await loadApprove("flow-approve");
     const approveRes = await approve(postReq({}), ctx(created.session_id));
@@ -215,6 +246,14 @@ test("seeds new rendezvous sessions from cached node candidates", async () => {
         candidate_endpoints: [
           { kind: "lan", addr: "192.168.1.20:8070", observed_at: "2026-06-01T00:00:00Z" },
           { kind: "tailscale", addr: "100.64.1.20:8070", observed_at: "2026-06-01T00:00:01Z" },
+          {
+            kind: "direct_quic",
+            addr: "198.51.100.20:8949",
+            observed_at: "2026-06-01T00:00:02Z",
+            public_addr: "198.51.100.20:8949",
+            nat_type: "port_restricted_cone",
+            nat_observed_by: "stun:musu.pro",
+          },
         ],
         relay_capable: false,
         node_name: "pc-b",
@@ -228,10 +267,12 @@ test("seeds new rendezvous sessions from cached node candidates", async () => {
     const seededRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
     assert.equal(seededRes.status, 201);
     const seeded = (await seededRes.json()) as {
-      target: { candidate_endpoints: Array<{ kind: string; addr: string }> };
+      target: { candidate_endpoints: Array<{ kind: string; addr: string; public_addr?: string; nat_type?: string }> };
     };
     assert.equal(seeded.target.candidate_endpoints[0]?.kind, "lan");
     assert.equal(seeded.target.candidate_endpoints[0]?.addr, "192.168.1.20:8070");
+    assert.equal(seeded.target.candidate_endpoints[2]?.public_addr, "198.51.100.20:8949");
+    assert.equal(seeded.target.candidate_endpoints[2]?.nat_type, "port_restricted_cone");
   });
 });
 

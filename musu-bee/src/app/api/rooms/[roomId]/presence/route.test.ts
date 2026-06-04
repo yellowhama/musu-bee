@@ -124,6 +124,21 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
         candidate_endpoints: [
           { kind: "lan", addr: "192.168.1.100:8949", observed_at: "2026-06-04T00:00:00Z", scheme: "https" },
           { kind: "tailscale", addr: "100.64.1.100:8949", observed_at: "2026-06-04T00:00:01Z" },
+          {
+            kind: "direct_quic",
+            addr: "203.0.113.100:8949",
+            observed_at: "2026-06-04T00:00:02Z",
+            public_addr: "203.0.113.100:8949",
+            nat_type: "restricted_cone",
+            nat_observed_by: "stun:musu.pro",
+          },
+          {
+            kind: "relay",
+            addr: "relay.musu.pro:443",
+            observed_at: "2026-06-04T00:00:03Z",
+            relay_url: "https://relay.musu.pro/r/lease-pc-a",
+            relay_protocol: "websocket_tunnel",
+          },
         ],
         relay_capable: true,
         public_key: "pk_source",
@@ -150,7 +165,17 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
         project_id: string;
         source_agent_id: string;
         active_work_order_ids: string[];
-        candidate_endpoints: Array<{ kind: string; addr: string; observed_at: string; scheme?: string }>;
+        candidate_endpoints: Array<{
+          kind: string;
+          addr: string;
+          observed_at: string;
+          scheme?: string;
+          public_addr?: string;
+          nat_type?: string;
+          nat_observed_by?: string;
+          relay_url?: string;
+          relay_protocol?: string;
+        }>;
         relay_capable: boolean;
         public_key: string;
         capabilities: string[];
@@ -176,6 +201,11 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
     assert.equal(body.presence.candidate_endpoints[0]?.kind, "lan");
     assert.equal(body.presence.candidate_endpoints[0]?.addr, "192.168.1.100:8949");
     assert.equal(body.presence.candidate_endpoints[0]?.scheme, "https");
+    assert.equal(body.presence.candidate_endpoints[2]?.public_addr, "203.0.113.100:8949");
+    assert.equal(body.presence.candidate_endpoints[2]?.nat_type, "restricted_cone");
+    assert.equal(body.presence.candidate_endpoints[2]?.nat_observed_by, "stun:musu.pro");
+    assert.equal(body.presence.candidate_endpoints[3]?.relay_url, "https://relay.musu.pro/r/lease-pc-a");
+    assert.equal(body.presence.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
     assert.equal(body.presence.relay_capable, true);
     assert.equal(body.presence.public_key, "pk_source");
     assert.deepEqual(body.presence.capabilities, ["remote_command", "browser"]);
@@ -186,6 +216,9 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
     assert.equal(cached?.node_id, "pc-a");
     assert.equal(cached?.node_name, "HUGH_SECOND");
     assert.equal(cached?.candidate_endpoints[0]?.addr, "192.168.1.100:8949");
+    assert.equal(cached?.candidate_endpoints[2]?.public_addr, "203.0.113.100:8949");
+    assert.equal(cached?.candidate_endpoints[2]?.nat_type, "restricted_cone");
+    assert.equal(cached?.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
     assert.deepEqual(cached?.capabilities, ["remote_command", "browser"]);
   });
 });

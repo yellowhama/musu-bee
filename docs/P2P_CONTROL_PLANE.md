@@ -58,10 +58,11 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 07:53 KST relay route proof linkage hardening, the product
-direction above is documented, the lease-bound queue fallback source contract is
-gated, and fresh one-machine packaged local-runtime evidence is recorded. Public
-P2P release is still not release-complete.
+As of the 2026-06-05 08:16 KST candidate endpoint metadata preservation
+hardening, the product direction above is documented, the lease-bound queue
+fallback source contract is gated, room presence/rendezvous candidate metadata
+is preserved, and fresh one-machine packaged local-runtime evidence is recorded.
+Public P2P release is still not release-complete.
 
 Passing local state:
 
@@ -87,6 +88,10 @@ Passing local state:
 - release-grade relay route queries revalidate fallback, transport proof,
   payload delivery proof, and now bind relay transport proof to the fallback
   lease/session before returning stored `release_grade=true` relay records
+- `musu.pro` room presence and rendezvous candidate exchange now preserve
+  `public_addr`, `nat_type`, `nat_observed_by`, `relay_url`, and
+  `relay_protocol` so local programs can use web-assisted discovery for better
+  P2P path selection without making the web server the data path
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
 

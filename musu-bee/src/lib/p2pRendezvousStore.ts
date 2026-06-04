@@ -9,6 +9,14 @@ import {
 
 export type P2pRouteKind = "lan" | "tailscale" | "direct_quic" | "relay" | "failed";
 export type P2pPathSelectionRouteKind = Exclude<P2pRouteKind, "failed">;
+export type P2pNatType =
+  | "unknown"
+  | "open_internet"
+  | "full_cone"
+  | "restricted_cone"
+  | "port_restricted_cone"
+  | "symmetric";
+export type P2pRelayProtocol = "quic_tls_1_3" | "websocket_tunnel" | "store_forward_queue";
 
 export const P2P_PATH_SELECTION_ORDER: readonly P2pPathSelectionRouteKind[] = [
   "lan",
@@ -22,6 +30,11 @@ export type P2pCandidateEndpoint = {
   addr: string;
   observed_at: string;
   scheme?: "http" | "https" | null;
+  public_addr?: string | null;
+  nat_type?: P2pNatType | null;
+  nat_observed_by?: string | null;
+  relay_url?: string | null;
+  relay_protocol?: P2pRelayProtocol | null;
 };
 
 export type P2pNodeCandidateSet = {
@@ -71,6 +84,7 @@ const KV_SESSION_PREFIX = "musu:p2p:rendezvous:v1:";
 const KV_CANDIDATE_PREFIX = "musu:p2p:rendezvous-candidates:v1:";
 const DEFAULT_TTL_SECONDS = 300;
 const CANDIDATE_CACHE_TTL_MULTIPLIER = 4;
+const MAX_CANDIDATE_ENDPOINTS = 32;
 
 type CachedP2pNodeCandidateSet = {
   candidate_set: P2pNodeCandidateSet;
@@ -180,6 +194,96 @@ function normalizeContextValue(value: unknown): string | null {
     return null;
   }
   return trimmed.slice(0, 128);
+}
+
+function normalizeBoundedString(value: unknown, maxChars: number): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return Array.from(trimmed).slice(0, maxChars).join("");
+}
+
+function normalizeObservedAt(value: unknown): string {
+  const text = normalizeBoundedString(value, 64);
+  if (!text) {
+    return new Date().toISOString();
+  }
+  const millis = Date.parse(text);
+  return Number.isFinite(millis) ? new Date(millis).toISOString() : new Date().toISOString();
+}
+
+function isRouteKind(value: unknown): value is P2pRouteKind {
+  return (
+    value === "lan" ||
+    value === "tailscale" ||
+    value === "direct_quic" ||
+    value === "relay" ||
+    value === "failed"
+  );
+}
+
+function isNatType(value: unknown): value is P2pNatType {
+  return (
+    value === "unknown" ||
+    value === "open_internet" ||
+    value === "full_cone" ||
+    value === "restricted_cone" ||
+    value === "port_restricted_cone" ||
+    value === "symmetric"
+  );
+}
+
+function isRelayProtocol(value: unknown): value is P2pRelayProtocol {
+  return (
+    value === "quic_tls_1_3" ||
+    value === "websocket_tunnel" ||
+    value === "store_forward_queue"
+  );
+}
+
+export function normalizeCandidateEndpoint(value: unknown): P2pCandidateEndpoint | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const input = value as Partial<P2pCandidateEndpoint>;
+  const kind = isRouteKind(input.kind) ? input.kind : null;
+  const addr = normalizeBoundedString(input.addr, 256);
+  if (!kind || !addr) {
+    return null;
+  }
+
+  const scheme = input.scheme === "http" || input.scheme === "https" ? input.scheme : null;
+  const publicAddr = normalizeBoundedString(input.public_addr, 256);
+  const natObservedBy = normalizeBoundedString(input.nat_observed_by, 128);
+  const relayUrl = normalizeBoundedString(input.relay_url, 256);
+  const natType = isNatType(input.nat_type) ? input.nat_type : null;
+  const relayProtocol = isRelayProtocol(input.relay_protocol) ? input.relay_protocol : null;
+
+  return {
+    kind,
+    addr,
+    observed_at: normalizeObservedAt(input.observed_at),
+    ...(scheme ? { scheme } : {}),
+    ...(publicAddr ? { public_addr: publicAddr } : {}),
+    ...(natType ? { nat_type: natType } : {}),
+    ...(natObservedBy ? { nat_observed_by: natObservedBy } : {}),
+    ...(relayUrl ? { relay_url: relayUrl } : {}),
+    ...(relayProtocol ? { relay_protocol: relayProtocol } : {}),
+  };
+}
+
+export function normalizeCandidateEndpoints(value: unknown): P2pCandidateEndpoint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .slice(0, MAX_CANDIDATE_ENDPOINTS)
+    .map(normalizeCandidateEndpoint)
+    .filter((endpoint): endpoint is P2pCandidateEndpoint => Boolean(endpoint));
 }
 
 function normalizeRendezvousContext(value: unknown): P2pRendezvousContext {
@@ -310,7 +414,7 @@ function emptyCandidateSet(nodeId: string): P2pNodeCandidateSet {
 function cloneCandidateSet(set: P2pNodeCandidateSet): P2pNodeCandidateSet {
   return {
     ...set,
-    candidate_endpoints: [...set.candidate_endpoints],
+    candidate_endpoints: normalizeCandidateEndpoints(set.candidate_endpoints),
     capabilities: [...set.capabilities],
   };
 }
@@ -500,7 +604,7 @@ export function upsertCandidateSet(
     ...current,
     node_name: input.node_name ?? current.node_name,
     app_version: input.app_version ?? current.app_version,
-    candidate_endpoints: input.candidate_endpoints,
+    candidate_endpoints: normalizeCandidateEndpoints(input.candidate_endpoints),
     relay_capable: input.relay_capable,
     public_key: input.public_key ?? current.public_key,
     capabilities: input.capabilities ?? current.capabilities,

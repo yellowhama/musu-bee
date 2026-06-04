@@ -3241,6 +3241,41 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-05 08:16 KST P2P Candidate Endpoint Metadata Preservation
+
+`musu.pro` room presence and rendezvous candidate exchange now preserve public
+endpoint, NAT, and relay descriptor metadata instead of reducing candidates to
+only `kind`, `addr`, `observed_at`, and `scheme`.
+
+This aligns the roadmap discussed with the operator:
+
+- the installed MUSU local program executes work
+- `localhost:3001/app` is an optional workspace dashboard, not the packaged
+  local app
+- `musu.pro` accepts remote input, hosts project/company rooms, records
+  presence, coordinates rendezvous, helps path selection, and records
+  relay-fallback evidence
+- local MUSU programs should use the web control plane to find each other, then
+  prefer LAN, Tailscale/overlay, direct QUIC, and only then relay fallback
+
+Observed local state during the investigation:
+
+- `127.0.0.1:3001` had no listener and refused the browser request
+- `127.0.0.1:8186/health` returned `200 OK` from the installed local MUSU
+  bridge
+
+Validation:
+
+- `npm run test:p2p` passed `79/79`
+- `npm run typecheck` passed
+- `audit-p2p-store-forward-relay-contract.ps1 -Json -FailOnProblem` passed
+  with `ok=true` and `fail_count=0`
+- `git diff --check` passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_CANDIDATE_ENDPOINT_METADATA_PRESERVATION_2026_06_05.md`
+
 ## 2026-06-04 23:04 KST Secret Storage Contract Hardening
 
 Secret storage is now an explicit hardening gate for the
