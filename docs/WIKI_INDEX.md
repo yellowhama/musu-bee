@@ -3815,4 +3815,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `local execution plane`, `musu.pro control plane`,
   `company meeting room`, and `P2P mesh bootstrap`.
 
+- 2026-06-05 idle busy-loop candidate status gate:
+  `RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_STATUS_GATE_2026_06_05.md`
+  (wiki/717) records explicit go/no-go output for idle busy-loop candidate
+  contracts. Search terms should include `GOAL v530`, `wiki/717`,
+  `idle_busy_loop_candidate_contract_verified`,
+  `idle_busy_loop_candidate_status`, `idle-busy-loop-candidates`,
+  `clipboard polling`, `mDNS discovery`, `health/readiness retry`,
+  `frontend interval/refetch`, `relay payload target polling`,
+  `cloud heartbeat`, `candidate count 6`, `audit-rust-background-loop-contract`,
+  `audit-frontend-polling-contract`, `unaudited_loop_hit_count=0`,
+  `direct_interval_hit_count=0`, and `two-machine idle CPU gate still open`.
+
 **End of WIKI_INDEX.md.**

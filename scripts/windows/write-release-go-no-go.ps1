@@ -183,6 +183,51 @@ function New-Check {
     }
 }
 
+function Test-AuditCheckPassed {
+    param(
+        $Audit,
+        [Parameter(Mandatory = $true)][string]$Scope,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if (-not $Audit -or -not $Audit.PSObject.Properties["checks"] -or $null -eq $Audit.checks) {
+        return $false
+    }
+
+    return @($Audit.checks | Where-Object {
+            [string]$_.scope -eq $Scope -and
+            [string]$_.name -eq $Name -and
+            [string]$_.status -eq "pass"
+        }).Count -gt 0
+}
+
+function New-IdleBusyLoopCandidateStatus {
+    param(
+        [Parameter(Mandatory = $true)][string]$Candidate,
+        [Parameter(Mandatory = $true)][string]$AuditName,
+        $Audit,
+        [Parameter(Mandatory = $true)][object[]]$RequiredChecks,
+        [Parameter(Mandatory = $true)][string]$Evidence
+    )
+
+    $checkResults = @($RequiredChecks | ForEach-Object {
+            $passed = Test-AuditCheckPassed -Audit $Audit -Scope ([string]$_.scope) -Name ([string]$_.name)
+            [pscustomobject]@{
+                scope = [string]$_.scope
+                name = [string]$_.name
+                passed = [bool]$passed
+            }
+        })
+
+    [pscustomobject]@{
+        candidate = $Candidate
+        verified = @($checkResults | Where-Object { -not [bool]$_.passed }).Count -eq 0
+        audit = $AuditName
+        evidence = $Evidence
+        checks = $checkResults
+    }
+}
+
 function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -1331,6 +1376,83 @@ if ($p2pControlPlaneEvidence) {
     }
 }
 
+$idleBusyLoopCandidateStatuses = @(
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "clipboard polling" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard opt-in env gate" },
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor sleep" }
+        ) `
+        -Evidence "Clipboard sync is off by default and, when explicitly enabled, sleeps between polls."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "mDNS discovery" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "mdns"; name = "mDNS opt-in env gate" },
+            [pscustomobject]@{ scope = "mdns"; name = "IPv6 separate opt-in" },
+            [pscustomobject]@{ scope = "mdns"; name = "Tailscale separate opt-in" },
+            [pscustomobject]@{ scope = "mdns"; name = "virtual interfaces separate opt-in" },
+            [pscustomobject]@{ scope = "mdns"; name = "browse bounded by deadline" },
+            [pscustomobject]@{ scope = "mdns"; name = "recv timeout bounded" },
+            [pscustomobject]@{ scope = "mdns"; name = "disconnect breaks browse" }
+        ) `
+        -Evidence "mDNS is opt-in, noisy interface classes are separately gated, and explicit discovery is bounded."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "health/readiness retry" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll initial backoff" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll max backoff" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll sleep" },
+            [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge health poll initial backoff" },
+            [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge health poll max backoff" },
+            [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge readiness deadline" },
+            [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge readiness backoff sleep" }
+        ) `
+        -Evidence "Auto-update health polling and CLI bridge readiness both have bounded backoff and deadlines."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "frontend interval/refetch" `
+        -AuditName "frontend-polling" `
+        -Audit $frontendPollingAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "source"; name = "no direct setInterval in non-test frontend source" },
+            [pscustomobject]@{ scope = "source"; name = "visibilitychange owned only by shared poller" },
+            [pscustomobject]@{ scope = "poller"; name = "minimum interval clamp" },
+            [pscustomobject]@{ scope = "poller"; name = "cleanup aborts task" },
+            [pscustomobject]@{ scope = "poller"; name = "no interval timer in shared poller" }
+        ) `
+        -Evidence "Frontend polling uses shared one-shot low-duty polling with abort cleanup; direct intervals are banned."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "relay payload target poller" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "relay payload poller opt-in env gate" },
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "poller default low duty interval" },
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "poller minimum interval" },
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "poller empty backoff cap" },
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "poller hard backoff ceiling" },
+            [pscustomobject]@{ scope = "relay-payload-poller"; name = "poller cancellation-aware sleep" }
+        ) `
+        -Evidence "Target-side relay polling is opt-in and uses bounded interval/backoff/cancellation."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "cloud heartbeat" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "cloud-heartbeat"; name = "heartbeat default" },
+            [pscustomobject]@{ scope = "cloud-heartbeat"; name = "heartbeat minimum floor" },
+            [pscustomobject]@{ scope = "cloud-heartbeat"; name = "failure backoff exponent" },
+            [pscustomobject]@{ scope = "cloud-heartbeat"; name = "failure backoff sleep" }
+        ) `
+        -Evidence "Cloud heartbeat defaults to low-duty cadence and sleeps with failure backoff."
+)
+$idleBusyLoopCandidateContractVerified = @($idleBusyLoopCandidateStatuses | Where-Object { -not [bool]$_.verified }).Count -eq 0
+
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 $blockers = New-Object System.Collections.Generic.List[object]
 $warnings = New-Object System.Collections.Generic.List[object]
@@ -1364,6 +1486,9 @@ if (-not $frontendPollingContractVerified) {
 }
 if (-not $rustBackgroundLoopContractVerified) {
     Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
+}
+if (-not $idleBusyLoopCandidateContractVerified) {
+    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health/readiness, frontend polling, relay target polling, and cloud heartbeat are not all proven gated, low-duty, bounded, or cancellable."
 }
 if (-not $localApiAuthContractVerified) {
     Add-Blocker -List $blockers -Area "local-api-auth" -Message "Local API auth contract audit (musu.local_api_auth_contract.v1) failed; localhost bridge requests are not proven to require bearer auth by default with only an explicit trusted local bypass."
@@ -1421,6 +1546,7 @@ $manualInternalGates = @(
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
+    "Idle busy-loop candidate summary for clipboard, mDNS, health/readiness, frontend polling, relay target polling, and cloud heartbeat",
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "Secret storage contract audit for token-file ACLs, raw-token redaction, and secret-safe operator docs",
@@ -1499,6 +1625,8 @@ $result = [pscustomobject]@{
             raw = $rustBackgroundLoopAuditResult.raw
         }
     }
+    idle_busy_loop_candidate_contract_verified = [bool]$idleBusyLoopCandidateContractVerified
+    idle_busy_loop_candidate_status = @($idleBusyLoopCandidateStatuses)
     local_api_auth_contract_verified = [bool]$localApiAuthContractVerified
     local_api_auth_contract_audit = if ($localApiAuthAuditResult.json) {
         $localApiAuthAuditResult.json
@@ -1584,6 +1712,7 @@ else {
     "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
     "frontend_polling_contract_verified: $($result.frontend_polling_contract_verified)"
     "rust_background_loop_contract_verified: $($result.rust_background_loop_contract_verified)"
+    "idle_busy_loop_candidate_contract_verified: $($result.idle_busy_loop_candidate_contract_verified)"
     "local_api_auth_contract_verified: $($result.local_api_auth_contract_verified)"
     "operator_api_security_contract_verified: $($result.operator_api_security_contract_verified)"
     "secret_storage_contract_verified: $($result.secret_storage_contract_verified)"

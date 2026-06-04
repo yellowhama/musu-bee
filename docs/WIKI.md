@@ -6318,3 +6318,41 @@ connect/payload markers and live KV/Upstash/evidence gaps.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_PAYLOAD_DELIVERY_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Idle busy-loop candidate status gate (wiki/717)
+
+`write-release-go-no-go.ps1` now emits an explicit idle busy-loop candidate
+summary:
+
+- `idle_busy_loop_candidate_contract_verified`
+- `idle_busy_loop_candidate_status`
+- blocker area `idle-busy-loop-candidates`
+
+The summary maps the original CPU suspects to concrete audit checks:
+
+- clipboard polling
+- mDNS discovery
+- health/readiness retry loops
+- frontend interval/refetch polling
+- relay payload target polling
+- cloud heartbeat
+
+Validation:
+
+- PowerShell parser passed for `write-release-go-no-go.ps1`
+- `git diff --check` passed
+- Rust loop audit passed with `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+- Frontend polling audit passed with `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- Dirty-tree go/no-go summary reported
+  `idle_busy_loop_candidate_contract_verified=true`, candidate count `6`, and
+  no failed candidates
+
+This is status/gate source only. It does not replace 60-second CPU evidence and
+does not close the two-machine idle CPU gate. Public release remains No-Go on
+second-PC, hosted P2P, support mailbox, and Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_STATUS_GATE_2026_06_05.md`
