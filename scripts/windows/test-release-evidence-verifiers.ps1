@@ -25,6 +25,8 @@ $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
+$singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
+$releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -130,6 +132,34 @@ function Add-CaseResult {
         passed_expectation = [bool]$passedExpectation
         raw = if ($passedExpectation) { $null } else { $Invocation.raw }
     }) | Out-Null
+}
+
+function New-StaticVerifierInvocation {
+    param(
+        [Parameter(Mandatory = $true)][bool]$Ok,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+
+    [pscustomobject]@{
+        exit_code = if ($Ok) { 0 } else { 1 }
+        parsed = [pscustomobject]@{
+            ok = $Ok
+            fail_count = if ($Ok) { 0 } else { 1 }
+        }
+        raw = $Message
+    }
+}
+
+function Test-TestSourceFilesAllowedAsStatusOnly {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    return (
+        $source -like '*"*.test.ts"*' -and
+        $source -like '*"*.test.tsx"*' -and
+        $source -like '*"*.spec.ts"*' -and
+        $source -like '*"*.spec.tsx"*'
+    )
 }
 
 $now = [datetimeoffset]::Now
@@ -602,6 +632,26 @@ function New-MsixInstallEvidence {
 }
 
 $cases = New-Object System.Collections.Generic.List[object]
+
+$freshnessClassifierScripts = @(
+    $singleMachineVerifier,
+    $runtimeCpuScenarioMatrixVerifier,
+    $releaseGoNoGoWriter
+)
+foreach ($classifierScript in $freshnessClassifierScripts) {
+    $classifierOk = Test-TestSourceFilesAllowedAsStatusOnly -ScriptPath $classifierScript
+    $classifierName = [System.IO.Path]::GetFileName($classifierScript)
+    $invocation = New-StaticVerifierInvocation `
+        -Ok $classifierOk `
+        -Message "test/spec source files must be freshness status-only in $classifierName"
+    Add-CaseResult `
+        -Cases $cases `
+        -Name "freshness classifier allows test-only source files in $classifierName" `
+        -Verifier "release freshness classifier contract" `
+        -FixturePath $classifierScript `
+        -ShouldPass $true `
+        -Invocation $invocation
+}
 
 $fixture = Write-Fixture -Name "msix-valid-clean-alias" -Object (New-MsixInstallEvidence)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")

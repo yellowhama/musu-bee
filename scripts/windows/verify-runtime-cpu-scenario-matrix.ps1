@@ -86,6 +86,18 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         return $true
     }
 
+    $testOnlyPathPatterns = @(
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx"
+    )
+    foreach ($pattern in $testOnlyPathPatterns) {
+        if ($normalizedPath -like $pattern) {
+            return $true
+        }
+    }
+
     $statusOnlyScripts = @(
         ".github/workflows/deploy-musu-bee.yml",
         "scripts/windows/audit-desktop-release-readiness.ps1",

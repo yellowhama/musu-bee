@@ -3349,6 +3349,40 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_DRAIN_PREVIEW_EVIDENCE_GATE_HARDENING_2026_06_04.md`
 
+## 2026-06-04 test file freshness and web input roadmap (wiki/683)
+
+Release freshness now treats TypeScript test/spec source files as status-only:
+
+- `*.test.ts`
+- `*.test.tsx`
+- `*.spec.ts`
+- `*.spec.tsx`
+
+This prevents test-only release-gate hardening from incorrectly staling current
+packaged MSIX/smoke/CPU/matrix evidence.
+
+Validation:
+
+- PowerShell parser check passed for modified release scripts
+- release evidence verifier regression passed with `ok=true`, `case_count=28`,
+  and `failed_case_count=0`
+
+Roadmap:
+
+- `localhost` dashboards are local-only
+- `musu.pro` is the web input, project room, company meeting room, rendezvous,
+  path-selection, relay-fallback coordination, and evidence plane
+- local MUSU programs execute work on each device
+- devices should prefer direct P2P mesh after web-assisted rendezvous
+- relay is fallback-only, not the default data path
+
+Current validation remains one-machine until the same current build is installed
+and tested on a second Windows PC.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TEST_FILE_FRESHNESS_AND_WEB_INPUT_ROADMAP_2026_06_04.md`
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:

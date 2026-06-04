@@ -3387,4 +3387,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_route_missing_transport_proof`, `relay_route_payload_endpoint_not_wired`,
   and `test:p2p 62/62`.
 
+- 2026-06-04 test file freshness and web input roadmap:
+  `RELEASE_1_15_0_RC1_TEST_FILE_FRESHNESS_AND_WEB_INPUT_ROADMAP_2026_06_04.md`
+  (wiki/683) records that release freshness classifiers now treat
+  `*.test.ts`, `*.test.tsx`, `*.spec.ts`, and `*.spec.tsx` as status-only, so
+  test-only gate hardening does not stale packaged evidence. It also locks the
+  product split: `localhost` dashboards are local-only, `musu.pro` is the web
+  input/project room/company meeting room/rendezvous/path-selection/relay
+  fallback/evidence plane, and local MUSU programs execute the work while
+  preferring P2P mesh after web-assisted rendezvous. Search terms should include
+  `GOAL v495`, `wiki/683`, `case_count=28`, `failed_case_count=0`,
+  `release freshness classifier contract`, `test/spec source files`,
+  `musu.pro web input`, `company meeting room`, and `local MUSU programs execute`.
+
 **End of WIKI_INDEX.md.**

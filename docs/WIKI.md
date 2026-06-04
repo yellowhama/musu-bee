@@ -5032,3 +5032,43 @@ gate.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_DRAIN_PREVIEW_EVIDENCE_GATE_HARDENING_2026_06_04.md`
+
+## 2026-06-04 test file freshness and web input roadmap (wiki/683)
+
+Release freshness classifiers now treat TypeScript test/spec source files as
+status-only changes:
+
+- `*.test.ts`
+- `*.test.tsx`
+- `*.spec.ts`
+- `*.spec.tsx`
+
+Updated scripts:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+- `scripts\windows\verify-single-machine-evidence.ps1`
+- `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+
+Validation passed:
+
+- PowerShell parser check for the four modified scripts
+- release evidence verifier regression `ok=true`, `case_count=28`,
+  `failed_case_count=0`
+
+Roadmap lock:
+
+- `localhost` / `127.0.0.1` dashboards are local-only operator/dev surfaces
+- `musu.pro` is the web input, project room, company meeting room, rendezvous,
+  path-selection, relay-fallback coordination, and evidence plane
+- local MUSU programs execute the work on each device
+- devices can use `musu.pro` for identity/presence/rendezvous, then prefer
+  direct P2P mesh routes
+- relay remains fallback only and must not become the default data path
+
+The current validation remains one-machine until the same current build is
+installed and tested on a second Windows PC.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TEST_FILE_FRESHNESS_AND_WEB_INPUT_ROADMAP_2026_06_04.md`
