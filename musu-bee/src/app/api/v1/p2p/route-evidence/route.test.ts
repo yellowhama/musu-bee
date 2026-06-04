@@ -954,6 +954,54 @@ test("excludes stale relay records without current transport proof from release-
         relay_transport_proof: relayTransportProof("stale-relay-lease"),
       },
     });
+    await appendRouteEvidenceRecord({
+      id: "stale-relay-transport-lease-mismatch-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:05Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...staleRelayEvidence,
+        relay_transport_proof: relayTransportProof("different-relay-lease"),
+        relay_payload_delivery_proof: {
+          schema: "musu.relay_payload_delivery_proof.v1",
+          payload_id: "stale-relay-payload",
+          session_id: staleRelayEvidence.session_id ?? "",
+          lease_id: "stale-relay-lease",
+          source_node_id: staleRelayEvidence.source_node_id,
+          target_node_id: staleRelayEvidence.target_node_id,
+          tunnel_id: "relay-tunnel-test",
+          payload_sha256: "sha256:stale",
+          payload_bytes: 128,
+          delivered_at: "2026-06-01T01:00:05Z",
+        },
+      },
+    });
+    await appendRouteEvidenceRecord({
+      id: "stale-relay-transport-session-mismatch-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:06Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...staleRelayEvidence,
+        relay_transport_proof: relayTransportProof("stale-relay-lease", {
+          session_id: "other-session",
+        }),
+        relay_payload_delivery_proof: {
+          schema: "musu.relay_payload_delivery_proof.v1",
+          payload_id: "stale-relay-payload-session",
+          session_id: staleRelayEvidence.session_id ?? "",
+          lease_id: "stale-relay-lease",
+          source_node_id: staleRelayEvidence.source_node_id,
+          target_node_id: staleRelayEvidence.target_node_id,
+          tunnel_id: "relay-tunnel-test",
+          payload_sha256: "sha256:stale-session",
+          payload_bytes: 128,
+          delivered_at: "2026-06-01T01:00:06Z",
+        },
+      },
+    });
 
     const filteredRes = await GET(getReq("?release_grade=true&limit=10"));
     assert.equal(filteredRes.status, 200);
@@ -969,6 +1017,18 @@ test("excludes stale relay records without current transport proof from release-
     );
     assert.equal(
       filteredBody.records.some((record) => record.id === "stale-relay-transport-only-release-grade"),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some(
+        (record) => record.id === "stale-relay-transport-lease-mismatch-release-grade"
+      ),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some(
+        (record) => record.id === "stale-relay-transport-session-mismatch-release-grade"
+      ),
       false
     );
   });

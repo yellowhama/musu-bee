@@ -169,11 +169,15 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
     return true;
   }
   const proof = evidence.relay_transport_proof;
+  const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
+  const evidenceSessionId = evidence.session_id?.trim() ?? "";
   return Boolean(
     proof &&
       proof.schema === "musu.relay_transport_proof.v1" &&
       proof.lease_id?.trim() &&
+      (!relayLeaseId || proof.lease_id.trim() === relayLeaseId) &&
       proof.session_id?.trim() &&
+      (!evidenceSessionId || proof.session_id.trim() === evidenceSessionId) &&
       proof.tunnel_id?.trim() &&
       proof.relay_url?.trim().startsWith("wss://") &&
       Number.isInteger(proof.handshake_ms) &&

@@ -202,6 +202,24 @@ Add-Check `
     -Message "Release-grade queries filter stale relay records unless current fallback, transport, and delivery proof shapes are present."
 
 Add-Check `
+    -Scope "route-evidence" `
+    -Name "release-grade query binds relay transport proof to fallback lease" `
+    -Passed (
+        (Test-ContainsAll -Text $routeEvidenceStore -Needles @(
+            'const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";',
+            'const evidenceSessionId = evidence.session_id?.trim() ?? "";',
+            '(!relayLeaseId || proof.lease_id.trim() === relayLeaseId)',
+            '(!evidenceSessionId || proof.session_id.trim() === evidenceSessionId)'
+        )) -and
+        (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "stale-relay-transport-lease-mismatch-release-grade",
+            "stale-relay-transport-session-mismatch-release-grade"
+        ))
+    ) `
+    -Path $routeEvidenceStorePath `
+    -Message "Release-grade relay queries reject stale records whose transport proof is not bound to the fallback lease and session."
+
+Add-Check `
     -Scope "rust-source" `
     -Name "source enqueues after issued lease" `
     -Passed (
