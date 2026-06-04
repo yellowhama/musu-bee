@@ -3167,4 +3167,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `alias_shadowing_mode=fail`, `WindowsApps before .cargo`, and
   `single_machine_verified=true`.
 
+- 2026-06-04 current operator handoff pack:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_2026_06_04.md`
+  (wiki/665) records current final operator packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260604-094858.zip`, action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940.zip`, second-PC
+  transfer `MUSU-second-PC-transfer-1.15.0-rc.1-20260604-094940.zip`,
+  Partner Center zip `MUSU-1.15.0-rc.1-store-submission-20260604-094940.zip`,
+  and support verification id `musu-store-support-1.15.0-rc.1-20260604-094858`.
+  Search terms should include `GOAL v476`, `wiki/665`, `packet.verified=true`,
+  `action_pack.verified=true`, `ready_for_public_desktop_release=false`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `p2p_relay_route_evidence_count=0`, `p2p_relay_payload_transport_proven=false`,
+  and `local MUSU programs still perform the actual work`.
+
 **End of WIKI_INDEX.md.**

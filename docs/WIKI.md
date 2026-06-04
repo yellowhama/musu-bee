@@ -4287,3 +4287,45 @@ Public release remains No-Go on second-PC runtime/multi-device evidence, live
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_DRAIN_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 current operator handoff pack (wiki/665)
+
+The final operator packet and operator action pack were regenerated after the
+post relay-drain primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-094858.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-094940.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-094940.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-094858`
+
+Verification:
+
+- final packet verifier passed with `ok=true`, `fail_count=0`, `kit_count=1`
+- action-pack verifier passed with `ok=true`, `fail_count=0`
+- final handoff status reports `packet.verified=true`,
+  `action_pack.verified=true`, `ready_for_public_desktop_release=false`, and
+  `manifest_git.dirty=false`
+
+Roadmap state:
+
+- one-machine packaged local runtime evidence is current
+- second-PC transfer/import is the next step for P2P mesh and two-machine CPU
+  gates
+- MUSU.PRO is the web coordination/control-plane surface for remote user input,
+  rendezvous, meeting-room style project coordination, and relay proof
+- local MUSU programs still do the actual work on each device
+- public release remains blocked on second-PC multi-device evidence,
+  two-machine runtime CPU evidence, `musu@musu.pro` delivery evidence,
+  Store/Partner Center evidence, and live owner-scoped `musu.pro` relay proof
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_2026_06_04.md`

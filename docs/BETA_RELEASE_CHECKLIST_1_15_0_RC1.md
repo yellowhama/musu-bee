@@ -2462,6 +2462,48 @@ Public release remains No-Go because the release gate still requires second-PC
 runtime/multi-device evidence, live `musu.pro` relay proof, support mailbox
 evidence, and Store/Partner Center evidence.
 
+## 2026-06-04 09:54 KST Current Operator Handoff Pack
+
+The final operator packet and operator action pack were regenerated from clean
+HEAD after the post relay-drain primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-094858.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-094940.zip`
+- Partner Center submission zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-094940\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-094940.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-094858`
+
+Verification:
+
+- final packet verifier: `ok=true`, `fail_count=0`, `kit_count=1`
+- action-pack verifier: `ok=true`, `fail_count=0`
+- final handoff status: `packet.verified=true`, `action_pack.verified=true`,
+  `ready_for_public_desktop_release=false`
+
+Roadmap interpretation:
+
+- one-machine local runtime testing is current
+- second-PC installation and return import are required before P2P mesh,
+  multi-device, and two-machine CPU gates can close
+- MUSU.PRO remains the web coordination/control-plane surface for remote user
+  input, rendezvous, meeting-room style project coordination, and relay proof;
+  local MUSU programs still perform the actual work on each device
+- live `musu.pro` relay route evidence still has
+  `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_proven=false`, and
+  `p2p_relay_payload_delivery_proof_valid_count=0`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_2026_06_04.md`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:
