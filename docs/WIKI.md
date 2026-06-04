@@ -4329,3 +4329,32 @@ Roadmap state:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_2026_06_04.md`
+
+## 2026-06-04 relay route evidence stale proof query gate (wiki/666)
+
+Live `musu.pro` P2P status remains No-Go because production KV/Upstash env is
+missing, release-grade relay transport is not wired, owner-scoped release-grade
+relay route evidence count is `0`, relay payload transport proof is `false`,
+and relay payload delivery proof valid count is `0`.
+
+The route-evidence query path now has a regression test proving that stale relay
+records cannot inflate release-grade evidence counts. The test manually appends
+a relay record with `release_grade=true` but without current
+`musu.relay_transport_proof.v1`; `GET /api/v1/p2p/route-evidence?release_grade=true`
+excludes that stale relay record and returns only records that satisfy the
+current transport-proof contract.
+
+Validation:
+
+- `npm run test:p2p` passed `61/61`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+This is release-gate hardening only. Public release still needs real second-PC
+evidence, production KV/Upstash config, stored QUIC/TLS relay transport proof,
+stored relay payload delivery proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STALE_PROOF_QUERY_GATE_2026_06_04.md`

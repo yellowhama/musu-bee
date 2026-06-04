@@ -3181,4 +3181,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_route_evidence_count=0`, `p2p_relay_payload_transport_proven=false`,
   and `local MUSU programs still perform the actual work`.
 
+- 2026-06-04 relay route evidence stale proof query gate:
+  `RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STALE_PROOF_QUERY_GATE_2026_06_04.md`
+  (wiki/666) records release-gate hardening that prevents stale relay records
+  with `release_grade=true` but no current `musu.relay_transport_proof.v1` from
+  being returned by `GET /api/v1/p2p/route-evidence?release_grade=true`. Search
+  terms should include `GOAL v477`, `wiki/666`, `query-stale-relay-proof`,
+  `stale-relay-release-grade`, `npm run test:p2p 61/61`,
+  `release-grade relay route evidence count`, `missing KV/Upstash env`, and
+  `relay payload delivery proof valid count is 0`.
+
 **End of WIKI_INDEX.md.**

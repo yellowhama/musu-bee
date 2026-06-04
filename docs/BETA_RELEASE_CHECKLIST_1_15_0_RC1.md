@@ -2504,6 +2504,36 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_2026_06_04.md`
 
+## 2026-06-04 Relay Route Evidence Stale Proof Query Gate
+
+Live `musu.pro` P2P status still reports No-Go because production KV/Upstash
+env is missing, release-grade relay transport is not wired, relay route
+evidence count is `0`, relay payload transport proof is `false`, and relay
+payload delivery proof valid count is `0`.
+
+The local release-gate hardening added a regression test for the route-evidence
+query path:
+
+- seed a stale relay record with `release_grade=true`
+- omit current `musu.relay_transport_proof.v1`
+- query `GET /api/v1/p2p/route-evidence?release_grade=true`
+- assert the stale relay record is excluded
+
+Validation:
+
+- `npm run test:p2p` passed `61/61`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+This prevents stale/manual relay records from inflating the release-grade relay
+route evidence count. It does not close the hosted P2P gate; public release
+still needs a real owner-scoped relay route with stored QUIC/TLS transport proof
+and stored relay payload delivery proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STALE_PROOF_QUERY_GATE_2026_06_04.md`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

@@ -22,6 +22,10 @@ import {
   appendRelayTransportProof,
   createRelayTransportProof,
 } from "@/lib/p2pRelayTransportProofStore";
+import {
+  appendRouteEvidenceRecord,
+  type RouteEvidencePayload,
+} from "@/lib/routeEvidenceStore";
 
 type Module = {
   GET: (req: NextRequest) => Promise<Response>;
@@ -71,7 +75,7 @@ const hardenedEvidence = {
   payload_transited_musu_infra: false,
   result: "success",
   recorded_at: "2026-06-01T01:00:00Z",
-};
+} as const satisfies RouteEvidencePayload;
 
 function relayTransportProof(leaseId: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -875,6 +879,54 @@ test("queries stored route evidence with filters", async () => {
     assert.equal(filteredBody.records[0]?.evidence.target_node_id, "pc-b");
     assert.equal(filteredBody.records[0]?.release_grade, true);
     assert.equal(filteredBody.records[0]?.owner_key, undefined);
+  });
+});
+
+test("excludes stale relay records without current transport proof from release-grade queries", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { GET, POST } = await loadModule("query-stale-relay-proof");
+    await POST(postReq(hardenedEvidence));
+
+    const staleRelayEvidence: RouteEvidencePayload = {
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: "stale-relay-lease",
+        payload_transport_attempted: true,
+        payload_transport_proven: true,
+      },
+    };
+    await appendRouteEvidenceRecord({
+      id: "stale-relay-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:03Z",
+      release_grade: true,
+      blockers: [],
+      evidence: staleRelayEvidence,
+    });
+
+    const filteredRes = await GET(getReq("?release_grade=true&limit=10"));
+    assert.equal(filteredRes.status, 200);
+    const filteredBody = (await filteredRes.json()) as {
+      count: number;
+      records: Array<{ id: string; evidence: { route_kind: string }; release_grade: boolean }>;
+    };
+    assert.equal(filteredBody.count, 1);
+    assert.equal(filteredBody.records[0]?.evidence.route_kind, "direct_quic");
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-relay-release-grade"),
+      false
+    );
   });
 });
 
