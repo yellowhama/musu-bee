@@ -226,6 +226,8 @@ $gitCommit = Get-StringProperty -Object $evidence -Name "git_commit"
 $startedAtText = Get-StringProperty -Object $evidence -Name "started_at"
 $completedAtText = Get-StringProperty -Object $evidence -Name "completed_at"
 $dashboardBaseUrl = Get-StringProperty -Object $evidence -Name "dashboard_base_url"
+$dashboardBaseUrlSource = Get-StringProperty -Object $evidence -Name "dashboard_base_url_source"
+$dashboardReachableUrl = Get-StringProperty -Object $evidence -Name "dashboard_reachable_url"
 $bridgeUrl = Get-StringProperty -Object $evidence -Name "bridge_url"
 $doctorOverall = Get-StringProperty -Object $evidence -Name "doctor_overall"
 $dashboardDoctorOverall = Get-StringProperty -Object $evidence -Name "dashboard_doctor_overall"
@@ -286,6 +288,10 @@ foreach ($timestamp in @(
     }
 }
 Add-CheckFromCondition "dashboard base url" (-not [string]::IsNullOrWhiteSpace($dashboardBaseUrl)) "dashboard_base_url is present" "dashboard_base_url is missing"
+Add-CheckFromCondition "dashboard base url source" (-not [string]::IsNullOrWhiteSpace($dashboardBaseUrlSource)) "dashboard_base_url_source is present" "dashboard_base_url_source is missing"
+Add-CheckFromCondition "dashboard url auto-discovered" ($dashboardBaseUrlSource -match "^musu (up|doctor)\.dashboard\.reachable_url$") "dashboard URL came from runtime reachable_url" "dashboard URL was not discovered from runtime reachable_url"
+Add-CheckFromCondition "dashboard reachable url" (-not [string]::IsNullOrWhiteSpace($dashboardReachableUrl)) "dashboard_reachable_url is present" "dashboard_reachable_url is missing"
+Add-CheckFromCondition "dashboard no dev-port default" ($dashboardBaseUrl -notmatch "^http://127\.0\.0\.1:3000/?$") "dashboard_base_url is not the dev dashboard default" "dashboard_base_url still points at the dev dashboard default"
 Add-CheckFromCondition "bridge url" ($bridgeUrl -match "^http://127\.0\.0\.1:\d+") "bridge_url is localhost" "bridge_url is missing or not localhost"
 Add-CheckFromCondition "doctor overall" ($doctorOverall -ne "fail" -and -not [string]::IsNullOrWhiteSpace($doctorOverall)) "doctor overall is not fail" "doctor overall is fail or missing"
 Add-CheckFromCondition "dashboard doctor overall" ($dashboardDoctorOverall -ne "fail" -and -not [string]::IsNullOrWhiteSpace($dashboardDoctorOverall)) "dashboard doctor overall is not fail" "dashboard doctor overall is fail or missing"
@@ -306,6 +312,8 @@ $result = [pscustomobject]@{
     fail_count = $failCount
     version = $version
     git_commit = $gitCommit
+    dashboard_base_url = $dashboardBaseUrl
+    dashboard_base_url_source = $dashboardBaseUrlSource
     dashboard_task_id = $dashboardTaskId
     bridge_url = $bridgeUrl
     cli_route_checked = $cliRouteChecked

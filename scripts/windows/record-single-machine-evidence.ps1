@@ -65,11 +65,14 @@ $baseName = "$stamp-$safeMachine"
 
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
+$sourceEvidencePath = (Resolve-Path -LiteralPath $EvidencePath).Path
 $rawPath = Join-Path $OutputRoot "$baseName.evidence.json"
 $verificationPath = Join-Path $OutputRoot "$baseName.verification.json"
 $summaryPath = Join-Path $OutputRoot "$baseName.summary.md"
 
-Copy-Item -LiteralPath $EvidencePath -Destination $rawPath -Force
+if (-not [string]::Equals($sourceEvidencePath, $rawPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Copy-Item -LiteralPath $sourceEvidencePath -Destination $rawPath -Force
+}
 $verification | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $verificationPath -Encoding UTF8
 
 $rawHash = Get-FileHash -Algorithm SHA256 -LiteralPath $rawPath
@@ -81,6 +84,8 @@ $summary = @"
 - Version: $Version
 - Verified: $($verification.ok)
 - Git commit: $($verification.git_commit)
+- Dashboard URL: $($verification.dashboard_base_url)
+- Dashboard URL source: $($verification.dashboard_base_url_source)
 - Dashboard task id: $($verification.dashboard_task_id)
 - Bridge URL: $($verification.bridge_url)
 - CLI route checked: $($verification.cli_route_checked)
@@ -105,6 +110,8 @@ $result = [pscustomobject]@{
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     git_commit = [string]$verification.git_commit
+    dashboard_base_url = [string]$verification.dashboard_base_url
+    dashboard_base_url_source = [string]$verification.dashboard_base_url_source
     dashboard_task_id = [string]$verification.dashboard_task_id
     bridge_url = [string]$verification.bridge_url
     cli_route_checked = [bool]$verification.cli_route_checked
