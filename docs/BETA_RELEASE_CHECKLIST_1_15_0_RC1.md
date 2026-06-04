@@ -3230,6 +3230,44 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 20:18 KST Room Presence Client CLI
+
+Local Rust CLI support now connects installed MUSU programs to the MUSU.PRO
+room presence API:
+
+- `musu room presence publish <room-id>`
+- `musu room presence list <room-id>`
+
+This keeps the product split clear. `musu.pro` is remote input, project room,
+company meeting room, presence, rendezvous, path-selection, relay-fallback
+coordination, and evidence. Local MUSU programs execute the work on each
+device and use `musu.pro` only to bootstrap discovery and coordination before
+preferring direct P2P mesh.
+
+Validation:
+
+- targeted Rust room presence lib tests passed `4/4`
+- Rust CLI parser test passed `1/1`
+- `cargo check --bin musu` passed
+- debug `musu.exe` build passed
+- CLI help checks passed for `room presence`, `publish`, and `list`
+- `git diff --check` passed
+
+Release interpretation:
+
+- this is on-demand CLI only; no background heartbeat, timer, or polling loop
+  was added
+- this is Rust runtime source, so the current packaged MSIX, smoke evidence,
+  desktop-open CPU sample, runtime CPU matrix, final packet, and operator
+  action pack are stale until regenerated from this commit
+- public release remains No-Go until second-PC runtime/multi-device evidence,
+  hosted `musu.pro` P2P proof, `musu@musu.pro` mailbox evidence, and Store
+  evidence are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_CLIENT_CLI_2026_06_04.md`
+
 ## 2026-06-04 18:02 KST Post Room Work-Order API Primary Evidence Refresh
 
 After adding `POST /api/rooms/[roomId]/work-orders`, the local-sideload MSIX

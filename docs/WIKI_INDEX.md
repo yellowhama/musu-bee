@@ -3586,4 +3586,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `room presence primary evidence`, `musu.pro project room`, `company meeting
   room`, `web-assisted rendezvous`, and `local MUSU programs execute work`.
 
+- 2026-06-04 room presence client CLI:
+  `RELEASE_1_15_0_RC1_ROOM_PRESENCE_CLIENT_CLI_2026_06_04.md` (wiki/699)
+  records local Rust CLI support for `musu room presence publish` and
+  `musu room presence list`. Search terms should include `GOAL v512`,
+  `wiki/699`, `room presence client CLI`, `musu.room_presence_publish.v1`,
+  `musu.room_presence_list.v1`, `musu.local-program`, `bridge_http_forward`,
+  `local TLS fingerprint public_key`, `route candidate`,
+  `owner-scoped presence`, `no background heartbeat`, `on-demand CLI`,
+  `cargo check --bin musu`, `room_presence_publish_cli_accepts_json_flag`, and
+  `fresh packaged primary evidence required`.
+
 **End of WIKI_INDEX.md.**

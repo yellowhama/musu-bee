@@ -5596,3 +5596,43 @@ mesh after web-assisted rendezvous.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Room presence client CLI (wiki/699)
+
+Added local Rust CLI support for MUSU.PRO room presence:
+
+- `musu room presence publish <room-id>`
+- `musu room presence list <room-id>`
+
+This closes the client-side gap after the room presence API. The installed
+local MUSU program can now publish its current executor status, route
+candidate, capabilities, active work orders, and identity context into a
+project/company room, and can query owner-scoped current presence from that
+room.
+
+The roadmap boundary remains explicit: `musu.pro` is the remote user input,
+project room, company meeting room, presence, rendezvous, path-selection,
+relay-fallback, and evidence plane. The local MUSU program executes work on
+each device and uses `musu.pro` to bootstrap discovery before preferring direct
+P2P mesh.
+
+Validation passed:
+
+- targeted Rust room presence lib tests `4/4`
+- Rust CLI parser test `1/1`
+- `cargo check --bin musu`
+- debug binary build
+- `room presence`, `room presence publish`, and `room presence list` help
+  checks
+- `git diff --check`
+
+This is on-demand CLI behavior only; no background heartbeat, timer, or
+polling loop was added.
+
+This is Rust runtime source, so fresh packaged MSIX/smoke/CPU/matrix evidence
+is required after commit. Current operator packet/action-pack artifacts are
+also stale until regenerated from this source.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_CLIENT_CLI_2026_06_04.md`

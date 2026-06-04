@@ -109,6 +109,116 @@ pub struct NodeCandidateSet {
     pub capabilities: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)] // Room presence DTO; used by CLI and future bridge heartbeat wiring.
+#[serde(rename_all = "snake_case")]
+pub enum RoomPresenceStatus {
+    Online,
+    Idle,
+    Busy,
+    Offline,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Room presence publish DTO.
+pub struct RoomPresenceRequest {
+    pub node_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<RoomPresenceStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub company_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_agent_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub active_work_order_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_endpoints: Vec<CandidateEndpoint>,
+    #[serde(default)]
+    pub relay_capable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub capabilities: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Room presence stored record DTO.
+pub struct RoomPresenceRecord {
+    pub schema: String,
+    pub owner_key: String,
+    pub room_id: String,
+    pub node_id: String,
+    pub node_name: String,
+    pub app_version: String,
+    pub status: RoomPresenceStatus,
+    #[serde(default)]
+    pub company_id: Option<String>,
+    #[serde(default)]
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub source_agent_id: Option<String>,
+    #[serde(default)]
+    pub active_work_order_ids: Vec<String>,
+    #[serde(default)]
+    pub candidate_endpoints: Vec<CandidateEndpoint>,
+    pub relay_capable: bool,
+    pub public_key: String,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+    pub origin: String,
+    pub last_seen_at: String,
+    pub expires_at: String,
+    pub heartbeat_ttl_seconds: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Room presence publish API response DTO.
+pub struct RoomPresencePublishResponse {
+    pub ok: bool,
+    pub room_id: String,
+    pub presence: RoomPresenceRecord,
+    #[serde(default)]
+    pub candidate_cache_seeded: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[allow(dead_code)] // Room presence query DTO.
+pub struct RoomPresenceQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub company_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_agent_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<RoomPresenceStatus>,
+    #[serde(default)]
+    pub include_expired: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Room presence query API response DTO.
+pub struct RoomPresenceQueryResponse {
+    pub ok: bool,
+    pub room_id: String,
+    pub presence_order: String,
+    pub count: usize,
+    #[serde(default)]
+    pub presence: Vec<RoomPresenceRecord>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct P2pRendezvousRequest {
@@ -724,6 +834,88 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
+    fn room_presence_url(&self, room_id: &str) -> Result<reqwest::Url> {
+        let mut url = reqwest::Url::parse(&self.base_url)?;
+        url.path_segments_mut()
+            .map_err(|_| anyhow!("invalid cloud base URL"))?
+            .extend(["api", "rooms", room_id, "presence"]);
+        Ok(url)
+    }
+
+    /// POST /api/rooms/:roomId/presence to publish current local executor presence.
+    pub async fn publish_room_presence(
+        &self,
+        room_id: &str,
+        req: &RoomPresenceRequest,
+    ) -> Result<RoomPresencePublishResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = self.room_presence_url(room_id)?;
+
+        let resp = self
+            .client
+            .post(url)
+            .bearer_auth(token)
+            .json(req)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to publish room presence: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// GET /api/rooms/:roomId/presence to inspect owner-scoped current room presence.
+    pub async fn query_room_presence(
+        &self,
+        room_id: &str,
+        query: &RoomPresenceQuery,
+    ) -> Result<RoomPresenceQueryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let mut url = self.room_presence_url(room_id)?;
+        {
+            let mut pairs = url.query_pairs_mut();
+            if let Some(limit) = query.limit {
+                pairs.append_pair("limit", &limit.to_string());
+            }
+            if let Some(company_id) = query.company_id.as_deref() {
+                pairs.append_pair("company_id", company_id);
+            }
+            if let Some(project_id) = query.project_id.as_deref() {
+                pairs.append_pair("project_id", project_id);
+            }
+            if let Some(node_id) = query.node_id.as_deref() {
+                pairs.append_pair("node_id", node_id);
+            }
+            if let Some(source_agent_id) = query.source_agent_id.as_deref() {
+                pairs.append_pair("source_agent_id", source_agent_id);
+            }
+            if let Some(status) = query.status.as_ref() {
+                pairs.append_pair("status", room_presence_status_query_value(status));
+            }
+            if query.include_expired {
+                pairs.append_pair("include_expired", "true");
+            }
+        }
+
+        let resp = self.client.get(url).bearer_auth(token).send().await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to query room presence: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
     /// POST /api/v1/p2p/rendezvous to start assisted endpoint exchange.
     #[allow(dead_code)] // Wired after bridge path selection starts using rendezvous.
     pub async fn create_rendezvous(
@@ -1173,6 +1365,15 @@ fn route_kind_query_value(kind: &RouteKind) -> &'static str {
     }
 }
 
+fn room_presence_status_query_value(status: &RoomPresenceStatus) -> &'static str {
+    match status {
+        RoomPresenceStatus::Online => "online",
+        RoomPresenceStatus::Idle => "idle",
+        RoomPresenceStatus::Busy => "busy",
+        RoomPresenceStatus::Offline => "offline",
+    }
+}
+
 fn route_attempt_result_query_value(result: &RouteAttemptResult) -> &'static str {
     match result {
         RouteAttemptResult::Success => "success",
@@ -1193,6 +1394,92 @@ mod tests {
         assert_eq!(
             serde_json::to_value(RouteKind::Tailscale).unwrap(),
             serde_json::json!("tailscale")
+        );
+    }
+
+    #[test]
+    fn room_presence_request_serializes_current_executor_context() {
+        let req = RoomPresenceRequest {
+            node_id: "pc-a".into(),
+            node_name: Some("HUGH_SECOND".into()),
+            app_version: Some("1.15.0-rc.1".into()),
+            status: Some(RoomPresenceStatus::Busy),
+            company_id: Some("company-a".into()),
+            project_id: Some("project-a".into()),
+            source_agent_id: Some("agent-a".into()),
+            active_work_order_ids: vec!["wo-1".into()],
+            candidate_endpoints: vec![CandidateEndpoint {
+                kind: RouteKind::Lan,
+                addr: "192.168.1.20:8949".into(),
+                observed_at: "2026-06-04T10:00:00Z".into(),
+                scheme: Some("http".into()),
+            }],
+            relay_capable: false,
+            public_key: Some("sha256:cert".into()),
+            capabilities: vec!["bridge_http_forward".into()],
+            origin: Some("musu.local-program".into()),
+        };
+
+        let value = serde_json::to_value(req).unwrap();
+
+        assert_eq!(value["node_id"], "pc-a");
+        assert_eq!(value["node_name"], "HUGH_SECOND");
+        assert_eq!(value["status"], "busy");
+        assert_eq!(value["company_id"], "company-a");
+        assert_eq!(value["candidate_endpoints"][0]["kind"], "lan");
+        assert_eq!(value["candidate_endpoints"][0]["addr"], "192.168.1.20:8949");
+        assert_eq!(value["relay_capable"], false);
+        assert_eq!(value["capabilities"][0], "bridge_http_forward");
+        assert_eq!(value["origin"], "musu.local-program");
+    }
+
+    #[test]
+    fn room_presence_query_response_parses_owner_scoped_records() {
+        let response: RoomPresenceQueryResponse = serde_json::from_value(serde_json::json!({
+            "ok": true,
+            "room_id": "project-room",
+            "presence_order": "last_seen_desc",
+            "count": 1,
+            "presence": [{
+                "schema": "musu.room_presence.v1",
+                "owner_key": "token-sha256:abc",
+                "room_id": "project-room",
+                "node_id": "pc-a",
+                "node_name": "HUGH_SECOND",
+                "app_version": "1.15.0-rc.1",
+                "status": "online",
+                "company_id": "company-a",
+                "project_id": "project-a",
+                "source_agent_id": null,
+                "active_work_order_ids": [],
+                "candidate_endpoints": [{
+                    "kind": "lan",
+                    "addr": "192.168.1.20:8949",
+                    "observed_at": "2026-06-04T10:00:00Z",
+                    "scheme": "http"
+                }],
+                "relay_capable": false,
+                "public_key": "sha256:cert",
+                "capabilities": ["bridge_http_forward"],
+                "origin": "musu.local-program",
+                "last_seen_at": "2026-06-04T10:00:00Z",
+                "expires_at": "2026-06-04T10:02:00Z",
+                "heartbeat_ttl_seconds": 120
+            }]
+        }))
+        .unwrap();
+
+        assert!(response.ok);
+        assert_eq!(response.room_id, "project-room");
+        assert_eq!(response.count, 1);
+        assert_eq!(response.presence[0].node_id, "pc-a");
+        assert!(matches!(
+            response.presence[0].status,
+            RoomPresenceStatus::Online
+        ));
+        assert_eq!(
+            response.presence[0].candidate_endpoints[0].kind,
+            RouteKind::Lan
         );
     }
 

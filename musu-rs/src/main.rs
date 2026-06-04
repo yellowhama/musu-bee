@@ -17,8 +17,8 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RouteOpts, ShareOpts, StatusOpts, StopOpts,
-    UnshareOpts, UpOpts,
+    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
+    StatusOpts, StopOpts, UnshareOpts, UpOpts,
 };
 
 #[derive(Parser)]
@@ -95,6 +95,11 @@ enum Cmd {
     Relay {
         #[command(subcommand)]
         action: RelayAction,
+    },
+    /// Publish/query MUSU.PRO project-room control-plane state.
+    Room {
+        #[command(subcommand)]
+        action: RoomAction,
     },
     /// List files on a peer machine.
     Ls(LsOpts),
@@ -265,6 +270,10 @@ async fn main() -> anyhow::Result<()> {
             init_tracing_default();
             install::cli_commands::run_relay(action).await
         }
+        Cmd::Room { action } => {
+            init_tracing_default();
+            install::cli_commands::run_room(action).await
+        }
         Cmd::Ls(opts) => {
             init_tracing_default();
             install::cli_commands::run_ls(opts).await
@@ -368,6 +377,25 @@ mod tests {
         match cli.command {
             Cmd::Status(opts) => assert!(opts.json),
             _ => panic!("expected status command"),
+        }
+    }
+
+    #[test]
+    fn room_presence_publish_cli_accepts_json_flag() {
+        let cli = Cli::try_parse_from([
+            "musu",
+            "room",
+            "presence",
+            "publish",
+            "project-room",
+            "--status",
+            "idle",
+            "--json",
+        ])
+        .unwrap();
+        match cli.command {
+            Cmd::Room { .. } => {}
+            _ => panic!("expected room command"),
         }
     }
 }

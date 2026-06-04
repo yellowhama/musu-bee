@@ -97,6 +97,25 @@ pub enum RelayAction {
     RouteEvidence(RelayRouteEvidenceOpts),
 }
 
+/// Subcommands for `musu room`.
+#[derive(Subcommand, Debug)]
+pub enum RoomAction {
+    /// Publish or query room-scoped local executor presence.
+    Presence {
+        #[command(subcommand)]
+        action: RoomPresenceAction,
+    },
+}
+
+/// Subcommands for `musu room presence`.
+#[derive(Subcommand, Debug)]
+pub enum RoomPresenceAction {
+    /// Publish this local MUSU program's current presence and route candidates.
+    Publish(RoomPresencePublishOpts),
+    /// List current owner-scoped room presence records.
+    List(RoomPresenceListOpts),
+}
+
 /// Options for `musu relay status`.
 #[derive(Args, Debug)]
 pub struct RelayStatusOpts {
@@ -231,6 +250,80 @@ pub struct RelayRouteEvidenceOpts {
     /// Filter by target node id.
     #[arg(long)]
     pub target_node_id: Option<String>,
+}
+
+/// Options for `musu room presence publish <room-id>`.
+#[derive(Args, Debug)]
+pub struct RoomPresencePublishOpts {
+    /// Room id on musu.pro.
+    pub room_id: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Override the local node id.
+    #[arg(long)]
+    pub node_id: Option<String>,
+    /// Override the human-readable node name.
+    #[arg(long)]
+    pub node_name: Option<String>,
+    /// Presence status.
+    #[arg(long, default_value = "online")]
+    pub status: String,
+    /// Company id context.
+    #[arg(long)]
+    pub company_id: Option<String>,
+    /// Project id context.
+    #[arg(long)]
+    pub project_id: Option<String>,
+    /// Source agent id context.
+    #[arg(long)]
+    pub source_agent_id: Option<String>,
+    /// Active work order id. May be repeated.
+    #[arg(long = "work-order-id")]
+    pub work_order_ids: Vec<String>,
+    /// Capability. May be repeated.
+    #[arg(long = "capability")]
+    pub capabilities: Vec<String>,
+    /// Override the advertised bridge URL used to build the route candidate.
+    #[arg(long)]
+    pub public_url: Option<String>,
+    /// Mark this node as relay-capable in the room presence record.
+    #[arg(long)]
+    pub relay_capable: bool,
+    /// Origin marker recorded in the room presence record.
+    #[arg(long, default_value = "musu.local-program")]
+    pub origin: String,
+}
+
+/// Options for `musu room presence list <room-id>`.
+#[derive(Args, Debug)]
+pub struct RoomPresenceListOpts {
+    /// Room id on musu.pro.
+    pub room_id: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum presence records to return.
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
+    /// Company id filter.
+    #[arg(long)]
+    pub company_id: Option<String>,
+    /// Project id filter.
+    #[arg(long)]
+    pub project_id: Option<String>,
+    /// Node id filter.
+    #[arg(long)]
+    pub node_id: Option<String>,
+    /// Source agent id filter.
+    #[arg(long)]
+    pub source_agent_id: Option<String>,
+    /// Presence status filter: online, idle, busy, or offline.
+    #[arg(long)]
+    pub status: Option<String>,
+    /// Include expired presence records.
+    #[arg(long)]
+    pub include_expired: bool,
 }
 
 /// Options for `musu ls peer-name:/path`.
@@ -938,6 +1031,15 @@ pub async fn run_relay(action: RelayAction) -> Result<()> {
     }
 }
 
+pub async fn run_room(action: RoomAction) -> Result<()> {
+    match action {
+        RoomAction::Presence { action } => match action {
+            RoomPresenceAction::Publish(opts) => run_room_presence_publish(opts).await,
+            RoomPresenceAction::List(opts) => run_room_presence_list(opts).await,
+        },
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct RelayStatusReport {
     schema: &'static str,
@@ -1149,6 +1251,56 @@ struct RelayRouteEvidenceReport {
     count: usize,
     filters: RelayRouteEvidenceFilters,
     records: Vec<crate::cloud::RouteEvidenceRecord>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RoomPresenceCandidate {
+    kind: crate::cloud::RouteKind,
+    addr: String,
+    scheme: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RoomPresencePublishReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    room_id: String,
+    ok: bool,
+    candidate_cache_seeded: bool,
+    local_node_id: String,
+    local_node_name: String,
+    status: String,
+    candidate: Option<RoomPresenceCandidate>,
+    presence: Option<crate::cloud::RoomPresenceRecord>,
+    error: Option<String>,
+    next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+struct RoomPresenceListFilters {
+    limit: u32,
+    company_id: Option<String>,
+    project_id: Option<String>,
+    node_id: Option<String>,
+    source_agent_id: Option<String>,
+    status: Option<String>,
+    include_expired: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct RoomPresenceListReport {
+    schema: &'static str,
+    registry_url: String,
+    logged_in: bool,
+    room_id: String,
+    ok: bool,
+    presence_order: String,
+    count: usize,
+    filters: RoomPresenceListFilters,
+    presence: Vec<crate::cloud::RoomPresenceRecord>,
     error: Option<String>,
     next_steps: Vec<&'static str>,
 }
@@ -2339,6 +2491,298 @@ async fn run_relay_route_evidence(opts: RelayRouteEvidenceOpts) -> Result<()> {
             record.evidence.target_node_id,
             record.received_at,
             record.release_grade
+        );
+    }
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+fn parse_room_presence_status(value: &str) -> Result<crate::cloud::RoomPresenceStatus> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "online" => Ok(crate::cloud::RoomPresenceStatus::Online),
+        "idle" => Ok(crate::cloud::RoomPresenceStatus::Idle),
+        "busy" => Ok(crate::cloud::RoomPresenceStatus::Busy),
+        "offline" => Ok(crate::cloud::RoomPresenceStatus::Offline),
+        _ => Err(anyhow!(
+            "room presence status must be one of: online, idle, busy, offline"
+        )),
+    }
+}
+
+fn room_presence_status_label(status: &crate::cloud::RoomPresenceStatus) -> &'static str {
+    match status {
+        crate::cloud::RoomPresenceStatus::Online => "online",
+        crate::cloud::RoomPresenceStatus::Idle => "idle",
+        crate::cloud::RoomPresenceStatus::Busy => "busy",
+        crate::cloud::RoomPresenceStatus::Offline => "offline",
+    }
+}
+
+fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
+    match crate::bridge::router::route_kind_for_addr(addr) {
+        crate::bridge::router::RoutePathKind::Local | crate::bridge::router::RoutePathKind::Lan => {
+            crate::cloud::RouteKind::Lan
+        }
+        crate::bridge::router::RoutePathKind::Tailscale => crate::cloud::RouteKind::Tailscale,
+        crate::bridge::router::RoutePathKind::DirectQuic => crate::cloud::RouteKind::DirectQuic,
+    }
+}
+
+fn endpoint_scheme_from_url(value: &str) -> Option<String> {
+    reqwest::Url::parse(value.trim().trim_end_matches('/'))
+        .ok()
+        .and_then(|url| match url.scheme() {
+            "http" | "https" => Some(url.scheme().to_string()),
+            _ => None,
+        })
+}
+
+fn local_room_public_key() -> Option<String> {
+    crate::install::tls::default_cert_fingerprint(&musu_home())
+        .ok()
+        .flatten()
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn room_presence_request_from_opts(
+    opts: &RoomPresencePublishOpts,
+) -> Result<(
+    crate::cloud::RoomPresenceRequest,
+    Option<RoomPresenceCandidate>,
+)> {
+    let status = parse_room_presence_status(&opts.status)?;
+    let node_id = opts.node_id.clone().unwrap_or_else(local_node_id);
+    let node_name = opts.node_name.clone().unwrap_or_else(|| node_id.clone());
+    let public_url = opts
+        .public_url
+        .clone()
+        .unwrap_or_else(resolve_public_bridge_url);
+    let addr = crate::bridge::rendezvous::endpoint_addr_from_url(&public_url);
+    let scheme = endpoint_scheme_from_url(&public_url);
+    let kind = cloud_route_kind_for_addr(&addr);
+    let mut capabilities = if opts.capabilities.is_empty() {
+        vec!["bridge_http_forward".to_string()]
+    } else {
+        opts.capabilities.clone()
+    };
+    capabilities.sort();
+    capabilities.dedup();
+
+    let candidate = if addr.trim().is_empty() {
+        None
+    } else {
+        Some(crate::cloud::CandidateEndpoint {
+            kind: kind.clone(),
+            addr: addr.clone(),
+            observed_at: chrono::Utc::now().to_rfc3339(),
+            scheme: scheme.clone(),
+        })
+    };
+
+    let request = crate::cloud::RoomPresenceRequest {
+        node_id,
+        node_name: Some(node_name),
+        app_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        status: Some(status),
+        company_id: opts.company_id.clone(),
+        project_id: opts.project_id.clone(),
+        source_agent_id: opts.source_agent_id.clone(),
+        active_work_order_ids: opts.work_order_ids.clone(),
+        candidate_endpoints: candidate.iter().cloned().collect(),
+        relay_capable: opts.relay_capable,
+        public_key: local_room_public_key(),
+        capabilities,
+        origin: Some(opts.origin.clone()),
+    };
+
+    let report_candidate = candidate.map(|candidate| RoomPresenceCandidate {
+        kind: candidate.kind,
+        addr: candidate.addr,
+        scheme: candidate.scheme,
+    });
+
+    Ok((request, report_candidate))
+}
+
+async fn run_room_presence_publish(opts: RoomPresencePublishOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+    let (request, candidate) = room_presence_request_from_opts(&opts)?;
+    let mut report = RoomPresencePublishReport {
+        schema: "musu.room_presence_publish.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        room_id: opts.room_id.clone(),
+        ok: false,
+        candidate_cache_seeded: false,
+        local_node_id: request.node_id.clone(),
+        local_node_name: request
+            .node_name
+            .clone()
+            .unwrap_or_else(|| request.node_id.clone()),
+        status: request
+            .status
+            .as_ref()
+            .map(room_presence_status_label)
+            .unwrap_or("online")
+            .to_string(),
+        candidate,
+        presence: None,
+        error: None,
+        next_steps: vec![
+            "run this on each participating local MUSU program for the same room id",
+            "use `musu room presence list <room-id>` to confirm both nodes are visible before rendezvous",
+            "keep presence publishing on demand until a bounded heartbeat loop with sleep/backoff/cancellation is wired",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        match cloud.publish_room_presence(&opts.room_id, &request).await {
+            Ok(response) => {
+                report.ok = response.ok;
+                report.candidate_cache_seeded = response.candidate_cache_seeded;
+                report.presence = Some(response.presence);
+            }
+            Err(err) => {
+                report.error = Some(err.to_string());
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU room presence publish");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  room: {}", report.room_id);
+    println!("  ok: {}", report.ok);
+    println!(
+        "  node: {} ({})",
+        report.local_node_id, report.local_node_name
+    );
+    println!("  status: {}", report.status);
+    if let Some(candidate) = &report.candidate {
+        println!(
+            "  candidate: {:?} {} scheme={}",
+            candidate.kind,
+            candidate.addr,
+            candidate.scheme.as_deref().unwrap_or("unknown")
+        );
+    }
+    println!(
+        "  candidate cache seeded: {}",
+        report.candidate_cache_seeded
+    );
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    println!("  next steps:");
+    for step in &report.next_steps {
+        println!("    - {step}");
+    }
+    Ok(())
+}
+
+async fn run_room_presence_list(opts: RoomPresenceListOpts) -> Result<()> {
+    let home = musu_home();
+    let registry_url = crate::cloud::base_url_from_env();
+    let token = crate::cloud::token::load_token(&home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+    let status = opts
+        .status
+        .as_deref()
+        .map(parse_room_presence_status)
+        .transpose()?;
+    let filters = RoomPresenceListFilters {
+        limit: opts.limit.clamp(1, 200),
+        company_id: opts.company_id.clone(),
+        project_id: opts.project_id.clone(),
+        node_id: opts.node_id.clone(),
+        source_agent_id: opts.source_agent_id.clone(),
+        status: status
+            .as_ref()
+            .map(room_presence_status_label)
+            .map(str::to_string),
+        include_expired: opts.include_expired,
+    };
+    let query = crate::cloud::RoomPresenceQuery {
+        limit: Some(filters.limit),
+        company_id: filters.company_id.clone(),
+        project_id: filters.project_id.clone(),
+        node_id: filters.node_id.clone(),
+        source_agent_id: filters.source_agent_id.clone(),
+        status,
+        include_expired: filters.include_expired,
+    };
+    let mut report = RoomPresenceListReport {
+        schema: "musu.room_presence_list.v1",
+        registry_url: registry_url.clone(),
+        logged_in: token.is_some(),
+        room_id: opts.room_id.clone(),
+        ok: false,
+        presence_order: "last_seen_desc".to_string(),
+        count: 0,
+        filters,
+        presence: vec![],
+        error: None,
+        next_steps: vec![
+            "confirm all expected local MUSU programs have fresh non-expired presence",
+            "start a room-scoped rendezvous only after source and target presence include route candidates",
+        ],
+    };
+
+    if let Some(token) = token {
+        let cloud = crate::cloud::MusuCloud::new(&registry_url, Some(token));
+        match cloud.query_room_presence(&opts.room_id, &query).await {
+            Ok(response) => {
+                report.ok = response.ok;
+                report.presence_order = response.presence_order;
+                report.count = response.count;
+                report.presence = response.presence;
+            }
+            Err(err) => {
+                report.error = Some(err.to_string());
+            }
+        }
+    } else {
+        report.error = Some("not_logged_in".to_string());
+    }
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!("MUSU room presence");
+    println!("  registry: {}", report.registry_url);
+    println!("  logged in: {}", report.logged_in);
+    println!("  room: {}", report.room_id);
+    println!("  ok: {}", report.ok);
+    println!("  count: {}", report.count);
+    if let Some(error) = &report.error {
+        println!("  error: {error}");
+    }
+    for presence in &report.presence {
+        println!(
+            "  - {} status={:?} app={} candidates={} expires={}",
+            presence.node_id,
+            presence.status,
+            presence.app_version,
+            presence.candidate_endpoints.len(),
+            presence.expires_at
         );
     }
     println!("  next steps:");
@@ -4519,6 +4963,75 @@ mod tests {
         assert!(required_relay_payload_target(Some("other-node"), true).is_err());
 
         std::env::remove_var("MUSU_NODE_NAME");
+    }
+
+    #[test]
+    fn room_presence_status_accepts_expected_values() {
+        assert!(matches!(
+            parse_room_presence_status("online").unwrap(),
+            crate::cloud::RoomPresenceStatus::Online
+        ));
+        assert!(matches!(
+            parse_room_presence_status("idle").unwrap(),
+            crate::cloud::RoomPresenceStatus::Idle
+        ));
+        assert!(matches!(
+            parse_room_presence_status("busy").unwrap(),
+            crate::cloud::RoomPresenceStatus::Busy
+        ));
+        assert!(matches!(
+            parse_room_presence_status("offline").unwrap(),
+            crate::cloud::RoomPresenceStatus::Offline
+        ));
+        assert!(parse_room_presence_status("sleeping").is_err());
+    }
+
+    #[test]
+    fn room_presence_publish_request_defaults_to_local_candidate() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        std::env::set_var("MUSU_NODE_NAME", "room-node");
+        std::env::set_var("MUSU_BRIDGE_PUBLIC_URL", "http://192.168.1.20:8949");
+        let opts = RoomPresencePublishOpts {
+            room_id: "project-room".to_string(),
+            json: true,
+            node_id: None,
+            node_name: None,
+            status: "idle".to_string(),
+            company_id: Some("company-a".to_string()),
+            project_id: Some("project-a".to_string()),
+            source_agent_id: None,
+            work_order_ids: vec!["wo-1".to_string()],
+            capabilities: vec![],
+            public_url: None,
+            relay_capable: false,
+            origin: "musu.local-program".to_string(),
+        };
+
+        let (request, candidate) = room_presence_request_from_opts(&opts).unwrap();
+
+        assert_eq!(request.node_id, "room-node");
+        assert_eq!(request.node_name.as_deref(), Some("room-node"));
+        assert!(matches!(
+            request.status,
+            Some(crate::cloud::RoomPresenceStatus::Idle)
+        ));
+        assert_eq!(request.company_id.as_deref(), Some("company-a"));
+        assert_eq!(request.project_id.as_deref(), Some("project-a"));
+        assert_eq!(request.active_work_order_ids, vec!["wo-1".to_string()]);
+        assert_eq!(
+            request.capabilities,
+            vec!["bridge_http_forward".to_string()]
+        );
+        assert_eq!(request.candidate_endpoints.len(), 1);
+        assert_eq!(request.candidate_endpoints[0].addr, "192.168.1.20:8949");
+        assert!(matches!(
+            request.candidate_endpoints[0].kind,
+            crate::cloud::RouteKind::Lan
+        ));
+        assert!(candidate.is_some());
+
+        std::env::remove_var("MUSU_NODE_NAME");
+        std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
     }
 
     #[tokio::test]
