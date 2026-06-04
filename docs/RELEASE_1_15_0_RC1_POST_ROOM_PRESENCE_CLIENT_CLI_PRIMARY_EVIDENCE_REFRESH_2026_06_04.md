@@ -20,7 +20,7 @@ path after that Rust runtime source change.
 - single-machine smoke:
   `docs\evidence\single-machine\1.15.0-rc.1\20260604-204006-HUGH_SECOND.evidence.json`
 - desktop-open CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-204236-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-205835-HUGH_SECOND.desktop-open.evidence.json`
 - five-state runtime CPU matrix:
   `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-204423-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
@@ -37,8 +37,9 @@ path after that Rust runtime source change.
   `5c2b5865-e468-4cd0-891a-160ca56600a2`, output
   `MUSU_RELEASE_SMOKE_OK_20260604_203939`, and CLI route output
   `MUSU_CLI_ROUTE_OK_20260604_203939`.
-- Desktop-open CPU passed for `60.012s` from clean git state with MUSU `0`,
-  Node `0`, WebView2 `0`, working set `46.55MB`, and hot process count `0`.
+- Desktop-open CPU passed for `60.049s` from clean git state with
+  `require_owned_webview2=true`, MUSU `0`, Node `0.03`, WebView2 `0.1`,
+  owned WebView2 `6`, working set `488.93MB`, and hot process count `0`.
 - Five-state matrix passed verifier `ok=true`, `fail_count=0`, route token
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_204423`, and hot process count `0`
   across required scenarios.
