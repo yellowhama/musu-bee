@@ -342,7 +342,7 @@ Current release gate status before these external actions:
 - local artifacts: pass
 - single-machine smoke: pass
 - public metadata: pass
-- current second-PC MSIX/runtime evidence: missing
+- MSIX install evidence: missing (current second-PC packaged runtime/bridge evidence still missing)
 - real multi-device route evidence: missing
 - hosted P2P release proof: missing
 - support mailbox delivery evidence: missing
