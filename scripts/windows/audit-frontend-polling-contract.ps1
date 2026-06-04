@@ -146,13 +146,13 @@ $surfaceChecks = @(
     },
     [pscustomobject]@{
         path = "musu-bee\views\nodes\NodesView.tsx"
-        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000')
+        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000', 'useLowDutyPolling\(\(signal\)\s*=>\s*pollNodes\(signal\)', 'callServerTool\([\s\S]*name:\s*"poll_agents"[\s\S]*signal\s*\?\s*\{\s*signal\s*\}\s*:\s*undefined')
         disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
         description = "MCP nodes view polling"
     },
     [pscustomobject]@{
         path = "musu-bee\views\tasks\TasksView.tsx"
-        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000')
+        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000', 'useLowDutyPolling\(\(signal\)\s*=>\s*pollTasks\(null,\s*signal\)', 'callServerTool\([\s\S]*name:\s*"poll_tasks"[\s\S]*signal\s*\?\s*\{\s*signal\s*\}\s*:\s*undefined')
         disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
         description = "MCP tasks view polling"
     }
@@ -179,6 +179,13 @@ foreach ($surface in $surfaceChecks) {
             -Message "$($surface.description) does not own tight interval or visibility polling directly."
     }
 }
+
+$viewsApiPath = "musu-bee\views\shared\api.ts"
+$viewsApiText = Get-RepoText $viewsApiPath
+Add-RegexCheck -Scope "views-api" -Name "task fetch wrapper accepts abort signal" -Text $viewsApiText -Pattern 'fetchTasks\([\s\S]*signal\?:\s*AbortSignal' -Path $viewsApiPath -Message "MCP app task fetch wrapper accepts poller abort signals."
+Add-RegexCheck -Scope "views-api" -Name "task fetch wrapper passes abort signal" -Text $viewsApiText -Pattern 'fetch\(`\$\{config\.bridgeUrl\}/api/tasks\?\$\{qs\}`[\s\S]*signal,' -Path $viewsApiPath -Message "MCP app task fetch wrapper passes abort signals to fetch."
+Add-RegexCheck -Scope "views-api" -Name "task cancel wrapper accepts abort signal" -Text $viewsApiText -Pattern 'cancelTask\([\s\S]*signal\?:\s*AbortSignal' -Path $viewsApiPath -Message "MCP app task cancel wrapper accepts abort signals."
+Add-RegexCheck -Scope "views-api" -Name "task cancel wrapper passes abort signal" -Text $viewsApiText -Pattern 'fetch\(`\$\{config\.bridgeUrl\}/api/tasks/\$\{taskId\}`[\s\S]*signal,' -Path $viewsApiPath -Message "MCP app task cancel wrapper passes abort signals to fetch."
 
 $dashboardPath = "musu-bee\src\components\dashboard\DashboardClient.tsx"
 $dashboardText = Get-RepoText $dashboardPath

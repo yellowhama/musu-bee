@@ -107,7 +107,7 @@ export default function TasksView() {
 
   // ── poll_tasks 호출 헬퍼 ───────────────────────────────────
   const pollTasks = useCallback(
-    async (cursor?: string | null) => {
+    async (cursor?: string | null, signal?: AbortSignal) => {
       if (!app) return;
       try {
         const args: Record<string, unknown> = { limit: LIMIT };
@@ -115,7 +115,11 @@ export default function TasksView() {
         if (channelFilter !== "all") args.channel = channelFilter;
         if (cursor) args.before_id = cursor;
 
-        const result = await app.callServerTool({ name: "poll_tasks", arguments: args });
+        const result = await app.callServerTool(
+          { name: "poll_tasks", arguments: args },
+          signal ? { signal } : undefined,
+        );
+        if (signal?.aborted) return;
         const sc = result.structuredContent as { tasks?: BridgeTask[] } | null;
         if (sc?.tasks && mountedRef.current) {
           if (cursor) {
@@ -158,7 +162,7 @@ export default function TasksView() {
     };
   }, [isConnected]);
 
-  useLowDutyPolling(() => pollTasks(), {
+  useLowDutyPolling((signal) => pollTasks(null, signal), {
     enabled: Boolean(app && isConnected),
     intervalMs: POLL_INTERVAL_MS,
     immediate: false,

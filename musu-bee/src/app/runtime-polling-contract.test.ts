@@ -163,6 +163,7 @@ test("MCP app views use cancellable low-duty polling instead of setInterval", ()
   const pollerText = source("views/shared/useLowDutyPolling.ts");
   const nodesText = source("views/nodes/NodesView.tsx");
   const tasksText = source("views/tasks/TasksView.tsx");
+  const apiText = source("views/shared/api.ts");
 
   assert.match(pollerText, /MIN_LOW_DUTY_POLL_INTERVAL_MS\s*=\s*5_000/);
   assert.match(pollerText, /AbortSignal\.timeout\(taskTimeoutMs\)/);
@@ -174,6 +175,12 @@ test("MCP app views use cancellable low-duty polling instead of setInterval", ()
     assert.doesNotMatch(text, /setInterval\s*\(/);
     assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
   }
+  assert.match(nodesText, /useLowDutyPolling\(\(signal\)\s*=>\s*pollNodes\(signal\)/);
+  assert.match(nodesText, /callServerTool\([\s\S]*name:\s*"poll_agents"[\s\S]*signal\s*\?\s*\{\s*signal\s*\}\s*:\s*undefined/);
+  assert.match(tasksText, /useLowDutyPolling\(\(signal\)\s*=>\s*pollTasks\(null,\s*signal\)/);
+  assert.match(tasksText, /callServerTool\([\s\S]*name:\s*"poll_tasks"[\s\S]*signal\s*\?\s*\{\s*signal\s*\}\s*:\s*undefined/);
+  assert.match(apiText, /fetchTasks\([\s\S]*signal\?:\s*AbortSignal/);
+  assert.match(apiText, /cancelTask\([\s\S]*signal\?:\s*AbortSignal/);
 });
 
 test("shared low-duty polling supports bounded task timeout cancellation", () => {

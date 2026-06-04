@@ -39,10 +39,14 @@ export default function NodesView() {
     },
   });
 
-  const pollNodes = useCallback(async () => {
+  const pollNodes = useCallback(async (signal?: AbortSignal) => {
     if (!app) return;
     try {
-      const result = await app.callServerTool({ name: "poll_agents", arguments: {} });
+      const result = await app.callServerTool(
+        { name: "poll_agents", arguments: {} },
+        signal ? { signal } : undefined,
+      );
+      if (signal?.aborted) return;
       const sc = result.structuredContent as { nodes?: MeshNode[] } | null;
       if (sc?.nodes && mountedRef.current) {
         setNodes(sc.nodes);
@@ -61,7 +65,7 @@ export default function NodesView() {
     };
   }, [isConnected]);
 
-  useLowDutyPolling(() => pollNodes(), {
+  useLowDutyPolling((signal) => pollNodes(signal), {
     enabled: Boolean(app && isConnected),
     intervalMs: POLL_INTERVAL_MS,
     taskTimeoutMs: 10_000,
