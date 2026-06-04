@@ -12,6 +12,25 @@ Date: 2026-05-29
 4. delegate one local agent task,
 5. observe the result from the dashboard task APIs.
 
+## Product Split
+
+The release target is a local-executor product with a web coordination plane:
+
+- the installed MUSU program does local execution on each device
+- `http://127.0.0.1:*` dashboards are same-machine local/operator surfaces
+- `https://musu.pro` is the intended remote user input, project room, company
+  meeting room, device presence, rendezvous, path-selection, relay-fallback,
+  and evidence surface
+- `musu.pro` sends authenticated work-order envelopes and room events to local
+  programs; it must not become the default execution server or default data
+  path
+- devices should use `musu.pro` to bootstrap peer discovery, then prefer direct
+  P2P mesh; hosted relay is fallback after direct route failure
+
+Current one-machine validation can continue without the second PC. Successful
+multi-device proof and second-PC CPU/resource evidence require installing the
+same current MUSU build on the second Windows machine.
+
 ## Must-Pass Smoke
 
 Repeatable script:

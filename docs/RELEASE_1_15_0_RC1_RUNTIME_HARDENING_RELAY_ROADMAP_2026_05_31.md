@@ -2180,3 +2180,39 @@ to local execution boundary.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MUSU_PRO_WORK_ORDER_CONTEXT_HARDENING_2026_06_04.md`
+
+## 2026-06-04 Local Program / Web Input Roadmap Alignment
+
+The roadmap is now explicit about the installed local program and the website
+being separate surfaces:
+
+- local MUSU programs do the work on each device: file access,
+  shell/app/browser automation, local bridge/runtime execution, and P2P mesh
+  traffic
+- `musu.pro` is the remote user input, project room, company meeting room,
+  device presence, rendezvous, path-selection, fallback-relay coordination, and
+  evidence plane
+- `musu.pro` sends bounded authenticated work-order envelopes to local
+  programs; it does not execute local work or become a remote desktop server
+- `localhost` / `127.0.0.1` dashboards are same-machine operator/developer
+  surfaces, not cloud dashboard access
+- devices use `musu.pro` to bootstrap discovery and exchange route offers, then
+  prefer direct P2P mesh after a viable path is established
+- hosted relay is fallback after direct-route failure and remains the
+  Connect/Pro boundary, not the default data path
+
+The product room model is also locked: company/project rooms on `musu.pro`
+should let AI workers attached to the same project share work orders, presence,
+task status, decisions, handoffs, meeting notes, route/session status, and
+evidence. The room coordinates the work; local machines execute it.
+
+Current validation remains one-machine until the same current MUSU build is
+installed on the second Windows PC. One-machine work can continue on packaged
+startup, dashboard URL discovery, local smoke, idle CPU, CPU matrix,
+background-loop audits, route explain diagnostics, and hosted P2P fail-closed
+evidence gates. Successful multi-device route proof and second-PC CPU/matrix
+evidence still require the second machine.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_LOCAL_PROGRAM_WEB_INPUT_ROADMAP_ALIGNMENT_2026_06_04.md`

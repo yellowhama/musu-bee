@@ -5274,3 +5274,31 @@ multi-device route evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_ATTEMPT_CPU_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 Local program / web input roadmap alignment (wiki/690)
+
+The roadmap now explicitly separates the installed local MUSU program from the
+`musu.pro` website.
+
+Decision:
+
+- local MUSU programs execute work on each device
+- `musu.pro` is the remote user input, project room, company meeting room,
+  presence, rendezvous, path-selection, fallback-relay coordination, and
+  evidence plane
+- `localhost` dashboards are same-machine operator/developer surfaces, not
+  cloud dashboard access
+- `musu.pro` sends authenticated bounded work-order envelopes and room events
+  but does not execute shell/file/browser work itself
+- devices use `musu.pro` to bootstrap discovery and route offers, then prefer
+  direct P2P mesh
+- hosted relay remains fallback after direct-route failure and is the
+  Connect/Pro boundary
+
+Current validation remains one-machine until the current build is installed on
+the second Windows PC. Successful multi-device route evidence and second-PC
+CPU/matrix evidence still require that second machine.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_LOCAL_PROGRAM_WEB_INPUT_ROADMAP_ALIGNMENT_2026_06_04.md`

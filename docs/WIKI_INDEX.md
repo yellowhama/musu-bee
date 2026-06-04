@@ -3475,4 +3475,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU 0`, `Node 0.05`, `WebView2 0.18`, `working set 465.97MB`, `hot 0`,
   `target-route verification`, and `not successful multi-device route evidence`.
 
+- 2026-06-04 local program / web input roadmap alignment:
+  `RELEASE_1_15_0_RC1_LOCAL_PROGRAM_WEB_INPUT_ROADMAP_ALIGNMENT_2026_06_04.md`
+  (wiki/690) records the product split between installed local MUSU programs
+  and the `musu.pro` website. Search terms should include `GOAL v503`,
+  `wiki/690`, `local program`, `web input`, `musu.pro project room`,
+  `company meeting room`, `authenticated work-order envelopes`,
+  `localhost dashboards are same-machine`, `P2P mesh after route offers`,
+  `Connect/Pro boundary`, `relay fallback after direct-route failure`, and
+  `second PC current build required`.
+
 **End of WIKI_INDEX.md.**

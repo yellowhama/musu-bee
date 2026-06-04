@@ -25,6 +25,23 @@ This is the Codex/GitHub-style product shape: the cloud service owns identity,
 project/repository context, work orders, presence, and coordination; the local
 program owns execution and machine-to-machine transport.
 
+Follow-up lock from the operator discussion:
+
+- The local program and the website are separate product surfaces. The local
+  program is not "the website running on localhost"; it is the installed worker
+  that owns local execution.
+- `https://musu.pro` should be the preferred user entrypoint for remote work
+  ordering, project rooms, device presence, and route/session status.
+- `localhost` / `127.0.0.1` pages remain useful for local diagnosis and
+  same-machine operation, but they are not the remote-user workflow.
+- `musu.pro` sends authenticated work-order envelopes and room events. It does
+  not run shell commands, edit local files, or become a remote desktop server.
+- Devices may use `musu.pro` to rendezvous and exchange signed route offers.
+  Once a viable path exists, the devices should talk through direct P2P mesh
+  whenever possible.
+- The hosted relay path is fallback after direct-route failure and belongs at
+  the Connect/Pro boundary. It is not the default data path.
+
 ## Release implication
 
 Current work can keep validating one-machine behavior: local runtime startup,
@@ -41,6 +58,25 @@ prove:
 - multi-device route explain and execution evidence,
 - release-grade route transport with peer identity and encryption proof, and
 - relay fallback only after direct-path failure.
+
+Immediate roadmap:
+
+1. Keep one-machine release hardening moving while the second Windows PC is not
+   available: packaged dashboard URL discovery, local smoke, idle CPU, CPU
+   scenario matrix, background-loop audits, local API auth, and work-order
+   context integrity.
+2. Treat current multi-device work as single-machine-preparable only until the
+   current build is installed on the second PC: kit generation, route explain
+   diagnostics, evidence importers, and fail-closed verifiers.
+3. Build `musu.pro` rooms as the web coordination layer: company/project room,
+   work orders, AI worker presence, decisions, handoffs, notes, and status.
+4. Build `musu.pro` rendezvous/path selection as the connection bootstrap:
+   device identity, presence, route candidates, signed offers, attempted path
+   history, and fallback decision records.
+5. Complete release-grade relay transport only after the control plane proves
+   owner-scoped storage and fallback-only policy: wired connect endpoint, wired
+   payload endpoint, lease-bound payload transit, delivery proof, route
+   evidence, and `relay_default_data_path=false`.
 
 ## Control SSE audit
 
