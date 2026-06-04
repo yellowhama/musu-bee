@@ -3544,4 +3544,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `test:p2p 70/70`, `room events 5/5`, `Next build`,
   `/api/rooms/[roomId]/events`, and `fresh packaged primary evidence required`.
 
+- 2026-06-04 post room event API primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_EVENT_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/696) records current primary-machine evidence after the room event API.
+  Search terms should include `GOAL v509`, `wiki/696`, `5d94c236`,
+  `20260604-185920-HUGH_SECOND`, `20260604-190029-HUGH_SECOND.desktop-open`,
+  `20260604-190203-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_185856`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_190203`, `http://127.0.0.1:3001/app`,
+  `runtime idle CPU 1/2 [HUGH_SECOND]`, `runtime CPU matrix 1/2 [HUGH_SECOND]`,
+  `msix_install_verified=true`, `msix_desktop_entrypoint_verified=true`,
+  `manifest_git.dirty=false`, `room event primary evidence`,
+  `warning-mode install diagnostic-only`, and `local MUSU programs execute
+  work`.
+
 **End of WIKI_INDEX.md.**

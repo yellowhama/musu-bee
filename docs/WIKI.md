@@ -5473,3 +5473,42 @@ after commit.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_ROOM_EVENT_API_2026_06_04.md`
+
+## 2026-06-04 Post room event API primary evidence refresh (wiki/696)
+
+Fresh primary-machine packaged evidence was restored after adding
+`POST /api/rooms/[roomId]/events` and `GET /api/rooms/[roomId]/events`.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-185920-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-190029-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-190203-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke dashboard `http://127.0.0.1:3001`, reachable URL
+  `http://127.0.0.1:3001/app`, bridge `http://127.0.0.1:2555`, output
+  `MUSU_RELEASE_SMOKE_OK_20260604_185856`
+- desktop-open CPU `60.063s`, `git_dirty=false`, MUSU `0.03`, Node `0`,
+  WebView2 `0.49`, owned WebView2 `6`, working set `484.19MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_190203`, max CPU MUSU `0.1`, Node
+  `0.05`, WebView2 `0.55`, max working set `484.91MB`
+- clean go/no-go on `5d94c236`: `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+  `public_metadata_ok=true`, `manifest_git.dirty=false`, and public release
+  No-Go
+
+Public release remains blocked on second-PC runtime/multi-device evidence,
+hosted `musu.pro` P2P control-plane proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_EVENT_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
