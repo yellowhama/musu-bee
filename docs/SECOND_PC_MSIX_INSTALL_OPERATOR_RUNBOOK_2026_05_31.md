@@ -32,6 +32,8 @@ F:\workspace\musu-bee\.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operato
 - PowerShell.
 - Ability to run an elevated PowerShell if certificate trust needs `-MachineTrust`.
 - No MUSU source repo required.
+- No workspace Next dashboard required. The packaged MUSU runtime is the local
+  executor; `localhost:3001` is only an optional developer/operator dashboard.
 
 ## Step 1 - Copy The Action Pack To The Second PC
 
@@ -101,6 +103,11 @@ cd C:\MUSU-second-pc\action-pack\second-pc\transfer\kit
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
 ```
 
+The check should use the installed WindowsApps `musu.exe` package. If
+`musu up --json` reports `dashboard.required=false`, that is valid for this
+release check. Do not start `npm run dev`, `npm start`, or a local
+`localhost:3001` dashboard just to satisfy this second-PC evidence run.
+
 ## Step 4 - Confirm Success On The Second PC
 
 The run is successful when it creates a return archive:
@@ -128,10 +135,12 @@ can run the wrapper with `-SkipRuntimeIdleCpu`, but that skipped run cannot clos
 the runtime idle CPU gate.
 
 The wrapper also captures a diagnostic CPU scenario matrix for
-`runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`. That
-matrix helps identify which state causes idle CPU pressure. It is now verified
-as a separate go/no-go attribution gate, but it still does not replace the
-two-machine 60s `desktop-open` runtime idle CPU evidence.
+`startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+`post-route`. In packaged bridge-only runs, `dashboard-open` measures packaged
+runtime state when no dashboard URL is exposed. That matrix helps identify
+which state causes idle CPU pressure. It is now verified as a separate go/no-go
+attribution gate, but it still does not replace the two-machine 60s
+`desktop-open` runtime idle CPU evidence.
 
 ## Step 5 - Bring The Return ZIP Back To The Primary Repo
 

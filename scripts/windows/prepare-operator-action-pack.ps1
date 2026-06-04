@@ -142,6 +142,14 @@ Source commit: $gitCommit
 Copy this inner zip to the second Windows PC:
 - $($kitZip.Name)
 
+Important runtime boundary:
+- The installed MUSU package is the local executor.
+- A `localhost:3001` workspace dashboard is optional and is not required for the
+  second-PC release check.
+- The check uses the packaged WindowsApps `musu.exe` bridge, records
+  bridge-only evidence when `dashboard.required=false`, and then returns the
+  evidence zip to the primary repo.
+
 On the second PC:
 1. Extract $($kitZip.Name) into a normal writable folder, for example Downloads\musu-multidevice.
 2. Open PowerShell in the extracted folder.
@@ -231,7 +239,9 @@ Restricted capability justification summary:
 - The local-sideload package is a separate manual-start contract. This Store-reviewed artifact is the auto-start distribution model.
 
 Reviewer-facing product truth:
-- MUSU turns the user's Windows PC into a local AI operations node with a trusted dashboard, diagnostics, and task runner.
+- MUSU turns the user's Windows PC into a local AI operations node with a
+  packaged local runtime, diagnostics, and task runner. Local dashboards are
+  optional operator/developer surfaces, not required cloud access.
 - Multi-device workflows are beta-gated and require explicit peer setup/evidence.
 - The current Tauri shell is a launcher/status surface, not a full native dashboard GUI.
 "@
@@ -256,7 +266,7 @@ Partner Center metadata:
 - Privacy URL: https://musu.pro/privacy
 - Support URL: https://musu.pro/support
 - Support email: $SupportEmail
-- Short description: MUSU turns your Windows PC into a local AI operations node with a trusted dashboard, diagnostics, and task runner.
+- Short description: MUSU turns your Windows PC into a local AI operations node with a packaged local runtime, diagnostics, and task runner.
 
 Restricted capability notes:
 - Paste/attach PARTNER_CENTER_CERTIFICATION_NOTES_CLEAN.txt and partner-center-capability-justification.md.
@@ -311,6 +321,8 @@ This pack groups the remaining external release actions.
 
 1. Second PC test
 - Use: `second-pc\MUSU-second-PC-transfer-$safeVersion-$stamp.zip`
+- This validates the installed packaged runtime/bridge. It must not require a
+  workspace `localhost:3001` dashboard.
 - Return to repo after second-PC run:
   - `.local-build\second-pc-return\*.zip`
   - `.local-build\msix-install\*.evidence.json`
@@ -330,8 +342,9 @@ Current release gate status before these external actions:
 - local artifacts: pass
 - single-machine smoke: pass
 - public metadata: pass
-- MSIX install evidence: missing
-- real multi-device evidence: missing
+- current second-PC MSIX/runtime evidence: missing
+- real multi-device route evidence: missing
+- hosted P2P release proof: missing
 - support mailbox delivery evidence: missing
 - Store approval evidence: missing
 "@
