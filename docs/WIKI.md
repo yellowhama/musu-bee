@@ -4395,3 +4395,38 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_STALE_PROOF_QUERY_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 current operator handoff pack after stale-proof evidence (wiki/668)
+
+The final operator packet and operator action pack were regenerated from clean
+HEAD after the stale-proof query hardening and current primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-103143.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-103216.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-103216\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-103216.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-103216\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-103216.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-103143`
+
+Verification:
+
+- final packet verifier passed with `ok=true`, `fail_count=0`, `kit_count=1`
+- action-pack verifier passed with `ok=true`, `fail_count=0`
+- final handoff status reports `packet.verified=true`,
+  `action_pack.verified=true`, `ready_for_public_desktop_release=false`,
+  `single_machine_verified=true`, runtime idle CPU `1/2`, and runtime CPU
+  matrix `1/2`
+
+Public release remains No-Go on second-PC runtime/multi-device evidence, live
+owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_STALE_PROOF_EVIDENCE_2026_06_04.md`
