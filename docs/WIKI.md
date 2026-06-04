@@ -5677,3 +5677,34 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CLIENT_CLI_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 MCP app views low-duty polling hardening (wiki/701)
+
+The separate Vite single-file MCP app views now use a shared low-duty polling
+hook instead of direct `setInterval` loops.
+
+Changed:
+
+- added `musu-bee\views\shared\useLowDutyPolling.ts`
+- migrated `musu-bee\views\nodes\NodesView.tsx`
+- migrated `musu-bee\views\tasks\TasksView.tsx`
+- expanded `audit-frontend-polling-contract.ps1` to scan both `musu-bee\src`
+  and `musu-bee\views`
+- added runtime-polling contract test coverage for the MCP app views
+
+Validation passed:
+
+- `npm run test:runtime-polling` `16/16`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run build` in `musu-bee\views`
+- `npx tsc --noEmit` in `musu-bee\views`
+- `git diff --check`
+
+This closes another frontend interval/refetch-loop candidate. This is runtime
+frontend source, so packaged primary evidence and operator packets are stale
+after commit until rebuilt/refreshed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MCP_APP_VIEWS_LOW_DUTY_POLLING_HARDENING_2026_06_04.md`

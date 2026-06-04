@@ -3609,4 +3609,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `manifest_git.dirty=false`, `PATH warning .cargo bin`, and
   `room presence client primary evidence`.
 
+- 2026-06-04 MCP app views low-duty polling hardening:
+  `RELEASE_1_15_0_RC1_MCP_APP_VIEWS_LOW_DUTY_POLLING_HARDENING_2026_06_04.md`
+  (wiki/701) records removal of direct `setInterval` polling from the Vite
+  MCP app views. Search terms should include `GOAL v514`, `wiki/701`,
+  `musu-bee\views\shared\useLowDutyPolling.ts`, `NodesView.tsx`,
+  `TasksView.tsx`, `direct_interval_hit_count=0`,
+  `direct_visibility_listener_hit_count=0`, `npm run test:runtime-polling
+  16/16`, `npm run build in musu-bee\views`, `npx tsc --noEmit`,
+  `frontend interval refetch loop`, and `packaged evidence stale`.
+
 **End of WIKI_INDEX.md.**

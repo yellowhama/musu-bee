@@ -159,6 +159,23 @@ test("node panel refresh loop stays on shared low-duty polling", () => {
   assert.match(text, /maxBackoffMs:\s*NODE_PANEL_REFRESH_HIDDEN_MS/);
 });
 
+test("MCP app views use cancellable low-duty polling instead of setInterval", () => {
+  const pollerText = source("views/shared/useLowDutyPolling.ts");
+  const nodesText = source("views/nodes/NodesView.tsx");
+  const tasksText = source("views/tasks/TasksView.tsx");
+
+  assert.match(pollerText, /MIN_LOW_DUTY_POLL_INTERVAL_MS\s*=\s*5_000/);
+  assert.match(pollerText, /AbortSignal\.timeout\(taskTimeoutMs\)/);
+  assert.match(pollerText, /AbortSignal\.any/);
+  assert.doesNotMatch(pollerText, /setInterval\s*\(/);
+
+  for (const text of [nodesText, tasksText]) {
+    assert.match(text, /useLowDutyPolling/);
+    assert.doesNotMatch(text, /setInterval\s*\(/);
+    assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
+  }
+});
+
 test("shared low-duty polling supports bounded task timeout cancellation", () => {
   const text = source("src/lib/useLowDutyPolling.ts");
 

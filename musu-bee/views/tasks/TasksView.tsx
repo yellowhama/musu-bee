@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import { applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
+import { useLowDutyPolling } from "@shared/useLowDutyPolling";
 
 interface BridgeTask {
   task_id: string;
@@ -150,16 +151,19 @@ export default function TasksView() {
     void pollTasks();
   }, [statusFilter, channelFilter, isConnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 5초 폴링 ───────────────────────────────────────────────
   useEffect(() => {
-    if (!app || !isConnected) return;
-    mountedRef.current = true;
-    const id = setInterval(() => void pollTasks(), POLL_INTERVAL_MS);
+    mountedRef.current = isConnected;
     return () => {
       mountedRef.current = false;
-      clearInterval(id);
     };
-  }, [app, isConnected, pollTasks]);
+  }, [isConnected]);
+
+  useLowDutyPolling(() => pollTasks(), {
+    enabled: Boolean(app && isConnected),
+    intervalMs: POLL_INTERVAL_MS,
+    immediate: false,
+    taskTimeoutMs: 10_000,
+  });
 
   // ── cancel ─────────────────────────────────────────────────
   const handleCancel = useCallback(

@@ -94,6 +94,19 @@ Add-RegexCheck -Scope "poller" -Name "cleanup aborts task" -Text $pollerText -Pa
 Add-RegexCheck -Scope "poller" -Name "single visibility listener owner" -Text $pollerText -Pattern 'document\.addEventListener\("visibilitychange"' -Path $pollerPath -Message "Shared poller owns the visibilitychange listener."
 Add-NoRegexCheck -Scope "poller" -Name "no interval timer in shared poller" -Text $pollerText -Pattern 'setInterval\s*\(' -Path $pollerPath -Message "Shared poller uses one-shot timers, not setInterval."
 
+$viewsPollerPath = "musu-bee\views\shared\useLowDutyPolling.ts"
+$viewsPollerText = Get-RepoText $viewsPollerPath
+Add-RegexCheck -Scope "views-poller" -Name "views task timeout option" -Text $viewsPollerText -Pattern 'taskTimeoutMs\?:\s*number' -Path $viewsPollerPath -Message "MCP app views poller exposes a task timeout option."
+Add-RegexCheck -Scope "views-poller" -Name "views default task timeout" -Text $viewsPollerText -Pattern 'DEFAULT_LOW_DUTY_POLL_TASK_TIMEOUT_MS\s*=\s*10_000' -Path $viewsPollerPath -Message "MCP app views poller defaults each task to a 10s timeout."
+Add-RegexCheck -Scope "views-poller" -Name "views minimum interval clamp" -Text $viewsPollerText -Pattern 'MIN_LOW_DUTY_POLL_INTERVAL_MS\s*=\s*5_000' -Path $viewsPollerPath -Message "MCP app views poller clamps accidental tight intervals at 5s."
+Add-RegexCheck -Scope "views-poller" -Name "views hidden-tab backoff" -Text $viewsPollerText -Pattern 'LOW_DUTY_HIDDEN_BACKOFF_MULTIPLIER\s*=\s*4' -Path $viewsPollerPath -Message "MCP app views poller backs off hidden tabs."
+Add-RegexCheck -Scope "views-poller" -Name "views timeout abort signal" -Text $viewsPollerText -Pattern 'AbortSignal\.timeout\(taskTimeoutMs\)' -Path $viewsPollerPath -Message "MCP app views poller creates a timeout abort signal."
+Add-RegexCheck -Scope "views-poller" -Name "views combined abort signal" -Text $viewsPollerText -Pattern 'AbortSignal\.any' -Path $viewsPollerPath -Message "MCP app views poller combines cleanup and timeout abort signals."
+Add-RegexCheck -Scope "views-poller" -Name "views no overlapping tasks" -Text $viewsPollerText -Pattern '\binFlight\b' -Path $viewsPollerPath -Message "MCP app views poller tracks in-flight work to avoid overlapping refreshes."
+Add-RegexCheck -Scope "views-poller" -Name "views cleanup aborts task" -Text $viewsPollerText -Pattern 'controller\?\.abort\(\)' -Path $viewsPollerPath -Message "MCP app views poller aborts an active task during cleanup."
+Add-RegexCheck -Scope "views-poller" -Name "views single visibility listener owner" -Text $viewsPollerText -Pattern 'document\.addEventListener\("visibilitychange"' -Path $viewsPollerPath -Message "MCP app views poller owns the visibilitychange listener."
+Add-NoRegexCheck -Scope "views-poller" -Name "views no interval timer in shared poller" -Text $viewsPollerText -Pattern 'setInterval\s*\(' -Path $viewsPollerPath -Message "MCP app views poller uses one-shot timers, not setInterval."
+
 $surfaceChecks = @(
     [pscustomobject]@{
         path = "musu-bee\src\app\c\[id]\workflows\[wfId]\edit\RunPanel.tsx"
@@ -130,6 +143,18 @@ $surfaceChecks = @(
         required = @('useLowDutyPolling', 'intervalMs:\s*NODE_PANEL_REFRESH_VISIBLE_MS', 'maxBackoffMs:\s*NODE_PANEL_REFRESH_HIDDEN_MS')
         disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
         description = "node panel polling"
+    },
+    [pscustomobject]@{
+        path = "musu-bee\views\nodes\NodesView.tsx"
+        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000')
+        disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
+        description = "MCP nodes view polling"
+    },
+    [pscustomobject]@{
+        path = "musu-bee\views\tasks\TasksView.tsx"
+        required = @('useLowDutyPolling', 'intervalMs:\s*POLL_INTERVAL_MS', 'taskTimeoutMs:\s*10_000')
+        disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
+        description = "MCP tasks view polling"
     }
 )
 
@@ -228,6 +253,7 @@ foreach ($marker in @(
     "dashboard axis pages use bounded EventSource instead of browser auto-retry",
     "CEO dispatch run streams are explicitly closed",
     "node panel refresh loop stays on shared low-duty polling",
+    "MCP app views use cancellable low-duty polling instead of setInterval",
     "shared low-duty polling supports bounded task timeout cancellation",
     "shared low-duty polling clamps accidental tight intervals"
 )) {
@@ -257,12 +283,16 @@ Add-Check `
     -Path $workflowPath `
     -Message "CI runs the runtime polling contract tests."
 
-$sourceRoot = Join-Path $repoRoot "musu-bee\src"
-if (-not (Test-Path -LiteralPath $sourceRoot)) {
-    Add-Check -Scope "source" -Name "frontend source root exists" -Passed $false -Path "musu-bee\src" -Message "Frontend source root is missing."
-}
-else {
-    $sourceFiles = @(
+$sourceRoots = @("musu-bee\src", "musu-bee\views")
+$sourceFiles = @()
+foreach ($relativeRoot in $sourceRoots) {
+    $sourceRoot = Join-Path $repoRoot $relativeRoot
+    if (-not (Test-Path -LiteralPath $sourceRoot)) {
+        Add-Check -Scope "source" -Name "frontend source root exists: $relativeRoot" -Passed $false -Path $relativeRoot -Message "$relativeRoot is missing."
+        continue
+    }
+
+    $sourceFiles += @(
         Get-ChildItem -LiteralPath $sourceRoot -Recurse -File |
             Where-Object {
                 $_.Extension -in @(".ts", ".tsx") -and
@@ -270,35 +300,35 @@ else {
                 $_.Name -notmatch '\.d\.ts$'
             }
     )
+}
 
-    foreach ($file in $sourceFiles) {
-        $relative = $file.FullName
-        if ($relative.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $relative = $relative.Substring($repoRoot.Length).TrimStart("\", "/")
-        }
-        $relative = $relative.Replace("/", "\")
-        $text = Get-Content -LiteralPath $file.FullName -Raw
-        if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
-            $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
-        }
-        if ($relative -ne $pollerPath -and $text.Contains('addEventListener("visibilitychange"')) {
-            $directVisibilityListenerHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+foreach ($file in $sourceFiles) {
+    $relative = $file.FullName
+    if ($relative.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $relative = $relative.Substring($repoRoot.Length).TrimStart("\", "/")
+    }
+    $relative = $relative.Replace("/", "\")
+    $text = Get-Content -LiteralPath $file.FullName -Raw
+    if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
+        $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+    }
+    if ($relative -notin @($pollerPath, $viewsPollerPath) -and $text.Contains('addEventListener("visibilitychange"')) {
+        $directVisibilityListenerHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
     }
 
-    Add-Check `
-        -Scope "source" `
-        -Name "no direct setInterval in non-test frontend source" `
-        -Passed ($directIntervalHits.Count -eq 0) `
-        -Path "musu-bee\src" `
-        -Message ($(if ($directIntervalHits.Count -eq 0) { "No direct setInterval calls found in non-test frontend source." } else { "Direct setInterval calls found: $(@($directIntervalHits | ForEach-Object { $_.path }) -join ', ')." }))
-    Add-Check `
-        -Scope "source" `
-        -Name "visibilitychange owned only by shared poller" `
-        -Passed ($directVisibilityListenerHits.Count -eq 0) `
-        -Path "musu-bee\src" `
-        -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside the shared poller." } else { "Direct visibilitychange listeners found outside shared poller: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
-}
+Add-Check `
+    -Scope "source" `
+    -Name "no direct setInterval in non-test frontend source" `
+    -Passed ($directIntervalHits.Count -eq 0) `
+    -Path ($sourceRoots -join ", ") `
+    -Message ($(if ($directIntervalHits.Count -eq 0) { "No direct setInterval calls found in non-test frontend source or MCP app views." } else { "Direct setInterval calls found: $(@($directIntervalHits | ForEach-Object { $_.path }) -join ', ')." }))
+Add-Check `
+    -Scope "source" `
+    -Name "visibilitychange owned only by shared poller" `
+    -Passed ($directVisibilityListenerHits.Count -eq 0) `
+    -Path ($sourceRoots -join ", ") `
+    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers." } else { "Direct visibilitychange listeners found outside shared pollers: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{

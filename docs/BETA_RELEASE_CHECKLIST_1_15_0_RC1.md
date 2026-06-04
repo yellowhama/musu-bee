@@ -3230,6 +3230,40 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 21:12 KST MCP App Views Low-Duty Polling Hardening
+
+The separate Vite single-file MCP app views no longer own direct
+`setInterval` polling loops.
+
+Changed:
+
+- added `musu-bee\views\shared\useLowDutyPolling.ts`
+- migrated `musu-bee\views\nodes\NodesView.tsx`
+- migrated `musu-bee\views\tasks\TasksView.tsx`
+- expanded `audit-frontend-polling-contract.ps1` to scan both `musu-bee\src`
+  and `musu-bee\views`
+- added runtime-polling contract coverage for the MCP app views
+
+Validation:
+
+- `npm run test:runtime-polling` passed `16/16`
+- `audit-frontend-polling-contract.ps1 -Json` passed with `ok=true`,
+  `fail_count=0`, `direct_interval_hit_count=0`,
+  `direct_visibility_listener_hit_count=0`
+- `npm run build` in `musu-bee\views` passed
+- `npx tsc --noEmit` in `musu-bee\views` passed
+- `git diff --check` passed
+
+Release interpretation:
+
+- this removes another frontend interval/refetch-loop candidate
+- this is runtime frontend source, so fresh clean MSIX/smoke/CPU/matrix
+  evidence and regenerated operator packets are required after commit before
+  current source can claim packaged primary evidence
+- public release remains No-Go on actual second-PC multi-device evidence,
+  two-machine CPU/matrix evidence, hosted P2P control-plane proof, support
+  mailbox evidence, and Store evidence
+
 ## 2026-06-04 20:18 KST Room Presence Client CLI
 
 Local Rust CLI support now connects installed MUSU programs to the MUSU.PRO

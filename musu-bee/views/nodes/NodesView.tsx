@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import { applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
+import { useLowDutyPolling } from "@shared/useLowDutyPolling";
 
 interface MeshNode {
   node_id: string;
@@ -54,15 +55,17 @@ export default function NodesView() {
   }, [app]);
 
   useEffect(() => {
-    if (!app || !isConnected) return;
-    mountedRef.current = true;
-    void pollNodes();
-    const id = setInterval(() => void pollNodes(), POLL_INTERVAL_MS);
+    mountedRef.current = isConnected;
     return () => {
       mountedRef.current = false;
-      clearInterval(id);
     };
-  }, [app, isConnected, pollNodes]);
+  }, [isConnected]);
+
+  useLowDutyPolling(() => pollNodes(), {
+    enabled: Boolean(app && isConnected),
+    intervalMs: POLL_INTERVAL_MS,
+    taskTimeoutMs: 10_000,
+  });
 
   const showAppError = !isConnected && appError;
 
