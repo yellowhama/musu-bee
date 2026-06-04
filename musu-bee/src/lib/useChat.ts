@@ -39,6 +39,7 @@ const SSE_URL = "/api/bridge-tasks/events";
 const SSE_RECONNECT_INITIAL_MS = 1_000;
 const SSE_RECONNECT_MAX_MS = 10_000;
 const SSE_RECONNECT_MULTIPLIER = 2;
+const SSE_MAX_RETRIES = 5;
 
 // ── History localStorage cache ─────────────────────────────────────────────
 // Restores the last 50 messages per channel when musu-bridge is unreachable.
@@ -128,6 +129,7 @@ export function useChat(
   const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelay = useRef(SSE_RECONNECT_INITIAL_MS);
+  const reconnectAttempts = useRef(0);
   const reconnectGenerationRef = useRef(0);
   const oldestHistoryId = useRef<string | null>(null);
   const seenTaskUpdates = useRef<Set<string>>(new Set());
@@ -247,6 +249,11 @@ export function useChat(
     }
   }, []);
 
+  const resetReconnectState = useCallback(() => {
+    reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
+    reconnectAttempts.current = 0;
+  }, []);
+
   const closeEventSource = useCallback(() => {
     esRef.current?.close();
     esRef.current = null;
@@ -268,7 +275,7 @@ export function useChat(
 
     es.onopen = () => {
       setIsConnected(true);
-      reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
+      resetReconnectState();
     };
 
     es.onerror = () => {
@@ -276,7 +283,9 @@ export function useChat(
       if (esRef.current === es) esRef.current = null;
       setIsConnected(false);
       clearReconnectTimer();
+      if (reconnectAttempts.current >= SSE_MAX_RETRIES) return;
       const delayMs = reconnectDelay.current;
+      reconnectAttempts.current += 1;
       reconnectTimer.current = setTimeout(() => {
         reconnectTimer.current = null;
         if (reconnectGenerationRef.current !== reconnectGeneration) return;
@@ -327,13 +336,14 @@ export function useChat(
         // ignore malformed messages
       }
     });
-  }, [appendChatMessage, channel, clearReconnectTimer, isAgentChannel, isEmbedded]);
+  }, [appendChatMessage, channel, clearReconnectTimer, isAgentChannel, isEmbedded, resetReconnectState]);
 
   useEffect(() => {
     if (!isAgentChannel) {
       reconnectGenerationRef.current += 1;
       clearReconnectTimer();
       closeEventSource();
+      resetReconnectState();
       setIsAgentTyping(false);
       return;
     }
@@ -343,8 +353,9 @@ export function useChat(
       reconnectGenerationRef.current += 1;
       clearReconnectTimer();
       closeEventSource();
+      resetReconnectState();
     };
-  }, [clearReconnectTimer, closeEventSource, connect, isAgentChannel]);
+  }, [clearReconnectTimer, closeEventSource, connect, isAgentChannel, resetReconnectState]);
 
   // Reconnect SSE when activeNode changes (LOCAL ↔ REMOTE)
   useEffect(() => {
@@ -352,10 +363,10 @@ export function useChat(
     reconnectGenerationRef.current += 1;
     clearReconnectTimer();
     closeEventSource();
-    reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
+    resetReconnectState();
     connect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeNode, clearReconnectTimer, closeEventSource]);
+  }, [activeNode, clearReconnectTimer, closeEventSource, resetReconnectState]);
 
   // ── musu-bridge agent route ────────────────────────────────────────────────
 

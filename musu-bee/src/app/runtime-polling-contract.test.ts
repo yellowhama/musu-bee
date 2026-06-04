@@ -72,14 +72,18 @@ test("dashboard relay reconnect stays bounded with capped backoff", () => {
   assert.doesNotMatch(text, /const RETRY_DELAY_MS\s*=/);
 });
 
-test("chat SSE reconnect clears timers and ignores stale generations", () => {
+test("chat SSE reconnect is capped and ignores stale generations", () => {
   const text = source("src/lib/useChat.ts");
 
   assert.match(text, /SSE_RECONNECT_INITIAL_MS\s*=\s*1_000/);
   assert.match(text, /SSE_RECONNECT_MAX_MS\s*=\s*10_000/);
   assert.match(text, /SSE_RECONNECT_MULTIPLIER\s*=\s*2/);
+  assert.match(text, /SSE_MAX_RETRIES\s*=\s*5/);
+  assert.match(text, /reconnectAttempts/);
+  assert.match(text, /reconnectAttempts\.current\s*>=\s*SSE_MAX_RETRIES/);
   assert.match(text, /reconnectGenerationRef/);
   assert.match(text, /clearReconnectTimer/);
+  assert.match(text, /resetReconnectState/);
   assert.match(text, /reconnectGenerationRef\.current !== reconnectGeneration/);
   assert.match(text, /EventSource\.CONNECTING/);
 });

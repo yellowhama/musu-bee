@@ -173,8 +173,11 @@ $chatText = Get-RepoText $chatPath
 Add-RegexCheck -Scope "sse" -Name "chat SSE initial reconnect" -Text $chatText -Pattern 'SSE_RECONNECT_INITIAL_MS\s*=\s*1_000' -Path $chatPath -Message "Chat SSE reconnect starts at 1s."
 Add-RegexCheck -Scope "sse" -Name "chat SSE max reconnect" -Text $chatText -Pattern 'SSE_RECONNECT_MAX_MS\s*=\s*10_000' -Path $chatPath -Message "Chat SSE reconnect caps at 10s."
 Add-RegexCheck -Scope "sse" -Name "chat SSE multiplier" -Text $chatText -Pattern 'SSE_RECONNECT_MULTIPLIER\s*=\s*2' -Path $chatPath -Message "Chat SSE reconnect has exponential backoff."
+Add-RegexCheck -Scope "sse" -Name "chat SSE retry cap" -Text $chatText -Pattern 'SSE_MAX_RETRIES\s*=\s*5' -Path $chatPath -Message "Chat SSE reconnect attempts are capped."
+Add-RegexCheck -Scope "sse" -Name "chat SSE retry cap guard" -Text $chatText -Pattern 'reconnectAttempts\.current\s*>=\s*SSE_MAX_RETRIES' -Path $chatPath -Message "Chat SSE stops reconnecting after the retry cap."
 Add-RegexCheck -Scope "sse" -Name "chat SSE stale generation guard" -Text $chatText -Pattern 'reconnectGenerationRef\.current\s*!==\s*reconnectGeneration' -Path $chatPath -Message "Chat SSE ignores stale reconnect generations."
 Add-RegexCheck -Scope "sse" -Name "chat SSE clears timer" -Text $chatText -Pattern 'clearReconnectTimer' -Path $chatPath -Message "Chat SSE reconnect timers are cleared."
+Add-RegexCheck -Scope "sse" -Name "chat SSE resets reconnect state" -Text $chatText -Pattern 'resetReconnectState' -Path $chatPath -Message "Chat SSE resets reconnect counters on successful connect or lifecycle reset."
 Add-RegexCheck -Scope "sse" -Name "chat SSE connecting state guarded" -Text $chatText -Pattern 'EventSource\.CONNECTING' -Path $chatPath -Message "Chat SSE avoids duplicate reconnects while EventSource is connecting."
 
 $fleetStorePath = "musu-bee\src\store\useFleetStore.ts"
@@ -200,7 +203,7 @@ $contractTestText = Get-RepoText $contractTestPath
 foreach ($marker in @(
     "dashboard refresh loop stays on shared low-duty polling",
     "dashboard relay reconnect stays bounded with capped backoff",
-    "chat SSE reconnect clears timers and ignores stale generations",
+    "chat SSE reconnect is capped and ignores stale generations",
     "fleet store SSE reconnect is bounded and explicitly closed",
     "node panel refresh loop stays on shared low-duty polling",
     "shared low-duty polling supports bounded task timeout cancellation",
