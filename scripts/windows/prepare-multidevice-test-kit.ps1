@@ -247,11 +247,12 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.
 ```
 
 The smoke writes `.local-build\multi-device\*.evidence.json`.
-For public release, that evidence must include `musu.route_evidence.v1` with
-route kind, handshake timing, peer identity verification, hardened encryption,
-and payload transit truth. The current legacy HTTP bearer route is recorded
-honestly as unverified and will not satisfy the final release gate until the
-route is hardened.
+For public release, that evidence must include `musu.route_explain.v1` path
+selection diagnostics and `musu.route_evidence.v1` execution evidence with route
+kind, handshake timing, peer identity verification, hardened encryption, and
+payload transit truth. The current legacy HTTP bearer route is recorded honestly
+as unverified and will not satisfy the final release gate until the route is
+hardened.
 Send that JSON back to the release repo before claiming multi-device readiness.
 
 Verify it locally with:
