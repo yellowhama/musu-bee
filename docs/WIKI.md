@@ -6779,3 +6779,63 @@ can close.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_LOCAL_RUNTIME_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Relay route proof linkage hardening and local runtime evidence refresh (wiki/731)
+
+Relay route evidence release queries now bind current relay transport proof to
+the stored fallback lease and route session. Commit `9d1d9666` updates
+`routeEvidenceStore.ts`, adds stale release-grade relay records with mismatched
+lease/session proof to the route-evidence regression, and gates the contract
+with `release-grade query binds relay transport proof to fallback lease`.
+
+Validation passed:
+
+- `npm run test:p2p` `79/79`
+- `npm run typecheck`
+- `audit-p2p-store-forward-relay-contract.ps1 -FailOnProblem -Json` with
+  `ok=true` and `fail_count=0`
+- parser checks
+- `git diff --check`
+
+Fresh packaged local-runtime evidence was recorded after the hardening:
+
+- strict MSIX:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260605-072911-HUGH_SECOND.evidence.json`
+- bridge-only single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-073044-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-074243-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-074400-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-074400-HUGH_SECOND.verification.json`
+
+The single-machine smoke used WindowsApps `musu.exe`,
+`dashboard_required=false`, `single_machine_surface=local-bridge-only`, and
+bridge `http://127.0.0.1:8186`. Idle CPU passed clean git for `60.061s` with
+MUSU `0`, Node `0`, WebView2 `0.03`, working set `368.98MB`, and hot `0`.
+The five-state matrix passed with route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260605_074400`, max MUSU `0.03`, Node `0`,
+WebView2 `0.16`, max working set `368.54MB`, and hot `0`. `dashboard-open`
+measured packaged runtime state because no dashboard URL was exposed, so
+`localhost:3001` was not required.
+
+Current clean final handoff after `9b331698` reports packet/action-pack
+verified, local artifacts true, single-machine true, MSIX true, frontend
+polling true, process/startup/desktop single-instance true, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime matrix `1/2 [HUGH_SECOND]`,
+`manifest_git_dirty=false`, and `ready_for_public_desktop_release=false`.
+
+The product split remains: installed MUSU local programs execute work; `musu.pro`
+is remote input, project/company room, presence, rendezvous, path selection,
+relay fallback policy, and evidence. `localhost:3001/app` is an optional
+workspace dashboard, not the installed local app.
+
+P2P env status remains No-Go: store-forward queue fallback is implemented, but
+release relay connect/payload endpoints are false, production KV/Upstash is
+missing, live relay route proof count is `0`, and payload delivery proof is
+missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_PROOF_LINKAGE_HARDENING_2026_06_05.md`

@@ -58,17 +58,23 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 03:55 KST store-forward relay contract gate, the product
-direction above is documented and the lease-bound queue fallback source contract
-is gated, but public P2P release is not yet release-complete.
+As of the 2026-06-05 07:53 KST relay route proof linkage hardening, the product
+direction above is documented, the lease-bound queue fallback source contract is
+gated, and fresh one-machine packaged local-runtime evidence is recorded. Public
+P2P release is still not release-complete.
 
 Passing local state:
 
 - local MSIX install and single-machine smoke pass on `HUGH_SECOND` for commit
-  `aa52b243cb6b1b8350f060516e72c26d730da059`
+  `9d1d9666ee7fc9443f424401c5315b40750071ba`:
+  `20260605-072911-HUGH_SECOND` and
+  `20260605-073044-HUGH_SECOND`
 - local runtime idle CPU and CPU matrix evidence are valid on one machine:
-  `20260605-004657-HUGH_SECOND.desktop-open` and
-  `20260605-004808-HUGH_SECOND.runtime-cpu-scenario-matrix`
+  `20260605-074243-HUGH_SECOND.desktop-open` and
+  `20260605-074400-HUGH_SECOND.runtime-cpu-scenario-matrix`
+- `dashboard-open` matrix evidence measured packaged runtime state because no
+  required dashboard URL was exposed; `localhost:3001` is an optional workspace
+  dashboard, not the installed local program
 - Rust background-loop, frontend polling, process ownership, local API auth,
   operator API security, and secret storage audits pass
 - `/api/v1/relay/connect` is auth-gated and still fail-closed while the relay
@@ -78,6 +84,9 @@ Passing local state:
 - `audit-p2p-store-forward-relay-contract.ps1` passes with `ok=true`,
   proving the preview store-forward queue fallback is owner/lease scoped,
   non-default, non-release-grade, and separated from release tunnel transport
+- release-grade relay route queries revalidate fallback, transport proof,
+  payload delivery proof, and now bind relay transport proof to the fallback
+  lease/session before returning stored `release_grade=true` relay records
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
 

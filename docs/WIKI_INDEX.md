@@ -3996,4 +3996,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU 1/2`, `runtime matrix 1/2`, and
   `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 relay route proof linkage hardening and local runtime evidence
+  refresh:
+  `RELEASE_1_15_0_RC1_RELAY_ROUTE_PROOF_LINKAGE_HARDENING_2026_06_05.md`
+  (wiki/731) binds release-grade relay transport proof to the fallback lease
+  and route session, then records fresh packaged bridge-only local runtime
+  evidence. Search terms should include `GOAL v544`, `wiki/731`, `9d1d9666`,
+  `cf92a3f2`, `9b331698`, `hasCurrentRelayTransportProof`,
+  `stale-relay-transport-lease-mismatch-release-grade`,
+  `stale-relay-transport-session-mismatch-release-grade`,
+  `release-grade query binds relay transport proof to fallback lease`,
+  `20260605-072911-HUGH_SECOND`, `20260605-073044-HUGH_SECOND.evidence.json`,
+  `20260605-074243-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-074400-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_074400`, `dashboard_required=false`,
+  `single_machine_surface=local-bridge-only`, `localhost:3001 optional`,
+  `runtime idle CPU 1/2`, `runtime matrix 1/2`,
+  `source_release_relay_connect_endpoint_not_implemented`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `p2p_relay_lease_kv_not_configured`, and
+  `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**
