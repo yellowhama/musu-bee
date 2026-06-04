@@ -5113,3 +5113,45 @@ Fresh packaged primary evidence is required after commit because runtime/web
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_AND_QUEUE_STATUS_SPLIT_2026_06_04.md`
+
+## 2026-06-04 post relay connect/queue primary evidence refresh (wiki/685)
+
+Fresh primary-machine packaged evidence was restored after the relay connect /
+preview queue status split.
+
+Evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-155606-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-154159-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-154401-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-154626-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key results:
+
+- dashboard `http://127.0.0.1:3001` from `musu up.dashboard.reachable_url`
+- bridge `http://127.0.0.1:2817`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_154129`
+- desktop-open CPU `60.055s`, MUSU `0`, Node `0.05`, WebView2 `1.09`,
+  working set `483.5MB`, hot `0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_154626`
+- matrix verifier `ok=true`, `fail_count=0`
+
+Clean go/no-go on `c3d36a7b` reports `local_artifacts_ready=true`,
+`single_machine_verified=true`, `msix_install_verified=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+`public_metadata_ok=true`, `manifest_git.dirty=false`, and six remaining
+blockers.
+
+Roadmap lock remains unchanged: `musu.pro` is the web input/project
+room/company meeting room/rendezvous/path-selection/relay-fallback/evidence
+plane; local MUSU programs execute the work; devices prefer P2P mesh after
+web-assisted rendezvous; second-PC proof requires installing the current build
+on another Windows PC.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_QUEUE_STATUS_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

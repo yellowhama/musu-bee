@@ -3414,4 +3414,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu relay status --json`, `record-p2p-control-plane-evidence.ps1`, and
   `fresh packaged primary evidence is required`.
 
+- 2026-06-04 post relay connect/queue primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_QUEUE_STATUS_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/685) records current primary-machine evidence after relay status split.
+  Search terms should include `GOAL v498`, `wiki/685`, `c3d36a7b`,
+  `20260604-155606-HUGH_SECOND`, `20260604-154159-HUGH_SECOND`,
+  `20260604-154401-HUGH_SECOND.desktop-open`,
+  `20260604-154626-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_154129`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_154626`,
+  `http://127.0.0.1:3001`, `runtime idle CPU 1/2 [HUGH_SECOND]`,
+  `runtime CPU matrix 1/2 [HUGH_SECOND]`, `msix_install_verified=true`,
+  `manifest_git.dirty=false`, `musu.pro web input`, `company meeting room`,
+  `local MUSU programs execute work`, and `P2P mesh after rendezvous`.
+
 **End of WIKI_INDEX.md.**
