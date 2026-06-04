@@ -5180,3 +5180,46 @@ does not implement release-grade relay transport.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MUSU_PRO_WORK_ORDER_CONTEXT_HARDENING_2026_06_04.md`
+
+## 2026-06-04 post work-order context primary evidence refresh (wiki/687)
+
+Fresh primary-machine packaged evidence was restored after MUSU.PRO work-order
+context hardening.
+
+Evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-164153-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-164313-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-164620-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-164933-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Key results:
+
+- dashboard `http://127.0.0.1:3001` and reachable URL
+  `http://127.0.0.1:3001/app` from `musu up.dashboard.reachable_url`
+- bridge `http://127.0.0.1:11480`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_164246`
+- desktop-open CPU `60.065s`, MUSU `0`, Node `0`, WebView2 `0.18`,
+  working set `466.49MB`, hot `0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_164933`
+- matrix verifier `ok=true`, `fail_count=0`
+
+Clean go/no-go on `d8e91f0f` reports `local_artifacts_ready=true`,
+`single_machine_verified=true`, `msix_install_verified=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+`public_metadata_ok=true`, `manifest_git.dirty=false`, and six remaining
+blockers.
+
+Roadmap lock remains unchanged: `musu.pro` is the web input/project
+room/company meeting room/rendezvous/path-selection/relay-fallback/evidence
+plane; local MUSU programs execute the work; devices prefer P2P mesh after
+web-assisted rendezvous; second-PC proof requires installing the current build
+on another Windows PC.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_WORK_ORDER_CONTEXT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

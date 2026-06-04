@@ -3230,6 +3230,40 @@ This does not implement release-grade relay transport; public release remains
 No-Go on second-PC evidence, hosted P2P proof, support mailbox, and Store
 evidence.
 
+## 2026-06-04 16:58 KST Post Work-Order Context Primary Evidence Refresh
+
+After MUSU.PRO work-order context hardening, primary-machine packaged evidence
+was refreshed again.
+
+Fresh evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-164153-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-164313-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-164620-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-164933-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_164246`
+- dashboard reachable URL `http://127.0.0.1:3001/app`
+- desktop-open CPU passed for `60.065s`: MUSU `0`, Node `0`, WebView2
+  `0.18`, hot `0`, working set `466.49MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_164933`
+- matrix max CPU: MUSU `0.03`, Node `0.03`, WebView2 `0.18`
+- matrix max working set: `470.97MB`
+- clean go/no-go on `d8e91f0f` reports single-machine true, MSIX true, runtime
+  idle CPU `1/2`, runtime CPU matrix `1/2`, public metadata true, and manifest
+  clean
+
+Public release remains No-Go until second-PC runtime/multi-device evidence,
+hosted P2P relay proof, support mailbox evidence, and Store evidence are
+complete.
+
 ## 2026-06-04 15:57 KST Post Relay Connect/Queue Primary Evidence Refresh
 
 After the relay connect endpoint state and preview queue state were split, the

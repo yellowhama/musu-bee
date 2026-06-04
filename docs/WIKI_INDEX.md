@@ -3439,4 +3439,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   14/14`, `cargo check --bin musu`, `targeted Rust audit/context/relay payload
   tests 3/3`, and `fresh packaged primary evidence is required`.
 
+- 2026-06-04 post work-order context primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_WORK_ORDER_CONTEXT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/687) records current primary-machine evidence after MUSU.PRO
+  work-order context hardening. Search terms should include `GOAL v500`,
+  `wiki/687`, `81b98fbe`, `d8e91f0f`,
+  `20260604-164153-HUGH_SECOND`, `20260604-164313-HUGH_SECOND`,
+  `20260604-164620-HUGH_SECOND.desktop-open`,
+  `20260604-164933-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_164246`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_164933`,
+  `http://127.0.0.1:3001/app`, `runtime idle CPU 1/2 [HUGH_SECOND]`,
+  `runtime CPU matrix 1/2 [HUGH_SECOND]`, `msix_install_verified=true`,
+  `manifest_git.dirty=false`, `work-order context primary evidence`,
+  `musu.pro project room`, `company meeting room`, and `local MUSU programs
+  execute work`.
+
 **End of WIKI_INDEX.md.**
