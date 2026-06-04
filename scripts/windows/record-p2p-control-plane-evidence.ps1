@@ -137,6 +137,7 @@ $statusOk = (
     (Get-BoolProperty -Object $relayStatus -Name "logged_in") -and
     (Get-BoolProperty -Object $relayStatus -Name "rendezvous_session_wired") -and
     (Get-BoolProperty -Object $relayStatus -Name "relay_control_plane_lease_wired") -and
+    (Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired") -and
     -not (Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path")
 )
 $transportOk = (
@@ -149,6 +150,7 @@ $transportOk = (
     (Get-BoolProperty -Object $relayTransport -Name "owner_scoped") -and
     (Get-BoolProperty -Object $relayTransport -Name "relay_control_plane_wired") -and
     (Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired") -and
+    (Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired") -and
     (Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired") -and
     -not (Get-BoolProperty -Object $relayTransport -Name "relay_default_data_path") -and
     (Get-BoolProperty -Object $relayTransport -Name "payload_transit_requires_lease")

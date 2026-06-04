@@ -3455,4 +3455,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.pro project room`, `company meeting room`, and `local MUSU programs
   execute work`.
 
+- 2026-06-04 P2P connect endpoint evidence gate hardening:
+  `RELEASE_1_15_0_RC1_P2P_CONNECT_ENDPOINT_EVIDENCE_GATE_HARDENING_2026_06_04.md`
+  (wiki/688) records that hosted P2P release evidence now requires explicit
+  relay connect endpoint proof. Search terms should include `GOAL v501`,
+  `wiki/688`, `relay_connect_endpoint_wired`, `p2p-bad-relay-connect-endpoint`,
+  `relay_transport_descriptor_ok`, `relay_transport_wired`, `case_count=29`,
+  `failed_case_count=0`, `fail_count=29`, `relay_status_connect_endpoint_wired=false`,
+  `relay_transport_connect_endpoint_wired=false`, `relay_payload_transport_proven=false`,
+  `release evidence verifier regression`, and `P2P connect endpoint evidence
+  gate`.
+
 **End of WIKI_INDEX.md.**

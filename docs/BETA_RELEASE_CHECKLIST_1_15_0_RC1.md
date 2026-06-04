@@ -3264,6 +3264,30 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted P2P relay proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 P2P Connect Endpoint Evidence Gate Hardening
+
+Hosted P2P release evidence now requires explicit relay connect endpoint proof.
+
+Changed:
+
+- relay status must report `relay_connect_endpoint_wired=true`
+- relay transport preflight must report `relay_connect_endpoint_wired=true`
+- recorder `ok` calculation now includes connect endpoint proof
+- verifier regression added `p2p-bad-relay-connect-endpoint`
+
+Validation:
+
+- PowerShell parser checks passed
+- release evidence verifier regression passed with `ok=true`, `case_count=29`,
+  `failed_case_count=0`
+- current hosted P2P evidence remains blocked with `fail_count=29`, connect
+  endpoint false, payload endpoint false, lease store unconfigured, route
+  evidence count `0`, and relay payload transport unproven
+
+This is evidence-gate hardening only. Public release remains No-Go until
+second-PC evidence, hosted P2P relay proof, support mailbox evidence, and Store
+evidence are complete.
+
 ## 2026-06-04 15:57 KST Post Relay Connect/Queue Primary Evidence Refresh
 
 After the relay connect endpoint state and preview queue state were split, the

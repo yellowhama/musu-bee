@@ -5223,3 +5223,31 @@ on another Windows PC.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_WORK_ORDER_CONTEXT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 P2P connect endpoint evidence gate hardening (wiki/688)
+
+P2P control-plane release evidence now requires explicit relay connect endpoint
+proof.
+
+Changed scripts:
+
+- `scripts\windows\verify-p2p-control-plane-evidence.ps1`
+- `scripts\windows\record-p2p-control-plane-evidence.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+
+Gate behavior:
+
+- relay status must report `relay_connect_endpoint_wired=true`
+- relay transport preflight must report `relay_connect_endpoint_wired=true`
+- aggregate relay transport readiness includes connect endpoint proof
+- recorder `ok` calculation includes connect endpoint proof
+
+Validation passed PowerShell parser checks and release evidence verifier
+regression with `ok=true`, `case_count=29`, `failed_case_count=0`. Current
+hosted P2P evidence remains correctly blocked with `fail_count=29`,
+connect endpoint false, payload endpoint false, lease store unconfigured, route
+evidence count `0`, and relay payload transport unproven.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_CONNECT_ENDPOINT_EVIDENCE_GATE_HARDENING_2026_06_04.md`

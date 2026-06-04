@@ -171,6 +171,7 @@ Add-CheckFromCondition "relay lease control-plane wired" (Get-BoolProperty -Obje
 Add-CheckFromCondition "relay status transport wired" (Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired") "relay status reports relay transport is wired" "relay status reports relay transport is not wired"
 Add-CheckFromCondition "relay status transport preflight ok" (Get-BoolProperty -Object $relayStatus -Name "relay_transport_preflight_ok") "relay status reports relay transport preflight ok=true" "relay status reports relay transport preflight is not ok"
 Add-CheckFromCondition "relay status transport descriptor wired" (Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired") "relay status reports relay transport descriptor is wired" "relay status does not report relay transport descriptor wired"
+Add-CheckFromCondition "relay status connect endpoint wired" (Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired") "relay status reports relay connect endpoint is wired" "relay status does not report relay connect endpoint wired"
 Add-CheckFromCondition "relay status payload endpoint wired" (Get-BoolProperty -Object $relayStatus -Name "relay_payload_endpoint_wired") "relay status reports relay payload endpoint is wired" "relay status does not report relay payload endpoint wired"
 Add-CheckFromCondition "relay runtime fallback wired" (Get-BoolProperty -Object $relayStatus -Name "relay_runtime_fallback_lease_request_wired") "runtime relay fallback lease request is wired" "runtime relay fallback lease request is not wired"
 Add-CheckFromCondition "release transport requirement" ((Get-StringProperty -Object $relayStatus -Name "release_grade_transport_required") -eq "quic_tls_1_3") "release transport requirement is quic_tls_1_3" "release transport requirement is not quic_tls_1_3"
@@ -196,6 +197,7 @@ Add-CheckFromCondition "relay transport owner scoped" (Get-BoolProperty -Object 
 Add-CheckFromCondition "relay transport control-plane wired" (Get-BoolProperty -Object $relayTransport -Name "relay_control_plane_wired") "relay transport control-plane is wired" "relay transport control-plane is not wired"
 Add-CheckFromCondition "relay transport descriptor wired" (Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired") "relay transport descriptor is wired" "relay transport descriptor is not wired"
 Add-CheckFromCondition "relay transport wired" (Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired") "relay transport preflight reports relay transport is wired" "relay transport preflight reports relay transport is not wired"
+Add-CheckFromCondition "relay transport connect endpoint wired" (Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired") "relay transport preflight reports relay connect endpoint is wired" "relay transport preflight does not report relay connect endpoint wired"
 Add-CheckFromCondition "relay transport not default data path" (-not (Get-BoolProperty -Object $relayTransport -Name "relay_default_data_path")) "relay transport reports relay_default_data_path=false" "relay transport reports relay_default_data_path=true"
 Add-CheckFromCondition "relay transport URL" ($transportRelayUrl.StartsWith("wss://")) "relay transport URL is wss" "relay transport URL is missing or not wss"
 Add-CheckFromCondition "relay transport kind" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayTransport -Name "relay_transport_kind"))) "relay transport kind is present" "relay transport kind is missing"
@@ -307,10 +309,12 @@ Add-CheckFromCondition "relay payload delivery proof coverage" ($relayPayloadPro
 $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
 $relayStatusTransportPreflightOk = Get-BoolProperty -Object $relayStatus -Name "relay_transport_preflight_ok"
 $relayStatusTransportDescriptorWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired"
+$relayStatusConnectEndpointWired = Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired"
 $relayStatusPayloadEndpointWired = Get-BoolProperty -Object $relayStatus -Name "relay_payload_endpoint_wired"
 $relayTransportPreflightOk = Get-BoolProperty -Object $relayTransport -Name "ok"
 $relayTransportDescriptorWired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired"
 $relayTransportTransportWired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired"
+$relayTransportConnectEndpointWired = Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired"
 $relayTransportPayloadEndpointWired = Get-BoolProperty -Object $relayTransport -Name "relay_payload_endpoint_wired"
 $relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
 $relayPayloadTransportProven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
@@ -328,10 +332,12 @@ $result = [pscustomobject]@{
     relay_status_transport_wired = $relayStatusTransportWired
     relay_status_transport_preflight_ok = $relayStatusTransportPreflightOk
     relay_status_transport_descriptor_wired = $relayStatusTransportDescriptorWired
+    relay_status_connect_endpoint_wired = $relayStatusConnectEndpointWired
     relay_status_payload_endpoint_wired = $relayStatusPayloadEndpointWired
     relay_transport_preflight_ok = $relayTransportPreflightOk
     relay_transport_descriptor_wired = $relayTransportDescriptorWired
-    relay_transport_descriptor_ok = ($relayTransportPreflightOk -and $relayTransportDescriptorWired)
+    relay_transport_connect_endpoint_wired = $relayTransportConnectEndpointWired
+    relay_transport_descriptor_ok = ($relayTransportPreflightOk -and $relayTransportDescriptorWired -and $relayTransportConnectEndpointWired)
     relay_transport_preflight_transport_wired = $relayTransportTransportWired
     relay_transport_payload_endpoint_wired = $relayTransportPayloadEndpointWired
     relay_transport_url = $transportRelayUrl
@@ -342,7 +348,7 @@ $result = [pscustomobject]@{
     relay_payload_delivery_proof_required_count = $relayPayloadProofRequiredCount
     relay_payload_delivery_proof_valid_count = $relayPayloadProofValidCount
     relay_payload_delivery_proof_invalid_count = $relayPayloadProofInvalidCount
-    relay_transport_wired = ($relayStatusTransportWired -and $relayStatusTransportPreflightOk -and $relayStatusTransportDescriptorWired -and $relayStatusPayloadEndpointWired -and $relayTransportPreflightOk -and $relayTransportDescriptorWired -and $relayTransportTransportWired -and $relayTransportPayloadEndpointWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
+    relay_transport_wired = ($relayStatusTransportWired -and $relayStatusTransportPreflightOk -and $relayStatusTransportDescriptorWired -and $relayStatusConnectEndpointWired -and $relayStatusPayloadEndpointWired -and $relayTransportPreflightOk -and $relayTransportDescriptorWired -and $relayTransportConnectEndpointWired -and $relayTransportTransportWired -and $relayTransportPayloadEndpointWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_lease_count = $leaseCount
     relay_lease_store_configured = Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured"
