@@ -72,6 +72,8 @@ Passing local state:
   operator API security, and secret storage audits pass
 - `/api/v1/relay/connect` is auth-gated and still fail-closed while the relay
   transport remains unwired
+- `POST /api/rooms/[roomId]/work-orders` is P2P-control-auth gated before
+  MUSU.PRO room input can reach the local bridge
 
 Open external gates:
 

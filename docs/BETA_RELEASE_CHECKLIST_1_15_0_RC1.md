@@ -3375,6 +3375,36 @@ Roadmap and release note:
 - clean public release remains No-Go on second-PC runtime/multi-device evidence,
   hosted `musu.pro` P2P proof, support mailbox evidence, and Store evidence
 
+## 2026-06-05 Room Work-Order Auth Hardening
+
+The MUSU.PRO room work-order route is now owner-scoped before it can reach the
+local bridge:
+
+- route: `POST /api/rooms/[roomId]/work-orders`
+- added `authorizeP2pControl(req)`
+- missing bearer auth returns `401 unauthorized`
+- bridge forwarding is not attempted before auth succeeds
+- response records `owner_scoped=true`
+- context values for channel, sender, target node, and adapter type are bounded
+
+Validation:
+
+- `npm run test:routes` passed `19/19`
+- operator API security audit passed with `ok=true`, `fail_count=0`
+- `npm run typecheck` passed
+- `npm run test:p2p` passed `77/77`
+- `npm run build` passed after transient TLS socket retries
+- `git diff --check` passed
+
+Release note:
+
+- this is web-input security hardening for the local-program/control-plane
+  roadmap
+- packaged primary evidence is stale until rebuilt/refreshed after this source
+  change is committed
+- public release remains No-Go on second-PC, hosted P2P, support mailbox, and
+  Store evidence
+
 ## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
 
 Final release status now exposes the hardening gates needed for the

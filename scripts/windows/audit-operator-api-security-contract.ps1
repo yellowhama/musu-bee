@@ -47,6 +47,8 @@ $nodesExecute = Get-RepoText "musu-bee\src\app\api\nodes\execute\route.ts"
 $processesList = Get-RepoText "musu-bee\src\app\api\processes\route.ts"
 $processStart = Get-RepoText "musu-bee\src\app\api\processes\start\route.ts"
 $processKill = Get-RepoText "musu-bee\src\app\api\processes\kill\route.ts"
+$roomWorkOrders = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts"
+$roomWorkOrdersTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts"
 $relayConnect = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.ts"
 $relayConnectTest = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
 $packageJson = Get-RepoText "musu-bee\package.json"
@@ -83,10 +85,20 @@ Add-Check -Scope "source" -Name "relay connect requires P2P control auth" `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.ts" `
     -Message "Relay connect preflight/fail-closed endpoint requires P2P control auth before exposing relay status."
 
+Add-Check -Scope "source" -Name "room work order requires P2P control auth" `
+    -Passed ($roomWorkOrders.Contains("authorizeP2pControl") -and $roomWorkOrders.Contains("const failedAuth = authorizeP2pControl(req)") -and $roomWorkOrders.Contains("return failedAuth") -and $roomWorkOrders.Contains('origin: "musu.pro"') -and $roomWorkOrders.Contains("owner_scoped: true")) `
+    -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts" `
+    -Message "Room work-order web input requires P2P control auth before forwarding to the local bridge."
+
 Add-Check -Scope "tests" -Name "route security test script" `
     -Passed ($packageJson.Contains('"test:routes"') -and $packageJson.Contains("src/app/api/nodes/execute/route.test.ts") -and $packageJson.Contains("src/app/api/processes/start/route.test.ts") -and $packageJson.Contains("src/app/api/processes/kill/route.test.ts")) `
     -Path "musu-bee\package.json" `
     -Message "npm test:routes covers operator API security routes."
+
+Add-Check -Scope "tests" -Name "room work order auth regression test" `
+    -Passed ($packageJson.Contains("src/app/api/rooms/[[]roomId[]]/work-orders/route.test.ts") -and $roomWorkOrdersTest.Contains("requires P2P control auth before forwarding a room work order") -and $roomWorkOrdersTest.Contains('assert.equal(res.status, 401)') -and $roomWorkOrdersTest.Contains('assert.equal(body.error, "unauthorized")')) `
+    -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
+    -Message "Route tests cover room work-order auth before web input can reach the local bridge."
 
 Add-Check -Scope "tests" -Name "relay connect auth regression test" `
     -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect status") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `

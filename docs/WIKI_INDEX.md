@@ -3735,4 +3735,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime CPU matrix 1/2`, `one-machine only`, `local execution plane`, and
   `musu.pro control plane`.
 
+- 2026-06-05 room work-order auth hardening:
+  `RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_AUTH_HARDENING_2026_06_05.md`
+  (wiki/711) records P2P control auth on the MUSU.PRO room work-order web-input
+  route before local bridge forwarding. Search terms should include
+  `GOAL v524`, `wiki/711`, `/api/rooms/[roomId]/work-orders`,
+  `authorizeP2pControl(req)`, `owner_scoped=true`, `401 unauthorized`,
+  `local bridge is not called before auth`, `npm run test:routes 19/19`,
+  `npm run test:p2p 77/77`, `operator API security audit`, and
+  `web-input security hardening`.
+
 **End of WIKI_INDEX.md.**

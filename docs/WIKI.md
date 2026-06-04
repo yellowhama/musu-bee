@@ -6049,3 +6049,38 @@ closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_AUTH_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Room work-order auth hardening (wiki/711)
+
+`POST /api/rooms/[roomId]/work-orders` now requires P2P control auth before a
+MUSU.PRO room instruction can be forwarded to the local bridge.
+
+Changed:
+
+- The route calls `authorizeP2pControl(req)` before parsing or forwarding the
+  work order.
+- Missing bearer token returns `401 unauthorized`.
+- The local bridge is not called before auth succeeds.
+- The response records `owner_scoped=true`.
+- Work-order context values for channel, sender, target node, and adapter type
+  now use bounded normalization.
+- `audit-operator-api-security-contract.ps1` now audits this route and its auth
+  regression test.
+
+Validation:
+
+- `npm run test:routes` passed `19/19`
+- operator API security audit passed with `ok=true`, `fail_count=0`
+- `npm run typecheck` passed
+- `npm run test:p2p` passed `77/77`
+- `npm run build` passed after transient TLS socket retries
+- `git diff --check` passed
+
+This is web-input security hardening for the local-program/control-plane
+roadmap. `musu.pro` can accept authenticated room work orders, but
+unauthenticated web input cannot reach the local executor through the bridge
+token.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_AUTH_HARDENING_2026_06_05.md`

@@ -19,6 +19,7 @@ before(async () => {
   process.env.MUSU_HOME = join(testHome, ".musu");
   process.env.MUSU_BRIDGE_URL = "http://127.0.0.1:2817";
   process.env.MUSU_BRIDGE_TOKEN = "bridge-token";
+  process.env.MUSU_P2P_CONTROL_TOKEN = "room-control-token";
 
   const require = createRequire(import.meta.url);
   const nodeModule = require("module") as typeof import("node:module") & {
@@ -36,10 +37,14 @@ before(async () => {
   }
 });
 
-function req(body: unknown) {
+function req(body: unknown, token: string | null = "room-control-token") {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
   return new NextRequest("https://musu.pro/api/rooms/release-room/work-orders", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -69,6 +74,28 @@ test("POST requires a non-empty instruction", async () => {
   });
   assert.equal(res.status, 400);
   assert.equal(((await res.json()) as { error: string }).error, "instruction required");
+});
+
+test("POST requires P2P control auth before forwarding a room work order", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("bridge should not be called before auth");
+    },
+    async () => {
+      const res = await POST(req({ instruction: "Run the room task" }, null), {
+        params: Promise.resolve({ roomId: "release-room" }),
+      });
+      assert.equal(res.status, 401);
+      const body = (await res.json()) as {
+        ok: boolean;
+        error: string;
+        accepted_auth_modes: string[];
+      };
+      assert.equal(body.ok, false);
+      assert.equal(body.error, "unauthorized");
+      assert.deepEqual(body.accepted_auth_modes, ["static_bearer_token"]);
+    },
+  );
 });
 
 test("POST forwards a MUSU.PRO room work order to the local bridge", async () => {
@@ -122,11 +149,13 @@ test("POST forwards a MUSU.PRO room work order to the local bridge", async () =>
         room_id: string;
         work_order_id: string;
         origin: string;
+        owner_scoped: boolean;
         bridge: { task_id: string; status: string };
       };
       assert.equal(body.room_id, "release-room");
       assert.equal(body.work_order_id, "wo-room-1");
       assert.equal(body.origin, "musu.pro");
+      assert.equal(body.owner_scoped, true);
       assert.deepEqual(body.bridge, { task_id: "task-1", status: "queued" });
     },
   );

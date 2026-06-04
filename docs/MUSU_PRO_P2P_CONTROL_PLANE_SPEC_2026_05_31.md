@@ -858,3 +858,20 @@ work still requires installing the current build on another Windows PC and
 returning second-PC route, CPU, matrix, and owner-scoped release-grade P2P
 evidence. `/api/v1/relay/connect` is now P2P-control-auth gated, but the
 release-grade relay/tunnel payload transport remains unwired.
+
+## 2026-06-05 Room Work-Order Web-Input Auth
+
+`POST /api/rooms/[roomId]/work-orders` is the MUSU.PRO room entry point that can
+turn a remote user instruction into a local bridge task. It now requires P2P
+control auth before forwarding to `/api/tasks/delegate`.
+
+This locks the web-input/control-plane boundary:
+
+- unauthenticated web input cannot reach a local executor
+- the local bridge token stays server-side
+- successful responses record `owner_scoped=true`
+- the room/work-order context remains bounded before forwarding
+
+This is not a P2P transport completion. It is required security hardening for
+the product model where `musu.pro` accepts work orders while local MUSU programs
+execute them.

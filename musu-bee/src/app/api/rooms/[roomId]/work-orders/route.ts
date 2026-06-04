@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fileURLToPath } from "url";
 import { getBridgeUrl } from "@/lib/bridge-config";
 import { getBridgeToken } from "@/lib/bridge-token";
+import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "room_id required" }, { status: 400 });
   }
 
+  const failedAuth = authorizeP2pControl(req);
+  if (failedAuth) {
+    return failedAuth;
+  }
+
   let body: {
     instruction?: unknown;
     channel?: unknown;
@@ -69,16 +75,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 
   const work_order_id = normalizeContextValue(body.work_order_id) ?? generatedWorkOrderId();
+  const target_node = normalizeContextValue(body.target_node);
   const bridgeUrl = getBridgeUrl().replace(/\/+$/, "");
   const token = await getBridgeToken();
   const upstreamBody = {
-    channel: typeof body.channel === "string" ? body.channel : "company-room",
-    sender_id: typeof body.sender_id === "string" ? body.sender_id : "musu.pro-room",
+    channel: normalizeContextValue(body.channel) ?? "company-room",
+    sender_id: normalizeContextValue(body.sender_id) ?? "musu.pro-room",
     text: instruction,
-    target_node: typeof body.target_node === "string" && body.target_node !== "local"
-      ? body.target_node
+    target_node: target_node && target_node !== "local"
+      ? target_node
       : undefined,
-    adapter_type: typeof body.adapter_type === "string" ? body.adapter_type : undefined,
+    adapter_type: normalizeContextValue(body.adapter_type),
     cwd: normalizeWorkspaceUri(body.workspace_uri),
     company_id: normalizeContextValue(body.company_id),
     project_id: normalizeContextValue(body.project_id),
@@ -110,6 +117,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         room_id,
         work_order_id,
         origin: "musu.pro",
+        owner_scoped: true,
         bridge: payload,
       },
       { status: upstream.status }
