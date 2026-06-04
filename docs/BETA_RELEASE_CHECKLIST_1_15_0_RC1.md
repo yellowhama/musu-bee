@@ -3346,6 +3346,46 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_EVENT_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
 
+## 2026-06-04 19:30 KST Room Presence API
+
+Added current room presence endpoints:
+
+- `POST /api/rooms/[roomId]/presence`
+- `GET /api/rooms/[roomId]/presence`
+
+This gives MUSU.PRO project/company rooms a current owner-scoped presence
+table for local MUSU programs and attached AI agents, instead of relying only
+on append-only room events.
+
+Contract:
+
+- requires P2P control bearer auth for reads and writes
+- records owner-scoped `musu.room_presence.v1` records
+- supports statuses `online`, `idle`, `busy`, and `offline`
+- preserves bounded company/project/source-agent/active-work-order context
+- preserves node identity, app version, capabilities, public key, relay
+  capability, route candidate endpoints, origin, `last_seen_at`, and
+  `expires_at`
+- seeds the existing P2P rendezvous candidate cache on `POST`
+- returns `last_seen_desc` current presence with scoped filters
+- uses KV/Upstash when configured; production requires KV or explicit
+  `MUSU_ROOM_PRESENCE_STORE_PATH`
+
+Validation passed:
+
+- direct room presence route test `6/6`
+- `npm run test:p2p` `76/76`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so the current packaged primary evidence must be
+refreshed for the new commit before local artifact readiness can be claimed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_API_2026_06_04.md`
+
 ## 2026-06-04 18:37 KST Post Room-Scoped Rendezvous API Primary Evidence Refresh
 
 After adding `POST /api/rooms/[roomId]/rendezvous`, the local-sideload MSIX was

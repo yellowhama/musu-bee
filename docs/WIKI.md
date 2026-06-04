@@ -5512,3 +5512,42 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_EVENT_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Room presence API (wiki/697)
+
+Added:
+
+- `POST /api/rooms/[roomId]/presence`
+- `GET /api/rooms/[roomId]/presence`
+
+This gives a MUSU.PRO project/company room a current owner-scoped presence
+table. Local MUSU programs and attached AI agents can publish current status,
+capabilities, active work orders, relay capability, public key, and route
+candidate endpoints while local devices remain responsible for execution.
+
+The route requires P2P control bearer auth, records owner-scoped
+`musu.room_presence.v1` records, supports `online`, `idle`, `busy`, and
+`offline`, and returns current presence in `last_seen_desc` order with scoped
+filters.
+
+`POST` also seeds the existing P2P rendezvous candidate cache, so room
+presence can feed room-scoped rendezvous path selection without a manual
+host:port prompt first.
+
+Storage uses Vercel KV / Upstash when configured; production fails closed
+without KV or explicit `MUSU_ROOM_PRESENCE_STORE_PATH`.
+
+Validation passed:
+
+- direct room presence route test `6/6`
+- `npm run test:p2p` `76/76`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so fresh packaged primary evidence is required
+after commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_API_2026_06_04.md`

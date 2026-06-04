@@ -3558,4 +3558,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `warning-mode install diagnostic-only`, and `local MUSU programs execute
   work`.
 
+- 2026-06-04 room presence API:
+  `RELEASE_1_15_0_RC1_ROOM_PRESENCE_API_2026_06_04.md` (wiki/697) records
+  `POST /api/rooms/[roomId]/presence` and
+  `GET /api/rooms/[roomId]/presence` as the project/company room current
+  presence table. Search terms should include `GOAL v510`, `wiki/697`,
+  `room presence API`, `musu.room_presence.v1`, `ROOM_PRESENCE_STATUSES`,
+  `MUSU_ROOM_PRESENCE_STORE_PATH`, `owner-scoped presence`, `online idle busy
+  offline`, `candidate_cache_seeded`, `saveNodeCandidateSet`,
+  `last_seen_desc`, `active_work_order_ids`, `relay_capable`, `public_key`,
+  `candidate_endpoints`, `test:p2p 76/76`, `room presence 6/6`, `Next build`,
+  `/api/rooms/[roomId]/presence`, and `fresh packaged primary evidence
+  required`.
+
 **End of WIKI_INDEX.md.**
