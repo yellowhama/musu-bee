@@ -5,6 +5,7 @@ param(
     [int]$MaxOwnedNodeProcesses = 1,
     [int]$MaxOwnedWebView2Processes = 12,
     [switch]$AllowNoBridgeRegistry,
+    [switch]$AllowDeveloperRuntime,
     [string]$OutputPath,
     [switch]$FailOnProblem,
     [switch]$Json
@@ -166,12 +167,32 @@ function Get-ProcessCpuSafe($Process) {
     return $null
 }
 
-function Test-RepoRelated([string]$Path) {
+function Get-ProcessCommandLineSafe([int]$ProcessId) {
+    try {
+        $process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction Stop
+        if ($process -and $process.CommandLine) {
+            return [string]$process.CommandLine
+        }
+    }
+    catch {
+    }
+    return $null
+}
+
+function Test-RepoRelated([string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $false
+    }
+    $lower = $Text.ToLowerInvariant()
+    return ($lower.Contains($repoRoot.ToLowerInvariant()) -or $lower.Contains("musu-bee") -or $lower.Contains("musu-rs"))
+}
+
+function Test-PackagedMusuPath([string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return $false
     }
     $lower = $Path.ToLowerInvariant()
-    return ($lower.Contains($repoRoot.ToLowerInvariant()) -or $lower.Contains("musu-bee") -or $lower.Contains("musu-rs"))
+    return ($lower.Contains("\windowsapps\yellowhama.musu_") -or $lower.Contains("\program files\windowsapps\yellowhama.musu_"))
 }
 
 function Test-DescendantOfAnyRoot([int]$ProcessId, $RootIds, $ParentByPid) {
@@ -237,15 +258,17 @@ foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
     }
 
     $path = Get-ProcessPathSafe $process
+    $commandLine = Get-ProcessCommandLineSafe ([int]$process.Id)
     $rawProcesses += [pscustomobject]@{
         pid = [int]$process.Id
         process_name = [string]$process.ProcessName
         parent_pid = $parentPid
         path = $path
+        command_line = $commandLine
         start_time = Get-ProcessStartTimeSafe $process
         cpu_seconds = Get-ProcessCpuSafe $process
         working_set_mb = [Math]::Round(([double]$process.WorkingSet64 / 1MB), 2)
-        repo_related = Test-RepoRelated $path
+        repo_related = (Test-RepoRelated (($path, $commandLine | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"))
     }
 }
 
@@ -291,6 +314,7 @@ foreach ($process in $rawProcesses) {
         owned_by_musu = [bool]($isRoot -or $isOwnedHelper)
         repo_related = [bool]$process.repo_related
         path = $process.path
+        command_line = $process.command_line
         start_time = $process.start_time
         cpu_seconds = $process.cpu_seconds
         working_set_mb = $process.working_set_mb
@@ -301,6 +325,18 @@ $ownedNode = @($processes | Where-Object { $_.role -eq "node_helper" -and $_.own
 $ownedWebView2 = @($processes | Where-Object { $_.role -eq "webview2_helper" -and $_.owned_by_musu })
 $repoRelatedHelpers = @($processes | Where-Object {
     -not $_.owned_by_musu -and $_.repo_related -and ($_.role -eq "node_helper" -or $_.role -eq "webview2_helper")
+})
+$repoRelatedRuntimeProcesses = @($processes | Where-Object {
+    $_.role -eq "musu_runtime" -and [bool]$_.repo_related
+})
+$packagedRuntimeProcesses = @($processes | Where-Object {
+    $_.role -eq "musu_runtime" -and (Test-PackagedMusuPath $_.path)
+})
+$nonPackagedRuntimeProcesses = @($processes | Where-Object {
+    $_.role -eq "musu_runtime" -and -not (Test-PackagedMusuPath $_.path)
+})
+$nonPackagedDesktopProcesses = @($processes | Where-Object {
+    $_.role -eq "desktop_shell" -and -not (Test-PackagedMusuPath $_.path)
 })
 
 $musuHome = if ($env:MUSU_HOME) {
@@ -351,11 +387,34 @@ $bridgeHealth = if ($bridgeAddr) {
 else {
     [pscustomobject]@{ ok = $false; detail = "bridge addr missing"; status_code = $null }
 }
+$packagedDesktopRoots = @($desktopRoots | Where-Object { Test-PackagedMusuPath $_.path })
+$packagedDesktopActive = ($packagedDesktopRoots.Count -gt 0)
+$bridgePidPackagedRuntime = ($null -ne $bridgePidProcess -and (Test-PackagedMusuPath $bridgePidProcess.path) -and -not [bool]$bridgePidProcess.repo_related)
+$dashboardListen = $null
+try {
+    $dashboardListen = Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+}
+catch {
+    $dashboardListen = $null
+}
+$dashboardPid = if ($dashboardListen) { [int]$dashboardListen.OwningProcess } else { $null }
+$dashboardPidProcess = if ($null -ne $dashboardPid) {
+    $processes | Where-Object { $_.pid -eq $dashboardPid } | Select-Object -First 1
+}
+else {
+    $null
+}
+$dashboardServerRepoRelated = ($null -ne $dashboardPidProcess -and [bool]$dashboardPidProcess.repo_related)
+$bridgePidPath = if ($null -ne $bridgePidProcess) { [string]$bridgePidProcess.path } else { "<missing>" }
+$dashboardCommandLine = if ($null -ne $dashboardPidProcess) { [string]$dashboardPidProcess.command_line } else { "<missing>" }
 
 $checks = New-Object System.Collections.Generic.List[object]
 Add-CheckFromCondition -Checks $checks -Name "native parent lookup" -Condition ([bool]$script:nativeParentLookupAvailable) -PassMessage "native parent-process lookup is available" -FailMessage "native parent-process lookup is unavailable"
 Add-CheckFromCondition -Checks $checks -Name "MUSU runtime process count" -Condition ($musuRoots.Count -ge 1 -and $musuRoots.Count -le $MaxMusuRuntimeProcesses) -PassMessage "$($musuRoots.Count) MUSU runtime process(es) running" -FailMessage "$($musuRoots.Count) MUSU runtime process(es) running; expected 1..$MaxMusuRuntimeProcesses"
 Add-CheckFromCondition -Checks $checks -Name "MUSU desktop process count" -Condition ($desktopRoots.Count -le $MaxMusuDesktopProcesses) -PassMessage "$($desktopRoots.Count) MUSU desktop shell process(es)" -FailMessage "$($desktopRoots.Count) MUSU desktop shell process(es); max $MaxMusuDesktopProcesses"
+Add-CheckFromCondition -Checks $checks -Name "release runtime identity" -Condition ($AllowDeveloperRuntime -or ($musuRoots.Count -gt 0 -and $nonPackagedRuntimeProcesses.Count -eq 0)) -PassMessage "all MUSU runtime processes belong to the packaged WindowsApps runtime" -FailMessage "$($nonPackagedRuntimeProcesses.Count) MUSU runtime process(es) are not packaged WindowsApps runtime(s): $(@($nonPackagedRuntimeProcesses | ForEach-Object { $_.path }) -join '; ')"
+Add-CheckFromCondition -Checks $checks -Name "release desktop shell identity" -Condition ($AllowDeveloperRuntime -or $nonPackagedDesktopProcesses.Count -eq 0) -PassMessage "desktop shell processes are packaged WindowsApps runtime(s) or absent" -FailMessage "$($nonPackagedDesktopProcesses.Count) MUSU desktop shell process(es) are not packaged WindowsApps runtime(s): $(@($nonPackagedDesktopProcesses | ForEach-Object { $_.path }) -join '; ')"
 Add-CheckFromCondition -Checks $checks -Name "owned Node helper count" -Condition ($ownedNode.Count -le $MaxOwnedNodeProcesses) -PassMessage "$($ownedNode.Count) owned Node helper process(es)" -FailMessage "$($ownedNode.Count) owned Node helper process(es); max $MaxOwnedNodeProcesses"
 Add-CheckFromCondition -Checks $checks -Name "owned WebView2 helper count" -Condition ($ownedWebView2.Count -le $MaxOwnedWebView2Processes) -PassMessage "$($ownedWebView2.Count) owned WebView2 helper process(es)" -FailMessage "$($ownedWebView2.Count) owned WebView2 helper process(es); max $MaxOwnedWebView2Processes"
 Add-CheckFromCondition -Checks $checks -Name "orphan repo helper count" -Condition ($repoRelatedHelpers.Count -eq 0) -PassMessage "no repo-related orphan Node/WebView2 helpers" -FailMessage "$($repoRelatedHelpers.Count) repo-related helper process(es) are not owned by a live MUSU root"
@@ -363,6 +422,10 @@ Add-CheckFromCondition -Checks $checks -Name "bridge registry exists" -Condition
 Add-CheckFromCondition -Checks $checks -Name "bridge registry parse" -Condition ($AllowNoBridgeRegistry -or ($null -ne $bridgeRegistry -and [string]::IsNullOrWhiteSpace($bridgeRegistryParseError))) -PassMessage "bridge registry parses" -FailMessage "bridge registry did not parse: $bridgeRegistryParseError"
 Add-CheckFromCondition -Checks $checks -Name "bridge registry pid alive" -Condition ($AllowNoBridgeRegistry -or ($null -ne $bridgePidProcess)) -PassMessage "bridge registry pid is a live MUSU process" -FailMessage "bridge registry pid is missing, dead, or not a MUSU process"
 Add-CheckFromCondition -Checks $checks -Name "bridge health" -Condition ($AllowNoBridgeRegistry -or [bool]$bridgeHealth.ok) -PassMessage "bridge /health is reachable at $bridgeAddr" -FailMessage "bridge /health failed at ${bridgeAddr}: $($bridgeHealth.detail)"
+Add-CheckFromCondition -Checks $checks -Name "bridge registry runtime identity" -Condition ($AllowDeveloperRuntime -or $AllowNoBridgeRegistry -or $bridgePidPackagedRuntime) -PassMessage "bridge registry PID belongs to the packaged WindowsApps runtime" -FailMessage "bridge registry PID $bridgePid points at '$bridgePidPath' instead of the packaged WindowsApps runtime"
+Add-CheckFromCondition -Checks $checks -Name "dashboard server identity" -Condition ($AllowDeveloperRuntime -or ($null -eq $dashboardPidProcess) -or (-not $dashboardServerRepoRelated)) -PassMessage "dashboard listener is absent or not a repo/workspace server" -FailMessage "dashboard listener PID $dashboardPid is repo-related: $dashboardCommandLine"
+Add-CheckFromCondition -Checks $checks -Name "packaged desktop bridge runtime identity" -Condition ($AllowDeveloperRuntime -or (-not $packagedDesktopActive) -or $bridgePidPackagedRuntime) -PassMessage "packaged desktop is not active or bridge registry PID belongs to the packaged WindowsApps runtime" -FailMessage "packaged desktop is active but bridge registry PID $bridgePid points at '$bridgePidPath' instead of the packaged WindowsApps runtime"
+Add-CheckFromCondition -Checks $checks -Name "packaged desktop dashboard server identity" -Condition ($AllowDeveloperRuntime -or (-not $packagedDesktopActive) -or ($null -eq $dashboardPidProcess) -or (-not $dashboardServerRepoRelated)) -PassMessage "packaged desktop is not active or dashboard listener is not a repo/workspace server" -FailMessage "packaged desktop is active but dashboard listener PID $dashboardPid is repo-related: $dashboardCommandLine"
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
@@ -375,6 +438,7 @@ $result = [pscustomobject]@{
     operator_user = $env:USERNAME
     repo_root = $repoRoot
     musu_home = $musuHome
+    allow_developer_runtime = [bool]$AllowDeveloperRuntime
     max_musu_runtime_processes = $MaxMusuRuntimeProcesses
     max_musu_desktop_processes = $MaxMusuDesktopProcesses
     max_owned_node_processes = $MaxOwnedNodeProcesses
@@ -389,6 +453,10 @@ $result = [pscustomobject]@{
         machine_wide_node = @($processes | Where-Object { $_.role -eq "node_helper" }).Count
         machine_wide_webview2 = @($processes | Where-Object { $_.role -eq "webview2_helper" }).Count
         orphan_repo_helpers = @($repoRelatedHelpers).Count
+        repo_related_runtime = @($repoRelatedRuntimeProcesses).Count
+        packaged_runtime = @($packagedRuntimeProcesses).Count
+        non_packaged_runtime = @($nonPackagedRuntimeProcesses).Count
+        non_packaged_desktop_shell = @($nonPackagedDesktopProcesses).Count
     }
     bridge_registry = [pscustomobject]@{
         path = $bridgeRegistryPath
@@ -398,6 +466,14 @@ $result = [pscustomobject]@{
         addr = $bridgeAddr
         pid_alive = ($null -ne $bridgePidProcess)
         health = $bridgeHealth
+    }
+    packaged_runtime_identity = [pscustomobject]@{
+        packaged_desktop_active = [bool]$packagedDesktopActive
+        packaged_desktop_pids = @($packagedDesktopRoots | ForEach-Object { $_.pid })
+        bridge_pid_packaged_runtime = [bool]$bridgePidPackagedRuntime
+        bridge_pid_repo_related = ($null -ne $bridgePidProcess -and [bool]$bridgePidProcess.repo_related)
+        dashboard_pid = $dashboardPid
+        dashboard_pid_repo_related = [bool]$dashboardServerRepoRelated
     }
     checks = $checks.ToArray()
     processes = @($processes | Sort-Object role, process_name, pid)

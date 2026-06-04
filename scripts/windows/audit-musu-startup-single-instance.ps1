@@ -4,6 +4,7 @@ param(
     [int]$RepeatCount = 3,
     [int]$CommandTimeoutSec = 45,
     [int]$MaxMusuRuntimeProcesses = 1,
+    [switch]$AllowDeveloperRuntime,
     [string]$OutputPath,
     [switch]$FailOnProblem,
     [switch]$Json
@@ -17,8 +18,35 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
+function Get-DefaultMusuExe {
+    $windowsAppsAlias = if ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    }
+    else {
+        $null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($windowsAppsAlias) -and (Test-Path -LiteralPath $windowsAppsAlias)) {
+        return $windowsAppsAlias
+    }
+
+    return (Join-Path $repoRoot "musu-rs\target\debug\musu.exe")
+}
+
+function Test-PackagedMusuCommandPath([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    $lower = $Path.ToLowerInvariant()
+    return (
+        $lower.Contains("\microsoft\windowsapps\musu.exe") -or
+        $lower.Contains("\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\program files\windowsapps\yellowhama.musu_")
+    )
+}
+
 if ([string]::IsNullOrWhiteSpace($MusuExe)) {
-    $MusuExe = Join-Path $repoRoot "musu-rs\target\debug\musu.exe"
+    $MusuExe = Get-DefaultMusuExe
 }
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -214,6 +242,7 @@ if ($RepeatCount -lt 2) {
 
 $checks = New-Object System.Collections.Generic.List[object]
 Add-CheckFromCondition -Checks $checks -Name "musu executable exists" -Condition (Test-Path -LiteralPath $MusuExe) -PassMessage "musu executable exists at $MusuExe" -FailMessage "musu executable missing at $MusuExe"
+Add-CheckFromCondition -Checks $checks -Name "startup executable release identity" -Condition ($AllowDeveloperRuntime -or (Test-PackagedMusuCommandPath $MusuExe)) -PassMessage "startup audit uses the packaged WindowsApps MUSU command" -FailMessage "startup audit uses a non-packaged MUSU command: $MusuExe"
 
 $beforeProcesses = @(Get-MusuRuntimeProcesses)
 $beforeRegistry = Read-BridgeRegistry
@@ -268,9 +297,18 @@ $ownershipOutput = Join-Path (Split-Path -Parent $OutputPath) (([System.IO.Path]
 $ownershipResult = $null
 $ownershipError = $null
 try {
-    $ownershipText = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "audit-musu-process-ownership.ps1") -OutputPath $ownershipOutput -FailOnProblem -Json 2>&1
+    $ownershipArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $scriptDir "audit-musu-process-ownership.ps1"), "-OutputPath", $ownershipOutput, "-Json")
+    if ($AllowDeveloperRuntime) {
+        $ownershipArgs += "-AllowDeveloperRuntime"
+    }
+    $ownershipText = & powershell @ownershipArgs 2>&1
     if ($LASTEXITCODE -eq 0) {
         $ownershipResult = ($ownershipText | Out-String).Trim() | ConvertFrom-Json
+        if ($ownershipResult -and -not [bool]$ownershipResult.ok) {
+            $ownershipError = (@($ownershipResult.checks | Where-Object { $_.status -eq "fail" } | ForEach-Object {
+                        "{0}: {1}" -f $_.name, $_.message
+                    }) -join "; ")
+        }
     }
     else {
         $ownershipError = ($ownershipText | Out-String).Trim()
@@ -292,6 +330,7 @@ $result = [pscustomobject]@{
     operator_user = $env:USERNAME
     repo_root = $repoRoot
     musu_exe = $MusuExe
+    allow_developer_runtime = [bool]$AllowDeveloperRuntime
     repeat_count = $RepeatCount
     command_timeout_sec = $CommandTimeoutSec
     max_musu_runtime_processes = $MaxMusuRuntimeProcesses

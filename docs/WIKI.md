@@ -6538,3 +6538,46 @@ and does not close the two-machine idle CPU gate.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_BRIDGE_READINESS_IDLE_CANDIDATE_GATE_2026_06_05.md`
+
+## 2026-06-05 Packaged local runtime identity gate (wiki/722)
+
+`localhost` is now explicitly treated as a same-machine local surface, not
+internet or cloud dashboard access. Release evidence only accepts that surface
+when the bridge/dashboard are backed by the installed packaged MUSU runtime.
+
+`audit-musu-process-ownership.ps1` now records command lines and packaged
+runtime identity. In release mode it fails if:
+
+- a MUSU runtime is not the packaged WindowsApps runtime
+- the bridge registry PID points at debug/workspace runtime
+- port 3001 is served by a repo/workspace Next server
+- repo-related orphan Node/WebView2 helpers are present
+
+`audit-musu-startup-single-instance.ps1` now defaults to the WindowsApps
+`musu.exe` app execution alias and embeds the same strict process ownership
+audit. `write-release-go-no-go.ps1` rejects old process/startup evidence that
+lacks packaged runtime identity proof.
+
+Current HUGH_SECOND live-state validation:
+
+- `http://127.0.0.1:3001/app` returned HTTP 200
+- process ownership failed intentionally because the bridge registry PID points
+  at `musu-rs\target\debug\musu.exe`
+- dashboard identity failed intentionally because port 3001 is served by
+  workspace `next start -p 3001`
+- startup audit used
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe` but failed the
+  nested process ownership audit for the same live-state reason
+
+Roadmap restatement:
+
+- local MUSU programs execute work on each device
+- `musu.pro` handles remote input, project/company rooms, presence, rendezvous,
+  path selection, fallback relay coordination, and evidence
+- web-assisted rendezvous bootstraps P2P mesh
+- localhost remains local-only and must not be confused with cloud dashboard
+  access
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_IDENTITY_GATE_2026_06_05.md`

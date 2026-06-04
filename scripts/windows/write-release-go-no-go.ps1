@@ -255,6 +255,8 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-rust-background-loop-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/audit-operator-api-security-contract.ps1",
+        "scripts/windows/audit-musu-process-ownership.ps1",
+        "scripts/windows/audit-musu-startup-single-instance.ps1",
         "scripts/windows/audit-p2p-store-forward-relay-contract.ps1",
         "scripts/windows/audit-secret-storage-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
@@ -665,12 +667,25 @@ function Test-ProcessOwnershipEvidence {
         $orphanRepoHelpers = if ($counts -and $counts.PSObject.Properties["orphan_repo_helpers"]) { [int]$counts.orphan_repo_helpers } else { 1 }
         $checks.Add((New-Check -Name "orphan repo helpers" -Status ($(if ($orphanRepoHelpers -eq 0) { "pass" } else { "fail" })) -Message ($(if ($orphanRepoHelpers -eq 0) { "no repo-related orphan Node/WebView2 helpers" } else { "$orphanRepoHelpers repo-related orphan helper(s)" })))) | Out-Null
 
+        $nonPackagedRuntime = if ($counts -and $counts.PSObject.Properties["non_packaged_runtime"]) { [int]$counts.non_packaged_runtime } else { 1 }
+        $checks.Add((New-Check -Name "packaged runtime identity" -Status ($(if ($nonPackagedRuntime -eq 0) { "pass" } else { "fail" })) -Message ($(if ($nonPackagedRuntime -eq 0) { "all MUSU runtime processes were packaged WindowsApps runtime(s)" } else { "$nonPackagedRuntime MUSU runtime process(es) were not packaged WindowsApps runtime(s)" })))) | Out-Null
+
+        $nonPackagedDesktop = if ($counts -and $counts.PSObject.Properties["non_packaged_desktop_shell"]) { [int]$counts.non_packaged_desktop_shell } else { 1 }
+        $checks.Add((New-Check -Name "packaged desktop shell identity" -Status ($(if ($nonPackagedDesktop -eq 0) { "pass" } else { "fail" })) -Message ($(if ($nonPackagedDesktop -eq 0) { "desktop shell processes were packaged WindowsApps runtime(s) or absent" } else { "$nonPackagedDesktop MUSU desktop shell process(es) were not packaged WindowsApps runtime(s)" })))) | Out-Null
+
         $bridge = $evidence.bridge_registry
         $bridgePidAlive = ($bridge -and $bridge.PSObject.Properties["pid_alive"] -and [bool]$bridge.pid_alive)
         $checks.Add((New-Check -Name "bridge registry pid alive" -Status ($(if ($bridgePidAlive) { "pass" } else { "fail" })) -Message ($(if ($bridgePidAlive) { "bridge registry pid is alive" } else { "bridge registry pid is missing or dead" })))) | Out-Null
 
         $bridgeHealthOk = ($bridge -and $bridge.PSObject.Properties["health"] -and [bool]$bridge.health.ok)
         $checks.Add((New-Check -Name "bridge health" -Status ($(if ($bridgeHealthOk) { "pass" } else { "fail" })) -Message ($(if ($bridgeHealthOk) { "bridge /health passed" } else { "bridge /health did not pass" })))) | Out-Null
+
+        $identity = if ($evidence.PSObject.Properties["packaged_runtime_identity"]) { $evidence.packaged_runtime_identity } else { $null }
+        $bridgePackagedRuntime = ($identity -and $identity.PSObject.Properties["bridge_pid_packaged_runtime"] -and [bool]$identity.bridge_pid_packaged_runtime)
+        $checks.Add((New-Check -Name "bridge packaged runtime identity" -Status ($(if ($bridgePackagedRuntime) { "pass" } else { "fail" })) -Message ($(if ($bridgePackagedRuntime) { "bridge registry PID belongs to the packaged WindowsApps runtime" } else { "bridge registry PID is not proven to belong to the packaged WindowsApps runtime" })))) | Out-Null
+
+        $dashboardRepoRelated = if ($identity -and $identity.PSObject.Properties["dashboard_pid_repo_related"]) { [bool]$identity.dashboard_pid_repo_related } else { $true }
+        $checks.Add((New-Check -Name "dashboard server identity" -Status ($(if (-not $dashboardRepoRelated) { "pass" } else { "fail" })) -Message ($(if (-not $dashboardRepoRelated) { "dashboard listener is absent or not repo/workspace-backed" } else { "dashboard listener is repo/workspace-backed or identity evidence is missing" })))) | Out-Null
     }
 
     $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
@@ -709,6 +724,15 @@ function Test-StartupSingleInstanceEvidence {
         $okValue = [bool]$evidence.ok
         $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
 
+        $musuExe = if ($evidence.PSObject.Properties["musu_exe"]) { [string]$evidence.musu_exe } else { "" }
+        $musuExeLower = $musuExe.ToLowerInvariant()
+        $startupUsesPackagedCommand = (
+            $musuExeLower.Contains("\microsoft\windowsapps\musu.exe") -or
+            $musuExeLower.Contains("\windowsapps\yellowhama.musu_") -or
+            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_")
+        )
+        $checks.Add((New-Check -Name "startup executable release identity" -Status ($(if ($startupUsesPackagedCommand) { "pass" } else { "fail" })) -Message ($(if ($startupUsesPackagedCommand) { "startup evidence used the packaged WindowsApps MUSU command" } else { "startup evidence used a non-packaged MUSU command: '$musuExe'" })))) | Out-Null
+
         $operatorMachine = ""
         if ($evidence.PSObject.Properties["operator_machine"]) {
             $operatorMachine = [string]$evidence.operator_machine
@@ -734,7 +758,8 @@ function Test-StartupSingleInstanceEvidence {
         $failedInvocationCount = if ($counts -and $counts.PSObject.Properties["failed_invocation_count"]) { [int]$counts.failed_invocation_count } else { 1 }
         $checks.Add((New-Check -Name "startup invocation failures" -Status ($(if ($failedInvocationCount -eq 0) { "pass" } else { "fail" })) -Message ($(if ($failedInvocationCount -eq 0) { "all startup invocations passed" } else { "$failedInvocationCount startup invocation(s) failed" })))) | Out-Null
 
-        $ownershipOk = ($evidence.PSObject.Properties["process_ownership"] -and [bool]$evidence.process_ownership.ok)
+        $ownership = if ($evidence.PSObject.Properties["process_ownership"]) { $evidence.process_ownership } else { $null }
+        $ownershipOk = ($ownership -and $ownership.PSObject.Properties["ok"] -and [bool]$ownership.ok)
         $checks.Add((New-Check -Name "process ownership nested" -Status ($(if ($ownershipOk) { "pass" } else { "fail" })) -Message ($(if ($ownershipOk) { "nested process ownership audit passed" } else { "nested process ownership audit missing or failed" })))) | Out-Null
     }
 

@@ -3877,4 +3877,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `idle_busy_loop_candidate_contract_verified=true`, and
   `two-machine idle CPU gate still open`.
 
+- 2026-06-05 packaged local runtime identity gate:
+  `RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_IDENTITY_GATE_2026_06_05.md`
+  (wiki/722) makes localhost/process/startup release evidence prove that the
+  installed packaged WindowsApps runtime owns the bridge/dashboard surface.
+  Search terms should include `GOAL v535`, `wiki/722`,
+  `packaged local runtime identity`, `localhost is local loopback`,
+  `not internet`, `WindowsApps musu.exe`, `release runtime identity`,
+  `bridge registry runtime identity`, `dashboard server identity`,
+  `AllowDeveloperRuntime diagnostic-only`, `workspace next start -p 3001`,
+  `musu-rs target debug musu.exe`, `musu.pro remote input plane`,
+  `local MUSU programs execute work`, and `P2P mesh bootstrap`.
+
 **End of WIKI_INDEX.md.**

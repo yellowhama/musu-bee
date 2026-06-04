@@ -510,7 +510,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-p
 
 This checks that there is one active MUSU runtime, counts Node.js/WebView2 only
 when those helpers are descendants of MUSU, rejects repo-owned orphan helpers,
-and verifies the bridge registry PID plus `/health`.
+verifies the bridge registry PID plus `/health`, and requires the live runtime
+to be the installed packaged WindowsApps runtime rather than a workspace/debug
+build. Use `-AllowDeveloperRuntime` only for diagnostic developer runs, never
+for public release evidence.
 
 Expected result: `process_ownership_verified=true`.
 
@@ -527,7 +530,10 @@ MUSU-owned process set, not unrelated machine-wide Node.js tooling.
 
 ## Gate G - Startup single-instance evidence
 
-Run this from the real MUSU release repo root while MUSU runtime is available:
+Run this from the real MUSU release repo root while the installed MUSU package
+is available. By default the audit uses the WindowsApps `musu.exe` app execution
+alias; pass `-MusuExe` only when intentionally pointing at an installed package
+path.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json
@@ -535,7 +541,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-s
 
 This calls `musu up --json` repeatedly and verifies that repeated startup
 reuses one bridge PID, does not spawn another runtime after the first call, and
-still passes the nested process ownership audit.
+still passes the nested process ownership audit. Non-packaged workspace/debug
+commands are rejected unless `-AllowDeveloperRuntime` is explicitly supplied
+for a non-release diagnostic run.
 
 Expected result: `startup_single_instance_verified=true`.
 
