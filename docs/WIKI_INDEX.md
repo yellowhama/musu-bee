@@ -3263,4 +3263,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `frontend polling audit ok=true`, `e92e0e55`, `single_machine_verified=false`,
   `runtime idle CPU 0/2`, and `runtime CPU matrix 0/2`.
 
+- 2026-06-04 post chat SSE retry-cap primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_CHAT_SSE_RETRY_CAP_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/673) records current MSIX/smoke/CPU/matrix evidence after chat SSE
+  hardening. Search terms should include `GOAL v484`, `wiki/673`,
+  `20260604-121733-HUGH_SECOND`, `20260604-122357-HUGH_SECOND`,
+  `20260604-124137-HUGH_SECOND.desktop-open`,
+  `20260604-123317-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_122333`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_123317`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `git_dirty=false`, and `d2c29ef9`.
+
+- 2026-06-04 current operator handoff pack after chat SSE evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CHAT_SSE_EVIDENCE_2026_06_04.md`
+  (wiki/674) records final operator packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260604-124445.zip`, action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260604-124456.zip`, second-PC
+  transfer `MUSU-second-PC-transfer-1.15.0-rc.1-20260604-124456.zip`, Partner
+  Center zip `MUSU-1.15.0-rc.1-store-submission-20260604-124456.zip`, and
+  support verification id `musu-store-support-1.15.0-rc.1-20260604-124445`.
+  Search terms should include `GOAL v485`, `wiki/674`, `packet.verified=true`,
+  `action_pack.verified=true`, `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_proven=false`, and `20260604-124456`.
+
 **End of WIKI_INDEX.md.**

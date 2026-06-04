@@ -102,3 +102,31 @@ smoke, desktop-open CPU sample, and five-state runtime CPU matrix.
 Public release remains No-Go on second-PC runtime/multi-device evidence, live
 owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
 evidence.
+
+## Post-Commit Primary Evidence Refresh
+
+After committing the chat SSE retry-cap source and roadmap documentation,
+current-source one-machine evidence was refreshed:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-121733-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-122357-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-124137-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-123317-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go on `d2c29ef95c07e0a1d299289abe3f95358f4424dd` restored
+`single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime
+CPU matrix `1/2 [HUGH_SECOND]`, and `manifest_git.dirty=false`.
+
+The current operator packet and action pack were regenerated:
+
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-124445.zip`
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-124456.zip`
+
+Canonical follow-up reports:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CHAT_SSE_RETRY_CAP_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CHAT_SSE_EVIDENCE_2026_06_04.md`

@@ -1905,3 +1905,37 @@ remains No-Go on second-PC runtime/multi-device evidence, live owner-scoped
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CHAT_SSE_RETRY_CAP_HARDENING_2026_06_04.md`
+
+## 2026-06-04 Post Chat SSE Primary Evidence and Handoff Refresh
+
+Primary evidence was refreshed after the chat SSE retry-cap source change:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-121733-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-122357-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-124137-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-123317-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go on `d2c29ef95c07e0a1d299289abe3f95358f4424dd` reports
+`local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+`manifest_git.dirty=false`, and blocker count `6`.
+
+Current handoff artifacts:
+
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-124445.zip`
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-124456.zip`
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-124456\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-124456.zip`
+
+Release meaning: the one-machine runtime evidence is restored after the
+frontend busy-loop hardening. Public release remains blocked by second-PC
+runtime/multi-device evidence, live owner-scoped `musu.pro` relay proof,
+support mailbox evidence, and Store evidence.
+
+Canonical reports:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CHAT_SSE_RETRY_CAP_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CHAT_SSE_EVIDENCE_2026_06_04.md`
