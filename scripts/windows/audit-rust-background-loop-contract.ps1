@@ -228,6 +228,7 @@ Add-RegexCheck -Scope "task-runner" -Name "stream deadline timeout" -Text $write
 
 $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
+$telemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
     Add-Check -Scope "source" -Name "rust source root exists" -Passed $false -Path "musu-rs\src" -Message "Rust source root is missing."
 }
@@ -263,6 +264,9 @@ else {
         if ([regex]::IsMatch($text, 'while\s+true|loop\s*\{') -and ($relative -notin $allowlistedLoopFiles)) {
             $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
+        if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
+            $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+        }
     }
 
     Add-Check `
@@ -271,6 +275,12 @@ else {
         -Passed ($rawBusyLoopHits.Count -eq 0) `
         -Path "musu-rs\src" `
         -Message ($(if ($rawBusyLoopHits.Count -eq 0) { "No unaudited Rust loop constructs found outside the allowlist." } else { "Unaudited Rust loop constructs found: $(@($rawBusyLoopHits | ForEach-Object { $_.path }) -join ', ')." }))
+    Add-Check `
+        -Scope "logging-telemetry" `
+        -Name "no background telemetry flush worker primitives" `
+        -Passed ($telemetryFlushPrimitiveHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($telemetryFlushPrimitiveHits.Count -eq 0) { "No Rust background telemetry/log flush worker primitives found." } else { "Telemetry/log flush worker primitives found: $(@($telemetryFlushPrimitiveHits | ForEach-Object { $_.path }) -join ', ')." }))
 }
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
@@ -281,6 +291,8 @@ $result = [pscustomobject]@{
     fail_count = $failCount
     unaudited_loop_hit_count = $rawBusyLoopHits.Count
     unaudited_loop_hits = $rawBusyLoopHits.ToArray()
+    telemetry_flush_primitive_hit_count = $telemetryFlushPrimitiveHits.Count
+    telemetry_flush_primitive_hits = $telemetryFlushPrimitiveHits.ToArray()
     checks = $checks.ToArray()
 }
 

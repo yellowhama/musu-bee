@@ -1450,6 +1450,15 @@ $idleBusyLoopCandidateStatuses = @(
             [pscustomobject]@{ scope = "cloud-heartbeat"; name = "failure backoff sleep" }
         ) `
         -Evidence "Cloud heartbeat defaults to low-duty cadence and sleeps with failure backoff."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "log/telemetry flush loop" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "source"; name = "new rust loops must be audited" },
+            [pscustomobject]@{ scope = "logging-telemetry"; name = "no background telemetry flush worker primitives" }
+        ) `
+        -Evidence "Rust source has no unaudited loop constructs and no background telemetry/log flush worker primitives."
 )
 $idleBusyLoopCandidateContractVerified = @($idleBusyLoopCandidateStatuses | Where-Object { -not [bool]$_.verified }).Count -eq 0
 
@@ -1488,7 +1497,7 @@ if (-not $rustBackgroundLoopContractVerified) {
     Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
 }
 if (-not $idleBusyLoopCandidateContractVerified) {
-    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health/readiness, frontend polling, relay target polling, and cloud heartbeat are not all proven gated, low-duty, bounded, or cancellable."
+    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health/readiness, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops are not all proven gated, low-duty, bounded, cancellable, or absent."
 }
 if (-not $localApiAuthContractVerified) {
     Add-Blocker -List $blockers -Area "local-api-auth" -Message "Local API auth contract audit (musu.local_api_auth_contract.v1) failed; localhost bridge requests are not proven to require bearer auth by default with only an explicit trusted local bypass."
@@ -1546,7 +1555,7 @@ $manualInternalGates = @(
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
-    "Idle busy-loop candidate summary for clipboard, mDNS, health/readiness, frontend polling, relay target polling, and cloud heartbeat",
+    "Idle busy-loop candidate summary for clipboard, mDNS, health/readiness, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "Secret storage contract audit for token-file ACLs, raw-token redaction, and secret-safe operator docs",

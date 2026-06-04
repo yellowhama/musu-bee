@@ -6356,3 +6356,45 @@ second-PC, hosted P2P, support mailbox, and Store gates.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_STATUS_GATE_2026_06_05.md`
+
+## 2026-06-05 Log/telemetry idle candidate gate (wiki/718)
+
+The idle busy-loop candidate summary now includes the previously missing
+`log/telemetry flush loop` suspect.
+
+`audit-rust-background-loop-contract.ps1` now emits:
+
+- `telemetry_flush_primitive_hit_count`
+- `telemetry_flush_primitive_hits`
+- check `logging-telemetry / no background telemetry flush worker primitives`
+
+`write-release-go-no-go.ps1` now reports seven
+`idle_busy_loop_candidate_status` entries:
+
+- clipboard polling
+- mDNS discovery
+- health/readiness retry loops
+- frontend interval/refetch polling
+- relay payload target polling
+- cloud heartbeat
+- log/telemetry flush loop
+
+Validation:
+
+- PowerShell parser passed for `write-release-go-no-go.ps1` and
+  `audit-rust-background-loop-contract.ps1`
+- Rust loop audit passed with `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`
+- Frontend polling audit passed with `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- Dirty-tree go/no-go summary reported
+  `idle_busy_loop_candidate_contract_verified=true`, candidate count `7`, and
+  no failed candidates
+
+This is source/gate hardening only. It does not replace 60-second CPU evidence
+and does not close the two-machine idle CPU gate. Public release remains No-Go
+on second-PC, hosted P2P, support mailbox, and Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_LOG_TELEMETRY_IDLE_CANDIDATE_GATE_2026_06_05.md`

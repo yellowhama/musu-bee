@@ -3827,4 +3827,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `audit-frontend-polling-contract`, `unaudited_loop_hit_count=0`,
   `direct_interval_hit_count=0`, and `two-machine idle CPU gate still open`.
 
+- 2026-06-05 log/telemetry idle candidate gate:
+  `RELEASE_1_15_0_RC1_LOG_TELEMETRY_IDLE_CANDIDATE_GATE_2026_06_05.md`
+  (wiki/718) extends the idle busy-loop candidate contract to the missing
+  `log/telemetry flush loop` suspect. Search terms should include
+  `GOAL v531`, `wiki/718`, `log/telemetry flush loop`,
+  `telemetry_flush_primitive_hit_count=0`,
+  `no background telemetry flush worker primitives`,
+  `idle_busy_loop_candidate_status`, `candidate count 7`,
+  `audit-rust-background-loop-contract`, and
+  `two-machine idle CPU gate still open`.
+
 **End of WIKI_INDEX.md.**
