@@ -141,6 +141,20 @@ Add-RegexCheck -Scope "auto-update" -Name "health poll initial backoff" -Text $a
 Add-RegexCheck -Scope "auto-update" -Name "health poll max backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_MAX_MS:\s*u64\s*=\s*2_000' -Path $autoUpdatePath -Message "Auto-update health poll delay is capped."
 Add-RegexCheck -Scope "auto-update" -Name "health poll sleep" -Text $autoUpdateText -Pattern 'let delay = health_poll_delay\(attempt\)\.min\(remaining\);[\s\S]*tokio::time::sleep\(delay\)\.await' -Path $autoUpdatePath -Message "Auto-update health polling sleeps between attempts."
 
+$cliPath = "musu-rs\src\install\cli_commands.rs"
+$cliText = Get-RepoText $cliPath
+Add-RegexCheck -Scope "cli-bridge-health" -Name "bridge health poll initial backoff" -Text $cliText -Pattern 'BRIDGE_HEALTH_POLL_INITIAL_MS:\s*u64\s*=\s*250' -Path $cliPath -Message "CLI bridge readiness starts with a bounded health-poll delay."
+Add-RegexCheck -Scope "cli-bridge-health" -Name "bridge health poll max backoff" -Text $cliText -Pattern 'BRIDGE_HEALTH_POLL_MAX_MS:\s*u64\s*=\s*2_000' -Path $cliPath -Message "CLI bridge readiness health-poll delay is capped."
+Add-RegexCheck -Scope "cli-bridge-health" -Name "bridge readiness deadline" -Text $cliText -Pattern 'async fn wait_for_bridge[\s\S]*deadline\s*=\s*std::time::Instant::now\(\)\s*\+\s*timeout' -Path $cliPath -Message "CLI bridge readiness wait is bounded by the caller timeout."
+Add-RegexCheck -Scope "cli-bridge-health" -Name "bridge readiness backoff sleep" -Text $cliText -Pattern 'async fn wait_for_bridge[\s\S]*bridge_health_poll_delay\(attempt\)\.min\(deadline\.saturating_duration_since\(now\)\)[\s\S]*tokio::time::sleep\(delay\)\.await' -Path $cliPath -Message "CLI bridge readiness sleeps with bounded backoff between health checks."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait default timeout" -Text $cliText -Pattern 'ROUTE_WAIT_DEFAULT_TIMEOUT_SECS:\s*u64\s*=\s*300' -Path $cliPath -Message "CLI route --wait has a default timeout."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait maximum timeout" -Text $cliText -Pattern 'ROUTE_WAIT_MAX_TIMEOUT_SECS:\s*u64\s*=\s*3_600' -Path $cliPath -Message "CLI route --wait timeout has a hard ceiling."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait option" -Text $cliText -Pattern 'wait_timeout_sec:\s*u64' -Path $cliPath -Message "CLI route exposes an explicit --wait-timeout-sec option."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait deadline" -Text $cliText -Pattern 'wait_deadline\s*=\s*std::time::Instant::now\(\)\s*\+\s*wait_timeout' -Path $cliPath -Message "CLI route --wait computes a bounded wait deadline."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait request timeout" -Text $cliText -Pattern 'ROUTE_WAIT_STATUS_REQUEST_TIMEOUT_SECS[\s\S]*\.timeout\(request_timeout\)' -Path $cliPath -Message "CLI route --wait status requests are timeout-bound."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait sleep" -Text $cliText -Pattern 'let sleep_for\s*=\s*std::time::Duration::from_secs\(ROUTE_WAIT_POLL_INTERVAL_SECS\)[\s\S]*tokio::time::sleep\(sleep_for\)\.await' -Path $cliPath -Message "CLI route --wait sleeps between status polls."
+Add-RegexCheck -Scope "cli-route-wait" -Name "route wait timeout evidence class" -Text $cliText -Pattern 'remote_task_wait_timeout' -Path $cliPath -Message "CLI route --wait records timeout as a failed wait class instead of spinning forever."
+
 $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {

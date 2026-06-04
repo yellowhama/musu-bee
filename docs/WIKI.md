@@ -4430,3 +4430,38 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_STALE_PROOF_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 CLI route wait and web-input local-executor roadmap (wiki/669)
+
+The runtime roadmap now records the product split explicitly:
+
+- `musu.pro` is the web input, project-room, rendezvous, fallback coordination,
+  and evidence plane
+- local MUSU programs execute the work on their own machines
+- web-originated commands are control-plane envelopes, not central execution
+- `localhost` dashboards remain local operator/dev surfaces
+- real multi-device and two-machine CPU proof still require the current MUSU
+  build installed on a second Windows PC
+
+Runtime hardening:
+
+- `musu route --wait` now exposes `--wait-timeout-sec`
+- default wait timeout is `300s`
+- wait timeout caps at `3600s`
+- status requests are timeout-bound
+- polling sleeps between checks
+- timeout records `remote_task_wait_timeout`
+- the Rust background-loop contract audit now checks CLI bridge readiness and
+  route wait contracts
+
+Validation passed `cargo fmt --check`, `cargo test --lib
+route_wait_timeout_is_bounded`, Rust background-loop audit `ok=true` /
+`fail_count=0`, and `git diff --check`.
+
+Dirty-tree go/no-go reports `ready=false`, `local_artifacts_ready=true`,
+`single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+`1/2`, `manifest_git.dirty=true`, and blocker count `7`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`

@@ -3133,6 +3133,33 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 CLI Route Wait and Web-Input Roadmap Update
+
+- roadmap update:
+  `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`
+- `musu.pro` role: web input, project room, rendezvous, fallback coordination,
+  and evidence plane
+- local MUSU role: execute work on each device, own local runtime/bridge/files,
+  and coordinate over P2P mesh after web-assisted bootstrap
+- `localhost` dashboard role: local operator/dev surface, not the product
+  entrypoint for remote ordering
+- `musu route --wait` now has bounded wait behavior:
+  `--wait-timeout-sec`, default `300s`, hard cap `3600s`, timeout-bound status
+  requests, bounded poll sleep, and `remote_task_wait_timeout`
+- Rust background-loop audit now checks `cli-route-wait` and
+  `cli-bridge-health`
+- validation passed `cargo fmt --check`,
+  `cargo test --lib route_wait_timeout_is_bounded`, Rust background-loop audit
+  `ok=true` / `fail_count=0`, and `git diff --check`
+- dirty go/no-go after this source change: `ready=false`,
+  `local_artifacts_ready=true`, `single_machine_verified=true`, runtime idle
+  CPU `1/2`, runtime CPU matrix `1/2`, `manifest_git.dirty=true`, blocker
+  count `7`
+- release implication: this is local busy-loop/roadmap hardening; public
+  release still requires current-source clean evidence after commit, second-PC
+  runtime/multi-device evidence, live owner-scoped `musu.pro` relay proof,
+  support mailbox evidence, and Store/Partner Center evidence
+
 ## 2026-06-04 03:48 KST Relay Payload Target Poller
 
 Rust bridge relay fallback now has an opt-in target-side payload poller.

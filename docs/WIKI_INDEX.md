@@ -3212,4 +3212,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `action_pack.verified=true`, `ready_for_public_desktop_release=false`,
   `20260604-103143`, and `20260604-103216`.
 
+- 2026-06-04 CLI route wait and web-input local-executor roadmap:
+  `RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`
+  (wiki/669) records the local-executor product split and bounded
+  `musu route --wait` contract. Search terms should include `GOAL v480`,
+  `wiki/669`, `--wait-timeout-sec`, `ROUTE_WAIT_DEFAULT_TIMEOUT_SECS`,
+  `ROUTE_WAIT_MAX_TIMEOUT_SECS`, `remote_task_wait_timeout`,
+  `cli-route-wait`, `cli-bridge-health`, `musu.pro web input`,
+  `local MUSU programs execute the work`, `project room`,
+  `localhost dashboards are local operator/dev surfaces`,
+  `cargo test --lib route_wait_timeout_is_bounded`, and
+  `manifest_git.dirty=true`.
+
 **End of WIKI_INDEX.md.**

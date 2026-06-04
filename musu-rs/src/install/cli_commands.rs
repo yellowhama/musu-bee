@@ -20,6 +20,10 @@ use super::shares::SharesConfig;
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
 const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
 const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
+const ROUTE_WAIT_DEFAULT_TIMEOUT_SECS: u64 = 300;
+const ROUTE_WAIT_MAX_TIMEOUT_SECS: u64 = 3_600;
+const ROUTE_WAIT_POLL_INTERVAL_SECS: u64 = 2;
+const ROUTE_WAIT_STATUS_REQUEST_TIMEOUT_SECS: u64 = 10;
 
 // ── V27 CLI option structs ──────────────────────────────────────────────
 
@@ -57,6 +61,9 @@ pub struct RouteOpts {
     /// Wait for the task to complete and print the result.
     #[arg(long, short = 'w')]
     pub wait: bool,
+    /// Maximum seconds to wait for task completion when --wait is used.
+    #[arg(long, default_value_t = ROUTE_WAIT_DEFAULT_TIMEOUT_SECS)]
+    pub wait_timeout_sec: u64,
     /// Route to a GPU-capable node.
     #[arg(long)]
     pub gpu: bool,
@@ -500,13 +507,25 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         if opts.wait {
             println!("⏳ Waiting for task {}...", task_id);
             let task_id = task_id.to_string();
+            let wait_timeout = route_wait_timeout(opts.wait_timeout_sec);
+            let wait_deadline = std::time::Instant::now() + wait_timeout;
             loop {
-                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                let now = std::time::Instant::now();
+                if now >= wait_deadline {
+                    println!("Task wait timed out after {}s.", wait_timeout.as_secs());
+                    route_result = RouteAttemptEvidenceResult::Failed;
+                    failure_class = Some("remote_task_wait_timeout".to_string());
+                    break;
+                }
+
                 let status_url = route_task_status_url(&route_base_url, &task_id);
+                let request_timeout =
+                    std::time::Duration::from_secs(ROUTE_WAIT_STATUS_REQUEST_TIMEOUT_SECS)
+                        .min(wait_deadline.saturating_duration_since(now));
                 let status_resp = request_client
                     .get(&status_url)
                     .bearer_auth(&token)
-                    .timeout(std::time::Duration::from_secs(10))
+                    .timeout(request_timeout)
                     .send()
                     .await;
                 match status_resp {
@@ -547,6 +566,16 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
                         // non-success or network error, keep polling
                     }
                 }
+                let now = std::time::Instant::now();
+                if now >= wait_deadline {
+                    println!("Task wait timed out after {}s.", wait_timeout.as_secs());
+                    route_result = RouteAttemptEvidenceResult::Failed;
+                    failure_class = Some("remote_task_wait_timeout".to_string());
+                    break;
+                }
+                let sleep_for = std::time::Duration::from_secs(ROUTE_WAIT_POLL_INTERVAL_SECS)
+                    .min(wait_deadline.saturating_duration_since(now));
+                tokio::time::sleep(sleep_for).await;
             }
         }
     } else {
@@ -597,6 +626,10 @@ fn route_delegate_url(base_url: &str) -> String {
 
 fn route_task_status_url(base_url: &str, task_id: &str) -> String {
     format!("{}/api/tasks/{}", base_url.trim_end_matches('/'), task_id)
+}
+
+fn route_wait_timeout(timeout_sec: u64) -> std::time::Duration {
+    std::time::Duration::from_secs(timeout_sec.clamp(1, ROUTE_WAIT_MAX_TIMEOUT_SECS))
 }
 
 fn route_expected_tls_fingerprint(
@@ -4449,6 +4482,19 @@ mod tests {
     }
 
     #[test]
+    fn route_wait_timeout_is_bounded() {
+        assert_eq!(route_wait_timeout(0), std::time::Duration::from_secs(1));
+        assert_eq!(
+            route_wait_timeout(ROUTE_WAIT_DEFAULT_TIMEOUT_SECS),
+            std::time::Duration::from_secs(ROUTE_WAIT_DEFAULT_TIMEOUT_SECS)
+        );
+        assert_eq!(
+            route_wait_timeout(ROUTE_WAIT_MAX_TIMEOUT_SECS + 1),
+            std::time::Duration::from_secs(ROUTE_WAIT_MAX_TIMEOUT_SECS)
+        );
+    }
+
+    #[test]
     fn shared_service_helper_normalizes_wildcards_to_loopback() {
         assert_eq!(
             crate::bridge::services::normalize_loopback_addr("0.0.0.0:8070"),
@@ -4728,6 +4774,7 @@ mod tests {
             target: Some("remote".to_string()),
             channel: "cli".to_string(),
             wait: false,
+            wait_timeout_sec: ROUTE_WAIT_DEFAULT_TIMEOUT_SECS,
             gpu: false,
             explain: false,
             json: false,

@@ -1819,3 +1819,43 @@ Runtime change:
 Roadmap status: this closes the runtime proof-chain gap between target-side
 payload delivery and hosted route evidence. It remains non-release-grade until
 real QUIC/TLS relay transport proof and production proof stores are configured.
+
+## 2026-06-04 Web Input / Local Executor and CLI Wait Hardening
+
+The product roadmap is now locked to a local-executor model:
+
+- `musu.pro` is the web input, project room, rendezvous, fallback coordination,
+  and evidence plane
+- local MUSU programs do the actual work on each machine
+- web-originated commands are envelopes for work orders, acceptance, status,
+  route offers, audit records, and relay requests
+- `localhost` dashboards are local operator/dev surfaces; remote ordering
+  should enter through the real `https://musu.pro` website
+- after web-assisted rendezvous, the preferred data path is direct P2P mesh;
+  relay remains fallback and must be proof-backed
+
+This pass also closes a CLI busy-loop candidate: `musu route --wait` now has
+`--wait-timeout-sec`, defaults to `300s`, caps at `3600s`, timeout-bounds each
+status request, sleeps between polls, and records `remote_task_wait_timeout`
+instead of waiting forever.
+
+The Rust background-loop contract audit now release-gates the CLI bridge
+readiness and route wait contracts explicitly. Validation passed:
+
+- `cargo fmt --check`
+- `cargo test --lib route_wait_timeout_is_bounded`
+- Rust background-loop audit `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Dirty-tree go/no-go after this source change reports
+`ready_for_public_desktop_release=false`, `local_artifacts_ready=true`,
+`single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+`1/2`, `manifest_git.dirty=true`, and blocker count `7`.
+
+Release meaning: this is roadmap and busy-loop hardening, not multi-device
+completion. A real second Windows PC still needs the current MUSU build
+installed before P2P mesh proof and two-machine CPU evidence can close.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`
