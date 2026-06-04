@@ -3324,4 +3324,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `local MUSU programs execute the work`, and
   `second Windows PC`.
 
+- 2026-06-04 nested app docs freshness classification:
+  GOAL v489 records that `verify-single-machine-evidence.ps1`,
+  `verify-runtime-cpu-scenario-matrix.ps1`, and `write-release-go-no-go.ps1`
+  now classify `musu-bee/docs/*` as documentation/status-only, matching root
+  `docs/*`. Search terms should include `GOAL v489`,
+  `musu-bee/docs/*`, `release freshness`, `status-only`, and
+  `P2P_CONTROL_PLANE.md`.
+
 **End of WIKI_INDEX.md.**

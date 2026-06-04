@@ -4819,6 +4819,11 @@ The Rust background-loop contract audit now explicitly covers
 checks the bounded 30s interval, heartbeat event, and interval-stream mapping.
 This is an audit/gate change only; Rust runtime source was not modified.
 
+The release freshness classifiers now also treat `musu-bee/docs/*` as
+documentation/status-only, matching root `docs/*`. This prevents app-level
+product docs from incorrectly invalidating packaged single-machine and CPU
+evidence.
+
 Validation passed:
 
 - PowerShell parser check for `audit-rust-background-loop-contract.ps1`

@@ -2037,6 +2037,11 @@ gate/audit change only; Rust runtime source was not modified, so current
 packaged one-machine evidence does not need a fresh MSIX rebuild for this
 change.
 
+Release freshness follow-up: single-machine, runtime CPU matrix, and go/no-go
+freshness classifiers now treat `musu-bee/docs/*` as documentation/status-only,
+matching root `docs/*`. App-level product docs should not invalidate packaged
+runtime evidence.
+
 Validation passed:
 
 - PowerShell parser check for `audit-rust-background-loop-contract.ps1`

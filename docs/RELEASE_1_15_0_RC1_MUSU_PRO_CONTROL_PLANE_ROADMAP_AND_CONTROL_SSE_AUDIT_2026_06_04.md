@@ -64,6 +64,9 @@ does not need to be refreshed for this audit-script change.
   `scripts\windows\audit-rust-background-loop-contract.ps1`
 - `audit-rust-background-loop-contract.ps1 -FailOnProblem -Json` passed:
   `ok=true`, `fail_count=0`, `unaudited_loop_hit_count=0`
+- Release freshness classifiers now treat `musu-bee/docs/*` as
+  documentation/status-only, matching root `docs/*`. This prevents app-level
+  product docs from incorrectly staling packaged MSIX/smoke/CPU evidence.
 
 Public release remains No-Go until second-PC runtime/multi-device evidence,
 live owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store

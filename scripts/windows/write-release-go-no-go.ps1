@@ -187,7 +187,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     $normalizedPath = $Path.Replace("\", "/")
-    if ($normalizedPath -like "docs/*") {
+    if ($normalizedPath -like "docs/*" -or $normalizedPath -like "musu-bee/docs/*") {
         return $true
     }
 
