@@ -1,0 +1,149 @@
+﻿{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\single-machine\\20260604-211856-HUGH_SECOND.evidence.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "218fa4a9a3710627372c5ac13ad5f042efbd4a41",
+    "dashboard_base_url":  "http://127.0.0.1:3001",
+    "dashboard_base_url_source":  "musu up.dashboard.reachable_url",
+    "dashboard_task_id":  "f073acec-efa7-468e-a4f0-921fbdcd9811",
+    "bridge_url":  "http://127.0.0.1:10487",
+    "cli_route_checked":  true,
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "pass",
+                       "message":  "evidence reports ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version is present"
+                   },
+                   {
+                       "name":  "expected version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.1"
+                   },
+                   {
+                       "name":  "git commit",
+                       "status":  "pass",
+                       "message":  "git commit is present"
+                   },
+                   {
+                       "name":  "expected git commit",
+                       "status":  "pass",
+                       "message":  "git commit matches current HEAD 218fa4a9a3710627372c5ac13ad5f042efbd4a41 or differs only by documentation/evidence/status/tooling-only commits"
+                   },
+                   {
+                       "name":  "started timestamp",
+                       "status":  "pass",
+                       "message":  "started_at parses"
+                   },
+                   {
+                       "name":  "completed timestamp",
+                       "status":  "pass",
+                       "message":  "completed_at parses"
+                   },
+                   {
+                       "name":  "time order",
+                       "status":  "pass",
+                       "message":  "completed_at is at or after started_at"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "completed_at is within 30 days"
+                   },
+                   {
+                       "name":  "started_at not future",
+                       "status":  "pass",
+                       "message":  "started_at is not in the future"
+                   },
+                   {
+                       "name":  "completed_at not future",
+                       "status":  "pass",
+                       "message":  "completed_at is not in the future"
+                   },
+                   {
+                       "name":  "dashboard base url",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url is present"
+                   },
+                   {
+                       "name":  "dashboard base url source",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url_source is present"
+                   },
+                   {
+                       "name":  "dashboard url auto-discovered",
+                       "status":  "pass",
+                       "message":  "dashboard URL came from runtime reachable_url"
+                   },
+                   {
+                       "name":  "dashboard reachable url",
+                       "status":  "pass",
+                       "message":  "dashboard_reachable_url is present"
+                   },
+                   {
+                       "name":  "dashboard no dev-port default",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url is not the dev dashboard default"
+                   },
+                   {
+                       "name":  "bridge url",
+                       "status":  "pass",
+                       "message":  "bridge_url is localhost"
+                   },
+                   {
+                       "name":  "doctor overall",
+                       "status":  "pass",
+                       "message":  "doctor overall is not fail"
+                   },
+                   {
+                       "name":  "dashboard doctor overall",
+                       "status":  "pass",
+                       "message":  "dashboard doctor overall is not fail"
+                   },
+                   {
+                       "name":  "device nodes",
+                       "status":  "pass",
+                       "message":  "device-status returned at least one node"
+                   },
+                   {
+                       "name":  "dashboard task id",
+                       "status":  "pass",
+                       "message":  "dashboard task id is present"
+                   },
+                   {
+                       "name":  "dashboard task status",
+                       "status":  "pass",
+                       "message":  "dashboard task status is done"
+                   },
+                   {
+                       "name":  "dashboard output",
+                       "status":  "pass",
+                       "message":  "dashboard output contains expected text"
+                   },
+                   {
+                       "name":  "SSE status",
+                       "status":  "pass",
+                       "message":  "SSE endpoint returned 200"
+                   },
+                   {
+                       "name":  "SSE content-type",
+                       "status":  "pass",
+                       "message":  "SSE endpoint returned text/event-stream"
+                   },
+                   {
+                       "name":  "CLI output",
+                       "status":  "pass",
+                       "message":  "CLI route output contains expected text"
+                   }
+               ]
+}
