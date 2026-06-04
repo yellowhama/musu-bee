@@ -1405,19 +1405,26 @@ $idleBusyLoopCandidateStatuses = @(
         ) `
         -Evidence "mDNS is opt-in, noisy interface classes are separately gated, and explicit discovery is bounded."
     New-IdleBusyLoopCandidateStatus `
-        -Candidate "health/readiness retry" `
+        -Candidate "health check retry loop" `
         -AuditName "rust-background-loop" `
         -Audit $rustBackgroundLoopAuditResult.json `
         -RequiredChecks @(
             [pscustomobject]@{ scope = "auto-update"; name = "health poll initial backoff" },
             [pscustomobject]@{ scope = "auto-update"; name = "health poll max backoff" },
-            [pscustomobject]@{ scope = "auto-update"; name = "health poll sleep" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll sleep" }
+        ) `
+        -Evidence "Auto-update health polling has bounded initial delay, max backoff, and sleeps between checks."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "bridge readiness wait loop" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
             [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge health poll initial backoff" },
             [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge health poll max backoff" },
             [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge readiness deadline" },
             [pscustomobject]@{ scope = "cli-bridge-health"; name = "bridge readiness backoff sleep" }
         ) `
-        -Evidence "Auto-update health polling and CLI bridge readiness both have bounded backoff and deadlines."
+        -Evidence "CLI bridge readiness waits are bounded by caller timeout and sleep with capped backoff between health checks."
     New-IdleBusyLoopCandidateStatus `
         -Candidate "frontend interval/refetch" `
         -AuditName "frontend-polling" `
@@ -1501,7 +1508,7 @@ if (-not $rustBackgroundLoopContractVerified) {
     Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
 }
 if (-not $idleBusyLoopCandidateContractVerified) {
-    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health/readiness, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops are not all proven gated, low-duty, bounded, cancellable, or absent."
+    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops are not all proven gated, low-duty, bounded, cancellable, or absent."
 }
 if (-not $localApiAuthContractVerified) {
     Add-Blocker -List $blockers -Area "local-api-auth" -Message "Local API auth contract audit (musu.local_api_auth_contract.v1) failed; localhost bridge requests are not proven to require bearer auth by default with only an explicit trusted local bypass."
@@ -1562,7 +1569,7 @@ $manualInternalGates = @(
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
-    "Idle busy-loop candidate summary for clipboard, mDNS, health/readiness, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
+    "Idle busy-loop candidate summary for clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "P2P store-forward relay contract audit for lease-bound non-default queue fallback and release tunnel separation",

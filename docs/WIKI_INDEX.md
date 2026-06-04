@@ -3866,4 +3866,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_control_plane_verified=false`,
   `p2p_relay_transport_wired=false`, and `current testing one-machine only`.
 
+- 2026-06-05 bridge readiness idle candidate gate:
+  `RELEASE_1_15_0_RC1_BRIDGE_READINESS_IDLE_CANDIDATE_GATE_2026_06_05.md`
+  (wiki/721) splits `bridge readiness wait loop` out from the previous
+  `health/readiness retry` idle busy-loop candidate. Search terms should
+  include `GOAL v534`, `wiki/721`, `candidate count 8`,
+  `health check retry loop`, `bridge readiness wait loop`,
+  `bridge health poll initial backoff`, `bridge readiness deadline`,
+  `bridge readiness backoff sleep`,
+  `idle_busy_loop_candidate_contract_verified=true`, and
+  `two-machine idle CPU gate still open`.
+
 **End of WIKI_INDEX.md.**

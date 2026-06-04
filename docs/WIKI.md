@@ -6493,3 +6493,48 @@ second-PC evidence, support mailbox evidence, and Store evidence are complete.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_RELAY_CONTRACT_GATE_2026_06_05.md`
+
+## 2026-06-05 Bridge readiness idle candidate gate (wiki/721)
+
+`write-release-go-no-go.ps1` now separates `bridge readiness wait loop` from the
+broader health retry candidate.
+
+The idle busy-loop candidate summary now reports eight entries:
+
+- clipboard polling
+- mDNS discovery
+- health check retry loop
+- bridge readiness wait loop
+- frontend interval/refetch
+- relay payload target poller
+- cloud heartbeat
+- log/telemetry flush loop
+
+`health check retry loop` maps to auto-update health polling checks:
+
+- `health poll initial backoff`
+- `health poll max backoff`
+- `health poll sleep`
+
+`bridge readiness wait loop` maps to CLI bridge health checks:
+
+- `bridge health poll initial backoff`
+- `bridge health poll max backoff`
+- `bridge readiness deadline`
+- `bridge readiness backoff sleep`
+
+Validation:
+
+- PowerShell parser passed for `write-release-go-no-go.ps1`
+- Rust background-loop audit passed with `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+- Dirty-tree go/no-go summary reported
+  `idle_busy_loop_candidate_contract_verified=true`, candidate count `8`, both
+  new candidate names present, and no failed idle candidates
+
+This is source/gate visibility only. It does not replace 60-second CPU evidence
+and does not close the two-machine idle CPU gate.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_BRIDGE_READINESS_IDLE_CANDIDATE_GATE_2026_06_05.md`
