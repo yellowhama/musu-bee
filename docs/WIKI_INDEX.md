@@ -3964,4 +3964,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `75d47304-7992-4741-b85f-27b315e8dbdc`, `bridge PID 39052`,
   `127.0.0.1:3591`, and `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 second-PC handoff packaged runtime alignment:
+  `RELEASE_1_15_0_RC1_SECOND_PC_HANDOFF_PACKAGED_RUNTIME_ALIGNMENT_2026_06_05.md`
+  (wiki/729) updates the operator action pack and second-PC runbook so
+  second-PC evidence uses the installed packaged local runtime instead of a
+  required workspace `localhost:3001` dashboard. Search terms should include
+  `GOAL v542`, `wiki/729`, `034e3639`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260605-064106.zip`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260605-064050.zip`,
+  `operator-action-pack-20260605-064106.zip`,
+  `localhost:3001 workspace dashboard is optional`,
+  `dashboard.required=false`, `bridge-only evidence`,
+  `MSIX install evidence: missing`, `192.168.1.192:8949`,
+  `TcpTestSucceeded=false`, `relay_payload_queue_fallback_implemented=true`,
+  `source_release_relay_connect_endpoint_not_implemented`, and
+  `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**
