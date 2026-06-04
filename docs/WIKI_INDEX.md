@@ -3354,4 +3354,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_141924`, `git_dirty=false`,
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `f96e5cca`.
 
+- 2026-06-04 current operator handoff pack after CEO dispatch evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+  (wiki/680) records final operator packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260604-143204.zip`, action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217.zip`, second-PC
+  transfer `MUSU-second-PC-transfer-1.15.0-rc.1-20260604-143217.zip`,
+  Partner Center zip `MUSU-1.15.0-rc.1-store-submission-20260604-143217.zip`,
+  and support verification id `musu-store-support-1.15.0-rc.1-20260604-143204`.
+  Search terms should include `GOAL v492`, `wiki/680`, `a0e0836c`,
+  `packet_verified=true`, `action_pack_verified=true`, `P2P relay route
+  evidence count 0`, `relay payload proof false`, and `blocker count 6`.
+
 **End of WIKI_INDEX.md.**

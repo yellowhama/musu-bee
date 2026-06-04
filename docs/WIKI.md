@@ -4908,3 +4908,35 @@ support mailbox evidence, and Store evidence are complete.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_CEO_DISPATCH_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 current operator handoff pack after CEO dispatch evidence (wiki/680)
+
+The current final operator packet and action pack were regenerated from clean
+HEAD `a0e0836c` after the CEO dispatch evidence refresh.
+
+Artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-143204.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-143217.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-143217.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-143204`
+
+Verification:
+
+- final packet verifier `ok=true`, `fail_count=0`
+- action pack verifier `ok=true`, `fail_count=0`
+- final handoff status reports `packet_verified=true`,
+  `action_pack_verified=true`, `single_machine_verified=true`, runtime idle
+  CPU `1/2`, runtime CPU matrix `1/2`, P2P relay route evidence count `0`,
+  relay payload proof `false`, delivery proof valid count `0`, and blocker
+  count `6`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`

@@ -2119,3 +2119,30 @@ mailbox, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_CEO_DISPATCH_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Current Operator Handoff Pack After CEO Dispatch Evidence
+
+The current final operator packet and action pack were regenerated after the
+fresh primary-machine evidence refresh:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-143204.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-143217.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-143217.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-143204`
+
+Final packet and action pack verification both passed with `ok=true`,
+`fail_count=0`. Final handoff status reports `packet_verified=true`,
+`action_pack_verified=true`, `single_machine_verified=true`, runtime idle CPU
+valid machines `1`, runtime CPU matrix valid machines `1`, P2P relay route
+evidence count `0`, relay payload proof `false`, delivery proof valid count
+`0`, and blocker count `6`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`

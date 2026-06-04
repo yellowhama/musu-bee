@@ -3245,6 +3245,36 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 live owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
 evidence are complete.
 
+## 2026-06-04 14:34 KST Current Operator Handoff Pack After CEO Dispatch Evidence
+
+After the primary evidence refresh commit, the operator handoff artifacts were
+regenerated from clean HEAD.
+
+Artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-143204.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-143217.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-143217\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-143217.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-143204`
+
+Validation:
+
+- final packet verifier `ok=true`, `fail_count=0`
+- action pack verifier `ok=true`, `fail_count=0`
+- final handoff status reports `packet_verified=true`,
+  `action_pack_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+  `1/2`, P2P relay route evidence count `0`, relay payload proof `false`,
+  delivery proof valid count `0`, and blocker count `6`
+
+The second-PC transfer zip is the current package to run on another Windows PC
+for the remaining multi-device and second-machine CPU/matrix gates.
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:
