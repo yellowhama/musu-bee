@@ -58,16 +58,16 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 00:19 KST post relay-connect-auth evidence refresh, the
+As of the 2026-06-05 00:54 KST post room-work-order-auth evidence refresh, the
 product direction above is documented but not yet release-complete.
 
 Passing local state:
 
 - local MSIX install and single-machine smoke pass on `HUGH_SECOND` for commit
-  `68cc6f27407c68f1e0aac6615e21f86d19495568`
+  `aa52b243cb6b1b8350f060516e72c26d730da059`
 - local runtime idle CPU and CPU matrix evidence are valid on one machine:
-  `20260605-000707-HUGH_SECOND.desktop-open` and
-  `20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix`
+  `20260605-004657-HUGH_SECOND.desktop-open` and
+  `20260605-004808-HUGH_SECOND.runtime-cpu-scenario-matrix`
 - Rust background-loop, frontend polling, process ownership, local API auth,
   operator API security, and secret storage audits pass
 - `/api/v1/relay/connect` is auth-gated and still fail-closed while the relay

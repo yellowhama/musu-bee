@@ -3745,4 +3745,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `npm run test:p2p 77/77`, `operator API security audit`, and
   `web-input security hardening`.
 
+- 2026-06-05 post room work-order auth primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_AUTH_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/712) records fresh current-commit primary packaged evidence after room
+  work-order auth hardening. Search terms should include `GOAL v525`,
+  `wiki/712`, `aa52b243cb6b1b8350f060516e72c26d730da059`,
+  `20260605-004553-HUGH_SECOND`,
+  `20260605-004657-HUGH_SECOND.desktop-open`,
+  `20260605-004808-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260605_004448`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_004808`, `WebView2 0.39`,
+  `working set 489.86MB`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `one-machine only`, `local execution plane`, and
+  `musu.pro control plane`.
+
 **End of WIKI_INDEX.md.**

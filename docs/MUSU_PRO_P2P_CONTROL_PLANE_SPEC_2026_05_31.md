@@ -843,15 +843,15 @@ The product boundary is now restated as a release invariant:
 - Relay remains a Connect/Pro fallback and cannot be the default payload data
   path.
 
-After relay connect auth hardening, primary packaged evidence was refreshed on
-`HUGH_SECOND` for commit `68cc6f27407c68f1e0aac6615e21f86d19495568`:
+After room work-order auth hardening, primary packaged evidence was refreshed on
+`HUGH_SECOND` for commit `aa52b243cb6b1b8350f060516e72c26d730da059`:
 
 - single-machine:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260605-000624-HUGH_SECOND.evidence.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-004553-HUGH_SECOND.evidence.json`
 - desktop-open CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-000707-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-004657-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-004808-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
 This proves current local primary-machine behavior only. Multi-device release
 work still requires installing the current build on another Windows PC and
@@ -875,3 +875,24 @@ This locks the web-input/control-plane boundary:
 This is not a P2P transport completion. It is required security hardening for
 the product model where `musu.pro` accepts work orders while local MUSU programs
 execute them.
+
+## 2026-06-05 Post Room Work-Order Auth Evidence Refresh
+
+Fresh primary-machine evidence was restored after the room work-order auth
+hardening above:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-004553-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-004657-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-004808-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The single-machine smoke output was
+`MUSU_RELEASE_SMOKE_OK_20260605_004448`; desktop-open CPU stayed at MUSU `0`,
+Node `0`, WebView2 `0.39`, working set `489.86MB`, hot `0`; and the five-state
+matrix passed with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_004808`.
+
+This keeps the current one-machine local executor evidence fresh. It still does
+not prove multi-device P2P, hosted relay payload transport, or owner-scoped
+release-grade route evidence on `musu.pro`.
