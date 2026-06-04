@@ -47,6 +47,8 @@ $nodesExecute = Get-RepoText "musu-bee\src\app\api\nodes\execute\route.ts"
 $processesList = Get-RepoText "musu-bee\src\app\api\processes\route.ts"
 $processStart = Get-RepoText "musu-bee\src\app\api\processes\start\route.ts"
 $processKill = Get-RepoText "musu-bee\src\app\api\processes\kill\route.ts"
+$relayConnect = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.ts"
+$relayConnectTest = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
 $packageJson = Get-RepoText "musu-bee\package.json"
 $workflow = Get-RepoText ".github\workflows\test.yml"
 $config = Get-RepoText "docs\CONFIG.md"
@@ -76,10 +78,20 @@ Add-Check -Scope "source" -Name "process kill explicit enable flag" `
     -Path "musu-bee\src\app\api\processes\kill\route.ts" `
     -Message "Process kill route requires auth, explicit env opt-in, and audit logging."
 
+Add-Check -Scope "source" -Name "relay connect requires P2P control auth" `
+    -Passed ($relayConnect.Contains("authorizeP2pControl") -and $relayConnect.Contains("const failedAuth = authorizeP2pControl(req)") -and $relayConnect.Contains("return failedAuth") -and $relayConnect.Contains("relay_payload_transport_not_implemented")) `
+    -Path "musu-bee\src\app\api\v1\relay\connect\route.ts" `
+    -Message "Relay connect preflight/fail-closed endpoint requires P2P control auth before exposing relay status."
+
 Add-Check -Scope "tests" -Name "route security test script" `
     -Passed ($packageJson.Contains('"test:routes"') -and $packageJson.Contains("src/app/api/nodes/execute/route.test.ts") -and $packageJson.Contains("src/app/api/processes/start/route.test.ts") -and $packageJson.Contains("src/app/api/processes/kill/route.test.ts")) `
     -Path "musu-bee\package.json" `
     -Message "npm test:routes covers operator API security routes."
+
+Add-Check -Scope "tests" -Name "relay connect auth regression test" `
+    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect status") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
+    -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
+    -Message "P2P tests cover relay connect auth before fail-closed relay status is returned."
 
 Add-Check -Scope "tests" -Name "CI route security step" `
     -Passed ($workflow.Contains("Route security tests") -and $workflow.Contains("npm run test:routes")) `

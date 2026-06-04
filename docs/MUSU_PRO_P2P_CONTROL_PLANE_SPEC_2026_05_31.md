@@ -72,6 +72,8 @@ P2P APIs:
 - `GET /api/v1/p2p/relay/lease` **(owner-scoped relay lease audit query exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
 - `WS /api/v1/relay/connect?session_id=...&node_id=...`
+  - requires P2P control bearer auth before any relay status, preflight, or
+    eventual tunnel payload path is exposed
 
 ## Candidate Endpoint Shape
 

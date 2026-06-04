@@ -5976,3 +5976,33 @@ are closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_SECRET_STORAGE_CONTRACT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Relay connect auth hardening (wiki/709)
+
+`/api/v1/relay/connect` now requires P2P control auth before returning its
+fail-closed relay status/preflight response.
+
+Changed:
+
+- `GET /api/v1/relay/connect` calls `authorizeP2pControl(req)`.
+- `POST /api/v1/relay/connect` calls `authorizeP2pControl(req)`.
+- Missing bearer token returns `401 unauthorized`.
+- Authenticated requests still fail closed with `501` while the real
+  relay/tunnel payload endpoint is unwired.
+- `audit-operator-api-security-contract.ps1` now checks the relay connect auth
+  contract.
+
+Validation:
+
+- operator API security audit: `ok=true`, `fail_count=0`
+- `npm run test:p2p` passed `77/77`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+This is security hardening only. The release-grade relay transport remains
+unimplemented; source markers remain false and hosted P2P release evidence is
+still required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_AUTH_HARDENING_2026_06_04.md`

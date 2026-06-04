@@ -3710,4 +3710,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `owned WebView2 6`, `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
   `PATH warning .cargo bin`, and `secret storage primary evidence`.
 
+- 2026-06-04 relay connect auth hardening:
+  `RELEASE_1_15_0_RC1_RELAY_CONNECT_AUTH_HARDENING_2026_06_04.md`
+  (wiki/709) records P2P control auth on the fail-closed relay connect path.
+  Search terms should include `GOAL v522`, `wiki/709`,
+  `/api/v1/relay/connect`, `authorizeP2pControl(req)`, `401 unauthorized`,
+  `relay_payload_transport_not_implemented`,
+  `audit-operator-api-security-contract.ps1`, `npm run test:p2p 77/77`,
+  `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=false`, and
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+
 **End of WIKI_INDEX.md.**

@@ -10,6 +10,9 @@ type Module = {
 const ENV_KEYS = [
   "KV_REST_API_TOKEN",
   "KV_REST_API_URL",
+  "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_SHA256",
+  "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "UPSTASH_REDIS_REST_TOKEN",
   "UPSTASH_REDIS_REST_URL",
   "MUSU_P2P_RELAY_ENABLED",
@@ -44,6 +47,7 @@ async function withRelayEnv(fn: () => Promise<void>): Promise<void> {
 }
 
 function enableRelayPolicyEnv(): void {
+  process.env.MUSU_P2P_CONTROL_TOKEN = "test-token";
   process.env.MUSU_P2P_RELAY_ENABLED = "1";
   process.env.MUSU_P2P_RELAY_TRANSPORT_WIRED = "1";
   process.env.MUSU_P2P_RELAY_URL = "wss://relay.musu.pro/api/v1/relay/connect";
@@ -52,11 +56,33 @@ function enableRelayPolicyEnv(): void {
   process.env.KV_REST_API_TOKEN = "test-token";
 }
 
-function connectReq(method: "GET" | "POST"): NextRequest {
+function connectReq(method: "GET" | "POST", token: string | null = "test-token"): NextRequest {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return new NextRequest("http://localhost/api/v1/relay/connect?session_id=s&node_id=n", {
     method,
+    headers,
   });
 }
+
+test("requires P2P control auth before reporting relay connect status", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { GET } = await loadModule("get-auth-required");
+    const res = await GET(connectReq("GET", null));
+    assert.equal(res.status, 401);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      accepted_auth_modes: string[];
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "unauthorized");
+    assert.deepEqual(body.accepted_auth_modes, ["static_bearer_token"]);
+  });
+});
 
 test("fails closed when relay connect is reached over HTTP", async () => {
   await withRelayEnv(async () => {

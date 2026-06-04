@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import {
   RELEASE_GRADE_TRANSPORT_REQUIRED,
   RELAY_CONNECT_PATH,
@@ -53,9 +54,17 @@ function relayConnectUnavailable(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const failedAuth = authorizeP2pControl(req);
+  if (failedAuth) {
+    return failedAuth;
+  }
   return relayConnectUnavailable(req);
 }
 
 export async function POST(req: NextRequest) {
+  const failedAuth = authorizeP2pControl(req);
+  if (failedAuth) {
+    return failedAuth;
+  }
   return relayConnectUnavailable(req);
 }

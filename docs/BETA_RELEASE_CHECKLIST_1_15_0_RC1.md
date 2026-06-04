@@ -3308,6 +3308,28 @@ Release note:
   hosted `musu.pro` P2P control-plane/relay proof, support mailbox evidence,
   and Store evidence
 
+## 2026-06-04 23:59 KST Relay Connect Auth Hardening
+
+`/api/v1/relay/connect` now requires P2P control auth before returning its
+fail-closed relay status/preflight response.
+
+Validation:
+
+- operator API security audit passed with `ok=true`, `fail_count=0`
+- `npm run test:p2p` passed `77/77`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+Release note:
+
+- this is security hardening, not relay transport completion
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=false`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, and
+  `relay_transport_wired=false` remain intentional
+- because this changed web runtime source, fresh packaged primary evidence is
+  required after commit before current-source local artifact readiness can be
+  claimed again
+
 ## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
 
 Final release status now exposes the hardening gates needed for the
