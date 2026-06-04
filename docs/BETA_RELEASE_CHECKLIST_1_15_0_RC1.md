@@ -17,8 +17,7 @@ Date: 2026-05-29
 Repeatable script:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1 `
-  -DashboardBaseUrl http://127.0.0.1:3000
+powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1
 ```
 
 Manual equivalent:

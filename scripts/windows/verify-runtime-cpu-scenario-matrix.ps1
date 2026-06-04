@@ -106,6 +106,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-external-release-gate-recheck.ps1",
         "scripts/windows/record-p2p-control-plane-evidence.ps1",
         "scripts/windows/run-second-pc-release-check.ps1",
+        "scripts/windows/smoke-single-machine-beta.ps1",
         "scripts/windows/verify-installed-msix-package.ps1",
         "scripts/windows/verify-final-operator-gate-packet.ps1",
         "scripts/windows/verify-msix-install-evidence.ps1",

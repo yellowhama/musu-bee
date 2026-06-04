@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$MusuExe,
-    [string]$DashboardBaseUrl = "http://127.0.0.1:3000",
+    [string]$DashboardBaseUrl,
     [string]$WorkspaceUri = "file:///F:/workspace/musu-bee",
     [string]$ExpectedDashboardOutput = "MUSU_RELEASE_SMOKE_OK",
     [string]$ExpectedCliOutput = "MUSU_CLI_ROUTE_OK",
@@ -148,7 +148,63 @@ function Invoke-JsonCommand {
     }
 }
 
+function Convert-ToDashboardBaseUrl {
+    param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return ""
+    }
+
+    try {
+        $uri = [uri]$Url
+        if ([string]::IsNullOrWhiteSpace($uri.Scheme) -or [string]::IsNullOrWhiteSpace($uri.Host)) {
+            return ""
+        }
+        return $uri.GetLeftPart([System.UriPartial]::Authority).TrimEnd("/")
+    }
+    catch {
+        return ""
+    }
+}
+
+function Resolve-DashboardBaseUrlCandidate {
+    param(
+        $RuntimeStatus,
+        [Parameter(Mandatory = $true)][string]$SourceName
+    )
+
+    if ($null -eq $RuntimeStatus) {
+        return $null
+    }
+
+    $dashboardProperty = $RuntimeStatus.PSObject.Properties["dashboard"]
+    if (-not $dashboardProperty -or $null -eq $dashboardProperty.Value) {
+        return $null
+    }
+
+    $dashboard = $dashboardProperty.Value
+    $reachableProperty = $dashboard.PSObject.Properties["reachable_url"]
+    if (-not $reachableProperty -or [string]::IsNullOrWhiteSpace([string]$reachableProperty.Value)) {
+        return $null
+    }
+
+    $baseUrl = Convert-ToDashboardBaseUrl -Url ([string]$reachableProperty.Value)
+    if ([string]::IsNullOrWhiteSpace($baseUrl)) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        base_url = $baseUrl
+        source = "$SourceName.dashboard.reachable_url"
+        raw_url = [string]$reachableProperty.Value
+    }
+}
+
 Assert-True (Test-Path -LiteralPath $MusuExe) "musu.exe not found at $MusuExe"
+
+$dashboardBaseUrlWasExplicit = ($PSBoundParameters.ContainsKey("DashboardBaseUrl") -and -not [string]::IsNullOrWhiteSpace($DashboardBaseUrl))
+$resolvedDashboardSource = "argument"
+$resolvedDashboardRawUrl = $DashboardBaseUrl
 
 Write-Step "Run first-start helper"
 $up = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("up", "--json")
@@ -177,6 +233,23 @@ for ($attempt = 1; $attempt -le $ReadinessRetryCount; $attempt++) {
     }
 }
 Assert-True ($null -ne $doctor) "doctor did not become ready after $ReadinessRetryCount attempt(s): $doctorError"
+
+if ($dashboardBaseUrlWasExplicit) {
+    $DashboardBaseUrl = Convert-ToDashboardBaseUrl -Url $DashboardBaseUrl
+    Assert-True (-not [string]::IsNullOrWhiteSpace($DashboardBaseUrl)) "DashboardBaseUrl is not a valid absolute URL."
+}
+else {
+    $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $up -SourceName "musu up"
+    if ($null -eq $resolvedDashboard) {
+        $resolvedDashboard = Resolve-DashboardBaseUrlCandidate -RuntimeStatus $doctor -SourceName "musu doctor"
+    }
+    Assert-True ($null -ne $resolvedDashboard) "dashboard reachable_url was not reported by musu up or doctor; pass -DashboardBaseUrl explicitly."
+    $DashboardBaseUrl = [string]$resolvedDashboard.base_url
+    $resolvedDashboardSource = [string]$resolvedDashboard.source
+    $resolvedDashboardRawUrl = [string]$resolvedDashboard.raw_url
+}
+
+Write-Step "Resolved dashboard base URL: $DashboardBaseUrl ($resolvedDashboardSource)"
 
 Write-Step "Check dashboard APIs"
 $dashboardDoctor = $null
@@ -275,6 +348,8 @@ $evidence = [pscustomobject]@{
     completed_at = (Get-Date).ToString("o")
     machine = $env:COMPUTERNAME
     dashboard_base_url = $DashboardBaseUrl
+    dashboard_base_url_source = $resolvedDashboardSource
+    dashboard_reachable_url = $resolvedDashboardRawUrl
     bridge_url = $up.bridge.local_url
     workspace_uri = $WorkspaceUri
     doctor_overall = $doctor.overall
@@ -298,6 +373,7 @@ Write-Step "Single-machine beta smoke passed"
 [pscustomobject]@{
     ok = $true
     dashboard_base_url = $DashboardBaseUrl
+    dashboard_base_url_source = $resolvedDashboardSource
     bridge_url = $up.bridge.local_url
     dashboard_task_id = $task.task_id
     dashboard_output = $taskResult.output

@@ -333,6 +333,24 @@ foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machin
     }
 }
 
+$singleSmokeScript = Join-Path $scriptDir "smoke-single-machine-beta.ps1"
+if (Test-Path -LiteralPath $singleSmokeScript) {
+    $singleSmokeText = Get-Content -LiteralPath $singleSmokeScript -Raw
+    $discoversReachableDashboard = (
+        $singleSmokeText -match "Resolve-DashboardBaseUrlCandidate" -and
+        $singleSmokeText -match "reachable_url" -and
+        $singleSmokeText -match "dashboard_base_url_source"
+    )
+    Add-Check "release-smoke" "single-machine dashboard URL discovery" `
+        ($(if ($discoversReachableDashboard) { "pass" } else { "fail" })) `
+        ($(if ($discoversReachableDashboard) { "single-machine smoke discovers the packaged dashboard reachable_url." } else { "single-machine smoke does not prove dashboard reachable_url discovery." }))
+
+    $hasDevDashboardDefault = ($singleSmokeText -match 'DashboardBaseUrl\s*=\s*"http://127\.0\.0\.1:3000"')
+    Add-Check "release-smoke" "single-machine smoke no dev-port default" `
+        ($(if (-not $hasDevDashboardDefault) { "pass" } else { "fail" })) `
+        ($(if (-not $hasDevDashboardDefault) { "single-machine smoke no longer defaults to the dev dashboard port." } else { "single-machine smoke still defaults to the dev dashboard port." }))
+}
+
 $privacyPage = Join-Path $appRoot "src\app\privacy\page.tsx"
 $supportPage = Join-Path $appRoot "src\app\support\page.tsx"
 $storeMetadataDoc = Join-Path $repoRoot "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"
