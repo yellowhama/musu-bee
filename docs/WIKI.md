@@ -6006,3 +6006,46 @@ still required.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_AUTH_HARDENING_2026_06_04.md`
+
+## 2026-06-05 Post relay connect auth primary evidence refresh (wiki/710)
+
+Fresh primary-machine packaged evidence was restored after relay connect auth
+hardening.
+
+Roadmap boundary:
+
+- `musu.pro` is the remote order, project-room, company-room, presence,
+  rendezvous, path-selection, relay-fallback coordination, and evidence plane.
+- Local MUSU programs execute the work on each device.
+- After web-assisted rendezvous, devices prefer P2P mesh paths before relay:
+  `lan`, `tailscale`, `direct_quic`, then `relay`.
+- Current validation is still one-machine only; another PC must install the
+  current build before multi-device release gates can close.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-000624-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-000707-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260605_000551`
+- desktop-open CPU passed for `60.054s`: MUSU `0`, Node `0.05`,
+  WebView2 `0.52`, owned WebView2 `6`, working set `497.9MB`, hot `0`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_000820`
+- matrix max scenario CPU: MUSU `0.29`, Node `0.05`, WebView2 `0.52`
+- matrix max working set: `500.49MB`
+
+Handoff status sees primary single-machine true, runtime idle CPU `1/2
+[HUGH_SECOND]`, and runtime CPU matrix `1/2 [HUGH_SECOND]`. Public release
+remains No-Go until second-PC, hosted P2P, support mailbox, and Store gates are
+closed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_AUTH_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`

@@ -58,28 +58,35 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-04 14:39 KST external recheck, the product direction above is
-documented but not yet release-complete.
+As of the 2026-06-05 00:19 KST post relay-connect-auth evidence refresh, the
+product direction above is documented but not yet release-complete.
 
 Passing local state:
 
-- local MSIX install and single-machine smoke pass on `HUGH_SECOND`
-- local runtime idle CPU and CPU matrix evidence are valid on one machine
+- local MSIX install and single-machine smoke pass on `HUGH_SECOND` for commit
+  `68cc6f27407c68f1e0aac6615e21f86d19495568`
+- local runtime idle CPU and CPU matrix evidence are valid on one machine:
+  `20260605-000707-HUGH_SECOND.desktop-open` and
+  `20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix`
 - Rust background-loop, frontend polling, process ownership, local API auth,
-  and operator API security audits pass
+  operator API security, and secret storage audits pass
+- `/api/v1/relay/connect` is auth-gated and still fail-closed while the relay
+  transport remains unwired
 
 Open external gates:
 
-- the second Windows PC at `192.168.1.192:8949` is not TCP reachable
+- second-PC current-build install, route, CPU, and matrix evidence is missing
 - hosted P2P KV/Upstash storage is not configured
 - relay payload endpoint and relay transport are not wired as release-grade
 - owner-scoped relay route evidence count is `0`
 - relay payload transport proof is `false`
 - relay payload delivery proof valid count is `0`
 
-This means current validation is still a one-machine test. The release gate
-closes only after the same current MUSU build is installed on a second Windows
-PC and after `musu.pro` records owner-scoped release-grade relay/path evidence.
+This means current validation is still a one-machine test. Installing this
+work-in-progress build on another computer is required before multi-device work
+can be proven. The release gate closes only after the same current MUSU build is
+installed on a second Windows PC and after `musu.pro` records owner-scoped
+release-grade route/relay evidence.
 
 ## Release implication
 

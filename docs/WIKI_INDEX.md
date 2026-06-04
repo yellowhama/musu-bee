@@ -3720,4 +3720,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=false`, and
   `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
 
+- 2026-06-05 post relay connect auth primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_AUTH_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/710) records fresh current-commit primary packaged evidence and the
+  local/web roadmap boundary after relay connect auth hardening. Search terms
+  should include `GOAL v523`, `wiki/710`,
+  `68cc6f27407c68f1e0aac6615e21f86d19495568`,
+  `20260605-000624-HUGH_SECOND`,
+  `20260605-000707-HUGH_SECOND.desktop-open`,
+  `20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260605_000551`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_000820`,
+  `WebView2 0.52`, `working set 497.9MB`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `one-machine only`, `local execution plane`, and
+  `musu.pro control plane`.
+
 **End of WIKI_INDEX.md.**

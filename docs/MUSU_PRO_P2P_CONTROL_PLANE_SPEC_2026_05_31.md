@@ -826,3 +826,35 @@ transport is not implemented. As a result:
 
 This is fail-closed release hardening, not relay/tunnel payload transport
 completion.
+
+## 2026-06-05 Local/Web Split And One-Machine Evidence State
+
+The product boundary is now restated as a release invariant:
+
+- `musu.pro` is the web control plane for remote user input, project rooms,
+  company-room coordination, room presence, rendezvous, path selection, relay
+  fallback coordination, and evidence.
+- Local MUSU programs on each device are the execution plane. They run the
+  agent runtime, access local files/processes, perform local browser/app
+  automation, and exchange payloads through P2P mesh paths when available.
+- A user may enter a work order through `musu.pro` from another location, but
+  the selected local MUSU program performs the work locally.
+- Route order remains `lan`, `tailscale`, `direct_quic`, then `relay`.
+- Relay remains a Connect/Pro fallback and cannot be the default payload data
+  path.
+
+After relay connect auth hardening, primary packaged evidence was refreshed on
+`HUGH_SECOND` for commit `68cc6f27407c68f1e0aac6615e21f86d19495568`:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-000624-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-000707-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+This proves current local primary-machine behavior only. Multi-device release
+work still requires installing the current build on another Windows PC and
+returning second-PC route, CPU, matrix, and owner-scoped release-grade P2P
+evidence. `/api/v1/relay/connect` is now P2P-control-auth gated, but the
+release-grade relay/tunnel payload transport remains unwired.

@@ -18,6 +18,26 @@ launch:
 This plan defines how the work will be executed and how each item becomes
 evidence-backed instead of opinion-backed.
 
+## Current Product Split And Test Scope
+
+As of 2026-06-05, keep the architecture split strict:
+
+- `musu.pro` is the web control plane: remote user input, project rooms,
+  company-room coordination, room presence, rendezvous, path selection,
+  relay-fallback coordination, and release evidence.
+- Local MUSU programs on each device are the execution plane: local files,
+  processes, browser/app automation, agent runtime, and P2P mesh traffic.
+- Web input can create a work order from another location, but the selected
+  local MUSU program performs the work locally. After web-assisted rendezvous,
+  devices prefer `lan`, `tailscale`, and `direct_quic` before any hosted relay.
+- Current validation is still one-machine only. Multi-device work requires
+  installing the current build on another Windows PC, then returning route,
+  CPU, matrix, and release-grade P2P evidence.
+
+This is why localhost/dashboard failures are not treated as a cloud execution
+problem: the dashboard can be a local surface, while `musu.pro` should be the
+remote control surface that hands orders to local executors.
+
 ## Track A - Idle Busy-Loop and CPU Budget
 
 Goal: identify the exact hot process and remove unbounded background work.

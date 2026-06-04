@@ -3330,6 +3330,51 @@ Release note:
   required after commit before current-source local artifact readiness can be
   claimed again
 
+## 2026-06-05 00:19 KST Post Relay Connect Auth Primary Evidence Refresh
+
+After commit `68cc6f27407c68f1e0aac6615e21f86d19495568`, the local-sideload
+MSIX was rebuilt and reinstalled from current source.
+
+Build/install:
+
+- `run-msix-workflow.ps1` passed release runtime build, Tauri desktop build,
+  MSIX packing/signing, packaged startup smoke, install, and installed package
+  contract verification
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- HUGH_SECOND still has warning-mode `.cargo\bin\musu.exe` PATH shadowing; use
+  the installed WindowsApps package path for packaged checks
+
+Fresh packaged primary evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-000624-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-000707-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-000820-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Evidence highlights:
+
+- smoke output: `MUSU_RELEASE_SMOKE_OK_20260605_000551`
+- desktop-open CPU: MUSU `0`, Node `0.05`, WebView2 `0.52`, owned WebView2
+  `6`, working set `497.9MB`, hot `0`
+- matrix route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_000820`
+- matrix max scenario CPU: MUSU `0.29`, Node `0.05`, WebView2 `0.52`
+- matrix max working set: `500.49MB`
+
+Roadmap and release note:
+
+- `musu.pro` is the web control plane for remote input, project/company rooms,
+  presence, rendezvous, path selection, relay fallback coordination, and
+  evidence
+- local MUSU programs on each device execute work and prefer P2P mesh after
+  web-assisted rendezvous
+- current validation is still one-machine only; second-PC install/route/CPU
+  evidence is required before public multi-device release gates can close
+- clean public release remains No-Go on second-PC runtime/multi-device evidence,
+  hosted `musu.pro` P2P proof, support mailbox evidence, and Store evidence
+
 ## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
 
 Final release status now exposes the hardening gates needed for the
