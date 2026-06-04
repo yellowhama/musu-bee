@@ -6264,3 +6264,57 @@ second-PC, hosted P2P, support mailbox, and Store gates are closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RESPONSE_2026_06_05.md`
+
+## 2026-06-05 Post relay payload delivery proof primary evidence refresh (wiki/716)
+
+Fresh primary-machine packaged evidence was restored after the relay payload
+delivery proof response landed.
+
+Roadmap boundary:
+
+- `https://musu.pro` is the real web input, project room, company meeting room,
+  presence, rendezvous, path-selection, relay-fallback coordination, and
+  evidence plane.
+- Local MUSU programs are the execution plane. They receive authenticated web
+  input and perform work locally on each device.
+- `localhost` / `127.0.0.1` dashboards are local operator surfaces, not the
+  product cloud surface.
+- Web-assisted rendezvous should bootstrap device P2P mesh; relay remains
+  fallback-only.
+- Current validation remains one-machine only until another Windows PC installs
+  the same current build.
+
+Fresh evidence:
+
+- MSIX workflow passed; installed package
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-025404-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-025501-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-025643-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260605_025339`
+- desktop-open CPU passed for `60.06s`: MUSU `0`, Node `0`, WebView2
+  `0.65`, owned WebView2 `6`, working set `432.91MB`, hot `0`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_025643`
+- matrix verifier passed with `ok=true`, `fail_count=0`
+- matrix max scenario CPU: MUSU `0.18`, Node `0.86`, WebView2 `0.16`
+- matrix max working set: `490.74MB`
+- direct go/no-go reported `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `multi_device_verified=false`,
+  `public_metadata_ok=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, and
+  `ready_for_public_desktop_release=false`
+
+Public release remains No-Go until second-PC, hosted P2P, support mailbox, and
+Store gates are closed. Hosted P2P is still blocked by source relay
+connect/payload markers and live KV/Upstash/evidence gaps.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_PAYLOAD_DELIVERY_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`

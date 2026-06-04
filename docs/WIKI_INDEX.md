@@ -3800,4 +3800,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`, and
   `packaged evidence stale`.
 
+- 2026-06-05 post relay payload delivery proof primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RELAY_PAYLOAD_DELIVERY_PROOF_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/716) records fresh current-source primary packaged evidence after
+  relay payload delivery proof response hardening. Search terms should include
+  `GOAL v529`, `wiki/716`, `bd36815a838aa7e5d76426ddf5e09b7da70d9b71`,
+  `20260605-025404-HUGH_SECOND`,
+  `20260605-025501-HUGH_SECOND.desktop-open`,
+  `20260605-025643-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260605_025339`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_025643`, `WebView2 0.65`,
+  `working set 432.91MB`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `one-machine only`, `web input only`,
+  `local execution plane`, `musu.pro control plane`,
+  `company meeting room`, and `P2P mesh bootstrap`.
+
 **End of WIKI_INDEX.md.**
