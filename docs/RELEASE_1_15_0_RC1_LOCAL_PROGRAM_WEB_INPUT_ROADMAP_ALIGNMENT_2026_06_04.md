@@ -14,6 +14,8 @@ The roadmap is locked to a split product model:
   rendezvous, path-selection, fallback-relay coordination, and evidence plane.
 - `musu.pro` receives user work orders and room activity, then sends
   authenticated bounded envelopes to the right local program.
+- `musu.pro` room, presence, rendezvous, route-candidate, and relay-control
+  records must be scoped to the authenticated P2P control owner.
 - `musu.pro` does not replace local execution and must not become the default
   data path.
 - Devices use `musu.pro` to find each other and exchange signed route offers,
@@ -40,6 +42,25 @@ workers attached to the same project:
 - fallback relay lease requests after direct routes fail.
 
 The room coordinates the work, but the local device still executes the work.
+Room state must remain owner-scoped so another valid bearer cannot read or
+mutate a different owner/company/project's rendezvous state or route
+candidates.
+
+## 2026-06-05 Owner-Scope Update
+
+Rendezvous source now matches the roadmap boundary:
+
+- rendezvous sessions store `owner_key`,
+- read/update/approve/close/candidate routes require a matching owner,
+- room rendezvous uses the authenticated owner for session creation,
+- room presence seeds route candidates only into the same owner's cache, and
+- the operator API security audit fails if this owner-scope contract is
+  removed.
+
+This closes a local web-control-plane hardening gap. It does not yet close the
+hosted P2P release gate because live MUSU.PRO still needs configured
+KV/Upstash storage, wired connect/payload endpoints, release-grade transport
+proof, and payload delivery proof.
 
 ## Current Validation Boundary
 
@@ -57,9 +78,9 @@ and run on the second PC.
 
 1. Keep current one-machine packaged evidence fresh and do not let docs/test
    changes stale runtime gates.
-2. Finish `musu.pro` owner-scoped P2P control-plane proof: release-grade lease
-   storage, wired connect endpoint, wired payload endpoint, and
-   `relay_default_data_path=false`.
+2. Finish `musu.pro` owner-scoped P2P control-plane proof: live hosted storage,
+   release-grade lease storage, wired connect endpoint, wired payload endpoint,
+   payload delivery proof, and `relay_default_data_path=false`.
 3. Add room-level web input UX for work orders, AI worker presence, task
    status, and meeting/decision records.
 4. Import second-PC return evidence once the current build is installed there:

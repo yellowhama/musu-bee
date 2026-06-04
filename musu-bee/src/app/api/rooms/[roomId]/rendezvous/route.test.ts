@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { NextRequest } from "next/server";
 
+import { p2pControlOwnerKey } from "@/lib/p2pControlAuth";
 import { saveNodeCandidateSet } from "@/lib/p2pRendezvousStore";
 
 type Module = {
@@ -83,18 +84,21 @@ test("POST requires P2P control auth", async () => {
 
 test("POST creates a room-scoped rendezvous and preserves web context", async () => {
   await withRoomRendezvousEnv(async ({ POST }) => {
-    await saveNodeCandidateSet({
-      node_id: "pc-b",
-      node_name: "HUGH-MAIN",
-      app_version: "1.15.0-rc.1",
-      relay_capable: true,
-      public_key: "pk_target",
-      capabilities: ["remote_command"],
-      candidate_endpoints: [
-        { kind: "lan", addr: "192.168.1.192:8949", observed_at: "2026-06-04T00:00:00Z", scheme: "https" },
-        { kind: "tailscale", addr: "100.64.1.192:8949", observed_at: "2026-06-04T00:00:01Z" },
-      ],
-    });
+    await saveNodeCandidateSet(
+      p2pControlOwnerKey("test-token"),
+      {
+        node_id: "pc-b",
+        node_name: "HUGH-MAIN",
+        app_version: "1.15.0-rc.1",
+        relay_capable: true,
+        public_key: "pk_target",
+        capabilities: ["remote_command"],
+        candidate_endpoints: [
+          { kind: "lan", addr: "192.168.1.192:8949", observed_at: "2026-06-04T00:00:00Z", scheme: "https" },
+          { kind: "tailscale", addr: "100.64.1.192:8949", observed_at: "2026-06-04T00:00:01Z" },
+        ],
+      }
+    );
 
     const res = await POST(
       req({
@@ -115,6 +119,7 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
       room_id: string;
       origin: string;
       session: {
+        owner_key: string;
         source: { node_id: string };
         target: { node_id: string; candidate_endpoints: Array<{ kind: string; addr: string }> };
         path_selection_order: string[];
@@ -132,6 +137,7 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
     assert.equal(body.ok, true);
     assert.equal(body.room_id, "release-room");
     assert.equal(body.origin, "musu.pro");
+    assert.equal(body.session.owner_key, p2pControlOwnerKey("test-token"));
     assert.equal(body.session.source.node_id, "pc-a");
     assert.equal(body.session.target.node_id, "pc-b");
     assert.equal(body.session.target.candidate_endpoints[0]?.kind, "lan");

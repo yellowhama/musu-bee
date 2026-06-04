@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +31,10 @@ const ENV_KEYS = [
 
 function ctx(id: string): Ctx {
   return { params: Promise.resolve({ id }) };
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 function postReq(body: unknown, token: string | null = "test-token"): NextRequest {
@@ -110,6 +115,7 @@ test("creates and reads a rendezvous session", async () => {
     assert.equal(res.status, 201);
     const session = (await res.json()) as {
       session_id: string;
+      owner_key: string;
       source: { node_id: string; candidate_endpoints: unknown[] };
       target: { node_id: string };
       path_selection_order: string[];
@@ -118,6 +124,7 @@ test("creates and reads a rendezvous session", async () => {
     };
 
     assert.match(session.session_id, /^rv_/);
+    assert.match(session.owner_key, /^token-sha256:/);
     assert.equal(session.source.node_id, "pc-a");
     assert.deepEqual(session.source.candidate_endpoints, []);
     assert.equal(session.target.node_id, "pc-b");
@@ -135,9 +142,11 @@ test("creates and reads a rendezvous session", async () => {
     assert.equal(getRes.status, 200);
     const fetched = (await getRes.json()) as {
       session_id: string;
+      owner_key: string;
       path_selection_order: string[];
     };
     assert.equal(fetched.session_id, session.session_id);
+    assert.equal(fetched.owner_key, session.owner_key);
     assert.deepEqual(fetched.path_selection_order, session.path_selection_order);
   });
 });
@@ -223,6 +232,104 @@ test("seeds new rendezvous sessions from cached node candidates", async () => {
     };
     assert.equal(seeded.target.candidate_endpoints[0]?.kind, "lan");
     assert.equal(seeded.target.candidate_endpoints[0]?.addr, "192.168.1.20:8070");
+  });
+});
+
+test("does not seed rendezvous candidates across authorized owners", async () => {
+  await withRendezvousEnv(async () => {
+    process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = [
+      sha256("test-token"),
+      sha256("other-token"),
+    ].join(",");
+
+    const { POST: create } = await loadCreate("cross-owner-seed-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("cross-owner-seed-candidates");
+    const candidateRes = await candidates(
+      postReq({
+        node_id: "pc-b",
+        candidate_endpoints: [
+          { kind: "lan", addr: "192.168.1.20:8070", observed_at: "2026-06-01T00:00:00Z" },
+        ],
+        relay_capable: false,
+        node_name: "pc-b",
+        app_version: "1.15.0-rc.1",
+        capabilities: ["bridge_http_forward"],
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(candidateRes.status, 200);
+
+    const sameOwnerRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    assert.equal(sameOwnerRes.status, 201);
+    const sameOwner = (await sameOwnerRes.json()) as {
+      target: { candidate_endpoints: Array<{ addr: string }> };
+    };
+    assert.equal(sameOwner.target.candidate_endpoints[0]?.addr, "192.168.1.20:8070");
+
+    const otherOwnerRes = await create(
+      postReq({ source_node_id: "pc-c", target_node_id: "pc-b" }, "other-token")
+    );
+    assert.equal(otherOwnerRes.status, 201);
+    const otherOwner = (await otherOwnerRes.json()) as {
+      target: { candidate_endpoints: unknown[] };
+    };
+    assert.deepEqual(otherOwner.target.candidate_endpoints, []);
+  });
+});
+
+test("does not expose or mutate rendezvous sessions for another authorized owner", async () => {
+  await withRendezvousEnv(async () => {
+    process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = [
+      sha256("test-token"),
+      sha256("other-token"),
+    ].join(",");
+
+    const { POST: create } = await loadCreate("cross-owner-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    assert.equal(createRes.status, 201);
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { GET } = await loadSession("cross-owner-get");
+    const otherGet = await GET(getReq("other-token"), ctx(created.session_id));
+    assert.equal(otherGet.status, 404);
+
+    const { POST: candidates } = await loadCandidates("cross-owner-candidates");
+    const otherCandidate = await candidates(
+      postReq(
+        {
+          node_id: "pc-a",
+          candidate_endpoints: [
+            { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z" },
+          ],
+          relay_capable: true,
+        },
+        "other-token"
+      ),
+      ctx(created.session_id)
+    );
+    assert.equal(otherCandidate.status, 404);
+
+    const { POST: approve } = await loadApprove("cross-owner-approve");
+    const otherApprove = await approve(postReq({}, "other-token"), ctx(created.session_id));
+    assert.equal(otherApprove.status, 404);
+
+    const { POST: close } = await loadClose("cross-owner-close");
+    const otherClose = await close(postReq({}, "other-token"), ctx(created.session_id));
+    assert.equal(otherClose.status, 404);
+
+    const ownerGet = await GET(getReq(), ctx(created.session_id));
+    assert.equal(ownerGet.status, 200);
+    const ownerSession = (await ownerGet.json()) as {
+      approval_required: boolean;
+      status: string;
+      source: { candidate_endpoints: unknown[] };
+    };
+    assert.equal(ownerSession.approval_required, true);
+    assert.equal(ownerSession.status, "pending_approval");
+    assert.deepEqual(ownerSession.source.candidate_endpoints, []);
   });
 });
 

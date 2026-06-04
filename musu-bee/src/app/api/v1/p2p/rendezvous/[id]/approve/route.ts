@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { updateRendezvousSession } from "@/lib/p2pRendezvousStore";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
+  const ownerKey = p2pControlPrincipal(req).owner_key;
 
   const { id } = await ctx.params;
   if (!validSessionId(id)) {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
 
   try {
     const approvedAt = new Date().toISOString();
-    const session = await updateRendezvousSession(id, (current) => ({
+    const session = await updateRendezvousSession(id, ownerKey, (current) => ({
       ...current,
       approval_required: false,
       status: "approved",

@@ -182,7 +182,7 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
     assert.equal(body.presence.origin, "musu.pro-room");
     assert.equal(body.presence.heartbeat_ttl_seconds, 120);
 
-    const cached = await loadNodeCandidateSet("pc-a");
+    const cached = await loadNodeCandidateSet(body.presence.owner_key, "pc-a");
     assert.equal(cached?.node_id, "pc-a");
     assert.equal(cached?.node_name, "HUGH_SECOND");
     assert.equal(cached?.candidate_endpoints[0]?.addr, "192.168.1.100:8949");

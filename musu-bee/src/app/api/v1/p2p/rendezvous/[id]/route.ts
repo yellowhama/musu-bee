@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { getRendezvousSession } from "@/lib/p2pRendezvousStore";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
+  const ownerKey = p2pControlPrincipal(req).owner_key;
 
   const { id } = await ctx.params;
   if (!validSessionId(id)) {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   }
 
   try {
-    const session = await getRendezvousSession(id);
+    const session = await getRendezvousSession(id, ownerKey);
     if (!session) {
       return NextResponse.json({ ok: false, error: "rendezvous_not_found" }, { status: 404 });
     }

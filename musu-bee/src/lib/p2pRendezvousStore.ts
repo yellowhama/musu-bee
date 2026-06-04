@@ -46,6 +46,7 @@ export type P2pRendezvousContext = {
 
 export type StoredP2pRendezvousSession = {
   session_id: string;
+  owner_key: string;
   source: P2pNodeCandidateSet;
   target: P2pNodeCandidateSet;
   path_selection_order: P2pPathSelectionRouteKind[];
@@ -125,8 +126,12 @@ function sessionKey(sessionId: string): string {
   return `${KV_SESSION_PREFIX}${sessionId}`;
 }
 
-function candidateKey(nodeId: string): string {
-  return `${KV_CANDIDATE_PREFIX}${encodeURIComponent(nodeId)}`;
+function candidateKey(ownerKey: string, nodeId: string): string {
+  return `${KV_CANDIDATE_PREFIX}${encodeURIComponent(ownerKey)}:${encodeURIComponent(nodeId)}`;
+}
+
+function localCandidateKey(ownerKey: string, nodeId: string): string {
+  return `${ownerKey}\n${nodeId}`;
 }
 
 function isSession(value: unknown): value is StoredP2pRendezvousSession {
@@ -136,6 +141,7 @@ function isSession(value: unknown): value is StoredP2pRendezvousSession {
   const session = value as Partial<StoredP2pRendezvousSession>;
   return (
     typeof session.session_id === "string" &&
+    typeof session.owner_key === "string" &&
     typeof session.expires_at === "string" &&
     typeof session.approval_required === "boolean" &&
     typeof session.status === "string" &&
@@ -328,6 +334,7 @@ export function createSessionId(): string {
 }
 
 export function createRendezvousSession(input: {
+  owner_key: string;
   source_node_id: string;
   target_node_id: string;
   requested_capability?: string | null;
@@ -343,6 +350,7 @@ export function createRendezvousSession(input: {
   const now = new Date();
   return {
     session_id: createSessionId(),
+    owner_key: input.owner_key,
     source: seedCandidateSet(input.source_node_id, seeds.source ?? null),
     target: seedCandidateSet(input.target_node_id, seeds.target ?? null),
     path_selection_order: pathSelectionOrder(),
@@ -357,19 +365,20 @@ export function createRendezvousSession(input: {
 }
 
 export async function loadNodeCandidateSet(
+  ownerKey: string,
   nodeId: string
 ): Promise<P2pNodeCandidateSet | null> {
   assertStoreConfigured();
   if (shouldUseKv()) {
     const { kv } = await import("@vercel/kv");
-    const cached = await kv.get<CachedP2pNodeCandidateSet>(candidateKey(nodeId));
+    const cached = await kv.get<CachedP2pNodeCandidateSet>(candidateKey(ownerKey, nodeId));
     if (!isCachedCandidateSet(cached) || !candidateCacheFresh(cached.cached_at)) {
       return null;
     }
     return cloneCandidateSet(cached.candidate_set);
   }
 
-  const cached = fileGet().candidates_by_node[nodeId];
+  const cached = fileGet().candidates_by_node[localCandidateKey(ownerKey, nodeId)];
   if (!isCachedCandidateSet(cached) || !candidateCacheFresh(cached.cached_at)) {
     return null;
   }
@@ -377,6 +386,7 @@ export async function loadNodeCandidateSet(
 }
 
 export async function saveNodeCandidateSet(
+  ownerKey: string,
   candidateSet: P2pNodeCandidateSet
 ): Promise<void> {
   assertStoreConfigured();
@@ -386,7 +396,7 @@ export async function saveNodeCandidateSet(
   };
   if (shouldUseKv()) {
     const { kv } = await import("@vercel/kv");
-    await kv.set(candidateKey(candidateSet.node_id), cached, {
+    await kv.set(candidateKey(ownerKey, candidateSet.node_id), cached, {
       ex: candidateCacheTtlSeconds(),
     });
     return;
@@ -399,7 +409,7 @@ export async function saveNodeCandidateSet(
       sessions: state.sessions,
       candidates_by_node: {
         ...state.candidates_by_node,
-        [candidateSet.node_id]: cached,
+        [localCandidateKey(ownerKey, candidateSet.node_id)]: cached,
       },
     });
   });
@@ -431,26 +441,32 @@ export async function saveRendezvousSession(
 }
 
 export async function getRendezvousSession(
-  sessionId: string
+  sessionId: string,
+  ownerKey: string
 ): Promise<StoredP2pRendezvousSession | null> {
   assertStoreConfigured();
   if (shouldUseKv()) {
     const { kv } = await import("@vercel/kv");
     const session = await kv.get<StoredP2pRendezvousSession>(sessionKey(sessionId));
-    return isSession(session) ? normalizeSession(session) : null;
+    return isSession(session) && session.owner_key === ownerKey
+      ? normalizeSession(session)
+      : null;
   }
 
   const state = fileGet();
   const session = state.sessions[sessionId];
-  return isSession(session) ? normalizeSession(session) : null;
+  return isSession(session) && session.owner_key === ownerKey
+    ? normalizeSession(session)
+    : null;
 }
 
 export async function updateRendezvousSession(
   sessionId: string,
+  ownerKey: string,
   update: (session: StoredP2pRendezvousSession) => StoredP2pRendezvousSession
 ): Promise<StoredP2pRendezvousSession | null> {
   assertStoreConfigured();
-  const current = await getRendezvousSession(sessionId);
+  const current = await getRendezvousSession(sessionId, ownerKey);
   if (!current) {
     return null;
   }
@@ -460,8 +476,12 @@ export async function updateRendezvousSession(
     source: { ...current.source, candidate_endpoints: [...current.source.candidate_endpoints] },
     target: { ...current.target, candidate_endpoints: [...current.target.candidate_endpoints] },
   });
-  await saveRendezvousSession({ ...next, updated_at: new Date().toISOString() });
-  return getRendezvousSession(sessionId);
+  await saveRendezvousSession({
+    ...next,
+    owner_key: current.owner_key,
+    updated_at: new Date().toISOString(),
+  });
+  return getRendezvousSession(sessionId, ownerKey);
 }
 
 export function upsertCandidateSet(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   saveNodeCandidateSet,
   updateRendezvousSession,
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
+  const ownerKey = p2pControlPrincipal(req).owner_key;
 
   const { id } = await ctx.params;
   if (!validSessionId(id)) {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   }
 
   try {
-    const session = await updateRendezvousSession(id, (current) =>
+    const session = await updateRendezvousSession(id, ownerKey, (current) =>
       upsertCandidateSet(current, parsed.data)
     );
     if (!session) {
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     }
     const candidateSet =
       session.source.node_id === parsed.data.node_id ? session.source : session.target;
-    await saveNodeCandidateSet(candidateSet);
+    await saveNodeCandidateSet(ownerKey, candidateSet);
     return NextResponse.json(session);
   } catch (error) {
     const code = error instanceof Error ? error.message : "unknown";

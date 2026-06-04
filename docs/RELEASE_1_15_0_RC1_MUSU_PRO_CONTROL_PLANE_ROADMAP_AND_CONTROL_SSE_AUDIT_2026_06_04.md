@@ -36,6 +36,9 @@ Follow-up lock from the operator discussion:
   same-machine operation, but they are not the remote-user workflow.
 - `musu.pro` sends authenticated work-order envelopes and room events. It does
   not run shell commands, edit local files, or become a remote desktop server.
+- Room state, rendezvous sessions, route candidates, relay leases, relay
+  payload queues, and delivery proofs are owner-scoped control records, not
+  globally shared node state.
 - Devices may use `musu.pro` to rendezvous and exchange signed route offers.
   Once a viable path exists, the devices should talk through direct P2P mesh
   whenever possible.
@@ -72,11 +75,31 @@ Immediate roadmap:
    work orders, AI worker presence, decisions, handoffs, notes, and status.
 4. Build `musu.pro` rendezvous/path selection as the connection bootstrap:
    device identity, presence, route candidates, signed offers, attempted path
-   history, and fallback decision records.
+   history, fallback decision records, and owner-scoped session/candidate
+   storage.
 5. Complete release-grade relay transport only after the control plane proves
    owner-scoped storage and fallback-only policy: wired connect endpoint, wired
    payload endpoint, lease-bound payload transit, delivery proof, route
    evidence, and `relay_default_data_path=false`.
+
+## 2026-06-05 owner-scope hardening update
+
+The local web runtime now enforces the owner-scope part of this roadmap for
+rendezvous bootstrap:
+
+- `StoredP2pRendezvousSession` includes `owner_key`.
+- Create/read/update/approve/close/candidate routes derive the owner from
+  `p2pControlPrincipal(req)`.
+- Candidate cache keys include owner and node id, so another owner cannot seed
+  sessions from a matching node id.
+- Room rendezvous and room presence use the same owner-scoped candidate cache.
+- `audit-operator-api-security-contract.ps1` now verifies this contract and its
+  regression tests.
+
+This is not a hosted relay completion. The remaining hosted P2P release
+blockers are still KV/Upstash provisioning, wired connect/payload endpoints,
+release-grade `quic_tls_1_3` transport proof, payload delivery proof, and
+fallback-only policy evidence.
 
 ## Control SSE audit
 

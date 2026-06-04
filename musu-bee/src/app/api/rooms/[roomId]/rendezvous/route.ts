@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   createRendezvousSession,
   loadNodeCandidateSet,
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
+  const ownerKey = p2pControlPrincipal(req).owner_key;
 
   let json: unknown;
   try {
@@ -69,11 +70,12 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
 
   try {
     const [sourceSeed, targetSeed] = await Promise.all([
-      loadNodeCandidateSet(parsed.data.source_node_id),
-      loadNodeCandidateSet(parsed.data.target_node_id),
+      loadNodeCandidateSet(ownerKey, parsed.data.source_node_id),
+      loadNodeCandidateSet(ownerKey, parsed.data.target_node_id),
     ]);
     const session = createRendezvousSession(
       {
+        owner_key: ownerKey,
         source_node_id: parsed.data.source_node_id,
         target_node_id: parsed.data.target_node_id,
         requested_capability: parsed.data.requested_capability ?? null,

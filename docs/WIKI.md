@@ -6128,3 +6128,37 @@ Store gates are closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_AUTH_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Rendezvous owner-scope hardening (wiki/713)
+
+Rendezvous bootstrap now matches the MUSU.PRO control-plane roadmap's owner
+boundary.
+
+Changed:
+
+- `StoredP2pRendezvousSession` now stores `owner_key`.
+- Rendezvous create/read/update/approve/close/candidate routes derive
+  `p2pControlPrincipal(req).owner_key` after auth.
+- Cross-owner reads and mutations return `404 rendezvous_not_found`.
+- Node candidate cache keys now include owner and node id for both file-store
+  and KV paths.
+- Room rendezvous and room presence use the same owner-scoped candidate cache.
+- `audit-operator-api-security-contract.ps1` now verifies rendezvous
+  owner-scope source and regression tests.
+
+Validation:
+
+- `npm run test:p2p` passed `79/79`
+- `npm run test:routes` passed `19/19`
+- `npm run typecheck` passed
+- `npm run build` passed
+- operator API security audit passed with `ok=true`, `fail_count=0`
+- `git diff --check` passed
+
+This is web runtime source, so packaged primary evidence is stale until rebuilt
+and refreshed from this commit. Public release remains No-Go until second-PC,
+hosted P2P, support mailbox, and Store gates are closed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RENDEZVOUS_OWNER_SCOPE_HARDENING_2026_06_05.md`

@@ -49,6 +49,17 @@ $processStart = Get-RepoText "musu-bee\src\app\api\processes\start\route.ts"
 $processKill = Get-RepoText "musu-bee\src\app\api\processes\kill\route.ts"
 $roomWorkOrders = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts"
 $roomWorkOrdersTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts"
+$p2pRendezvousStore = Get-RepoText "musu-bee\src\lib\p2pRendezvousStore.ts"
+$p2pRendezvousCreate = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\route.ts"
+$p2pRendezvousRead = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\route.ts"
+$p2pRendezvousCandidates = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\candidates\route.ts"
+$p2pRendezvousApprove = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\approve\route.ts"
+$p2pRendezvousClose = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\close\route.ts"
+$p2pRendezvousTest = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts"
+$roomRendezvous = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\rendezvous\route.ts"
+$roomRendezvousTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\rendezvous\route.test.ts"
+$roomPresence = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\presence\route.ts"
+$roomPresenceTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\presence\route.test.ts"
 $relayConnect = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.ts"
 $relayConnectTest = Get-RepoText "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
 $packageJson = Get-RepoText "musu-bee\package.json"
@@ -90,6 +101,16 @@ Add-Check -Scope "source" -Name "room work order requires P2P control auth" `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts" `
     -Message "Room work-order web input requires P2P control auth before forwarding to the local bridge."
 
+Add-Check -Scope "source" -Name "rendezvous sessions are owner-scoped" `
+    -Passed ($p2pRendezvousStore.Contains("owner_key: string") -and $p2pRendezvousStore.Contains("isSession(session) && session.owner_key === ownerKey") -and $p2pRendezvousCreate.Contains("p2pControlPrincipal(req).owner_key") -and $p2pRendezvousCreate.Contains("owner_key: ownerKey") -and $p2pRendezvousRead.Contains("getRendezvousSession(id, ownerKey)") -and $p2pRendezvousCandidates.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousApprove.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousClose.Contains("updateRendezvousSession(id, ownerKey") -and $roomRendezvous.Contains("owner_key: ownerKey")) `
+    -Path "musu-bee\src\lib\p2pRendezvousStore.ts" `
+    -Message "Rendezvous sessions are bound to the authenticated P2P control owner and cross-owner reads/mutations return not found."
+
+Add-Check -Scope "source" -Name "rendezvous candidate cache is owner-scoped" `
+    -Passed ($p2pRendezvousStore.Contains("function candidateKey(ownerKey: string, nodeId: string)") -and $p2pRendezvousStore.Contains("function localCandidateKey(ownerKey: string, nodeId: string)") -and $p2pRendezvousCreate.Contains("loadNodeCandidateSet(ownerKey") -and $roomRendezvous.Contains("loadNodeCandidateSet(ownerKey") -and $p2pRendezvousCandidates.Contains("saveNodeCandidateSet(ownerKey") -and $roomPresence.Contains("saveNodeCandidateSet(principal.owner_key")) `
+    -Path "musu-bee\src\lib\p2pRendezvousStore.ts" `
+    -Message "Cached P2P route candidates cannot seed sessions for another authenticated owner."
+
 Add-Check -Scope "tests" -Name "route security test script" `
     -Passed ($packageJson.Contains('"test:routes"') -and $packageJson.Contains("src/app/api/nodes/execute/route.test.ts") -and $packageJson.Contains("src/app/api/processes/start/route.test.ts") -and $packageJson.Contains("src/app/api/processes/kill/route.test.ts")) `
     -Path "musu-bee\package.json" `
@@ -104,6 +125,11 @@ Add-Check -Scope "tests" -Name "relay connect auth regression test" `
     -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect status") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
     -Message "P2P tests cover relay connect auth before fail-closed relay status is returned."
+
+Add-Check -Scope "tests" -Name "rendezvous owner-scope regression tests" `
+    -Passed ($packageJson.Contains("src/app/api/v1/p2p/rendezvous/route.test.ts") -and $p2pRendezvousTest.Contains("does not expose or mutate rendezvous sessions for another authorized owner") -and $p2pRendezvousTest.Contains("does not seed rendezvous candidates across authorized owners") -and $roomRendezvousTest.Contains("p2pControlOwnerKey") -and $roomPresenceTest.Contains("loadNodeCandidateSet(body.presence.owner_key")) `
+    -Path "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts" `
+    -Message "P2P route tests cover owner-scoped sessions and candidate cache isolation."
 
 Add-Check -Scope "tests" -Name "CI route security step" `
     -Passed ($workflow.Contains("Route security tests") -and $workflow.Contains("npm run test:routes")) `

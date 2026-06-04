@@ -95,6 +95,7 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
+  const principal = p2pControlPrincipal(req);
 
   let json: unknown;
   try {
@@ -121,12 +122,12 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   try {
     const presence = createRoomPresence({
       ...parsed.data,
-      owner_key: p2pControlPrincipal(req).owner_key,
+      owner_key: principal.owner_key,
       room_id,
       origin: parsed.data.origin ?? "musu.pro",
     });
     await upsertRoomPresence(presence);
-    await saveNodeCandidateSet(roomPresenceToCandidateSet(presence));
+    await saveNodeCandidateSet(principal.owner_key, roomPresenceToCandidateSet(presence));
     return NextResponse.json(
       {
         ok: true,

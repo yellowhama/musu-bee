@@ -3759,4 +3759,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime CPU matrix 1/2`, `one-machine only`, `local execution plane`, and
   `musu.pro control plane`.
 
+- 2026-06-05 rendezvous owner-scope hardening:
+  `RELEASE_1_15_0_RC1_RENDEZVOUS_OWNER_SCOPE_HARDENING_2026_06_05.md`
+  (wiki/713) records owner-scoped rendezvous sessions and candidate cache for
+  the MUSU.PRO control-plane roadmap. Search terms should include
+  `GOAL v526`, `wiki/713`, `StoredP2pRendezvousSession owner_key`,
+  `p2pControlPrincipal(req).owner_key`, `getRendezvousSession(id, ownerKey)`,
+  `updateRendezvousSession(id, ownerKey`, `saveNodeCandidateSet(ownerKey`,
+  `loadNodeCandidateSet(ownerKey`, `cross-owner rendezvous not found`,
+  `cross-owner candidate cache isolation`, `npm run test:p2p 79/79`,
+  `npm run test:routes 19/19`, `operator API security audit`, and
+  `packaged evidence stale`.
+
 **End of WIKI_INDEX.md.**

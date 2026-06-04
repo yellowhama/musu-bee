@@ -24,6 +24,9 @@ The release target is a local-executor product with a web coordination plane:
 - `musu.pro` sends authenticated work-order envelopes and room events to local
   programs; it must not become the default execution server or default data
   path
+- room state, rendezvous sessions, route candidates, relay leases, relay
+  payload queues, and delivery proofs must be scoped to the authenticated P2P
+  control owner
 - devices should use `musu.pro` to bootstrap peer discovery, then prefer direct
   P2P mesh; hosted relay is fallback after direct route failure
 
