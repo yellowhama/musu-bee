@@ -3597,4 +3597,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `cargo check --bin musu`, `room_presence_publish_cli_accepts_json_flag`, and
   `fresh packaged primary evidence required`.
 
+- 2026-06-04 post room presence client CLI primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CLIENT_CLI_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/700) records current primary-machine evidence after the room presence
+  client CLI. Search terms should include `GOAL v513`, `wiki/700`, `75348c74`,
+  `20260604-204006-HUGH_SECOND`, `20260604-204236-HUGH_SECOND.desktop-open`,
+  `20260604-204423-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_203939`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_204423`,
+  `single_machine_verified=true`, `local_artifacts_ready=true`,
+  `manifest_git.dirty=false`, `PATH warning .cargo bin`, and
+  `room presence client primary evidence`.
+
 **End of WIKI_INDEX.md.**

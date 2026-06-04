@@ -5636,3 +5636,43 @@ also stale until regenerated from this source.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_CLIENT_CLI_2026_06_04.md`
+
+## 2026-06-04 Post room presence client CLI primary evidence refresh (wiki/700)
+
+Fresh primary-machine packaged evidence was restored after adding the local
+room presence client CLI.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-204006-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-204236-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-204423-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- local-sideload MSIX was rebuilt and install verification passed
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_203939`
+- CLI route output `MUSU_CLI_ROUTE_OK_20260604_203939`
+- desktop-open CPU `60.012s`, `git_dirty=false`, MUSU `0`, Node `0`,
+  WebView2 `0`, working set `46.55MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_204423`, hot `0`
+- clean go/no-go on `75348c74`: `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, `manifest_git.dirty=false`, and
+  public release No-Go
+
+HUGH_SECOND still has a developer PATH warning because `.cargo\bin\musu.exe`
+resolves before the WindowsApps alias, so no new strict MSIX install evidence
+was recorded from that warning-mode state.
+
+Public release remains blocked on second-PC runtime/multi-device evidence,
+hosted `musu.pro` P2P control-plane proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CLIENT_CLI_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
