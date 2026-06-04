@@ -3298,4 +3298,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `single_machine_verified=true`, `runtime idle CPU 1/2`,
   `runtime CPU matrix 1/2`, and `918f81d4`.
 
+- 2026-06-04 multi-device route explain evidence:
+  `RELEASE_1_15_0_RC1_MULTIDEVICE_ROUTE_EXPLAIN_EVIDENCE_2026_06_04.md`
+  (wiki/676) records that second-PC route smoke now captures
+  `musu.route_explain.v1` path-selection diagnostics before execution. Search
+  terms should include `GOAL v487`, `wiki/676`, `route_explain`,
+  `musu.route_explain.v1`, `musu.route_evidence.v1`,
+  `musu route --explain --json`, `path_priority`,
+  `lan,tailscale,direct_quic,relay`, `release_grade_transport_required`,
+  `quic_tls_1_3`, `MUSU-second-PC-transfer-1.15.0-rc.1-20260604-132834.zip`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260604-132819.zip`,
+  `case_count=25`, and `4ed47213`.
+
 **End of WIKI_INDEX.md.**

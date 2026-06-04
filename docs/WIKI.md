@@ -4732,3 +4732,64 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_SINGLE_MACHINE_DASHBOARD_URL_DISCOVERY_2026_06_04.md`
+
+## 2026-06-04 multi-device route explain evidence (wiki/676)
+
+The second-PC/multi-device smoke now records path-selection diagnostics before
+it attempts a remote route.
+
+Changes:
+
+- `smoke-multidevice-beta.ps1` records `route_explain`
+- the smoke runs `musu route --explain --json` before the executing route
+- `verify-multidevice-evidence.ps1` separates explain commands from executing
+  route commands
+- passing multi-device evidence now requires `musu.route_explain.v1`
+  path-selection evidence plus `musu.route_evidence.v1` execution evidence
+- verifier regression coverage now rejects missing route explain evidence
+- the second-PC kit README now describes both `musu.route_explain.v1` and
+  `musu.route_evidence.v1`
+
+Local diagnostic check:
+
+- target `HUGH-MAIN`
+- selected candidate `192.168.1.192:8949`
+- route kind `lan`
+- current transport `http_bearer`
+- peer identity not verified
+- encryption `none_http_bearer`
+- path priority `lan -> tailscale -> direct_quic -> relay`
+- release-grade transport required `quic_tls_1_3`
+
+Validation passed:
+
+- PowerShell parser checks
+- `git diff --check`
+- release evidence verifier regression `ok=true`, `case_count=25`
+- runtime CPU scenario matrix verifier `ok=true`, `fail_count=0`
+- final packet verifier `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack verifier `ok=true`, `fail_count=0`
+
+Current handoff artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-132819.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-132834.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-132834\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-132834.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-132819`
+
+Clean go/no-go on `4ed472133a3fdf7fc60d59966e46766842f7d6ef` reports
+`ready=false`, `local=true`, `single=true`, `multi=false`, `msix=true`,
+runtime idle CPU `1/2`, runtime CPU matrix `1/2`, `p2p=false`,
+`support=false`, `store=false`, `dirty=false`, and blocker count `6`.
+
+Public release remains No-Go until current second-PC multi-device evidence,
+second-PC CPU/matrix evidence, live owner-scoped `musu.pro` relay/P2P proof,
+support mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MULTIDEVICE_ROUTE_EXPLAIN_EVIDENCE_2026_06_04.md`

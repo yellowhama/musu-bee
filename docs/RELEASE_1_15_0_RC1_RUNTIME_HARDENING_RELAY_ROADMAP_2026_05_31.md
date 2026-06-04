@@ -1970,3 +1970,36 @@ evidence, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_SINGLE_MACHINE_DASHBOARD_URL_DISCOVERY_2026_06_04.md`
+
+## 2026-06-04 Multi-Device Route Explain Evidence
+
+The second-PC route smoke now records path-selection diagnostics before
+executing a route:
+
+- `smoke-multidevice-beta.ps1` records `musu.route_explain.v1`
+- the multi-device verifier separates route explain from the executing route
+  command
+- passing multi-device evidence must include selected candidate diagnostics,
+  delegate endpoint, path priority `lan,tailscale,direct_quic,relay`,
+  release transport requirement `quic_tls_1_3`, and fallback-only relay policy
+- the second-PC kit README now describes both `musu.route_explain.v1` and
+  `musu.route_evidence.v1`
+
+The current local diagnostic still shows the configured `HUGH-MAIN` route as
+LAN over `http_bearer` with `peer_identity_verified=false` and
+`encryption=none_http_bearer`; that remains useful for debugging but is not
+release-grade evidence.
+
+Current handoff artifacts after this update:
+
+- `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-132819.zip`
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-132834.zip`
+- `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-132834\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-132834.zip`
+
+Clean go/no-go on `4ed47213` remains No-Go with `single_machine_verified=true`,
+runtime idle CPU `1/2`, runtime CPU matrix `1/2`, `manifest_git.dirty=false`,
+and six remaining blockers.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MULTIDEVICE_ROUTE_EXPLAIN_EVIDENCE_2026_06_04.md`
