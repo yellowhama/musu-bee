@@ -3571,4 +3571,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `/api/rooms/[roomId]/presence`, and `fresh packaged primary evidence
   required`.
 
+- 2026-06-04 post room presence API primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/698) records current primary-machine evidence after the room presence
+  API. Search terms should include `GOAL v511`, `wiki/698`, `8e1dc11`,
+  `20260604-193251-HUGH_SECOND`,
+  `20260604-193347-HUGH_SECOND.desktop-open`,
+  `20260604-193512-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_193224`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_193512`,
+  `http://127.0.0.1:3001/app`, `runtime idle CPU 1/2 [HUGH_SECOND]`,
+  `runtime CPU matrix 1/2 [HUGH_SECOND]`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, `manifest_git.dirty=false`,
+  `room presence primary evidence`, `musu.pro project room`, `company meeting
+  room`, `web-assisted rendezvous`, and `local MUSU programs execute work`.
+
 **End of WIKI_INDEX.md.**

@@ -5551,3 +5551,48 @@ after commit.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_API_2026_06_04.md`
+
+## 2026-06-04 Post room presence API primary evidence refresh (wiki/698)
+
+Fresh primary-machine packaged evidence was restored after adding
+`POST /api/rooms/[roomId]/presence` and
+`GET /api/rooms/[roomId]/presence`.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-193251-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-193347-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-193512-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke dashboard `http://127.0.0.1:3001`, reachable URL
+  `http://127.0.0.1:3001/app`, bridge `http://127.0.0.1:10358`, output
+  `MUSU_RELEASE_SMOKE_OK_20260604_193224`
+- desktop-open CPU `60.162s`, `git_dirty=false`, MUSU `0`, Node `0.05`,
+  WebView2 `0.78`, owned WebView2 `6`, working set `482.9MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_193512`, max CPU MUSU `0.03`, Node
+  `0.03`, WebView2 `0.34`, max working set `483.64MB`
+- clean go/no-go on `8e1dc11`: `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+  `public_metadata_ok=true`, `manifest_git.dirty=false`, and public release
+  No-Go
+
+Public release remains blocked on second-PC runtime/multi-device evidence,
+hosted `musu.pro` P2P control-plane proof, support mailbox evidence, and Store
+evidence.
+
+Roadmap remains: `musu.pro` is the remote user input, project room, company
+meeting room, presence, rendezvous, path-selection, relay-fallback, and
+evidence plane; local MUSU programs execute work on each device and use P2P
+mesh after web-assisted rendezvous.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
