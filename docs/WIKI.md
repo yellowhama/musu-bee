@@ -4671,3 +4671,64 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CHAT_SSE_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 single-machine dashboard URL discovery (wiki/675)
+
+The single-machine release smoke now follows the packaged runtime's dashboard
+URL instead of assuming the dev dashboard port.
+
+Root cause: the packaged local dashboard was reachable at
+`http://127.0.0.1:3001/app`, while `smoke-single-machine-beta.ps1` defaulted to
+`http://127.0.0.1:3000`. That mismatch produced a real connection-refused
+failure even when the local runtime was healthy.
+
+Changes:
+
+- `smoke-single-machine-beta.ps1` discovers `dashboard.reachable_url` from
+  `musu up --json` first and `musu doctor --json` second
+- release evidence records `dashboard_base_url_source` and
+  `dashboard_reachable_url`
+- release audit checks URL discovery and rejects the old dev-port default
+- single-machine evidence verifier requires runtime URL discovery and rejects
+  `http://127.0.0.1:3000` as the release default
+- evidence recording is idempotent when rerun against the canonical evidence
+  path
+
+Product split:
+
+- `localhost` dashboards are local operator/dev surfaces
+- `musu.pro` is the real web input, project room, company meeting room,
+  rendezvous, path-selection, relay-fallback coordination, and evidence plane
+- local MUSU programs still do the actual work on each device
+- current validation remains one-machine until the current MUSU build is
+  installed on a second Windows PC
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-130301-HUGH_SECOND.evidence.json`
+- dashboard `http://127.0.0.1:3001`
+- dashboard source `musu up.dashboard.reachable_url`
+- bridge `http://127.0.0.1:8573`
+- dashboard output `MUSU_RELEASE_SMOKE_OK_20260604_130238`
+
+Validation passed:
+
+- PowerShell parser checks for touched scripts
+- `git diff --check`
+- single-machine evidence verifier `ok=true`, `fail_count=0`
+- runtime CPU scenario matrix verifier `ok=true`, `fail_count=0`
+- desktop release audit has `single_machine_verified=true`
+
+Clean go/no-go on `918f81d47965b40ff4427a80cc9c4d72d27c4586` reports
+`ready=false`, `local=true`, `single=true`, `multi=false`, `msix=true`,
+runtime idle CPU `1/2`, runtime CPU matrix `1/2`, `p2p=false`,
+`support=false`, `store=false`, `dirty=false`, and blocker count `6`.
+
+Public release remains No-Go on second-PC runtime/multi-device evidence, live
+owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SINGLE_MACHINE_DASHBOARD_URL_DISCOVERY_2026_06_04.md`

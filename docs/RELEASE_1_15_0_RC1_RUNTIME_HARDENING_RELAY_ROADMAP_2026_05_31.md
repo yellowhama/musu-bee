@@ -1939,3 +1939,34 @@ Canonical reports:
 
 - `docs\RELEASE_1_15_0_RC1_POST_CHAT_SSE_RETRY_CAP_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CHAT_SSE_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 Single-Machine Dashboard URL Discovery
+
+The local-executor/web-input split now has release-smoke enforcement for the
+local dashboard URL:
+
+- `localhost` dashboards remain local operator/dev surfaces
+- `musu.pro` remains the real web input/project-room/rendezvous/fallback/evidence
+  surface
+- the single-machine smoke discovers the packaged dashboard URL from runtime
+  `dashboard.reachable_url` instead of assuming dev port `3000`
+- single-machine evidence now records `dashboard_base_url_source` and
+  `dashboard_reachable_url`
+- the evidence verifier requires runtime URL discovery and rejects
+  `http://127.0.0.1:3000` as the release default
+
+Current evidence:
+
+- `docs\evidence\single-machine\1.15.0-rc.1\20260604-130301-HUGH_SECOND.evidence.json`
+- dashboard `http://127.0.0.1:3001`
+- dashboard source `musu up.dashboard.reachable_url`
+
+Clean go/no-go on `918f81d4` reports `single_machine_verified=true`, runtime
+idle CPU `1/2`, runtime CPU matrix `1/2`, `manifest_git.dirty=false`, and six
+remaining blockers. Public release remains No-Go on second-PC runtime/multi-
+device evidence, live owner-scoped `musu.pro` relay proof, support mailbox
+evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SINGLE_MACHINE_DASHBOARD_URL_DISCOVERY_2026_06_04.md`

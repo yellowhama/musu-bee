@@ -20,6 +20,10 @@ Repeatable script:
 powershell -ExecutionPolicy Bypass -File scripts\windows\smoke-single-machine-beta.ps1
 ```
 
+The script discovers the packaged dashboard URL from `musu up --json` /
+`musu doctor --json` `dashboard.reachable_url`. Do not hardcode the development
+dashboard port `http://127.0.0.1:3000` for release evidence.
+
 Manual equivalent:
 
 ```powershell
@@ -102,6 +106,16 @@ Verified locally against dashboards on `3001` and `3000`, and bridge on dynamic 
 - task id: `72ff5cff-f122-496b-ad6a-6d7e55711bf4`
 - terminal output: `MUSU_SMOKE_OK`
 - SSE route: 200 `text/event-stream`
+
+Current 2026-06-04 packaged smoke evidence:
+
+- evidence:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-130301-HUGH_SECOND.evidence.json`
+- dashboard: `http://127.0.0.1:3001`
+- dashboard source: `musu up.dashboard.reachable_url`
+- bridge: `http://127.0.0.1:8573`
+- dashboard task id: `42c7678d-22dd-4126-8ec2-1a1f4a3e15e8`
+- dashboard output: `MUSU_RELEASE_SMOKE_OK_20260604_130238`
 
 Repeatable script smoke also passed on 2026-05-29:
 

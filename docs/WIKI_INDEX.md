@@ -3286,4 +3286,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `action_pack.verified=true`, `p2p_relay_route_evidence_count=0`,
   `p2p_relay_payload_transport_proven=false`, and `20260604-124456`.
 
+- 2026-06-04 single-machine dashboard URL discovery:
+  `RELEASE_1_15_0_RC1_SINGLE_MACHINE_DASHBOARD_URL_DISCOVERY_2026_06_04.md`
+  (wiki/675) records the fix for release smoke dashboard port confusion.
+  Search terms should include `GOAL v486`, `wiki/675`,
+  `dashboard_base_url_source`, `dashboard_reachable_url`,
+  `musu up.dashboard.reachable_url`, `http://127.0.0.1:3001`,
+  `http://127.0.0.1:3000`, `ERR_CONNECTION_REFUSED`,
+  `local MUSU programs execute the work`, `musu.pro web input`,
+  `company meeting room`, `20260604-130301-HUGH_SECOND`,
+  `single_machine_verified=true`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, and `918f81d4`.
+
 **End of WIKI_INDEX.md.**
