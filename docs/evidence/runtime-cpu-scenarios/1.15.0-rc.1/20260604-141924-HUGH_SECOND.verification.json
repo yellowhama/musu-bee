@@ -1,0 +1,802 @@
+{
+  "ok": true,
+  "evidence_path": "F:\\workspace\\musu-bee\\docs\\evidence\\runtime-cpu-scenarios\\1.15.0-rc.1\\20260604-141924-HUGH_SECOND.runtime-cpu-scenario-matrix.json",
+  "fail_count": 0,
+  "version": "1.15.0-rc.1",
+  "git_commit": "f96e5cca97cf02f8f539d07a788ef5a8c3e0f64e",
+  "operator_machine": "HUGH_SECOND",
+  "required_scenarios": [
+    "startup-open",
+    "runtime-started",
+    "dashboard-open",
+    "desktop-open",
+    "post-route"
+  ],
+  "present_required_scenarios": [
+    "startup-open",
+    "runtime-started",
+    "dashboard-open",
+    "desktop-open",
+    "post-route"
+  ],
+  "require_post_route_probe": true,
+  "expected_post_route_target": null,
+  "allow_failed_post_route_probe": false,
+  "checks": [
+    {
+      "name": "parse",
+      "status": "pass",
+      "message": "runtime CPU scenario matrix parses"
+    },
+    {
+      "name": "schema",
+      "status": "pass",
+      "message": "schema is valid"
+    },
+    {
+      "name": "version",
+      "status": "pass",
+      "message": "version matches 1.15.0-rc.1"
+    },
+    {
+      "name": "matrix ok",
+      "status": "pass",
+      "message": "matrix reports ok=true"
+    },
+    {
+      "name": "git commit present",
+      "status": "pass",
+      "message": "git commit is recorded"
+    },
+    {
+      "name": "expected git commit",
+      "status": "pass",
+      "message": "git commit matches current HEAD f96e5cca97cf02f8f539d07a788ef5a8c3e0f64e"
+    },
+    {
+      "name": "git clean during matrix",
+      "status": "pass",
+      "message": "matrix was captured from clean git state"
+    },
+    {
+      "name": "operator machine",
+      "status": "pass",
+      "message": "operator_machine is present"
+    },
+    {
+      "name": "sample duration",
+      "status": "pass",
+      "message": "sample duration is at least 60s"
+    },
+    {
+      "name": "cpu budget",
+      "status": "pass",
+      "message": "matrix CPU budget is <= 5% of one logical core"
+    },
+    {
+      "name": "owned process budget present",
+      "status": "pass",
+      "message": "owned process budget is 16"
+    },
+    {
+      "name": "WebView2 budget present",
+      "status": "pass",
+      "message": "WebView2 process budget is 8"
+    },
+    {
+      "name": "working set budget present",
+      "status": "pass",
+      "message": "working set budget is 1024MB"
+    },
+    {
+      "name": "scenario present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' is present"
+    },
+    {
+      "name": "startup app opened",
+      "status": "pass",
+      "message": "startup-open launched the packaged desktop app"
+    },
+    {
+      "name": "startup sample delay",
+      "status": "pass",
+      "message": "startup-open sample delay 2.008s <= 3s"
+    },
+    {
+      "name": "measurement present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' has measurement"
+    },
+    {
+      "name": "measurement ok: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' reports ok=true"
+    },
+    {
+      "name": "measurement clean git: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' measured clean git"
+    },
+    {
+      "name": "measurement duration: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' sample duration is at least 60s"
+    },
+    {
+      "name": "CPU attribution present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records PID/role CPU attribution"
+    },
+    {
+      "name": "CPU attribution schema: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution schema is valid"
+    },
+    {
+      "name": "CPU attribution sample count: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution sample count matches measurement"
+    },
+    {
+      "name": "CPU attribution role counts: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution records role sample counts"
+    },
+    {
+      "name": "CPU attribution totals by role: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution records CPU totals by role"
+    },
+    {
+      "name": "CPU attribution max by role: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution records max CPU by role"
+    },
+    {
+      "name": "CPU attribution MUSU role: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' CPU attribution includes MUSU role"
+    },
+    {
+      "name": "CPU attribution top processes: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records top CPU processes"
+    },
+    {
+      "name": "CPU attribution top process fields: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' top CPU process rows include PID, role, and CPU fields"
+    },
+    {
+      "name": "role CPU startup-open/musu",
+      "status": "pass",
+      "message": "scenario 'startup-open' role 'musu' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU startup-open/node",
+      "status": "pass",
+      "message": "scenario 'startup-open' role 'node' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU startup-open/webview2",
+      "status": "pass",
+      "message": "scenario 'startup-open' role 'webview2' CPU 0.08% <= 5%"
+    },
+    {
+      "name": "role CPU startup-open/other",
+      "status": "pass",
+      "message": "scenario 'startup-open' role 'other' CPU 0% <= 5%"
+    },
+    {
+      "name": "hot process count: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' has no hot processes"
+    },
+    {
+      "name": "resource budget field: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records resource budget violations field"
+    },
+    {
+      "name": "resource budget: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' has no resource budget violations"
+    },
+    {
+      "name": "process counts present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records process counts by role"
+    },
+    {
+      "name": "owned process budget: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' owned process count 9 <= 16"
+    },
+    {
+      "name": "WebView2 process budget: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' WebView2 process count 6 <= 8"
+    },
+    {
+      "name": "working set present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records total working set"
+    },
+    {
+      "name": "working set budget: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' working set 485.13MB <= 1024MB"
+    },
+    {
+      "name": "private memory present: startup-open",
+      "status": "pass",
+      "message": "scenario 'startup-open' records total private memory"
+    },
+    {
+      "name": "scenario present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' is present"
+    },
+    {
+      "name": "measurement present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' has measurement"
+    },
+    {
+      "name": "measurement ok: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' reports ok=true"
+    },
+    {
+      "name": "measurement clean git: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' measured clean git"
+    },
+    {
+      "name": "measurement duration: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' sample duration is at least 60s"
+    },
+    {
+      "name": "CPU attribution present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records PID/role CPU attribution"
+    },
+    {
+      "name": "CPU attribution schema: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution schema is valid"
+    },
+    {
+      "name": "CPU attribution sample count: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution sample count matches measurement"
+    },
+    {
+      "name": "CPU attribution role counts: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution records role sample counts"
+    },
+    {
+      "name": "CPU attribution totals by role: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution records CPU totals by role"
+    },
+    {
+      "name": "CPU attribution max by role: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution records max CPU by role"
+    },
+    {
+      "name": "CPU attribution MUSU role: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' CPU attribution includes MUSU role"
+    },
+    {
+      "name": "CPU attribution top processes: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records top CPU processes"
+    },
+    {
+      "name": "CPU attribution top process fields: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' top CPU process rows include PID, role, and CPU fields"
+    },
+    {
+      "name": "role CPU runtime-started/musu",
+      "status": "pass",
+      "message": "scenario 'runtime-started' role 'musu' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU runtime-started/node",
+      "status": "pass",
+      "message": "scenario 'runtime-started' role 'node' CPU 0.05% <= 5%"
+    },
+    {
+      "name": "role CPU runtime-started/webview2",
+      "status": "pass",
+      "message": "scenario 'runtime-started' role 'webview2' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU runtime-started/other",
+      "status": "pass",
+      "message": "scenario 'runtime-started' role 'other' CPU 0% <= 5%"
+    },
+    {
+      "name": "hot process count: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' has no hot processes"
+    },
+    {
+      "name": "resource budget field: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records resource budget violations field"
+    },
+    {
+      "name": "resource budget: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' has no resource budget violations"
+    },
+    {
+      "name": "process counts present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records process counts by role"
+    },
+    {
+      "name": "owned process budget: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' owned process count 9 <= 16"
+    },
+    {
+      "name": "WebView2 process budget: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' WebView2 process count 6 <= 8"
+    },
+    {
+      "name": "working set present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records total working set"
+    },
+    {
+      "name": "working set budget: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' working set 485.01MB <= 1024MB"
+    },
+    {
+      "name": "private memory present: runtime-started",
+      "status": "pass",
+      "message": "scenario 'runtime-started' records total private memory"
+    },
+    {
+      "name": "scenario present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' is present"
+    },
+    {
+      "name": "dashboard opened",
+      "status": "pass",
+      "message": "dashboard-open launched a dashboard URL"
+    },
+    {
+      "name": "measurement present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' has measurement"
+    },
+    {
+      "name": "measurement ok: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' reports ok=true"
+    },
+    {
+      "name": "measurement clean git: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' measured clean git"
+    },
+    {
+      "name": "measurement duration: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' sample duration is at least 60s"
+    },
+    {
+      "name": "CPU attribution present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records PID/role CPU attribution"
+    },
+    {
+      "name": "CPU attribution schema: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution schema is valid"
+    },
+    {
+      "name": "CPU attribution sample count: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution sample count matches measurement"
+    },
+    {
+      "name": "CPU attribution role counts: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution records role sample counts"
+    },
+    {
+      "name": "CPU attribution totals by role: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution records CPU totals by role"
+    },
+    {
+      "name": "CPU attribution max by role: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution records max CPU by role"
+    },
+    {
+      "name": "CPU attribution MUSU role: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' CPU attribution includes MUSU role"
+    },
+    {
+      "name": "CPU attribution top processes: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records top CPU processes"
+    },
+    {
+      "name": "CPU attribution top process fields: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' top CPU process rows include PID, role, and CPU fields"
+    },
+    {
+      "name": "role CPU dashboard-open/musu",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' role 'musu' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU dashboard-open/node",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' role 'node' CPU 0.03% <= 5%"
+    },
+    {
+      "name": "role CPU dashboard-open/webview2",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' role 'webview2' CPU 0.03% <= 5%"
+    },
+    {
+      "name": "role CPU dashboard-open/other",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' role 'other' CPU 0% <= 5%"
+    },
+    {
+      "name": "hot process count: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' has no hot processes"
+    },
+    {
+      "name": "resource budget field: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records resource budget violations field"
+    },
+    {
+      "name": "resource budget: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' has no resource budget violations"
+    },
+    {
+      "name": "process counts present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records process counts by role"
+    },
+    {
+      "name": "owned process budget: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' owned process count 9 <= 16"
+    },
+    {
+      "name": "WebView2 process budget: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' WebView2 process count 6 <= 8"
+    },
+    {
+      "name": "working set present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records total working set"
+    },
+    {
+      "name": "working set budget: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' working set 485MB <= 1024MB"
+    },
+    {
+      "name": "private memory present: dashboard-open",
+      "status": "pass",
+      "message": "scenario 'dashboard-open' records total private memory"
+    },
+    {
+      "name": "scenario present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' is present"
+    },
+    {
+      "name": "measurement present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' has measurement"
+    },
+    {
+      "name": "measurement ok: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' reports ok=true"
+    },
+    {
+      "name": "measurement clean git: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' measured clean git"
+    },
+    {
+      "name": "measurement duration: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' sample duration is at least 60s"
+    },
+    {
+      "name": "CPU attribution present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records PID/role CPU attribution"
+    },
+    {
+      "name": "CPU attribution schema: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution schema is valid"
+    },
+    {
+      "name": "CPU attribution sample count: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution sample count matches measurement"
+    },
+    {
+      "name": "CPU attribution role counts: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution records role sample counts"
+    },
+    {
+      "name": "CPU attribution totals by role: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution records CPU totals by role"
+    },
+    {
+      "name": "CPU attribution max by role: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution records max CPU by role"
+    },
+    {
+      "name": "CPU attribution MUSU role: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' CPU attribution includes MUSU role"
+    },
+    {
+      "name": "CPU attribution WebView2 role: desktop-open",
+      "status": "pass",
+      "message": "desktop-open CPU attribution includes owned WebView2 role"
+    },
+    {
+      "name": "CPU attribution top processes: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records top CPU processes"
+    },
+    {
+      "name": "CPU attribution top process fields: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' top CPU process rows include PID, role, and CPU fields"
+    },
+    {
+      "name": "role CPU desktop-open/musu",
+      "status": "pass",
+      "message": "scenario 'desktop-open' role 'musu' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU desktop-open/node",
+      "status": "pass",
+      "message": "scenario 'desktop-open' role 'node' CPU 0.03% <= 5%"
+    },
+    {
+      "name": "role CPU desktop-open/webview2",
+      "status": "pass",
+      "message": "scenario 'desktop-open' role 'webview2' CPU 0.08% <= 5%"
+    },
+    {
+      "name": "role CPU desktop-open/other",
+      "status": "pass",
+      "message": "scenario 'desktop-open' role 'other' CPU 0% <= 5%"
+    },
+    {
+      "name": "hot process count: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' has no hot processes"
+    },
+    {
+      "name": "resource budget field: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records resource budget violations field"
+    },
+    {
+      "name": "resource budget: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' has no resource budget violations"
+    },
+    {
+      "name": "process counts present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records process counts by role"
+    },
+    {
+      "name": "owned process budget: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' owned process count 9 <= 16"
+    },
+    {
+      "name": "WebView2 process budget: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' WebView2 process count 6 <= 8"
+    },
+    {
+      "name": "working set present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records total working set"
+    },
+    {
+      "name": "working set budget: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' working set 483.16MB <= 1024MB"
+    },
+    {
+      "name": "private memory present: desktop-open",
+      "status": "pass",
+      "message": "scenario 'desktop-open' records total private memory"
+    },
+    {
+      "name": "desktop owned WebView2",
+      "status": "pass",
+      "message": "desktop-open has owned WebView2 processes"
+    },
+    {
+      "name": "scenario present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' is present"
+    },
+    {
+      "name": "measurement present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' has measurement"
+    },
+    {
+      "name": "measurement ok: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' reports ok=true"
+    },
+    {
+      "name": "measurement clean git: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' measured clean git"
+    },
+    {
+      "name": "measurement duration: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' sample duration is at least 60s"
+    },
+    {
+      "name": "CPU attribution present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records PID/role CPU attribution"
+    },
+    {
+      "name": "CPU attribution schema: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution schema is valid"
+    },
+    {
+      "name": "CPU attribution sample count: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution sample count matches measurement"
+    },
+    {
+      "name": "CPU attribution role counts: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution records role sample counts"
+    },
+    {
+      "name": "CPU attribution totals by role: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution records CPU totals by role"
+    },
+    {
+      "name": "CPU attribution max by role: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution records max CPU by role"
+    },
+    {
+      "name": "CPU attribution MUSU role: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' CPU attribution includes MUSU role"
+    },
+    {
+      "name": "CPU attribution top processes: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records top CPU processes"
+    },
+    {
+      "name": "CPU attribution top process fields: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' top CPU process rows include PID, role, and CPU fields"
+    },
+    {
+      "name": "role CPU post-route/musu",
+      "status": "pass",
+      "message": "scenario 'post-route' role 'musu' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU post-route/node",
+      "status": "pass",
+      "message": "scenario 'post-route' role 'node' CPU 0% <= 5%"
+    },
+    {
+      "name": "role CPU post-route/webview2",
+      "status": "pass",
+      "message": "scenario 'post-route' role 'webview2' CPU 0.23% <= 5%"
+    },
+    {
+      "name": "role CPU post-route/other",
+      "status": "pass",
+      "message": "scenario 'post-route' role 'other' CPU 0% <= 5%"
+    },
+    {
+      "name": "hot process count: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' has no hot processes"
+    },
+    {
+      "name": "resource budget field: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records resource budget violations field"
+    },
+    {
+      "name": "resource budget: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' has no resource budget violations"
+    },
+    {
+      "name": "process counts present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records process counts by role"
+    },
+    {
+      "name": "owned process budget: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' owned process count 9 <= 16"
+    },
+    {
+      "name": "WebView2 process budget: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' WebView2 process count 6 <= 8"
+    },
+    {
+      "name": "working set present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records total working set"
+    },
+    {
+      "name": "working set budget: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' working set 483.65MB <= 1024MB"
+    },
+    {
+      "name": "private memory present: post-route",
+      "status": "pass",
+      "message": "scenario 'post-route' records total private memory"
+    },
+    {
+      "name": "post-route route probe present",
+      "status": "pass",
+      "message": "post-route matrix includes a route probe"
+    },
+    {
+      "name": "post-route route probe",
+      "status": "pass",
+      "message": "post-route matrix includes a successful route probe"
+    }
+  ]
+}

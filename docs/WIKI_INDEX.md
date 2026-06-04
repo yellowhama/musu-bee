@@ -3342,4 +3342,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `closeRunStream`, `stream connection closed`, `test:runtime-polling 15/15`,
   `frontend polling audit ok=true`, and `fresh packaged evidence required`.
 
+- 2026-06-04 post CEO dispatch SSE primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_CEO_DISPATCH_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/679) records current primary-machine MSIX/smoke/CPU/matrix evidence
+  after CEO dispatch SSE cleanup. Search terms should include `GOAL v491`,
+  `wiki/679`, `20260604-140415-HUGH_SECOND`, `20260604-140717-HUGH_SECOND`,
+  `20260604-141753-HUGH_SECOND.desktop-open`,
+  `20260604-141924-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_140650`,
+  `MUSU_CLI_ROUTE_OK_20260604_140650`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_141924`, `git_dirty=false`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, and `f96e5cca`.
+
 **End of WIKI_INDEX.md.**

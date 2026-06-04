@@ -4867,3 +4867,44 @@ after commit before current-source release gates can pass again.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CEO_DISPATCH_SSE_CLEANUP_HARDENING_2026_06_04.md`
+
+## 2026-06-04 post CEO dispatch SSE primary evidence refresh (wiki/679)
+
+Fresh primary-machine evidence was restored after the CEO dispatch SSE cleanup
+hardening.
+
+Evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-140415-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-140717-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-141753-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-141924-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- MSIX alias shadowing count `0`
+- single-machine dashboard `http://127.0.0.1:3001`, source
+  `musu up.dashboard.reachable_url`, bridge `http://127.0.0.1:7462`,
+  dashboard output `MUSU_RELEASE_SMOKE_OK_20260604_140650`, and CLI route
+  output `MUSU_CLI_ROUTE_OK_20260604_140650`
+- desktop-open CPU passed for `60.062s` from clean commit `f96e5cca` with
+  `git_dirty=false`, MUSU `0`, Node `0.03`, WebView2 `0.16`, owned WebView2
+  `6`, hot `0`, and working set `485.51MB`
+- matrix verifier passed `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_141924`, max CPU MUSU `0`, Node
+  `0.05`, WebView2 `0.23`, max working set `485.13MB`, and hot `0`
+- clean go/no-go reports `local_artifacts_ready=true`,
+  `single_machine_verified=true`, runtime idle CPU `1/2`, runtime CPU matrix
+  `1/2`, `manifest_git.dirty=false`, and six remaining blockers
+
+Public release remains No-Go until second-PC multi-device evidence,
+second-PC CPU/matrix evidence, live owner-scoped `musu.pro` relay proof,
+support mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CEO_DISPATCH_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

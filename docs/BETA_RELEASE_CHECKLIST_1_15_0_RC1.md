@@ -3211,6 +3211,40 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 14:27 KST Post CEO Dispatch SSE Primary Evidence Refresh
+
+After CEO dispatch SSE cleanup hardening, primary-machine evidence was
+refreshed again.
+
+Fresh evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-140415-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-140717-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-141753-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-141924-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- MSIX alias shadowing count `0`
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_140650`
+- CLI route output contained `MUSU_CLI_ROUTE_OK_20260604_140650`
+- desktop-open CPU passed for `60.062s`: MUSU `0`, Node `0.03`,
+  WebView2 `0.16`, owned WebView2 `6`, hot `0`, working set `485.51MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token was `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_141924`
+- matrix max CPU: MUSU `0`, Node `0.05`, WebView2 `0.23`
+- matrix max working set: `485.13MB`
+- clean go/no-go reports `single_machine_verified=true`, primary idle CPU
+  `1/2`, primary matrix `1/2`, `manifest_git.dirty=false`, and six blockers
+
+Public release remains No-Go until second-PC runtime/multi-device evidence,
+live owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
+evidence are complete.
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:

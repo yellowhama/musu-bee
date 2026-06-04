@@ -2087,3 +2087,35 @@ gates.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CEO_DISPATCH_SSE_CLEANUP_HARDENING_2026_06_04.md`
+
+## 2026-06-04 Post CEO Dispatch SSE Primary Evidence Refresh
+
+Fresh primary-machine evidence was restored after the CEO dispatch SSE cleanup
+hardening:
+
+- strict MSIX install evidence:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260604-140415-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-140717-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-141753-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-141924-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+The desktop-open CPU evidence was captured from clean commit `f96e5cca` with
+`git_dirty=false`, MUSU `0`, Node `0.03`, WebView2 `0.16`, hot `0`, owned
+WebView2 `6`, and working set `485.51MB`. The five-state matrix passed
+verifier `ok=true`, `fail_count=0`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260604_141924`, all scenarios `git_dirty=false`,
+all scenarios hot `0`, and max CPU MUSU `0`, Node `0.05`, WebView2 `0.23`.
+
+Clean go/no-go after refresh reports `local_artifacts_ready=true`,
+`single_machine_verified=true`, `msix_install_verified=true`, runtime idle CPU
+valid machines `1`, runtime CPU matrix valid machines `1`,
+`manifest_git.dirty=false`, and six remaining blockers: second-PC
+multi-device, second-PC CPU/matrix, hosted `musu.pro` P2P relay proof, support
+mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_CEO_DISPATCH_SSE_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
