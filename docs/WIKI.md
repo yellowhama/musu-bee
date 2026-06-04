@@ -6839,3 +6839,43 @@ missing.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_PROOF_LINKAGE_HARDENING_2026_06_05.md`
+
+## 2026-06-05 Rust loop audit WebRTC/telemetry coverage (wiki/732)
+
+Rust background-loop audit coverage now explicitly includes the WebRTC RTCP
+reader loop and a broader telemetry/log flush primitive detector.
+
+Commit `cf722a15` adds WebRTC audit checks:
+
+- `rtcp reader request-scoped spawn`
+- `rtcp reader awaits inbound packets`
+- `rtcp reader exits on read failure`
+
+These checks prove the RTCP reader in `musu-rs/src/io/webrtc.rs` is created only
+inside the explicit screen-share request path, awaits
+`rtp_sender.read(...).await`, and exits when the RTCP stream closes or errors.
+
+The telemetry/log flush scanner now also rejects `non_blocking`, so future
+background log appender workers cannot silently bypass the idle busy-loop source
+contract.
+
+Validation:
+
+- PowerShell parser: `parser ok`
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`,
+  `check_count=118`, WebRTC checks `7`
+- dirty-tree go/no-go: `rust_background_loop_contract_verified=true`,
+  `idle_busy_loop_candidate_contract_verified=true`, and
+  `log/telemetry flush loop` verified
+- clean final handoff after `cf722a15`: runtime idle CPU `1/2 [HUGH_SECOND]`,
+  runtime matrix `1/2 [HUGH_SECOND]`, `manifest_git_dirty=false`, and
+  `ready_for_public_desktop_release=false`
+
+This is source-contract coverage hardening only. It does not replace the
+two-machine CPU evidence gate, and public release remains blocked on second-PC,
+hosted P2P, support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_LOOP_AUDIT_WEBRTC_TELEMETRY_COVERAGE_2026_06_05.md`

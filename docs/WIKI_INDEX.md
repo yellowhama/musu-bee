@@ -4017,4 +4017,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_lease_kv_not_configured`, and
   `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 Rust loop audit WebRTC/telemetry coverage:
+  `RELEASE_1_15_0_RC1_RUST_LOOP_AUDIT_WEBRTC_TELEMETRY_COVERAGE_2026_06_05.md`
+  (wiki/732) expands the Rust background-loop source contract to prove the
+  WebRTC RTCP reader is request-scoped and await-based, and to reject
+  `non_blocking` telemetry/log flush primitives. Search terms should include
+  `GOAL v545`, `wiki/732`, `cf722a15`,
+  `rtcp reader request-scoped spawn`, `rtcp reader awaits inbound packets`,
+  `rtcp reader exits on read failure`, `non_blocking`,
+  `telemetry_flush_primitive_hit_count=0`, `check_count=118`,
+  `webrtc-screen-share checks 7`, `log/telemetry flush loop`,
+  `idle_busy_loop_candidate_contract_verified=true`,
+  `rust_background_loop_contract_verified=true`, `runtime idle CPU 1/2`,
+  `runtime matrix 1/2`, and `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**
