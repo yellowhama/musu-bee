@@ -3267,6 +3267,41 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUST_LOOP_ALLOWLIST_CONTRACT_HARDENING_2026_06_04.md`
 
+## 2026-06-04 22:26 KST P2P Source Relay Marker Status
+
+`show-musu-pro-p2p-env-status.ps1` now reports local source relay implementation
+markers in addition to GitHub env names and live evidence.
+
+Current source markers:
+
+- `relay_connect_endpoint_implemented=false`
+- `relay_payload_endpoint_implemented=false`
+- `relay_payload_queue_endpoint_implemented=true`
+- `relay_transport_kind=websocket_tunnel`
+- `release_grade_transport_required=quic_tls_1_3`
+
+Current status blockers now include:
+
+- `source_relay_connect_endpoint_not_implemented`
+- `source_relay_payload_endpoint_not_implemented`
+- missing KV/Upstash URL/token
+- `live_evidence_p2p_relay_lease_kv_not_configured`
+- `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
+- `live_evidence_relay_payload_delivery_proof_missing`
+
+Release interpretation:
+
+- KV/Upstash provisioning remains required
+- env flags alone cannot make `relay_transport_wired=true`
+- `/api/v1/relay/connect` remains fail-closed until a real Connect/Pro
+  fallback relay/tunnel transport can emit release-grade `quic_tls_1_3` proof
+- this is status/gate hardening only; packaged runtime evidence remains current
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_SOURCE_RELAY_MARKER_STATUS_2026_06_04.md`
+
 ## 2026-06-04 21:12 KST MCP App Views Low-Duty Polling Hardening
 
 The separate Vite single-file MCP app views no longer own direct

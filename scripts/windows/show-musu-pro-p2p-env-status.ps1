@@ -135,6 +135,52 @@ function Get-P2pEvidenceVerification {
     }
 }
 
+function Get-SourceRelayMarker {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot
+    )
+
+    $policyPath = Join-Path $RepoRoot "musu-bee\src\lib\p2pRelayPolicy.ts"
+    $summary = [ordered]@{
+        checked = $false
+        path = $policyPath
+        error = $null
+        relay_connect_endpoint_implemented = $false
+        relay_payload_endpoint_implemented = $false
+        relay_payload_queue_endpoint_implemented = $false
+        relay_transport_kind = ""
+        release_grade_transport_required = ""
+    }
+
+    if (-not (Test-Path -LiteralPath $policyPath)) {
+        $summary.error = "p2pRelayPolicy.ts_not_found"
+        return [pscustomobject]$summary
+    }
+
+    try {
+        $text = Get-Content -LiteralPath $policyPath -Raw
+        $summary.checked = $true
+        $summary.relay_connect_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_CONNECT_ENDPOINT_IMPLEMENTED\s*=\s*true')
+        $summary.relay_payload_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED\s*=\s*true')
+        $summary.relay_payload_queue_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED\s*=\s*true')
+
+        $transportKindMatch = [regex]::Match($text, 'RELAY_TRANSPORT_KIND\s*=\s*"([^"]+)"')
+        if ($transportKindMatch.Success) {
+            $summary.relay_transport_kind = $transportKindMatch.Groups[1].Value
+        }
+
+        $releaseRequirementMatch = [regex]::Match($text, 'RELEASE_GRADE_TRANSPORT_REQUIRED\s*=\s*"([^"]+)"')
+        if ($releaseRequirementMatch.Success) {
+            $summary.release_grade_transport_required = $releaseRequirementMatch.Groups[1].Value
+        }
+    }
+    catch {
+        $summary.error = $_.Exception.Message
+    }
+
+    return [pscustomobject]$summary
+}
+
 $requiredSecretNames = @(
     "MUSU_P2P_CONTROL_TOKEN_SHA256S"
 )
@@ -193,6 +239,8 @@ if ($githubChecked -and (@($requiredStorageTokenNames | Where-Object { $secretNa
 if ([string]::IsNullOrWhiteSpace($EvidencePath)) {
     $EvidencePath = Get-LatestP2pEvidencePath -RepoRoot $repoRoot -ReleaseVersion $Version
 }
+
+$sourceSummary = Get-SourceRelayMarker -RepoRoot $repoRoot
 
 $evidenceSummary = [pscustomobject]@{
     checked = $false
@@ -257,6 +305,20 @@ $blockers = New-Object System.Collections.Generic.List[string]
 if ($githubError) {
     $blockers.Add($githubError) | Out-Null
 }
+if (-not $sourceSummary.checked) {
+    $blockers.Add("source_relay_policy_marker_unavailable") | Out-Null
+}
+else {
+    if (-not $sourceSummary.relay_connect_endpoint_implemented) {
+        $blockers.Add("source_relay_connect_endpoint_not_implemented") | Out-Null
+    }
+    if (-not $sourceSummary.relay_payload_endpoint_implemented) {
+        $blockers.Add("source_relay_payload_endpoint_not_implemented") | Out-Null
+    }
+    if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
+        $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
+    }
+}
 foreach ($name in $githubMissing) {
     $blockers.Add(("missing_{0}" -f $name.ToLowerInvariant())) | Out-Null
 }
@@ -295,6 +357,10 @@ if ($blockers -contains "live_evidence_relay_transport_not_wired") {
     $nextSteps.Add("Implement and prove the relay payload transport before setting MUSU_P2P_RELAY_TRANSPORT_WIRED=1; the lease control-plane alone is not enough for public P2P release.") | Out-Null
     $nextSteps.Add("After relay payload transport is implemented, rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_status.relay_transport_wired and relay_leases.relay_transport_wired are both true.") | Out-Null
 }
+if ($blockers -contains "source_relay_connect_endpoint_not_implemented" -or $blockers -contains "source_relay_payload_endpoint_not_implemented") {
+    $nextSteps.Add("Current source still marks the release relay connect/payload endpoint implementation false in musu-bee\src\lib\p2pRelayPolicy.ts; env flags alone cannot make relay_transport_wired=true.") | Out-Null
+    $nextSteps.Add("Replace the fail-closed /api/v1/relay/connect placeholder with a real Connect/Pro fallback relay/tunnel transport that can emit quic_tls_1_3 proof before enabling the source markers.") | Out-Null
+}
 if ($blockers -contains "live_evidence_relay_route_not_proven") {
     $nextSteps.Add("Record owner-scoped release-grade relay route evidence with route_kind=relay, result=success, payload_transited_musu_infra=true, and release_grade=true; env flags and relay leases alone are not sufficient.") | Out-Null
     $nextSteps.Add("Rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_route_evidence.relay_transport_proven=true with count > 0.") | Out-Null
@@ -314,6 +380,7 @@ $result = [pscustomobject]@{
     repo = $Repo
     version = $Version
     base_url = $BaseUrl
+    source = $sourceSummary
     github = [pscustomobject]@{
         checked = $githubChecked
         error = $githubError
@@ -328,7 +395,7 @@ $result = [pscustomobject]@{
     evidence = $evidenceSummary
     blockers = $blockers.ToArray()
     next_steps = $nextSteps.ToArray()
-    notes = "Secret values are never printed; this status checks names and live evidence only."
+    notes = "Secret values are never printed; this status checks GitHub names, local source relay markers, and live evidence only."
 }
 
 if ($Json) {
@@ -340,6 +407,8 @@ else {
     "repo: $Repo"
     "version: $Version"
     "base_url: $BaseUrl"
+    "source relay connect implemented: $($result.source.relay_connect_endpoint_implemented)"
+    "source relay payload implemented: $($result.source.relay_payload_endpoint_implemented)"
     "evidence: $($result.evidence.path)"
     "blockers: $(@($result.blockers) -join ', ')"
     if ($result.next_steps.Count -gt 0) {

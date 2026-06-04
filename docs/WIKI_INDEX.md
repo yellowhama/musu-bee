@@ -3658,4 +3658,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `local MUSU programs execute work`, `P2P mesh`, and
   `audit/status-gate hardening`.
 
+- 2026-06-04 P2P source relay marker status:
+  `RELEASE_1_15_0_RC1_P2P_SOURCE_RELAY_MARKER_STATUS_2026_06_04.md`
+  (wiki/705) records `show-musu-pro-p2p-env-status.ps1` source marker
+  reporting for relay connect/payload implementation state. Search terms should
+  include `GOAL v518`, `wiki/705`,
+  `source_relay_connect_endpoint_not_implemented`,
+  `source_relay_payload_endpoint_not_implemented`,
+  `relay_connect_endpoint_implemented=false`,
+  `relay_payload_endpoint_implemented=false`,
+  `relay_payload_queue_endpoint_implemented=true`, `websocket_tunnel`,
+  `quic_tls_1_3`, `p2pRelayPolicy.ts`, and `env flags alone cannot make
+  relay_transport_wired=true`.
+
 **End of WIKI_INDEX.md.**

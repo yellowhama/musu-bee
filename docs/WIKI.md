@@ -5817,3 +5817,37 @@ evidence, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUST_LOOP_ALLOWLIST_CONTRACT_HARDENING_2026_06_04.md`
+
+## 2026-06-04 P2P source relay marker status (wiki/705)
+
+`show-musu-pro-p2p-env-status.ps1` now distinguishes hosted env/evidence
+blockers from local source-code relay implementation markers.
+
+New output:
+
+- `source.checked=true`
+- `source.relay_connect_endpoint_implemented=false`
+- `source.relay_payload_endpoint_implemented=false`
+- `source.relay_payload_queue_endpoint_implemented=true`
+- `source.relay_transport_kind=websocket_tunnel`
+- `source.release_grade_transport_required=quic_tls_1_3`
+
+New blockers:
+
+- `source_relay_connect_endpoint_not_implemented`
+- `source_relay_payload_endpoint_not_implemented`
+
+This closes a diagnostic gap: provisioning KV/Upstash and setting relay env
+flags is still required, but it is not sufficient while the current source keeps
+`/api/v1/relay/connect` fail-closed and requires release-grade `quic_tls_1_3`
+transport proof.
+
+Validation:
+
+- PowerShell parser check passed
+- `show-musu-pro-p2p-env-status.ps1 -Json` reports the new source section and
+  keeps `ok=false`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_SOURCE_RELAY_MARKER_STATUS_2026_06_04.md`
