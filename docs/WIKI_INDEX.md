@@ -3518,4 +3518,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `/api/rooms/[roomId]/rendezvous`, and `fresh packaged primary evidence
   required`.
 
+- 2026-06-04 post room-scoped rendezvous API primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_SCOPED_RENDEZVOUS_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/694) records current primary-machine evidence after the room-scoped
+  rendezvous API. Search terms should include `GOAL v507`, `wiki/694`,
+  `5fb40731`, `20260604-182640-HUGH_SECOND`,
+  `20260604-182732-HUGH_SECOND.desktop-open`,
+  `20260604-182915-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260604_182613`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_182915`,
+  `http://127.0.0.1:3001/app`, `runtime idle CPU 1/2 [HUGH_SECOND]`,
+  `runtime CPU matrix 1/2 [HUGH_SECOND]`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, `manifest_git.dirty=false`,
+  `warning-mode install diagnostic-only`, `room-scoped rendezvous primary
+  evidence`, and `local MUSU programs execute work`.
+
 **End of WIKI_INDEX.md.**

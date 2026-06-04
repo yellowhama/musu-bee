@@ -5397,3 +5397,43 @@ after commit.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_ROOM_SCOPED_RENDEZVOUS_API_2026_06_04.md`
+
+## 2026-06-04 Post room-scoped rendezvous API primary evidence refresh (wiki/694)
+
+Fresh primary-machine packaged evidence was restored after adding
+`POST /api/rooms/[roomId]/rendezvous`.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-182640-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-182732-HUGH_SECOND.desktop-open.evidence.json`
+- five-state runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-182915-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke dashboard `http://127.0.0.1:3001`, reachable URL
+  `http://127.0.0.1:3001/app`, bridge `http://127.0.0.1:12502`, output
+  `MUSU_RELEASE_SMOKE_OK_20260604_182613`
+- desktop-open CPU `60.04s`, `git_dirty=false`, MUSU `0.13`, Node `0`,
+  WebView2 `0.68`, owned WebView2 `6`, working set `486.19MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_182915`, max CPU MUSU `0`, Node `0.05`,
+  WebView2 `0.31`, max working set `489.12MB`
+- clean go/no-go on `5fb40731`: `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `msix_desktop_entrypoint_verified=true`, runtime idle CPU
+  `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+  `public_metadata_ok=true`, `manifest_git.dirty=false`, and public release
+  No-Go
+
+Note: HUGH_SECOND has developer alias shadowing from
+`C:\Users\empty\.cargo\bin\musu.exe`; fresh warning-mode install output is
+diagnostic-only, while canonical strict MSIX install evidence remains the prior
+strict release record.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_SCOPED_RENDEZVOUS_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
