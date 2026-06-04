@@ -4940,3 +4940,58 @@ Verification:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 external gate recheck after CEO dispatch evidence (wiki/681)
+
+The external release gates were rechecked after the CEO dispatch primary
+evidence refresh and current operator handoff pack.
+
+Evidence:
+
+- external gate evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-143952-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-144053-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-144053-musu.pro.verification.json`
+
+Local hardening audits remain clean:
+
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- process ownership audit `ok=true`, `fail_count=0`, runtime `1`, desktop
+  shell `1`, owned Node `0`, owned WebView2 `6`
+- local API auth audit `ok=true`, `fail_count=0`
+- operator API security audit `ok=true`, `fail_count=0`
+
+External result remains No-Go:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- second PC `192.168.1.192:8949` unreachable with `tcp_connect_timeout`
+- P2P env not ready because KV/Upstash URL/token are missing
+- P2P evidence verification `ok=false`, `fail_count=27`
+- relay route evidence count `0`
+- relay payload transport proof `false`
+- relay payload delivery proof valid count `0`
+
+Hosted `musu.pro` currently proves the logged-in status/query surface and
+descriptor visibility, but not release-grade relay transport. Relay payload
+endpoint wiring is `false`, relay transport wiring is `false`, the relay lease
+store backend is `unconfigured`, relay leases are not owner-scope verified, and
+owner-scoped release-grade relay route evidence is absent.
+
+Roadmap lock: `musu.pro` is the web input/project room/rendezvous/path-selection
+/relay-fallback/evidence plane. Local MUSU programs still perform the actual
+work and should use direct P2P mesh routes after web-assisted rendezvous. The
+current validation remains one-machine until the same current build is installed
+and tested on a second Windows PC.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`

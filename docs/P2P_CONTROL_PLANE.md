@@ -56,6 +56,31 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 - `payload_transited_musu_infra: false` for direct routes
 - stored relay lease and transport proof for relay routes
 
+## Current gate status
+
+As of the 2026-06-04 14:39 KST external recheck, the product direction above is
+documented but not yet release-complete.
+
+Passing local state:
+
+- local MSIX install and single-machine smoke pass on `HUGH_SECOND`
+- local runtime idle CPU and CPU matrix evidence are valid on one machine
+- Rust background-loop, frontend polling, process ownership, local API auth,
+  and operator API security audits pass
+
+Open external gates:
+
+- the second Windows PC at `192.168.1.192:8949` is not TCP reachable
+- hosted P2P KV/Upstash storage is not configured
+- relay payload endpoint and relay transport are not wired as release-grade
+- owner-scoped relay route evidence count is `0`
+- relay payload transport proof is `false`
+- relay payload delivery proof valid count is `0`
+
+This means current validation is still a one-machine test. The release gate
+closes only after the same current MUSU build is installed on a second Windows
+PC and after `musu.pro` records owner-scoped release-grade relay/path evidence.
+
 ## Release implication
 
 The release gate is not satisfied by a web dashboard that can call a local bridge. The gate is satisfied only when the installed local programs can:

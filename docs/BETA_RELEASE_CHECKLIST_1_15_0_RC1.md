@@ -3275,6 +3275,48 @@ Validation:
 The second-PC transfer zip is the current package to run on another Windows PC
 for the remaining multi-device and second-machine CPU/matrix gates.
 
+## 2026-06-04 14:39 KST External Gate Recheck After CEO Dispatch Evidence
+
+After the current handoff pack was regenerated, the remaining external release
+gates were rechecked from the packaged Windows alias.
+
+Evidence:
+
+- external gate evidence:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260604-143952-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-144053-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-144053-musu.pro.verification.json`
+
+Local audits remain clean:
+
+- Rust background loops `ok=true`, `fail_count=0`
+- frontend polling `ok=true`, `fail_count=0`
+- process ownership `ok=true`, `fail_count=0`
+- local API auth `ok=true`, `fail_count=0`
+- operator API security `ok=true`, `fail_count=0`
+
+Result remains No-Go:
+
+- local artifacts and single-machine evidence are current and passing
+- runtime idle CPU remains `1/2`
+- runtime CPU matrix remains `1/2`
+- second PC `192.168.1.192:8949` is unreachable with `tcp_connect_timeout`
+- P2P env is not ready because KV/Upstash URL/token are missing
+- P2P verification is `ok=false`, `fail_count=27`
+- relay route evidence count is `0`
+- relay payload proof is `false`
+- relay payload delivery proof valid count is `0`
+
+Roadmap lock: `musu.pro` is the web input/project room/rendezvous/path-selection
+/relay-fallback/evidence plane. Local MUSU programs execute the work and direct
+P2P mesh remains preferred after web-assisted rendezvous.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:

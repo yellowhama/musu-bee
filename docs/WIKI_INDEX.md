@@ -3366,4 +3366,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `packet_verified=true`, `action_pack_verified=true`, `P2P relay route
   evidence count 0`, `relay payload proof false`, and `blocker count 6`.
 
+- 2026-06-04 external gate recheck after CEO dispatch evidence:
+  `RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+  (wiki/681) records packaged-alias external evidence
+  `20260604-143952-HUGH_SECOND.external-gates`, live P2P evidence
+  `20260604-144053-musu.pro`, and verification `fail_count=27`. Search terms
+  should include `GOAL v493`, `wiki/681`, `tcp_connect_timeout`,
+  `192.168.1.192:8949`, `missing_kv_rest_api_url_or_upstash_redis_rest_url`,
+  `relay_payload_endpoint_wired=false`, `relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_not_proven`, `p2p_relay_payload_delivery_proof_missing`,
+  `local MUSU programs execute work`, and `musu.pro project room`.
+
 **End of WIKI_INDEX.md.**
