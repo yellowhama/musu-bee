@@ -3646,4 +3646,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `HUGH_SECOND`, and
   `PATH warning .cargo bin`.
 
+- 2026-06-04 Rust loop allowlist contract hardening:
+  `RELEASE_1_15_0_RC1_RUST_LOOP_ALLOWLIST_CONTRACT_HARDENING_2026_06_04.md`
+  (wiki/704) records expanded Rust background-loop audit coverage for the
+  allowlisted loop sites. Search terms should include `GOAL v517`,
+  `wiki/704`, `adapter-claude`, `indexer-watch`, `cli-login`,
+  `workflow-executor`, `hardware-probe`, `pty`, `webrtc-screen-share`,
+  `process-enumeration`, `task-runner`,
+  `audit-rust-background-loop-contract.ps1 -Json`, `ok=true`,
+  `fail_count=0`, `unaudited_loop_hit_count=0`, `musu.pro remote input`,
+  `local MUSU programs execute work`, `P2P mesh`, and
+  `audit/status-gate hardening`.
+
 **End of WIKI_INDEX.md.**

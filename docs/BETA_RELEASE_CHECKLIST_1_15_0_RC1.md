@@ -3230,6 +3230,43 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 22:13 KST Rust Loop Allowlist Contract Hardening
+
+The local/web roadmap remains locked:
+
+- local MUSU programs execute work on each device,
+- `musu.pro` is remote input, project room, company meeting room, presence,
+  rendezvous, path-selection, relay-fallback coordination, and evidence,
+- `localhost` dashboards are same-machine local surfaces, and
+- devices use `musu.pro` to bootstrap discovery before preferring P2P mesh.
+
+To support the idle CPU release gate, `audit-rust-background-loop-contract.ps1`
+now verifies concrete safety properties for the allowlisted Rust loops instead
+of relying only on the file allowlist. New checks cover Claude adapter
+stdout timeout/cancel/deadline, file-sync debounce/cooldown, indexer watch
+notify/debounce, CLI login expiry and 5s sleep, workflow task-completion poll
+deadline, hardware probe timeout kill, PTY/WebRTC request-scoped loops, finite
+Windows process enumeration, and writer runner admission/stream loops.
+
+Validation:
+
+- `audit-rust-background-loop-contract.ps1 -Json`
+- `ok=true`
+- `fail_count=0`
+- `unaudited_loop_hit_count=0`
+
+Release interpretation:
+
+- this is audit/status-gate hardening only
+- packaged runtime evidence remains current
+- public release remains No-Go until second-PC multi-device evidence,
+  two-machine CPU/matrix evidence, hosted `musu.pro` P2P proof,
+  `musu@musu.pro` mailbox evidence, and Store evidence are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_LOOP_ALLOWLIST_CONTRACT_HARDENING_2026_06_04.md`
+
 ## 2026-06-04 21:12 KST MCP App Views Low-Duty Polling Hardening
 
 The separate Vite single-file MCP app views no longer own direct

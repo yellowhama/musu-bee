@@ -5777,3 +5777,43 @@ support mailbox evidence, and Store evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_MCP_APP_VIEW_ABORT_SIGNAL_HARDENING_AND_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Rust loop allowlist contract hardening (wiki/704)
+
+The Rust background-loop audit now verifies the actual bounded-loop guarantees
+for the remaining allowlisted Rust loop sites instead of treating the allowlist
+as enough by itself.
+
+Added audit coverage:
+
+- Claude adapter per-iteration stdout timeout, cancellation, preempt deadline,
+  and shared kill path
+- file-sync bounded receive timeout and cooldown sleep
+- indexer watch notify wait, 2s debounce, dirty flag, and sqlite sidecar filter
+- CLI login device-code expiry and 5s poll sleep
+- workflow executor 2s task-completion poll, terminal-state exit, and 1h max
+  wait
+- hardware probe nonblocking child wait, 50ms sleep, and timeout kill
+- PTY request-scoped blocking read and websocket close exit
+- WebRTC request-scoped ffmpeg capture read and child kill on failure/exit
+- finite Windows process snapshot enumeration
+- writer runner admission notify/sleep/cancel select and bounded stdout reads
+
+Validation:
+
+- `audit-rust-background-loop-contract.ps1 -Json`: `ok=true`,
+  `fail_count=0`, `unaudited_loop_hit_count=0`
+
+This is audit/status-gate hardening only; packaged runtime evidence remains
+current. Roadmap remains: `musu.pro` is the remote input/project room/company
+meeting room/presence/rendezvous/path-selection/relay-fallback/evidence plane,
+and local MUSU programs execute work while preferring P2P mesh after
+web-assisted rendezvous.
+
+Public release remains No-Go on second-PC multi-device evidence, two-machine
+CPU/matrix evidence, hosted `musu.pro` P2P control-plane proof, support mailbox
+evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_LOOP_ALLOWLIST_CONTRACT_HARDENING_2026_06_04.md`
