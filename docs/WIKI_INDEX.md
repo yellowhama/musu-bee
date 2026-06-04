@@ -3507,4 +3507,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `warning-mode MSIX diagnostic-only`, `musu.pro room work order`, and
   `local MUSU programs execute work`.
 
+- 2026-06-04 room-scoped rendezvous API:
+  `RELEASE_1_15_0_RC1_ROOM_SCOPED_RENDEZVOUS_API_2026_06_04.md` (wiki/693)
+  records `POST /api/rooms/[roomId]/rendezvous` as the project/company room
+  entry point for P2P rendezvous. Search terms should include `GOAL v506`,
+  `wiki/693`, `room-scoped rendezvous`, `origin=musu.pro`,
+  `P2pRendezvousContext`, `company_id`, `project_id`, `work_order_id`,
+  `path_selection_order`, `lan tailscale direct_quic relay`, `cached node
+  candidates`, `test:p2p 65/65`, `room rendezvous 3/3`, `Next build`,
+  `/api/rooms/[roomId]/rendezvous`, and `fresh packaged primary evidence
+  required`.
+
 **End of WIKI_INDEX.md.**

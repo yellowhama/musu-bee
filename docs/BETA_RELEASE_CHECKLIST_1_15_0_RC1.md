@@ -3270,6 +3270,35 @@ build installed and records multi-device, runtime idle CPU, and runtime CPU
 matrix evidence, plus hosted `musu.pro` P2P control-plane proof, support mailbox
 proof, and Store evidence.
 
+## 2026-06-04 18:28 KST Room-Scoped Rendezvous API
+
+Added `POST /api/rooms/[roomId]/rendezvous` so a MUSU.PRO
+project/company room can create a P2P rendezvous session between two local MUSU
+nodes.
+
+Contract:
+
+- requires P2P control bearer auth
+- requires `source_node_id` and `target_node_id`
+- stamps `origin=musu.pro`
+- uses path `roomId` as the authoritative `room_id`
+- preserves bounded `company_id`, `project_id`, `room_id`, `work_order_id`, and
+  `origin` on `StoredP2pRendezvousSession`
+- seeds source/target from cached node candidates
+- returns path selection order `lan`, `tailscale`, `direct_quic`, `relay`
+
+Validation passed:
+
+- direct room rendezvous test `3/3`
+- `npm run test:p2p` `65/65`
+- `npm run test:routes` `18/18`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so the current packaged primary evidence must be
+refreshed for the new commit before local artifact readiness can be claimed.
+
 ## 2026-06-04 17:44 KST MUSU.PRO Room Work-Order API
 
 `musu.pro` company/project rooms now have an explicit work-order input API:

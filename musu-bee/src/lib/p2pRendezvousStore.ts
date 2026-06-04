@@ -36,6 +36,14 @@ export type P2pNodeCandidateSet = {
 
 export type P2pRendezvousStatus = "pending_approval" | "approved" | "closed";
 
+export type P2pRendezvousContext = {
+  company_id?: string | null;
+  project_id?: string | null;
+  room_id?: string | null;
+  work_order_id?: string | null;
+  origin?: string | null;
+};
+
 export type StoredP2pRendezvousSession = {
   session_id: string;
   source: P2pNodeCandidateSet;
@@ -47,6 +55,7 @@ export type StoredP2pRendezvousSession = {
   created_at: string;
   updated_at: string;
   requested_capability?: string | null;
+  context?: P2pRendezvousContext;
   approved_at?: string | null;
   closed_at?: string | null;
 };
@@ -156,10 +165,36 @@ function normalizePathSelectionOrder(value: unknown): P2pPathSelectionRouteKind[
   return order.length > 0 ? order : pathSelectionOrder();
 }
 
+function normalizeContextValue(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed.slice(0, 128);
+}
+
+function normalizeRendezvousContext(value: unknown): P2pRendezvousContext {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const input = value as Partial<Record<keyof P2pRendezvousContext, unknown>>;
+  return {
+    company_id: normalizeContextValue(input.company_id),
+    project_id: normalizeContextValue(input.project_id),
+    room_id: normalizeContextValue(input.room_id),
+    work_order_id: normalizeContextValue(input.work_order_id),
+    origin: normalizeContextValue(input.origin),
+  };
+}
+
 function normalizeSession(session: StoredP2pRendezvousSession): StoredP2pRendezvousSession {
   return {
     ...session,
     path_selection_order: normalizePathSelectionOrder(session.path_selection_order),
+    context: normalizeRendezvousContext(session.context),
   };
 }
 
@@ -296,6 +331,11 @@ export function createRendezvousSession(input: {
   source_node_id: string;
   target_node_id: string;
   requested_capability?: string | null;
+  company_id?: string | null;
+  project_id?: string | null;
+  room_id?: string | null;
+  work_order_id?: string | null;
+  origin?: string | null;
 }, seeds: {
   source?: P2pNodeCandidateSet | null;
   target?: P2pNodeCandidateSet | null;
@@ -312,6 +352,7 @@ export function createRendezvousSession(input: {
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
     requested_capability: input.requested_capability ?? null,
+    context: normalizeRendezvousContext(input),
   };
 }
 

@@ -5363,3 +5363,37 @@ strict release evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Room-scoped rendezvous API (wiki/693)
+
+Added:
+
+- `POST /api/rooms/[roomId]/rendezvous`
+
+This lets a `musu.pro` project/company room initiate a P2P rendezvous session
+between two local MUSU nodes. The route requires P2P control bearer auth,
+requires `source_node_id` and `target_node_id`, stamps `origin=musu.pro`, uses
+the path `roomId` as `room_id`, loads cached node candidates, and returns a
+normal rendezvous session with path-selection order `lan`, `tailscale`,
+`direct_quic`, `relay`.
+
+`StoredP2pRendezvousSession` now preserves bounded
+`company_id`/`project_id`/`room_id`/`work_order_id`/`origin` context. This
+keeps room/work-order coordination attached to the P2P control-plane without
+moving execution into the cloud.
+
+Validation passed:
+
+- direct room rendezvous test `3/3`
+- `npm run test:p2p` `65/65`
+- `npm run test:routes` `18/18`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so fresh packaged primary evidence is required
+after commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_SCOPED_RENDEZVOUS_API_2026_06_04.md`
