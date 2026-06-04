@@ -3236,4 +3236,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
   `manifest_git.dirty=false`, and `blocker count 6`.
 
+- 2026-06-04 current operator handoff pack after CLI route wait evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CLI_ROUTE_WAIT_EVIDENCE_2026_06_04.md`
+  (wiki/671) records final operator packet
+  `musu-final-operator-gates-1.15.0-rc.1-20260604-114250.zip`, action pack
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260604-114319.zip`, second-PC
+  transfer `MUSU-second-PC-transfer-1.15.0-rc.1-20260604-114319.zip`, Partner
+  Center zip `MUSU-1.15.0-rc.1-store-submission-20260604-114319.zip`, and
+  support verification id `musu-store-support-1.15.0-rc.1-20260604-114250`.
+  Search terms should include `GOAL v482`, `wiki/671`,
+  `packet.verified=true`, `action_pack.verified=true`,
+  `ready_for_public_desktop_release=false`, `20260604-114250`, and
+  `20260604-114319`.
+
 **End of WIKI_INDEX.md.**

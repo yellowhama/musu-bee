@@ -2631,6 +2631,36 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
 
+## 2026-06-04 11:44 KST Current Operator Handoff Pack After CLI Route Wait Evidence
+
+The final operator packet and operator action pack were regenerated from clean
+HEAD after the CLI route wait hardening and current primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260604-114250.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-114319.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-114319\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260604-114319.zip`
+- Partner Center submission zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260604-114319\partner-center\MUSU-1.15.0-rc.1-store-submission-20260604-114319.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260604-114250`
+
+Verification:
+
+- final packet verifier: `ok=true`, `fail_count=0`, `kit_count=1`
+- action-pack verifier: `ok=true`, `fail_count=0`
+- final handoff status: `packet.verified=true`, `action_pack.verified=true`,
+  `ready_for_public_desktop_release=false`, `single_machine_verified=true`,
+  runtime idle CPU `1/2`, and runtime CPU matrix `1/2`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CLI_ROUTE_WAIT_EVIDENCE_2026_06_04.md`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:
