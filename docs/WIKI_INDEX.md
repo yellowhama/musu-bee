@@ -3913,4 +3913,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `fresh clean 60-second packaged runtime matrix required`, and
   `local bridge separate from workspace dashboard`.
 
+- 2026-06-05 packaged runtime dashboard absence CPU gate:
+  `RELEASE_1_15_0_RC1_PACKAGED_RUNTIME_DASHBOARD_ABSENCE_CPU_GATE_2026_06_05.md`
+  (wiki/725) allows `dashboard-open` CPU matrix evidence when packaged
+  WindowsApps MUSU exposes no dashboard URL and the scenario measures packaged
+  runtime state instead of a repo/workspace dashboard. Search terms should
+  include `GOAL v538`, `wiki/725`,
+  `runtime matrix accepts packaged runtime without dashboard URL`,
+  `127.0.0.1:3001/app out of packaged release CPU evidence`,
+  `20260605-045524-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-050112-HUGH_SECOND.desktop-open.evidence.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_045524`,
+  `095647cf-83da-46eb-81ec-bd79a81402eb`, `case_count=31`,
+  `runtime idle CPU 1/2`, `runtime matrix 1/2`, and `HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**

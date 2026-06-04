@@ -6661,3 +6661,44 @@ the workspace dashboard is separate from the packaged local runtime bridge at
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_PACKAGED_EXE_IDENTITY_GATE_2026_06_05.md`
+
+## 2026-06-05 Packaged runtime dashboard absence CPU gate (wiki/725)
+
+Runtime CPU matrix verification no longer requires a repo/workspace dashboard
+URL when the installed packaged runtime exposes no dashboard URL.
+
+The verifier now accepts `dashboard-open` when:
+
+- packaged MUSU executable identity is proven
+- `musu up --json` attempted dashboard discovery
+- no dashboard URL was exposed
+- the scenario measured packaged runtime state
+
+This keeps `127.0.0.1:3001/app` out of packaged release CPU evidence while
+preserving the debug-executable rejection from wiki/724.
+
+Fresh HUGH_SECOND evidence after `7c3939e7`:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-045524-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verifier: `ok=true`, `fail_count=0`
+- matrix route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_045524`
+- matrix route task: `095647cf-83da-46eb-81ec-bd79a81402eb`
+- matrix max role CPU: MUSU `0.03`, Node `0`, WebView2 `1.07`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-050112-HUGH_SECOND.desktop-open.evidence.json`
+- idle CPU: `60.055s`, MUSU `0`, Node `0`, WebView2 `0.13`, hot `0`,
+  working set `360.32MB`
+
+Validation:
+
+- parser checks passed
+- direct matrix verifier passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=31`, and `failed_case_count=0`
+- dirty go/no-go saw runtime idle CPU `1/2 [HUGH_SECOND]` and runtime matrix
+  `1/2 [HUGH_SECOND]`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PACKAGED_RUNTIME_DASHBOARD_ABSENCE_CPU_GATE_2026_06_05.md`

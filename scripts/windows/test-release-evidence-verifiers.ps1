@@ -788,6 +788,22 @@ $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMa
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts complete resource-budget evidence" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
+$validRuntimeMatrixWithoutDashboardUrl = Copy-JsonObject -Object $validRuntimeCpuMatrix
+foreach ($scenario in @($validRuntimeMatrixWithoutDashboardUrl.scenarios)) {
+    if ($scenario.scenario -eq "dashboard-open") {
+        $scenario.preparation = [pscustomobject]@{
+            action = "none"
+            discovery_action = "musu up --json"
+            dashboard_url = ""
+            dashboard_url_source = "musu_up_dashboard_open"
+            note = "DashboardUrl not supplied or discovered; measured current runtime state only."
+        }
+    }
+}
+$fixture = Write-Fixture -Name "runtime-matrix-packaged-no-dashboard-url" -Object $validRuntimeMatrixWithoutDashboardUrl
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix accepts packaged runtime without dashboard URL" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
 $badRuntimeMatrixMusuExe = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixMusuExe.musu_exe = "F:\workspace\musu-bee\musu-rs\target\debug\musu.exe"
 $badRuntimeMatrixMusuExe.musu_exe_release_identity = $false

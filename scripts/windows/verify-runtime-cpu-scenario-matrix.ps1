@@ -334,7 +334,25 @@ if ($matrix) {
         if ($required -eq "dashboard-open") {
             $preparationAction = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "action" } else { "" }
             $dashboardUrl = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "dashboard_url" } else { "" }
-            Add-CheckFromCondition "dashboard opened" ($preparationAction -eq "Start-Process DashboardUrl" -and -not [string]::IsNullOrWhiteSpace($dashboardUrl)) "dashboard-open launched a dashboard URL" "dashboard-open did not launch a dashboard URL"
+            $dashboardDiscoveryAction = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "discovery_action" } else { "" }
+            $dashboardUrlSource = if ($null -ne $preparation) { Get-JsonPropertyString -Object $preparation -Name "dashboard_url_source" } else { "" }
+            $dashboardOpened = ($preparationAction -eq "Start-Process DashboardUrl" -and -not [string]::IsNullOrWhiteSpace($dashboardUrl))
+            $dashboardAbsentInPackagedRuntime = (
+                -not $dashboardOpened -and
+                $musuExeReleaseIdentity -and
+                $preparationAction -eq "none" -and
+                [string]::IsNullOrWhiteSpace($dashboardUrl) -and
+                (
+                    $dashboardDiscoveryAction -eq "musu up --json" -or
+                    $dashboardUrlSource -eq "musu_up_dashboard_open" -or
+                    $dashboardUrlSource -eq "musu_up"
+                )
+            )
+            Add-CheckFromCondition `
+                "dashboard opened or absent in packaged runtime" `
+                ($dashboardOpened -or $dashboardAbsentInPackagedRuntime) `
+                ($(if ($dashboardOpened) { "dashboard-open launched a dashboard URL" } else { "dashboard-open measured packaged runtime state because no dashboard URL was exposed" })) `
+                "dashboard-open neither launched a dashboard URL nor proved packaged runtime dashboard absence"
         }
         $measurement = Get-JsonPropertyValue -Object $entry -Name "measurement"
         Add-CheckFromCondition "measurement present: $required" ($null -ne $measurement) "scenario '$required' has measurement" "scenario '$required' lacks measurement"
