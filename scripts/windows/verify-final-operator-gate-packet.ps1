@@ -327,7 +327,7 @@ try {
         $secretStorageAuditScript = Get-Content -LiteralPath $secretStorageAuditScriptPath -Raw
         Add-CheckFromCondition `
             "secret storage contract audit script" `
-            ($secretStorageAuditScript -like "*musu.secret_storage_contract.v1*" -and $secretStorageAuditScript -like "*musu-rs\\src\\cloud\\token.rs*" -and $secretStorageAuditScript -like "*restrict_acl_to_current_user(&token_path)*" -and $secretStorageAuditScript -like "*show-p2p-control-token-hash.ps1*" -and $secretStorageAuditScript -like "*Raw token was not printed*" -and $secretStorageAuditScript -like "*Do not include token-bearing files*") `
+            ($secretStorageAuditScript.Contains("musu.secret_storage_contract.v1") -and $secretStorageAuditScript.Contains("musu-rs\src\cloud\token.rs") -and $secretStorageAuditScript.Contains("restrict_acl_to_current_user(&token_path)") -and $secretStorageAuditScript.Contains("USERDOMAIN") -and $secretStorageAuditScript.Contains("show-p2p-control-token-hash.ps1") -and $secretStorageAuditScript.Contains("Raw token was not printed.") -and $secretStorageAuditScript.Contains("Do not include token-bearing files")) `
             "packet secret storage audit verifies token ACLs, raw-token redaction, and backup docs" `
             "packet secret storage audit does not verify token ACLs, raw-token redaction, and backup docs"
     }
