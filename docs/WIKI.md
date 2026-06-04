@@ -5155,3 +5155,28 @@ on another Windows PC.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_RELAY_CONNECT_QUEUE_STATUS_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 MUSU.PRO work-order context hardening (wiki/686)
+
+The web-input/local-executor roadmap is now represented in the task forwarding
+contract. `/api/tasks/forward` accepts bounded `company_id`, `project_id`,
+`room_id`, `work_order_id`, and `origin` metadata, defaults `origin=musu.pro`
+for `musu.pro` hosts and `origin=local_dashboard` for local dashboard calls,
+and forwards the context to the local bridge.
+
+Rust `/api/tasks/delegate` accepts the same fields and records only bounded
+identifiers in audit notes, excluding prompt and cwd. `ForwardedTask` carries
+the same context through direct peer forwarding and relay payload preview
+serialization, and MCP `delegate_task` exposes the same fields.
+
+Validation passed `npm run test:routes` `14/14`, the specific forward route
+test `2/2`, `npm run typecheck`, `cargo fmt`, `cargo check --bin musu`, and
+three targeted Rust unit tests for audit/context/relay payload preservation.
+
+Release impact: this is source code, so current packaged primary evidence is
+stale until MSIX/single-machine/CPU evidence is refreshed for this HEAD. This
+does not implement release-grade relay transport.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MUSU_PRO_WORK_ORDER_CONTEXT_HARDENING_2026_06_04.md`

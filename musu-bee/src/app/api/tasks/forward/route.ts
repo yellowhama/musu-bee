@@ -5,6 +5,8 @@ import { getBridgeToken } from "@/lib/bridge-token";
 
 export const dynamic = "force-dynamic";
 
+const MAX_CONTEXT_VALUE_CHARS = 160;
+
 function normalizeWorkspaceUri(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
   const trimmed = value.trim();
@@ -16,6 +18,25 @@ function normalizeWorkspaceUri(value: unknown): string | undefined {
   }
 }
 
+function normalizeContextValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return Array.from(trimmed).slice(0, MAX_CONTEXT_VALUE_CHARS).join("");
+}
+
+function defaultControlPlaneOrigin(req: NextRequest): string {
+  try {
+    const hostname = new URL(req.url).hostname.toLowerCase();
+    if (hostname === "musu.pro" || hostname.endsWith(".musu.pro")) {
+      return "musu.pro";
+    }
+  } catch {
+    // Keep the local dashboard contract explicit if URL parsing ever fails.
+  }
+  return "local_dashboard";
+}
+
 export async function POST(req: NextRequest) {
   let body: {
     instruction?: unknown;
@@ -24,6 +45,11 @@ export async function POST(req: NextRequest) {
     target_node?: unknown;
     adapter_type?: unknown;
     workspace_uri?: unknown;
+    company_id?: unknown;
+    project_id?: unknown;
+    room_id?: unknown;
+    work_order_id?: unknown;
+    origin?: unknown;
   };
 
   try {
@@ -48,6 +74,11 @@ export async function POST(req: NextRequest) {
       : undefined,
     adapter_type: typeof body.adapter_type === "string" ? body.adapter_type : undefined,
     cwd: normalizeWorkspaceUri(body.workspace_uri),
+    company_id: normalizeContextValue(body.company_id),
+    project_id: normalizeContextValue(body.project_id),
+    room_id: normalizeContextValue(body.room_id),
+    work_order_id: normalizeContextValue(body.work_order_id),
+    origin: normalizeContextValue(body.origin) ?? defaultControlPlaneOrigin(req),
   };
 
   try {

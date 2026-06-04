@@ -27,6 +27,18 @@ pub struct DelegateRequest {
     pub timeout_sec: Option<u32>,
     #[serde(default)]
     pub company_id: Option<String>,
+    /// Web/control-plane source for this work order, e.g. `musu.pro`.
+    #[serde(default)]
+    pub origin: Option<String>,
+    /// Stable user-visible work order id from MUSU.PRO or another control plane.
+    #[serde(default)]
+    pub work_order_id: Option<String>,
+    /// Project room context. Stored only as bounded audit/context metadata.
+    #[serde(default)]
+    pub project_id: Option<String>,
+    /// Meeting room / collaboration room context.
+    #[serde(default)]
+    pub room_id: Option<String>,
     #[serde(default)]
     pub allow_duplicate: bool,
     // R5 (wiki/495 §3.3 / Critic C2): adapter knob parity with Python.
@@ -54,6 +66,38 @@ pub struct DelegateRequest {
 
 fn default_qa_loop_max() -> u32 {
     3
+}
+
+const AUDIT_FRAGMENT_MAX_CHARS: usize = 160;
+
+fn audit_fragment(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= AUDIT_FRAGMENT_MAX_CHARS {
+        return trimmed.to_string();
+    }
+
+    let mut out: String = trimmed.chars().take(AUDIT_FRAGMENT_MAX_CHARS).collect();
+    out.push_str("...");
+    out
+}
+
+fn audit_fragment_or_none(value: Option<&str>) -> String {
+    value
+        .map(audit_fragment)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "none".to_string())
+}
+
+fn delegate_task_audit_note(task_id: &str, req: &DelegateRequest) -> String {
+    format!(
+        "delegate via writer-stub task_id={} origin={} work_order_id={} project_id={} room_id={} target_node={}",
+        audit_fragment(task_id),
+        audit_fragment_or_none(req.origin.as_deref()),
+        audit_fragment_or_none(req.work_order_id.as_deref()),
+        audit_fragment_or_none(req.project_id.as_deref()),
+        audit_fragment_or_none(req.room_id.as_deref()),
+        audit_fragment_or_none(req.target_node.as_deref())
+    )
 }
 
 #[derive(Debug, Serialize)]
@@ -199,6 +243,10 @@ pub async fn delegate(
                 cwd: req.cwd.clone(),
                 deadline_unix_ms: None,
                 company_id: req.company_id.clone(),
+                origin: req.origin.clone(),
+                work_order_id: req.work_order_id.clone(),
+                project_id: req.project_id.clone(),
+                room_id: req.room_id.clone(),
                 timeout_sec: req.timeout_sec,
                 callback_url: Some(format!(
                     "{}/api/tasks/callback",
@@ -312,7 +360,7 @@ pub async fn delegate(
             path: "/api/tasks/delegate".into(),
             status_code: 202,
             agent_id: None,
-            note: Some(format!("delegate via writer-stub task_id={}", task_id)),
+            note: Some(delegate_task_audit_note(&task_id, &req)),
             company_id: req.company_id.clone(),
             cross_machine,
         })
@@ -323,6 +371,48 @@ pub async fn delegate(
         status: "queued",
     });
     Ok((StatusCode::ACCEPTED, body).into_response())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn delegate_task_audit_note_keeps_work_order_context_without_prompt() {
+        let req = DelegateRequest {
+            channel: "release-room".to_string(),
+            sender_id: "operator".to_string(),
+            text: "sensitive prompt body that must not be written to audit".to_string(),
+            expected_output: None,
+            use_qa_loop: false,
+            qa_loop_max_iter: 3,
+            timeout_sec: None,
+            company_id: Some("company-1".to_string()),
+            origin: Some("musu.pro".to_string()),
+            work_order_id: Some("wo-20260604-1".to_string()),
+            project_id: Some("project-rc1".to_string()),
+            room_id: Some("room-release".to_string()),
+            allow_duplicate: false,
+            model: None,
+            cwd: Some("F:/sensitive/workspace".to_string()),
+            adapter_type: None,
+            target_node: Some("local".to_string()),
+            needs_gpu: false,
+            prefer_os: None,
+        };
+
+        let note = delegate_task_audit_note("task-1", &req);
+
+        assert!(note.contains("task_id=task-1"));
+        assert!(note.contains("origin=musu.pro"));
+        assert!(note.contains("work_order_id=wo-20260604-1"));
+        assert!(note.contains("project_id=project-rc1"));
+        assert!(note.contains("room_id=room-release"));
+        assert!(note.contains("target_node=local"));
+        assert!(note.len() < 512);
+        assert!(!note.contains("sensitive prompt"));
+        assert!(!note.contains("F:/sensitive/workspace"));
+    }
 }
 
 /// GET /api/tasks/:task_id — get task status and result.

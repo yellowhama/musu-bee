@@ -2146,3 +2146,37 @@ evidence count `0`, relay payload proof `false`, delivery proof valid count
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 MUSU.PRO Work-Order Context Hardening
+
+The web-input/local-executor roadmap is now represented in the task forwarding
+contract, not just in docs.
+
+`/api/tasks/forward` accepts bounded `company_id`, `project_id`, `room_id`,
+`work_order_id`, and `origin` metadata and forwards it to the local bridge. For
+`musu.pro` hosts, omitted `origin` defaults to `musu.pro`; local dashboard calls
+default to `local_dashboard`.
+
+The Rust bridge accepts the same fields in `/api/tasks/delegate`, records only
+bounded identifiers in audit notes, and keeps prompt/cwd content out of the
+audit note. `ForwardedTask` carries the context through direct peer forwarding
+and relay payload preview serialization. MCP `delegate_task` now exposes the
+same fields, so web/API/MCP delegation share the same work-order vocabulary.
+
+Validation passed:
+
+- `npm run test:routes` `14/14`
+- `npx tsx --test src/app/api/tasks/forward/route.test.ts` `2/2`
+- `npm run typecheck`
+- `cargo fmt`
+- `cargo check --bin musu`
+- targeted Rust audit/context/relay payload tests `3/3`
+
+Release impact: source changed, so current packaged primary evidence is stale
+until the MSIX/single-machine/CPU evidence is refreshed for this HEAD. This
+does not implement release-grade relay transport; it hardens the web work-order
+to local execution boundary.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MUSU_PRO_WORK_ORDER_CONTEXT_HARDENING_2026_06_04.md`

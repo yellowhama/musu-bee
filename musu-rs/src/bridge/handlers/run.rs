@@ -174,6 +174,10 @@ pub async fn run_company(
                 cwd: req.cwd.clone(),
                 deadline_unix_ms: None,
                 company_id: Some(id.clone()),
+                origin: None,
+                work_order_id: None,
+                project_id: None,
+                room_id: None,
                 timeout_sec: req.timeout_sec,
                 callback_url: Some(format!(
                     "{}/api/tasks/callback",

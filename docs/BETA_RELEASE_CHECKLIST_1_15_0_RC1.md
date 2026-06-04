@@ -3211,6 +3211,25 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 MUSU.PRO Work-Order Context Hardening
+
+The roadmap split is now implemented in the task forwarding contract:
+`musu.pro` can submit web work orders with `company_id`, `project_id`,
+`room_id`, `work_order_id`, and `origin`, while local MUSU programs execute the
+work through the local bridge. The same context is preserved through Rust
+`/api/tasks/delegate`, direct peer `ForwardedTask`, relay payload preview
+serialization, and MCP `delegate_task`.
+
+Validation passed `npm run test:routes` `14/14`, specific forward route test
+`2/2`, `npm run typecheck`, `cargo fmt`, `cargo check --bin musu`, and three
+targeted Rust audit/context/relay payload tests.
+
+Release impact: this is source code, so current packaged primary evidence is
+stale until a fresh MSIX/single-machine/CPU refresh is recorded for this HEAD.
+This does not implement release-grade relay transport; public release remains
+No-Go on second-PC evidence, hosted P2P proof, support mailbox, and Store
+evidence.
+
 ## 2026-06-04 15:57 KST Post Relay Connect/Queue Primary Evidence Refresh
 
 After the relay connect endpoint state and preview queue state were split, the

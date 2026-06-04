@@ -3428,4 +3428,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `manifest_git.dirty=false`, `musu.pro web input`, `company meeting room`,
   `local MUSU programs execute work`, and `P2P mesh after rendezvous`.
 
+- 2026-06-04 MUSU.PRO work-order context hardening:
+  `RELEASE_1_15_0_RC1_MUSU_PRO_WORK_ORDER_CONTEXT_HARDENING_2026_06_04.md`
+  (wiki/686) records that `/api/tasks/forward`, Rust `/api/tasks/delegate`,
+  `ForwardedTask`, and MCP `delegate_task` now share bounded
+  `company_id`/`project_id`/`room_id`/`work_order_id`/`origin` context. Search
+  terms should include `GOAL v499`, `wiki/686`, `work_order_id`,
+  `origin=musu.pro`, `origin=local_dashboard`, `ForwardedTask`,
+  `relay payload preview serialization`, `prompt/cwd leakage`, `test:routes
+  14/14`, `cargo check --bin musu`, `targeted Rust audit/context/relay payload
+  tests 3/3`, and `fresh packaged primary evidence is required`.
+
 **End of WIKI_INDEX.md.**

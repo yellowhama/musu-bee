@@ -48,6 +48,18 @@ pub struct ForwardedTask {
     /// Company ID.
     #[serde(default)]
     pub company_id: Option<String>,
+    /// Web/control-plane source for this work order, e.g. `musu.pro`.
+    #[serde(default)]
+    pub origin: Option<String>,
+    /// Stable user-visible work order id from MUSU.PRO or another control plane.
+    #[serde(default)]
+    pub work_order_id: Option<String>,
+    /// Project room context. Stored only as bounded audit/context metadata.
+    #[serde(default)]
+    pub project_id: Option<String>,
+    /// Meeting room / collaboration room context.
+    #[serde(default)]
+    pub room_id: Option<String>,
     /// Timeout in seconds.
     #[serde(default)]
     pub timeout_sec: Option<u32>,
@@ -162,10 +174,14 @@ fn audit_fragment_or_none(value: Option<&str>) -> String {
 
 fn forwarded_task_audit_note(task_id: &str, req: &ForwardedTask) -> String {
     format!(
-        "accepted forwarded task task_id={} source_node={} source_task_id={} rendezvous_session_id={} rendezvous_target_node_id={}",
+        "accepted forwarded task task_id={} source_node={} source_task_id={} origin={} work_order_id={} project_id={} room_id={} rendezvous_session_id={} rendezvous_target_node_id={}",
         audit_fragment(task_id),
         audit_fragment(&req.source_node),
         audit_fragment(&req.source_task_id),
+        audit_fragment_or_none(req.origin.as_deref()),
+        audit_fragment_or_none(req.work_order_id.as_deref()),
+        audit_fragment_or_none(req.project_id.as_deref()),
+        audit_fragment_or_none(req.room_id.as_deref()),
         audit_fragment_or_none(req.rendezvous_session_id.as_deref()),
         audit_fragment_or_none(req.rendezvous_target_node_id.as_deref())
     )
@@ -1038,6 +1054,10 @@ mod tests {
             cwd: Some("F:/sensitive/workspace".to_string()),
             deadline_unix_ms: None,
             company_id: Some("company-1".to_string()),
+            origin: Some("musu.pro".to_string()),
+            work_order_id: Some("wo-20260604-1".to_string()),
+            project_id: Some("project-rc1".to_string()),
+            room_id: Some("room-release".to_string()),
             timeout_sec: None,
             callback_url: Some("http://127.0.0.1/callback".to_string()),
             rendezvous_session_id: Some("rv-session-1".to_string()),
@@ -1048,6 +1068,10 @@ mod tests {
 
         assert!(note.contains("target-task-456"));
         assert!(note.contains("source_task_id=source-task-123"));
+        assert!(note.contains("origin=musu.pro"));
+        assert!(note.contains("work_order_id=wo-20260604-1"));
+        assert!(note.contains("project_id=project-rc1"));
+        assert!(note.contains("room_id=room-release"));
         assert!(note.contains("rendezvous_session_id=rv-session-1"));
         assert!(note.contains("source_node="));
         assert!(note.len() < 512);
@@ -1078,6 +1102,10 @@ mod tests {
             cwd: None,
             deadline_unix_ms: None,
             company_id: Some("company-1".to_string()),
+            origin: Some("musu.pro".to_string()),
+            work_order_id: Some("wo-relay-1".to_string()),
+            project_id: Some("project-relay".to_string()),
+            room_id: Some("room-relay".to_string()),
             timeout_sec: Some(30),
             callback_url: Some("http://127.0.0.1/callback".to_string()),
             rendezvous_session_id: Some("session/1".to_string()),
@@ -1107,6 +1135,10 @@ mod tests {
         assert_eq!(req.payload_kind, RELAY_PAYLOAD_KIND_FORWARDED_TASK);
         assert_eq!(decoded_task.source_task_id, "source-task-123");
         assert_eq!(decoded_task.text, task.text);
+        assert_eq!(decoded_task.origin, task.origin);
+        assert_eq!(decoded_task.work_order_id, task.work_order_id);
+        assert_eq!(decoded_task.project_id, task.project_id);
+        assert_eq!(decoded_task.room_id, task.room_id);
         assert_eq!(
             req.payload_sha256,
             Some(hex::encode(Sha256::digest(&decoded)))
@@ -1155,6 +1187,10 @@ mod tests {
             cwd: None,
             deadline_unix_ms: None,
             company_id: Some("company-1".to_string()),
+            origin: None,
+            work_order_id: None,
+            project_id: None,
+            room_id: None,
             timeout_sec: Some(30),
             callback_url: Some("http://127.0.0.1:8070/api/tasks/callback".to_string()),
             rendezvous_session_id: Some("session-1".to_string()),
@@ -1187,6 +1223,10 @@ mod tests {
             cwd: None,
             deadline_unix_ms: None,
             company_id: Some("company-1".to_string()),
+            origin: None,
+            work_order_id: None,
+            project_id: None,
+            room_id: None,
             timeout_sec: Some(30),
             callback_url: None,
             rendezvous_session_id: Some("session-1".to_string()),

@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:runtime-polling": "tsx --test src/app/runtime-polling-contract.test.ts",
-    "test:routes": "tsx --test src/app/api/nodes/execute/route.test.ts src/app/api/processes/route.test.ts src/app/api/processes/start/route.test.ts src/app/api/processes/kill/route.test.ts",
+    "test:routes": "tsx --test src/app/api/nodes/execute/route.test.ts src/app/api/processes/route.test.ts src/app/api/processes/start/route.test.ts src/app/api/processes/kill/route.test.ts src/app/api/tasks/forward/route.test.ts",
     "test:p2p": "tsx --test src/lib/p2pKvEnv.test.ts src/app/api/v1/p2p/route-evidence/route.test.ts src/app/api/v1/p2p/rendezvous/route.test.ts src/app/api/v1/p2p/relay/lease/route.test.ts src/app/api/v1/p2p/relay/transport/route.test.ts src/app/api/v1/p2p/relay/transport-proof/route.test.ts src/app/api/v1/p2p/relay/payload/route.test.ts src/app/api/v1/relay/connect/route.test.ts",
     "test:vocab": "tsx --test src/lib/vocabulary-audit.test.ts",
     "test:webhooks": "tsx --test src/app/api/webhooks/**/*.test.ts",
