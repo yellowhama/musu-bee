@@ -3771,4 +3771,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `npm run test:routes 19/19`, `operator API security audit`, and
   `packaged evidence stale`.
 
+- 2026-06-05 post rendezvous owner-scope primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_RENDEZVOUS_OWNER_SCOPE_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/714) records fresh current-source primary packaged evidence after
+  rendezvous owner-scope hardening. Search terms should include `GOAL v527`,
+  `wiki/714`, `164072656ad60766cadad267d8aa1c5476618c9d`,
+  `20260605-014639-HUGH_SECOND`,
+  `20260605-014927-HUGH_SECOND.desktop-open`,
+  `20260605-015132-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_RELEASE_SMOKE_OK_20260605_014606`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_015132`, `WebView2 0.34`,
+  `working set 450.8MB`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `one-machine only`, `local execution plane`,
+  `musu.pro control plane`, `company meeting room`, `web input only`, and
+  `P2P mesh bootstrap`.
+
 **End of WIKI_INDEX.md.**

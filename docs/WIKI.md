@@ -6162,3 +6162,57 @@ hosted P2P, support mailbox, and Store gates are closed.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RENDEZVOUS_OWNER_SCOPE_HARDENING_2026_06_05.md`
+
+## 2026-06-05 Post rendezvous owner-scope primary evidence refresh (wiki/714)
+
+Fresh primary-machine packaged evidence was restored after rendezvous
+owner-scope hardening.
+
+Roadmap boundary:
+
+- `musu.pro` is the remote input, project room, company meeting room, presence,
+  rendezvous, path-selection, relay-fallback coordination, and evidence plane.
+- Local dashboards at `localhost` / `127.0.0.1` are local-only operator
+  surfaces.
+- Installed MUSU programs execute work on each device after authenticated web
+  work orders arrive.
+- Web-assisted rendezvous should bootstrap device discovery, then local programs
+  prefer P2P mesh paths before relay: `lan`, `tailscale`, `direct_quic`,
+  then `relay`.
+- Project/company rooms can coordinate local AI agents working on the same
+  project, but room/rendezvous/route/relay state stays owner-scoped.
+- Current validation is still one-machine only; another Windows PC must install
+  the same current build before multi-device gates can close.
+
+Fresh evidence:
+
+- MSIX workflow passed; installed package
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-014639-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-014927-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-015132-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260605_014606`
+- desktop-open CPU passed for `60.066s`: MUSU `0.21`, Node `0.03`,
+  WebView2 `0.34`, owned WebView2 `6`, working set `450.8MB`, hot `0`
+- five-state matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_015132`
+- matrix verifier passed with `ok=true`, `fail_count=0`
+- matrix max scenario CPU: MUSU `0.47`, Node `0.13`, WebView2 `0.18`
+- matrix max working set: `454.36MB`
+- direct go/no-go reported `local_artifacts_ready=true`,
+  `single_machine_verified=true`, `public_metadata_ok=true`,
+  `msix_install_verified=true`, and
+  `ready_for_public_desktop_release=false`
+
+Public release remains No-Go until second-PC, hosted P2P, support mailbox, and
+Store gates are closed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RENDEZVOUS_OWNER_SCOPE_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
