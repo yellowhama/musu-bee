@@ -3396,6 +3396,38 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_TEST_FILE_FRESHNESS_AND_WEB_INPUT_ROADMAP_2026_06_04.md`
 
+## 2026-06-04 relay connect and queue status split (wiki/684)
+
+Relay evidence now distinguishes preview queue progress from release-grade
+connect/tunnel transport:
+
+- `relay_connect_endpoint_wired=false`
+- `relay_payload_endpoint_wired=false`
+- `relay_payload_queue_endpoint_wired=true`
+- `relay_transport_wired=false`
+- `relay_default_data_path=false`
+
+Updated hosted relay transport/lease/connect responses, Rust relay status and
+transport DTOs, and the P2P evidence recorder.
+
+Validation:
+
+- `npm run test:p2p` passed `62/62`
+- `npm run typecheck` passed
+- Rust fmt passed
+- targeted Rust relay status test passed `1/1`
+- `cargo check --bin musu` passed
+- PowerShell parser check passed
+- `git diff --check` passed
+
+This is status/evidence clarity only. It does not implement release-grade
+`/api/v1/relay/connect` transport. Fresh packaged primary evidence is required
+after commit because runtime/web/Rust source changed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_AND_QUEUE_STATUS_SPLIT_2026_06_04.md`
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:

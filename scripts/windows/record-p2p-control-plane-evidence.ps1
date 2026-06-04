@@ -231,11 +231,15 @@ $summary = @"
 - Relay route evidence exit code: $($relayRouteEvidenceResult.exit_code)
 - Relay status transport preflight ok: $(Get-BoolProperty -Object $relayStatus -Name "relay_transport_preflight_ok")
 - Relay status transport descriptor wired: $(Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired")
+- Relay status connect endpoint wired: $(Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired")
 - Relay status payload endpoint wired: $(Get-BoolProperty -Object $relayStatus -Name "relay_payload_endpoint_wired")
+- Relay status payload queue endpoint wired: $(Get-BoolProperty -Object $relayStatus -Name "relay_payload_queue_endpoint_wired")
 - Relay transport ok: $(Get-BoolProperty -Object $relayTransport -Name "ok")
 - Relay transport descriptor wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired")
 - Relay transport wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired")
+- Relay transport connect endpoint wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired")
 - Relay transport payload endpoint wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_payload_endpoint_wired")
+- Relay transport payload queue endpoint wired: $(Get-BoolProperty -Object $relayTransport -Name "relay_payload_queue_endpoint_wired")
 - Relay transport URL: $(if ($relayTransport -and $relayTransport.PSObject.Properties["relay_url"]) { $relayTransport.relay_url } else { "" })
 - Relay transport blockers: $(if ($relayTransport -and $relayTransport.PSObject.Properties["blockers"]) { ($relayTransport.blockers -join ", ") } else { "" })
 - Relay leases ok: $(Get-BoolProperty -Object $relayLeases -Name "ok")
@@ -272,11 +276,15 @@ $result = [pscustomobject]@{
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     relay_status_transport_preflight_ok = Get-BoolProperty -Object $relayStatus -Name "relay_transport_preflight_ok"
     relay_status_transport_descriptor_wired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired"
+    relay_status_connect_endpoint_wired = Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired"
     relay_status_payload_endpoint_wired = Get-BoolProperty -Object $relayStatus -Name "relay_payload_endpoint_wired"
+    relay_status_payload_queue_endpoint_wired = Get-BoolProperty -Object $relayStatus -Name "relay_payload_queue_endpoint_wired"
     relay_transport_ok = Get-BoolProperty -Object $relayTransport -Name "ok"
     relay_transport_descriptor_wired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired"
     relay_transport_wired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired"
+    relay_transport_connect_endpoint_wired = Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired"
     relay_transport_payload_endpoint_wired = Get-BoolProperty -Object $relayTransport -Name "relay_payload_endpoint_wired"
+    relay_transport_payload_queue_endpoint_wired = Get-BoolProperty -Object $relayTransport -Name "relay_payload_queue_endpoint_wired"
     owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
     relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"

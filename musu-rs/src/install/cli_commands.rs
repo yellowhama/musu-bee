@@ -958,7 +958,9 @@ struct RelayStatusReport {
     relay_transport_preflight_ok: bool,
     relay_transport_descriptor_wired: bool,
     relay_transport_wired: bool,
+    relay_connect_endpoint_wired: bool,
     relay_payload_endpoint_wired: bool,
+    relay_payload_queue_endpoint_wired: bool,
     relay_default_data_path: bool,
     relay_lease_store_configured: bool,
     relay_lease_store_backend: Option<String>,
@@ -1021,7 +1023,9 @@ struct RelayTransportReport {
     relay_control_plane_wired: bool,
     relay_transport_descriptor_wired: bool,
     relay_transport_wired: bool,
+    relay_connect_endpoint_wired: bool,
     relay_payload_endpoint_wired: bool,
+    relay_payload_queue_endpoint_wired: bool,
     relay_default_data_path: bool,
     relay_url: String,
     relay_connect_path: String,
@@ -1249,7 +1253,9 @@ fn apply_relay_transport_response_to_status(
     report.relay_control_plane_lease_wired = response.relay_control_plane_wired;
     report.relay_transport_descriptor_wired = response.relay_transport_descriptor_wired;
     report.relay_transport_wired = response.relay_transport_wired;
+    report.relay_connect_endpoint_wired = response.relay_connect_endpoint_wired;
     report.relay_payload_endpoint_wired = response.relay_payload_endpoint_wired;
+    report.relay_payload_queue_endpoint_wired = response.relay_payload_queue_endpoint_wired;
     report.relay_default_data_path = response.relay_default_data_path;
     report.relay_lease_store_configured = response.relay_lease_store_configured;
     report.relay_lease_store_backend = response.relay_lease_store_backend;
@@ -1270,8 +1276,14 @@ fn apply_relay_transport_error_json_to_status(
     if let Some(value) = json_bool_property(error_json, "relay_transport_wired") {
         report.relay_transport_wired = value;
     }
+    if let Some(value) = json_bool_property(error_json, "relay_connect_endpoint_wired") {
+        report.relay_connect_endpoint_wired = value;
+    }
     if let Some(value) = json_bool_property(error_json, "relay_payload_endpoint_wired") {
         report.relay_payload_endpoint_wired = value;
+    }
+    if let Some(value) = json_bool_property(error_json, "relay_payload_queue_endpoint_wired") {
+        report.relay_payload_queue_endpoint_wired = value;
     }
     if let Some(value) = json_bool_property(error_json, "relay_default_data_path") {
         report.relay_default_data_path = value;
@@ -1323,7 +1335,9 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
         relay_transport_preflight_ok: false,
         relay_transport_descriptor_wired: false,
         relay_transport_wired: false,
+        relay_connect_endpoint_wired: false,
         relay_payload_endpoint_wired: false,
+        relay_payload_queue_endpoint_wired: false,
         relay_default_data_path: false,
         relay_lease_store_configured: false,
         relay_lease_store_backend: None,
@@ -1409,8 +1423,16 @@ async fn run_relay_status(opts: RelayStatusOpts) -> Result<()> {
     );
     println!("  relay transport wired: {}", report.relay_transport_wired);
     println!(
+        "  relay connect endpoint wired: {}",
+        report.relay_connect_endpoint_wired
+    );
+    println!(
         "  relay payload endpoint wired: {}",
         report.relay_payload_endpoint_wired
+    );
+    println!(
+        "  relay payload queue endpoint wired: {}",
+        report.relay_payload_queue_endpoint_wired
     );
     println!(
         "  relay default data path: {}",
@@ -1463,7 +1485,9 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
         relay_control_plane_wired: true,
         relay_transport_descriptor_wired: false,
         relay_transport_wired: false,
+        relay_connect_endpoint_wired: false,
         relay_payload_endpoint_wired: false,
+        relay_payload_queue_endpoint_wired: false,
         relay_default_data_path: false,
         relay_url: String::new(),
         relay_connect_path: String::new(),
@@ -1493,7 +1517,10 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
                 report.relay_control_plane_wired = response.relay_control_plane_wired;
                 report.relay_transport_descriptor_wired = response.relay_transport_descriptor_wired;
                 report.relay_transport_wired = response.relay_transport_wired;
+                report.relay_connect_endpoint_wired = response.relay_connect_endpoint_wired;
                 report.relay_payload_endpoint_wired = response.relay_payload_endpoint_wired;
+                report.relay_payload_queue_endpoint_wired =
+                    response.relay_payload_queue_endpoint_wired;
                 report.relay_default_data_path = response.relay_default_data_path;
                 report.relay_url = response.relay_url;
                 report.relay_connect_path = response.relay_connect_path;
@@ -1523,9 +1550,19 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
                         report.relay_transport_wired = value;
                     }
                     if let Some(value) =
+                        json_bool_property(&error_json, "relay_connect_endpoint_wired")
+                    {
+                        report.relay_connect_endpoint_wired = value;
+                    }
+                    if let Some(value) =
                         json_bool_property(&error_json, "relay_payload_endpoint_wired")
                     {
                         report.relay_payload_endpoint_wired = value;
+                    }
+                    if let Some(value) =
+                        json_bool_property(&error_json, "relay_payload_queue_endpoint_wired")
+                    {
+                        report.relay_payload_queue_endpoint_wired = value;
                     }
                     if let Some(value) = json_bool_property(&error_json, "relay_default_data_path")
                     {
@@ -1597,8 +1634,16 @@ async fn run_relay_transport(opts: RelayTransportOpts) -> Result<()> {
     );
     println!("  relay transport wired: {}", report.relay_transport_wired);
     println!(
+        "  relay connect endpoint wired: {}",
+        report.relay_connect_endpoint_wired
+    );
+    println!(
         "  relay payload endpoint wired: {}",
         report.relay_payload_endpoint_wired
+    );
+    println!(
+        "  relay payload queue endpoint wired: {}",
+        report.relay_payload_queue_endpoint_wired
     );
     println!(
         "  relay default data path: {}",
@@ -4663,7 +4708,9 @@ mod tests {
             relay_transport_preflight_ok: false,
             relay_transport_descriptor_wired: false,
             relay_transport_wired: false,
+            relay_connect_endpoint_wired: false,
             relay_payload_endpoint_wired: false,
+            relay_payload_queue_endpoint_wired: false,
             relay_default_data_path: false,
             relay_lease_store_configured: false,
             relay_lease_store_backend: None,
@@ -4688,7 +4735,9 @@ mod tests {
                 relay_control_plane_wired: true,
                 relay_transport_descriptor_wired: true,
                 relay_transport_wired: true,
+                relay_connect_endpoint_wired: true,
                 relay_payload_endpoint_wired: true,
+                relay_payload_queue_endpoint_wired: true,
                 relay_default_data_path: false,
                 relay_url: "wss://relay.musu.pro/api/v1/relay/connect".to_string(),
                 relay_connect_path: "/api/v1/relay/connect".to_string(),
@@ -4706,7 +4755,9 @@ mod tests {
         assert!(report.relay_transport_preflight_ok);
         assert!(report.relay_transport_descriptor_wired);
         assert!(report.relay_transport_wired);
+        assert!(report.relay_connect_endpoint_wired);
         assert!(report.relay_payload_endpoint_wired);
+        assert!(report.relay_payload_queue_endpoint_wired);
         assert!(!report.relay_default_data_path);
         assert!(report.relay_lease_store_configured);
         assert_eq!(

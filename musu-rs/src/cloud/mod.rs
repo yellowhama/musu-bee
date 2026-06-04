@@ -234,7 +234,11 @@ pub struct P2pRelayTransportResponse {
     pub relay_transport_descriptor_wired: bool,
     pub relay_transport_wired: bool,
     #[serde(default)]
+    pub relay_connect_endpoint_wired: bool,
+    #[serde(default)]
     pub relay_payload_endpoint_wired: bool,
+    #[serde(default)]
+    pub relay_payload_queue_endpoint_wired: bool,
     #[serde(default)]
     pub relay_default_data_path: bool,
     #[serde(default)]

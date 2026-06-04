@@ -4,6 +4,7 @@ export const RELAY_POLICY = "connect_pro_fallback_only";
 export const RELAY_TRANSPORT_KIND = "websocket_tunnel";
 export const RELAY_CONNECT_PATH = "/api/v1/relay/connect";
 export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";
+export const RELAY_CONNECT_ENDPOINT_IMPLEMENTED = false;
 export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false;
 export const RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED = true;
 
@@ -25,7 +26,11 @@ export function relayTransportFlagEnabled(): boolean {
 }
 
 export function relayPayloadEndpointWired(): boolean {
-  return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED;
+  return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED && relayConnectEndpointWired();
+}
+
+export function relayConnectEndpointWired(): boolean {
+  return RELAY_CONNECT_ENDPOINT_IMPLEMENTED;
 }
 
 export function relayPayloadQueueEndpointWired(): boolean {

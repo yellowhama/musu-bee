@@ -85,7 +85,9 @@ test("reports relay transport preflight blockers by default", async () => {
       owner_scoped: boolean;
       relay_transport_descriptor_wired: boolean;
       relay_transport_wired: boolean;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_lease_store_backend: string;
       relay_lease_store_release_grade: boolean;
@@ -96,7 +98,9 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_backend, "file");
     assert.equal(body.relay_lease_store_release_grade, false);
@@ -134,7 +138,9 @@ test("keeps relay transport preflight blocked when only env policy is configured
       relay_control_plane_wired: boolean;
       relay_transport_descriptor_wired: boolean;
       relay_transport_wired: boolean;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_url: string;
       relay_connect_path: string;
@@ -150,7 +156,9 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_url, "wss://relay.musu.pro/api/v1/relay/connect");
     assert.equal(body.relay_connect_path, "/api/v1/relay/connect");

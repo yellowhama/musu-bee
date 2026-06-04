@@ -5080,3 +5080,36 @@ support mailbox, Store release, and hosted `musu.pro` P2P control-plane proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_TEST_FILE_FRESHNESS_AND_WEB_INPUT_ROADMAP_2026_06_04.md`
+
+## 2026-06-04 relay connect and queue status split (wiki/684)
+
+Relay status now separates release-grade relay connect transport from the
+non-release-grade preview queue.
+
+Current source reports:
+
+- `relay_connect_endpoint_wired=false`
+- `relay_payload_endpoint_wired=false`
+- `relay_payload_queue_endpoint_wired=true`
+- `relay_transport_wired=false`
+- `relay_default_data_path=false`
+
+Updated surfaces:
+
+- hosted relay transport/lease/connect responses
+- Rust `P2pRelayTransportResponse`
+- `musu relay status --json`
+- `musu relay transport --json`
+- `record-p2p-control-plane-evidence.ps1`
+
+Validation passed `npm run test:p2p` `62/62`, `npm run typecheck`, Rust fmt,
+targeted Rust relay status test `1/1`, `cargo check --bin musu`, PowerShell
+parser check, and `git diff --check`.
+
+This does not implement release-grade `/api/v1/relay/connect` transport.
+Fresh packaged primary evidence is required after commit because runtime/web
+/Rust source changed.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_AND_QUEUE_STATUS_SPLIT_2026_06_04.md`

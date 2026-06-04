@@ -73,7 +73,9 @@ test("fails closed when relay connect is reached over HTTP", async () => {
       relay_transport_kind: string;
       release_grade_transport_required: string;
       relay_transport_wired: boolean;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       payload_transit_requires_lease: boolean;
       blockers: string[];
@@ -87,7 +89,9 @@ test("fails closed when relay connect is reached over HTTP", async () => {
     assert.equal(body.relay_transport_kind, "websocket_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.payload_transit_requires_lease, true);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
@@ -106,7 +110,9 @@ test("does not accept POST payload transit while the relay endpoint is unwired",
     const body = (await res.json()) as {
       ok: boolean;
       method: string;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_transport_wired: boolean;
       blockers: string[];
       relay_transport_proof?: unknown;
@@ -114,7 +120,9 @@ test("does not accept POST payload transit while the relay endpoint is unwired",
 
     assert.equal(body.ok, false);
     assert.equal(body.method, "POST");
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_transport_proof, undefined);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);

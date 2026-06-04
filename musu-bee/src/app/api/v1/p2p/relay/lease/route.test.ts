@@ -127,7 +127,9 @@ test("denies relay lease by default with explicit policy blockers", async () => 
       owner_scoped: boolean;
       relay_control_plane_wired: boolean;
       relay_transport_wired: boolean;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_lease_store_configured: boolean;
       relay_lease_store_backend: string;
@@ -138,7 +140,9 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_configured, true);
     assert.equal(body.relay_lease_store_backend, "file");
@@ -161,7 +165,9 @@ test("denies env-only relay fallback lease until payload endpoint is wired", asy
       lease_issued: boolean;
       owner_scoped: boolean;
       relay_transport_wired: boolean;
+      relay_connect_endpoint_wired: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       relay_default_data_path: boolean;
       relay_lease_store_configured: boolean;
       relay_lease_store_backend: string;
@@ -171,7 +177,9 @@ test("denies env-only relay fallback lease until payload endpoint is wired", asy
     assert.equal(body.lease_issued, false);
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, false);
     assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_configured, true);
     assert.equal(body.relay_lease_store_backend, "file");

@@ -3404,4 +3404,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   [HUGH_SECOND]`, `manifest_git.dirty=false`, `p2p_relay_route_evidence_count=0`,
   `p2p_relay_payload_transport_proven=false`, and `blockers six unchanged`.
 
+- 2026-06-04 relay connect and queue status split:
+  `RELEASE_1_15_0_RC1_RELAY_CONNECT_AND_QUEUE_STATUS_SPLIT_2026_06_04.md`
+  (wiki/684) records that relay status now distinguishes the release-grade
+  connect tunnel endpoint from the non-release-grade preview queue. Search
+  terms should include `GOAL v497`, `wiki/684`,
+  `relay_connect_endpoint_wired=false`, `relay_payload_endpoint_wired=false`,
+  `relay_payload_queue_endpoint_wired=true`, `relay_transport_wired=false`,
+  `musu relay status --json`, `record-p2p-control-plane-evidence.ps1`, and
+  `fresh packaged primary evidence is required`.
+
 **End of WIKI_INDEX.md.**
