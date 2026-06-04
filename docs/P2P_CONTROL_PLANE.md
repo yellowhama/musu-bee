@@ -58,21 +58,20 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 08:16 KST candidate endpoint metadata preservation
-hardening, the product direction above is documented, the lease-bound queue
-fallback source contract is gated, room presence/rendezvous candidate metadata
-is preserved, and fresh one-machine packaged local-runtime evidence is recorded.
-Public P2P release is still not release-complete.
+As of the 2026-06-05 08:32 KST post-candidate-metadata evidence refresh, the
+product direction above is documented, the lease-bound queue fallback source
+contract is gated, room presence/rendezvous candidate metadata is preserved,
+and fresh one-machine packaged local-runtime evidence is recorded. Public P2P
+release is still not release-complete.
 
 Passing local state:
 
-- local MSIX install and single-machine smoke pass on `HUGH_SECOND` for commit
-  `9d1d9666ee7fc9443f424401c5315b40750071ba`:
-  `20260605-072911-HUGH_SECOND` and
-  `20260605-073044-HUGH_SECOND`
+- local single-machine smoke passes on `HUGH_SECOND` for commit
+  `9be40bc410404d10aea03e4279fd56d1a72a1b4c`:
+  `20260605-082350-HUGH_SECOND`
 - local runtime idle CPU and CPU matrix evidence are valid on one machine:
-  `20260605-074243-HUGH_SECOND.desktop-open` and
-  `20260605-074400-HUGH_SECOND.runtime-cpu-scenario-matrix`
+  `20260605-082546-HUGH_SECOND.desktop-open` and
+  `20260605-082656-HUGH_SECOND.runtime-cpu-scenario-matrix`
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program

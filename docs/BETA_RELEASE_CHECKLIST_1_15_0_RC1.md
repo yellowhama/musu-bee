@@ -3276,6 +3276,46 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_CANDIDATE_ENDPOINT_METADATA_PRESERVATION_2026_06_05.md`
 
+## 2026-06-05 08:32 KST Post Candidate Metadata Primary Evidence Refresh
+
+After source commit `9be40bc4`, HUGH_SECOND packaged local-runtime evidence was
+refreshed.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-082350-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-082546-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-082656-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-082656-HUGH_SECOND.verification.json`
+
+Results:
+
+- bridge `http://127.0.0.1:10518`
+- `dashboard_required=false`
+- idle CPU `60.058s`: MUSU `0.05`, Node `0`, WebView2 `0.73`,
+  working set `365.65MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_082656`
+- route task `3b2b0137-e3ee-4548-ad45-cb33228d89a9`
+
+MSIX rebuild/reinstall and packaged-state verification passed, but strict MSIX
+evidence capture is still blocked by the local PATH alias shadow
+`C:\Users\empty\.cargo\bin\musu.exe`. The explicit-WindowsApps warning-mode
+capture remains in `.local-build` only.
+
+Final handoff after this refresh removed the `single-machine` blocker.
+Remaining blockers are multi-device, second-machine idle CPU, second-machine
+runtime matrix, support mailbox, Store/Microsoft, hosted `musu.pro` P2P release
+proof, and dirty git until this evidence/report commit is made.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_P2P_CANDIDATE_ENDPOINT_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
 ## 2026-06-04 23:04 KST Secret Storage Contract Hardening
 
 Secret storage is now an explicit hardening gate for the

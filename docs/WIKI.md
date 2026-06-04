@@ -6928,3 +6928,46 @@ hosted P2P release proof, support mailbox, or Store gates.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_CANDIDATE_ENDPOINT_METADATA_PRESERVATION_2026_06_05.md`
+
+## 2026-06-05 Post P2P candidate metadata primary evidence refresh (wiki/734)
+
+After `9be40bc4` changed web/P2P source, primary-machine packaged runtime
+evidence was refreshed for the current source.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-082350-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-082546-HUGH_SECOND.desktop-open.evidence.json`
+- CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-082656-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-082656-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine bridge: `http://127.0.0.1:10518`
+- `dashboard_required=false`
+- `single_machine_surface=local-bridge-only`
+- idle CPU: `60.058s`, MUSU `0.05`, Node `0`, WebView2 `0.73`,
+  working set `365.65MB`, hot `0`
+- matrix: `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_082656`
+- matrix max role CPU: MUSU `0.03`, Node `0`, WebView2 `0.39`
+- matrix max working set: `367.52MB`
+
+The MSIX was rebuilt/reinstalled and packaged-state verification passed, but
+strict MSIX evidence capture still fails in this shell because
+`C:\Users\empty\.cargo\bin\musu.exe` shadows the WindowsApps alias. The
+`warn-explicit-windowsapps` capture was kept under `.local-build` only because
+final go/no-go verifies strict MSIX evidence.
+
+Final handoff after the refresh removed the `single-machine` blocker. Remaining
+blockers are second-PC multi-device evidence, second-PC CPU/matrix evidence,
+support mailbox, Store/Microsoft, hosted `musu.pro` P2P release proof, and dirty
+git until this evidence/report commit lands.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_P2P_CANDIDATE_ENDPOINT_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`

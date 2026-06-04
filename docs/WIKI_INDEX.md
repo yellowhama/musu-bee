@@ -4044,4 +4044,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `127.0.0.1:8186/health`, `npm run test:p2p 79/79`, and
   `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 post P2P candidate metadata primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_P2P_CANDIDATE_ENDPOINT_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/734) records fresh HUGH_SECOND packaged local-runtime evidence after
+  `9be40bc4`. Search terms should include `GOAL v547`, `wiki/734`,
+  `20260605-082350-HUGH_SECOND.evidence.json`,
+  `20260605-082546-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-082656-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-082656-HUGH_SECOND.verification.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_082656`,
+  `3b2b0137-e3ee-4548-ad45-cb33228d89a9`,
+  `dashboard_required=false`, `single_machine_surface=local-bridge-only`,
+  `bridge http://127.0.0.1:10518`, `strict MSIX evidence capture PATH shadow`,
+  `.cargo\\bin\\musu.exe`, `runtime idle CPU 1/2`, `runtime matrix 1/2`, and
+  `single-machine blocker removed`.
+
 **End of WIKI_INDEX.md.**
