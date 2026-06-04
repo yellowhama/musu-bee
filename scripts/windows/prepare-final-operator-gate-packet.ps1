@@ -122,6 +122,7 @@ $scriptsToCopy = @(
     "audit-frontend-polling-contract.ps1",
     "audit-rust-background-loop-contract.ps1",
     "audit-local-api-auth-contract.ps1",
+    "audit-operator-api-security-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
     "verify-runtime-cpu-scenario-matrix.ps1",
@@ -399,8 +400,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-
 ```
 
 Expected schema: `musu.local_api_auth_contract.v1`.
+Expected result: `local_api_auth_contract_verified=true`.
 
-## Gate D2 - Frontend polling contract audit
+## Gate D2 - Operator API security contract audit
+
+Before final handoff, verify that web-driven local control routes require an
+authenticated operator, command allowlists, explicit process-kill enablement,
+remote worker proxy opt-in, and audit logging. This is the security boundary
+for using `musu.pro` as a remote input/control plane while execution remains on
+the local MUSU program.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operator-api-security-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.operator_api_security_contract.v1`.
+Expected result: `operator_api_security_contract_verified=true`.
+
+## Gate D3 - Frontend polling contract audit
 
 Before final handoff, verify that dashboard, node-panel, onboarding, workflow,
 screen, relay, and SSE refresh paths still use the shared cancellable low-duty
@@ -413,7 +430,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-fronte
 Expected schema: `musu.frontend_polling_contract.v1`.
 Expected result: `frontend_polling_contract_verified=true`.
 
-## Gate D3 - Rust background loop contract audit
+## Gate D4 - Rust background loop contract audit
 
 Before final handoff, verify that bridge/runtime background loops still keep the
 default desktop path low-duty: planner, clipboard, and mDNS are opt-in; cloud

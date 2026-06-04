@@ -604,6 +604,8 @@ $commands = [pscustomobject]@{
     audit_msix_desktop_entrypoint = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -ExpectedApplicationExecutable musu-desktop.exe -RequireInstalledPackage -Json"
     audit_frontend_polling_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-frontend-polling-contract.ps1 -FailOnProblem -Json"
     audit_rust_background_loop_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-rust-background-loop-contract.ps1 -FailOnProblem -Json"
+    audit_local_api_auth_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-api-auth-contract.ps1 -FailOnProblem -Json"
+    audit_operator_api_security_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operator-api-security-contract.ps1 -FailOnProblem -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
     measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json"
     measure_runtime_cpu_scenario_matrix_target_attempt = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"
@@ -712,6 +714,20 @@ if (-not [bool]$goNoGo.rust_background_loop_contract_verified) {
         -Summary "Fix bridge/runtime background loops so default mDNS/clipboard/planner remain opt-in and active loops are sleep/backoff/timeout bounded, then rerun the audit." `
         -Command $commands.audit_rust_background_loop_contract
 }
+if (-not [bool]$goNoGo.local_api_auth_contract_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "local-api-auth" `
+        -Summary "Fix the local bridge auth contract so localhost requests require bearer auth by default and only an explicit trusted local bypass can disable it, then rerun the audit." `
+        -Command $commands.audit_local_api_auth_contract
+}
+if (-not [bool]$goNoGo.operator_api_security_contract_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "operator-api-security" `
+        -Summary "Fix web-driven local control routes so they require authenticated operators, command allowlists, explicit process-kill enablement, and audit logging, then rerun the audit." `
+        -Command $commands.audit_operator_api_security_contract
+}
 if (-not [bool]$goNoGo.process_ownership_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -791,6 +807,10 @@ $result = [pscustomobject]@{
         runtime_cpu_scenario_matrix_valid_machines = @($goNoGo.runtime_cpu_scenario_matrix_valid_machines)
         runtime_cpu_scenario_matrix_candidate_count = $goNoGo.runtime_cpu_scenario_matrix_candidate_count
         runtime_cpu_scenario_matrix_required_scenarios = @($goNoGo.runtime_cpu_scenario_matrix_required_scenarios)
+        frontend_polling_contract_verified = [bool]$goNoGo.frontend_polling_contract_verified
+        rust_background_loop_contract_verified = [bool]$goNoGo.rust_background_loop_contract_verified
+        local_api_auth_contract_verified = [bool]$goNoGo.local_api_auth_contract_verified
+        operator_api_security_contract_verified = [bool]$goNoGo.operator_api_security_contract_verified
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
         desktop_single_instance_verified = [bool]$goNoGo.desktop_single_instance_verified

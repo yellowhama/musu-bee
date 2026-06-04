@@ -127,6 +127,7 @@ try {
         "scripts\windows\audit-frontend-polling-contract.ps1",
         "scripts\windows\audit-rust-background-loop-contract.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
+        "scripts\windows\audit-operator-api-security-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
@@ -189,6 +190,7 @@ try {
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
+        Add-CheckFromCondition "readme operator API security contract audit" ($readme -like "*audit-operator-api-security-contract.ps1*" -and $readme -like "*musu.operator_api_security_contract.v1*" -and $readme -like "*operator_api_security_contract_verified=true*") "README includes operator API security contract audit" "README missing operator API security contract audit"
         Add-CheckFromCondition "readme frontend polling contract audit" ($readme -like "*audit-frontend-polling-contract.ps1*" -and $readme -like "*musu.frontend_polling_contract.v1*" -and $readme -like "*frontend_polling_contract_verified=true*") "README includes frontend polling contract audit" "README missing frontend polling contract audit"
         Add-CheckFromCondition "readme rust background loop contract audit" ($readme -like "*audit-rust-background-loop-contract.ps1*" -and $readme -like "*musu.rust_background_loop_contract.v1*" -and $readme -like "*rust_background_loop_contract_verified=true*") "README includes Rust background loop contract audit" "README missing Rust background loop contract audit"
         Add-CheckFromCondition "readme external recheck recorder doc" ($readme -like "*RELEASE_1_15_0_RC1_EXTERNAL_RECHECK_RECORDER_2026_06_03.md*" -and $readme -like "*record-external-release-gate-recheck.ps1*") "README points to external recheck recorder doc" "README missing external recheck recorder doc"
@@ -251,6 +253,16 @@ try {
             ($handoffStatusScript -like "*audit-rust-background-loop-contract.ps1*" -and $handoffStatusScript -like "*rust_background_loop_contract_verified*" -and $handoffStatusScript -like "*rust-background-loops*") `
             "packet handoff status script reports Rust background loop contract audit" `
             "packet handoff status script does not report Rust background loop contract audit"
+        Add-CheckFromCondition `
+            "handoff status local API auth gate" `
+            ($handoffStatusScript -like "*audit-local-api-auth-contract.ps1*" -and $handoffStatusScript -like "*local_api_auth_contract_verified*" -and $handoffStatusScript -like "*local-api-auth*") `
+            "packet handoff status script reports local API auth contract audit" `
+            "packet handoff status script does not report local API auth contract audit"
+        Add-CheckFromCondition `
+            "handoff status operator API security gate" `
+            ($handoffStatusScript -like "*audit-operator-api-security-contract.ps1*" -and $handoffStatusScript -like "*operator_api_security_contract_verified*" -and $handoffStatusScript -like "*operator-api-security*") `
+            "packet handoff status script reports operator API security contract audit" `
+            "packet handoff status script does not report operator API security contract audit"
     }
 
     $operatorHandoffScriptPath = Join-Path $packetRoot "scripts\windows\show-operator-handoff-card.ps1"
@@ -291,6 +303,16 @@ try {
             ($localApiAuthAuditScript -like "*musu.local_api_auth_contract.v1*" -and $localApiAuthAuditScript -like "*localhost_auth_required_default_true*" -and $localApiAuthAuditScript -like "*MUSU_BRIDGE_LOCALHOST_AUTH=0*" -and $localApiAuthAuditScript -like "*localhost requests require the same token by default*") `
             "packet local API auth audit verifies source and docs contract" `
             "packet local API auth audit does not verify source and docs contract"
+    }
+
+    $operatorApiSecurityAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-operator-api-security-contract.ps1"
+    if (Test-Path -LiteralPath $operatorApiSecurityAuditScriptPath) {
+        $operatorApiSecurityAuditScript = Get-Content -LiteralPath $operatorApiSecurityAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "operator API security contract audit script" `
+            ($operatorApiSecurityAuditScript -like "*musu.operator_api_security_contract.v1*" -and $operatorApiSecurityAuditScript -like "*requireOperator*" -and $operatorApiSecurityAuditScript -like "*MUSU_NODE_EXECUTE_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_PROCESS_START_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_ENABLE_PROCESS_KILL*" -and $operatorApiSecurityAuditScript -like "*appendControlAudit*") `
+            "packet operator API security audit verifies auth, allowlists, explicit kill enablement, and audit logging" `
+            "packet operator API security audit does not verify auth, allowlists, explicit kill enablement, and audit logging"
     }
 
     $frontendPollingAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-frontend-polling-contract.ps1"
@@ -351,6 +373,16 @@ try {
             ($goNoGoScript -like "*rust_background_loop_contract_verified*" -and $goNoGoScript -like "*audit-rust-background-loop-contract.ps1*" -and $goNoGoScript -like "*musu.rust_background_loop_contract.v1*" -and $goNoGoScript -like "*rust-background-loops*" -and $goNoGoScript -like "*opt-in, low-duty, timeout-bound*") `
             "packet go/no-go blocks on Rust background loop contract audit" `
             "packet go/no-go does not block on Rust background loop contract audit"
+        Add-CheckFromCondition `
+            "go no-go local API auth contract gate" `
+            ($goNoGoScript -like "*local_api_auth_contract_verified*" -and $goNoGoScript -like "*audit-local-api-auth-contract.ps1*" -and $goNoGoScript -like "*musu.local_api_auth_contract.v1*" -and $goNoGoScript -like "*local-api-auth*" -and $goNoGoScript -like "*bearer auth by default*") `
+            "packet go/no-go blocks on local API auth contract audit" `
+            "packet go/no-go does not block on local API auth contract audit"
+        Add-CheckFromCondition `
+            "go no-go operator API security contract gate" `
+            ($goNoGoScript -like "*operator_api_security_contract_verified*" -and $goNoGoScript -like "*audit-operator-api-security-contract.ps1*" -and $goNoGoScript -like "*musu.operator_api_security_contract.v1*" -and $goNoGoScript -like "*operator-api-security*" -and $goNoGoScript -like "*authenticated operators, command allowlists*") `
+            "packet go/no-go blocks on operator API security contract audit" `
+            "packet go/no-go does not block on operator API security contract audit"
         Add-CheckFromCondition `
             "go no-go process ownership gate" `
             ($goNoGoScript -like "*process_ownership_verified*" -and $goNoGoScript -like "*process-ownership*" -and $goNoGoScript -like "*MinProcessOwnershipMachineCount*" -and $goNoGoScript -like "*musu.process_ownership_audit.v1*") `

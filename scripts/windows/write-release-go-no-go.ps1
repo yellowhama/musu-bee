@@ -209,6 +209,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-frontend-polling-contract.ps1",
         "scripts/windows/audit-rust-background-loop-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
+        "scripts/windows/audit-operator-api-security-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",
         "scripts/windows/complete-final-operator-gates.ps1",
@@ -778,6 +779,8 @@ function Test-DesktopSingleInstanceEvidence {
 $auditScript = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $frontendPollingAuditScript = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
 $rustBackgroundLoopAuditScript = Join-Path $scriptDir "audit-rust-background-loop-contract.ps1"
+$localApiAuthAuditScript = Join-Path $scriptDir "audit-local-api-auth-contract.ps1"
+$operatorApiSecurityAuditScript = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
@@ -794,6 +797,10 @@ $frontendPollingAuditResult = Invoke-JsonScript -FilePath $frontendPollingAuditS
 $frontendPollingContractVerified = ($frontendPollingAuditResult.json -and [bool]$frontendPollingAuditResult.json.ok)
 $rustBackgroundLoopAuditResult = Invoke-JsonScript -FilePath $rustBackgroundLoopAuditScript -Arguments @("-Json") -AllowFailure
 $rustBackgroundLoopContractVerified = ($rustBackgroundLoopAuditResult.json -and [bool]$rustBackgroundLoopAuditResult.json.ok)
+$localApiAuthAuditResult = Invoke-JsonScript -FilePath $localApiAuthAuditScript -Arguments @("-Json") -AllowFailure
+$localApiAuthContractVerified = ($localApiAuthAuditResult.json -and [bool]$localApiAuthAuditResult.json.ok)
+$operatorApiSecurityAuditResult = Invoke-JsonScript -FilePath $operatorApiSecurityAuditScript -Arguments @("-Json") -AllowFailure
+$operatorApiSecurityContractVerified = ($operatorApiSecurityAuditResult.json -and [bool]$operatorApiSecurityAuditResult.json.ok)
 $msixStoreDesktopEntrypointArtifactAuditResult = Invoke-JsonScript `
     -FilePath $msixDesktopEntrypointAuditScript `
     -Arguments @("-StartupContract", "store-reviewed-immediate-registration", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-Json") `
@@ -1354,6 +1361,12 @@ if (-not $frontendPollingContractVerified) {
 if (-not $rustBackgroundLoopContractVerified) {
     Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
 }
+if (-not $localApiAuthContractVerified) {
+    Add-Blocker -List $blockers -Area "local-api-auth" -Message "Local API auth contract audit (musu.local_api_auth_contract.v1) failed; localhost bridge requests are not proven to require bearer auth by default with only an explicit trusted local bypass."
+}
+if (-not $operatorApiSecurityContractVerified) {
+    Add-Blocker -List $blockers -Area "operator-api-security" -Message "Operator API security contract audit (musu.operator_api_security_contract.v1) failed; web-driven local control routes are not proven to require authenticated operators, command allowlists, explicit process-kill enablement, and audit logging."
+}
 if (-not $processOwnershipVerified) {
     Add-Blocker -List $blockers -Area "process-ownership" -Message "Process ownership evidence has not passed on at least ${MinProcessOwnershipMachineCount} machine(s)."
 }
@@ -1401,6 +1414,8 @@ $manualInternalGates = @(
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
+    "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
+    "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
@@ -1476,6 +1491,30 @@ $result = [pscustomobject]@{
             raw = $rustBackgroundLoopAuditResult.raw
         }
     }
+    local_api_auth_contract_verified = [bool]$localApiAuthContractVerified
+    local_api_auth_contract_audit = if ($localApiAuthAuditResult.json) {
+        $localApiAuthAuditResult.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            exit_code = $localApiAuthAuditResult.exit_code
+            timed_out = $localApiAuthAuditResult.timed_out
+            raw = $localApiAuthAuditResult.raw
+        }
+    }
+    operator_api_security_contract_verified = [bool]$operatorApiSecurityContractVerified
+    operator_api_security_contract_audit = if ($operatorApiSecurityAuditResult.json) {
+        $operatorApiSecurityAuditResult.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            exit_code = $operatorApiSecurityAuditResult.exit_code
+            timed_out = $operatorApiSecurityAuditResult.timed_out
+            raw = $operatorApiSecurityAuditResult.raw
+        }
+    }
     process_ownership_verified = [bool]$processOwnershipVerified
     process_ownership_evidence = $processOwnershipEvidence
     startup_single_instance_verified = [bool]$startupSingleInstanceVerified
@@ -1525,6 +1564,8 @@ else {
     "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
     "frontend_polling_contract_verified: $($result.frontend_polling_contract_verified)"
     "rust_background_loop_contract_verified: $($result.rust_background_loop_contract_verified)"
+    "local_api_auth_contract_verified: $($result.local_api_auth_contract_verified)"
+    "operator_api_security_contract_verified: $($result.operator_api_security_contract_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"
     "desktop_single_instance_verified: $($result.desktop_single_instance_verified)"

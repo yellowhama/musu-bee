@@ -3671,4 +3671,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `quic_tls_1_3`, `p2pRelayPolicy.ts`, and `env flags alone cannot make
   relay_transport_wired=true`.
 
+- 2026-06-04 hardening gate surface alignment:
+  `RELEASE_1_15_0_RC1_HARDENING_GATE_SURFACE_ALIGNMENT_2026_06_04.md`
+  (wiki/706) records release-status wiring for the web-input hardening gates.
+  Search terms should include `GOAL v519`, `wiki/706`,
+  `local_api_auth_contract_verified`,
+  `operator_api_security_contract_verified`,
+  `audit-local-api-auth-contract.ps1`,
+  `audit-operator-api-security-contract.ps1`,
+  `frontend_polling_contract_verified`,
+  `rust_background_loop_contract_verified`,
+  `show-final-release-handoff-status.ps1`, `write-release-go-no-go.ps1`,
+  `operator-api-security`, `local-api-auth`, `musu.pro remote input`, and
+  `status/packet hardening`.
+
 **End of WIKI_INDEX.md.**

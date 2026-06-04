@@ -3230,6 +3230,40 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 22:40 KST Hardening Gate Surface Alignment
+
+Final release status now exposes the hardening gates needed for the
+local-program/web-input roadmap.
+
+`musu.pro` remains the remote input, project room, company meeting room,
+presence, rendezvous, path-selection, fallback-relay coordination, and evidence
+plane. Local MUSU programs still execute the work. Because the web plane can
+coordinate local executors, go/no-go and handoff status now surface the relevant
+security/resource gates directly:
+
+- `frontend_polling_contract_verified`
+- `rust_background_loop_contract_verified`
+- `local_api_auth_contract_verified`
+- `operator_api_security_contract_verified`
+- `process_ownership_verified`
+- `startup_single_instance_verified`
+- `desktop_single_instance_verified`
+
+Validation:
+
+- parser checks passed for the changed release scripts
+- local API auth audit passed with `ok=true`, `fail_count=0`,
+  `stale_doc_hit_count=0`
+- operator API security audit passed with `ok=true`, `fail_count=0`
+- dirty-tree go/no-go and handoff status reported all four hardening contract
+  gates true
+- `git diff --check` passed
+
+This is status/packet hardening only, not runtime source. Packaged runtime
+evidence remains current. Public release remains No-Go on second-PC
+runtime/multi-device evidence, hosted `musu.pro` P2P proof, support mailbox
+evidence, and Store evidence.
+
 ## 2026-06-04 22:13 KST Rust Loop Allowlist Contract Hardening
 
 The local/web roadmap remains locked:

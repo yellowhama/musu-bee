@@ -5851,3 +5851,40 @@ Validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_SOURCE_RELAY_MARKER_STATUS_2026_06_04.md`
+
+## 2026-06-04 Hardening gate surface alignment (wiki/706)
+
+Final release status now exposes the full hardening surface required by the
+local-program/web-input roadmap.
+
+Changed:
+
+- `write-release-go-no-go.ps1` now runs and blocks on
+  `audit-local-api-auth-contract.ps1`.
+- `write-release-go-no-go.ps1` now runs and blocks on
+  `audit-operator-api-security-contract.ps1`.
+- `show-final-release-handoff-status.ps1` now prints
+  `frontend_polling_contract_verified`,
+  `rust_background_loop_contract_verified`,
+  `local_api_auth_contract_verified`, and
+  `operator_api_security_contract_verified`.
+- The final operator packet now includes and verifies
+  `audit-operator-api-security-contract.ps1`.
+
+Validation:
+
+- parser checks passed for the changed PowerShell scripts
+- local API auth audit: `ok=true`, `fail_count=0`,
+  `stale_doc_hit_count=0`
+- operator API security audit: `ok=true`, `fail_count=0`
+- dirty-tree go/no-go and handoff status both reported all four hardening
+  gates true
+- `git diff --check` passed
+
+This is status/packet hardening only; packaged runtime evidence remains
+current. Public release remains No-Go on second-PC, hosted P2P, support mailbox,
+and Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_HARDENING_GATE_SURFACE_ALIGNMENT_2026_06_04.md`

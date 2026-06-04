@@ -66,6 +66,24 @@ and run on the second PC.
    MSIX install, desktop-open CPU, CPU matrix, multi-device route explain, and
    execution evidence.
 
+## Release Gate Alignment
+
+As of 2026-06-04 22:40 KST, the release gate surface is aligned with this
+product split. Final go/no-go and final handoff status now expose the hardening
+gates needed before web-input control is trusted:
+
+- frontend polling contract,
+- Rust background-loop contract,
+- local API auth contract,
+- operator API security contract,
+- process ownership,
+- startup single-instance, and
+- packaged desktop single-instance.
+
+This keeps `musu.pro` as a remote input/coordination plane while requiring the
+local bridge and web-driven control routes to remain authenticated,
+allowlisted, audit-logged, and resource-bounded.
+
 ## Release State
 
 Public release remains No-Go. Current local artifacts and one-machine evidence
