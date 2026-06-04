@@ -4542,3 +4542,56 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_CLI_ROUTE_WAIT_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 Chat SSE Retry Cap and Roadmap Clarification (wiki/672)
+
+The chat task SSE stream now has a hard retry-count cap. Before this pass,
+`useChat` had capped exponential delay and stale-generation cleanup, but if the
+local bridge SSE endpoint stayed unavailable it could reconnect forever every
+`10s`.
+
+Runtime/frontend hardening:
+
+- `SSE_MAX_RETRIES=5`
+- `reconnectAttempts`
+- `resetReconnectState()`
+- successful opens reset delay and attempts
+- non-agent cleanup and active-node changes reset reconnect state
+- failed streams stop reconnecting after the retry cap
+- frontend polling audit now requires the chat SSE cap/guard/reset contract
+
+Roadmap clarification:
+
+- `musu.pro` is the web input, project-room, rendezvous, path-selection,
+  relay-fallback coordination, and evidence plane
+- local MUSU programs execute the work on each device
+- `localhost` dashboard URLs are local operator/dev surfaces and only work when
+  the local runtime/dashboard is running
+- after web-assisted rendezvous, direct P2P mesh is preferred; relay is fallback
+  and must carry proof before public claims
+- current testing remains one-machine until the same MUSU build is installed on
+  a second Windows PC
+
+Validation passed:
+
+- `npm run test:runtime-polling` `14/14`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+Clean go/no-go on commit `e92e0e558d2336237b7eca70d59c8ce35f764229` reports
+`local_artifacts_ready=true`, `msix_install_verified=true`,
+`single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU matrix
+`0/2`, `manifest_git.dirty=false`, and blocker count `7`.
+
+Release interpretation: the frontend runtime source changed after current
+primary evidence, so fresh MSIX/smoke/CPU/matrix evidence is required before
+current source can reclaim one-machine release gates. Public release remains
+No-Go on second-PC runtime/multi-device evidence, live owner-scoped `musu.pro`
+relay proof, support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CHAT_SSE_RETRY_CAP_HARDENING_2026_06_04.md`

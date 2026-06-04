@@ -3198,6 +3198,48 @@ Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
 
+## 2026-06-04 12:00 KST Chat SSE Retry Cap and Local-Executor Roadmap
+
+`useChat` now stops retrying a failed bridge task SSE stream after a bounded
+retry count. The previous path had capped delay and stale-generation cleanup,
+but no retry-count cap, so a missing local bridge SSE endpoint could keep
+reconnecting forever every `10s`.
+
+Changed:
+
+- `SSE_MAX_RETRIES=5`
+- `reconnectAttempts`
+- `resetReconnectState()`
+- retry-cap guard in `es.onerror`
+- runtime polling contract checks for the cap/guard/reset markers
+- frontend polling release audit checks the cap/guard/reset markers
+
+Roadmap interpretation:
+
+- `musu.pro` is the remote input, project-room, rendezvous, path-selection,
+  relay-fallback coordination, and evidence surface
+- local MUSU programs execute the work on each machine
+- `localhost` dashboards are local operator/dev surfaces and only work when the
+  local runtime/dashboard is running
+- current validation is one-machine; second-PC route proof and two-machine CPU
+  evidence require installing the current MUSU build on another Windows PC
+
+Validation passed:
+
+- `npm run test:runtime-polling` `14/14`
+- frontend polling audit `ok=true`, `fail_count=0`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+Clean go/no-go on `e92e0e558d2336237b7eca70d59c8ce35f764229` reports
+`local_artifacts_ready=true`, `msix_install_verified=true`,
+`single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU matrix
+`0/2`, `manifest_git.dirty=false`, and seven blockers. The primary evidence
+drop is expected because frontend runtime source changed after the latest
+packaged evidence. Fresh MSIX/smoke/CPU/matrix evidence is required before this
+source can reclaim one-machine gates.
+
 ## 2026-06-04 CLI Route Wait and Web-Input Roadmap Update
 
 - roadmap update:

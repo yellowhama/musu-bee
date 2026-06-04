@@ -112,3 +112,20 @@ Clean go/no-go on `c9ada37ba675cff59b259bec05f30a72272d9641` now reports
 Canonical follow-up report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_CLI_ROUTE_WAIT_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## Follow-Up: Chat SSE Retry Cap
+
+The same local-executor/web-input roadmap now includes a frontend SSE
+busy-loop fix. Chat task SSE reconnect was bounded by delay but not by retry
+count. Commit `e92e0e558d2336237b7eca70d59c8ce35f764229` adds
+`SSE_MAX_RETRIES=5`, `reconnectAttempts`, and `resetReconnectState()`, and the
+frontend polling audit now requires that cap.
+
+Clean go/no-go after the change reports `local_artifacts_ready=true`,
+`msix_install_verified=true`, `single_machine_verified=false`, runtime idle CPU
+`0/2`, runtime CPU matrix `0/2`, `manifest_git.dirty=false`, and blocker count
+`7`, because frontend runtime source changed after the latest primary evidence.
+
+Canonical follow-up report:
+
+- `docs\RELEASE_1_15_0_RC1_CHAT_SSE_RETRY_CAP_HARDENING_2026_06_04.md`

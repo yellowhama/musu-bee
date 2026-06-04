@@ -1859,3 +1859,49 @@ installed before P2P mesh proof and two-machine CPU evidence can close.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CLI_ROUTE_WAIT_WEB_INPUT_ROADMAP_2026_06_04.md`
+
+## 2026-06-04 Chat SSE Retry Cap and Local-Executor Clarification
+
+The local-executor roadmap remains unchanged but is now more explicit:
+
+- `musu.pro` is the remote input, project-room, rendezvous, path-selection,
+  relay-fallback coordination, and evidence plane
+- local MUSU programs own execution, local files, app/browser/shell automation,
+  bridge/runtime work, and P2P mesh traffic
+- `localhost` dashboards are not cloud access; they are local operator/dev
+  surfaces that only work while the local runtime/dashboard is running
+- MUSU nodes may use `musu.pro` to find each other and negotiate routes, then
+  prefer direct P2P mesh traffic after pairing
+- a company/project-room surface can coordinate multiple AI workers, but the
+  execution and sensitive local actions remain on each user's machine
+- current validation is still one-machine until the current MUSU build is
+  installed on a second Windows PC
+
+Busy-loop hardening update: the chat task SSE stream now has a retry-count cap.
+Before this pass, it had capped delay and stale reconnect cleanup but no maximum
+attempt count. `useChat` now has `SSE_MAX_RETRIES=5`, `reconnectAttempts`, and
+`resetReconnectState()`, and failed streams stop after the cap.
+
+Validation passed:
+
+- `npm run test:runtime-polling` `14/14`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `direct_interval_hit_count=0`, `direct_visibility_listener_hit_count=0`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+Clean go/no-go on `e92e0e558d2336237b7eca70d59c8ce35f764229` reports
+`local_artifacts_ready=true`, `msix_install_verified=true`,
+`single_machine_verified=false`, runtime idle CPU `0/2`, runtime CPU matrix
+`0/2`, `manifest_git.dirty=false`, and blocker count `7`.
+
+Release meaning: this closes another frontend idle-loop candidate but changes
+runtime frontend source. Fresh MSIX/smoke/CPU/matrix evidence is required
+before current source can reclaim one-machine release gates. Public release
+remains No-Go on second-PC runtime/multi-device evidence, live owner-scoped
+`musu.pro` relay proof, support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CHAT_SSE_RETRY_CAP_HARDENING_2026_06_04.md`

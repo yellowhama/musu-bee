@@ -3249,4 +3249,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ready_for_public_desktop_release=false`, `20260604-114250`, and
   `20260604-114319`.
 
+- 2026-06-04 chat SSE retry cap hardening:
+  `RELEASE_1_15_0_RC1_CHAT_SSE_RETRY_CAP_HARDENING_2026_06_04.md`
+  (wiki/672) records that `useChat` now has `SSE_MAX_RETRIES=5`,
+  `reconnectAttempts`, `resetReconnectState()`, and a guard that stops
+  reconnecting after the cap. It also records the clarified roadmap:
+  `musu.pro` is the web input/project-room/rendezvous/fallback/evidence plane,
+  local MUSU programs execute the work, `localhost` dashboards are local-only,
+  and second-PC/P2P proof requires the same current MUSU build on another
+  Windows machine. Search terms should include `GOAL v483`, `wiki/672`,
+  `chat SSE retry cap`, `SSE_MAX_RETRIES`, `reconnectAttempts`,
+  `resetReconnectState`, `runtime-polling 14/14`,
+  `frontend polling audit ok=true`, `e92e0e55`, `single_machine_verified=false`,
+  `runtime idle CPU 0/2`, and `runtime CPU matrix 0/2`.
+
 **End of WIKI_INDEX.md.**
