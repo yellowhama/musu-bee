@@ -6434,3 +6434,62 @@ proof are still missing.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_QUEUE_STATUS_ALIGNMENT_2026_06_05.md`
+
+## 2026-06-05 P2P store-forward relay contract gate (wiki/720)
+
+`audit-p2p-store-forward-relay-contract.ps1` now gives the lease-bound
+store-forward relay queue fallback its own release contract gate.
+
+The audit schema is:
+
+- `musu.p2p_store_forward_relay_contract.v1`
+
+It verifies that the queue fallback is:
+
+- owner/lease scoped,
+- P2P-control-authenticated,
+- able to store, claim, deliver, and return delivery proof,
+- non-default and non-release-grade,
+- separated from release tunnel payload transport, and
+- default-off/low-duty when target polling is enabled.
+
+Release go/no-go now reports:
+
+- `p2p_store_forward_relay_contract_verified`
+- `p2p_store_forward_relay_contract_audit`
+
+The final handoff status now exposes the same gate and rerun command.
+
+The single-machine and runtime CPU matrix verifiers now include the new P2P
+contract audit plus operator API and secret storage audits in their status-only
+freshness allowlists. This keeps source/gate-only audit changes from
+incorrectly invalidating packaged runtime evidence.
+
+Roadmap update:
+
+- local MUSU programs execute work on each device
+- `musu.pro` handles remote web input, project/company rooms, presence,
+  rendezvous, path selection, fallback lease policy, and evidence
+- web-assisted rendezvous bootstraps the P2P mesh
+- relay remains fallback-only and cannot be the default data path
+
+Validation:
+
+- PowerShell parser passed for the new audit, go/no-go, readiness, and handoff
+  scripts
+- new audit reported `ok=true`, `fail_count=0`
+- clean go/no-go reported
+  `p2p_store_forward_relay_contract_verified=true`,
+  `p2p_control_plane_verified=false`, `p2p_relay_transport_wired=false`, and
+  `ready_for_public_desktop_release=false` with `manifest_git.dirty=false`
+- P2P env status reported
+  `source.relay_payload_queue_fallback_implemented=true` while keeping release
+  tunnel, KV/Upstash, route evidence, and delivery proof blockers
+
+This is source/gate and roadmap hardening only. Public release remains No-Go
+until production KV/Upstash, release-grade relay tunnel proof, current-build
+second-PC evidence, support mailbox evidence, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_RELAY_CONTRACT_GATE_2026_06_05.md`

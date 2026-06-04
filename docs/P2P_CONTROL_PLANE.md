@@ -58,8 +58,9 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 00:54 KST post room-work-order-auth evidence refresh, the
-product direction above is documented but not yet release-complete.
+As of the 2026-06-05 03:55 KST store-forward relay contract gate, the product
+direction above is documented and the lease-bound queue fallback source contract
+is gated, but public P2P release is not yet release-complete.
 
 Passing local state:
 
@@ -74,12 +75,18 @@ Passing local state:
   transport remains unwired
 - `POST /api/rooms/[roomId]/work-orders` is P2P-control-auth gated before
   MUSU.PRO room input can reach the local bridge
+- `audit-p2p-store-forward-relay-contract.ps1` passes with `ok=true`,
+  proving the preview store-forward queue fallback is owner/lease scoped,
+  non-default, non-release-grade, and separated from release tunnel transport
+- `show-musu-pro-p2p-env-status.ps1` reports
+  `source.relay_payload_queue_fallback_implemented=true`
 
 Open external gates:
 
 - second-PC current-build install, route, CPU, and matrix evidence is missing
 - hosted P2P KV/Upstash storage is not configured
-- relay payload endpoint and relay transport are not wired as release-grade
+- release relay connect/payload tunnel endpoints and release relay transport
+  are not wired as release-grade
 - owner-scoped relay route evidence count is `0`
 - relay payload transport proof is `false`
 - relay payload delivery proof valid count is `0`

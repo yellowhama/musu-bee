@@ -606,6 +606,7 @@ $commands = [pscustomobject]@{
     audit_rust_background_loop_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-rust-background-loop-contract.ps1 -FailOnProblem -Json"
     audit_local_api_auth_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-api-auth-contract.ps1 -FailOnProblem -Json"
     audit_operator_api_security_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operator-api-security-contract.ps1 -FailOnProblem -Json"
+    audit_p2p_store_forward_relay_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -FailOnProblem -Json"
     audit_secret_storage_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-secret-storage-contract.ps1 -FailOnProblem -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
     measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json"
@@ -736,6 +737,13 @@ if (-not [bool]$goNoGo.secret_storage_contract_verified) {
         -Summary "Fix token storage, raw-token redaction, or production backup docs so bridge/account/P2P secrets stay out of ordinary output and support bundles, then rerun the audit." `
         -Command $commands.audit_secret_storage_contract
 }
+if (-not [bool]$goNoGo.p2p_store_forward_relay_contract_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "p2p-store-forward-relay" `
+        -Summary "Fix the P2P store-forward relay queue contract so fallback payload transit is owner-scoped, lease-bound, non-default, non-release-grade, and separated from release tunnel transport." `
+        -Command $commands.audit_p2p_store_forward_relay_contract
+}
 if (-not [bool]$goNoGo.process_ownership_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -819,6 +827,7 @@ $result = [pscustomobject]@{
         rust_background_loop_contract_verified = [bool]$goNoGo.rust_background_loop_contract_verified
         local_api_auth_contract_verified = [bool]$goNoGo.local_api_auth_contract_verified
         operator_api_security_contract_verified = [bool]$goNoGo.operator_api_security_contract_verified
+        p2p_store_forward_relay_contract_verified = [bool]$goNoGo.p2p_store_forward_relay_contract_verified
         secret_storage_contract_verified = [bool]$goNoGo.secret_storage_contract_verified
         process_ownership_verified = [bool]$goNoGo.process_ownership_verified
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified

@@ -255,6 +255,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-rust-background-loop-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/audit-operator-api-security-contract.ps1",
+        "scripts/windows/audit-p2p-store-forward-relay-contract.ps1",
         "scripts/windows/audit-secret-storage-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",
@@ -827,6 +828,7 @@ $frontendPollingAuditScript = Join-Path $scriptDir "audit-frontend-polling-contr
 $rustBackgroundLoopAuditScript = Join-Path $scriptDir "audit-rust-background-loop-contract.ps1"
 $localApiAuthAuditScript = Join-Path $scriptDir "audit-local-api-auth-contract.ps1"
 $operatorApiSecurityAuditScript = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
+$p2pStoreForwardRelayAuditScript = Join-Path $scriptDir "audit-p2p-store-forward-relay-contract.ps1"
 $secretStorageAuditScript = Join-Path $scriptDir "audit-secret-storage-contract.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -848,6 +850,8 @@ $localApiAuthAuditResult = Invoke-JsonScript -FilePath $localApiAuthAuditScript 
 $localApiAuthContractVerified = ($localApiAuthAuditResult.json -and [bool]$localApiAuthAuditResult.json.ok)
 $operatorApiSecurityAuditResult = Invoke-JsonScript -FilePath $operatorApiSecurityAuditScript -Arguments @("-Json") -AllowFailure
 $operatorApiSecurityContractVerified = ($operatorApiSecurityAuditResult.json -and [bool]$operatorApiSecurityAuditResult.json.ok)
+$p2pStoreForwardRelayAuditResult = Invoke-JsonScript -FilePath $p2pStoreForwardRelayAuditScript -Arguments @("-Json") -AllowFailure
+$p2pStoreForwardRelayContractVerified = ($p2pStoreForwardRelayAuditResult.json -and [bool]$p2pStoreForwardRelayAuditResult.json.ok)
 $secretStorageAuditResult = Invoke-JsonScript -FilePath $secretStorageAuditScript -Arguments @("-Json") -AllowFailure
 $secretStorageContractVerified = ($secretStorageAuditResult.json -and [bool]$secretStorageAuditResult.json.ok)
 $msixStoreDesktopEntrypointArtifactAuditResult = Invoke-JsonScript `
@@ -1505,6 +1509,9 @@ if (-not $localApiAuthContractVerified) {
 if (-not $operatorApiSecurityContractVerified) {
     Add-Blocker -List $blockers -Area "operator-api-security" -Message "Operator API security contract audit (musu.operator_api_security_contract.v1) failed; web-driven local control routes are not proven to require authenticated operators, command allowlists, explicit process-kill enablement, and audit logging."
 }
+if (-not $p2pStoreForwardRelayContractVerified) {
+    Add-Blocker -List $blockers -Area "p2p-store-forward-relay" -Message "P2P store-forward relay contract audit (musu.p2p_store_forward_relay_contract.v1) failed; queue fallback is not proven owner-scoped, lease-bound, non-default, non-release-grade, and separated from release tunnel transport."
+}
 if (-not $secretStorageContractVerified) {
     Add-Blocker -List $blockers -Area "secret-storage" -Message "Secret storage contract audit (musu.secret_storage_contract.v1) failed; bridge/account tokens, P2P secret helpers, evidence redaction, or production backup docs are not proven safe."
 }
@@ -1558,6 +1565,7 @@ $manualInternalGates = @(
     "Idle busy-loop candidate summary for clipboard, mDNS, health/readiness, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
+    "P2P store-forward relay contract audit for lease-bound non-default queue fallback and release tunnel separation",
     "Secret storage contract audit for token-file ACLs, raw-token redaction, and secret-safe operator docs",
     "Process ownership audit on primary Windows PC",
     "Second-PC runtime/startup ownership verification",
@@ -1660,6 +1668,18 @@ $result = [pscustomobject]@{
             raw = $operatorApiSecurityAuditResult.raw
         }
     }
+    p2p_store_forward_relay_contract_verified = [bool]$p2pStoreForwardRelayContractVerified
+    p2p_store_forward_relay_contract_audit = if ($p2pStoreForwardRelayAuditResult.json) {
+        $p2pStoreForwardRelayAuditResult.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            exit_code = $p2pStoreForwardRelayAuditResult.exit_code
+            timed_out = $p2pStoreForwardRelayAuditResult.timed_out
+            raw = $p2pStoreForwardRelayAuditResult.raw
+        }
+    }
     secret_storage_contract_verified = [bool]$secretStorageContractVerified
     secret_storage_contract_audit = if ($secretStorageAuditResult.json) {
         $secretStorageAuditResult.json
@@ -1724,6 +1744,7 @@ else {
     "idle_busy_loop_candidate_contract_verified: $($result.idle_busy_loop_candidate_contract_verified)"
     "local_api_auth_contract_verified: $($result.local_api_auth_contract_verified)"
     "operator_api_security_contract_verified: $($result.operator_api_security_contract_verified)"
+    "p2p_store_forward_relay_contract_verified: $($result.p2p_store_forward_relay_contract_verified)"
     "secret_storage_contract_verified: $($result.secret_storage_contract_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"
     "startup_single_instance_verified: $($result.startup_single_instance_verified)"

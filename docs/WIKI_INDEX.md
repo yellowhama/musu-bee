@@ -3850,4 +3850,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_payload_endpoint_not_implemented`,
   `store-forward queue fallback`, and `release tunnel endpoint still missing`.
 
+- 2026-06-05 P2P store-forward relay contract gate:
+  `RELEASE_1_15_0_RC1_P2P_STORE_FORWARD_RELAY_CONTRACT_GATE_2026_06_05.md`
+  (wiki/720) adds a dedicated source/release contract audit for the lease-bound
+  store-forward relay queue fallback and updates the MUSU.PRO/local-runtime
+  roadmap. Search terms should include `GOAL v533`, `wiki/720`,
+  `musu.p2p_store_forward_relay_contract.v1`,
+  `p2p_store_forward_relay_contract_verified=true`,
+  `p2p-store-forward-relay`, `local execution plane`,
+  `musu.pro control plane`, `company meeting room`, `web-assisted rendezvous`,
+  `P2P mesh bootstrap`, `relay fallback-only`,
+  `verify-single-machine-evidence.ps1 status-only allowlist`,
+  `verify-runtime-cpu-scenario-matrix.ps1 status-only allowlist`,
+  `source.relay_payload_queue_fallback_implemented=true`,
+  `p2p_control_plane_verified=false`,
+  `p2p_relay_transport_wired=false`, and `current testing one-machine only`.
+
 **End of WIKI_INDEX.md.**
