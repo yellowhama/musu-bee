@@ -135,6 +135,25 @@ function Get-CommandEvidence {
     }) | Select-Object -First 1
 }
 
+function Get-RouteCommandEvidence {
+    param(
+        [object[]]$Commands = @(),
+        [switch]$Explain
+    )
+
+    @($Commands | Where-Object {
+        $commandText = [string]$_.command
+        if ($commandText -notlike "musu route *") {
+            return $false
+        }
+        $isExplain = ($commandText -match '(^|\s)--explain(\s|$)')
+        if ($Explain) {
+            return $isExplain
+        }
+        return (-not $isExplain)
+    }) | Select-Object -First 1
+}
+
 function Convert-OutputJson($Command) {
     if (-not $Command -or [string]::IsNullOrWhiteSpace([string]$Command.output)) {
         return $null
@@ -169,6 +188,10 @@ $routeEvidence = $null
 if ($evidence.PSObject.Properties["route_evidence"]) {
     $routeEvidence = $evidence.route_evidence
 }
+$routeExplainEvidence = $null
+if ($evidence.PSObject.Properties["route_explain"]) {
+    $routeExplainEvidence = $evidence.route_explain
+}
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.multidevice_smoke_evidence.v1") "schema is valid" "schema is not musu.multidevice_smoke_evidence.v1"
 Add-CheckFromCondition "evidence ok" (Get-BoolProperty -Object $evidence -Name "ok") "evidence reports ok=true" "evidence does not report ok=true"
@@ -198,7 +221,8 @@ if (@($commands).Count -gt 0) {
     $peerList = Get-CommandEvidence -Commands $commands -Pattern "musu peer list"
     $discover = Get-CommandEvidence -Commands $commands -Pattern "musu discover *"
     $status = Get-CommandEvidence -Commands $commands -Pattern "musu status"
-    $route = Get-CommandEvidence -Commands $commands -Pattern "musu route *"
+    $routeExplain = Get-RouteCommandEvidence -Commands $commands -Explain
+    $route = Get-RouteCommandEvidence -Commands $commands
 }
 else {
     $up = $null
@@ -207,6 +231,7 @@ else {
     $peerList = $null
     $discover = $null
     $status = $null
+    $routeExplain = $null
     $route = $null
 }
 
@@ -265,6 +290,35 @@ if ($status) {
 $routeRequired = -not $AllowStatusOnly
 if ($routeRequired) {
     Add-CheckFromCondition "route checked" $routeChecked "route_checked=true" "route_checked is not true"
+    Add-CheckFromCondition "route explain command present" ($null -ne $routeExplain) "route explain command is recorded" "route explain command is missing"
+    if ($routeExplain) {
+        Add-CheckFromCondition "route explain exit" ([int]$routeExplain.exit_code -eq 0) "route explain exited 0" "route explain exit code was $($routeExplain.exit_code)"
+    }
+    $routeExplainJson = if ($routeExplainEvidence) { $routeExplainEvidence } else { Convert-OutputJson -Command $routeExplain }
+    Add-CheckFromCondition "route explain evidence present" ($null -ne $routeExplainJson) "route explain evidence is present" "route explain evidence is missing"
+    if ($routeExplainJson) {
+        $routeExplainSchema = Get-StringProperty -Object $routeExplainJson -Name "schema"
+        $routeExplainVersion = Get-StringProperty -Object $routeExplainJson -Name "version"
+        $routeExplainEndpoint = Get-StringProperty -Object $routeExplainJson -Name "submission_endpoint"
+        $routeExplainReleaseTransport = Get-StringProperty -Object $routeExplainJson -Name "release_grade_transport_required"
+        $routeExplainRelayPolicy = Get-StringProperty -Object $routeExplainJson -Name "relay_policy"
+        $routeExplainPathPriority = Get-ArrayProperty -Object $routeExplainJson -Name "path_priority"
+        $routeExplainSelected = $null
+        if ($routeExplainJson.PSObject.Properties["selected_candidate"]) {
+            $routeExplainSelected = $routeExplainJson.selected_candidate
+        }
+        $routeExplainSelectedKind = if ($routeExplainSelected) { Get-StringProperty -Object $routeExplainSelected -Name "route_kind" } else { "" }
+
+        Add-CheckFromCondition "route explain schema" ($routeExplainSchema -eq "musu.route_explain.v1") "route explain schema is valid" "route explain schema is not musu.route_explain.v1"
+        Add-CheckFromCondition "route explain version" ($routeExplainVersion -eq $ExpectedVersion) "route explain version matches $ExpectedVersion" "route explain version does not match $ExpectedVersion"
+        Add-CheckFromCondition "route explain endpoint" ($routeExplainEndpoint -match "/api/tasks/delegate$") "route explain submission endpoint is a delegate endpoint" "route explain submission endpoint is missing or invalid"
+        Add-CheckFromCondition "route explain selected candidate" ($null -ne $routeExplainSelected) "route explain selected a candidate" "route explain did not select a candidate"
+        Add-CheckFromCondition "route explain route kind" (@("lan", "tailscale", "direct_quic", "relay") -contains $routeExplainSelectedKind) "route explain selected route_kind is $routeExplainSelectedKind" "route explain selected route_kind is missing or invalid"
+        Add-CheckFromCondition "route explain path priority" ((@($routeExplainPathPriority) -join ",") -eq "lan,tailscale,direct_quic,relay") "route explain path priority is lan,tailscale,direct_quic,relay" "route explain path priority is missing or out of order"
+        Add-CheckFromCondition "route explain release transport" ($routeExplainReleaseTransport -eq "quic_tls_1_3") "route explain release transport is quic_tls_1_3" "route explain release transport is not quic_tls_1_3"
+        Add-CheckFromCondition "route explain relay policy" ($routeExplainRelayPolicy -match "fallback" -and $routeExplainRelayPolicy -match "must not become the default data path") "route explain relay policy documents fallback, not default data path" "route explain relay policy is missing or unsafe"
+    }
+
     Add-CheckFromCondition "route command present" ($null -ne $route) "route command is recorded" "route command is missing"
     if ($route) {
         Add-CheckFromCondition "route exit" ([int]$route.exit_code -eq 0) "route exited 0" "route exit code was $($route.exit_code)"

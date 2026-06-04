@@ -79,6 +79,7 @@ $evidence = [ordered]@{
     discover_checked = -not $SkipDiscover
     route_checked = -not $SkipRoute
     route_target = $null
+    route_explain = $null
     route_evidence = $null
     evidence_path = $EvidencePath
     commands = @()
@@ -199,6 +200,11 @@ try {
             $RouteTarget = $RemoteName
         }
         $evidence.route_target = $RouteTarget
+
+        Write-Step "Explain targeted remote route"
+        $routeExplain = Invoke-MusuJson -Arguments @("route", "Explain release-smoke route plan for $RouteTarget", "--target", $RouteTarget, "--explain", "--json")
+        Assert-True ($routeExplain.schema -eq "musu.route_explain.v1") "route explain schema was not musu.route_explain.v1"
+        $evidence.route_explain = $routeExplain
 
         Write-Step "Run targeted remote route"
         $routeEvidenceDir = Split-Path -Parent $EvidencePath

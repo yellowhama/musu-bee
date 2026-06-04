@@ -282,7 +282,7 @@ $validMultiDevice = [pscustomobject]@{
     completed_at = $now.ToString("o")
     operator_machine = "VERIFIER-TEST"
     operator_user = "verifier-test"
-    remote_addr = "10.0.0.2:8949"
+    remote_addr = "203.0.113.2:8949"
     remote_name = "SECOND-PC"
     discover_checked = $false
     route_checked = $true
@@ -299,14 +299,14 @@ $validMultiDevice = [pscustomobject]@{
             output = '{"overall":"ok","bridge":{"status":"ok"}}'
         },
         [pscustomobject]@{
-            command = "musu peer add SECOND-PC 10.0.0.2:8949"
+            command = "musu peer add 203.0.113.2:8949 --name SECOND-PC"
             exit_code = 0
             output = "peer added"
         },
         [pscustomobject]@{
             command = "musu peer list"
             exit_code = 0
-            output = "SECOND-PC 10.0.0.2:8949"
+            output = "SECOND-PC 203.0.113.2:8949"
         },
         [pscustomobject]@{
             command = "musu status"
@@ -314,16 +314,52 @@ $validMultiDevice = [pscustomobject]@{
             output = "MUSU Fleet Status`nSECOND-PC online"
         },
         [pscustomobject]@{
-            command = "musu route SECOND-PC -- echo MUSU_REMOTE_ROUTE_OK"
+            command = "musu route Explain release-smoke route plan for SECOND-PC --target SECOND-PC --explain --json"
+            exit_code = 0
+            output = '{"schema":"musu.route_explain.v1","version":"1.15.0-rc.1","requested_target":"SECOND-PC","channel":"cli","needs_gpu":false,"submission_endpoint":"https://203.0.113.2:8949/api/tasks/delegate","selected_candidate":{"name":"SECOND-PC","addr":"203.0.113.2:8949","source":"manual","route_kind":"direct_quic","transport_scheme":"https","peer_identity_verified":true,"peer_identity_method":"peer_public_key","peer_public_key_present":true,"https_fingerprint_pin_available":true,"encryption":"quic_tls_1_3","payload_transited_musu_infra":false},"candidate_count":1,"current_transport":"quic_tls_1_3","bridge_path_selection_wired":true,"rendezvous_session_wired":true,"https_fingerprint_pinning_wired":true,"release_grade_transport_required":"quic_tls_1_3","route_evidence_ready":true,"release_blockers":[],"path_priority":["lan","tailscale","direct_quic","relay"],"relay_policy":"relay is Connect/Pro fallback only; it must not become the default data path"}'
+        },
+        [pscustomobject]@{
+            command = "musu route Reply exactly: MUSU_REMOTE_ROUTE_OK --target SECOND-PC --route-evidence-path .local-build\\multi-device\\verifier.route-evidence.json --wait"
             exit_code = 0
             output = "MUSU_REMOTE_ROUTE_OK"
         }
     )
+    route_explain = [pscustomobject]@{
+        schema = "musu.route_explain.v1"
+        version = $ExpectedVersion
+        requested_target = "SECOND-PC"
+        channel = "cli"
+        needs_gpu = $false
+        submission_endpoint = "https://203.0.113.2:8949/api/tasks/delegate"
+        selected_candidate = [pscustomobject]@{
+            name = "SECOND-PC"
+            addr = "203.0.113.2:8949"
+            source = "manual"
+            route_kind = "direct_quic"
+            transport_scheme = "https"
+            peer_identity_verified = $true
+            peer_identity_method = "peer_public_key"
+            peer_public_key_present = $true
+            https_fingerprint_pin_available = $true
+            encryption = "quic_tls_1_3"
+            payload_transited_musu_infra = $false
+        }
+        candidate_count = 1
+        current_transport = "quic_tls_1_3"
+        bridge_path_selection_wired = $true
+        rendezvous_session_wired = $true
+        https_fingerprint_pinning_wired = $true
+        release_grade_transport_required = "quic_tls_1_3"
+        route_evidence_ready = $true
+        release_blockers = @()
+        path_priority = @("lan", "tailscale", "direct_quic", "relay")
+        relay_policy = "relay is Connect/Pro fallback only; it must not become the default data path"
+    }
     route_evidence = [pscustomobject]@{
         schema = "musu.route_evidence.v1"
         version = $ExpectedVersion
         route_kind = "direct_quic"
-        candidate_addr = "10.0.0.2:8949"
+        candidate_addr = "203.0.113.2:8949"
         encryption = "quic_tls_1_3"
         peer_identity_method = "peer_public_key"
         peer_public_key = "ed25519:test-release-evidence-verifier"
@@ -652,6 +688,13 @@ Add-CaseResult -Cases $cases -Name "p2p rejects relay transport flag without rel
 $fixture = Write-Fixture -Name "multidevice-valid" -Object $validMultiDevice
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "multidevice accepts release-grade direct QUIC route evidence" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$missingRouteExplain = Copy-JsonObject -Object $validMultiDevice
+$missingRouteExplain.route_explain = $null
+$missingRouteExplain.commands = @($missingRouteExplain.commands | Where-Object { ([string]$_.command) -notmatch '(^|\s)--explain(\s|$)' })
+$fixture = Write-Fixture -Name "multidevice-missing-route-explain" -Object $missingRouteExplain
+$invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "multidevice rejects missing route explain path-selection evidence" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRouteTransport = Copy-JsonObject -Object $validMultiDevice
 $badRouteTransport.route_evidence.transport_verified_by = "musu_bridge_forward_fingerprint_pinned_client"
