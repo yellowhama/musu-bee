@@ -208,6 +208,9 @@ Add-RegexCheck -Scope "pty" -Name "pty websocket close break" -Text $ptyText -Pa
 $webrtcPath = "musu-rs\src\io\webrtc.rs"
 $webrtcText = Get-RepoText $webrtcPath
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share ffmpeg request path" -Text $webrtcText -Pattern 'Command::new\("ffmpeg"\)' -Path $webrtcPath -Message "WebRTC screen-share loop is tied to an explicit ffmpeg capture request."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader request-scoped spawn" -Text $webrtcText -Pattern 'tokio::spawn\(async move \{[\s\S]*let mut rtcp_buf[\s\S]*rtp_sender\.read\(&mut rtcp_buf\)' -Path $webrtcPath -Message "WebRTC RTCP reader loop is spawned only inside the explicit screen-share request path."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader awaits inbound packets" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}' -Path $webrtcPath -Message "WebRTC RTCP reader waits on inbound RTCP reads instead of polling."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader exits on read failure" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}[\s\S]*RTCP reader loop exited' -Path $webrtcPath -Message "WebRTC RTCP reader exits when the RTCP read stream closes or errors."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share stdout read awaits" -Text $webrtcText -Pattern 'stdout\.read\(&mut buf\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop awaits ffmpeg stdout reads."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share kills child on failure" -Text $webrtcText -Pattern 'track_clone[\s\S]*write_sample[\s\S]*child\.kill\(\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop kills ffmpeg if sample writes fail."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share kills child on exit" -Text $webrtcText -Pattern 'let _ = child\.kill\(\)\.await;[\s\S]*FFmpeg screen capture loop exited' -Path $webrtcPath -Message "WebRTC screen-share loop kills ffmpeg when the capture loop exits."
@@ -264,7 +267,7 @@ else {
         if ([regex]::IsMatch($text, 'while\s+true|loop\s*\{') -and ($relative -notin $allowlistedLoopFiles)) {
             $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
-        if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
+        if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|non_blocking|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
             $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
     }
