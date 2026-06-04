@@ -3148,4 +3148,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route_kind=relay`, `relay_payload 24/24`, `route_evidence 13/13`, and
   `route-evidence API 22/22`.
 
+- 2026-06-04 post relay-drain route-evidence go/no-go:
+  `write-release-go-no-go.ps1 -Json` on commit `2777554e` remained No-Go with
+  `manifest_git.dirty=false`, `local_artifacts_ready=true`, and
+  `single_machine_verified=false` because Rust runtime source changed after
+  latest packaged primary evidence. Search terms should include `GOAL v474`,
+  `2777554e`, `single_machine_verified=false`, `source freshness`, and
+  `fresh MSIX smoke CPU matrix required`.
+
 **End of WIKI_INDEX.md.**

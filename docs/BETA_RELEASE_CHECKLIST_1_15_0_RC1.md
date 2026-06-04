@@ -2408,6 +2408,14 @@ tests `22/22`, and `git diff --check`.
 Public release remains No-Go because this is still preview relay payload queue
 evidence, not release-grade QUIC/TLS relay transport proof.
 
+Post-commit go/no-go on
+`2777554e6ce80b73a5bc471629b47059595d126b` reports
+`manifest_git.dirty=false`, `local_artifacts_ready=true`, and
+`single_machine_verified=false`; the drop is expected source freshness after
+the Rust runtime route-evidence change. Refresh packaged primary smoke, idle
+CPU, and runtime CPU matrix evidence after this source commit before treating
+primary runtime gates as current again.
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

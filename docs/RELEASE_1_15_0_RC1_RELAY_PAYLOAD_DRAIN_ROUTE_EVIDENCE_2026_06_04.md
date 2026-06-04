@@ -48,6 +48,13 @@ It does close a proof-chain gap: once a target accepts and acknowledges a
 queued relay payload, the runtime can now produce hosted relay route evidence
 instead of only returning a local drain report.
 
+Post-commit go/no-go on
+`2777554e6ce80b73a5bc471629b47059595d126b` remained No-Go with
+`manifest_git.dirty=false` and `local_artifacts_ready=true`, but
+`single_machine_verified=false` because Rust runtime source changed after the
+latest packaged primary evidence. Fresh MSIX/smoke/CPU/matrix evidence is
+required before this source commit can reclaim primary runtime gates.
+
 ## Validation
 
 - `cargo fmt --manifest-path musu-rs\Cargo.toml`

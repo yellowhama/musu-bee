@@ -4228,6 +4228,11 @@ This closes the proof-chain gap from local target acceptance to hosted route
 evidence. It remains non-release-grade until real QUIC/TLS relay transport
 proof and production proof stores are live.
 
+Post-commit go/no-go on `2777554e6ce80b73a5bc471629b47059595d126b` remained
+No-Go with `manifest_git.dirty=false`, `local_artifacts_ready=true`, and
+`single_machine_verified=false` because Rust runtime source changed after the
+latest packaged primary evidence.
+
 Validation passed Rust relay payload tests `24/24`, Rust route evidence tests
 `13/13`, `cargo check --bin musu`, `npm run typecheck`, route-evidence API
 tests `22/22`, and `git diff --check`.
