@@ -5437,3 +5437,39 @@ strict release record.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_SCOPED_RENDEZVOUS_API_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
+## 2026-06-04 Room event API (wiki/695)
+
+Added:
+
+- `POST /api/rooms/[roomId]/events`
+- `GET /api/rooms/[roomId]/events`
+
+This gives a MUSU.PRO project/company room a concrete meeting-room event log.
+Local MUSU programs and attached AI agents can publish bounded room events and
+read the room log while local devices remain responsible for execution.
+
+The route requires P2P control bearer auth, records owner-scoped
+`musu.room_event.v1` events, supports `presence`, `status`, `message`,
+`decision`, `work_order`, `rendezvous`, `route`, and `error`, and preserves
+bounded `company_id`/`project_id`/`work_order_id`/`source_node_id`/
+`source_agent_id`/`message`/`payload`/`origin` context.
+
+Storage uses Vercel KV / Upstash when configured; production fails closed
+without KV or explicit `MUSU_ROOM_EVENT_STORE_PATH`.
+
+Validation passed:
+
+- direct room event route test `5/5`
+- `npm run test:p2p` `70/70`
+- `npm run test:routes` `18/18`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so fresh packaged primary evidence is required
+after commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_EVENT_API_2026_06_04.md`

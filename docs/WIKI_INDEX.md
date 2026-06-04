@@ -3533,4 +3533,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `warning-mode install diagnostic-only`, `room-scoped rendezvous primary
   evidence`, and `local MUSU programs execute work`.
 
+- 2026-06-04 room event API:
+  `RELEASE_1_15_0_RC1_ROOM_EVENT_API_2026_06_04.md` (wiki/695) records
+  `POST /api/rooms/[roomId]/events` and `GET /api/rooms/[roomId]/events` as the
+  project/company room meeting event log. Search terms should include
+  `GOAL v508`, `wiki/695`, `room event API`, `musu.room_event.v1`,
+  `ROOM_EVENT_TYPES`, `MUSU_ROOM_EVENT_STORE_PATH`, `owner-scoped events`,
+  `presence status message decision work_order rendezvous route error`,
+  `source_node_id`, `source_agent_id`, `event_order newest_first`,
+  `test:p2p 70/70`, `room events 5/5`, `Next build`,
+  `/api/rooms/[roomId]/events`, and `fresh packaged primary evidence required`.
+
 **End of WIKI_INDEX.md.**

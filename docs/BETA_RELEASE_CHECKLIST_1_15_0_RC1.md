@@ -3270,6 +3270,40 @@ build installed and records multi-device, runtime idle CPU, and runtime CPU
 matrix evidence, plus hosted `musu.pro` P2P control-plane proof, support mailbox
 proof, and Store evidence.
 
+## 2026-06-04 19:05 KST Room Event API
+
+Added room-scoped event log endpoints:
+
+- `POST /api/rooms/[roomId]/events`
+- `GET /api/rooms/[roomId]/events`
+
+This gives MUSU.PRO project/company rooms a concrete coordination and
+meeting-room event surface for local MUSU programs and attached AI agents.
+
+Contract:
+
+- requires P2P control bearer auth for reads and writes
+- records owner-scoped `musu.room_event.v1` events
+- supports event types `presence`, `status`, `message`, `decision`,
+  `work_order`, `rendezvous`, `route`, and `error`
+- preserves bounded `company_id`, `project_id`, `work_order_id`,
+  `source_node_id`, `source_agent_id`, `message`, `payload`, and `origin`
+- returns `newest_first` room events and supports scoped filters
+- uses KV/Upstash when configured; production requires KV or explicit
+  `MUSU_ROOM_EVENT_STORE_PATH`
+
+Validation passed:
+
+- direct room event route test `5/5`
+- `npm run test:p2p` `70/70`
+- `npm run test:routes` `18/18`
+- `npm run typecheck`
+- `npm run build`
+- `git diff --check`
+
+This is web runtime source, so the current packaged primary evidence must be
+refreshed for the new commit before local artifact readiness can be claimed.
+
 ## 2026-06-04 18:37 KST Post Room-Scoped Rendezvous API Primary Evidence Refresh
 
 After adding `POST /api/rooms/[roomId]/rendezvous`, the local-sideload MSIX was
