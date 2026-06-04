@@ -4358,3 +4358,40 @@ evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STALE_PROOF_QUERY_GATE_2026_06_04.md`
+
+## 2026-06-04 post stale-proof query primary evidence refresh (wiki/667)
+
+Fresh primary-machine evidence was restored after the relay route-evidence stale
+proof query hardening.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-100843-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-101133-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-101925-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_100843`
+- desktop-open CPU maxes: MUSU `0`, Node `0.03`, WebView2 `0.16`, hot `0`,
+  working set `509.29MB`
+- matrix verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_101925`
+- matrix max CPU: MUSU `0`, Node `0.08`, WebView2 `0.18`
+- matrix max working set `509.47MB`
+
+Clean go/no-go on `a2087e6b` reports `single_machine_verified=true`, runtime
+idle CPU `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+`p2p_relay_route_evidence_count=0`, relay payload proof `false`, and
+`manifest_dirty=false`.
+
+Public release remains No-Go on second-PC runtime/multi-device evidence, live
+owner-scoped `musu.pro` relay proof, support mailbox evidence, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STALE_PROOF_QUERY_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`

@@ -2534,6 +2534,39 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_EVIDENCE_STALE_PROOF_QUERY_GATE_2026_06_04.md`
 
+## 2026-06-04 Post Stale-Proof Query Primary Evidence Refresh
+
+Fresh primary-machine evidence is restored after the relay route-evidence stale
+proof query hardening.
+
+Fresh evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260604-100843-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260604-101133-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-101925-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- smoke output `MUSU_RELEASE_SMOKE_OK_20260604_100843`
+- desktop-open CPU passed for `60.052s`: MUSU `0`, Node `0.03`,
+  WebView2 `0.16`, hot `0`, working set `509.29MB`
+- five-state matrix passed verifier `ok=true`, `fail_count=0`
+- matrix route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_101925`
+- matrix max CPU: MUSU `0`, Node `0.08`, WebView2 `0.18`
+- matrix max working set `509.47MB`
+
+Clean go/no-go on `a2087e6b` reports `single_machine_verified=true`,
+runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`,
+P2P relay route evidence count `0`, relay payload proof `false`, and
+`manifest_dirty=false`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_STALE_PROOF_QUERY_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+
 ## 2026-06-03 11:10 KST Startup-Open CPU Matrix Gate
 
 The runtime CPU scenario matrix now requires five scenarios:

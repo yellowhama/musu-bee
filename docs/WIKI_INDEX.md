@@ -3191,4 +3191,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release-grade relay route evidence count`, `missing KV/Upstash env`, and
   `relay payload delivery proof valid count is 0`.
 
+- 2026-06-04 post stale-proof query primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_STALE_PROOF_QUERY_PRIMARY_EVIDENCE_REFRESH_2026_06_04.md`
+  (wiki/667) records fresh primary smoke/CPU/matrix evidence after the stale
+  proof query hardening. Search terms should include `GOAL v478`, `wiki/667`,
+  `20260604-100843-HUGH_SECOND`, `20260604-101133-HUGH_SECOND.desktop-open`,
+  `20260604-101925-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260604_101925`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `WebView2 0.18`, and `single_machine_verified=true`.
+
 **End of WIKI_INDEX.md.**
