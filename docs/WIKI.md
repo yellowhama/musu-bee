@@ -5251,3 +5251,26 @@ evidence count `0`, and relay payload transport unproven.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_CONNECT_ENDPOINT_EVIDENCE_GATE_HARDENING_2026_06_04.md`
+
+## 2026-06-04 HUGH-MAIN route attempt CPU evidence (wiki/689)
+
+Captured targeted CPU evidence after attempting a route to second-PC peer
+`HUGH-MAIN`.
+
+Result:
+
+- route probe target `HUGH-MAIN`
+- route probe failed by timeout to `http://192.168.1.192:8949/api/tasks/delegate`
+- failed route was explicitly allowed for this CPU-only evidence
+- target-route verifier passed with `ok=true`, `fail_count=0`
+- post-route CPU sample ran `60.058s`
+- max one-core CPU: MUSU `0`, Node `0.05`, WebView2 `0.18`
+- owned WebView2 `6`, working set `465.97MB`, hot `0`
+
+This proves the primary machine did not enter an idle busy-loop after a failed
+second-PC route attempt. It does not replace the required successful
+multi-device route evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_ATTEMPT_CPU_EVIDENCE_2026_06_04.md`

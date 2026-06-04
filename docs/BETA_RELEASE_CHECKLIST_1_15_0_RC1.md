@@ -3288,6 +3288,29 @@ This is evidence-gate hardening only. Public release remains No-Go until
 second-PC evidence, hosted P2P relay proof, support mailbox evidence, and Store
 evidence are complete.
 
+## 2026-06-04 HUGH-MAIN Route Attempt CPU Evidence
+
+Captured a targeted post-route CPU sample after attempting
+`musu route --target HUGH-MAIN --wait`.
+
+Evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-171623-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-171623-HUGH_SECOND.post-route.evidence.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260604-171623-HUGH_SECOND.target-route.verification.json`
+
+Result:
+
+- target `HUGH-MAIN`
+- route probe failed by timeout to `http://192.168.1.192:8949/api/tasks/delegate`
+- failure was explicitly allowed for this CPU-only evidence
+- verifier `ok=true`, `fail_count=0`
+- 60.058s sample: MUSU `0`, Node `0.05`, WebView2 `0.18`
+- owned WebView2 `6`, working set `465.97MB`, hot process count `0`
+
+This proves the primary machine stays within idle CPU budget after a failed
+second-PC route attempt. It is not successful multi-device route evidence.
+
 ## 2026-06-04 15:57 KST Post Relay Connect/Queue Primary Evidence Refresh
 
 After the relay connect endpoint state and preview queue state were split, the

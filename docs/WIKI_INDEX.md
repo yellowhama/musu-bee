@@ -3466,4 +3466,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release evidence verifier regression`, and `P2P connect endpoint evidence
   gate`.
 
+- 2026-06-04 HUGH-MAIN route attempt CPU evidence:
+  `RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_ATTEMPT_CPU_EVIDENCE_2026_06_04.md`
+  (wiki/689) records targeted primary-machine CPU evidence after
+  `musu route --target HUGH-MAIN --wait` failed by timeout. Search terms should
+  include `GOAL v502`, `wiki/689`, `20260604-171623-HUGH_SECOND`,
+  `HUGH-MAIN`, `192.168.1.192:8949`, `allow_failed_post_route_probe=true`,
+  `MUSU 0`, `Node 0.05`, `WebView2 0.18`, `working set 465.97MB`, `hot 0`,
+  `target-route verification`, and `not successful multi-device route evidence`.
+
 **End of WIKI_INDEX.md.**
