@@ -4995,3 +4995,40 @@ and tested on a second Windows PC.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
+
+## 2026-06-04 relay drain preview evidence gate hardening (wiki/682)
+
+Hosted route-evidence tests now explicitly prove that target-side relay payload
+drain preview evidence cannot become release-grade relay transport evidence.
+
+The new regression seeds an owner-scoped relay lease, a delivered relay payload,
+a matching `musu.relay_payload_delivery_proof.v1`, and a relay route evidence
+record shaped like Rust target-drain preview output:
+
+- `route_kind=relay`
+- `payload_transited_musu_infra=true`
+- `relay_fallback.payload_transport_proven=true`
+- `transport_verified_by=musu_relay_payload_drain_preview`
+- `encryption=relay_payload_queue_preview`
+
+The hosted API accepts the stored delivery proof but keeps the route
+non-release-grade with blockers:
+
+- `transport_not_release_grade_quic_tls`
+- `relay_route_missing_transport_proof`
+- `relay_route_transport_not_wired`
+- `relay_route_payload_endpoint_not_wired`
+
+Validation passed:
+
+- `npm run test:p2p` `62/62`
+- `npm run typecheck`
+- `git diff --check`
+
+This is evidence-gate hardening only. It does not implement release-grade
+relay/tunnel payload transport and does not close the hosted `musu.pro` P2P
+gate.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_DRAIN_PREVIEW_EVIDENCE_GATE_HARDENING_2026_06_04.md`

@@ -3317,6 +3317,38 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_AFTER_CEO_DISPATCH_EVIDENCE_2026_06_04.md`
 
+## 2026-06-04 Relay Drain Preview Evidence Gate Hardening
+
+Hosted route-evidence regression now proves target-side relay payload drain
+preview records cannot be mistaken for release-grade relay transport.
+
+The new test covers preview evidence with:
+
+- `transport_verified_by=musu_relay_payload_drain_preview`
+- `encryption=relay_payload_queue_preview`
+- stored `musu.relay_payload_delivery_proof.v1`
+
+Expected result:
+
+- delivery proof is accepted as stored
+- route remains `release_grade=false`
+- blockers remain `transport_not_release_grade_quic_tls`,
+  `relay_route_missing_transport_proof`, `relay_route_transport_not_wired`, and
+  `relay_route_payload_endpoint_not_wired`
+
+Validation:
+
+- `npm run test:p2p` passed `62/62`
+- `npm run typecheck` passed
+- `git diff --check` passed
+
+This does not close the hosted P2P gate. It prevents preview queue evidence from
+weakening the release requirement for QUIC/TLS relay transport proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_DRAIN_PREVIEW_EVIDENCE_GATE_HARDENING_2026_06_04.md`
+
 ## 2026-06-04 13:57 KST CEO Dispatch SSE Cleanup Hardening
 
 CEO dispatch run streams now have explicit frontend cleanup:

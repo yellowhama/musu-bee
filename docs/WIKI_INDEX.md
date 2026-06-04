@@ -3377,4 +3377,14 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_payload_transport_not_proven`, `p2p_relay_payload_delivery_proof_missing`,
   `local MUSU programs execute work`, and `musu.pro project room`.
 
+- 2026-06-04 relay drain preview evidence gate hardening:
+  `RELEASE_1_15_0_RC1_RELAY_DRAIN_PREVIEW_EVIDENCE_GATE_HARDENING_2026_06_04.md`
+  (wiki/682) records the hosted route-evidence regression that keeps
+  target-side relay payload drain preview records non-release-grade even when
+  they include a stored delivery proof. Search terms should include
+  `GOAL v494`, `wiki/682`, `musu_relay_payload_drain_preview`,
+  `relay_payload_queue_preview`, `transport_not_release_grade_quic_tls`,
+  `relay_route_missing_transport_proof`, `relay_route_payload_endpoint_not_wired`,
+  and `test:p2p 62/62`.
+
 **End of WIKI_INDEX.md.**

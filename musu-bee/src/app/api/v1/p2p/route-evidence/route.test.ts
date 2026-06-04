@@ -528,6 +528,32 @@ test("accepts stored delivered relay payload proof while keeping file-store proo
   });
 });
 
+test("keeps target-drain preview relay evidence non release grade even with delivery proof", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-target-drain-preview");
+    const lease = await seedRelayLeaseForEvidence();
+    const deliveredPayload = await seedDeliveredRelayPayloadForEvidence(lease);
+
+    const res = await POST(postReq(relayRouteEvidenceForLease(lease, {
+      encryption: "relay_payload_queue_preview",
+      transport_verified_by: "musu_relay_payload_drain_preview",
+      relay_transport_proof: undefined,
+      relay_payload_delivery_proof: relayPayloadDeliveryProof(deliveredPayload),
+    })));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_missing/);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_not_stored/);
+    assert.match(blockers, /transport_not_release_grade_quic_tls/);
+    assert.match(blockers, /relay_route_missing_transport_proof/);
+    assert.match(blockers, /relay_route_transport_not_wired/);
+    assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
+  });
+});
+
 test("keeps relay transport proof non release grade when it is not bound to the stored lease URL", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("relay-route-transport-proof-url-mismatch");
