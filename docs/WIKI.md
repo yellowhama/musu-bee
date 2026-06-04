@@ -5055,6 +5055,10 @@ Validation passed:
 - PowerShell parser check for the four modified scripts
 - release evidence verifier regression `ok=true`, `case_count=28`,
   `failed_case_count=0`
+- clean go/no-go on `dd4fb7efab643c52cc47bcbb6ddd921058ef437a` restored
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `msix_install_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime
+  CPU matrix `1/2 [HUGH_SECOND]`, and `manifest_git.dirty=false`
 
 Roadmap lock:
 
@@ -5068,6 +5072,10 @@ Roadmap lock:
 
 The current validation remains one-machine until the same current build is
 installed and tested on a second Windows PC.
+
+Public release remains No-Go on six unchanged blockers: multi-device,
+second-PC runtime idle CPU, second-PC runtime CPU scenario matrix,
+support mailbox, Store release, and hosted `musu.pro` P2P control-plane proof.
 
 Canonical report:
 

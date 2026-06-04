@@ -57,6 +57,49 @@ freshness users, proving the test/spec source-file patterns are present.
 - PowerShell parser check passed for the four modified scripts
 - `test-release-evidence-verifiers.ps1 -Json` passed with `ok=true`,
   `case_count=28`, and `failed_case_count=0`
+- `git diff --check` passed with only existing CRLF normalization warnings for
+  `docs\GOAL.md` and `docs\WIKI_INDEX.md`
+
+## Clean Go/No-Go Result
+
+Clean HEAD `dd4fb7efab643c52cc47bcbb6ddd921058ef437a` restored the expected
+release interpretation:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `msix_desktop_entrypoint_verified=true`
+- `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_valid_machines=1/2 [HUGH_SECOND]`
+- `frontend_polling_contract_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `public_metadata_ok=true`
+- `manifest_git.dirty=false`
+
+Remaining blockers are unchanged external and second-machine gates:
+
+- `multi-device`
+- `runtime-idle-cpu`
+- `runtime-cpu-scenario-matrix`
+- `support-mailbox`
+- `store-release`
+- `p2p-control-plane`
+
+Hosted P2P is still not release-grade:
+
+- `p2p_owner_scope_verified=false`
+- `p2p_relay_lease_store_release_grade=false`
+- `p2p_relay_transport_wired=false`
+- `p2p_relay_status_transport_descriptor_wired=true`
+- `p2p_relay_status_payload_endpoint_wired=false`
+- `p2p_relay_transport_payload_endpoint_wired=false`
+- `p2p_relay_route_evidence_count=0`
+- `p2p_relay_payload_transport_proven=false`
+- `p2p_relay_payload_delivery_proof_valid_count=0`
 
 ## Release Impact
 
@@ -64,9 +107,9 @@ This is release tooling and roadmap documentation only. It does not change the
 packaged runtime and does not implement release-grade relay/tunnel payload
 transport.
 
-The expected clean release interpretation after commit is that current primary
-MSIX/smoke/CPU/matrix evidence remains usable because the only intervening
-source change is test-only.
+The clean release interpretation confirms that current primary MSIX/smoke/CPU
+/matrix evidence remains usable because the only intervening source change is
+test-only.
 
 Public release remains blocked on:
 

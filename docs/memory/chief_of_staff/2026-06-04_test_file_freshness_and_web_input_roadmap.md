@@ -19,3 +19,12 @@ Roadmap lock:
 
 Validation passed PowerShell parser checks and release evidence verifier
 regression `ok=true`, `case_count=28`, `failed_case_count=0`.
+
+Clean go/no-go on `dd4fb7efab643c52cc47bcbb6ddd921058ef437a` restored
+`local_artifacts_ready=true`, `single_machine_verified=true`,
+`msix_install_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime CPU
+matrix `1/2 [HUGH_SECOND]`, and `manifest_git.dirty=false`.
+
+Remaining blockers are unchanged: second-PC multi-device evidence, second-PC
+CPU/matrix evidence, support mailbox, Store/Partner Center, and hosted
+`musu.pro` P2P control-plane proof.

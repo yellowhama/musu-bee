@@ -3399,5 +3399,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v495`, `wiki/683`, `case_count=28`, `failed_case_count=0`,
   `release freshness classifier contract`, `test/spec source files`,
   `musu.pro web input`, `company meeting room`, and `local MUSU programs execute`.
+  GOAL v496 adds the clean go/no-go result for `dd4fb7ef`: search terms should
+  include `runtime idle CPU 1/2 [HUGH_SECOND]`, `runtime CPU matrix 1/2
+  [HUGH_SECOND]`, `manifest_git.dirty=false`, `p2p_relay_route_evidence_count=0`,
+  `p2p_relay_payload_transport_proven=false`, and `blockers six unchanged`.
 
 **End of WIKI_INDEX.md.**
