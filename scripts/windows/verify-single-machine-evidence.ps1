@@ -135,6 +135,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/prepare-final-operator-gate-packet.ps1",
         "scripts/windows/prepare-multidevice-test-kit.ps1",
         "scripts/windows/prepare-operator-action-pack.ps1",
+        "scripts/windows/repair-packaged-local-runtime-state.ps1",
         "scripts/windows/record-msix-install-evidence.ps1",
         "scripts/windows/record-multidevice-evidence.ps1",
         "scripts/windows/record-external-release-gate-recheck.ps1",

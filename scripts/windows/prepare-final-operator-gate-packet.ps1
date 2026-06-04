@@ -129,6 +129,7 @@ $scriptsToCopy = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
+    "repair-packaged-local-runtime-state.ps1",
     "audit-musu-startup-single-instance.ps1",
     "audit-musu-desktop-single-instance.ps1",
     "prepare-operator-action-pack.ps1",
@@ -527,6 +528,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pr
 It reports machine-wide helper counts, MUSU-owned helper counts, unowned helper
 counts, and top CPU/working-set processes. The release blocker is the
 MUSU-owned process set, not unrelated machine-wide Node.js tooling.
+
+If this gate fails because the bridge registry points at a workspace/debug
+runtime or port 3001 is served by a workspace Next dashboard, reset the local
+runtime boundary through the installed WindowsApps alias:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\repair-packaged-local-runtime-state.ps1 -StopRepoOrphanHelpers -FailOnProblem -Json
+```
+
+This writes `musu.packaged_local_runtime_repair.v1` under
+`.local-build\packaged-runtime-repair\`. The `-StopRepoOrphanHelpers` flag is
+intentional: it terminates repo/workspace Node.js or WebView2 helpers that the
+process ownership audit already identified as orphaned. Omit the flag for a
+diagnostic run that reports the helpers without stopping them.
 
 ## Gate G - Startup single-instance evidence
 

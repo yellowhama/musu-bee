@@ -134,6 +134,7 @@ try {
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
         "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\show-musu-process-attribution.ps1",
+        "scripts\windows\repair-packaged-local-runtime-state.ps1",
         "scripts\windows\audit-musu-startup-single-instance.ps1",
         "scripts\windows\audit-musu-desktop-single-instance.ps1",
         "scripts\windows\prepare-operator-action-pack.ps1",
@@ -205,6 +206,7 @@ try {
         Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*Scenario desktop-open*" -and $readme -like "*RequireOwnedWebView2*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*MaxOwnedProcessCount 16*" -and $readme -like "*MaxOwnedWebView2ProcessCount 8*" -and $readme -like "*MaxTotalWorkingSetMb 1024*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU/resource measurement command" "README missing runtime idle CPU/resource measurement command"
         Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*startup-open*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*RunRouteProbe*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*" -and $readme -like "*cpu_attribution*" -and $readme -like "*top_processes*") "README includes runtime CPU scenario matrix command and PID/role attribution contract" "README missing runtime CPU scenario matrix command or CPU attribution contract"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
+        Add-CheckFromCondition "readme packaged runtime repair" ($readme -like "*repair-packaged-local-runtime-state.ps1*" -and $readme -like "*musu.packaged_local_runtime_repair.v1*" -and $readme -like "*StopRepoOrphanHelpers*") "README includes packaged local runtime repair command" "README missing packaged local runtime repair command"
         Add-CheckFromCondition "readme process attribution summary" ($readme -like "*show-musu-process-attribution.ps1*" -and $readme -like "*machine-wide*" -and $readme -like "*MUSU-owned*") "README explains Node/WebView2 process attribution summary" "README missing process attribution summary"
         Add-CheckFromCondition "readme startup single-instance audit" ($readme -like "*audit-musu-startup-single-instance.ps1*" -and $readme -like "*startup_single_instance_verified=true*" -and $readme -like "*one bridge PID*") "README includes startup single-instance audit gate" "README missing startup single-instance audit gate"
         Add-CheckFromCondition "readme desktop single-instance audit" ($readme -like "*audit-musu-desktop-single-instance.ps1*" -and $readme -like "*desktop_single_instance_verified=true*" -and $readme -like "*musu-desktop.exe*") "README includes packaged desktop single-instance audit gate" "README missing packaged desktop single-instance audit gate"
@@ -232,7 +234,7 @@ try {
             "packet handoff status script does not report action-pack verification or second-PC return import"
         Add-CheckFromCondition `
             "handoff status process ownership gate" `
-            ($handoffStatusScript -like "*audit-musu-process-ownership.ps1*" -and $handoffStatusScript -like "*process_ownership_verified*" -and $handoffStatusScript -like "*process_ownership = Get-EvidenceRootStatus*") `
+            ($handoffStatusScript -like "*audit-musu-process-ownership.ps1*" -and $handoffStatusScript -like "*process_ownership_verified*" -and $handoffStatusScript -like "*process_ownership = Get-EvidenceRootStatus*" -and $handoffStatusScript -like "*repair-packaged-local-runtime-state.ps1*") `
             "packet handoff status script reports process ownership evidence" `
             "packet handoff status script does not report process ownership evidence"
         Add-CheckFromCondition `

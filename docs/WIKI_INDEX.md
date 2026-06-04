@@ -3889,4 +3889,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-rs target debug musu.exe`, `musu.pro remote input plane`,
   `local MUSU programs execute work`, and `P2P mesh bootstrap`.
 
+- 2026-06-05 packaged local runtime repair runbook:
+  `RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_REPAIR_RUNBOOK_2026_06_05.md`
+  (wiki/723) adds `repair-packaged-local-runtime-state.ps1` and wires it into
+  final handoff for machines where process/startup evidence is blocked by
+  debug/workspace runtime state. Search terms should include `GOAL v536`,
+  `wiki/723`, `musu.packaged_local_runtime_repair.v1`,
+  `packaged-local-runtime-state`, `StopRepoOrphanHelpers`, `WindowsApps musu
+  down`, `WindowsApps musu up`, `debug bridge PID 42236`, `workspace Next PID
+  2812`, `packaged bridge PID 23860`, `127.0.0.1:3001 connection refused`,
+  `packaged bridge 127.0.0.1:7555`, `process ownership ok`, and `startup
+  single-instance ok`.
+
 **End of WIKI_INDEX.md.**

@@ -6581,3 +6581,41 @@ Roadmap restatement:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_IDENTITY_GATE_2026_06_05.md`
+
+## 2026-06-05 Packaged local runtime repair runbook (wiki/723)
+
+Added `scripts\windows\repair-packaged-local-runtime-state.ps1` with schema
+`musu.packaged_local_runtime_repair.v1`.
+
+The repair flow:
+
+- records before process ownership evidence
+- runs exact WindowsApps packaged `musu down --include-desktop`
+- optionally stops audit-identified repo/workspace orphan helpers with explicit
+  `-StopRepoOrphanHelpers`
+- starts packaged `musu up --json`
+- records after process ownership evidence
+
+Final handoff now adds a `packaged-local-runtime-state` operator step when
+process ownership or startup single-instance evidence is blocked.
+
+Live HUGH_SECOND validation:
+
+- diagnostic repair without `-StopRepoOrphanHelpers` stopped debug bridge PID
+  `42236` but left workspace Next helper PID `2812`, so the repair correctly
+  reported `ok=false`
+- release repair with `-StopRepoOrphanHelpers` stopped PID `2812`, started
+  packaged bridge PID `23860`, and reported `ok=true`
+- follow-up process ownership audit passed with
+  `bridge_pid_packaged_runtime=true`, `non_packaged_runtime=0`, and
+  `orphan_repo_helpers=0`
+- follow-up startup single-instance audit passed using the WindowsApps
+  `musu.exe`, one stable bridge PID, no repeated spawn, and nested process
+  ownership `ok=true`
+- `127.0.0.1:3001/app` is now connection-refused because the workspace Next
+  dashboard was intentionally stopped; the packaged local runtime bridge is
+  healthy separately at `127.0.0.1:7555`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PACKAGED_LOCAL_RUNTIME_REPAIR_RUNBOOK_2026_06_05.md`

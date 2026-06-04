@@ -613,6 +613,7 @@ $commands = [pscustomobject]@{
     measure_runtime_cpu_scenario_matrix_target_attempt = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
+    repair_packaged_local_runtime = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\repair-packaged-local-runtime-state.ps1 -StopRepoOrphanHelpers -FailOnProblem -Json"
     audit_desktop_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json"
     show_musu_pro_p2p_env_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json"
     record_p2p_control_plane = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -Json"
@@ -743,6 +744,13 @@ if (-not [bool]$goNoGo.p2p_store_forward_relay_contract_verified) {
         -Gate "p2p-store-forward-relay" `
         -Summary "Fix the P2P store-forward relay queue contract so fallback payload transit is owner-scoped, lease-bound, non-default, non-release-grade, and separated from release tunnel transport." `
         -Command $commands.audit_p2p_store_forward_relay_contract
+}
+if ((-not [bool]$goNoGo.process_ownership_verified) -or (-not [bool]$goNoGo.startup_single_instance_verified)) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "packaged-local-runtime-state" `
+        -Summary "Reset the live local runtime boundary to the installed packaged MUSU app, clear explicit repo/workspace orphan helpers, restart through the WindowsApps alias, and rerun process ownership evidence." `
+        -Command $commands.repair_packaged_local_runtime
 }
 if (-not [bool]$goNoGo.process_ownership_verified) {
     Add-OperatorStep `
