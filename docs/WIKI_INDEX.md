@@ -3980,4 +3980,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_connect_endpoint_not_implemented`, and
   `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 frontend polling / local runtime evidence refresh:
+  `RELEASE_1_15_0_RC1_FRONTEND_POLLING_LOCAL_RUNTIME_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/730) records the all-call-site frontend low-duty polling audit and
+  fresh packaged bridge-only local runtime evidence that does not depend on
+  `localhost:3001`. Search terms should include `GOAL v543`, `wiki/730`,
+  `2517ffab`, `ff8fdf46`, `low_duty_polling_call_site_count=29`,
+  `low_duty_polling_signal_gap_count=0`, `20260605-070256-HUGH_SECOND`,
+  `20260605-065900-HUGH_SECOND.evidence.json`,
+  `20260605-070404-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-070552-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_070552`,
+  `dashboard-open measured packaged runtime state`,
+  `dashboard_required=false`, `local-bridge-only`, `localhost:3001 optional`,
+  `runtime idle CPU 1/2`, `runtime matrix 1/2`, and
+  `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**

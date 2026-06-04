@@ -6732,3 +6732,50 @@ Validation:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_ROUTE_QUERY_DELIVERY_PROOF_HARDENING_2026_06_05.md`
+
+## 2026-06-05 Frontend polling / local runtime evidence refresh (wiki/730)
+
+Frontend idle polling coverage now inventories all non-test `useLowDutyPolling`
+call sites and requires abort-signal-aware callbacks. The audit passed with
+`low_duty_polling_call_site_count=29`, signal gaps `0`, direct intervals `0`,
+and direct visibility listeners `0`; `npm run test:runtime-polling` passed
+`17/17`, `npm run typecheck` passed, parser checks passed, and
+`git diff --check` passed.
+
+The packaged local runtime evidence was refreshed after the local/web split
+work:
+
+- strict MSIX:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260605-070256-HUGH_SECOND.evidence.json`
+- bridge-only single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-065900-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-070404-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-070552-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-070552-HUGH_SECOND.verification.json`
+
+Idle CPU passed for `60.046s` with MUSU `0`, Node `0`, WebView2 `0.26`,
+working set `364.9MB`, and hot `0`. The five-state matrix passed with route
+token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_070552`, WindowsApps runtime
+identity, no developer runtime, max WebView2 CPU `0.21`, max working set
+`365.61MB`, and hot `0`. Its `dashboard-open` scenario measured packaged
+runtime state because no dashboard URL was exposed, so `localhost:3001` was not
+required.
+
+Current clean handoff status after `ff8fdf46` reports packet/action-pack
+verified, local artifacts true, single-machine true, MSIX true, frontend
+polling true, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime matrix
+`1/2 [HUGH_SECOND]`, `manifest_git_dirty=false`, and
+`ready_for_public_desktop_release=false`.
+
+The roadmap remains locked: the installed local MUSU program executes work,
+while `musu.pro` is remote input, project/company room context, presence,
+rendezvous, path selection, relay-fallback policy, and evidence. Another PC
+must install this current build before multi-device and two-machine CPU gates
+can close.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_LOCAL_RUNTIME_EVIDENCE_REFRESH_2026_06_05.md`
