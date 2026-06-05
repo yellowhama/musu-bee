@@ -4113,4 +4113,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU.PRO connects to local runtime`, `Tauri shell 7/7`,
   `tsc --noEmit`, and `fresh packaged evidence required`.
 
+- 2026-06-05 post desktop dashboard URL hardening primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_DESKTOP_DASHBOARD_URL_HARDENING_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/739) records fresh HUGH_SECOND packaged local-runtime evidence after
+  desktop dashboard URL hardening. Search terms should include `GOAL v552`,
+  `wiki/739`, `20260605-112337-HUGH_SECOND.evidence.json`,
+  `20260605-112710-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-112906-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-112906-HUGH_SECOND.verification.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_112906`,
+  `37773a7f-6aa3-4f0c-90d7-0317558d044f`,
+  `bridge http://127.0.0.1:1181`, `dashboard_required=false`,
+  `WebView2 0.16`, `matrix max WebView2 0.1`, `runtime idle CPU 1/2`,
+  `runtime matrix 1/2`, and `second-PC evidence still required`.
+
 **End of WIKI_INDEX.md.**

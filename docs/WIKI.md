@@ -7148,3 +7148,58 @@ Release implication:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_DESKTOP_SHELL_DASHBOARD_URL_HARDENING_2026_06_05.md`
+
+## 2026-06-05 Post desktop dashboard URL hardening primary evidence refresh (wiki/739)
+
+Fresh HUGH_SECOND packaged local-runtime evidence was restored after desktop
+shell dashboard URL hardening.
+
+Package refresh:
+
+- release runtime build passed
+- Tauri desktop shell build passed
+- MSIX package/signing passed
+- packaged startup smoke passed
+- install and installed package contract verification passed
+- packaged runtime identity check passed with explicit WindowsApps alias
+
+Runtime repair:
+
+- bridge `http://127.0.0.1:1181`
+- `dashboard.required=false`
+- after-process ownership passed
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-112337-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-112710-HUGH_SECOND.desktop-open.evidence.json`
+- runtime matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-112906-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-112906-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- idle CPU `git_dirty=false`, `60.055s`, MUSU `0`, Node `0`,
+  WebView2 `0.16`, working set `363.72MB`, hot `0`
+- matrix verifier `ok=true`, `fail_count=0`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_112906`
+- route task `37773a7f-6aa3-4f0c-90d7-0317558d044f`
+- matrix max role CPU: MUSU `0.03`, Node `0`, WebView2 `0.1`
+- matrix max working set: `366.26MB`
+
+Remaining release blockers:
+
+- second-PC multi-device evidence
+- second-PC idle CPU evidence
+- second-PC runtime CPU matrix evidence
+- hosted MUSU.PRO P2P release proof
+- support mailbox evidence
+- Store/Microsoft evidence
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_DESKTOP_DASHBOARD_URL_HARDENING_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`

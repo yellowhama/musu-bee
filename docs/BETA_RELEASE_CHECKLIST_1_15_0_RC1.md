@@ -5661,3 +5661,44 @@ Validation passed:
 Release implication: this is desktop shell/web app source. Fresh MSIX install,
 single-machine smoke, desktop-open idle CPU, and runtime CPU matrix evidence
 are required again before current-source local runtime gates can be claimed.
+
+## 2026-06-05 Post desktop dashboard URL hardening primary evidence refresh
+
+After desktop dashboard URL hardening, HUGH_SECOND packaged local-runtime
+evidence was refreshed for the current source line.
+
+Package/restart state:
+
+- release runtime build, Tauri desktop shell build, MSIX package/signing,
+  packaged startup smoke, install, installed package contract, and packaged
+  runtime identity checks passed
+- PATH alias shadowing remains, so explicit WindowsApps alias invocation was
+  used
+- packaged runtime repair passed with bridge `http://127.0.0.1:1181`
+- `dashboard.required=false`
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-112337-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-112710-HUGH_SECOND.desktop-open.evidence.json`
+- runtime matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-112906-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-112906-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- idle CPU `git_dirty=false`, `60.055s`, MUSU `0`, Node `0`,
+  WebView2 `0.16`, working set `363.72MB`, hot `0`
+- runtime matrix verifier `ok=true`, `fail_count=0`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_112906`
+- route task `37773a7f-6aa3-4f0c-90d7-0317558d044f`
+- matrix max role CPU: MUSU `0.03`, Node `0`, WebView2 `0.1`
+- matrix max working set: `366.26MB`
+
+This restores current one-machine packaged evidence only. Public release still
+requires second-PC multi-device, second-PC idle CPU, second-PC runtime CPU
+matrix, hosted P2P, support mailbox, and Store evidence.
