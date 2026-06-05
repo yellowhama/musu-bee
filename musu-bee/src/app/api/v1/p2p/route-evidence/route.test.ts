@@ -296,6 +296,45 @@ test("accepts hardened release-grade route evidence", async () => {
   });
 });
 
+test("keeps direct route evidence non release grade when route_kind does not match candidate address", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("route-kind-candidate-addr-mismatch");
+
+    const lanClaim = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "lan",
+      candidate_addr: "8.8.8.8:443",
+    }));
+    assert.equal(lanClaim.status, 202);
+    const lanBody = (await lanClaim.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(lanBody.release_grade, false);
+    assert.match(lanBody.blockers.join(","), /route_kind_candidate_addr_mismatch/);
+
+    const tailscaleClaim = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "tailscale",
+      candidate_addr: "192.168.1.20:8070",
+    }));
+    assert.equal(tailscaleClaim.status, 202);
+    const tailscaleBody = (await tailscaleClaim.json()) as {
+      release_grade: boolean;
+      blockers: string[];
+    };
+    assert.equal(tailscaleBody.release_grade, false);
+    assert.match(tailscaleBody.blockers.join(","), /route_kind_candidate_addr_mismatch/);
+
+    const directClaim = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "direct_quic",
+      candidate_addr: "100.64.1.20:8949",
+    }));
+    assert.equal(directClaim.status, 202);
+    const directBody = (await directClaim.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(directBody.release_grade, false);
+    assert.match(directBody.blockers.join(","), /route_kind_candidate_addr_mismatch/);
+  });
+});
+
 test("keeps relay route evidence non release grade without relay lease proof", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("relay-route-missing-lease-proof");

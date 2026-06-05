@@ -88,6 +88,7 @@ The rendezvous API returns `path_selection_order` so clients do not invent their
 Relay is a fallback, not the default path. Relay lease requests must prove that a direct path was attempted and failed. Release-grade route evidence must show:
 
 - `route_kind`: `lan`, `tailscale`, `direct_quic`, or `relay`
+- direct route `candidate_addr` must classify consistently with `route_kind`: loopback/private/link-local maps to `lan`, `100.64.0.0/10` maps to `tailscale`, and public IPs or hostnames map to `direct_quic`
 - relay fallback `attempted_route_kinds` contains only direct route kinds and preserves path priority order: `lan`, then `tailscale`, then `direct_quic`
 - `peer_identity_verified: true`
 - `encryption: "quic_tls_1_3"`

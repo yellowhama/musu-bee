@@ -1,3 +1,5 @@
+import net from "node:net";
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -116,6 +118,74 @@ function parseIsoTimestamp(value: string | null | undefined): number | null {
   }
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function hostFromCandidateAddr(addr: string): string | null {
+  const withoutScheme = addr.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+  const authority = withoutScheme.split("/")[0]?.trim();
+  if (!authority) {
+    return null;
+  }
+  if (authority.startsWith("[")) {
+    return authority.slice(1).split("]")[0]?.trim() || null;
+  }
+  return authority.includes(":") ? authority.split(":")[0]?.trim() || null : authority;
+}
+
+function ipv4RouteKind(host: string): "lan" | "tailscale" | "direct_quic" | null {
+  if (net.isIP(host) !== 4) {
+    return null;
+  }
+  const octets = host.split(".").map((part) => Number.parseInt(part, 10));
+  const [a, b] = octets;
+  if (a === undefined || b === undefined) {
+    return null;
+  }
+  if (a === 127) {
+    return "lan";
+  }
+  if (a === 100 && b >= 64 && b <= 127) {
+    return "tailscale";
+  }
+  if (
+    a === 10 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254)
+  ) {
+    return "lan";
+  }
+  return "direct_quic";
+}
+
+function ipv6RouteKind(host: string): "lan" | "direct_quic" | null {
+  if (net.isIP(host) !== 6) {
+    return null;
+  }
+  const normalized = host.toLowerCase();
+  if (normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") {
+    return "lan";
+  }
+  if (normalized.startsWith("fe80:")) {
+    return "lan";
+  }
+  return "direct_quic";
+}
+
+function routeKindForCandidateAddr(addr: string): "lan" | "tailscale" | "direct_quic" {
+  const host = hostFromCandidateAddr(addr);
+  if (!host) {
+    return "direct_quic";
+  }
+  return ipv4RouteKind(host) ?? ipv6RouteKind(host) ?? "direct_quic";
+}
+
+function candidateAddrRouteKindBlockers(evidence: RouteEvidence): string[] {
+  if (!["lan", "tailscale", "direct_quic"].includes(evidence.route_kind)) {
+    return [];
+  }
+  const expected = routeKindForCandidateAddr(evidence.candidate_addr);
+  return expected === evidence.route_kind ? [] : ["route_kind_candidate_addr_mismatch"];
 }
 
 function sameRouteKindSet(left: string[], right: string[]): boolean {
@@ -422,6 +492,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
   if (evidence.route_kind === "failed") {
     blockers.push("route_kind_failed");
   }
+  blockers.push(...candidateAddrRouteKindBlockers(evidence));
   if (!evidence.peer_identity_verified) {
     blockers.push("peer_identity_unverified");
   }
