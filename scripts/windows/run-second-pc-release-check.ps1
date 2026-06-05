@@ -15,6 +15,7 @@ param(
     [switch]$RunRuntimeCpuRouteProbe = $true,
     [string]$RuntimeCpuRouteTarget,
     [string]$RuntimeCpuRoutePrompt,
+    [int]$RuntimeCpuRouteWaitTimeoutSec = 180,
     [switch]$AllowFailedRuntimeCpuRouteProbe,
     [switch]$SkipRuntimeCpuScenarioMatrix,
     [switch]$FailOnRuntimeCpuScenarioMatrix,
@@ -300,6 +301,7 @@ try {
             ) + @($RuntimeCpuScenario) + @(
                 "-SampleSeconds", ([string]$RuntimeCpuScenarioMatrixSampleSeconds),
                 "-CommandTimeoutSec", ([string]$CommandTimeoutSec),
+                "-RouteWaitTimeoutSec", ([string]$RuntimeCpuRouteWaitTimeoutSec),
                 "-OutputRoot", $runtimeCpuScenarioOutputRoot,
                 "-OpenDesktopApp",
                 "-Json"

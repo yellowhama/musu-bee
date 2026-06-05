@@ -3,6 +3,7 @@ param(
     [string[]]$Scenario = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route"),
     [int]$SampleSeconds = 60,
     [int]$CommandTimeoutSec = 90,
+    [int]$RouteWaitTimeoutSec = 180,
     [string]$MusuExe,
     [switch]$AllowDeveloperRuntime,
     [switch]$OpenDesktopApp,
@@ -75,6 +76,9 @@ if ($RouteProbeMaxAttempts -lt 1) {
 }
 if ($RouteProbeRetryDelaySec -lt 1) {
     throw "RouteProbeRetryDelaySec must be at least 1."
+}
+if ($RouteWaitTimeoutSec -lt 1 -or $RouteWaitTimeoutSec -gt 3600) {
+    throw "RouteWaitTimeoutSec must be between 1 and 3600."
 }
 
 $knownScenarioNames = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
@@ -289,6 +293,12 @@ $expectedRouteToken = "MUSU_CPU_SCENARIO_ROUTE_OK_$($stamp.Replace('-', '_'))"
 if ([string]::IsNullOrWhiteSpace($RoutePrompt)) {
     $RoutePrompt = "Reply exactly: $expectedRouteToken"
 }
+elseif ($RoutePrompt.Contains("{TOKEN}")) {
+    $RoutePrompt = $RoutePrompt.Replace("{TOKEN}", $expectedRouteToken)
+}
+elseif (-not $AllowFailedRouteProbe -and -not $RoutePrompt.Contains($expectedRouteToken)) {
+    throw "RoutePrompt must include expected token '$expectedRouteToken' or the literal {TOKEN} placeholder unless -AllowFailedRouteProbe is set."
+}
 
 function Resolve-DashboardUrlFromUpResult {
     param($UpResult)
@@ -397,14 +407,15 @@ foreach ($name in $Scenario) {
                 if (-not [string]::IsNullOrWhiteSpace($RouteTarget)) {
                     $routeArgs += @("--target", $RouteTarget)
                 }
-                $routeArgs += @("--wait", $RoutePrompt)
+                $routeArgs += @("--wait-timeout-sec", ([string]$RouteWaitTimeoutSec), "--wait", $RoutePrompt)
                 $routeCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeArgs)
+                $routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)
                 $routeAttempts = New-Object System.Collections.Generic.List[object]
                 $routeResult = $null
                 $routeOutput = ""
                 for ($attempt = 1; $attempt -le $RouteProbeMaxAttempts; $attempt++) {
                     $attemptStartedAt = (Get-Date).ToString("o")
-                    $candidateResult = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeArgs -TimeoutSec $CommandTimeoutSec
+                    $candidateResult = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeArgs -TimeoutSec $routeProbeCommandTimeoutSec
                     $routeOutputParts = @($candidateResult.stdout, $candidateResult.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
                     $candidateOutput = ($routeOutputParts -join "`n").Trim()
                     $candidateOk = ($candidateResult.exit_code -eq 0 -and $candidateOutput -like "*$expectedRouteToken*")
@@ -418,6 +429,7 @@ foreach ($name in $Scenario) {
                         output = $candidateOutput
                         ok = [bool]$candidateOk
                         retry_after_s = $retryAfterSec
+                        timeout_sec = $routeProbeCommandTimeoutSec
                     }) | Out-Null
                     $routeResult = $candidateResult
                     $routeOutput = $candidateOutput
@@ -432,6 +444,8 @@ foreach ($name in $Scenario) {
                     target = if ([string]::IsNullOrWhiteSpace($RouteTarget)) { $null } else { $RouteTarget }
                     command = $routeCommand
                     arguments = @($routeArgs)
+                    wait_timeout_sec = $RouteWaitTimeoutSec
+                    command_timeout_sec = $routeProbeCommandTimeoutSec
                     max_attempts = $RouteProbeMaxAttempts
                     attempt_count = $routeAttempts.Count
                     attempts = $routeAttempts.ToArray()

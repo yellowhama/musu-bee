@@ -162,6 +162,46 @@ function Test-TestSourceFilesAllowedAsStatusOnly {
     )
 }
 
+function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[int]$RouteWaitTimeoutSec = 180',
+        'RouteWaitTimeoutSec must be between 1 and 3600.',
+        '$RoutePrompt = $RoutePrompt.Replace("{TOKEN}", $expectedRouteToken)',
+        'RoutePrompt must include expected token',
+        '"--wait-timeout-sec"',
+        '$routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)',
+        'wait_timeout_sec = $RouteWaitTimeoutSec',
+        'command_timeout_sec = $routeProbeCommandTimeoutSec'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[int]$RuntimeCpuRouteWaitTimeoutSec = 180',
+        '"-RouteWaitTimeoutSec", ([string]$RuntimeCpuRouteWaitTimeoutSec)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -692,6 +732,31 @@ foreach ($classifierScript in $freshnessClassifierScripts) {
         -ShouldPass $true `
         -Invocation $invocation
 }
+
+$runtimeCpuMeasureScript = Join-Path $scriptDir "measure-musu-runtime-cpu-scenarios.ps1"
+$routeProbeContractOk = Test-RuntimeCpuScenarioMatrixRouteProbeContract -ScriptPath $runtimeCpuMeasureScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $routeProbeContractOk `
+    -Message "runtime CPU matrix route probe must use its own wait timeout, pass --wait-timeout-sec, and fail fast on token-mismatched success prompts"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix route probe timeout and prompt contract" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcRouteTimeoutPassThroughOk = Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRouteTimeoutPassThroughOk `
+    -Message "second-PC release check must pass the runtime CPU route wait timeout through to the matrix capture"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC runtime CPU route wait timeout pass-through" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
 
 $fixture = Write-Fixture -Name "single-machine-valid-bridge-only-packaged-runtime" -Object $validBridgeOnlySingleMachine
 $invocation = Invoke-Verifier -ScriptPath $singleMachineVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedGitCommit", $currentGitCommit, "-Json")
