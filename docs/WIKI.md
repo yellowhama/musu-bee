@@ -8963,3 +8963,63 @@ Search terms should include `GOAL v613`, `wiki/788`,
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_054415`,
 `20260606-055030-HUGH_SECOND`, `targeted second-PC route CPU true`, and
 `p2p_control_plane_verified=false`.
+
+## 2026-06-06 Final Operator Packet After Room Work-Order Command Audit
+
+The final operator packet and action pack were regenerated from clean source
+commit `847aa2c0cb6979a62c967c2f3c4a20a4195075f2` after the room work-order
+command audit and fresh primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-060037.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103\partner-center\MUSU-1.15.0-rc.1-store-submission-20260606-060103.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260606-060037`
+
+Validation:
+
+- final operator packet verifier: `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack generation: `ok=true`
+- action pack verifier: `ok=true`, `fail_count=0`
+- final handoff quick status: packet/action pack exist and verified
+- clean go/no-go with public metadata skipped: single-machine true, runtime
+  idle CPU `1/2`, runtime matrix `1/2`, targeted second-PC route CPU true,
+  `p2p_control_plane_verified=false`, and public release No-Go
+
+Qualitative code audit found no new high/medium issue in the current
+room-work-order handoff and operator-packet path. The remaining risk is
+external evidence: real second-PC route/CPU/matrix, hosted MUSU.PRO P2P proof,
+public metadata recheck, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_ROOM_WORK_ORDER_COMMAND_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Final Operator Packet After Room Work-Order Command Audit Index Refresh
+
+MUSU local indexer was refreshed after wiki/789 and GOAL v614.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2534 files`
+- `2732 symbols`
+- `11243 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures,
+`sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`.
+The MUSU local index is the current reliable code/document index.
+
+Search terms should include `GOAL v615`, `wiki/790`, `2534 files`,
+`11243 ms`, `20260606-060037`,
+`20260606-060103`,
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`,
+`room work-order command audit`, `MUSU.PRO remote input`,
+`MUSU Desktop local executor`, and `p2p_control_plane_verified=false`.

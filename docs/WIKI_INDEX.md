@@ -4843,4 +4843,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260606-055030-HUGH_SECOND`,
   `targeted second-PC route CPU true`, and `p2p_control_plane_verified=false`.
 
+- 2026-06-06 final operator packet after room work-order command audit:
+  `RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_ROOM_WORK_ORDER_COMMAND_AUDIT_2026_06_06.md`
+  (wiki/789) records the current operator packet/action pack refresh after the
+  room work-order command audit evidence reset. Search terms should include
+  `GOAL v614`, `wiki/789`,
+  `847aa2c0cb6979a62c967c2f3c4a20a4195075f2`,
+  `20260606-060037`, `20260606-060103`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`,
+  `musu-store-support-1.15.0-rc.1-20260606-060037`,
+  `final operator packet fail_count=0`, `operator action pack fail_count=0`,
+  `handoff quick status packet verified`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `p2p_control_plane_verified=false`,
+  `room work-order command audit`, `MUSU.PRO remote input`, and
+  `MUSU Desktop local executor`.
+
+- 2026-06-06 final operator packet after room work-order command audit index
+  refresh: wiki/790 records the MUSU local index refresh after wiki/789 and
+  GOAL v614. Search terms should include `GOAL v615`, `wiki/790`,
+  `2534 files`, `2732 symbols`, `11243 ms`,
+  `final operator packet after room work-order command audit index refresh`,
+  `20260606-060037`, `20260606-060103`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`,
+  `room work-order command audit`, `MUSU.PRO remote input`,
+  `MUSU Desktop local executor`, `p2p_control_plane_verified=false`,
+  `ZEROENTROPY_API_KEY`, and `gstack-brain-sync exited undefined`.
+
 **End of WIKI_INDEX.md.**

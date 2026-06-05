@@ -6665,3 +6665,57 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2530 files`, `2732 symbols`, `12816 ms`
+
+## 2026-06-06 final operator packet after room work-order command audit
+
+The final operator packet and operator action pack were regenerated from clean
+source commit `847aa2c0cb6979a62c967c2f3c4a20a4195075f2` after the room
+work-order command audit and fresh HUGH_SECOND primary evidence refresh.
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-060037.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-060103\partner-center\MUSU-1.15.0-rc.1-store-submission-20260606-060103.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260606-060037`
+
+Validation:
+
+- post-doc `git diff --check`: pass with CRLF warnings only
+- post-doc operator API security audit: `ok=true`, `fail_count=0`
+- post-doc release evidence verifier regressions: `ok=true`,
+  `case_count=51`, `failed_case_count=0`
+- final operator packet verifier: `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack generation: `ok=true`
+- action pack verifier: `ok=true`, `fail_count=0`
+- final handoff quick status: packet/action pack exist and verified
+
+Clean go/no-go with public metadata skipped remains No-Go:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- targeted second-PC route CPU `true`
+- `p2p_control_plane_verified=false`
+- blocker count `7`
+
+Qualitative audit: no new high/medium issue was found in the current
+room-work-order handoff and operator-packet path. Remaining blockers are real
+second-PC route/CPU/matrix evidence, hosted MUSU.PRO P2P proof, public metadata
+recheck, support mailbox proof, and Store/Partner Center proof.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2534 files`, `2732 symbols`, `11243 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
