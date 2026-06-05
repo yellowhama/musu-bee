@@ -55,5 +55,5 @@ The local source has the store-forward relay queue fallback wired, but public P2
 - Release relay payload endpoint not implemented.
 - `/api/v1/relay/connect` fail-closed placeholder still active.
 - Payload endpoint is queue-only and non-release-grade.
-- Current relay transport kind is `websocket_tunnel`, not `quic_tls_1_3`.
+- Current relay transport kind is `websocket_tunnel`, not `quic_relay_tunnel`.
 - Hosted KV/Upstash-backed live evidence and release-grade relay route proof are still missing.

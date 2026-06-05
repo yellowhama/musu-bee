@@ -395,6 +395,30 @@ This does not expand the public network claim. Public release still requires
 real second-PC evidence, live owner-scoped MUSU.PRO P2P proof, support mailbox
 proof, and Store proof.
 
+## 2026-06-06 relay transport kind/encryption boundary update
+
+The relay release contract now names two separate things:
+
+- release relay tunnel kind: `quic_relay_tunnel`
+- release encryption/proof requirement: `quic_tls_1_3`
+
+`websocket_tunnel` remains a preview/store-forward descriptor and cannot satisfy
+the release relay transport gate. `quic_tls_1_3` is not the relay kind; it is
+the encryption/proof contract the release tunnel must emit.
+
+This preserves the product boundary:
+
+- MUSU Desktop on each device remains the local executor and payload worker.
+- MUSU.PRO can accept remote user input, host project/company rooms, coordinate
+  rendezvous/path selection, issue relay fallback leases, and record evidence.
+- MUSU.PRO still does not become the default execution server or default
+  payload data path.
+
+Current source therefore remains release-blocked for hosted relay transport:
+`RELAY_TRANSPORT_KIND=websocket_tunnel`,
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, hosted KV/Upstash evidence is not
+configured, and live relay payload delivery proof is absent.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

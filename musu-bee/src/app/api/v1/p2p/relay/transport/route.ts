@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import {
+  RELEASE_GRADE_RELAY_TRANSPORT_KIND,
   RELEASE_GRADE_TRANSPORT_REQUIRED,
   RELAY_POLICY,
   RELAY_TRANSPORT_KIND,
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
     relay_url: url,
     relay_connect_path: relayConnectPath(url),
     relay_transport_kind: RELAY_TRANSPORT_KIND,
+    release_grade_relay_transport_kind: RELEASE_GRADE_RELAY_TRANSPORT_KIND,
     release_grade_transport_required: RELEASE_GRADE_TRANSPORT_REQUIRED,
     payload_transit_requires_lease: true,
     policy: RELAY_POLICY,

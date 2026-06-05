@@ -164,6 +164,7 @@ function Get-SourceRelayMarker {
             rust_target_drain_and_delivery_proof = $false
         }
         relay_transport_kind = ""
+        release_grade_relay_transport_kind = ""
         release_grade_transport_required = ""
         relay_transport_kind_release_grade = $false
     }
@@ -232,13 +233,19 @@ function Get-SourceRelayMarker {
             $summary.relay_transport_kind = $transportKindMatch.Groups[1].Value
         }
 
+        $releaseTransportKindMatch = [regex]::Match($text, 'RELEASE_GRADE_RELAY_TRANSPORT_KIND\s*=\s*"([^"]+)"')
+        if ($releaseTransportKindMatch.Success) {
+            $summary.release_grade_relay_transport_kind = $releaseTransportKindMatch.Groups[1].Value
+        }
+
         $releaseRequirementMatch = [regex]::Match($text, 'RELEASE_GRADE_TRANSPORT_REQUIRED\s*=\s*"([^"]+)"')
         if ($releaseRequirementMatch.Success) {
             $summary.release_grade_transport_required = $releaseRequirementMatch.Groups[1].Value
         }
         $summary.relay_transport_kind_release_grade = (
             -not [string]::IsNullOrWhiteSpace($summary.relay_transport_kind) -and
-            $summary.relay_transport_kind -eq $summary.release_grade_transport_required
+            -not [string]::IsNullOrWhiteSpace($summary.release_grade_relay_transport_kind) -and
+            $summary.relay_transport_kind -eq $summary.release_grade_relay_transport_kind
         )
     }
     catch {
@@ -400,6 +407,9 @@ else {
     if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
         $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
     }
+    if ($sourceSummary.release_grade_relay_transport_kind -ne "quic_relay_tunnel") {
+        $blockers.Add("source_release_relay_transport_kind_requirement_not_quic_relay_tunnel") | Out-Null
+    }
     if (-not $sourceSummary.relay_transport_kind_release_grade) {
         $blockers.Add("source_relay_transport_kind_not_release_grade") | Out-Null
     }
@@ -458,7 +468,10 @@ if ($blockers -contains "source_release_relay_payload_endpoint_not_implemented")
     $nextSteps.Add("Add a distinct release tunnel payload endpoint that can emit quic_tls_1_3 proof before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
 }
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
-    $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release requirement quic_tls_1_3; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
+    $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release relay tunnel kind quic_relay_tunnel; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
+}
+if ($blockers -contains "source_release_relay_transport_kind_requirement_not_quic_relay_tunnel") {
+    $nextSteps.Add("Keep RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel; quic_tls_1_3 is the release encryption/proof requirement, not the relay tunnel kind.") | Out-Null
 }
 if ($blockers -contains "source_release_relay_connect_placeholder_active") {
     $nextSteps.Add("Keep /api/v1/relay/connect fail-closed until a real relay/tunnel handshake exists; remove the 501 placeholder only with tests proving release-grade QUIC/TLS payload transport.") | Out-Null
@@ -519,6 +532,9 @@ else {
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
+    "source relay transport kind: $($result.source.relay_transport_kind)"
+    "source release relay transport kind required: $($result.source.release_grade_relay_transport_kind)"
+    "source release transport encryption required: $($result.source.release_grade_transport_required)"
     "source relay transport kind release-grade: $($result.source.relay_transport_kind_release_grade)"
     "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
     "source release payload endpoint queue-only: $($result.source.release_payload_endpoint_queue_only)"

@@ -4541,4 +4541,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 P2P relay transport kind/encryption split:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_KIND_ENCRYPTION_SPLIT_2026_06_06.md`
+  (wiki/763) records the source/spec/audit correction that separates release
+  relay tunnel kind from release encryption proof. Search terms should include
+  `GOAL v588`, `wiki/763`,
+  `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`,
+  `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`,
+  `release_grade_relay_transport_kind`,
+  `release_grade_transport_required`, `relay_transport_kind=websocket_tunnel`,
+  `relay transport kind is release tunnel`, `npm run test:p2p 88/88`,
+  `release evidence verifier 45/45`,
+  `P2P store-forward relay contract audit ok=true`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 P2P relay transport split index refresh:
+  MUSU local indexing was run after wiki/763 and GOAL v588/v589. Search terms
+  should include `GOAL v589`, `wiki/764`, `wiki/763 index refresh`,
+  `musu indexer sync`, `2471 files`, `2717 symbols`, `9797 ms`,
+  `release_grade_relay_transport_kind`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `relay_transport_kind=websocket_tunnel`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

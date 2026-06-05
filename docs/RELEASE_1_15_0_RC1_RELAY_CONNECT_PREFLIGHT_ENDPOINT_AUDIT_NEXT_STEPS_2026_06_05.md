@@ -35,7 +35,8 @@ through MUSU.PRO, but actual work runs on each local MUSU program.
 - `musu-bee/src/lib/p2pRelayPolicy.ts`
   - marks the release connect preflight endpoint as implemented
   - keeps the release payload endpoint disabled
-  - keeps the release transport kind gate on `quic_tls_1_3`
+  - keeps the release relay kind gate separate from the encryption proof:
+    `quic_relay_tunnel` for relay kind and `quic_tls_1_3` for release proof
 - `musu-bee/src/lib/p2pRelayLeaseStore.ts`
   - adds `lease_id` filtering to owner-scoped relay lease queries
 - `musu-bee/src/app/api/v1/relay/connect/route.ts`

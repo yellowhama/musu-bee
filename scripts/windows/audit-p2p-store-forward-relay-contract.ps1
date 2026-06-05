@@ -116,9 +116,11 @@ Add-Check `
     -Passed (
         $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true") -and
         $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
+        $policy.Contains('RELEASE_GRADE_RELAY_TRANSPORT_KIND = "quic_relay_tunnel"') -and
+        $policy.Contains('RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3"') -and
         $policy.Contains("return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED && relayConnectEndpointWired()") -and
         $policy.Contains("relayTransportKindReleaseGrade") -and
-        $policy.Contains("return transportKind === RELEASE_GRADE_TRANSPORT_REQUIRED") -and
+        $policy.Contains("return transportKind === RELEASE_GRADE_RELAY_TRANSPORT_KIND") -and
         $policy.Contains("return relayTransportFlagEnabled() && relayTransportKindReleaseGrade() && relayPayloadEndpointWired()") -and
         $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
@@ -210,6 +212,7 @@ Add-Check `
             "relay_payload_endpoint_wired",
             "relay_transport_wired",
             "payload_transit_requires_lease: true",
+            "release_grade_relay_transport_kind",
             "release_grade_transport_required"
         )
     ) `
@@ -339,12 +342,16 @@ Add-Check `
     -Passed (
         (Test-ContainsAll -Text $p2pEvidenceVerifier -Needles @(
             '$transportKind = Get-StringProperty -Object $relayTransport -Name "relay_transport_kind"',
-            'relay transport kind is release requirement',
-            '$transportKind -eq $transportReleaseRequirement -and $transportKind -eq "quic_tls_1_3"'
+            '$transportReleaseKind = Get-StringProperty -Object $relayTransport -Name "release_grade_relay_transport_kind"',
+            'relay transport release kind',
+            'relay transport kind is release tunnel',
+            '$transportKind -eq $transportReleaseKind -and $transportKind -eq "quic_relay_tunnel"',
+            '$transportReleaseRequirement -eq "quic_tls_1_3"'
         )) -and
         (Test-ContainsAll -Text $releaseEvidenceVerifierTest -Needles @(
             "p2p-bad-relay-transport-kind",
             "p2p rejects non-release relay transport kind",
+            'release_grade_relay_transport_kind = "quic_relay_tunnel"',
             '$badP2pRelayTransportKind.relay_transport.relay_transport_kind = "websocket_tunnel"'
         ))
     ) `

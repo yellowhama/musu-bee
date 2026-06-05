@@ -5979,6 +5979,7 @@ Current source state:
 - `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
 - `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
 - `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
 - `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
 
 Behavior:
@@ -6038,6 +6039,7 @@ Current source state:
 - `release_payload_preflight_endpoint_implemented=true`
 - `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
 - `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
 - `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
 
 The new endpoint requires P2P control auth and validates owner-scoped relay
@@ -6051,7 +6053,8 @@ lease metadata, but remains fail-closed:
 It does not call the preview queue storage helpers, so
 `/api/v1/p2p/relay/payload` remains a non-release-grade store-forward preview
 path. The release payload endpoint marker stays false until real release tunnel
-payload transport exists and can emit `quic_tls_1_3` proof.
+payload transport exists as `quic_relay_tunnel` and can emit
+`quic_tls_1_3` proof.
 
 Validation passed:
 
@@ -6118,6 +6121,59 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2469 files`, `2717 symbols`, `18185 ms`
 - release evidence verifier regressions: `ok=true`, `45/45`, failed `0`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
+## 2026-06-06 P2P relay transport kind/encryption split
+
+The hosted relay release contract now separates relay tunnel kind from
+encryption/proof:
+
+- release relay tunnel kind: `quic_relay_tunnel`
+- release encryption/proof requirement: `quic_tls_1_3`
+
+Current source state:
+
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+
+API preflight/status responses now expose both
+`release_grade_relay_transport_kind` and
+`release_grade_transport_required`. Verifiers require
+`relay_transport_kind=quic_relay_tunnel` separately from the
+`quic_tls_1_3` proof requirement.
+
+Validation passed:
+
+- `npm run test:p2p` `88/88`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- P2P env status recheck `ok=false` with expected hosted/source blockers
+- release evidence verifier regressions `ok=true`, `45/45`, failed `0`
+
+Code audit found and fixed one medium issue in the audit layer: the P2P relay
+contract audit still expected the older verifier wording that treated
+`quic_tls_1_3` as the relay kind. The audit now checks
+`release_grade_relay_transport_kind=quic_relay_tunnel` and
+`release_grade_transport_required=quic_tls_1_3` separately.
+
+Public release remains No-Go. Next steps are to implement the real release
+relay payload tunnel, configure production KV/Upstash, capture live MUSU.PRO
+owner-scoped relay route and payload delivery proof, and collect current
+second-PC route/CPU/matrix evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_KIND_ENCRYPTION_SPLIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2471 files`, `2717 symbols`, `9797 ms`
 - gbrain was not rerun because the same-session blocker remains missing
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`

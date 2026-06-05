@@ -186,6 +186,7 @@ $transportSchema = Get-StringProperty -Object $relayTransport -Name "schema"
 $transportRegistryUrl = Get-StringProperty -Object $relayTransport -Name "registry_url"
 $transportRelayUrl = Get-StringProperty -Object $relayTransport -Name "relay_url"
 $transportKind = Get-StringProperty -Object $relayTransport -Name "relay_transport_kind"
+$transportReleaseKind = Get-StringProperty -Object $relayTransport -Name "release_grade_relay_transport_kind"
 $transportReleaseRequirement = Get-StringProperty -Object $relayTransport -Name "release_grade_transport_required"
 $transportBlockersPresent = ($relayTransport -and $relayTransport.PSObject.Properties["blockers"])
 $transportBlockerCount = if ($transportBlockersPresent -and $null -ne $relayTransport.blockers) { @($relayTransport.blockers).Count } else { -1 }
@@ -202,8 +203,9 @@ Add-CheckFromCondition "relay transport connect endpoint wired" (Get-BoolPropert
 Add-CheckFromCondition "relay transport not default data path" (-not (Get-BoolProperty -Object $relayTransport -Name "relay_default_data_path")) "relay transport reports relay_default_data_path=false" "relay transport reports relay_default_data_path=true"
 Add-CheckFromCondition "relay transport URL" ($transportRelayUrl.StartsWith("wss://")) "relay transport URL is wss" "relay transport URL is missing or not wss"
 Add-CheckFromCondition "relay transport kind present" (-not [string]::IsNullOrWhiteSpace($transportKind)) "relay transport kind is present" "relay transport kind is missing"
+Add-CheckFromCondition "relay transport release kind" ($transportReleaseKind -eq "quic_relay_tunnel") "relay transport release kind is quic_relay_tunnel" "relay transport release kind is '$transportReleaseKind'"
 Add-CheckFromCondition "relay transport release requirement" ($transportReleaseRequirement -eq "quic_tls_1_3") "relay transport release requirement is quic_tls_1_3" "relay transport release requirement is '$transportReleaseRequirement'"
-Add-CheckFromCondition "relay transport kind is release requirement" ($transportKind -eq $transportReleaseRequirement -and $transportKind -eq "quic_tls_1_3") "relay transport kind matches release-grade quic_tls_1_3" "relay transport kind is '$transportKind', expected release-grade quic_tls_1_3"
+Add-CheckFromCondition "relay transport kind is release tunnel" ($transportKind -eq $transportReleaseKind -and $transportKind -eq "quic_relay_tunnel") "relay transport kind matches release-grade quic_relay_tunnel" "relay transport kind is '$transportKind', expected release-grade quic_relay_tunnel"
 Add-CheckFromCondition "relay payload requires lease" (Get-BoolProperty -Object $relayTransport -Name "payload_transit_requires_lease") "relay payload transit requires a lease" "relay payload transit does not require a lease"
 Add-CheckFromCondition "relay transport blockers empty" ($transportBlockerCount -eq 0) "relay transport preflight has no blockers" "relay transport preflight blockers are present or missing"
 Add-CheckFromCondition "relay transport store status present" (-not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $relayTransport -Name "relay_lease_store_backend"))) "relay transport lease store backend is present" "relay transport lease store backend is missing"

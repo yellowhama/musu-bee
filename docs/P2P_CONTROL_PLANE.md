@@ -98,7 +98,9 @@ Passing local state:
   `release_grade=true` relay records
 - hosted P2P evidence verification now rejects relay descriptors whose
   `relay_transport_kind` is only `websocket_tunnel` or another preview/queue
-  transport; the release descriptor must match `quic_tls_1_3`
+  transport; the release relay descriptor kind must match
+  `quic_relay_tunnel`, while release encryption/proof must remain
+  `quic_tls_1_3`
 - direct route evidence now cross-checks `route_kind` against
   `candidate_addr`; loopback/private/link-local addresses must be `lan`,
   `100.64.0.0/10` addresses must be `tailscale`, and public IPs/hostnames

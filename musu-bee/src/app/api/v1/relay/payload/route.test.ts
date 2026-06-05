@@ -125,6 +125,7 @@ test("reports release payload preflight without treating the queue as release tr
       relay_payload_queue_endpoint_wired: boolean;
       relay_transport_wired: boolean;
       relay_transport_kind: string;
+      release_grade_relay_transport_kind: string;
       release_grade_transport_required: string;
       relay_default_data_path: boolean;
       payload_transit_requires_lease: boolean;
@@ -141,6 +142,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_transport_kind, "websocket_tunnel");
+    assert.equal(body.release_grade_relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.payload_transit_requires_lease, true);

@@ -32,9 +32,10 @@ endpoint instead of an always-501 placeholder. `GET` returns
 owner-scoped relay lease store, and only then reports whether a release connect
 attempt can proceed. Current source still returns `409` for a verified lease
 because `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
-`RELAY_TRANSPORT_KIND=websocket_tunnel`, not the required `quic_tls_1_3`.
-This removes the source-level connect placeholder blocker without implementing
-release-grade relay payload transport.
+`RELAY_TRANSPORT_KIND=websocket_tunnel`, not the required release relay tunnel
+kind `quic_relay_tunnel`. `quic_tls_1_3` remains the required release
+encryption/proof contract. This removes the source-level connect placeholder
+blocker without implementing release-grade relay payload transport.
 
 **2026-06-06 release payload preflight update**:
 `/api/v1/relay/payload` now exists as a distinct authenticated release payload
@@ -46,6 +47,17 @@ metadata needed to find an owner-scoped relay lease, and returns
 `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. It does not call queue storage and
 does not emit delivery or transport proof. This prepares the release endpoint
 contract without treating the preview queue as release-grade relay transport.
+
+**2026-06-06 relay transport kind/encryption split update**:
+Relay tunnel kind and encryption/proof are now separate source and evidence
+fields. API preflight/status responses expose
+`release_grade_relay_transport_kind=quic_relay_tunnel` and
+`release_grade_transport_required=quic_tls_1_3`. Verifiers require
+`relay_transport_kind` to match `quic_relay_tunnel`; they still require
+release-grade proof/encryption to be `quic_tls_1_3`. Current source remains
+non-release-grade because `RELAY_TRANSPORT_KIND=websocket_tunnel`,
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, and hosted relay payload transport
+proof is absent.
 
 ## Product Decision
 
@@ -102,7 +114,8 @@ P2P APIs:
   - validates an owner-scoped relay lease by `lease_id`, `session_id`,
     `source_node_id`, and `target_node_id`
   - currently remains non-release-grade until the distinct release tunnel
-    payload endpoint and `quic_tls_1_3` transport proof exist
+    payload endpoint, `quic_relay_tunnel` relay kind, and `quic_tls_1_3`
+    transport proof exist
 - `GET /api/v1/relay/payload`
   - requires P2P control bearer auth before returning release payload preflight
     status

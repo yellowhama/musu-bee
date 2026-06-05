@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
+  RELEASE_GRADE_RELAY_TRANSPORT_KIND,
   RELEASE_GRADE_TRANSPORT_REQUIRED,
   RELAY_PAYLOAD_PATH,
   RELAY_POLICY,
@@ -43,6 +44,7 @@ function releasePayloadPreflightStatus(method: string, blockers = relayTransport
     relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
     relay_transport_wired: relayTransportWired(),
     relay_transport_kind: RELAY_TRANSPORT_KIND,
+    release_grade_relay_transport_kind: RELEASE_GRADE_RELAY_TRANSPORT_KIND,
     release_grade_transport_required: RELEASE_GRADE_TRANSPORT_REQUIRED,
     relay_default_data_path: false,
     payload_transit_requires_lease: true,

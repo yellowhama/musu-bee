@@ -8,6 +8,10 @@ This change tightens the `musu.pro` P2P release evidence gate so the preview
 store-forward queue or websocket descriptor cannot be counted as release-grade
 relay transport.
 
+2026-06-06 clarification: relay tunnel kind and encryption/proof are separate
+release fields. The release relay tunnel kind is `quic_relay_tunnel`;
+`quic_tls_1_3` is the release encryption/proof requirement.
+
 The product direction is unchanged: local MUSU programs execute work on each
 device, `musu.pro` coordinates input/rendezvous/evidence, direct P2P remains
 preferred, and relay is Connect/Pro fallback only after direct paths fail.
@@ -17,7 +21,8 @@ preferred, and relay is Connect/Pro fallback only after direct paths fail.
 - `routeEvidenceStore.ts` now revalidates release-grade relay query results
   against the relay transport proof kind `quic_relay_tunnel`.
 - `verify-p2p-control-plane-evidence.ps1` now requires
-  `relay_transport.relay_transport_kind` to match the release requirement
+  `relay_transport.relay_transport_kind` to match the release relay kind
+  `quic_relay_tunnel` and separately requires release encryption/proof
   `quic_tls_1_3`.
 - `test-release-evidence-verifiers.ps1` now has a negative fixture:
   `p2p rejects non-release relay transport kind`.
@@ -39,7 +44,7 @@ failure:
 
 - evidence path: `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260604-144053-musu.pro.evidence.json`
 - verifier result: `ok=false`, `fail_count=30`
-- new relevant failure: `relay transport kind is 'websocket_tunnel', expected release-grade quic_tls_1_3`
+- new relevant failure: `relay transport kind is 'websocket_tunnel', expected release-grade quic_relay_tunnel`
 
 This is expected. It prevents queue/websocket fallback plumbing from being
 treated as the release tunnel. Public P2P release still requires production

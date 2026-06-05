@@ -126,6 +126,7 @@ test("reports relay connect preflight without claiming payload transport", async
       method: string;
       relay_connect_path: string;
       relay_transport_kind: string;
+      release_grade_relay_transport_kind: string;
       release_grade_transport_required: string;
       relay_transport_wired: boolean;
       relay_connect_endpoint_wired: boolean;
@@ -146,6 +147,7 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.equal(body.method, "GET");
     assert.equal(body.relay_connect_path, "/api/v1/relay/connect");
     assert.equal(body.relay_transport_kind, "websocket_tunnel");
+    assert.equal(body.release_grade_relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);

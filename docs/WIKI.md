@@ -7356,6 +7356,104 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 final operator packet after second-PC CPU subrole gate (wiki/761)
+
+The final operator packet and operator action pack were regenerated from clean
+HEAD `a45e6a1b75a51cba4276cdf60a452041069fd6c3` after the second-PC runtime CPU
+subrole import gate.
+
+Artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-020415.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
+
+Both artifact verifiers passed with `fail_count=0`. Public release remained
+No-Go on second-PC route/CPU/matrix evidence, hosted P2P proof, support mailbox
+proof, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_SUBROLE_GATE_2026_06_06.md`
+
+## 2026-06-06 final operator packet/action pack index refresh (wiki/762)
+
+Indexing was refreshed after wiki/761 and GOAL v586/v587.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2469 files`
+- `2717 symbols`
+- `18185 ms`
+
+Release evidence verifier regressions passed `45/45`. gbrain was not rerun
+because the same-session blocker remained missing `ZEROENTROPY_API_KEY`,
+generated/evidence import failures, `sync.last_commit` not advancing, and
+`gstack-brain-sync exited undefined`.
+
+## 2026-06-06 P2P relay transport kind/encryption split (wiki/763)
+
+The hosted relay release contract now separates relay tunnel kind from
+encryption/proof:
+
+- release relay tunnel kind: `quic_relay_tunnel`
+- release encryption/proof requirement: `quic_tls_1_3`
+
+API preflight/status responses now expose both
+`release_grade_relay_transport_kind=quic_relay_tunnel` and
+`release_grade_transport_required=quic_tls_1_3`. The P2P control-plane
+verifier requires `relay_transport_kind=quic_relay_tunnel` separately from
+the `quic_tls_1_3` proof requirement.
+
+Current source remains release-blocked:
+
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- hosted KV/Upstash env is missing
+- live relay route proof and payload delivery proof are missing
+
+Validation:
+
+- `npm run test:p2p`: `88/88`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: `ok=false` with expected blockers
+- release evidence verifier regressions: `45/45`, failed `0`
+
+Code audit found and fixed one medium audit-layer issue: the P2P relay
+contract audit still looked for the old verifier condition that treated
+`quic_tls_1_3` as the relay kind. The audit now gates
+`release_grade_relay_transport_kind=quic_relay_tunnel` and
+`release_grade_transport_required=quic_tls_1_3` separately.
+
+This is gate/spec hardening only. MUSU Desktop remains the local executor;
+MUSU.PRO remains remote input, project/company room, rendezvous,
+path-selection, relay-fallback policy, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_KIND_ENCRYPTION_SPLIT_2026_06_06.md`
+
+## 2026-06-06 P2P relay transport split index refresh (wiki/764)
+
+Indexing was refreshed after wiki/763 and GOAL v588.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2471 files`
+- `2717 symbols`
+- `9797 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+remains the reliable current code/document index for this repo.
+
 ## 2026-06-06 second-PC runtime CPU subrole import gate (wiki/759)
 
 The second-PC return path now enforces the runtime CPU subrole evidence
