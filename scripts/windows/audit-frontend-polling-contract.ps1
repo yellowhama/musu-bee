@@ -293,6 +293,12 @@ Add-Check `
     -Path $workflowPath `
     -Message "CI runs the runtime polling contract tests."
 
+$tauriShellPath = "musu-bee\src-tauri-shell\main.js"
+$tauriShellText = Get-RepoText $tauriShellPath
+Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no interval loop" -Text $tauriShellText -Pattern 'setInterval\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own an interval polling loop."
+Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no timeout loop" -Text $tauriShellText -Pattern 'setTimeout\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own a retry or refresh timeout loop."
+Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no animation loop" -Text $tauriShellText -Pattern 'requestAnimationFrame\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own an animation loop."
+
 $sourceRoots = @("musu-bee\src", "musu-bee\views")
 $sourceFiles = @()
 foreach ($relativeRoot in $sourceRoots) {

@@ -113,7 +113,10 @@ fn start_runtime() -> Result<CommandResult, String> {
 #[tauri::command]
 fn open_dashboard(url: String) -> Result<CommandResult, String> {
     if !is_allowed_dashboard_url(&url) {
-        return Err("dashboard URL must be local http://127.0.0.1 or http://localhost".to_string());
+        return Err(
+            "developer dashboard is disabled unless MUSU_DESKTOP_ENABLE_DEV_DASHBOARD=1 is set, and the URL must be local http://127.0.0.1 or http://localhost"
+                .to_string(),
+        );
     }
 
     open_url(&url)?;
@@ -251,6 +254,14 @@ fn is_pid_alive(_pid: u32) -> bool {
 }
 
 fn probe_dashboard() -> DashboardProbe {
+    if !developer_dashboard_surface_enabled() {
+        return DashboardProbe {
+            ok: false,
+            url: None,
+            detail: "developer dashboard is disabled in packaged MUSU Desktop; local work runs through the bridge and MUSU.PRO supplies remote input".to_string(),
+        };
+    }
+
     for base in ["http://127.0.0.1:3000", "http://127.0.0.1:3001"] {
         let result = probe_http(base, "/api/doctor");
         if result.ok {
@@ -267,6 +278,29 @@ fn probe_dashboard() -> DashboardProbe {
         url: None,
         detail: "optional developer dashboard is not running on 3000 or 3001; MUSU Desktop does not require it".to_string(),
     }
+}
+
+fn developer_dashboard_surface_enabled() -> bool {
+    let env_value = std::env::var("MUSU_DESKTOP_ENABLE_DEV_DASHBOARD").ok();
+    developer_dashboard_surface_enabled_for(env_value.as_deref(), cfg!(debug_assertions))
+}
+
+fn developer_dashboard_surface_enabled_for(
+    env_value: Option<&str>,
+    debug_assertions: bool,
+) -> bool {
+    if debug_assertions {
+        return true;
+    }
+
+    env_value
+        .map(|value| {
+            let trimmed = value.trim();
+            trimmed == "1"
+                || trimmed.eq_ignore_ascii_case("true")
+                || trimmed.eq_ignore_ascii_case("yes")
+        })
+        .unwrap_or(false)
 }
 
 fn probe_http(base: &str, path: &str) -> ProbeResult {
@@ -315,6 +349,14 @@ fn http_get(base: &str, path: &str) -> Result<String, String> {
 }
 
 fn is_allowed_dashboard_url(url: &str) -> bool {
+    if !developer_dashboard_surface_enabled() {
+        return false;
+    }
+
+    is_local_dashboard_url(url)
+}
+
+fn is_local_dashboard_url(url: &str) -> bool {
     let Some(rest) = url.strip_prefix("http://") else {
         return false;
     };
@@ -528,7 +570,8 @@ fn open_url(url: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        bridge_is_healthy, bridge_registry_status_with_pid_checker, is_allowed_dashboard_url,
+        bridge_is_healthy, bridge_registry_status_with_pid_checker,
+        developer_dashboard_surface_enabled_for, is_local_dashboard_url,
         musu_command_path_for_current_exe, run_command_with_timeout,
     };
 
@@ -536,19 +579,28 @@ mod tests {
 
     #[test]
     fn allows_local_dashboard_urls() {
-        assert!(is_allowed_dashboard_url("http://127.0.0.1:3000/app"));
-        assert!(is_allowed_dashboard_url("http://localhost:3001"));
+        assert!(is_local_dashboard_url("http://127.0.0.1:3000/app"));
+        assert!(is_local_dashboard_url("http://localhost:3001"));
     }
 
     #[test]
     fn rejects_non_local_or_ambiguous_dashboard_urls() {
-        assert!(!is_allowed_dashboard_url("https://127.0.0.1:3000/app"));
-        assert!(!is_allowed_dashboard_url("http://example.com:3000/app"));
-        assert!(!is_allowed_dashboard_url(
+        assert!(!is_local_dashboard_url("https://127.0.0.1:3000/app"));
+        assert!(!is_local_dashboard_url("http://example.com:3000/app"));
+        assert!(!is_local_dashboard_url(
             "http://localhost:3000@example.com/app"
         ));
-        assert!(!is_allowed_dashboard_url("http://localhost:bad/app"));
-        assert!(!is_allowed_dashboard_url("http://localhost:0/app"));
+        assert!(!is_local_dashboard_url("http://localhost:bad/app"));
+        assert!(!is_local_dashboard_url("http://localhost:0/app"));
+    }
+
+    #[test]
+    fn packaged_build_requires_dev_dashboard_opt_in() {
+        assert!(!developer_dashboard_surface_enabled_for(None, false));
+        assert!(!developer_dashboard_surface_enabled_for(Some("0"), false));
+        assert!(developer_dashboard_surface_enabled_for(Some("1"), false));
+        assert!(developer_dashboard_surface_enabled_for(Some("true"), false));
+        assert!(developer_dashboard_surface_enabled_for(None, true));
     }
 
     #[test]

@@ -365,6 +365,22 @@ if (Test-Path -LiteralPath $singleSmokeScript) {
         ($(if ($requiresPackagedRuntimeByDefault) { "single-machine smoke defaults to the packaged WindowsApps runtime and gates developer runtime opt-in." } else { "single-machine smoke can still default to or silently accept developer runtime evidence." }))
 }
 
+$tauriLib = Join-Path $tauriRoot "src\lib.rs"
+if (Test-Path -LiteralPath $tauriLib) {
+    $tauriLibText = Get-Content -LiteralPath $tauriLib -Raw
+    $devDashboardReleaseGated = (
+        $tauriLibText -match "developer_dashboard_surface_enabled" -and
+        $tauriLibText -match "MUSU_DESKTOP_ENABLE_DEV_DASHBOARD" -and
+        $tauriLibText -match "developer dashboard is disabled in packaged MUSU Desktop"
+    )
+    Add-Check "desktop-shell" "packaged dev dashboard opt-in" `
+        ($(if ($devDashboardReleaseGated) { "pass" } else { "fail" })) `
+        ($(if ($devDashboardReleaseGated) { "packaged desktop shell keeps the developer dashboard disabled unless explicitly opted in." } else { "desktop shell can still expose the developer dashboard as a default packaged surface." }))
+}
+else {
+    Add-Check "desktop-shell" "packaged dev dashboard opt-in" "fail" "Tauri lib.rs is missing."
+}
+
 $privacyPage = Join-Path $appRoot "src\app\privacy\page.tsx"
 $supportPage = Join-Path $appRoot "src\app\support\page.tsx"
 $storeMetadataDoc = Join-Path $repoRoot "docs\STORE_SUBMISSION_METADATA_2026_05_29.md"

@@ -97,7 +97,7 @@ async function openDashboard() {
   const url = state.status?.dashboard_url;
   if (!url) {
     log(
-      "Developer dashboard is not running.",
+      "Debug dashboard is not running.",
       "This is optional. MUSU Desktop runs local work through the bridge; MUSU.PRO sends user input to that local runtime."
     );
     return;

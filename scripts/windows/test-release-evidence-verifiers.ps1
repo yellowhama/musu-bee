@@ -793,6 +793,23 @@ $fixture = Write-Fixture -Name "single-machine-valid-bridge-only-packaged-runtim
 $invocation = Invoke-Verifier -ScriptPath $singleMachineVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedGitCommit", $currentGitCommit, "-Json")
 Add-CaseResult -Cases $cases -Name "single-machine accepts packaged bridge-only local runtime evidence" -Verifier "verify-single-machine-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
+$badSingleMachineDevDashboard = Copy-JsonObject -Object $validBridgeOnlySingleMachine
+$badSingleMachineDevDashboard.dashboard_required = $true
+$badSingleMachineDevDashboard.single_machine_surface = "dashboard"
+$badSingleMachineDevDashboard.dashboard_base_url = "http://127.0.0.1:3001"
+$badSingleMachineDevDashboard.dashboard_base_url_source = "musu up.dashboard.reachable_url"
+$badSingleMachineDevDashboard.dashboard_reachable_url = "http://127.0.0.1:3001/app"
+$badSingleMachineDevDashboard.device_node_count = 1
+$badSingleMachineDevDashboard.dashboard_task_id = "dev-dashboard-task"
+$badSingleMachineDevDashboard.dashboard_task_status = "done"
+$badSingleMachineDevDashboard.expected_dashboard_output = "MUSU_RELEASE_SMOKE_OK_VERIFIER_TEST"
+$badSingleMachineDevDashboard.dashboard_output = "MUSU_RELEASE_SMOKE_OK_VERIFIER_TEST"
+$badSingleMachineDevDashboard.sse_status_code = 200
+$badSingleMachineDevDashboard.sse_content_type = "text/event-stream"
+$fixture = Write-Fixture -Name "single-machine-bad-dev-dashboard-3001" -Object $badSingleMachineDevDashboard
+$invocation = Invoke-Verifier -ScriptPath $singleMachineVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedGitCommit", $currentGitCommit, "-Json")
+Add-CaseResult -Cases $cases -Name "single-machine rejects packaged evidence tied to dev dashboard 3001" -Verifier "verify-single-machine-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
 $fixture = Write-Fixture -Name "msix-valid-clean-alias" -Object (New-MsixInstallEvidence)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "msix accepts clean WindowsApps alias evidence by default" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
