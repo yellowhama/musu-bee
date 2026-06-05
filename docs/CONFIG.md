@@ -60,6 +60,8 @@ These guard the Next.js operator-facing API routes that proxy worker process or 
 | `MUSU_PROCESS_START_ALLOWLIST` | *(empty)* | No | Comma/space/semicolon-separated command basename allowlist for `/api/processes/start`. Empty means process start fails closed. User-supplied env values are not forwarded to the worker route. |
 | `MUSU_ENABLE_PROCESS_KILL` | `false` | No | Explicit opt-in for `/api/processes/kill`. When unset, authenticated kill requests are rejected and audit-logged. |
 | `MUSU_ENABLE_REMOTE_WORKER_PROXY` | `false` | No | Explicit opt-in for remote `device_id` worker proxying in `/api/processes*`. When unset, only `device_id=local` is accepted. |
+| `MUSU_RPC_EXEC_ALLOWLIST` | *(empty)* | No | Comma/space/semicolon-separated bare command-name allowlist for native bridge `/api/v1/rpc/exec`. Empty means remote RPC exec fails closed. Paths and user-supplied `cwd` are rejected even when the command basename is allowlisted. |
+| `MUSU_RPC_EXEC_TIMEOUT_SECS` | `10` | No | Timeout for native bridge `/api/v1/rpc/exec`, clamped to `1..60` seconds. Timed-out children are spawned with `kill_on_drop(true)` and the attempt is audit-logged. |
 
 ## Mesh (Multi-Machine)
 

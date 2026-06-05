@@ -47,6 +47,7 @@ $nodesExecute = Get-RepoText "musu-bee\src\app\api\nodes\execute\route.ts"
 $processesList = Get-RepoText "musu-bee\src\app\api\processes\route.ts"
 $processStart = Get-RepoText "musu-bee\src\app\api\processes\start\route.ts"
 $processKill = Get-RepoText "musu-bee\src\app\api\processes\kill\route.ts"
+$nativeRpcExec = Get-RepoText "musu-rs\src\bridge\handlers\rpc.rs"
 $roomWorkOrders = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts"
 $roomWorkOrdersTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts"
 $p2pRendezvousStore = Get-RepoText "musu-bee\src\lib\p2pRendezvousStore.ts"
@@ -91,6 +92,26 @@ Add-Check -Scope "source" -Name "process kill explicit enable flag" `
     -Path "musu-bee\src\app\api\processes\kill\route.ts" `
     -Message "Process kill route requires auth, explicit env opt-in, and audit logging."
 
+Add-Check -Scope "source" -Name "native RPC exec fail-closed allowlist" `
+    -Passed ($nativeRpcExec.Contains('MUSU_RPC_EXEC_ALLOWLIST') -and $nativeRpcExec.Contains("allowlist.is_empty() || !command_allowed") -and $nativeRpcExec.Contains("StatusCode::FORBIDDEN") -and $nativeRpcExec.Contains("command_has_path_separator")) `
+    -Path "musu-rs\src\bridge\handlers\rpc.rs" `
+    -Message "Native bridge /api/v1/rpc/exec fails closed unless a bare command name is explicitly allowlisted."
+
+Add-Check -Scope "source" -Name "native RPC exec timeout and child cleanup" `
+    -Passed ($nativeRpcExec.Contains('MUSU_RPC_EXEC_TIMEOUT_SECS') -and $nativeRpcExec.Contains("RPC_EXEC_MAX_TIMEOUT_SECS") -and $nativeRpcExec.Contains(".clamp(1, RPC_EXEC_MAX_TIMEOUT_SECS)") -and $nativeRpcExec.Contains("timeout(timeout_dur, command.output()).await") -and $nativeRpcExec.Contains(".kill_on_drop(true)")) `
+    -Path "musu-rs\src\bridge\handlers\rpc.rs" `
+    -Message "Native bridge /api/v1/rpc/exec is timeout-bound and spawns children with kill_on_drop."
+
+Add-Check -Scope "source" -Name "native RPC exec input and output bounds" `
+    -Passed ($nativeRpcExec.Contains("RPC_EXEC_MAX_ARG_COUNT") -and $nativeRpcExec.Contains("RPC_EXEC_MAX_ARG_LEN") -and $nativeRpcExec.Contains("contains_control") -and $nativeRpcExec.Contains("req.cwd.is_some()") -and $nativeRpcExec.Contains("cwd is not supported for rpc exec") -and $nativeRpcExec.Contains("RPC_EXEC_MAX_OUTPUT_BYTES") -and $nativeRpcExec.Contains("bounded_output")) `
+    -Path "musu-rs\src\bridge\handlers\rpc.rs" `
+    -Message "Native bridge /api/v1/rpc/exec bounds command args, rejects user cwd, and bounds returned stdout/stderr."
+
+Add-Check -Scope "source" -Name "native RPC exec audit logging" `
+    -Passed ($nativeRpcExec.Contains("audit_rpc_exec") -and $nativeRpcExec.Contains(".audit") -and $nativeRpcExec.Contains(".write(crate::bridge::audit::AuditEntry") -and $nativeRpcExec.Contains("/api/v1/rpc/exec") -and $nativeRpcExec.Contains("rpc exec rejected") -and $nativeRpcExec.Contains("rpc exec timed out") -and $nativeRpcExec.Contains("rpc exec completed")) `
+    -Path "musu-rs\src\bridge\handlers\rpc.rs" `
+    -Message "Native bridge /api/v1/rpc/exec logs rejected, timed-out, failed, and completed command attempts."
+
 Add-Check -Scope "source" -Name "relay connect requires P2P control auth" `
     -Passed ($relayConnect.Contains("authorizeP2pControl") -and $relayConnect.Contains("const failedAuth = authorizeP2pControl(req)") -and $relayConnect.Contains("return failedAuth") -and $relayConnect.Contains("relay_payload_transport_not_implemented")) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.ts" `
@@ -126,6 +147,11 @@ Add-Check -Scope "tests" -Name "relay connect auth regression test" `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
     -Message "P2P tests cover relay connect auth before fail-closed relay status is returned."
 
+Add-Check -Scope "tests" -Name "native RPC exec Rust regression tests" `
+    -Passed ($nativeRpcExec.Contains("rpc_exec_allowlist_is_empty_by_default") -and $nativeRpcExec.Contains("rpc_exec_allowlist_normalizes_exe_suffix") -and $nativeRpcExec.Contains("rpc_exec_rejects_paths_even_when_basename_is_allowed") -and $nativeRpcExec.Contains("rpc_exec_rejects_control_characters_in_args") -and $nativeRpcExec.Contains("rpc_exec_rejects_cwd_to_avoid_path_resolution_ambiguity")) `
+    -Path "musu-rs\src\bridge\handlers\rpc.rs" `
+    -Message "Rust unit tests cover native RPC exec fail-closed allowlist parsing and input rejection."
+
 Add-Check -Scope "tests" -Name "rendezvous owner-scope regression tests" `
     -Passed ($packageJson.Contains("src/app/api/v1/p2p/rendezvous/route.test.ts") -and $p2pRendezvousTest.Contains("does not expose or mutate rendezvous sessions for another authorized owner") -and $p2pRendezvousTest.Contains("does not seed rendezvous candidates across authorized owners") -and $roomRendezvousTest.Contains("p2pControlOwnerKey") -and $roomPresenceTest.Contains("loadNodeCandidateSet(body.presence.owner_key")) `
     -Path "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts" `
@@ -137,7 +163,7 @@ Add-Check -Scope "tests" -Name "CI route security step" `
     -Message "GitHub Actions runs route security tests in the web job."
 
 Add-Check -Scope "docs" -Name "operator API security env documented" `
-    -Passed ($config.Contains("MUSU_NODE_EXECUTE_ALLOWLIST") -and $config.Contains("MUSU_PROCESS_START_ALLOWLIST") -and $config.Contains("MUSU_ENABLE_PROCESS_KILL") -and $config.Contains("MUSU_ENABLE_REMOTE_WORKER_PROXY")) `
+    -Passed ($config.Contains("MUSU_NODE_EXECUTE_ALLOWLIST") -and $config.Contains("MUSU_PROCESS_START_ALLOWLIST") -and $config.Contains("MUSU_ENABLE_PROCESS_KILL") -and $config.Contains("MUSU_ENABLE_REMOTE_WORKER_PROXY") -and $config.Contains("MUSU_RPC_EXEC_ALLOWLIST") -and $config.Contains("MUSU_RPC_EXEC_TIMEOUT_SECS")) `
     -Path "docs\CONFIG.md" `
     -Message "Operator API security env flags and allowlists are documented."
 
