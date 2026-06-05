@@ -94,6 +94,21 @@ Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff exponent" -Text $
 Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff sleep" -Text $bridgeText -Pattern 'cloud_registration_sleep_duration[\s\S]*tokio::time::sleep\(sleep_for\)' -Path $bridgePath -Message "Cloud registration loop sleeps with failure backoff."
 Add-RegexCheck -Scope "cloud-heartbeat" -Name "cancellation token" -Text $bridgeText -Pattern 'CancellationToken::new\(\)[\s\S]*cloud_registration_ctrl_c\.cancel\(\)' -Path $bridgePath -Message "Cloud registration loop owns an explicit cancellation token."
 Add-RegexCheck -Scope "cloud-heartbeat" -Name "cancellation-aware sleep" -Text $bridgeText -Pattern 'tokio::select!\s*\{[\s\S]*cloud_registration_cancel\.cancelled\(\)[\s\S]*tokio::time::sleep\(sleep_for\)' -Path $bridgePath -Message "Cloud registration loop sleep exits on cancellation."
+Add-RegexCheck -Scope "planner" -Name "planner ctrl-c watcher spawn" -Text $bridgeText -Pattern 'tokio::spawn\(async move \{[\s\S]*planner_ctrl_c\.cancel\(\)' -Path $bridgePath -Message "Planner Ctrl-C watcher is spawned only with the planner's cancellation token."
+Add-RegexCheck -Scope "planner" -Name "planner loop spawn" -Text $bridgeText -Pattern 'tokio::spawn\(async move \{[\s\S]*run_planner_loop\(runner_clone,\s*planner_cancel\)\.await' -Path $bridgePath -Message "Planner background task starts only from the explicit MUSU_ENABLE_PLANNER gate."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat ctrl-c watcher spawn" -Text $bridgeText -Pattern 'tokio::spawn\(async move \{[\s\S]*cloud_registration_ctrl_c\.cancel\(\)' -Path $bridgePath -Message "Cloud heartbeat Ctrl-C watcher is paired with the cloud registration cancellation token."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat loop spawn" -Text $bridgeText -Pattern 'tokio::spawn\(async move \{[\s\S]*starting low-duty musu\.pro cloud registration loop[\s\S]*loop\s*\{' -Path $bridgePath -Message "Cloud heartbeat background loop is the low-duty registration loop covered by heartbeat checks."
+Add-RegexCheck -Scope "file-sync" -Name "sync loop spawn configured roots only" -Text $bridgeText -Pattern 'if !cfg\.file_serve_roots\.is_empty\(\)[\s\S]*tokio::spawn\(crate::install::sync::run_sync_loop' -Path $bridgePath -Message "File sync loop is spawned only when file serve roots are configured."
+
+$controlPath = "musu-rs\src\control\mod.rs"
+$controlText = Get-RepoText $controlPath
+Add-RegexCheck -Scope "control-mcp" -Name "ctrl-c watcher spawn cancels service token" -Text $controlText -Pattern 'tokio::spawn\(async move \{[\s\S]*tokio::signal::ctrl_c\(\)\.await\.is_ok\(\)[\s\S]*ct\.cancel\(\)' -Path $controlPath -Message "Control MCP Ctrl-C watcher only cancels the rmcp service token."
+Add-RegexCheck -Scope "control-mcp" -Name "serve with cancellation token" -Text $controlText -Pattern '\.serve_with_ct\(transport,\s*ct\.clone\(\)\)' -Path $controlPath -Message "Control MCP server is served with the same cancellation token."
+Add-RegexCheck -Scope "control-mcp" -Name "waits on transport close" -Text $controlText -Pattern 'service\.waiting\(\)\.await' -Path $controlPath -Message "Control MCP command exits when the rmcp transport closes."
+
+$cloudPath = "musu-rs\src\cloud\mod.rs"
+$cloudText = Get-RepoText $cloudPath
+Add-RegexCheck -Scope "cloud-client" -Name "default cloud client timeout" -Text $cloudText -Pattern 'Client::builder\(\)[\s\S]*\.timeout\(std::time::Duration::from_secs\(10\)\)' -Path $cloudPath -Message "Fire-and-forget cloud submissions use the default 10s cloud client timeout unless wrapped tighter."
 
 $plannerPath = "musu-rs\src\brain\planner.rs"
 $plannerText = Get-RepoText $plannerPath
@@ -116,6 +131,7 @@ Add-RegexCheck -Scope "adapter-claude" -Name "shim shared kill path" -Text $clau
 
 $clipboardPath = "musu-rs\src\io\clipboard.rs"
 $clipboardText = Get-RepoText $clipboardPath
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor spawn blocking" -Text $clipboardText -Pattern 'tokio::task::spawn_blocking\(move \|\| \{[\s\S]*loop\s*\{' -Path $clipboardPath -Message "Clipboard monitor is the known blocking background poller covered by the clipboard opt-in gate."
 Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor sleep" -Text $clipboardText -Pattern 'std::thread::sleep\(Duration::from_secs\(2\)\)' -Path $clipboardPath -Message "Clipboard monitor sleeps between polls."
 
 $auditPath = "musu-rs\src\bridge\audit.rs"
@@ -130,6 +146,8 @@ Add-RegexCheck -Scope "rate-limit-window" -Name "rate limit fixed window" -Text 
 
 $relayPayloadPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $relayPayloadText = Get-RepoText $relayPayloadPath
+Add-RegexCheck -Scope "relay-payload-poller" -Name "poller ctrl-c watcher spawn" -Text $relayPayloadText -Pattern 'tokio::spawn\(async move \{[\s\S]*ctrl_c_token\.cancel\(\)' -Path $relayPayloadPath -Message "Relay payload poller Ctrl-C watcher cancels the poller token."
+Add-RegexCheck -Scope "relay-payload-poller" -Name "poller task spawn" -Text $relayPayloadText -Pattern 'tokio::spawn\(run_relay_payload_poller\(state,\s*config,\s*cancellation_token\)\)' -Path $relayPayloadPath -Message "Relay payload poller spawn targets the cancellation-aware low-duty poller."
 Add-RegexCheck -Scope "relay-payload-poller" -Name "poller default low duty interval" -Text $relayPayloadText -Pattern 'RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC:\s*u64\s*=\s*60' -Path $relayPayloadPath -Message "Relay payload poller defaults to a 60s cadence."
 Add-RegexCheck -Scope "relay-payload-poller" -Name "poller minimum interval" -Text $relayPayloadText -Pattern 'RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC:\s*u64\s*=\s*30' -Path $relayPayloadPath -Message "Relay payload poller interval clamps to at least 30s."
 Add-RegexCheck -Scope "relay-payload-poller" -Name "poller empty backoff cap" -Text $relayPayloadText -Pattern 'RELAY_PAYLOAD_POLLER_DEFAULT_EMPTY_BACKOFF_MAX_SEC:\s*u64\s*=\s*300' -Path $relayPayloadPath -Message "Relay payload poller empty/failure backoff defaults to a 300s cap."
@@ -144,6 +162,7 @@ Add-RegexCheck -Scope "mdns" -Name "IPv6 separate opt-in" -Text $mdnsText -Patte
 Add-RegexCheck -Scope "mdns" -Name "Tailscale separate opt-in" -Text $mdnsText -Pattern 'MUSU_MDNS_ENABLE_TAILSCALE' -Path $mdnsPath -Message "mDNS Tailscale interfaces have their own opt-in gate."
 Add-RegexCheck -Scope "mdns" -Name "virtual interfaces separate opt-in" -Text $mdnsText -Pattern 'MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES' -Path $mdnsPath -Message "mDNS virtual/VPN interfaces have their own opt-in gate."
 Add-RegexCheck -Scope "mdns" -Name "browse bounded by deadline" -Text $mdnsText -Pattern 'deadline\s*=\s*tokio::time::Instant::now\(\)\s*\+\s*duration' -Path $mdnsPath -Message "mDNS browse loop is bounded by a caller-supplied duration."
+Add-RegexCheck -Scope "mdns" -Name "browse blocking receive under timeout" -Text $mdnsText -Pattern 'tokio::time::timeout\([\s\S]*tokio::task::spawn_blocking\([\s\S]*recv_timeout\(Duration::from_secs\(1\)\)' -Path $mdnsPath -Message "mDNS blocking receive is wrapped by the browse deadline and its own recv timeout."
 Add-RegexCheck -Scope "mdns" -Name "recv timeout bounded" -Text $mdnsText -Pattern 'recv_timeout\(Duration::from_secs\(1\)\)' -Path $mdnsPath -Message "mDNS blocking receive uses a 1s timeout."
 Add-RegexCheck -Scope "mdns" -Name "disconnect breaks browse" -Text $mdnsText -Pattern 'MdnsRecvTimeoutKind::Disconnected[\s\S]*break;' -Path $mdnsPath -Message "mDNS browse exits early when the receiver disconnects."
 
@@ -214,6 +233,11 @@ Add-RegexCheck -Scope "workflow-spec" -Name "cycle detection finite queue loop" 
 Add-RegexCheck -Scope "workflow-spec" -Name "cycle detection mismatch rejection" -Text $workflowSpecText -Pattern 'visited != self\.agents\.len\(\)[\s\S]*WorkflowSpecError::CycleDetected' -Path $workflowSpecPath -Message "Workflow spec rejects cycles when the finite queue cannot visit all agents."
 Add-RegexCheck -Scope "workflow-spec" -Name "topological order finite queue loop" -Text $workflowSpecText -Pattern 'while let Some\(node\) = queue\.pop_front\(\)[\s\S]*order\.push\(node\.to_string\(\)\)[\s\S]*queue\.push_back\(n\)' -Path $workflowSpecPath -Message "Workflow spec topological order drains a finite queue."
 
+$indexerSyncPath = "musu-rs\src\indexer\sync.rs"
+$indexerSyncText = Get-RepoText $indexerSyncPath
+Add-RegexCheck -Scope "indexer-sync" -Name "scan spawn_blocking awaited" -Text $indexerSyncText -Pattern 'tokio::task::spawn_blocking\(move \|\| scanner::scan\(&work_dir_for_scan,\s*&profile_for_scan\)\)[\s\S]*\.await[\s\S]*scan task panicked' -Path $indexerSyncPath -Message "Indexer scan uses spawn_blocking but awaits the bounded scan result before continuing."
+Add-RegexCheck -Scope "indexer-sync" -Name "empty or missing workspace returns" -Text $indexerSyncText -Pattern 'work_dir\.as_os_str\(\)\.is_empty\(\) \|\| !work_dir\.exists\(\)[\s\S]*skipped_reason: Some\("no_work_dir"\.to_string\(\)\)' -Path $indexerSyncPath -Message "Post-create index sync exits early for empty or missing workspaces."
+
 $hardwarePath = "musu-rs\src\peer\hardware.rs"
 $hardwareText = Get-RepoText $hardwarePath
 Add-RegexCheck -Scope "hardware-probe" -Name "probe wait step" -Text $hardwareText -Pattern 'HARDWARE_PROBE_WAIT_STEP:\s*Duration\s*=\s*Duration::from_millis\(50\)' -Path $hardwarePath -Message "Hardware child probes sleep between try_wait checks."
@@ -227,6 +251,7 @@ Add-RegexCheck -Scope "pty" -Name "pty reader blocks on read" -Text $ptyText -Pa
 Add-RegexCheck -Scope "pty" -Name "pty reader exits on send failure" -Text $ptyText -Pattern 'tx\.blocking_send\(buf\[\.\.n\]\.to_vec\(\)\)\.is_err\(\)[\s\S]*break' -Path $ptyPath -Message "PTY reader loop exits when the websocket channel closes."
 Add-RegexCheck -Scope "pty" -Name "pty websocket select" -Text $ptyText -Pattern 'tokio::select!\s*\{[\s\S]*rx\.recv\(\)[\s\S]*socket\.recv\(\)' -Path $ptyPath -Message "PTY websocket loop waits on PTY output or websocket input."
 Add-RegexCheck -Scope "pty" -Name "pty websocket close break" -Text $ptyText -Pattern 'Message::Close\(_\)[\s\S]*None\s*=>\s*break' -Path $ptyPath -Message "PTY websocket loop exits on close or disconnected socket."
+Add-RegexCheck -Scope "pty" -Name "pty write spawn_blocking request scoped" -Text $ptyText -Pattern 'tokio::task::spawn_blocking\(move \|\| \{[\s\S]*std::io::Write::write_all' -Path $ptyPath -Message "PTY websocket writes use request-scoped spawn_blocking calls with no polling loop."
 
 $wsProxyPath = "musu-rs\src\bridge\handlers\ws_proxy.rs"
 $wsProxyText = Get-RepoText $wsProxyPath
@@ -255,9 +280,11 @@ Add-RegexCheck -Scope "webdav-propfind" -Name "propfind loop request scoped" -Te
 $webrtcPath = "musu-rs\src\io\webrtc.rs"
 $webrtcText = Get-RepoText $webrtcPath
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share ffmpeg request path" -Text $webrtcText -Pattern 'Command::new\("ffmpeg"\)' -Path $webrtcPath -Message "WebRTC screen-share loop is tied to an explicit ffmpeg capture request."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "data channel pong one-shot spawn" -Text $webrtcText -Pattern 'tokio::spawn\(async move \{[\s\S]*dc\.send_text\("pong"\)\.await' -Path $webrtcPath -Message "WebRTC data-channel heartbeat spawn sends one pong and returns."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader request-scoped spawn" -Text $webrtcText -Pattern 'tokio::spawn\(async move \{[\s\S]*let mut rtcp_buf[\s\S]*rtp_sender\.read\(&mut rtcp_buf\)' -Path $webrtcPath -Message "WebRTC RTCP reader loop is spawned only inside the explicit screen-share request path."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader awaits inbound packets" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}' -Path $webrtcPath -Message "WebRTC RTCP reader waits on inbound RTCP reads instead of polling."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader exits on read failure" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}[\s\S]*RTCP reader loop exited' -Path $webrtcPath -Message "WebRTC RTCP reader exits when the RTCP read stream closes or errors."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share capture task spawn" -Text $webrtcText -Pattern 'tokio::spawn\(async move \{[\s\S]*Starting FFmpeg screen capture' -Path $webrtcPath -Message "WebRTC screen-share capture task is spawned only for the explicit screen-share request."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share stdout read awaits" -Text $webrtcText -Pattern 'stdout\.read\(&mut buf\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop awaits ffmpeg stdout reads."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "NAL splitter drains finite buffer" -Text $webrtcText -Pattern 'while let Some\(idx\) = find_nal_unit_start\(&h264_stream\)[\s\S]*h264_stream\.drain' -Path $webrtcPath -Message "WebRTC NAL splitter drains the finite buffered stdout chunk."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share kills child on failure" -Text $webrtcText -Pattern 'track_clone[\s\S]*write_sample[\s\S]*child\.kill\(\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop kills ffmpeg if sample writes fail."
@@ -271,14 +298,53 @@ Add-RegexCheck -Scope "process-enumeration" -Name "windows snapshot close" -Text
 
 $writerRunnerPath = "musu-rs\src\writer\runner.rs"
 $writerRunnerText = Get-RepoText $writerRunnerPath
+Add-RegexCheck -Scope "task-runner" -Name "task spawn registered handle" -Text $writerRunnerText -Pattern 'let join = tokio::spawn\(async move \{[\s\S]*run_one\(inner\.clone\(\),\s*spec,\s*cancel_for_task\)\.await[\s\S]*registry\.insert' -Path $writerRunnerPath -Message "Writer tasks are spawned and immediately registered for cancellation/reconciliation."
+Add-RegexCheck -Scope "task-runner" -Name "registry guard removes task" -Text $writerRunnerText -Pattern 'struct RegistryGuard[\s\S]*impl Drop for RegistryGuard[\s\S]*registry\.remove\(&self\.task_id\)' -Path $writerRunnerPath -Message "Writer task join handles are removed from the registry on task exit."
+Add-RegexCheck -Scope "task-callback" -Name "callback bounded retry spawn" -Text $writerRunnerText -Pattern 'tokio::spawn\(async move \{[\s\S]*for attempt in 0\.\.3u32[\s\S]*\.timeout\(std::time::Duration::from_secs\(10\)\)' -Path $writerRunnerPath -Message "Task callbacks run in a spawned one-shot with bounded retry count and per-request timeout."
+Add-RegexCheck -Scope "task-callback" -Name "callback retry backoff sleep" -Text $writerRunnerText -Pattern 'tokio::time::sleep\(std::time::Duration::from_secs\(1 << attempt\)\)\.await' -Path $writerRunnerPath -Message "Task callback retries sleep between attempts instead of spinning."
+Add-RegexCheck -Scope "wiki-index" -Name "musu-crawl fire-and-forget thread" -Text $writerRunnerText -Pattern 'std::thread::spawn\(move \|\| \{[\s\S]*Command::new\(musu_crawl_exe\)[\s\S]*\.output\(\)' -Path $writerRunnerPath -Message "Semantic SSOT markdown indexing runs as a one-shot thread after a task markdown write."
 Add-RegexCheck -Scope "task-runner" -Name "admission safety recheck interval" -Text $writerRunnerText -Pattern 'ADMISSION_RECHECK_INTERVAL:\s*Duration\s*=\s*Duration::from_secs\(1\)' -Path $writerRunnerPath -Message "Task admission loop has a slow safety recheck interval."
 Add-RegexCheck -Scope "task-runner" -Name "admission notify or sleep or cancel" -Text $writerRunnerText -Pattern 'tokio::select!\s*\{[\s\S]*notified[\s\S]*tokio::time::sleep\(ADMISSION_RECHECK_INTERVAL\)[\s\S]*cancel\.notified\(\)' -Path $writerRunnerPath -Message "Task admission loop waits on notify, bounded sleep, or cancel."
 Add-RegexCheck -Scope "task-runner" -Name "stream no-deadline per-iter timeout" -Text $writerRunnerText -Pattern 'remaining\.unwrap_or\(Duration::from_millis\(500\)\)' -Path $writerRunnerPath -Message "Task stdout stream loop bounds no-deadline reads to 500ms per iteration."
 Add-RegexCheck -Scope "task-runner" -Name "stream cancel and timeout select" -Text $writerRunnerText -Pattern 'tokio::select!\s*\{[\s\S]*cancel\.notified\(\)[\s\S]*tokio::time::timeout\(per_iter,\s*read_fut\)' -Path $writerRunnerPath -Message "Task stdout stream loop selects between cancel and bounded read."
 Add-RegexCheck -Scope "task-runner" -Name "stream deadline timeout" -Text $writerRunnerText -Pattern 'if now >= d[\s\S]*StreamOutcome::Timeout' -Path $writerRunnerPath -Message "Task stdout stream loop exits when its deadline is reached."
 
+$writerClaudePath = "musu-rs\src\writer\claude.rs"
+$writerClaudeText = Get-RepoText $writerClaudePath
+Add-RegexCheck -Scope "writer-claude" -Name "stdin write one-shot spawn" -Text $writerClaudeText -Pattern 'tokio::spawn\(async move \{[\s\S]*stdin\.write_all\(prompt\.as_bytes\(\)\)\.await[\s\S]*stdin\.shutdown\(\)\.await' -Path $writerClaudePath -Message "Claude stdin writer spawn writes the prompt once, shuts stdin down, and exits."
+Add-RegexCheck -Scope "writer-claude" -Name "claude child kill on drop" -Text $writerClaudeText -Pattern '\.kill_on_drop\(true\)' -Path $writerClaudePath -Message "Claude child process is killed if the async command handle is dropped."
+
+$companiesPath = "musu-rs\src\bridge\handlers\companies.rs"
+$companiesText = Get-RepoText $companiesPath
+Add-RegexCheck -Scope "companies-index-sync" -Name "post-create sync fire-and-forget spawn" -Text $companiesText -Pattern 'tokio::spawn\(async move \{[\s\S]*sync_workspace_async\(' -Path $companiesPath -Message "Company creation starts a fire-and-forget index sync so HTTP 201 is not blocked by disk scan."
+Add-RegexCheck -Scope "companies-index-sync" -Name "post-create sync nonfatal warn" -Text $companiesText -Pattern 'indexer sync after create_company failed; non-fatal' -Path $companiesPath -Message "Post-create index sync failure is logged as non-fatal and does not retry-spin."
+
+$nodesPath = "musu-rs\src\bridge\handlers\nodes.rs"
+$nodesText = Get-RepoText $nodesPath
+Add-RegexCheck -Scope "nodes-health" -Name "peer health spawned per finite entry" -Text $nodesText -Pattern 'for \(name,\s*entry\) in peer_entries[\s\S]*tokio::spawn\(async move \{[\s\S]*timeout\(Duration::from_secs\(3\)' -Path $nodesPath -Message "Node listing spawns one bounded health check per finite peer entry."
+Add-RegexCheck -Scope "nodes-health" -Name "peer health join awaited" -Text $nodesText -Pattern 'for t in tasks \{[\s\S]*if let Ok\(\(name,\s*entry,\s*healthy\)\) = t\.await' -Path $nodesPath -Message "Node listing awaits every spawned peer health check before returning."
+
+$routeEvidencePath = "musu-rs\src\bridge\route_evidence.rs"
+$routeEvidenceText = Get-RepoText $routeEvidencePath
+Add-RegexCheck -Scope "route-evidence-submit" -Name "route evidence one-shot spawn" -Text $routeEvidenceText -Pattern 'tokio::spawn\(async move \{[\s\S]*submit_recorded_route_evidence_if_configured' -Path $routeEvidencePath -Message "Route evidence cloud submission is a one-shot spawned task with no polling loop."
+Add-RegexCheck -Scope "route-evidence-submit" -Name "route evidence no-token skip" -Text $routeEvidenceText -Pattern 'SkippedNoToken[\s\S]*return Ok\(RouteEvidenceSubmitOutcome::SkippedNoToken\)' -Path $routeEvidencePath -Message "Route evidence cloud submission exits early when no account token is configured."
+
+$rendezvousPath = "musu-rs\src\bridge\rendezvous.rs"
+$rendezvousText = Get-RepoText $rendezvousPath
+Add-RegexCheck -Scope "rendezvous" -Name "rendezvous timeout clamp" -Text $rendezvousText -Pattern 'MUSU_P2P_RENDEZVOUS_CLIENT_TIMEOUT_MS[\s\S]*\.clamp\(250,\s*10_000\)' -Path $rendezvousPath -Message "Rendezvous cloud calls have a clamped timeout budget."
+Add-RegexCheck -Scope "rendezvous" -Name "publish candidates one-shot spawn" -Text $rendezvousText -Pattern 'spawn_publish_target_candidates[\s\S]*tokio::spawn\(async move \{[\s\S]*publish_local_candidates' -Path $rendezvousPath -Message "Publishing local candidates is a one-shot spawned cloud task."
+Add-RegexCheck -Scope "rendezvous" -Name "publish candidates timeout" -Text $rendezvousText -Pattern 'tokio::time::timeout\(\s*rendezvous_timeout\(\),\s*cloud\.add_rendezvous_candidates' -Path $rendezvousPath -Message "Publishing local candidates is wrapped by the rendezvous timeout."
+Add-RegexCheck -Scope "rendezvous" -Name "close session one-shot spawn" -Text $rendezvousText -Pattern 'spawn_close_rendezvous_session[\s\S]*tokio::spawn\(async move \{[\s\S]*close_rendezvous' -Path $rendezvousPath -Message "Closing a rendezvous session is a one-shot spawned cloud task."
+Add-RegexCheck -Scope "rendezvous" -Name "close session timeout" -Text $rendezvousText -Pattern 'tokio::time::timeout\(rendezvous_timeout\(\),\s*cloud\.close_rendezvous\(&session_id\)\)' -Path $rendezvousPath -Message "Closing rendezvous sessions is wrapped by the rendezvous timeout."
+
+$workflowHandlerPath = "musu-rs\src\bridge\handlers\workflow.rs"
+$workflowHandlerText = Get-RepoText $workflowHandlerPath
+Add-RegexCheck -Scope "workflow-handler" -Name "execute workflow one-shot spawn" -Text $workflowHandlerText -Pattern 'tokio::spawn\(async move \{[\s\S]*execute_workflow\(&state_clone,\s*&id_clone\)\.await' -Path $workflowHandlerPath -Message "Workflow HTTP execution starts one spawned executor task and returns immediately."
+Add-RegexCheck -Scope "workflow-handler" -Name "execute workflow failure logged" -Text $workflowHandlerText -Pattern 'workflow execution failed' -Path $workflowHandlerPath -Message "Workflow executor spawn logs failure instead of retry-spinning."
+
 $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
+$unauditedSpawnHits = New-Object System.Collections.Generic.List[object]
 $telemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
     Add-Check -Scope "source" -Name "rust source root exists" -Passed $false -Path "musu-rs\src" -Message "Rust source root is missing."
@@ -315,6 +381,23 @@ else {
         "musu-rs\src\workflow\executor.rs",
         "musu-rs\src\workflow\workflow_spec.rs"
     )
+    $allowlistedSpawnFiles = @(
+        "musu-rs\src\bridge\handlers\companies.rs",
+        "musu-rs\src\bridge\handlers\nodes.rs",
+        "musu-rs\src\bridge\handlers\pty.rs",
+        "musu-rs\src\bridge\handlers\relay_payload.rs",
+        "musu-rs\src\bridge\handlers\workflow.rs",
+        "musu-rs\src\bridge\mod.rs",
+        "musu-rs\src\bridge\rendezvous.rs",
+        "musu-rs\src\bridge\route_evidence.rs",
+        "musu-rs\src\control\mod.rs",
+        "musu-rs\src\indexer\sync.rs",
+        "musu-rs\src\io\clipboard.rs",
+        "musu-rs\src\io\webrtc.rs",
+        "musu-rs\src\peer\mdns.rs",
+        "musu-rs\src\writer\claude.rs",
+        "musu-rs\src\writer\runner.rs"
+    )
 
     $rustFiles = Get-ChildItem -LiteralPath $rustSourceRoot -Recurse -File -Filter "*.rs"
     foreach ($file in $rustFiles) {
@@ -330,6 +413,10 @@ else {
         if ([regex]::IsMatch($text, 'while\s+let\s+') -and ($relative -notin $allowlistedWhileLetFiles)) {
             $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
+        $spawnMatches = [regex]::Matches($text, '\b(?:tokio::spawn|tokio::task::spawn_blocking|std::thread::spawn|thread::spawn)\s*\(')
+        if ($spawnMatches.Count -gt 0 -and ($relative -notin $allowlistedSpawnFiles)) {
+            $unauditedSpawnHits.Add([pscustomobject]@{ path = $relative; count = $spawnMatches.Count }) | Out-Null
+        }
         if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|non_blocking|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
             $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
@@ -341,6 +428,12 @@ else {
         -Passed ($rawBusyLoopHits.Count -eq 0) `
         -Path "musu-rs\src" `
         -Message ($(if ($rawBusyLoopHits.Count -eq 0) { "No unaudited Rust loop constructs found outside the allowlist." } else { "Unaudited Rust loop constructs found: $(@($rawBusyLoopHits | ForEach-Object { $_.path }) -join ', ')." }))
+    Add-Check `
+        -Scope "source" `
+        -Name "new rust spawns must be audited" `
+        -Passed ($unauditedSpawnHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($unauditedSpawnHits.Count -eq 0) { "No unaudited Rust spawn constructs found outside the allowlist." } else { "Unaudited Rust spawn constructs found: $(@($unauditedSpawnHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
     Add-Check `
         -Scope "logging-telemetry" `
         -Name "no background telemetry flush worker primitives" `
@@ -357,6 +450,8 @@ $result = [pscustomobject]@{
     fail_count = $failCount
     unaudited_loop_hit_count = $rawBusyLoopHits.Count
     unaudited_loop_hits = $rawBusyLoopHits.ToArray()
+    unaudited_spawn_hit_count = $unauditedSpawnHits.Count
+    unaudited_spawn_hits = $unauditedSpawnHits.ToArray()
     telemetry_flush_primitive_hit_count = $telemetryFlushPrimitiveHits.Count
     telemetry_flush_primitive_hits = $telemetryFlushPrimitiveHits.ToArray()
     checks = $checks.ToArray()
@@ -370,6 +465,7 @@ else {
     "ok: $($result.ok)"
     "fail_count: $($result.fail_count)"
     "unaudited_loop_hit_count: $($result.unaudited_loop_hit_count)"
+    "unaudited_spawn_hit_count: $($result.unaudited_spawn_hit_count)"
     ""
     $checks | Format-Table scope, name, status, path, message -Wrap
 }
