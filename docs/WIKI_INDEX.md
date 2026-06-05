@@ -4319,4 +4319,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 post native RPC exec primary evidence, audit, and next steps:
+  `RELEASE_1_15_0_RC1_POST_NATIVE_RPC_EXEC_PRIMARY_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md`
+  (wiki/749) records the fresh HUGH_SECOND packaged local-runtime evidence,
+  qualitative evaluation, code audit, and next-step plan after native RPC exec
+  hardening. Search terms should include `GOAL v574`, `wiki/749`,
+  `3b09dd73`, `20260605-230036-HUGH_SECOND.evidence.json`,
+  `20260605-230300-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-231115-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-231836-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_231115`,
+  `c0e4c3f1-3e79-44ef-846e-475449e1819e`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `HUGH-MAIN 192.168.1.192:8949 timeout`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `cargo test rpc_exec --lib 6/6`,
+  `operator API security audit ok=true`, and
+  `ready_for_public_desktop_release=false`.
+
+- 2026-06-05 post native RPC exec evidence audit index refresh:
+  MUSU local indexing was run after wiki/749. Search terms should include
+  `GOAL v575`, `wiki/750`, `wiki/749 index refresh`, `musu indexer sync`,
+  `2433 files`, `2705 symbols`, `34984 ms`, `3b09dd73`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

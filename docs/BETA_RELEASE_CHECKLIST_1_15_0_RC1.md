@@ -5864,3 +5864,82 @@ source changed after the last packaged evidence refresh.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_NATIVE_RPC_EXEC_HARDENING_2026_06_05.md`
+
+## 2026-06-05 post native RPC exec primary evidence, audit, and next steps
+
+Fresh HUGH_SECOND packaged local-runtime evidence was restored after native
+RPC exec hardening. This reinforces the product split:
+
+- MUSU Desktop is the local executor and packaged runtime.
+- `localhost:3001` is optional developer/workspace dashboard surface, not a
+  release requirement.
+- MUSU.PRO is remote input, project/company room, meeting, rendezvous,
+  path-selection, relay-fallback policy, and evidence control plane.
+- Web/P2P input may deliver bounded authenticated work orders to a local MUSU
+  program, but work executes on each device.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-230036-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-230300-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-231115-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-231836-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- single-machine smoke passed with `single_machine_surface=local-bridge-only`,
+  `dashboard_required=false`, bridge `http://127.0.0.1:6540`, and CLI route
+  checked
+- desktop-open idle CPU passed for `60.032s` with MUSU `0.03`, Node `0`,
+  WebView2 `0.16`, working set `361.22MB`, and hot `0`
+- five-scenario runtime CPU matrix passed verifier `ok=true`/`fail_count=0`
+  with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_231115`
+- targeted HUGH-MAIN matrix passed CPU verification with failed route allowed;
+  the route timed out to `192.168.1.192:8949`, then post-route CPU stayed
+  MUSU `0`, Node `0`, WebView2 `0.05`, hot `0`
+
+Clean go/no-go after `3b09dd73`:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `runtime_idle_cpu_verified=false`, valid machines `1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_verified=false`, valid machines
+  `1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_verified=true`, valid machines
+  `1/1 [HUGH_SECOND]`
+- hardening/source-contract gates true
+- `multi_device_verified=false`
+- `public_metadata_ok=true`
+- `support_mailbox_verified=false`
+- `store_release_verified=false`
+- `p2p_control_plane_verified=false`
+
+Code audit found no high or medium issue in the current code path. The current
+unpushed delta adds evidence files only. Validation rerun passed
+`cargo test rpc_exec --lib` `6/6` and
+`audit-operator-api-security-contract.ps1 -FailOnProblem -Json` with
+`ok=true`/`fail_count=0`.
+
+Remaining public release blockers are real second-PC multi-device evidence,
+second-PC idle CPU evidence, second-PC runtime CPU matrix evidence, live hosted
+`musu.pro` P2P control-plane proof, `musu@musu.pro` support mailbox evidence,
+and Partner Center/Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_NATIVE_RPC_EXEC_PRIMARY_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2433 files`, `2705 symbols`, `34984 ms`
+- gbrain was not rerun because the active same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, import failures, `sync.last_commit` not advancing,
+  and `gstack-brain-sync exited undefined`

@@ -279,6 +279,30 @@ This preserves the local-first rule: web or peer input can request bounded,
 audited work from a local MUSU program, but it cannot turn MUSU.PRO or the P2P
 control plane into an unrestricted command executor.
 
+## 2026-06-05 post native RPC exec evidence boundary update
+
+Fresh packaged local-runtime evidence after native RPC exec hardening confirms
+the intended product boundary on HUGH_SECOND.
+
+- Packaged single-machine evidence passes with
+  `single_machine_surface=local-bridge-only` and `dashboard_required=false`.
+- The installed bridge/runtime is the local product surface; a fixed
+  `localhost:3001` dashboard is optional and must not be treated as required
+  cloud access.
+- MUSU.PRO can host remote user input, project/company rooms, meetings,
+  rendezvous, path selection, fallback policy, and evidence.
+- MUSU.PRO must not become the execution server or default payload data path.
+- Local MUSU programs execute work on each device and should prefer direct P2P
+  mesh after web-assisted discovery.
+- Targeted HUGH-MAIN post-route CPU evidence only proves this machine stays
+  inside CPU budget after a failed second-PC route attempt. It does not prove
+  successful multi-device routing.
+
+This does not expand the public network claim. Public release still requires
+second-PC multi-device evidence, second-PC idle CPU and runtime matrix evidence,
+live owner-scoped MUSU.PRO P2P control-plane proof, support mailbox evidence,
+and Store evidence.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

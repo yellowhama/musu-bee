@@ -7356,6 +7356,85 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-05 post native RPC exec primary evidence, audit, and next steps (wiki/749)
+
+Fresh HUGH_SECOND packaged local-runtime evidence was restored after native RPC
+exec hardening.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-230036-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-230300-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-231115-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-231836-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- single-machine smoke passed with `single_machine_surface=local-bridge-only`,
+  `dashboard_required=false`, bridge `http://127.0.0.1:6540`, and CLI route
+  checked
+- idle CPU passed for `60.032s` with MUSU `0.03`, Node `0`, WebView2 `0.16`,
+  working set `361.22MB`, and hot `0`
+- normal matrix passed verifier `ok=true`/`fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_231115`, route task
+  `c0e4c3f1-3e79-44ef-846e-475449e1819e`, max MUSU `0`, Node `0`, WebView2
+  `0.1`, and max working set `364.89MB`
+- targeted HUGH-MAIN route attempt timed out to `192.168.1.192:8949`, but the
+  post-route CPU sample passed with MUSU `0`, Node `0`, WebView2 `0.05`, and
+  hot `0`; this is not successful multi-device evidence
+
+Clean go/no-go after `3b09dd73` reports `local_artifacts_ready=true`,
+`single_machine_verified=true`, `msix_install_verified=true`, runtime idle CPU
+`1/2 [HUGH_SECOND]`, runtime CPU matrix `1/2 [HUGH_SECOND]`, targeted
+second-PC route CPU `1/1 [HUGH_SECOND]`, hardening/source-contract gates true,
+and `ready_for_public_desktop_release=false`.
+
+Remaining blockers are multi-device, second-PC idle CPU, second-PC runtime CPU
+matrix, support mailbox, Store release, and hosted P2P control-plane proof.
+
+Code audit found no high or medium issue. The current unpushed delta adds
+evidence files only; the relevant runtime hardening is `fe25c5d8`. Validation
+rerun passed `cargo test rpc_exec --lib` `6/6` and operator API security audit
+`ok=true`/`fail_count=0`.
+
+Product boundary:
+
+- MUSU Desktop is the local executor.
+- `localhost:3001` is optional developer/workspace dashboard surface, not a
+  release requirement.
+- MUSU.PRO is remote input, project/company room, meeting, rendezvous,
+  path-selection, relay-fallback policy, and evidence control plane.
+- Work executes on local MUSU programs, and devices should prefer direct P2P
+  mesh after web-assisted discovery.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_NATIVE_RPC_EXEC_PRIMARY_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md`
+
+## 2026-06-05 post native RPC exec evidence audit index refresh (wiki/750)
+
+Indexing was refreshed after wiki/749 and GOAL v574/v575.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2433 files`
+- `2705 symbols`
+- `34984 ms`
+
+gbrain was not rerun for this incremental documentation refresh because the
+same-session active blocker is already known: missing `ZEROENTROPY_API_KEY`,
+generated/evidence import failures, `sync.last_commit` not advancing, and
+`gstack-brain-sync exited undefined`.
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.
+
 ## 2026-06-05 native RPC exec hardening (wiki/748)
 
 Native bridge `/api/v1/rpc/exec` is now treated as a local-runtime command
