@@ -97,6 +97,7 @@ try {
         "docs\P2P_CONTROL_PLANE.md",
         "docs\RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md",
         "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
+        "docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md",
         "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
         "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
         "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
@@ -188,6 +189,7 @@ try {
         Add-CheckFromCondition "readme current status audit" ($readme -like "*RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md*") "README points to the current status audit" "README missing current status audit reference"
         Add-CheckFromCondition "readme runtime hardening roadmap" ($readme -like "*RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md*" -and $readme -like "*runtime_idle_cpu_verified=true*") "README points to runtime hardening and idle CPU gate" "README missing runtime hardening or idle CPU gate reference"
         Add-CheckFromCondition "readme p2p control plane spec" ($readme -like "*MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md*") "README points to P2P control-plane spec" "README missing P2P control-plane spec reference"
+        Add-CheckFromCondition "readme current p2p audit report" ($readme -like "*RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md*") "README points to current P2P audit report" "README missing current P2P audit report reference"
         Add-CheckFromCondition "readme stabilization execution plan" ($readme -like "*MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md*") "README points to stabilization execution plan" "README missing stabilization execution plan reference"
         Add-CheckFromCondition "readme msix desktop entrypoint audit doc" ($readme -like "*MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md*") "README points to MSIX desktop entrypoint audit" "README missing MSIX desktop entrypoint audit reference"
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
