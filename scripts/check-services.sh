@@ -17,9 +17,19 @@ check() {
   fi
 }
 
-echo "MUSU Service Status"
+check_optional() {
+  local name="$1" url="$2"
+  if curl -sf --max-time 2 "$url" >/dev/null 2>&1; then
+    echo -e "  ${GREEN}●${NC} ${name}"
+  else
+    echo -e "  ${YELLOW}●${NC} ${name} (optional, not running)"
+  fi
+}
+
+echo "MUSU Developer Service Status"
+echo "(not required for packaged MUSU Desktop)"
 echo "───────────────────"
-check "musu-bee    :3001" "http://127.0.0.1:3001"
+check_optional "musu-bee    :3001 workspace dashboard" "http://127.0.0.1:3001"
 check "musu-port   :1355" "http://127.0.0.1:1355/health"
 check "musu-bridge :8070" "http://127.0.0.1:8070/health"
 check "musu-worker :9700" "http://127.0.0.1:9700/health"

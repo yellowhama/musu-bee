@@ -148,11 +148,21 @@ Store/MSIX note:
 
 ---
 
-## 6. Web Dashboard (Optional)
+## 6. Workspace Web Dashboard (Developer-Only, Optional)
 
-If Node.js is installed, the installer also builds `musu-bee` (the web UI):
+The installed MUSU Desktop app does not require `localhost:3001`. It runs the
+local runtime directly on this machine. Use MUSU Desktop for local execution and
+use `https://musu.pro` as the remote work-order/control-plane surface when it is
+configured.
+
+Only use the workspace Next.js dashboard while developing `musu-bee` locally. If
+you have not started that dev server, `http://localhost:3001` returning
+connection refused is expected.
 
 ```
+cd musu-bee
+npm run dev
+
 http://localhost:3001/app            Main dashboard
 http://localhost:3001/app/dashboard  Task overview
 http://localhost:3001/app/wiki       Wiki & research

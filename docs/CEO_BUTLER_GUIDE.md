@@ -110,8 +110,8 @@ CEO ──→ 완료 보고: "인증 리팩터링 완료. QA 8.5/10."
 # CEO 보드 메시지 확인
 curl http://localhost:8070/api/messages?group_id=ceo-board&limit=5
 
-# 웹 대시보드에서 확인
-open http://localhost:3001/app
+# 데스크톱 앱 또는 MUSU.PRO project room에서 확인
+# localhost:3001은 개발용 workspace dashboard를 직접 시작했을 때만 사용
 
 # 최근 태스크 확인
 curl http://localhost:8070/api/tasks?limit=5

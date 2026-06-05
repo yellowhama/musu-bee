@@ -21,6 +21,10 @@ npm install
 npm run dev                   # starts on http://localhost:3001
 ```
 
+`localhost:3001` is only the optional workspace Next.js dashboard for local web
+development. It is not the packaged MUSU Desktop runtime; if this dev server is
+not running, browser connection refusal is expected.
+
 ---
 
 ## Vercel Deployment

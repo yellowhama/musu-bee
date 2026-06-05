@@ -33,7 +33,7 @@ Windows distribution note:
 | `MUSU_SEMAPHORE_ACQUIRE_TIMEOUT_SEC` | `60` | No | Seconds to wait for a concurrency slot before rejecting. |
 | `MUSU_DISPATCH_HASH_TTL_SEC` | `120` | No | Dedup TTL for dispatch hashes (prevents duplicate task execution). |
 | `MUSU_DISABLE_RATE_LIMIT` | `0` | No | Set to `1` to disable rate limiting entirely. |
-| `MUSU_BEE_URL` | `http://localhost:3001` | No | URL of the musu-bee Next.js frontend. |
+| `MUSU_BEE_URL` | `http://localhost:3001` | No | URL of the optional developer Next.js frontend. Packaged MUSU Desktop does not require this port. |
 | `MUSU_PRIMARY_URL` | *(empty)* | No | URL of the primary node (used by secondary nodes for sync). |
 
 ## Worker
