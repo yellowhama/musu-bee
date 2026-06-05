@@ -7566,6 +7566,68 @@ gbrain was not rerun because the same-session blocker remains missing
 not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
 remains the reliable current code/document index for this repo.
 
+## 2026-06-06 runtime idle CPU full role attribution gate (wiki/769)
+
+The single `desktop-open` runtime idle CPU gate now requires full
+MUSU/node/WebView2/other role attribution, matching the stricter runtime CPU
+scenario matrix standard.
+
+What changed:
+
+- `write-release-go-no-go.ps1` adds `Test-ObjectHasPropertyNames`.
+- `Test-RuntimeIdleCpuEvidence` now requires `process_counts_by_role` to include
+  `musu`, `node`, `webview2`, and `other`.
+- `cpu_attribution.sample_count_by_role`,
+  `cpu_attribution.total_cpu_seconds_by_role`, and
+  `cpu_attribution.max_one_core_percent_by_role` must include the same four
+  roles.
+- Existing subrole checks for `bridge_runtime`, `desktop_shell`,
+  `webview2_helper`, `node_helper`, `musu_runtime`, and `other` remain in
+  force.
+- `test-release-evidence-verifiers.ps1` adds source-contract case
+  `go-no-go runtime idle CPU requires full role attribution`.
+
+Validation:
+
+- PowerShell parser: pass
+- release evidence verifier regression: `ok=true`, `case_count=46`,
+  `failed_case_count=0`
+- dirty-tree go/no-go with public metadata skipped:
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `idle_busy_loop_candidate_contract_verified=true`
+- `git diff --check`: pass
+
+Code audit found no high or medium issue. This is verifier hardening only; it
+does not replace fresh 60-second CPU evidence and does not close the two-machine
+idle CPU gate.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_FULL_ROLE_ATTRIBUTION_GATE_2026_06_06.md`
+
+## 2026-06-06 runtime idle CPU full role attribution index refresh (wiki/770)
+
+MUSU local indexing was refreshed after wiki/769, GOAL v594, the runtime idle
+CPU full-role attribution report, BETA checklist, WIKI/WIKI_INDEX, release
+verifier source-contract update, and CoS memory update.
+
+Command:
+
+`& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+
+Result:
+
+- files: `2480`
+- symbols: `2719`
+- elapsed: `9798 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+remains the reliable current code/document index for this repo.
+
 ## 2026-06-06 second-PC runtime CPU subrole import gate (wiki/759)
 
 The second-PC return path now enforces the runtime CPU subrole evidence

@@ -266,6 +266,31 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
     return $true
 }
 
+function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Test-ObjectHasPropertyNames',
+        '$cpuAttributionRoleNames = @("musu", "node", "webview2", "other")',
+        'process counts by MUSU/node/WebView2/other role are recorded',
+        'CPU attribution records MUSU/node/WebView2/other sample counts by role',
+        'CPU attribution records MUSU/node/WebView2/other CPU totals by role',
+        'CPU attribution records MUSU/node/WebView2/other max one-core CPU by role',
+        'Test-ObjectHasPropertyNames -Object $processCountsByRole -Names $cpuAttributionRoleNames',
+        'Test-ObjectHasPropertyNames -Object $sampleCountByRole -Names $cpuAttributionRoleNames',
+        'Test-ObjectHasPropertyNames -Object $totalCpuByRole -Names $cpuAttributionRoleNames',
+        'Test-ObjectHasPropertyNames -Object $maxCpuByRole -Names $cpuAttributionRoleNames'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -905,6 +930,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go separates full runtime matrix and targeted route attempt selection" `
     -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeIdleCpuGoNoGoFullRoleAttributionOk = Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeIdleCpuGoNoGoFullRoleAttributionOk `
+    -Message "go/no-go runtime idle CPU evidence must require MUSU/node/WebView2/other role attribution fields"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go runtime idle CPU requires full role attribution" `
+    -Verifier "runtime idle CPU source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

@@ -184,6 +184,24 @@ function New-Check {
     }
 }
 
+function Test-ObjectHasPropertyNames {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string[]]$Names
+    )
+
+    if ($null -eq $Object) {
+        return $false
+    }
+
+    foreach ($name in $Names) {
+        if (-not $Object.PSObject.Properties[$name]) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-AuditCheckPassed {
     param(
         $Audit,
@@ -439,6 +457,7 @@ function Test-RuntimeIdleCpuEvidence {
     )
 
     $checks = New-Object System.Collections.Generic.List[object]
+    $cpuAttributionRoleNames = @("musu", "node", "webview2", "other")
     $cpuAttributionSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
     $evidence = $null
     try {
@@ -550,15 +569,12 @@ function Test-RuntimeIdleCpuEvidence {
         $memoryBySubrolePresent = $evidence.PSObject.Properties["memory_totals_by_subrole_mb"]
         $checks.Add((New-Check -Name "memory by subrole present" -Status ($(if ($memoryBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($memoryBySubrolePresent) { "memory totals by bridge/runtime/desktop/helper subrole are recorded" } else { "memory totals by subrole are missing" })))) | Out-Null
 
+        $processCountsByRole = if ($evidence.PSObject.Properties["process_counts_by_role"]) { $evidence.process_counts_by_role } else { $null }
+        $processCountsByRolePresent = Test-ObjectHasPropertyNames -Object $processCountsByRole -Names $cpuAttributionRoleNames
+        $checks.Add((New-Check -Name "process counts by role present" -Status ($(if ($processCountsByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($processCountsByRolePresent) { "process counts by MUSU/node/WebView2/other role are recorded" } else { "process counts by role are missing MUSU/node/WebView2/other fields" })))) | Out-Null
+
         $processCountsBySubrole = if ($evidence.PSObject.Properties["process_counts_by_subrole"]) { $evidence.process_counts_by_subrole } else { $null }
-        $processCountsBySubrolePresent = ($null -ne $processCountsBySubrole)
-        if ($processCountsBySubrolePresent) {
-            foreach ($subrole in $cpuAttributionSubroleNames) {
-                if (-not $processCountsBySubrole.PSObject.Properties[$subrole]) {
-                    $processCountsBySubrolePresent = $false
-                }
-            }
-        }
+        $processCountsBySubrolePresent = Test-ObjectHasPropertyNames -Object $processCountsBySubrole -Names $cpuAttributionSubroleNames
         $checks.Add((New-Check -Name "process counts by subrole present" -Status ($(if ($processCountsBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($processCountsBySubrolePresent) { "process counts by bridge/runtime/desktop/helper subrole are recorded" } else { "process counts by subrole are missing or incomplete" })))) | Out-Null
 
         $bridgeRuntimeProcessCount = if ($processCountsBySubrolePresent -and $processCountsBySubrole.PSObject.Properties["bridge_runtime"]) { [int]$processCountsBySubrole.bridge_runtime } else { 0 }
@@ -598,43 +614,28 @@ function Test-RuntimeIdleCpuEvidence {
             $attributionSampleCount = if ($cpuAttribution.PSObject.Properties["sample_count"]) { [int]$cpuAttribution.sample_count } else { -1 }
             $checks.Add((New-Check -Name "CPU attribution sample count" -Status ($(if ($attributionSampleCount -eq $sampleCount -and $attributionSampleCount -gt 0) { "pass" } else { "fail" })) -Message ($(if ($attributionSampleCount -eq $sampleCount -and $attributionSampleCount -gt 0) { "CPU attribution sample count matches samples" } else { "CPU attribution sample count $attributionSampleCount does not match samples $sampleCount" })))) | Out-Null
 
-            $sampleCountByRolePresent = ($cpuAttribution.PSObject.Properties["sample_count_by_role"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["musu"] -and $cpuAttribution.sample_count_by_role.PSObject.Properties["webview2"])
-            $checks.Add((New-Check -Name "CPU attribution role counts" -Status ($(if ($sampleCountByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($sampleCountByRolePresent) { "CPU attribution records sample counts by role" } else { "CPU attribution is missing role sample counts" })))) | Out-Null
+            $sampleCountByRole = if ($cpuAttribution.PSObject.Properties["sample_count_by_role"]) { $cpuAttribution.sample_count_by_role } else { $null }
+            $sampleCountByRolePresent = Test-ObjectHasPropertyNames -Object $sampleCountByRole -Names $cpuAttributionRoleNames
+            $checks.Add((New-Check -Name "CPU attribution role counts" -Status ($(if ($sampleCountByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($sampleCountByRolePresent) { "CPU attribution records MUSU/node/WebView2/other sample counts by role" } else { "CPU attribution is missing MUSU/node/WebView2/other role sample counts" })))) | Out-Null
 
-            $sampleCountBySubrolePresent = $cpuAttribution.PSObject.Properties["sample_count_by_subrole"]
-            if ($sampleCountBySubrolePresent) {
-                foreach ($subrole in $cpuAttributionSubroleNames) {
-                    if (-not $cpuAttribution.sample_count_by_subrole.PSObject.Properties[$subrole]) {
-                        $sampleCountBySubrolePresent = $false
-                    }
-                }
-            }
+            $sampleCountBySubrole = if ($cpuAttribution.PSObject.Properties["sample_count_by_subrole"]) { $cpuAttribution.sample_count_by_subrole } else { $null }
+            $sampleCountBySubrolePresent = Test-ObjectHasPropertyNames -Object $sampleCountBySubrole -Names $cpuAttributionSubroleNames
             $checks.Add((New-Check -Name "CPU attribution subrole counts" -Status ($(if ($sampleCountBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($sampleCountBySubrolePresent) { "CPU attribution records sample counts by bridge/runtime/desktop/helper subrole" } else { "CPU attribution is missing subrole sample counts" })))) | Out-Null
 
-            $totalCpuByRolePresent = ($cpuAttribution.PSObject.Properties["total_cpu_seconds_by_role"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["musu"] -and $cpuAttribution.total_cpu_seconds_by_role.PSObject.Properties["webview2"])
-            $checks.Add((New-Check -Name "CPU attribution totals by role" -Status ($(if ($totalCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($totalCpuByRolePresent) { "CPU attribution records total CPU seconds by role" } else { "CPU attribution is missing CPU totals by role" })))) | Out-Null
+            $totalCpuByRole = if ($cpuAttribution.PSObject.Properties["total_cpu_seconds_by_role"]) { $cpuAttribution.total_cpu_seconds_by_role } else { $null }
+            $totalCpuByRolePresent = Test-ObjectHasPropertyNames -Object $totalCpuByRole -Names $cpuAttributionRoleNames
+            $checks.Add((New-Check -Name "CPU attribution totals by role" -Status ($(if ($totalCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($totalCpuByRolePresent) { "CPU attribution records MUSU/node/WebView2/other CPU totals by role" } else { "CPU attribution is missing MUSU/node/WebView2/other CPU totals by role" })))) | Out-Null
 
-            $totalCpuBySubrolePresent = $cpuAttribution.PSObject.Properties["total_cpu_seconds_by_subrole"]
-            if ($totalCpuBySubrolePresent) {
-                foreach ($subrole in $cpuAttributionSubroleNames) {
-                    if (-not $cpuAttribution.total_cpu_seconds_by_subrole.PSObject.Properties[$subrole]) {
-                        $totalCpuBySubrolePresent = $false
-                    }
-                }
-            }
+            $totalCpuBySubrole = if ($cpuAttribution.PSObject.Properties["total_cpu_seconds_by_subrole"]) { $cpuAttribution.total_cpu_seconds_by_subrole } else { $null }
+            $totalCpuBySubrolePresent = Test-ObjectHasPropertyNames -Object $totalCpuBySubrole -Names $cpuAttributionSubroleNames
             $checks.Add((New-Check -Name "CPU attribution totals by subrole" -Status ($(if ($totalCpuBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($totalCpuBySubrolePresent) { "CPU attribution records total CPU seconds by bridge/runtime/desktop/helper subrole" } else { "CPU attribution is missing CPU totals by subrole" })))) | Out-Null
 
-            $maxCpuByRolePresent = ($cpuAttribution.PSObject.Properties["max_one_core_percent_by_role"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["musu"] -and $cpuAttribution.max_one_core_percent_by_role.PSObject.Properties["webview2"])
-            $checks.Add((New-Check -Name "CPU attribution max by role" -Status ($(if ($maxCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($maxCpuByRolePresent) { "CPU attribution records max one-core CPU by role" } else { "CPU attribution is missing max CPU by role" })))) | Out-Null
+            $maxCpuByRole = if ($cpuAttribution.PSObject.Properties["max_one_core_percent_by_role"]) { $cpuAttribution.max_one_core_percent_by_role } else { $null }
+            $maxCpuByRolePresent = Test-ObjectHasPropertyNames -Object $maxCpuByRole -Names $cpuAttributionRoleNames
+            $checks.Add((New-Check -Name "CPU attribution max by role" -Status ($(if ($maxCpuByRolePresent) { "pass" } else { "fail" })) -Message ($(if ($maxCpuByRolePresent) { "CPU attribution records MUSU/node/WebView2/other max one-core CPU by role" } else { "CPU attribution is missing MUSU/node/WebView2/other max CPU by role" })))) | Out-Null
 
-            $maxCpuBySubrolePresent = $cpuAttribution.PSObject.Properties["max_one_core_percent_by_subrole"]
-            if ($maxCpuBySubrolePresent) {
-                foreach ($subrole in $cpuAttributionSubroleNames) {
-                    if (-not $cpuAttribution.max_one_core_percent_by_subrole.PSObject.Properties[$subrole]) {
-                        $maxCpuBySubrolePresent = $false
-                    }
-                }
-            }
+            $maxCpuBySubrole = if ($cpuAttribution.PSObject.Properties["max_one_core_percent_by_subrole"]) { $cpuAttribution.max_one_core_percent_by_subrole } else { $null }
+            $maxCpuBySubrolePresent = Test-ObjectHasPropertyNames -Object $maxCpuBySubrole -Names $cpuAttributionSubroleNames
             $checks.Add((New-Check -Name "CPU attribution max by subrole" -Status ($(if ($maxCpuBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($maxCpuBySubrolePresent) { "CPU attribution records max one-core CPU by bridge/runtime/desktop/helper subrole" } else { "CPU attribution is missing max CPU by subrole" })))) | Out-Null
 
             $requiredRoles = if ($cpuAttribution.PSObject.Properties["required_roles_present"]) { $cpuAttribution.required_roles_present } else { $null }

@@ -6173,6 +6173,54 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 runtime idle CPU full role attribution gate
+
+The release go/no-go verifier now rejects single `desktop-open` runtime idle CPU
+evidence unless MUSU, Node, WebView2, and other owned-helper role buckets are
+all present.
+
+Required full-role fields:
+
+- `process_counts_by_role`
+- `cpu_attribution.sample_count_by_role`
+- `cpu_attribution.total_cpu_seconds_by_role`
+- `cpu_attribution.max_one_core_percent_by_role`
+
+Each must include:
+
+- `musu`
+- `node`
+- `webview2`
+- `other`
+
+Existing subrole checks for `bridge_runtime`, `desktop_shell`,
+`webview2_helper`, `node_helper`, `musu_runtime`, and `other` remain required.
+
+Validation passed:
+
+- PowerShell parser checks
+- release evidence verifier regression `ok=true`, `case_count=46`,
+  `failed_case_count=0`
+- dirty-tree go/no-go with public metadata skipped preserved
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `git diff --check`
+
+This is verifier hardening only. Public release still needs second-PC idle CPU,
+second-PC runtime matrix, second-PC multi-device route evidence, hosted P2P
+proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_FULL_ROLE_ATTRIBUTION_GATE_2026_06_06.md`
+
+Index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2480 files`, `2719 symbols`, `9798 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 release relay payload preflight byte rejection
 
 `/api/v1/relay/payload` remains preflight-only while

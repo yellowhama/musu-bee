@@ -4612,4 +4612,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
   and `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 runtime idle CPU full role attribution gate:
+  `RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_FULL_ROLE_ATTRIBUTION_GATE_2026_06_06.md`
+  (wiki/769) records the go/no-go verifier hardening that requires
+  `process_counts_by_role`, `cpu_attribution.sample_count_by_role`,
+  `cpu_attribution.total_cpu_seconds_by_role`, and
+  `cpu_attribution.max_one_core_percent_by_role` to include `musu`, `node`,
+  `webview2`, and `other` for single `desktop-open` idle CPU evidence. Search
+  terms should include `GOAL v594`, `wiki/769`,
+  `Test-ObjectHasPropertyNames`,
+  `go-no-go runtime idle CPU requires full role attribution`,
+  `runtime_idle_cpu_valid_machine_count=1/2`,
+  `release evidence verifier 46/46`, `bridge_runtime`, `desktop_shell`,
+  `node_helper`, and `webview2_helper`.
+
+- 2026-06-06 runtime idle CPU full role attribution index refresh:
+  wiki/770 records the MUSU local index refresh after wiki/769 and GOAL v594.
+  Search terms should include `GOAL v595`, `wiki/770`, `2480 files`,
+  `2719 symbols`, `9798 ms`,
+  `runtime idle CPU full role attribution index refresh`,
+  `Test-ObjectHasPropertyNames`,
+  `go-no-go runtime idle CPU requires full role attribution`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
