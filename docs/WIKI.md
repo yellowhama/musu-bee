@@ -7437,6 +7437,51 @@ gbrain was not rerun because the same-session blocker remains missing
 not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
 remains the reliable current repo index.
 
+## 2026-06-06 clean go/no-go after degraded mode gate (wiki/777)
+
+Clean HEAD after commit `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8` confirmed
+the new degraded-mode gate:
+
+- `degraded_mode_contract_verified=true`
+- `frontend_polling_contract_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `idle_busy_loop_candidate_contract_verified=true`
+- `local_api_auth_contract_verified=true`
+- `operator_api_security_contract_verified=true`
+- `p2p_store_forward_relay_contract_verified=true`
+- `secret_storage_contract_verified=true`
+- `local_artifacts_ready=true`
+- `msix_install_verified=true`
+- `manifest_dirty=false`
+
+The same clean go/no-go also reset current-source local runtime evidence:
+
+- `single_machine_verified=false`
+- runtime idle CPU `0/2`
+- runtime CPU scenario matrix `0/2`
+- targeted second-PC route CPU `false`
+
+This is expected because the degraded-mode gate changed Next/API source,
+especially `/api/device-status`. The next step is to refresh primary packaged
+single-machine, desktop-open idle CPU, runtime CPU matrix, and targeted route
+CPU evidence on the new HEAD before treating the second-PC return as the only
+remaining runtime gate.
+
+## 2026-06-06 degraded mode clean go/no-go index refresh (wiki/778)
+
+MUSU local indexing was refreshed after wiki/777 and GOAL v602.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2493 files`
+- `2731 symbols`
+- `10272 ms`
+
+Indexed context included the clean go/no-go note, degraded-mode report updates,
+degraded-mode next steps update, BETA checklist update, WIKI/WIKI_INDEX, and
+CoS memory updates.
+
 ## 2026-06-06 filesystem watcher scope contract gate (wiki/771)
 
 The Rust background-loop release audit now explicitly gates filesystem watcher

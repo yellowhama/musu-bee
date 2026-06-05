@@ -4,8 +4,9 @@ Date: 2026-06-06 KST
 
 ## Current State
 
-The degraded-mode contract gate is implemented and validated on the current
-working tree. It strengthens the desktop/web split:
+The degraded-mode contract gate is implemented, pushed, and validated on clean
+HEAD `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`. It strengthens the
+desktop/web split:
 
 - MUSU Desktop/local runtime executes work.
 - MUSU.PRO/web accepts remote input and coordinates connection/evidence.
@@ -14,11 +15,18 @@ working tree. It strengthens the desktop/web split:
 
 ## Immediate Next Steps
 
-1. Commit and push this degraded-mode gate.
-2. Run clean HEAD go/no-go.
-3. If clean go/no-go invalidates any current packaged evidence because of the
-   Next route source changes, refresh the relevant primary-machine evidence.
-4. Prepare the next second-PC run with the stricter current scripts.
+1. Refresh primary-machine packaged evidence for the new HEAD:
+   single-machine smoke, desktop-open idle CPU, runtime CPU scenario matrix,
+   and targeted post-route CPU attempt.
+2. Re-run clean HEAD go/no-go and confirm local runtime gates are reclaimed.
+3. Prepare the next second-PC run with the stricter current scripts.
+4. Return/import second-PC evidence zip and verify multi-device, idle CPU,
+   runtime matrix, and targeted route CPU evidence.
+
+Clean go/no-go after the degraded-mode commit already confirmed
+`degraded_mode_contract_verified=true`, but source freshness correctly reset
+`single_machine_verified=false`, runtime idle CPU `0/2`, runtime matrix `0/2`,
+and targeted route CPU `false`.
 
 ## External Release Gates Still Open
 
@@ -44,4 +52,3 @@ The highest-leverage next slice is still the second-PC evidence path:
 Hosted MUSU.PRO relay work should proceed in parallel only after KV/Upstash and
 release relay payload transport are available, because the current hosted proof
 is intentionally blocked without release-grade relay delivery evidence.
-

@@ -96,6 +96,25 @@ Passed:
 - dirty-tree `write-release-go-no-go.ps1 -SkipPublicMetadata -Json` completed;
   it correctly kept public release No-Go while this work was uncommitted.
 
+## Post-Commit Clean Go/No-Go
+
+After commit `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`, clean HEAD
+go/no-go with public metadata skipped reported:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `msix_install_verified=true`
+- `degraded_mode_contract_verified=true`
+- `manifest_dirty=false`
+- `single_machine_verified=false`
+- `runtime_idle_cpu_valid_machine_count=0/2`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0/2`
+- `runtime_cpu_second_pc_route_attempt_verified=false`
+
+This is expected: the commit changes Next/API source, so previous current-source
+single-machine and CPU/matrix evidence cannot be reused for the new HEAD. The
+next primary-machine evidence refresh must run after this commit.
+
 ## Qualitative Evaluation
 
 This is a useful product hardening step, not a release-completion step.
@@ -131,4 +150,3 @@ Public desktop release remains No-Go. Remaining blockers are unchanged:
 - hosted MUSU.PRO owner-scoped P2P/relay proof
 - support mailbox proof
 - Partner Center/Store evidence
-

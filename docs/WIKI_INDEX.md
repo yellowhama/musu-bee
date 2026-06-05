@@ -4706,4 +4706,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
   and `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 clean go/no-go after degraded mode gate:
+  wiki/777 records clean HEAD `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`
+  after the degraded-mode gate. Search terms should include `GOAL v602`,
+  `wiki/777`, `degraded_mode_contract_verified=true`,
+  `manifest_dirty=false`, `single_machine_verified=false`,
+  `runtime_idle_cpu_valid_machine_count=0/2`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`,
+  `runtime_cpu_second_pc_route_attempt_verified=false`,
+  `fresh primary packaged evidence required`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 degraded mode clean go/no-go index refresh:
+  wiki/778 records the MUSU local index refresh after wiki/777 and GOAL v602.
+  Search terms should include `GOAL v603`, `wiki/778`, `2493 files`,
+  `2731 symbols`, `10272 ms`,
+  `degraded mode clean go/no-go index refresh`,
+  `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`,
+  `single_machine_verified=false`, `runtime idle CPU 0/2`,
+  `runtime CPU scenario matrix 0/2`,
+  `degraded_mode_contract_verified=true`,
+  and `fresh primary packaged evidence required`.
+
 **End of WIKI_INDEX.md.**

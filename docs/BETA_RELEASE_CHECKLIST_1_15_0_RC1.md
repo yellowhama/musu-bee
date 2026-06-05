@@ -6125,6 +6125,25 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+Clean post-commit go/no-go:
+
+- HEAD `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`
+- `degraded_mode_contract_verified=true`
+- `manifest_dirty=false`
+- `single_machine_verified=false`
+- runtime idle CPU `0/2`
+- runtime CPU scenario matrix `0/2`
+- targeted second-PC route CPU `false`
+
+This is expected because the degraded-mode gate changed Next/API source.
+Refresh primary packaged evidence before treating the second-PC evidence return
+as the only remaining runtime gate.
+
+Final index refresh:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2493 files`, `2731 symbols`, `10272 ms`
+
 ## 2026-06-06 release relay payload preflight strict metadata schema
 
 `/api/v1/relay/payload` now uses a strict metadata-only request schema while
