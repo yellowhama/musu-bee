@@ -7434,6 +7434,106 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 runtime CPU subrole attribution evidence audit (wiki/757)
+
+Runtime CPU evidence now separates MUSU-owned process subroles instead of
+accepting only coarse MUSU/WebView2 process buckets.
+
+What changed:
+
+- `measure-musu-idle-cpu.ps1` records `bridge_registry`,
+  `process_subrole`, `process_counts_by_subrole`,
+  `memory_totals_by_subrole_mb`, `max_one_core_percent_by_subrole`, and
+  `bridge_registry_pid_match`.
+- `measure-musu-runtime-cpu-scenarios.ps1` preserves those fields per scenario.
+- `verify-runtime-cpu-scenario-matrix.ps1` rejects missing subrole counts,
+  totals, max CPU fields, bridge runtime separation, and top-process subrole
+  fields.
+- `write-release-go-no-go.ps1` requires bridge runtime and desktop shell
+  separation before accepting idle CPU evidence.
+- verifier regressions now include `44` cases and reject a matrix missing
+  `bridge_runtime`.
+
+Fresh HUGH_SECOND evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-013337-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-011243-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN route CPU:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Evidence results:
+
+- single-machine local bridge-only smoke passed with `dashboard_required=false`,
+  bridge `http://127.0.0.1:1421`, and CLI route checked.
+- idle CPU passed for `60.039s` with MUSU `0`, Node `0`, WebView2 `0.08`,
+  working set `364.66MB`, hot `0`, `bridge_runtime=1`,
+  `desktop_shell=1`, and `webview2_helper=6`.
+- runtime matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_012030`, route task
+  `b0647b86-b491-4736-8a9e-11379be7179c`, max WebView2 CPU `0.1`,
+  max working set `364.52MB`, and the same subrole separation.
+- targeted HUGH-MAIN diagnostic timed out to `192.168.1.192:8949` as an
+  explicitly allowed failed route attempt; post-route CPU stayed MUSU `0`,
+  Node `0`, WebView2 `0.1`, hot `0`.
+
+Clean go/no-go after `d2296c4c`:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- runtime idle CPU valid machines `1/2 [HUGH_SECOND]`
+- runtime CPU matrix valid machines `1/2 [HUGH_SECOND]`
+- targeted second-PC route CPU valid machines `1/1 [HUGH_SECOND]`
+- `p2p_store_forward_relay_contract_verified=true`
+- `public_metadata_ok=true`
+- `manifest_git.dirty=false`
+- `ready_for_public_desktop_release=false`
+
+Remaining blockers are multi-device, second-PC idle CPU, second-PC runtime
+matrix, hosted P2P control-plane proof, support mailbox proof, and Store proof.
+
+Validation passed verifier regressions `44/44`, Rust background-loop audit
+`ok=true`/`fail_count=0`, frontend polling audit `ok=true`/`fail_count=0` with
+`29` low-duty call sites, normal matrix verifier `ok=true`, targeted matrix
+verifier `ok=true`, and clean go/no-go.
+
+Qualitative status: no high or medium issue is open. The local packaged desktop
+runtime is coherent on HUGH_SECOND, and the evidence gate is stricter because
+CPU attribution now identifies bridge runtime, desktop shell, and helper
+processes separately.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor.
+MUSU.PRO is remote input, project/company room, rendezvous, path-selection,
+relay-fallback policy, and evidence control plane, not the default execution
+server or payload data path.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_CPU_SUBROLE_ATTRIBUTION_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+## 2026-06-06 runtime CPU subrole attribution index refresh (wiki/758)
+
+Indexing was refreshed after wiki/757 and GOAL v582/v583.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2463 files`
+- `2717 symbols`
+- `35338 ms`
+
+gbrain was not rerun because the same-session blocker remains unchanged:
+missing `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+`sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`.
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.
+
 ## 2026-06-05 relay connect preflight endpoint, audit, and next steps (wiki/751)
 
 `/api/v1/relay/connect` is now an authenticated owner-scoped release-connect

@@ -55,22 +55,27 @@ The web control plane preserves `public_addr`, `nat_type`, `nat_observed_by`,
 seeding, and rendezvous creation. This does not make `musu.pro` the default
 execution server or default data path.
 
-Current post-release-relay-payload-preflight packaged primary-machine evidence:
+Current runtime CPU subrole attribution packaged primary-machine evidence:
 
 - single-machine:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260606-002102-HUGH_SECOND.evidence.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-013337-HUGH_SECOND.evidence.json`
 - idle CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-002155-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-011243-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-003003-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - targeted HUGH-MAIN post-route CPU diagnostic:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-004121-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
 Clean go/no-go after these evidence commits remains No-Go for public release,
 but local artifacts, MSIX install, single-machine smoke, primary idle CPU
 `1/2 [HUGH_SECOND]`, primary runtime matrix `1/2 [HUGH_SECOND]`, targeted
 second-PC route CPU `1/1 [HUGH_SECOND]`, public metadata, and the P2P
 store-forward relay contract are current and passing.
+
+CPU evidence now requires process subrole attribution. The current HUGH_SECOND
+idle and matrix evidence separates `bridge_runtime=1`, `desktop_shell=1`, and
+`webview2_helper=6`; older CPU evidence without those subrole fields is not
+release-current.
 
 ## Must-Pass Smoke
 

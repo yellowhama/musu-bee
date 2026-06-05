@@ -987,3 +987,34 @@ Release relay payload state remains:
 - `release_payload_accepted=false`, `payload_stored=false`, and
   `payload_transported=false` are the correct release state until real
   transport is wired and proven.
+
+## 2026-06-06 Runtime CPU Subrole Attribution Evidence Update
+
+Local runtime CPU release evidence now requires process subrole attribution.
+This keeps hosted P2P/control-plane work from obscuring the local executor
+resource picture.
+
+Required CPU evidence subroles:
+
+- `bridge_runtime`
+- `desktop_shell`
+- `webview2_helper`
+- `node_helper`
+- `musu_runtime`
+- `other`
+
+Current HUGH_SECOND evidence separates the packaged bridge PID from the desktop
+shell PID and WebView2 helper processes:
+
+- single-machine local bridge-only smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-013337-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-011243-HUGH_SECOND.desktop-open.evidence.json`
+- five-scenario runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+This is local auditability and runtime-hardening evidence only. It does not
+complete multi-device P2P, live owner-scoped hosted P2P proof, or release-grade
+relay payload transport.

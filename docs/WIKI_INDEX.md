@@ -4450,4 +4450,37 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 runtime CPU subrole attribution evidence audit:
+  `RELEASE_1_15_0_RC1_RUNTIME_CPU_SUBROLE_ATTRIBUTION_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/757) records the CPU evidence gate that separates `bridge_runtime`,
+  `desktop_shell`, `webview2_helper`, `node_helper`, `musu_runtime`, and
+  `other`. Search terms should include `GOAL v582`, `wiki/757`,
+  `process_counts_by_subrole`, `bridge_registry_pid_match`,
+  `required_subroles_present`, `bridge_runtime=1`, `desktop_shell=1`,
+  `webview2_helper=6`, `20260606-013337-HUGH_SECOND`,
+  `20260606-011243-HUGH_SECOND.desktop-open`,
+  `20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_012030`,
+  `b0647b86-b491-4736-8a9e-11379be7179c`,
+  `HUGH-MAIN 192.168.1.192:8949 operation timed out`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `verifier regressions 44/44`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-06 runtime CPU subrole attribution index refresh:
+  MUSU local indexing was run after wiki/757 and GOAL v582/v583. Search terms
+  should include `GOAL v583`, `wiki/758`, `wiki/757 index refresh`,
+  `musu indexer sync`, `2463 files`, `2717 symbols`, `35338 ms`,
+  `process_counts_by_subrole`, `bridge_runtime=1`, `desktop_shell=1`,
+  `webview2_helper=6`, `20260606-013337-HUGH_SECOND`,
+  `20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

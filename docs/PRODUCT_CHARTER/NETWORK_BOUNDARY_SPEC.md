@@ -328,6 +328,31 @@ Current HUGH_SECOND evidence proves one-machine local execution only:
 Public release still requires another Windows PC plus live owner-scoped
 MUSU.PRO P2P/relay proof.
 
+## 2026-06-06 runtime CPU subrole evidence boundary update
+
+Fresh HUGH_SECOND evidence after the runtime CPU subrole attribution gate
+confirms the same local/web boundary with stronger process attribution:
+
+- MUSU Desktop remains the local executor.
+- MUSU.PRO remains remote input, project/company room, rendezvous,
+  path-selection, relay-fallback policy, and evidence control plane.
+- The packaged local bridge can be healthy without a fixed
+  `localhost:3001` dashboard.
+- CPU evidence now separates `bridge_runtime`, `desktop_shell`, and
+  `webview2_helper` instead of accepting only coarse MUSU/WebView2 process
+  roles.
+
+Current HUGH_SECOND evidence proves one-machine local execution only:
+
+- single-machine local bridge-only smoke passed
+- desktop-open idle CPU stayed within budget with `bridge_runtime=1`,
+  `desktop_shell=1`, and `webview2_helper=6`
+- five-scenario runtime CPU matrix passed with the same subrole attribution
+- failed HUGH-MAIN route attempt did not cause a post-route CPU spike
+
+Public release still requires another Windows PC plus live owner-scoped
+MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."
