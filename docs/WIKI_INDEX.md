@@ -4817,4 +4817,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `operator_api_security_contract_verified=true`, `MUSU.PRO remote input`, and
   `MUSU Desktop local executor`.
 
+- 2026-06-06 post room work-order command audit primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_COMMAND_AUDIT_PRIMARY_EVIDENCE_REFRESH_2026_06_06.md`
+  (wiki/787) records fresh HUGH_SECOND primary evidence after the room
+  work-order command audit source change. Search terms should include
+  `GOAL v612`, `wiki/787`, `20260606-053851-HUGH_SECOND`,
+  `20260606-054220-HUGH_SECOND.desktop-open`,
+  `20260606-054415-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_054415`,
+  `20260606-055030-HUGH_SECOND`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `single_machine_verified=true`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `targeted second-PC route CPU true`, `operator_api_security_contract_verified=true`,
+  and `p2p_control_plane_verified=false`.
+
+- 2026-06-06 post room work-order command audit primary evidence index refresh:
+  wiki/788 records the MUSU local index refresh after wiki/787 and GOAL v612.
+  Search terms should include `GOAL v613`, `wiki/788`, `2530 files`,
+  `2732 symbols`, `12816 ms`,
+  `post room work-order command audit primary evidence index refresh`,
+  `20260606-053851-HUGH_SECOND`,
+  `20260606-054220-HUGH_SECOND.desktop-open`,
+  `20260606-054415-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_054415`,
+  `20260606-055030-HUGH_SECOND`,
+  `targeted second-PC route CPU true`, and `p2p_control_plane_verified=false`.
+
 **End of WIKI_INDEX.md.**

@@ -8909,3 +8909,57 @@ Search terms should include `GOAL v611`, `wiki/786`,
 `p2pControlPrincipal`, `command-center.jsonl`, `instruction text excluded`,
 `operator_api_security_contract_verified=true`, `MUSU.PRO remote input`, and
 `MUSU Desktop local executor`.
+
+## 2026-06-06 Post Room Work-Order Command Audit Primary Evidence Refresh
+
+Fresh HUGH_SECOND primary evidence was restored after the room work-order
+command audit source change.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-053851-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-054220-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-054415-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-055030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- bridge `http://127.0.0.1:3622`
+- single-machine local-bridge-only smoke passed
+- idle CPU passed for `60.04s`
+- idle CPU max one-core: MUSU `0`, Node `0`, WebView2 `0.08`
+- full runtime matrix passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_054415`
+- targeted HUGH-MAIN route still timed out to `192.168.1.192:8949`; CPU
+  verification passed with failed route allowed
+
+Clean go/no-go after `7f3879fc` reports local artifacts true, single-machine
+true, runtime idle CPU `1/2`, runtime matrix `1/2`, targeted second-PC route
+CPU true, operator API security true, P2P control-plane false, dirty false, and
+public release No-Go.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_COMMAND_AUDIT_PRIMARY_EVIDENCE_REFRESH_2026_06_06.md`
+
+## 2026-06-06 Post Room Work-Order Command Audit Primary Evidence Index Refresh
+
+MUSU local indexer was refreshed after wiki/787 and GOAL v612.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2530 files`
+- `2732 symbols`
+- `12816 ms`
+
+Search terms should include `GOAL v613`, `wiki/788`,
+`20260606-053851-HUGH_SECOND`,
+`20260606-054220-HUGH_SECOND.desktop-open`,
+`20260606-054415-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_054415`,
+`20260606-055030-HUGH_SECOND`, `targeted second-PC route CPU true`, and
+`p2p_control_plane_verified=false`.

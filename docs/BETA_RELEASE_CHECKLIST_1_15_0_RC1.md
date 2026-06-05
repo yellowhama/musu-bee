@@ -6625,3 +6625,43 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2519 files`, `2732 symbols`, `9705 ms`
+
+## 2026-06-06 Post Room Work-Order Command Audit Primary Evidence Refresh
+
+Fresh current-source HUGH_SECOND evidence restored the primary local runtime
+gates after the room work-order command audit source change:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-053851-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-054220-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-054415-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-055030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go after `7f3879fc`:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- targeted second-PC route CPU `true`
+- `operator_api_security_contract_verified=true`
+- `p2p_control_plane_verified=false`
+- `manifest_git.dirty=false`
+- `ready_for_public_desktop_release=false`
+
+The targeted HUGH-MAIN route still timed out to `192.168.1.192:8949`; this is
+CPU stability evidence after a failed route attempt, not successful
+multi-device route evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_WORK_ORDER_COMMAND_AUDIT_PRIMARY_EVIDENCE_REFRESH_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2530 files`, `2732 symbols`, `12816 ms`
