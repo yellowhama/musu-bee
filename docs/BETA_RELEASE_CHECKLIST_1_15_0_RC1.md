@@ -6125,6 +6125,50 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 release relay payload preflight byte rejection
+
+`/api/v1/relay/payload` remains preflight-only while
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. It now rejects known payload byte
+fields before lease lookup:
+
+- `payload`
+- `payload_base64`
+- `payload_b64`
+- `payload_bytes`
+- `body_base64`
+
+Rejected byte submissions return `400 release_payload_bytes_not_accepted` with
+`release_payload_accepted=false`, `payload_stored=false`, and
+`payload_transported=false`. Metadata-only lease preflight still returns
+`409 relay_payload_endpoint_not_wired` after lease verification because the
+release tunnel transport is not implemented.
+
+Validation passed:
+
+- `npm run test:p2p` `89/89`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- P2P env status recheck `ok=false` with expected hosted/source blockers
+- release evidence verifier regressions `ok=true`, `45/45`, failed `0`
+
+Code audit found no high or medium issue. This hardens the release/web boundary
+without changing release readiness. Public release remains No-Go until real
+release relay payload transport, hosted P2P evidence, second-PC evidence,
+support mailbox proof, and Store evidence are complete.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_BYTE_REJECTION_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2474 files`, `2719 symbols`, `11548 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 P2P relay transport kind/encryption split
 
 The hosted relay release contract now separates relay tunnel kind from

@@ -14,6 +14,12 @@ This endpoint is intentionally separate from the preview store-forward queue at
 relay lease metadata, but it does not accept, store, forward, or deliver payload
 bytes. Current source still keeps `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
 
+2026-06-06 byte-rejection hardening: this preflight endpoint now rejects known
+payload byte fields before lease lookup with
+`400 release_payload_bytes_not_accepted`. Metadata-only preflight remains
+allowed and still returns `409 relay_payload_endpoint_not_wired` after a
+verified lease while the release tunnel is unwired.
+
 Current source state:
 
 - `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`
@@ -36,6 +42,8 @@ release-grade relay payload transport.
   - `POST` queries owner-scoped relay leases before deciding anything about
     release payload transport.
   - A verified lease still returns `409 relay_payload_endpoint_not_wired`.
+  - Payload byte fields such as `payload_base64`, `payload`, `payload_b64`,
+    `payload_bytes`, and `body_base64` are rejected before lease lookup.
   - Store failures return `503 relay_payload_preflight_store_failed`.
   - Responses keep `release_payload_accepted=false`,
     `payload_stored=false`, and `payload_transported=false`.

@@ -20,17 +20,34 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const ReleasePayloadPreflightRequestSchema = z.object({
-  lease_id: z.string().min(1),
-  session_id: z.string().min(1),
-  source_node_id: z.string().min(1),
-  target_node_id: z.string().min(1),
-  tunnel_id: z.string().min(1).optional(),
-  payload_kind: z.string().min(1).optional(),
-  payload_sha256: z.string().min(1).optional(),
+  lease_id: z.string().min(1).max(128),
+  session_id: z.string().min(1).max(128),
+  source_node_id: z.string().min(1).max(128),
+  target_node_id: z.string().min(1).max(128),
+  tunnel_id: z.string().min(1).max(128).optional(),
+  payload_kind: z.string().min(1).max(64).optional(),
+  payload_sha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
 }).passthrough();
+
+const FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
 
 function uniqueBlockers(blockers: string[]): string[] {
   return Array.from(new Set(blockers));
+}
+
+function forbiddenPayloadByteFields(json: unknown): string[] {
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    return [];
+  }
+  return FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(json, field)
+  );
 }
 
 function releasePayloadPreflightStatus(method: string, blockers = relayTransportPreflightBlockers()) {
@@ -80,6 +97,26 @@ function releasePayloadBlocked(method: string, extra: Record<string, unknown> = 
   );
 }
 
+function releasePayloadBytesNotAccepted(method: string, forbiddenFields: string[]) {
+  return NextResponse.json(
+    {
+      ...releasePayloadPreflightStatus(method),
+      ok: false,
+      release_payload_accepted: false,
+      payload_stored: false,
+      payload_transported: false,
+      error: "release_payload_bytes_not_accepted",
+      forbidden_fields: forbiddenFields,
+      next_steps: [
+        "send only relay lease metadata to the release payload preflight endpoint",
+        "do not send payload bytes to /api/v1/relay/payload until the release tunnel transport is implemented",
+        "keep preview store-forward payloads on /api/v1/p2p/relay/payload with release_grade=false",
+      ],
+    },
+    { status: 400 }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
@@ -100,6 +137,11 @@ export async function POST(req: NextRequest) {
     json = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const forbiddenFields = forbiddenPayloadByteFields(json);
+  if (forbiddenFields.length > 0) {
+    return releasePayloadBytesNotAccepted(req.method, forbiddenFields);
   }
 
   const parsed = ReleasePayloadPreflightRequestSchema.safeParse(json);

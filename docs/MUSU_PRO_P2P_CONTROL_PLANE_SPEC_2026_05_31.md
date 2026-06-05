@@ -47,6 +47,12 @@ metadata needed to find an owner-scoped relay lease, and returns
 `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. It does not call queue storage and
 does not emit delivery or transport proof. This prepares the release endpoint
 contract without treating the preview queue as release-grade relay transport.
+As of the byte-rejection hardening pass, this endpoint also rejects known
+payload byte fields such as `payload_base64`, `payload`, `payload_b64`,
+`payload_bytes`, and `body_base64` with
+`release_payload_bytes_not_accepted` before lease lookup. Release clients must
+send only relay lease metadata here until real release tunnel payload transport
+exists.
 
 **2026-06-06 relay transport kind/encryption split update**:
 Relay tunnel kind and encryption/proof are now separate source and evidence
@@ -126,6 +132,7 @@ P2P APIs:
   - currently remains fail-closed with `relay_payload_endpoint_not_wired`,
     `release_payload_accepted=false`, `payload_stored=false`, and
     `payload_transported=false`
+  - rejects payload byte fields before lease lookup while it is preflight-only
   - must not reuse `/api/v1/p2p/relay/payload` queue storage as release-grade
     transport
 

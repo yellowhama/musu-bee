@@ -181,7 +181,9 @@ Add-Check `
             "release_payload_accepted: false",
             "payload_stored: false",
             "payload_transported: false",
-            "relay_payload_endpoint_not_wired"
+            "relay_payload_endpoint_not_wired",
+            "FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS",
+            "release_payload_bytes_not_accepted"
         )) -and
         -not $releasePayloadPreflightRoute.Contains("appendRelayPayload") -and
         -not $releasePayloadPreflightRoute.Contains("markRelayPayloadDelivered")
@@ -480,7 +482,9 @@ Add-Check `
         (Test-ContainsAll -Text $releasePayloadPreflightRouteTest -Needles @(
             "requires P2P control auth before reporting release relay payload preflight",
             "reports release payload preflight without treating the queue as release transport",
-            "verifies relay lease but rejects release payload bytes while endpoint is unwired",
+            "rejects release payload bytes before lease lookup while endpoint is preflight-only",
+            "release_payload_bytes_not_accepted",
+            "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
             "payload_stored",
             "payload_transported"
         ))

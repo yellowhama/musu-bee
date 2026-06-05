@@ -4566,4 +4566,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 release relay payload preflight byte rejection:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_BYTE_REJECTION_2026_06_06.md`
+  (wiki/765) records the hardening that keeps `/api/v1/relay/payload`
+  metadata-only while `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. Search terms
+  should include `GOAL v590`, `wiki/765`,
+  `release_payload_bytes_not_accepted`, `payload_base64`,
+  `FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS`, `metadata-only preflight`,
+  `release_payload_accepted=false`, `payload_stored=false`,
+  `payload_transported=false`, `npm run test:p2p 89/89`,
+  `P2P store-forward relay contract audit ok=true`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 release relay payload byte rejection index refresh:
+  MUSU local indexing was run after wiki/765 and GOAL v590/v591. Search terms
+  should include `GOAL v591`, `wiki/766`, `wiki/765 index refresh`,
+  `musu indexer sync`, `2474 files`, `2719 symbols`, `11548 ms`,
+  `release_payload_bytes_not_accepted`,
+  `FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS`, `payload_base64`,
+  `metadata-only preflight`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
+  and `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

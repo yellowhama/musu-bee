@@ -152,11 +152,48 @@ test("reports release payload preflight without treating the queue as release tr
   });
 });
 
-test("verifies relay lease but rejects release payload bytes while endpoint is unwired", async () => {
+test("rejects release payload bytes before lease lookup while endpoint is preflight-only", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-payload-bytes-rejected");
+    const res = await POST(payloadReq("POST", "test-token", {
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-a",
+      target_node_id: "target-b",
+      tunnel_id: "release-tunnel-preview",
+      payload_kind: "remote_command",
+      payload_sha256: "a".repeat(64),
+      payload_base64: "c2hvdWxkLW5vdC1iZS1hY2NlcHRlZA==",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      release_payload_accepted: boolean;
+      payload_stored: boolean;
+      payload_transported: boolean;
+      forbidden_fields: string[];
+      release_payload_endpoint_preflight_wired: boolean;
+      release_grade: boolean;
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "release_payload_bytes_not_accepted");
+    assert.equal(body.release_payload_accepted, false);
+    assert.equal(body.payload_stored, false);
+    assert.equal(body.payload_transported, false);
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+    assert.equal(body.release_payload_endpoint_preflight_wired, true);
+    assert.equal(body.release_grade, false);
+  });
+});
+
+test("verifies relay lease metadata but rejects release payload transport while endpoint is unwired", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const lease = await seedLease();
-    const { POST } = await loadModule("post-lease-preflight");
+    const { POST } = await loadModule("post-lease-metadata-preflight");
     const res = await POST(payloadReq("POST", "test-token", {
       lease_id: lease.lease_id,
       session_id: lease.session_id,
@@ -164,8 +201,7 @@ test("verifies relay lease but rejects release payload bytes while endpoint is u
       target_node_id: lease.target_node_id,
       tunnel_id: "release-tunnel-preview",
       payload_kind: "remote_command",
-      payload_sha256: "abc123",
-      payload_base64: "c2hvdWxkLW5vdC1iZS1zdG9yZWQ=",
+      payload_sha256: "a".repeat(64),
     }));
     assert.equal(res.status, 409);
     const body = (await res.json()) as {

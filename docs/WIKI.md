@@ -7454,6 +7454,59 @@ gbrain was not rerun because the same-session blocker remains missing
 not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
 remains the reliable current code/document index for this repo.
 
+## 2026-06-06 release relay payload preflight byte rejection (wiki/765)
+
+`/api/v1/relay/payload` is still a release preflight endpoint, not a payload
+data path. It now rejects known payload byte fields before lease lookup while
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+
+Rejected fields:
+
+- `payload`
+- `payload_base64`
+- `payload_b64`
+- `payload_bytes`
+- `body_base64`
+
+The response is `400 release_payload_bytes_not_accepted` with
+`release_payload_accepted=false`, `payload_stored=false`, and
+`payload_transported=false`. Metadata-only lease preflight remains allowed and
+still returns `409 relay_payload_endpoint_not_wired` after a verified
+owner-scoped lease because the release tunnel transport is not implemented.
+
+Validation:
+
+- `npm run test:p2p`: `89/89`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: `ok=false` with expected blockers
+- release evidence verifier regressions: `45/45`, failed `0`
+
+Code audit found no high or medium issue. This hardens the release/web
+boundary without changing release readiness. MUSU Desktop remains the local
+executor; MUSU.PRO remains remote input, project/company room, rendezvous,
+path-selection, relay-fallback policy, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_BYTE_REJECTION_2026_06_06.md`
+
+## 2026-06-06 release relay payload byte rejection index refresh (wiki/766)
+
+Indexing was refreshed after wiki/765 and GOAL v590.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2474 files`
+- `2719 symbols`
+- `11548 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+remains the reliable current code/document index for this repo.
+
 ## 2026-06-06 second-PC runtime CPU subrole import gate (wiki/759)
 
 The second-PC return path now enforces the runtime CPU subrole evidence
