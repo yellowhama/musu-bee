@@ -58,21 +58,21 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 09:06 KST local room presence candidate CLI hardening, the
+As of the 2026-06-05 09:46 KST post-room-presence-candidate evidence refresh, the
 product direction above is documented, the lease-bound queue fallback source
 contract is gated, room presence/rendezvous candidate metadata is preserved,
 the local Rust CLI can publish public/NAT/relay candidate descriptors, and
-fresh one-machine packaged local-runtime evidence is recorded from the previous
-evidence refresh. Public P2P release is still not release-complete.
+fresh one-machine packaged local-runtime evidence is recorded for the current
+source. Public P2P release is still not release-complete.
 
 Passing local state:
 
 - local single-machine smoke passes on `HUGH_SECOND` for commit
-  `9be40bc410404d10aea03e4279fd56d1a72a1b4c`:
-  `20260605-082350-HUGH_SECOND`
+  `b6329f0d5cb22eabc8b745a10d64a2470a7ec4de`:
+  `20260605-092924-HUGH_SECOND`
 - local runtime idle CPU and CPU matrix evidence are valid on one machine:
-  `20260605-082546-HUGH_SECOND.desktop-open` and
-  `20260605-082656-HUGH_SECOND.runtime-cpu-scenario-matrix`
+  `20260605-093206-HUGH_SECOND.desktop-open` and
+  `20260605-094033-HUGH_SECOND.runtime-cpu-scenario-matrix`
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program

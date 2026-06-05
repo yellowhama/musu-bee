@@ -4073,4 +4073,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `audit-p2p-store-forward-relay-contract ok=true`, `local program executes`,
   `musu.pro project room/rendezvous`, and `fresh packaged evidence required`.
 
+- 2026-06-05 post room presence candidate metadata primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CANDIDATE_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/736) records fresh current-source HUGH_SECOND packaged local-runtime
+  evidence after `b6329f0d`. Search terms should include `GOAL v549`,
+  `wiki/736`, `3134a525`, `4eda4127`, `8c3ee640`,
+  `20260605-092924-HUGH_SECOND.evidence.json`,
+  `20260605-093206-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-094033-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-094033-HUGH_SECOND.verification.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_094033`,
+  `6b7e1ccc-97c1-466f-9354-fedd3ef3583d`,
+  `bridge http://127.0.0.1:10325`, `dashboard_required=false`,
+  `single_machine_surface=local-bridge-only`, `localhost:3001 optional`,
+  `strict MSIX evidence capture PATH shadow`, `.cargo\\bin\\musu.exe`,
+  `runtime idle CPU 1/2`, and `runtime matrix 1/2`.
+
 **End of WIKI_INDEX.md.**

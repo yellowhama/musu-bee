@@ -55,6 +55,15 @@ The web control plane preserves `public_addr`, `nat_type`, `nat_observed_by`,
 seeding, and rendezvous creation. This does not make `musu.pro` the default
 execution server or default data path.
 
+Current post-CLI-metadata packaged primary-machine evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-092924-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-093206-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-094033-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
 ## Must-Pass Smoke
 
 Repeatable script:

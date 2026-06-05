@@ -7013,3 +7013,51 @@ required before this change is current packaged release evidence.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_CANDIDATE_METADATA_CLIENT_CLI_2026_06_05.md`
+
+## 2026-06-05 Post room presence candidate metadata primary evidence refresh (wiki/736)
+
+After `b6329f0d` changed Rust local room presence publishing, the current
+primary-machine packaged runtime evidence was refreshed.
+
+Build/install:
+
+- release MSIX build/install/packaged-state verification passed for
+  `musu_1.15.0.0_x64_local-sideload-manual.msix`.
+- packaged runtime repair passed with WindowsApps `musu.exe`.
+- bridge: `http://127.0.0.1:10325`
+- `dashboard.required=false`
+- strict MSIX install evidence capture still failed because
+  `C:\Users\empty\.cargo\bin\musu.exe` shadows the WindowsApps alias.
+
+Fresh evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-092924-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-093206-HUGH_SECOND.desktop-open.evidence.json`
+- CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-094033-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-094033-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine: `dashboard_required=false`,
+  `single_machine_surface=local-bridge-only`, CLI route checked
+- idle CPU: `60.053s`, MUSU `0`, Node `0`, WebView2 `0.44`,
+  working set `364.26MB`, hot `0`
+- matrix: `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_094033`
+- route task: `6b7e1ccc-97c1-466f-9354-fedd3ef3583d`
+- matrix max role CPU: MUSU `0.05`, Node `0`, WebView2 `0.16`
+- matrix max working set: `366.33MB`
+- `dashboard-open` measured packaged runtime state because no dashboard URL was
+  exposed; it did not depend on `localhost:3001`.
+
+This restores current one-machine evidence only. Remaining release blockers
+are second-PC multi-device evidence, second-PC CPU/matrix evidence, support
+mailbox, Store/Microsoft, and hosted `musu.pro` P2P release proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CANDIDATE_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
