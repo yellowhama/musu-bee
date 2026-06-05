@@ -4740,4 +4740,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
   `targeted second-PC route CPU true`, and `primary busy-loop not reproduced`.
 
+- 2026-06-06 post-degraded primary evidence index refresh:
+  wiki/780 records the MUSU local index refresh after wiki/779 and GOAL v604.
+  Search terms should include `GOAL v605`, `wiki/780`, `2510 files`,
+  `2731 symbols`, `18799 ms`, `02c24fd3`,
+  `single_machine_verified=true`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `targeted second-PC route CPU true`,
+  `manifest_git.dirty=false`, `p2p_control_plane_verified=false`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

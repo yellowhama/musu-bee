@@ -7391,6 +7391,38 @@ Search terms: `GOAL v604`, `wiki/779`,
 `runtime_idle_cpu_valid_machine_count=1/2`, and
 `runtime_cpu_scenario_matrix_valid_machine_count=1/2`.
 
+## wiki/780 - Post-Degraded Primary Evidence Index Refresh
+
+Indexing was refreshed after wiki/779 and GOAL v604/v605.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2510 files`
+- `2731 symbols`
+- `18799 ms`
+
+Clean go/no-go after commit `02c24fd3d712b1fb10fb36cd59165427f57d722a`:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU scenario matrix `1/2`
+- targeted second-PC route CPU `true`
+- `p2p_control_plane_verified=false`
+- `manifest_git.dirty=false`
+
+Remaining blockers are second-PC multi-device evidence, second-PC idle CPU,
+second-PC runtime CPU matrix, public metadata recheck, support mailbox, Store
+proof, and hosted MUSU.PRO P2P/relay proof.
+
+Search terms: `GOAL v605`, `wiki/780`, `post-degraded primary evidence index
+refresh`, `2510 files`, `2731 symbols`, `18799 ms`, `02c24fd3`,
+`single_machine_verified=true`, `runtime idle CPU 1/2`,
+`runtime CPU matrix 1/2`, `targeted second-PC route CPU true`, and
+`p2p_control_plane_verified=false`.
+
 ## 2026-06-06 degraded mode contract gate (wiki/775)
 
 Degraded/fallback truthfulness is now a release contract.

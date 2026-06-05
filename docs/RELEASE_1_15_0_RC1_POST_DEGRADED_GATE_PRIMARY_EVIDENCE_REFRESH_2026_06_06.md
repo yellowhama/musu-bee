@@ -86,3 +86,26 @@ Install and run the same current MUSU build on the second Windows PC, then
 import the second-PC return zip so runtime idle CPU and runtime CPU matrix reach
 `2/2` and the real route evidence is no longer just a failed `HUGH-MAIN`
 attempt from the primary machine.
+
+## Post-Commit Go/No-Go
+
+Clean go/no-go after commit `02c24fd3d712b1fb10fb36cd59165427f57d722a`:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU scenario matrix `1/2`
+- targeted second-PC route CPU `true`
+- `frontend_polling_contract_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `idle_busy_loop_candidate_contract_verified=true`
+- process ownership/startup single-instance/desktop single-instance `true`
+- `p2p_control_plane_verified=false`
+- `manifest_git.dirty=false`
+
+MUSU local index refresh after the evidence commit:
+
+- `2510 files`
+- `2731 symbols`
+- `18799 ms`
