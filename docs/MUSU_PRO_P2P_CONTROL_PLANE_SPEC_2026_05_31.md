@@ -956,3 +956,34 @@ matrix passed with route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_004808`.
 This keeps the current one-machine local executor evidence fresh. It still does
 not prove multi-device P2P, hosted relay payload transport, or owner-scoped
 release-grade route evidence on `musu.pro`.
+
+## 2026-06-06 Post Relay Payload Preflight Evidence Update
+
+After the distinct `/api/v1/relay/payload` preflight endpoint, HUGH_SECOND was
+rebuilt and revalidated as the current one-machine packaged desktop executor.
+
+Current evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260606-001948-HUGH_SECOND.evidence.json`
+- single-machine local bridge-only smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-002102-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-002155-HUGH_SECOND.desktop-open.evidence.json`
+- five-scenario runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-003003-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-004121-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+This confirms the one-machine local executor path only. It does not complete
+multi-device P2P, live owner-scoped hosted P2P proof, or release-grade relay
+payload transport.
+
+Release relay payload state remains:
+
+- `/api/v1/relay/payload` is a release preflight endpoint.
+- `/api/v1/p2p/relay/payload` is a non-release-grade preview queue.
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+- `release_payload_accepted=false`, `payload_stored=false`, and
+  `payload_transported=false` are the correct release state until real
+  transport is wired and proven.

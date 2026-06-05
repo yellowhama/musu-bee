@@ -4417,4 +4417,37 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 post release relay payload preflight primary evidence audit:
+  `RELEASE_1_15_0_RC1_POST_RELEASE_RELAY_PAYLOAD_PREFLIGHT_PRIMARY_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/755) records the current HUGH_SECOND packaged MSIX, single-machine,
+  idle CPU, runtime CPU matrix, targeted HUGH-MAIN post-route CPU, code audit,
+  qualitative evaluation, and next steps. Search terms should include
+  `GOAL v580`, `wiki/755`, `20260606-001948-HUGH_SECOND`,
+  `20260606-002102-HUGH_SECOND`,
+  `20260606-002155-HUGH_SECOND.desktop-open`,
+  `20260606-003003-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260606-004121-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_003003`,
+  `b3583c26-6e3f-442e-bc78-f0654e6b03c0`,
+  `HUGH-MAIN 192.168.1.192:8949 operation timed out`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `npm run test:p2p 88/88`, `p2p_store_forward_relay_contract_verified=true`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-06 post release relay payload preflight primary evidence audit index refresh:
+  MUSU local indexing was run after wiki/755 and GOAL v580/v581. Search terms
+  should include `GOAL v581`, `wiki/756`, `wiki/755 index refresh`,
+  `musu indexer sync`, `2452 files`, `2717 symbols`, `14293 ms`,
+  `20260606-002102-HUGH_SECOND`,
+  `20260606-003003-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260606-004121-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

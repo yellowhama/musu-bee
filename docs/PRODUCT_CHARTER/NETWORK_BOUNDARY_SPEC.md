@@ -303,6 +303,31 @@ second-PC multi-device evidence, second-PC idle CPU and runtime matrix evidence,
 live owner-scoped MUSU.PRO P2P control-plane proof, support mailbox evidence,
 and Store evidence.
 
+## 2026-06-06 post relay payload preflight evidence boundary update
+
+Fresh HUGH_SECOND packaged evidence after the release relay payload preflight
+endpoint confirms the same local/web boundary:
+
+- MUSU Desktop runs the local runtime and desktop shell.
+- The packaged local bridge can be healthy without a fixed
+  `localhost:3001` dashboard.
+- MUSU.PRO may provide remote input, project/company rooms, rendezvous,
+  path-selection, relay-fallback policy, and evidence.
+- MUSU.PRO still must not become the default execution server or default
+  payload data path.
+- `/api/v1/relay/payload` is preflight only while
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+
+Current HUGH_SECOND evidence proves one-machine local execution only:
+
+- single-machine local bridge-only smoke passed
+- desktop-open idle CPU stayed within budget
+- five-scenario runtime CPU matrix passed
+- failed HUGH-MAIN route attempt did not cause a post-route CPU spike
+
+Public release still requires another Windows PC plus live owner-scoped
+MUSU.PRO P2P/relay proof.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."
