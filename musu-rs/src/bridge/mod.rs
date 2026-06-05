@@ -147,8 +147,15 @@ pub async fn run() -> Result<()> {
     // V27-F10: Autonomous CEO Planner Loop
     if std::env::var("MUSU_ENABLE_PLANNER").unwrap_or_else(|_| "0".into()) == "1" {
         let runner_clone = task_runner.clone();
+        let planner_cancel = CancellationToken::new();
+        let planner_ctrl_c = planner_cancel.clone();
         tokio::spawn(async move {
-            crate::brain::planner::run_planner_loop(runner_clone).await;
+            if tokio::signal::ctrl_c().await.is_ok() {
+                planner_ctrl_c.cancel();
+            }
+        });
+        tokio::spawn(async move {
+            crate::brain::planner::run_planner_loop(runner_clone, planner_cancel).await;
         });
     }
 

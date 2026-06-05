@@ -6,6 +6,7 @@ use crate::writer::runner::{TaskRunnerHandle, TaskSpec};
 use std::process::Stdio;
 use tokio::process::Command;
 use tokio::time::{sleep, timeout, Duration};
+use tokio_util::sync::CancellationToken;
 
 pub(crate) const PLANNER_DEFAULT_INTERVAL_SEC: u64 = 300;
 pub(crate) const PLANNER_MIN_INTERVAL_SEC: u64 = 60;
@@ -40,7 +41,7 @@ fn planner_command_timeout_sec_from_env() -> u64 {
     )
 }
 
-pub async fn run_planner_loop(runner: TaskRunnerHandle) {
+pub async fn run_planner_loop(runner: TaskRunnerHandle, cancellation_token: CancellationToken) {
     let interval = planner_interval_sec_from_env();
     let command_timeout = planner_command_timeout_sec_from_env();
 
@@ -51,7 +52,14 @@ pub async fn run_planner_loop(runner: TaskRunnerHandle) {
     );
 
     loop {
-        sleep(Duration::from_secs(interval)).await;
+        tokio::select! {
+            _ = cancellation_token.cancelled() => break,
+            _ = sleep(Duration::from_secs(interval)) => {}
+        }
+
+        if cancellation_token.is_cancelled() {
+            break;
+        }
 
         if let Ok(musu_crawl_exe) = std::env::var("MUSU_CRAWL_BINARY") {
             tracing::info!("Planner awakening. Querying SSOT for company goals...");
@@ -122,6 +130,8 @@ pub async fn run_planner_loop(runner: TaskRunnerHandle) {
             }
         }
     }
+
+    tracing::info!("Autonomous CEO planner loop stopped");
 }
 
 #[cfg(test)]

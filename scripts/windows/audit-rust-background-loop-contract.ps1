@@ -82,6 +82,8 @@ function Add-NoRegexCheck {
 $bridgePath = "musu-rs\src\bridge\mod.rs"
 $bridgeText = Get-RepoText $bridgePath
 Add-RegexCheck -Scope "planner" -Name "planner opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_PLANNER' -Path $bridgePath -Message "Planner loop only starts behind MUSU_ENABLE_PLANNER."
+Add-RegexCheck -Scope "planner" -Name "planner cancellation token" -Text $bridgeText -Pattern 'let planner_cancel = CancellationToken::new\(\)' -Path $bridgePath -Message "Planner loop owns an explicit cancellation token."
+Add-RegexCheck -Scope "planner" -Name "planner ctrl-c cancellation" -Text $bridgeText -Pattern 'planner_ctrl_c\.cancel\(\)' -Path $bridgePath -Message "Planner loop cancellation token is cancelled on Ctrl-C."
 Add-RegexCheck -Scope "clipboard" -Name "clipboard opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_CLIPBOARD_SYNC' -Path $bridgePath -Message "Clipboard polling only starts behind MUSU_ENABLE_CLIPBOARD_SYNC."
 Add-RegexCheck -Scope "relay-payload-poller" -Name "relay payload poller opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_RELAY_PAYLOAD_POLLER|start_relay_payload_poller_if_enabled' -Path $bridgePath -Message "Relay payload polling only starts behind MUSU_ENABLE_RELAY_PAYLOAD_POLLER."
 Add-RegexCheck -Scope "mdns" -Name "mDNS opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_MDNS' -Path $bridgePath -Message "mDNS discovery only starts behind MUSU_ENABLE_MDNS."
@@ -98,7 +100,8 @@ $plannerText = Get-RepoText $plannerPath
 Add-RegexCheck -Scope "planner" -Name "planner default low duty interval" -Text $plannerText -Pattern 'PLANNER_DEFAULT_INTERVAL_SEC:\s*u64\s*=\s*300' -Path $plannerPath -Message "Planner defaults to a 300s cadence."
 Add-RegexCheck -Scope "planner" -Name "planner minimum interval" -Text $plannerText -Pattern 'PLANNER_MIN_INTERVAL_SEC:\s*u64\s*=\s*60' -Path $plannerPath -Message "Planner interval clamps to at least 60s."
 Add-RegexCheck -Scope "planner" -Name "planner command timeout cap" -Text $plannerText -Pattern 'PLANNER_MAX_COMMAND_TIMEOUT_SEC:\s*u64\s*=\s*120' -Path $plannerPath -Message "Planner command timeout is capped."
-Add-RegexCheck -Scope "planner" -Name "planner sleeps before work" -Text $plannerText -Pattern 'sleep\(Duration::from_secs\(interval\)\)\.await' -Path $plannerPath -Message "Planner loop sleeps every cycle."
+Add-RegexCheck -Scope "planner" -Name "planner cancellation-aware sleep" -Text $plannerText -Pattern 'tokio::select!\s*\{[\s\S]*cancellation_token\.cancelled\(\)[\s\S]*sleep\(Duration::from_secs\(interval\)\)' -Path $plannerPath -Message "Planner loop sleeps every cycle under a cancellation-aware select."
+Add-RegexCheck -Scope "planner" -Name "planner exits after cancellation" -Text $plannerText -Pattern 'cancellation_token\.is_cancelled\(\)[\s\S]*break' -Path $plannerPath -Message "Planner loop exits promptly after cancellation."
 Add-RegexCheck -Scope "planner" -Name "planner child kill on drop" -Text $plannerText -Pattern '\.kill_on_drop\(true\)' -Path $plannerPath -Message "Planner child process is killed when dropped."
 Add-RegexCheck -Scope "planner" -Name "planner timeout wrapper" -Text $plannerText -Pattern 'timeout\(Duration::from_secs\(command_timeout\),\s*cmd\.output\(\)\)' -Path $plannerPath -Message "Planner child execution is timeout-bound."
 
