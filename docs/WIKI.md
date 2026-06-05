@@ -7355,3 +7355,85 @@ gbrain:
 The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
+
+## 2026-06-05 Rust while-let loop audit coverage (wiki/746)
+
+The Rust background-loop release audit now gates new `while let` loop files and
+explicitly audits the current finite/request-scoped `while let` sites.
+
+What changed:
+
+- `audit-rust-background-loop-contract.ps1` now scans for `while let`.
+- New `while let` loop files fail unless they are explicitly allowlisted.
+- Current `while let` sites now have named checks for why they are not idle
+  busy-loop candidates.
+
+New audited contracts:
+
+- audit failure-window deque pruning is finite and retention-window bounded
+- rate-limit deque pruning is finite and 60s-window bounded
+- workflow executor/spec topological queues are finite and reject cycles
+- file API directory listing waits on async `next_entry().await`
+- forwarded-task multipart parsing waits on request fields
+- WebDAV PROPFIND directory listing waits on async `next_entry().await`
+- WebRTC NAL splitter drains the finite stdout buffer
+
+Validation:
+
+- PowerShell parser: pass
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`,
+  `check_count=152`
+- selected scopes:
+  `audit-failure-window 2/2`, `rate-limit-window 2/2`,
+  `workflow-executor 6/6`, `workflow-spec 3/3`, `files-api 2/2`,
+  `forward-multipart 2/2`, `webdav-propfind 2/2`,
+  `webrtc-screen-share 8/8`, `ws-proxy 6/6`
+- frontend polling audit: `ok=true`, `fail_count=0`,
+  `low_duty_polling_call_site_count=29`, direct interval hits `0`
+- `git diff --check`: pass
+
+Clean go/no-go after `d1c3361b`:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `idle_busy_loop_candidate_contract_verified=true`
+- `frontend_polling_contract_verified=true`
+- `p2p_store_forward_relay_contract_verified=true`
+- `manifest_git_dirty=false`
+- `ready_for_public_desktop_release=false`
+
+Remaining blockers are second-PC multi-device evidence, second-PC idle CPU
+evidence, second-PC runtime CPU matrix evidence, hosted P2P control-plane
+proof, support mailbox proof, and Store proof.
+
+This is verifier coverage hardening only. Runtime behavior and the product
+boundary are unchanged: MUSU Desktop is the local executor, and MUSU.PRO is the
+remote input/rendezvous/path-selection/relay-fallback/evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_WHILE_LET_LOOP_AUDIT_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 Rust while-let loop audit index refresh
+
+Indexing was refreshed after wiki/746 and GOAL v568/v569.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2409 files`
+- `2690 symbols`
+- `8270 ms`
+
+gbrain was not rerun for this small documentation refresh because the previous
+same-session run already found the active blocker: missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `brain-sync` exiting undefined.
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.

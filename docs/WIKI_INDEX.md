@@ -4234,4 +4234,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 Rust while-let loop audit coverage:
+  `RELEASE_1_15_0_RC1_RUST_WHILE_LET_LOOP_AUDIT_COVERAGE_2026_06_05.md`
+  (wiki/746) expands the Rust background-loop contract with a `while let`
+  source scanner and explicit checks for current finite/request-scoped sites.
+  Search terms should include `GOAL v568`, `wiki/746`, `d1c3361b`,
+  `while let source scanner`, `allowlistedWhileLetFiles`,
+  `audit-failure-window 2/2`, `rate-limit-window 2/2`,
+  `workflow-executor 6/6`, `workflow-spec 3/3`, `files-api 2/2`,
+  `forward-multipart 2/2`, `webdav-propfind 2/2`,
+  `webrtc-screen-share 8/8`, `ws-proxy 6/6`, `check_count=152`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`,
+  `frontend_polling_contract_verified=true`,
+  `rust_background_loop_contract_verified=true`, and
+  `ready_for_public_desktop_release=false`.
+
+- 2026-06-05 Rust while-let loop audit index refresh:
+  MUSU local indexing was run after wiki/746. Search terms should include
+  `GOAL v569`, `wiki/746 index refresh`, `musu indexer sync`, `2409 files`,
+  `2690 symbols`, `8270 ms`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
