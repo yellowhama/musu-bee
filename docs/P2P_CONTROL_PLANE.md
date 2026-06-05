@@ -58,21 +58,23 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 10:36 KST rendezvous selector metadata hardening, the
-product direction above is documented, the lease-bound queue fallback source
-contract is gated, room presence/rendezvous candidate metadata is preserved,
-the local Rust CLI can publish public/NAT/relay candidate descriptors, and the
-Rust rendezvous route selector now carries those descriptors into selected peer
-metadata. Public P2P release is still not release-complete.
+As of the 2026-06-05 route-evidence candidate address classification
+hardening, the product direction above is documented, the lease-bound queue
+fallback source contract is gated, room presence/rendezvous candidate metadata
+is preserved, the local Rust CLI can publish public/NAT/relay candidate
+descriptors, the Rust rendezvous route selector carries those descriptors into
+selected peer metadata, and the web route-evidence API now rejects
+release-grade direct-route claims whose `candidate_addr` does not classify
+consistently with `route_kind`. Public P2P release is still not
+release-complete.
 
 Passing local state:
 
-- local single-machine smoke passes on `HUGH_SECOND` for commit
-  `b6329f0d5cb22eabc8b745a10d64a2470a7ec4de`:
-  `20260605-092924-HUGH_SECOND`
-- local runtime idle CPU and CPU matrix evidence are valid on one machine:
-  `20260605-093206-HUGH_SECOND.desktop-open` and
-  `20260605-094033-HUGH_SECOND.runtime-cpu-scenario-matrix`
+- clean go/no-go after commit
+  `7048cd8f869d1a14be3a4809f18f53af89e0d7e1` reports
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `manifest_git_dirty=false`, and current local runtime idle/matrix evidence
+  valid on `1/2` required machines
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program
@@ -88,6 +90,10 @@ Passing local state:
 - release-grade relay route queries revalidate fallback, transport proof,
   payload delivery proof, and now bind relay transport proof to the fallback
   lease/session before returning stored `release_grade=true` relay records
+- direct route evidence now cross-checks `route_kind` against
+  `candidate_addr`; loopback/private/link-local addresses must be `lan`,
+  `100.64.0.0/10` addresses must be `tailscale`, and public IPs/hostnames
+  classify as `direct_quic`
 - `musu.pro` room presence and rendezvous candidate exchange now preserve
   `public_addr`, `nat_type`, `nat_observed_by`, `relay_url`, and
   `relay_protocol` so local programs can use web-assisted discovery for better
@@ -113,9 +119,6 @@ Open external gates:
 - owner-scoped relay route evidence count is `0`
 - relay payload transport proof is `false`
 - relay payload delivery proof valid count is `0`
-- fresh packaged MSIX/single-machine/CPU/matrix evidence is required again
-  after this Rust selector source change before current-source local runtime
-  evidence can be claimed
 
 This means current validation is still a one-machine test. Installing this
 work-in-progress build on another computer is required before multi-device work
