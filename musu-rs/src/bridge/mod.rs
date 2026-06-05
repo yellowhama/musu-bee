@@ -35,6 +35,7 @@ use axum::http::HeaderValue;
 use axum::middleware::Next;
 use axum::response::Response;
 use tokio::net::TcpListener;
+use tokio_util::sync::CancellationToken;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
@@ -57,6 +58,35 @@ pub struct AppState {
     pub sse_broadcaster: crate::writer::SseBroadcaster,
     // V27-F7: easy token pairing store.
     pub pairing: crate::bridge::handlers::pair::PairingStore,
+}
+
+const CLOUD_HEARTBEAT_DEFAULT_INTERVAL_SEC: u64 = 300;
+const CLOUD_HEARTBEAT_MIN_INTERVAL_SEC: u64 = 60;
+const CLOUD_HEARTBEAT_BACKOFF_MAX_EXPONENT: u32 = 4;
+
+fn normalize_cloud_heartbeat_interval_sec(raw: Option<&str>) -> u64 {
+    raw.and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(CLOUD_HEARTBEAT_DEFAULT_INTERVAL_SEC)
+        .max(CLOUD_HEARTBEAT_MIN_INTERVAL_SEC)
+}
+
+fn cloud_heartbeat_interval_secs_from_env() -> u64 {
+    normalize_cloud_heartbeat_interval_sec(
+        std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
+            .ok()
+            .as_deref(),
+    )
+}
+
+fn cloud_registration_sleep_duration(
+    heartbeat_interval_secs: u64,
+    consecutive_failures: u32,
+    jitter_ms: u64,
+) -> Duration {
+    let backoff_multiplier =
+        1_u64 << consecutive_failures.min(CLOUD_HEARTBEAT_BACKOFF_MAX_EXPONENT);
+    Duration::from_secs(heartbeat_interval_secs.saturating_mul(backoff_multiplier))
+        + Duration::from_millis(jitter_ms)
 }
 
 /// Entry point invoked from `main.rs` for `musu bridge`.
@@ -255,11 +285,7 @@ pub async fn run() -> Result<()> {
                     None
                 }
             };
-        let cloud_heartbeat_interval_secs = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
-            .unwrap_or(300)
-            .max(60);
+        let cloud_heartbeat_interval_secs = cloud_heartbeat_interval_secs_from_env();
 
         let mdns_enabled = matches!(
             std::env::var("MUSU_ENABLE_MDNS").as_deref(),
@@ -294,6 +320,13 @@ pub async fn run() -> Result<()> {
         let registry_url = cloud_base_url.clone();
         let tls_cert_fingerprint_clone = tls_cert_fingerprint.clone();
         let advertised_transport_scheme_clone = advertised_transport_scheme.clone();
+        let cloud_registration_cancel = CancellationToken::new();
+        let cloud_registration_ctrl_c = cloud_registration_cancel.clone();
+        tokio::spawn(async move {
+            if tokio::signal::ctrl_c().await.is_ok() {
+                cloud_registration_ctrl_c.cancel();
+            }
+        });
 
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
@@ -306,6 +339,10 @@ pub async fn run() -> Result<()> {
 
             // 1. Heartbeat loop
             loop {
+                if cloud_registration_cancel.is_cancelled() {
+                    break;
+                }
+
                 let mut cycle_ok = true;
 
                 if mdns_enabled {
@@ -435,19 +472,25 @@ pub async fn run() -> Result<()> {
                 } else {
                     consecutive_failures = consecutive_failures.saturating_add(1).min(8);
                 }
-                let backoff_multiplier = 1_u64 << consecutive_failures.min(4);
                 let jitter_ms = chrono::Utc::now().timestamp_millis().rem_euclid(1_000) as u64;
-                let sleep_for = Duration::from_secs(
-                    cloud_heartbeat_interval_secs.saturating_mul(backoff_multiplier),
-                ) + Duration::from_millis(jitter_ms);
+                let sleep_for = cloud_registration_sleep_duration(
+                    cloud_heartbeat_interval_secs,
+                    consecutive_failures,
+                    jitter_ms,
+                );
                 tracing::debug!(
                     cycle_ok,
                     consecutive_failures,
                     sleep_ms = sleep_for.as_millis(),
                     "musu.pro cloud registration loop sleeping"
                 );
-                tokio::time::sleep(sleep_for).await;
+                tokio::select! {
+                    _ = cloud_registration_cancel.cancelled() => break,
+                    _ = tokio::time::sleep(sleep_for) => {}
+                }
             }
+
+            tracing::info!("musu.pro cloud registration loop stopped");
         });
     } else {
         tracing::info!("no musu.pro token found. Run `musu login` to enable auto-discovery.");
@@ -592,6 +635,39 @@ mod tests {
         assert_eq!(
             replace_public_url_host("http://[fd7a:115c:a1e0::1]:8070/", "fd7a:115c:a1e0::99"),
             Some("[fd7a:115c:a1e0::99]:8070".to_string())
+        );
+    }
+
+    #[test]
+    fn cloud_heartbeat_interval_defaults_and_floors() {
+        assert_eq!(
+            normalize_cloud_heartbeat_interval_sec(None),
+            CLOUD_HEARTBEAT_DEFAULT_INTERVAL_SEC
+        );
+        assert_eq!(
+            normalize_cloud_heartbeat_interval_sec(Some("0")),
+            CLOUD_HEARTBEAT_MIN_INTERVAL_SEC
+        );
+        assert_eq!(
+            normalize_cloud_heartbeat_interval_sec(Some("59")),
+            CLOUD_HEARTBEAT_MIN_INTERVAL_SEC
+        );
+        assert_eq!(normalize_cloud_heartbeat_interval_sec(Some("90")), 90);
+    }
+
+    #[test]
+    fn cloud_registration_sleep_uses_capped_backoff_and_jitter() {
+        assert_eq!(
+            cloud_registration_sleep_duration(60, 0, 250),
+            Duration::from_millis(60_250)
+        );
+        assert_eq!(
+            cloud_registration_sleep_duration(60, 2, 0),
+            Duration::from_secs(240)
+        );
+        assert_eq!(
+            cloud_registration_sleep_duration(60, 8, 999),
+            Duration::from_millis(960_999)
         );
     }
 }

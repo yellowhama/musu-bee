@@ -86,10 +86,12 @@ Add-RegexCheck -Scope "clipboard" -Name "clipboard opt-in env gate" -Text $bridg
 Add-RegexCheck -Scope "relay-payload-poller" -Name "relay payload poller opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_RELAY_PAYLOAD_POLLER|start_relay_payload_poller_if_enabled' -Path $bridgePath -Message "Relay payload polling only starts behind MUSU_ENABLE_RELAY_PAYLOAD_POLLER."
 Add-RegexCheck -Scope "mdns" -Name "mDNS opt-in env gate" -Text $bridgeText -Pattern 'MUSU_ENABLE_MDNS' -Path $bridgePath -Message "mDNS discovery only starts behind MUSU_ENABLE_MDNS."
 Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat interval env" -Text $bridgeText -Pattern 'MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC' -Path $bridgePath -Message "Cloud registration heartbeat interval is explicit."
-Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat default" -Text $bridgeText -Pattern 'unwrap_or\(300\)' -Path $bridgePath -Message "Cloud registration heartbeat defaults to 300s."
-Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat minimum floor" -Text $bridgeText -Pattern '\.max\(60\)' -Path $bridgePath -Message "Cloud registration heartbeat clamps to at least 60s."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat default" -Text $bridgeText -Pattern 'CLOUD_HEARTBEAT_DEFAULT_INTERVAL_SEC:\s*u64\s*=\s*300|unwrap_or\(300\)' -Path $bridgePath -Message "Cloud registration heartbeat defaults to 300s."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "heartbeat minimum floor" -Text $bridgeText -Pattern 'CLOUD_HEARTBEAT_MIN_INTERVAL_SEC:\s*u64\s*=\s*60|\.max\(60\)' -Path $bridgePath -Message "Cloud registration heartbeat clamps to at least 60s."
 Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff exponent" -Text $bridgeText -Pattern 'consecutive_failures' -Path $bridgePath -Message "Cloud registration loop tracks consecutive failures."
-Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff sleep" -Text $bridgeText -Pattern 'sleep_for\s*=\s*Duration::from_secs[\s\S]*tokio::time::sleep\(sleep_for\)\.await' -Path $bridgePath -Message "Cloud registration loop sleeps with failure backoff."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "failure backoff sleep" -Text $bridgeText -Pattern 'cloud_registration_sleep_duration[\s\S]*tokio::time::sleep\(sleep_for\)' -Path $bridgePath -Message "Cloud registration loop sleeps with failure backoff."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "cancellation token" -Text $bridgeText -Pattern 'CancellationToken::new\(\)[\s\S]*cloud_registration_ctrl_c\.cancel\(\)' -Path $bridgePath -Message "Cloud registration loop owns an explicit cancellation token."
+Add-RegexCheck -Scope "cloud-heartbeat" -Name "cancellation-aware sleep" -Text $bridgeText -Pattern 'tokio::select!\s*\{[\s\S]*cloud_registration_cancel\.cancelled\(\)[\s\S]*tokio::time::sleep\(sleep_for\)' -Path $bridgePath -Message "Cloud registration loop sleep exits on cancellation."
 
 $plannerPath = "musu-rs\src\brain\planner.rs"
 $plannerText = Get-RepoText $plannerPath
