@@ -193,6 +193,49 @@ function Get-IntProperty {
     return [int]$property.Value
 }
 
+function Get-StringProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Default = ""
+    )
+
+    if (-not $Object) {
+        return $Default
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property -or $null -eq $property.Value) {
+        return $Default
+    }
+    return [string]$property.Value
+}
+
+function Get-ObjectProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if (-not $Object) {
+        return $null
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property) {
+        return $null
+    }
+    return $property.Value
+}
+
+function Read-JsonFileIfPresent {
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+
+    return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+}
+
 function ConvertTo-NetAddressString {
     param($Value)
 
@@ -418,9 +461,80 @@ $releaseReady = ($goNoGo.json -and [bool]$goNoGo.json.ready_for_public_desktop_r
 $secondPcReachable = ($secondPc -and [bool]$secondPc.tcp_test_succeeded)
 $p2pEnvOk = ($p2pEnv.json -and [bool]$p2pEnv.json.ok)
 $p2pEvidenceOk = ($p2pEvidence.json -and [bool]$p2pEvidence.json.ok)
-$p2pRelayRouteEvidenceCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_evidence_count" -Default 0
-$p2pRelayPayloadTransportProven = Get-BoolProperty -Object $p2pEvidence.json -Name "relay_payload_transport_proven"
-$p2pRelayPayloadDeliveryProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_valid_count" -Default 0
+$publicMetadataChecked = ($goNoGo.json -and (Get-BoolProperty -Object $goNoGo.json -Name "public_metadata_checked"))
+$publicMetadataOk = ($goNoGo.json -and (Get-BoolProperty -Object $goNoGo.json -Name "public_metadata_ok"))
+$secondPcPingSucceeded = ($secondPc -and [bool]$secondPc.ping_succeeded)
+$secondPcTcpSucceeded = ($secondPc -and [bool]$secondPc.tcp_test_succeeded)
+$secondPcTcpError = if ($secondPc) { Get-StringProperty -Object $secondPc -Name "tcp_error" } else { "" }
+
+$p2pEvidencePathFromResult = if ($p2pEvidence.json) { Get-StringProperty -Object $p2pEvidence.json -Name "evidence_path" } else { "" }
+$p2pVerificationPathFromResult = if ($p2pEvidence.json) { Get-StringProperty -Object $p2pEvidence.json -Name "verification_path" } else { "" }
+$p2pEvidenceDocument = Read-JsonFileIfPresent -Path $p2pEvidencePathFromResult
+$p2pVerificationDocument = Read-JsonFileIfPresent -Path $p2pVerificationPathFromResult
+$p2pRelayStatus = Get-ObjectProperty -Object $p2pEvidenceDocument -Name "relay_status"
+$p2pRelayTransport = Get-ObjectProperty -Object $p2pEvidenceDocument -Name "relay_transport"
+$p2pRelayLeases = Get-ObjectProperty -Object $p2pEvidenceDocument -Name "relay_leases"
+$p2pRelayRouteEvidence = Get-ObjectProperty -Object $p2pEvidenceDocument -Name "relay_route_evidence"
+
+$p2pRelayStatusLoggedIn = Get-BoolProperty -Object $p2pRelayStatus -Name "logged_in"
+$p2pRelayTransportLoggedIn = Get-BoolProperty -Object $p2pRelayTransport -Name "logged_in"
+$p2pRelayLeasesLoggedIn = Get-BoolProperty -Object $p2pRelayLeases -Name "logged_in"
+$p2pRelayRouteEvidenceLoggedIn = Get-BoolProperty -Object $p2pRelayRouteEvidence -Name "logged_in"
+$p2pOwnerScopeVerified = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "owner_scope_verified") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "owner_scope_verified") -or
+    (Get-BoolProperty -Object $p2pRelayLeases -Name "owner_scope_verified") -or
+    (Get-BoolProperty -Object $p2pRelayRouteEvidence -Name "owner_scope_verified")
+)
+$p2pRelayLeaseStoreConfigured = (
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_lease_store_configured") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_lease_store_configured") -or
+    (Get-BoolProperty -Object $p2pRelayLeases -Name "relay_lease_store_configured")
+)
+$p2pRelayLeaseStoreBackend = Get-StringProperty -Object $p2pRelayLeases -Name "relay_lease_store_backend"
+if ([string]::IsNullOrWhiteSpace($p2pRelayLeaseStoreBackend)) {
+    $p2pRelayLeaseStoreBackend = Get-StringProperty -Object $p2pRelayTransport -Name "relay_lease_store_backend"
+}
+if ([string]::IsNullOrWhiteSpace($p2pRelayLeaseStoreBackend)) {
+    $p2pRelayLeaseStoreBackend = Get-StringProperty -Object $p2pRelayStatus -Name "relay_lease_store_backend"
+}
+$p2pRelayLeaseStoreReleaseGrade = (
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_lease_store_release_grade") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_lease_store_release_grade") -or
+    (Get-BoolProperty -Object $p2pRelayLeases -Name "relay_lease_store_release_grade")
+)
+$p2pRelayTransportDescriptorWired = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_transport_descriptor_wired") -or
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_transport_descriptor_wired") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_transport_descriptor_wired")
+)
+$p2pRelayTransportWired = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_transport_wired") -or
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_transport_wired") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_transport_wired") -or
+    (Get-BoolProperty -Object $p2pRelayLeases -Name "relay_transport_wired")
+)
+$p2pRelayConnectEndpointWired = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_status_connect_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_transport_connect_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_connect_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_connect_endpoint_wired")
+)
+$p2pRelayPayloadEndpointWired = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_status_payload_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_transport_payload_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pRelayStatus -Name "relay_payload_endpoint_wired") -or
+    (Get-BoolProperty -Object $p2pRelayTransport -Name "relay_payload_endpoint_wired")
+)
+$p2pRouteEvidenceCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_evidence_count" -Default 0
+$p2pRouteEvidenceCountFromDocument = Get-IntProperty -Object $p2pRelayRouteEvidence -Name "count" -Default 0
+$p2pRelayRouteEvidenceCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_evidence_count" -Default ([Math]::Max($p2pRouteEvidenceCountFromVerification, $p2pRouteEvidenceCountFromDocument))
+$p2pRelayPayloadTransportProven = (
+    (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_payload_transport_proven") -or
+    (Get-BoolProperty -Object $p2pRelayRouteEvidence -Name "relay_transport_proven")
+)
+$p2pPayloadProofValidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_payload_delivery_proof_valid_count" -Default 0
+$p2pRelayPayloadDeliveryProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_valid_count" -Default $p2pPayloadProofValidCountFromVerification
 
 $goNoGoBlockers = @()
 if ($goNoGo.json -and $goNoGo.json.PSObject.Properties["blockers"]) {
@@ -452,6 +566,21 @@ if (-not $p2pEnvOk) {
 if (-not $p2pEvidenceOk) {
     [void]$blockers.Add("p2p_control_plane_evidence_not_verified")
 }
+if ($p2pEvidence.json -and (-not $p2pRelayStatusLoggedIn -or -not $p2pRelayTransportLoggedIn -or -not $p2pRelayLeasesLoggedIn -or -not $p2pRelayRouteEvidenceLoggedIn)) {
+    [void]$blockers.Add("p2p_runtime_not_logged_in")
+}
+if ($p2pEvidence.json -and -not $p2pOwnerScopeVerified) {
+    [void]$blockers.Add("p2p_owner_scope_not_verified")
+}
+if ($p2pEvidence.json -and -not $p2pRelayLeaseStoreReleaseGrade) {
+    [void]$blockers.Add("p2p_relay_lease_store_not_release_grade")
+}
+if ($p2pEvidence.json -and -not $p2pRelayTransportWired) {
+    [void]$blockers.Add("p2p_relay_transport_not_wired")
+}
+if ($p2pEvidence.json -and -not $p2pRelayPayloadEndpointWired) {
+    [void]$blockers.Add("p2p_relay_payload_endpoint_not_wired")
+}
 if ($p2pEvidence.json -and -not $p2pRelayPayloadTransportProven) {
     [void]$blockers.Add("p2p_relay_payload_transport_not_proven")
 }
@@ -471,6 +600,8 @@ $result = [pscustomobject]@{
     second_pc_port = $SecondPcPort
     second_pc_probe_timeout_ms = $SecondPcProbeTimeoutMs
     release_ready = [bool]$releaseReady
+    public_metadata_checked = [bool]$publicMetadataChecked
+    public_metadata_ok = [bool]$publicMetadataOk
     local_artifacts_ready = if ($goNoGo.json) { [bool]$goNoGo.json.local_artifacts_ready } else { $false }
     single_machine_verified = if ($goNoGo.json) { [bool]$goNoGo.json.single_machine_verified } else { $false }
     runtime_idle_cpu_verified = if ($goNoGo.json) { [bool]$goNoGo.json.runtime_idle_cpu_verified } else { $false }
@@ -481,6 +612,9 @@ $result = [pscustomobject]@{
     support_mailbox_verified = if ($goNoGo.json) { [bool]$goNoGo.json.support_mailbox_verified } else { $false }
     store_release_verified = if ($goNoGo.json) { [bool]$goNoGo.json.store_release_verified } else { $false }
     p2p_control_plane_verified = if ($goNoGo.json) { [bool]$goNoGo.json.p2p_control_plane_verified } else { $false }
+    second_pc_ping_succeeded = [bool]$secondPcPingSucceeded
+    second_pc_tcp_succeeded = [bool]$secondPcTcpSucceeded
+    second_pc_tcp_error = $secondPcTcpError
     second_pc_reachability = $secondPc
     second_pc_probe_error = $secondPcProbeError
     p2p_env_ok = [bool]$p2pEnvOk
@@ -493,6 +627,18 @@ $result = [pscustomobject]@{
     p2p_verification_path = if ($p2pEvidence.json) { [string]$p2pEvidence.json.verification_path } else { $null }
     p2p_evidence_musu_exe = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe } else { $null }
     p2p_evidence_musu_exe_source = if ($p2pEvidence.json) { [string]$p2pEvidence.json.musu_exe_source } else { $null }
+    p2p_relay_status_logged_in = [bool]$p2pRelayStatusLoggedIn
+    p2p_relay_transport_logged_in = [bool]$p2pRelayTransportLoggedIn
+    p2p_relay_leases_logged_in = [bool]$p2pRelayLeasesLoggedIn
+    p2p_relay_route_evidence_logged_in = [bool]$p2pRelayRouteEvidenceLoggedIn
+    p2p_owner_scope_verified = [bool]$p2pOwnerScopeVerified
+    p2p_relay_lease_store_configured = [bool]$p2pRelayLeaseStoreConfigured
+    p2p_relay_lease_store_backend = $p2pRelayLeaseStoreBackend
+    p2p_relay_lease_store_release_grade = [bool]$p2pRelayLeaseStoreReleaseGrade
+    p2p_relay_transport_descriptor_wired = [bool]$p2pRelayTransportDescriptorWired
+    p2p_relay_transport_wired = [bool]$p2pRelayTransportWired
+    p2p_relay_connect_endpoint_wired = [bool]$p2pRelayConnectEndpointWired
+    p2p_relay_payload_endpoint_wired = [bool]$p2pRelayPayloadEndpointWired
     p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
     p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
@@ -510,6 +656,8 @@ $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $evidencePath
 $runtimeIdleCpuText = if ($null -ne $result.runtime_idle_cpu_valid_machine_count) { [string]$result.runtime_idle_cpu_valid_machine_count } else { "n/a" }
 $runtimeCpuMatrixText = if ($null -ne $result.runtime_cpu_scenario_matrix_valid_machine_count) { [string]$result.runtime_cpu_scenario_matrix_valid_machine_count } else { "n/a" }
 $secondPcTcpText = if ($result.second_pc_reachability) { [string]$result.second_pc_reachability.tcp_test_succeeded } else { "False" }
+$secondPcTcpErrorText = if ([string]::IsNullOrWhiteSpace($result.second_pc_tcp_error)) { "none" } else { $result.second_pc_tcp_error }
+$p2pRelayLeaseStoreBackendText = if ([string]::IsNullOrWhiteSpace($result.p2p_relay_lease_store_backend)) { "none" } else { $result.p2p_relay_lease_store_backend }
 $blockerText = if ($result.blockers.Count -gt 0) { $result.blockers -join ", " } else { "none" }
 
 $summary = @"
@@ -517,17 +665,33 @@ $summary = @"
 
 - Version: $Version
 - Release ready: $($result.release_ready)
+- Public metadata checked: $($result.public_metadata_checked)
+- Public metadata ok: $($result.public_metadata_ok)
 - Local artifacts ready: $($result.local_artifacts_ready)
 - Single-machine verified: $($result.single_machine_verified)
 - Runtime idle CPU: $runtimeIdleCpuText
 - Runtime CPU matrix: $runtimeCpuMatrixText
 - Second PC: ${SecondPcHost}:${SecondPcPort}
+- Second PC ping succeeded: $($result.second_pc_ping_succeeded)
 - Second PC TCP reachable: $secondPcTcpText
+- Second PC TCP error: $secondPcTcpErrorText
 - P2P env ready: $($result.p2p_env_ok)
 - P2P evidence verified: $($result.p2p_evidence_ok)
 - P2P evidence: $($result.p2p_evidence_path)
 - P2P evidence MUSU exe: $($result.p2p_evidence_musu_exe)
 - P2P evidence MUSU exe source: $($result.p2p_evidence_musu_exe_source)
+- P2P relay status logged in: $($result.p2p_relay_status_logged_in)
+- P2P relay transport logged in: $($result.p2p_relay_transport_logged_in)
+- P2P relay leases logged in: $($result.p2p_relay_leases_logged_in)
+- P2P relay route evidence logged in: $($result.p2p_relay_route_evidence_logged_in)
+- P2P owner scope verified: $($result.p2p_owner_scope_verified)
+- P2P relay lease store configured: $($result.p2p_relay_lease_store_configured)
+- P2P relay lease store backend: $p2pRelayLeaseStoreBackendText
+- P2P relay lease store release-grade: $($result.p2p_relay_lease_store_release_grade)
+- P2P relay transport descriptor wired: $($result.p2p_relay_transport_descriptor_wired)
+- P2P relay transport wired: $($result.p2p_relay_transport_wired)
+- P2P relay connect endpoint wired: $($result.p2p_relay_connect_endpoint_wired)
+- P2P relay payload endpoint wired: $($result.p2p_relay_payload_endpoint_wired)
 - P2P relay route evidence count: $($result.p2p_relay_route_evidence_count)
 - P2P relay payload transport proven: $($result.p2p_relay_payload_transport_proven)
 - P2P relay payload delivery proof valid count: $($result.p2p_relay_payload_delivery_proof_valid_count)
@@ -548,13 +712,33 @@ $final = [pscustomobject]@{
     evidence_sha256 = $hash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path
     release_ready = [bool]$result.release_ready
+    public_metadata_checked = [bool]$result.public_metadata_checked
+    public_metadata_ok = [bool]$result.public_metadata_ok
     local_artifacts_ready = [bool]$result.local_artifacts_ready
+    single_machine_verified = [bool]$result.single_machine_verified
+    runtime_idle_cpu_verified = [bool]$result.runtime_idle_cpu_verified
+    runtime_cpu_scenario_matrix_verified = [bool]$result.runtime_cpu_scenario_matrix_verified
     second_pc_reachable = [bool]$secondPcReachable
+    second_pc_ping_succeeded = [bool]$secondPcPingSucceeded
+    second_pc_tcp_succeeded = [bool]$secondPcTcpSucceeded
+    second_pc_tcp_error = $secondPcTcpError
     p2p_env_ok = [bool]$p2pEnvOk
     p2p_evidence_ok = [bool]$p2pEvidenceOk
     p2p_evidence_path = $result.p2p_evidence_path
     p2p_evidence_musu_exe = $result.p2p_evidence_musu_exe
     p2p_evidence_musu_exe_source = $result.p2p_evidence_musu_exe_source
+    p2p_relay_status_logged_in = [bool]$result.p2p_relay_status_logged_in
+    p2p_relay_transport_logged_in = [bool]$result.p2p_relay_transport_logged_in
+    p2p_relay_leases_logged_in = [bool]$result.p2p_relay_leases_logged_in
+    p2p_relay_route_evidence_logged_in = [bool]$result.p2p_relay_route_evidence_logged_in
+    p2p_owner_scope_verified = [bool]$result.p2p_owner_scope_verified
+    p2p_relay_lease_store_configured = [bool]$result.p2p_relay_lease_store_configured
+    p2p_relay_lease_store_backend = $result.p2p_relay_lease_store_backend
+    p2p_relay_lease_store_release_grade = [bool]$result.p2p_relay_lease_store_release_grade
+    p2p_relay_transport_descriptor_wired = [bool]$result.p2p_relay_transport_descriptor_wired
+    p2p_relay_transport_wired = [bool]$result.p2p_relay_transport_wired
+    p2p_relay_connect_endpoint_wired = [bool]$result.p2p_relay_connect_endpoint_wired
+    p2p_relay_payload_endpoint_wired = [bool]$result.p2p_relay_payload_endpoint_wired
     p2p_relay_route_evidence_count = [int]$result.p2p_relay_route_evidence_count
     p2p_relay_payload_transport_proven = [bool]$result.p2p_relay_payload_transport_proven
     p2p_relay_payload_delivery_proof_valid_count = [int]$result.p2p_relay_payload_delivery_proof_valid_count

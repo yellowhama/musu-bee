@@ -27,6 +27,7 @@ $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
+$externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -391,6 +392,40 @@ function Test-DegradedModeFreshnessStatusOnlyContract {
     foreach ($scriptPath in $ScriptPaths) {
         $source = Get-Content -LiteralPath $scriptPath -Raw
         if (-not $source.Contains('"scripts/windows/audit-degraded-mode-contract.ps1"')) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ExternalGateRecheckActionableContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'public_metadata_checked',
+        'public_metadata_ok',
+        'second_pc_tcp_error',
+        'p2p_relay_status_logged_in',
+        'p2p_relay_transport_logged_in',
+        'p2p_relay_leases_logged_in',
+        'p2p_relay_route_evidence_logged_in',
+        'p2p_owner_scope_verified',
+        'p2p_relay_lease_store_configured',
+        'p2p_relay_lease_store_backend',
+        'p2p_relay_lease_store_release_grade',
+        'p2p_relay_transport_descriptor_wired',
+        'p2p_relay_transport_wired',
+        'p2p_relay_connect_endpoint_wired',
+        'p2p_relay_payload_endpoint_wired',
+        'p2p_runtime_not_logged_in',
+        'p2p_relay_lease_store_not_release_grade',
+        'p2p_relay_transport_not_wired',
+        'p2p_relay_payload_endpoint_not_wired'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
             return $false
         }
     }
@@ -1116,6 +1151,18 @@ Add-CaseResult `
     -Name "freshness classifiers allow degraded mode audit script as status-only" `
     -Verifier "release freshness classifier contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$externalGateRecheckActionableContractOk = Test-ExternalGateRecheckActionableContract -ScriptPath $externalGateRecheckRecorder
+$invocation = New-StaticVerifierInvocation `
+    -Ok $externalGateRecheckActionableContractOk `
+    -Message "external release-gate recheck must flatten public metadata, second-PC reachability, and P2P control-plane root-cause fields"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "external gate recheck exposes actionable root-cause fields" `
+    -Verifier "external gate recheck source contract" `
+    -FixturePath $externalGateRecheckRecorder `
     -ShouldPass $true `
     -Invocation $invocation
 
