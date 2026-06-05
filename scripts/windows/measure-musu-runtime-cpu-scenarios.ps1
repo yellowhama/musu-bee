@@ -278,10 +278,14 @@ function Invoke-MeasureScenario {
         sample_seconds = [double]$evidence.sample_seconds
         cpu_sample_count = @($evidence.samples).Count
         process_counts_by_role = $evidence.process_counts_by_role
+        process_counts_by_subrole = $evidence.process_counts_by_subrole
         max_one_core_percent_by_role = $evidence.max_one_core_percent_by_role
+        max_one_core_percent_by_subrole = $evidence.max_one_core_percent_by_subrole
+        bridge_registry = $evidence.bridge_registry
         cpu_attribution = $evidence.cpu_attribution
         total_working_set_mb_after = [double]$evidence.total_working_set_mb_after
         total_private_memory_mb_after = [double]$evidence.total_private_memory_mb_after
+        memory_totals_by_subrole_mb = $evidence.memory_totals_by_subrole_mb
         resource_budget_violations = @($evidence.resource_budget_violations)
         hot_process_count = [int]$evidence.hot_process_count
     }

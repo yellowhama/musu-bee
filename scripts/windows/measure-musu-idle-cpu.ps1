@@ -48,6 +48,9 @@ if ($IncludeWebView2) {
     [void]$names.Add("msedgewebview2")
 }
 
+$CpuRoleNames = @("musu", "node", "webview2", "other")
+$CpuSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
+
 $script:processMetadataTimedOut = $false
 $script:processMetadataAvailable = $false
 $script:nativeParentLookupAvailable = $false
@@ -280,6 +283,122 @@ function Get-ProcessStartTimeSafe($Process) {
     }
 }
 
+function Get-MusuHomePath {
+    if ($env:MUSU_HOME) {
+        return [System.IO.Path]::GetFullPath($env:MUSU_HOME)
+    }
+    if ($env:USERPROFILE) {
+        return (Join-Path $env:USERPROFILE ".musu")
+    }
+    if ($env:HOME) {
+        return (Join-Path $env:HOME ".musu")
+    }
+    return (Join-Path $repoRoot ".musu")
+}
+
+function Get-BridgeRegistrySnapshot {
+    $musuHome = Get-MusuHomePath
+    $path = Join-Path $musuHome "services\bridge.json"
+    $bridgeProcessId = $null
+    $addr = $null
+    $transport = $null
+    $startedAt = $null
+    $parseError = $null
+    $exists = Test-Path -LiteralPath $path
+
+    if ($exists) {
+        try {
+            $registry = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+            if ($registry.PSObject.Properties["pid"] -and $null -ne $registry.pid) {
+                $bridgeProcessId = [int]$registry.pid
+            }
+            if ($registry.PSObject.Properties["addr"]) {
+                $addr = [string]$registry.addr
+            }
+            if ($registry.PSObject.Properties["transport"]) {
+                $transport = [string]$registry.transport
+            }
+            if ($registry.PSObject.Properties["started_at"]) {
+                $startedAt = $registry.started_at
+            }
+        }
+        catch {
+            $parseError = $_.Exception.Message
+        }
+    }
+
+    [pscustomobject]@{
+        path = $path
+        exists = [bool]$exists
+        parse_error = $parseError
+        pid = $bridgeProcessId
+        addr = $addr
+        transport = $transport
+        started_at = $startedAt
+        captured_at = (Get-Date).ToString("o")
+    }
+}
+
+function New-ProcessBucketMap {
+    param([Parameter(Mandatory = $true)][string[]]$BucketNames)
+
+    $map = [ordered]@{}
+    foreach ($bucket in $BucketNames) {
+        $map[$bucket] = 0
+    }
+    return $map
+}
+
+function New-MemoryBucketMap {
+    param([Parameter(Mandatory = $true)][string[]]$BucketNames)
+
+    $map = [ordered]@{}
+    foreach ($bucket in $BucketNames) {
+        $map[$bucket] = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
+    }
+    return $map
+}
+
+function Get-CoarseProcessRole {
+    param([Parameter(Mandatory = $true)][string]$ProcessName)
+
+    if ($musuNames.Contains($ProcessName)) {
+        return "musu"
+    }
+    if ($ProcessName -ieq "msedgewebview2") {
+        return "webview2"
+    }
+    if ($ProcessName -ieq "node") {
+        return "node"
+    }
+    return "other"
+}
+
+function Get-ProcessSubrole {
+    param(
+        [Parameter(Mandatory = $true)][int]$ProcessId,
+        [Parameter(Mandatory = $true)][string]$ProcessName,
+        $BridgePid
+    )
+
+    if ($ProcessName -ieq "musu-desktop") {
+        return "desktop_shell"
+    }
+    if ($null -ne $BridgePid -and $musuNames.Contains($ProcessName) -and $ProcessId -eq [int]$BridgePid) {
+        return "bridge_runtime"
+    }
+    if ($musuNames.Contains($ProcessName)) {
+        return "musu_runtime"
+    }
+    if ($ProcessName -ieq "node") {
+        return "node_helper"
+    }
+    if ($ProcessName -ieq "msedgewebview2") {
+        return "webview2_helper"
+    }
+    return "other"
+}
+
 function Get-RawProcessSnapshot($Names) {
     $items = @()
     foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
@@ -382,6 +501,8 @@ $gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 $gitStatus = (& git -C $repoRoot status --short 2>$null | Out-String).Trim()
 
 $metadataMap = Get-ProcessMetadataMap $names
+$bridgeRegistry = Get-BridgeRegistrySnapshot
+$bridgePid = $bridgeRegistry.pid
 $rootProcessIds = New-Object 'System.Collections.Generic.HashSet[int]'
 foreach ($process in @($beforeRaw.items + $afterRaw.items)) {
     if ($musuNames.Contains($process.process_name)) {
@@ -405,18 +526,14 @@ foreach ($current in $after) {
     }
 
     $oneCorePercent = ($delta / $elapsedSeconds) * 100.0
+    $processRole = Get-CoarseProcessRole -ProcessName ([string]$current.process_name)
+    $processSubrole = Get-ProcessSubrole -ProcessId ([int]$current.id) -ProcessName ([string]$current.process_name) -BridgePid $bridgePid
     $samples += [pscustomobject]@{
         id = $current.id
         process_name = $current.process_name
-        process_role = if ($musuNames.Contains($current.process_name)) {
-            "musu"
-        } elseif ($current.process_name -ieq "msedgewebview2") {
-            "webview2"
-        } elseif ($current.process_name -ieq "node") {
-            "node"
-        } else {
-            "other"
-        }
+        process_role = $processRole
+        process_subrole = $processSubrole
+        bridge_registry_pid_match = ($null -ne $bridgePid -and [int]$current.id -eq [int]$bridgePid)
         cpu_seconds_delta = [Math]::Round($delta, 3)
         cpu_pct_one_core = [Math]::Round($oneCorePercent, 2)
         cpu_pct_total = [Math]::Round($oneCorePercent / $cores, 2)
@@ -437,41 +554,23 @@ foreach ($current in $after) {
 $hot = @($samples | Where-Object { $_.cpu_pct_one_core -gt $MaxOneCorePercent })
 $musuProcessCountAfter = @($after | Where-Object { $musuNames.Contains($_.process_name) }).Count
 $targetProcessRunning = ($after.Count -gt 0)
-$processCountsByRole = [ordered]@{
-    musu = 0
-    node = 0
-    webview2 = 0
-    other = 0
-}
+$processCountsByRole = New-ProcessBucketMap -BucketNames $CpuRoleNames
+$processCountsBySubrole = New-ProcessBucketMap -BucketNames $CpuSubroleNames
 foreach ($current in $after) {
-    if ($musuNames.Contains($current.process_name)) {
-        $processCountsByRole.musu += 1
-    } elseif ($current.process_name -ieq "node") {
-        $processCountsByRole.node += 1
-    } elseif ($current.process_name -ieq "msedgewebview2") {
-        $processCountsByRole.webview2 += 1
-    } else {
-        $processCountsByRole.other += 1
-    }
+    $role = Get-CoarseProcessRole -ProcessName ([string]$current.process_name)
+    $subrole = Get-ProcessSubrole -ProcessId ([int]$current.id) -ProcessName ([string]$current.process_name) -BridgePid $bridgePid
+    $processCountsByRole[$role] = [int]$processCountsByRole[$role] + 1
+    $processCountsBySubrole[$subrole] = [int]$processCountsBySubrole[$subrole] + 1
 }
-$memoryTotalsByRoleMb = [ordered]@{
-    musu = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
-    node = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
-    webview2 = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
-    other = [ordered]@{ working_set_mb = 0.0; private_memory_mb = 0.0 }
-}
+$memoryTotalsByRoleMb = New-MemoryBucketMap -BucketNames $CpuRoleNames
+$memoryTotalsBySubroleMb = New-MemoryBucketMap -BucketNames $CpuSubroleNames
 foreach ($current in $after) {
-    $role = if ($musuNames.Contains($current.process_name)) {
-        "musu"
-    } elseif ($current.process_name -ieq "node") {
-        "node"
-    } elseif ($current.process_name -ieq "msedgewebview2") {
-        "webview2"
-    } else {
-        "other"
-    }
+    $role = Get-CoarseProcessRole -ProcessName ([string]$current.process_name)
+    $subrole = Get-ProcessSubrole -ProcessId ([int]$current.id) -ProcessName ([string]$current.process_name) -BridgePid $bridgePid
     $memoryTotalsByRoleMb[$role].working_set_mb = [Math]::Round(([double]$memoryTotalsByRoleMb[$role].working_set_mb + [double]$current.working_set_mb), 2)
     $memoryTotalsByRoleMb[$role].private_memory_mb = [Math]::Round(([double]$memoryTotalsByRoleMb[$role].private_memory_mb + [double]$current.private_memory_mb), 2)
+    $memoryTotalsBySubroleMb[$subrole].working_set_mb = [Math]::Round(([double]$memoryTotalsBySubroleMb[$subrole].working_set_mb + [double]$current.working_set_mb), 2)
+    $memoryTotalsBySubroleMb[$subrole].private_memory_mb = [Math]::Round(([double]$memoryTotalsBySubroleMb[$subrole].private_memory_mb + [double]$current.private_memory_mb), 2)
 }
 $totalWorkingSetMbAfter = 0.0
 $totalPrivateMemoryMbAfter = 0.0
@@ -500,36 +599,50 @@ $maxOneCorePercentByRole = [ordered]@{
     webview2 = 0.0
     other = 0.0
 }
+$maxOneCorePercentBySubrole = [ordered]@{
+    musu_runtime = 0.0
+    bridge_runtime = 0.0
+    desktop_shell = 0.0
+    node_helper = 0.0
+    webview2_helper = 0.0
+    other = 0.0
+}
 foreach ($sample in $samples) {
     $role = [string]$sample.process_role
+    $subrole = [string]$sample.process_subrole
     $value = [double]$sample.cpu_pct_one_core
     if ($maxOneCorePercentByRole.Contains($role) -and $value -gt [double]$maxOneCorePercentByRole[$role]) {
         $maxOneCorePercentByRole[$role] = $value
     }
+    if ($maxOneCorePercentBySubrole.Contains($subrole) -and $value -gt [double]$maxOneCorePercentBySubrole[$subrole]) {
+        $maxOneCorePercentBySubrole[$subrole] = $value
+    }
 }
-$sampleCountByRole = [ordered]@{
-    musu = 0
-    node = 0
-    webview2 = 0
-    other = 0
-}
-$totalCpuSecondsByRole = [ordered]@{
-    musu = 0.0
-    node = 0.0
-    webview2 = 0.0
-    other = 0.0
-}
+$sampleCountByRole = New-ProcessBucketMap -BucketNames $CpuRoleNames
+$sampleCountBySubrole = New-ProcessBucketMap -BucketNames $CpuSubroleNames
+$totalCpuSecondsByRole = [ordered]@{ musu = 0.0; node = 0.0; webview2 = 0.0; other = 0.0 }
+$totalCpuSecondsBySubrole = [ordered]@{ musu_runtime = 0.0; bridge_runtime = 0.0; desktop_shell = 0.0; node_helper = 0.0; webview2_helper = 0.0; other = 0.0 }
 foreach ($sample in $samples) {
     $role = [string]$sample.process_role
     if (-not $sampleCountByRole.Contains($role)) {
         $role = "other"
     }
+    $subrole = [string]$sample.process_subrole
+    if (-not $sampleCountBySubrole.Contains($subrole)) {
+        $subrole = "other"
+    }
     $sampleCountByRole[$role] = [int]$sampleCountByRole[$role] + 1
     $totalCpuSecondsByRole[$role] = [Math]::Round(([double]$totalCpuSecondsByRole[$role] + [double]$sample.cpu_seconds_delta), 3)
+    $sampleCountBySubrole[$subrole] = [int]$sampleCountBySubrole[$subrole] + 1
+    $totalCpuSecondsBySubrole[$subrole] = [Math]::Round(([double]$totalCpuSecondsBySubrole[$subrole] + [double]$sample.cpu_seconds_delta), 3)
 }
 $rolesObserved = @(
     $sampleCountByRole.Keys |
         Where-Object { [int]$sampleCountByRole[$_] -gt 0 }
+)
+$subrolesObserved = @(
+    $sampleCountBySubrole.Keys |
+        Where-Object { [int]$sampleCountBySubrole[$_] -gt 0 }
 )
 $topCpuProcesses = @(
     $samples |
@@ -540,6 +653,8 @@ $topCpuProcesses = @(
                 id = $_.id
                 process_name = $_.process_name
                 process_role = $_.process_role
+                process_subrole = $_.process_subrole
+                bridge_registry_pid_match = $_.bridge_registry_pid_match
                 cpu_seconds_delta = $_.cpu_seconds_delta
                 cpu_pct_one_core = $_.cpu_pct_one_core
                 working_set_mb = $_.working_set_mb
@@ -562,13 +677,22 @@ $cpuAttribution = [ordered]@{
     }
     sample_count = @($samples).Count
     roles_observed = @($rolesObserved)
+    subroles_observed = @($subrolesObserved)
     sample_count_by_role = $sampleCountByRole
+    sample_count_by_subrole = $sampleCountBySubrole
     total_cpu_seconds_by_role = $totalCpuSecondsByRole
+    total_cpu_seconds_by_subrole = $totalCpuSecondsBySubrole
     max_one_core_percent_by_role = $maxOneCorePercentByRole
+    max_one_core_percent_by_subrole = $maxOneCorePercentBySubrole
     top_processes = @($topCpuProcesses)
     required_roles_present = [ordered]@{
         musu = ([int]$sampleCountByRole.musu -gt 0)
         webview2 = if ($RequireOwnedWebView2) { [int]$sampleCountByRole.webview2 -gt 0 } else { $true }
+    }
+    required_subroles_present = [ordered]@{
+        bridge_runtime = if ($bridgeRegistry.exists -and $null -ne $bridgePid) { [int]$sampleCountBySubrole.bridge_runtime -gt 0 } else { $true }
+        desktop_shell = if ($Scenario -eq "desktop-open" -or $Scenario -eq "startup-open") { [int]$processCountsBySubrole.desktop_shell -gt 0 } else { $true }
+        webview2_helper = if ($RequireOwnedWebView2) { [int]$sampleCountBySubrole.webview2_helper -gt 0 } else { $true }
     }
 }
 $result = [ordered]@{
@@ -602,16 +726,20 @@ $result = [ordered]@{
     }
     process_metadata_available = [bool]$script:processMetadataAvailable
     process_metadata_timed_out = [bool]$script:processMetadataTimedOut
+    bridge_registry = $bridgeRegistry
     process_count_before = $before.Count
     process_count_after = $after.Count
     musu_process_count_after = $musuProcessCountAfter
     target_process_running = $targetProcessRunning
     process_counts_by_role = $processCountsByRole
+    process_counts_by_subrole = $processCountsBySubrole
     total_working_set_mb_after = $totalWorkingSetMbAfter
     total_private_memory_mb_after = $totalPrivateMemoryMbAfter
     memory_totals_by_role_mb = $memoryTotalsByRoleMb
+    memory_totals_by_subrole_mb = $memoryTotalsBySubroleMb
     resource_budget_violations = @($resourceBudgetViolations)
     max_one_core_percent_by_role = $maxOneCorePercentByRole
+    max_one_core_percent_by_subrole = $maxOneCorePercentBySubrole
     hot_process_count = $hot.Count
     cpu_attribution = $cpuAttribution
     samples = @($samples | Sort-Object cpu_pct_one_core -Descending)

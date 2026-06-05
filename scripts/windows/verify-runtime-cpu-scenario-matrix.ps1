@@ -27,6 +27,7 @@ $RequiredScenarios = @(
     }
 )
 $CpuAttributionRoleNames = @("musu", "node", "webview2", "other")
+$CpuAttributionSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
 
 function New-Check {
     param(
@@ -249,6 +250,19 @@ function Get-RoleMaxCpu {
     return 0.0
 }
 
+function Get-SubroleMaxCpu {
+    param(
+        [Parameter(Mandatory = $true)]$Measurement,
+        [Parameter(Mandatory = $true)][string]$Subrole
+    )
+
+    if ($Measurement.PSObject.Properties["max_one_core_percent_by_subrole"] -and
+        $Measurement.max_one_core_percent_by_subrole.PSObject.Properties[$Subrole]) {
+        return [double]$Measurement.max_one_core_percent_by_subrole.$Subrole
+    }
+    return 0.0
+}
+
 function Test-ObjectHasRoleProperties {
     param(
         $Object,
@@ -417,11 +431,23 @@ if ($matrix) {
             )
             Add-CheckFromCondition "CPU attribution role counts: $required" ([bool]$sampleCountByRolePresent) "scenario '$required' CPU attribution records MUSU/node/WebView2/other role sample counts" "scenario '$required' CPU attribution lacks MUSU/node/WebView2/other role sample counts"
 
+            $sampleCountBySubrolePresent = (
+                $cpuAttribution.PSObject.Properties["sample_count_by_subrole"] -and
+                (Test-ObjectHasRoleProperties -Object $cpuAttribution.sample_count_by_subrole -Roles $CpuAttributionSubroleNames)
+            )
+            Add-CheckFromCondition "CPU attribution subrole counts: $required" ([bool]$sampleCountBySubrolePresent) "scenario '$required' CPU attribution records bridge/runtime/desktop/helper subrole sample counts" "scenario '$required' CPU attribution lacks bridge/runtime/desktop/helper subrole sample counts"
+
             $totalCpuByRolePresent = (
                 $cpuAttribution.PSObject.Properties["total_cpu_seconds_by_role"] -and
                 (Test-ObjectHasRoleProperties -Object $cpuAttribution.total_cpu_seconds_by_role)
             )
             Add-CheckFromCondition "CPU attribution totals by role: $required" ([bool]$totalCpuByRolePresent) "scenario '$required' CPU attribution records MUSU/node/WebView2/other CPU totals by role" "scenario '$required' CPU attribution lacks MUSU/node/WebView2/other CPU totals by role"
+
+            $totalCpuBySubrolePresent = (
+                $cpuAttribution.PSObject.Properties["total_cpu_seconds_by_subrole"] -and
+                (Test-ObjectHasRoleProperties -Object $cpuAttribution.total_cpu_seconds_by_subrole -Roles $CpuAttributionSubroleNames)
+            )
+            Add-CheckFromCondition "CPU attribution totals by subrole: $required" ([bool]$totalCpuBySubrolePresent) "scenario '$required' CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole" "scenario '$required' CPU attribution lacks bridge/runtime/desktop/helper CPU totals by subrole"
 
             $maxCpuByRolePresent = (
                 $cpuAttribution.PSObject.Properties["max_one_core_percent_by_role"] -and
@@ -429,12 +455,26 @@ if ($matrix) {
             )
             Add-CheckFromCondition "CPU attribution max by role: $required" ([bool]$maxCpuByRolePresent) "scenario '$required' CPU attribution records MUSU/node/WebView2/other max CPU by role" "scenario '$required' CPU attribution lacks MUSU/node/WebView2/other max CPU by role"
 
+            $maxCpuBySubrolePresent = (
+                $cpuAttribution.PSObject.Properties["max_one_core_percent_by_subrole"] -and
+                (Test-ObjectHasRoleProperties -Object $cpuAttribution.max_one_core_percent_by_subrole -Roles $CpuAttributionSubroleNames)
+            )
+            Add-CheckFromCondition "CPU attribution max by subrole: $required" ([bool]$maxCpuBySubrolePresent) "scenario '$required' CPU attribution records bridge/runtime/desktop/helper max CPU by subrole" "scenario '$required' CPU attribution lacks bridge/runtime/desktop/helper max CPU by subrole"
+
             $requiredRoles = Get-JsonPropertyValue -Object $cpuAttribution -Name "required_roles_present"
             $musuRolePresent = ($requiredRoles -and $requiredRoles.PSObject.Properties["musu"] -and [bool]$requiredRoles.musu)
             Add-CheckFromCondition "CPU attribution MUSU role: $required" ([bool]$musuRolePresent) "scenario '$required' CPU attribution includes MUSU role" "scenario '$required' CPU attribution is missing MUSU role"
             if ($required -eq "desktop-open") {
                 $webView2RolePresent = ($requiredRoles -and $requiredRoles.PSObject.Properties["webview2"] -and [bool]$requiredRoles.webview2)
                 Add-CheckFromCondition "CPU attribution WebView2 role: $required" ([bool]$webView2RolePresent) "desktop-open CPU attribution includes owned WebView2 role" "desktop-open CPU attribution is missing owned WebView2 role"
+            }
+
+            $requiredSubroles = Get-JsonPropertyValue -Object $cpuAttribution -Name "required_subroles_present"
+            $bridgeRuntimePresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["bridge_runtime"] -and [bool]$requiredSubroles.bridge_runtime)
+            Add-CheckFromCondition "CPU attribution bridge subrole: $required" ([bool]$bridgeRuntimePresent) "scenario '$required' CPU attribution identifies the bridge runtime PID separately" "scenario '$required' CPU attribution does not identify the bridge runtime PID separately"
+            if ($required -eq "startup-open" -or $required -eq "desktop-open") {
+                $desktopShellPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["desktop_shell"] -and [bool]$requiredSubroles.desktop_shell)
+                Add-CheckFromCondition "CPU attribution desktop subrole: $required" ([bool]$desktopShellPresent) "scenario '$required' CPU attribution identifies the desktop shell separately" "scenario '$required' CPU attribution does not identify the desktop shell separately"
             }
 
             $topProcesses = @(
@@ -448,23 +488,32 @@ if ($matrix) {
                     $rowId = if ($row.PSObject.Properties["id"]) { [int]$row.id } else { 0 }
                     $rowName = if ($row.PSObject.Properties["process_name"]) { [string]$row.process_name } else { "" }
                     $rowRole = if ($row.PSObject.Properties["process_role"]) { [string]$row.process_role } else { "" }
+                    $rowSubrole = if ($row.PSObject.Properties["process_subrole"]) { [string]$row.process_subrole } else { "" }
                     $hasCpuDelta = $row.PSObject.Properties["cpu_seconds_delta"]
                     $hasCpuPct = $row.PSObject.Properties["cpu_pct_one_core"]
-                    if ($rowId -le 0 -or [string]::IsNullOrWhiteSpace($rowName) -or ($rowRole -notin @("musu", "node", "webview2", "other")) -or -not $hasCpuDelta -or -not $hasCpuPct) {
+                    if ($rowId -le 0 -or [string]::IsNullOrWhiteSpace($rowName) -or ($rowRole -notin @("musu", "node", "webview2", "other")) -or ($rowSubrole -notin $CpuAttributionSubroleNames) -or -not $hasCpuDelta -or -not $hasCpuPct) {
                         $row
                     }
                 }
             )
-            Add-CheckFromCondition "CPU attribution top process fields: $required" ($topProcesses.Count -gt 0 -and $badTopProcessRows.Count -eq 0) "scenario '$required' top CPU process rows include PID, role, and CPU fields" "scenario '$required' has $($badTopProcessRows.Count) malformed top CPU process row(s)"
+            Add-CheckFromCondition "CPU attribution top process fields: $required" ($topProcesses.Count -gt 0 -and $badTopProcessRows.Count -eq 0) "scenario '$required' top CPU process rows include PID, role, subrole, and CPU fields" "scenario '$required' has $($badTopProcessRows.Count) malformed top CPU process row(s)"
         }
 
         $measurementMaxCpuByRole = Get-JsonPropertyValue -Object $measurement -Name "max_one_core_percent_by_role"
         $measurementMaxCpuByRolePresent = Test-ObjectHasRoleProperties -Object $measurementMaxCpuByRole
         Add-CheckFromCondition "measurement CPU roles present: $required" $measurementMaxCpuByRolePresent "scenario '$required' records MUSU/node/WebView2/other max CPU fields" "scenario '$required' lacks MUSU/node/WebView2/other max CPU fields"
 
+        $measurementMaxCpuBySubrole = Get-JsonPropertyValue -Object $measurement -Name "max_one_core_percent_by_subrole"
+        $measurementMaxCpuBySubrolePresent = Test-ObjectHasRoleProperties -Object $measurementMaxCpuBySubrole -Roles $CpuAttributionSubroleNames
+        Add-CheckFromCondition "measurement CPU subroles present: $required" $measurementMaxCpuBySubrolePresent "scenario '$required' records bridge/runtime/desktop/helper max CPU fields" "scenario '$required' lacks bridge/runtime/desktop/helper max CPU fields"
+
         foreach ($role in $CpuAttributionRoleNames) {
             $roleCpu = Get-RoleMaxCpu -Measurement $measurement -Role $role
             Add-CheckFromCondition "role CPU $required/$role" ($roleCpu -le $MaxOneCorePercent) "scenario '$required' role '$role' CPU ${roleCpu}% <= ${MaxOneCorePercent}%" "scenario '$required' role '$role' CPU ${roleCpu}% exceeds ${MaxOneCorePercent}%"
+        }
+        foreach ($subrole in $CpuAttributionSubroleNames) {
+            $subroleCpu = Get-SubroleMaxCpu -Measurement $measurement -Subrole $subrole
+            Add-CheckFromCondition "subrole CPU $required/$subrole" ($subroleCpu -le $MaxOneCorePercent) "scenario '$required' subrole '$subrole' CPU ${subroleCpu}% <= ${MaxOneCorePercent}%" "scenario '$required' subrole '$subrole' CPU ${subroleCpu}% exceeds ${MaxOneCorePercent}%"
         }
 
         $hotProcessCount = if ($measurement.PSObject.Properties["hot_process_count"]) { [int]$measurement.hot_process_count } else { -1 }
@@ -480,6 +529,9 @@ if ($matrix) {
         $processCounts = Get-JsonPropertyValue -Object $measurement -Name "process_counts_by_role"
         $processCountsPresent = ($null -ne $processCounts)
         Add-CheckFromCondition "process counts present: $required" $processCountsPresent "scenario '$required' records process counts by role" "scenario '$required' lacks process_counts_by_role"
+        $processCountsBySubrole = Get-JsonPropertyValue -Object $measurement -Name "process_counts_by_subrole"
+        $processCountsBySubrolePresent = ($null -ne $processCountsBySubrole)
+        Add-CheckFromCondition "process subrole counts present: $required" $processCountsBySubrolePresent "scenario '$required' records process counts by bridge/runtime/desktop/helper subrole" "scenario '$required' lacks process_counts_by_subrole"
         $ownedProcessCount = 0
         $webView2Count = 0
         if ($processCountsPresent) {
@@ -494,6 +546,14 @@ if ($matrix) {
         }
         $processCountRolesPresent = ($processCountsPresent -and (Test-ObjectHasRoleProperties -Object $processCounts))
         Add-CheckFromCondition "process count roles present: $required" $processCountRolesPresent "scenario '$required' records MUSU/node/WebView2/other process count fields" "scenario '$required' lacks MUSU/node/WebView2/other process count fields"
+        $processCountSubrolesPresent = ($processCountsBySubrolePresent -and (Test-ObjectHasRoleProperties -Object $processCountsBySubrole -Roles $CpuAttributionSubroleNames))
+        Add-CheckFromCondition "process count subroles present: $required" $processCountSubrolesPresent "scenario '$required' records bridge/runtime/desktop/helper process count fields" "scenario '$required' lacks bridge/runtime/desktop/helper process count fields"
+        $bridgeRuntimeCount = if ($processCountSubrolesPresent -and $processCountsBySubrole.PSObject.Properties["bridge_runtime"]) { [int]$processCountsBySubrole.bridge_runtime } else { 0 }
+        Add-CheckFromCondition "bridge runtime process count: $required" ($bridgeRuntimeCount -ge 1) "scenario '$required' records at least one bridge runtime process" "scenario '$required' does not record a bridge runtime process"
+        if ($required -eq "startup-open" -or $required -eq "desktop-open") {
+            $desktopShellCount = if ($processCountSubrolesPresent -and $processCountsBySubrole.PSObject.Properties["desktop_shell"]) { [int]$processCountsBySubrole.desktop_shell } else { 0 }
+            Add-CheckFromCondition "desktop shell process count: $required" ($desktopShellCount -ge 1) "scenario '$required' records a desktop shell process separately" "scenario '$required' does not record a desktop shell process separately"
+        }
         Add-CheckFromCondition "owned process budget: $required" ($processCountsPresent -and $maxOwnedProcessCount -gt 0 -and $ownedProcessCount -le $maxOwnedProcessCount) "scenario '$required' owned process count $ownedProcessCount <= $maxOwnedProcessCount" "scenario '$required' owned process count $ownedProcessCount exceeds or lacks budget $maxOwnedProcessCount"
         Add-CheckFromCondition "WebView2 process budget: $required" ($processCountsPresent -and $maxOwnedWebView2ProcessCount -ge 0 -and $webView2Count -le $maxOwnedWebView2ProcessCount) "scenario '$required' WebView2 process count $webView2Count <= $maxOwnedWebView2ProcessCount" "scenario '$required' WebView2 process count $webView2Count exceeds or lacks budget $maxOwnedWebView2ProcessCount"
 

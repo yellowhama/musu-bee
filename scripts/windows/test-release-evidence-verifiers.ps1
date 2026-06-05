@@ -538,10 +538,26 @@ function New-RuntimeMeasurement {
             webview2 = $WebView2Count
             other = 0
         }
+        process_counts_by_subrole = [pscustomobject]@{
+            musu_runtime = 0
+            bridge_runtime = 1
+            desktop_shell = 1
+            node_helper = 0
+            webview2_helper = $WebView2Count
+            other = 0
+        }
         max_one_core_percent_by_role = [pscustomobject]@{
             musu = 0.1
             node = 0.0
             webview2 = 0.2
+            other = 0.0
+        }
+        max_one_core_percent_by_subrole = [pscustomobject]@{
+            musu_runtime = 0.0
+            bridge_runtime = 0.1
+            desktop_shell = 0.0
+            node_helper = 0.0
+            webview2_helper = 0.2
             other = 0.0
         }
         total_working_set_mb_after = $WorkingSetMb
@@ -553,10 +569,19 @@ function New-RuntimeMeasurement {
             attribution_scope = "musu_process_tree_or_repo_related"
             sample_count = 3
             roles_observed = @("musu", "webview2")
+            subroles_observed = @("bridge_runtime", "desktop_shell", "webview2_helper")
             sample_count_by_role = [pscustomobject]@{
                 musu = 2
                 node = 0
                 webview2 = 1
+                other = 0
+            }
+            sample_count_by_subrole = [pscustomobject]@{
+                musu_runtime = 0
+                bridge_runtime = 1
+                desktop_shell = 1
+                node_helper = 0
+                webview2_helper = 1
                 other = 0
             }
             total_cpu_seconds_by_role = [pscustomobject]@{
@@ -565,10 +590,26 @@ function New-RuntimeMeasurement {
                 webview2 = 0.02
                 other = 0.0
             }
+            total_cpu_seconds_by_subrole = [pscustomobject]@{
+                musu_runtime = 0.0
+                bridge_runtime = 0.01
+                desktop_shell = 0.0
+                node_helper = 0.0
+                webview2_helper = 0.02
+                other = 0.0
+            }
             max_one_core_percent_by_role = [pscustomobject]@{
                 musu = 0.1
                 node = 0.0
                 webview2 = 0.2
+                other = 0.0
+            }
+            max_one_core_percent_by_subrole = [pscustomobject]@{
+                musu_runtime = 0.0
+                bridge_runtime = 0.1
+                desktop_shell = 0.0
+                node_helper = 0.0
+                webview2_helper = 0.2
                 other = 0.0
             }
             top_processes = @(
@@ -576,6 +617,8 @@ function New-RuntimeMeasurement {
                     id = 1234
                     process_name = "musu"
                     process_role = "musu"
+                    process_subrole = "bridge_runtime"
+                    bridge_registry_pid_match = $true
                     cpu_seconds_delta = 0.01
                     cpu_pct_one_core = 0.1
                     parent_process_id = 4321
@@ -587,6 +630,8 @@ function New-RuntimeMeasurement {
                     id = 5678
                     process_name = "msedgewebview2"
                     process_role = "webview2"
+                    process_subrole = "webview2_helper"
+                    bridge_registry_pid_match = $false
                     cpu_seconds_delta = 0.02
                     cpu_pct_one_core = 0.2
                     parent_process_id = 1234
@@ -598,6 +643,11 @@ function New-RuntimeMeasurement {
             required_roles_present = [pscustomobject]@{
                 musu = $true
                 webview2 = ($WebView2Count -gt 0)
+            }
+            required_subroles_present = [pscustomobject]@{
+                bridge_runtime = $true
+                desktop_shell = $true
+                webview2_helper = ($WebView2Count -gt 0)
             }
         }
     }
@@ -1063,6 +1113,15 @@ $badRuntimeMatrixMissingNodeCpuRole.scenarios[0].measurement.cpu_attribution.max
 $fixture = Write-Fixture -Name "runtime-matrix-missing-node-cpu-role" -Object $badRuntimeMatrixMissingNodeCpuRole
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects CPU attribution without node role fields" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixMissingBridgeSubrole = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingBridgeSubrole.scenarios[0].measurement.process_counts_by_subrole.PSObject.Properties.Remove("bridge_runtime")
+$badRuntimeMatrixMissingBridgeSubrole.scenarios[0].measurement.cpu_attribution.sample_count_by_subrole.PSObject.Properties.Remove("bridge_runtime")
+$badRuntimeMatrixMissingBridgeSubrole.scenarios[0].measurement.cpu_attribution.total_cpu_seconds_by_subrole.PSObject.Properties.Remove("bridge_runtime")
+$badRuntimeMatrixMissingBridgeSubrole.scenarios[0].measurement.cpu_attribution.max_one_core_percent_by_subrole.PSObject.Properties.Remove("bridge_runtime")
+$fixture = Write-Fixture -Name "runtime-matrix-missing-bridge-runtime-subrole" -Object $badRuntimeMatrixMissingBridgeSubrole
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects CPU attribution without bridge runtime subrole fields" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixWorkingSet = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixWorkingSet.scenarios[1].measurement.total_working_set_mb_after = 2048.0
