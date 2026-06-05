@@ -249,6 +249,8 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/549 | Operator API security audit | 2026-06-02 | `RELEASE_1_15_0_RC1_OPERATOR_API_SECURITY_AUDIT_2026_06_02.md` | active |
 | wiki/550 | Post-operator-security primary evidence refresh | 2026-06-02 | `RELEASE_1_15_0_RC1_CURRENT_HEAD_EVIDENCE_QUAL_AUDIT_NEXT_STEPS_2026_06_02.md` | active |
 | wiki/573 | P2P forwarded task target audit hardening | 2026-06-02 | `RELEASE_1_15_0_RC1_P2P_FORWARDED_TASK_AUDIT_HARDENING_2026_06_02.md` | active |
+| wiki/743 | Relay transport proof peer binding gate | 2026-06-05 | `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_BINDING_GATE_2026_06_05.md` | active |
+| wiki/744 | Post relay transport proof peer binding evidence, audit, and next steps | 2026-06-05 | `RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PEER_BINDING_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md` | active |
 | — | 1.15.0-rc.1 beta release checklist and smoke evidence | 2026-05-29 | `BETA_RELEASE_CHECKLIST_1_15_0_RC1.md` | active |
 | — | 1.15.0-rc.1 final operator gates | 2026-05-29 | `RELEASE_FINAL_OPERATOR_GATES_2026_05_29.md` | active |
 | — | MUSU Microsoft Store release run card | 2026-05-29 | `MICROSOFT_STORE_RELEASE_RUN_CARD_2026_05_29.md` | active |
@@ -4167,5 +4169,43 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route timeout`, `targeted second-PC route CPU 1/1`,
   `runtime idle CPU 1/2`, `runtime matrix 1/2`,
   `multi_device_verified=false`, and `public release remains No-Go`.
+
+- 2026-06-05 relay transport proof peer binding gate:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_BINDING_GATE_2026_06_05.md`
+  (wiki/743) binds inline relay transport proof to the route evidence
+  source/target peer pair. Search terms should include `GOAL v563`,
+  `wiki/743`, `relay_transport_proof.source_node_id`,
+  `relay_transport_proof.target_node_id`,
+  `relay_route_transport_proof_source_mismatch`,
+  `relay_route_transport_proof_target_mismatch`,
+  `RouteRelayTransportProof`, `route_evidence_serializes_relay_transport_proof_peer_binding_fields`,
+  `npm run typecheck`, `route-evidence 28/28`,
+  `audit-p2p-store-forward-relay-contract ok=true`, and
+  `P2P env status ok=false`.
+
+- 2026-06-05 post relay transport proof peer binding evidence, audit, and next steps:
+  `RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PEER_BINDING_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md`
+  (wiki/744) records fresh HUGH_SECOND packaged local-runtime evidence,
+  qualitative audit, code audit, and next-step plan after peer binding. Search
+  terms should include `GOAL v564`, `wiki/744`, `b001924a`,
+  `20260605-200256-HUGH_SECOND.evidence.json`,
+  `20260605-200449-HUGH_SECOND.evidence.json`,
+  `20260605-201254-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-201430-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-202107-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_201430`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_202107`,
+  `local-bridge-only`, `dashboard_required=false`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `npm run test:p2p 85/85`, `hosted P2P ok=false`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input rendezvous control plane`.
+
+- 2026-06-05 relay peer-binding index refresh:
+  gbrain sync and the MUSU local indexer were run after wiki/743 and wiki/744.
+  Search terms should include `GOAL v565`, `gstack-code-musu-bee-8815b622`,
+  `page_count=148`, `573 written`, `gstack-brain-sync exited undefined`,
+  `musu indexer sync`, `2404 files`, `2690 symbols`, `13070 ms`,
+  `relay peer binding index refresh`, and
+  `AGENTS.md GBrain Search Guidance not added`.
 
 **End of WIKI_INDEX.md.**

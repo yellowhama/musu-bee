@@ -2,7 +2,7 @@
 
 **Wiki ID**: wiki/524
 **Date**: 2026-05-31
-**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay transport --json`, `musu relay leases --json`, and `musu relay route-evidence --json` for owner-scoped audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. Relay route evidence now also requires `musu.relay_transport_proof.v1` before `route_kind=relay` can become release-grade. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials plus release-grade relay route evidence before the hosted P2P gate can pass. The 2026-06-03 09:36 KST live evidence now fails the stricter verifier with `fail_count=31` because relay transport descriptor evidence is absent, relay lease storage is unconfigured, and owner-scoped relay route evidence count is `0`.
+**Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay transport --json`, `musu relay leases --json`, and `musu relay route-evidence --json` for owner-scoped audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. Relay route evidence now also requires `musu.relay_transport_proof.v1` before `route_kind=relay` can become release-grade, and that proof must be bound to the same source/target peer pair as the route evidence record. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials plus release-grade relay route evidence before the hosted P2P gate can pass. The 2026-06-03 09:36 KST live evidence now fails the stricter verifier with `fail_count=31` because relay transport descriptor evidence is absent, relay lease storage is unconfigured, and owner-scoped relay route evidence count is `0`.
 
 **2026-06-03 gate update**: Hosted P2P release evidence now requires relay
 payload transport proof separately from relay lease control-plane proof.
@@ -795,6 +795,8 @@ Release-grade relay route evidence now requires a dedicated
 - schema `musu.relay_transport_proof.v1`
 - `session_id` matching the route evidence session
 - `lease_id` matching the issued relay lease
+- `source_node_id` matching the route evidence source node
+- `target_node_id` matching the route evidence target node
 - non-empty `transport_kind`, `tunnel_id`, and timestamps
 - `relay_url` using `wss://`
 - `payload_bytes_transited > 0`
@@ -806,6 +808,23 @@ This prevents a stored relay lease from being mistaken for payload transit
 proof. Current bridge forwarding does not emit this proof; future relay/tunnel
 runtime code must generate it from the actual relay data path before hosted
 P2P evidence can pass the release gate.
+
+## 2026-06-05 Relay Transport Proof Peer Binding Gate
+
+Inline relay transport proof is now peer-bound. `POST /api/v1/p2p/route-evidence`
+rejects malformed inline relay transport proof without `source_node_id` and
+`target_node_id`, and keeps relay evidence non-release-grade when either field
+does not match the route evidence source/target pair.
+
+Stored `release_grade=true` relay queries also revalidate the current relay
+transport proof against the same peer pair. This prevents proof reuse across
+different source/target routes.
+
+Rust `RouteRelayTransportProof` now serializes the same fields, so local DTOs
+and hosted proof shape stay aligned.
+
+This is evidence-chain hardening only. It does not implement release relay
+tunnel payload transport and does not change the local-executor product model.
 
 ## 2026-06-03 Relay Payload Endpoint Fail-Closed Gate
 

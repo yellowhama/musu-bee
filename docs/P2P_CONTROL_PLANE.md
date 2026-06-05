@@ -55,26 +55,30 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 - `transport_verified_by: "musu_quic_tls_transport"`
 - `payload_transited_musu_infra: false` for direct routes
 - stored relay lease and transport proof for relay routes
+- relay transport proof source and target node ids matching the route evidence
+  source and target node ids
+- relay payload delivery proof for relay routes that claim payload transit
 
 ## Current gate status
 
-As of the 2026-06-05 route-evidence candidate address classification
-hardening, the product direction above is documented, the lease-bound queue
-fallback source contract is gated, room presence/rendezvous candidate metadata
-is preserved, the local Rust CLI can publish public/NAT/relay candidate
-descriptors, the Rust rendezvous route selector carries those descriptors into
-selected peer metadata, and the web route-evidence API now rejects
-release-grade direct-route claims whose `candidate_addr` does not classify
-consistently with `route_kind`. Public P2P release is still not
+As of the 2026-06-05 relay transport proof peer-binding evidence refresh, the
+product direction above is documented, the lease-bound queue fallback source
+contract is gated, room presence/rendezvous candidate metadata is preserved,
+the local Rust CLI can publish public/NAT/relay candidate descriptors, the
+Rust rendezvous route selector carries those descriptors into selected peer
+metadata, the web route-evidence API rejects release-grade direct-route claims
+whose `candidate_addr` does not classify consistently with `route_kind`, and
+release-grade relay route queries now reject transport proof that is not bound
+to the same source/target peer pair. Public P2P release is still not
 release-complete.
 
 Passing local state:
 
-- clean go/no-go after commit
-  `7048cd8f869d1a14be3a4809f18f53af89e0d7e1` reports
+- clean go/no-go after commit `b001924a` reports
   `local_artifacts_ready=true`, `single_machine_verified=true`,
-  `manifest_git_dirty=false`, and current local runtime idle/matrix evidence
-  valid on `1/2` required machines
+  `msix_install_verified=true`, `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `p2p_store_forward_relay_contract_verified=true`, `manifest_git_dirty=false`,
+  and public release `ready_for_public_desktop_release=false`
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program
@@ -90,7 +94,8 @@ Passing local state:
 - release-grade relay route queries revalidate fallback, transport proof,
   payload delivery proof, the release relay transport proof kind
   `quic_relay_tunnel`, and now bind relay transport proof to the fallback
-  lease/session before returning stored `release_grade=true` relay records
+  lease/session plus route source/target peer pair before returning stored
+  `release_grade=true` relay records
 - hosted P2P evidence verification now rejects relay descriptors whose
   `relay_transport_kind` is only `websocket_tunnel` or another preview/queue
   transport; the release descriptor must match `quic_tls_1_3`

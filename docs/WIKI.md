@@ -7203,3 +7203,75 @@ Remaining release blockers:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_DESKTOP_DASHBOARD_URL_HARDENING_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Relay transport proof peer binding gate (wiki/743)
+
+Hosted route evidence now requires inline `musu.relay_transport_proof.v1` to
+carry `source_node_id` and `target_node_id`, and the route evidence API keeps
+relay records non-release-grade when the proof peer pair does not match the
+route evidence source/target pair. `release_grade=true` relay queries revalidate
+the current transport proof against the same peer pair, so an old or manual
+proof cannot be reused across routes.
+
+Rust `RouteRelayTransportProof` now serializes the same source/target fields.
+This is evidence-integrity hardening only; it does not implement the release
+relay tunnel.
+
+Validation passed route-evidence tests, TypeScript typecheck, the Rust
+peer-binding DTO serialization test, P2P store-forward relay contract audit,
+P2P env status recheck, and `git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_BINDING_GATE_2026_06_05.md`
+
+## 2026-06-05 Post relay peer-binding evidence, audit, and next steps (wiki/744)
+
+The product boundary is locked:
+
+- MUSU Desktop is the local executor.
+- MUSU.PRO is remote input, project/company room, rendezvous, path-selection,
+  relay-fallback policy, and evidence control plane.
+- Local MUSU programs do the work and prefer P2P mesh after web-assisted
+  rendezvous.
+- `localhost:3001` is optional developer/workspace UI, not the packaged local
+  runtime.
+
+Fresh HUGH_SECOND evidence after the peer-binding change:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260605-200256-HUGH_SECOND.evidence.json`
+- single-machine bridge-only smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260605-200449-HUGH_SECOND.evidence.json`
+- idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260605-201254-HUGH_SECOND.desktop-open.evidence.json`
+- normal runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-201430-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-202107-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go after evidence commit `b001924a` keeps local artifacts and
+single-machine gates true, targeted second-PC route CPU true, and public release
+false. Remaining blockers are real second-PC multi-device/CPU/matrix evidence,
+hosted P2P release proof, support mailbox proof, and Store proof.
+
+Qualitative status: local one-machine desktop beta is strong; release evidence
+discipline is strong; hosted P2P and public desktop release are still No-Go.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_RELAY_TRANSPORT_PROOF_PEER_BINDING_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_05.md`
+
+## 2026-06-05 Relay peer-binding index refresh
+
+Indexing was refreshed after wiki/743 and wiki/744:
+
+- gbrain code sync: source `gstack-code-musu-bee-8815b622`, `page_count=148`
+- gbrain memory sync: `573 written`, `0 failed`
+- gbrain final state: `DONE_WITH_CONCERNS` because brain-sync reported
+  `gstack-brain-sync exited undefined` and Windows search/capability probes did
+  not verify symbol hits
+- MUSU local indexer: final run `2404 files`, `2690 symbols`, `13070 ms`
+
+Do not add GBrain Search Guidance to `AGENTS.md` until semantic/symbol search
+returns verified hits on this Windows machine.

@@ -1,5 +1,7 @@
 # MUSU 1.15.0-rc.1 Relay Transport Proof Peer Binding Gate
 
+**Wiki ID**: wiki/743
+
 Date: 2026-06-05
 Scope: `musu.pro` P2P route evidence and relay transport proof release gate
 
