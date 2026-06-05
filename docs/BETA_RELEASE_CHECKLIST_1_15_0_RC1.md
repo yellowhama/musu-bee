@@ -35,6 +35,26 @@ Current one-machine validation can continue without the second PC. Successful
 multi-device proof and second-PC CPU/resource evidence require installing the
 same current MUSU build on the second Windows machine.
 
+## Current P2P Candidate Publish Contract
+
+`musu.pro` is the meeting room and rendezvous surface. Each installed local
+MUSU program remains the executor and publishes its reachable route candidates
+to that room.
+
+Current local CLI candidate publishing supports:
+
+- the default local bridge candidate from `MUSU_BRIDGE_PUBLIC_URL` or the
+  local bridge registry
+- repeated `--candidate-url` values for LAN, Tailscale, overlay, or public
+  candidates
+- `--nat-type` and `--nat-observed-by` on public/direct candidates
+- `--relay-url` and `--relay-protocol` for fallback relay descriptors
+
+The web control plane preserves `public_addr`, `nat_type`, `nat_observed_by`,
+`relay_url`, and `relay_protocol` through room presence, candidate cache
+seeding, and rendezvous creation. This does not make `musu.pro` the default
+execution server or default data path.
+
 ## Must-Pass Smoke
 
 Repeatable script:

@@ -6971,3 +6971,45 @@ git until this evidence/report commit lands.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_P2P_CANDIDATE_ENDPOINT_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Room presence candidate metadata client CLI (wiki/735)
+
+The web control plane can preserve public/NAT/relay candidate descriptors, and
+the local Rust program can now publish those descriptors through
+`musu room presence publish`.
+
+Implementation:
+
+- `CandidateEndpoint` now carries optional `public_addr`, `nat_type`,
+  `nat_observed_by`, `relay_url`, and `relay_protocol` fields.
+- Rust DTOs define `NatType` and `RelayProtocol` with the same JSON contract as
+  the web routes.
+- `musu room presence publish` accepts repeated `--candidate-url` values plus
+  `--nat-type`, `--nat-observed-by`, `--relay-url`, and `--relay-protocol`.
+- JSON publish reports now keep backward-compatible `candidate` and the full
+  `candidates` list.
+- Default publishing still advertises the local bridge candidate; extra
+  public/NAT/relay metadata is explicit and on-demand.
+
+Validation:
+
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu` passed.
+- Rust room presence tests passed `6/6`.
+- Rust rendezvous tests passed `5/5`.
+- `npm run test:p2p` passed `79/79`.
+- `npm run typecheck` passed.
+- `audit-p2p-store-forward-relay-contract.ps1 -Json` passed with `ok=true`
+  and `fail_count=0`.
+- `git diff --check` passed.
+
+This keeps the product boundary intact: `musu.pro` is a remote input,
+project-room, presence, rendezvous, path-selection, relay-fallback, and
+evidence surface. Local MUSU programs still execute the work.
+
+Because Rust source changed after the prior packaged runtime evidence refresh,
+fresh MSIX, single-machine, idle CPU, and runtime CPU matrix evidence is
+required before this change is current packaged release evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_PRESENCE_CANDIDATE_METADATA_CLIENT_CLI_2026_06_05.md`

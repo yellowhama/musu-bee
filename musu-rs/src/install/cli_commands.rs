@@ -287,6 +287,21 @@ pub struct RoomPresencePublishOpts {
     /// Override the advertised bridge URL used to build the route candidate.
     #[arg(long)]
     pub public_url: Option<String>,
+    /// Extra advertised route candidate URL. May be repeated.
+    #[arg(long = "candidate-url")]
+    pub candidate_urls: Vec<String>,
+    /// NAT classification for public/direct route candidates.
+    #[arg(long)]
+    pub nat_type: Option<String>,
+    /// Observer that produced the NAT classification, for example `stun:musu.pro`.
+    #[arg(long)]
+    pub nat_observed_by: Option<String>,
+    /// Relay fallback URL advertised for this local node.
+    #[arg(long)]
+    pub relay_url: Option<String>,
+    /// Relay transport protocol: quic_tls_1_3, websocket_tunnel, or store_forward_queue.
+    #[arg(long)]
+    pub relay_protocol: Option<String>,
     /// Mark this node as relay-capable in the room presence record.
     #[arg(long)]
     pub relay_capable: bool,
@@ -1256,11 +1271,16 @@ struct RelayRouteEvidenceReport {
     next_steps: Vec<&'static str>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct RoomPresenceCandidate {
     kind: crate::cloud::RouteKind,
     addr: String,
     scheme: Option<String>,
+    public_addr: Option<String>,
+    nat_type: Option<crate::cloud::NatType>,
+    nat_observed_by: Option<String>,
+    relay_url: Option<String>,
+    relay_protocol: Option<crate::cloud::RelayProtocol>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1275,6 +1295,7 @@ struct RoomPresencePublishReport {
     local_node_name: String,
     status: String,
     candidate: Option<RoomPresenceCandidate>,
+    candidates: Vec<RoomPresenceCandidate>,
     presence: Option<crate::cloud::RoomPresenceRecord>,
     error: Option<String>,
     next_steps: Vec<&'static str>,
@@ -2550,8 +2571,116 @@ fn endpoint_scheme_from_url(value: &str) -> Option<String> {
         .ok()
         .and_then(|url| match url.scheme() {
             "http" | "https" => Some(url.scheme().to_string()),
+            "ws" => Some("http".to_string()),
+            "wss" => Some("https".to_string()),
             _ => None,
         })
+}
+
+fn parse_candidate_nat_type(value: Option<&str>) -> Result<Option<crate::cloud::NatType>> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let normalized = value.to_ascii_lowercase().replace('-', "_");
+    match normalized.as_str() {
+        "unknown" => Ok(Some(crate::cloud::NatType::Unknown)),
+        "open" | "open_internet" => Ok(Some(crate::cloud::NatType::OpenInternet)),
+        "full_cone" => Ok(Some(crate::cloud::NatType::FullCone)),
+        "restricted_cone" => Ok(Some(crate::cloud::NatType::RestrictedCone)),
+        "port_restricted_cone" => Ok(Some(crate::cloud::NatType::PortRestrictedCone)),
+        "symmetric" => Ok(Some(crate::cloud::NatType::Symmetric)),
+        _ => Err(anyhow!(
+            "candidate nat type must be one of: unknown, open_internet, full_cone, restricted_cone, port_restricted_cone, symmetric"
+        )),
+    }
+}
+
+fn parse_relay_protocol(value: Option<&str>) -> Result<Option<crate::cloud::RelayProtocol>> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let normalized = value.to_ascii_lowercase().replace('-', "_");
+    match normalized.as_str() {
+        "quic_tls_1_3" | "quic_tls13" => Ok(Some(crate::cloud::RelayProtocol::QuicTls13)),
+        "websocket" | "websocket_tunnel" => Ok(Some(crate::cloud::RelayProtocol::WebsocketTunnel)),
+        "store_forward" | "store_forward_queue" => {
+            Ok(Some(crate::cloud::RelayProtocol::StoreForwardQueue))
+        }
+        _ => Err(anyhow!(
+            "relay protocol must be one of: quic_tls_1_3, websocket_tunnel, store_forward_queue"
+        )),
+    }
+}
+
+fn room_presence_candidate_endpoint_from_url(
+    value: &str,
+    observed_at: &str,
+    nat_type: Option<&crate::cloud::NatType>,
+    nat_observed_by: Option<&str>,
+) -> Option<crate::cloud::CandidateEndpoint> {
+    let addr = crate::bridge::rendezvous::endpoint_addr_from_url(value);
+    if addr.trim().is_empty() {
+        return None;
+    }
+    let scheme = endpoint_scheme_from_url(value);
+    let kind = cloud_route_kind_for_addr(&addr);
+    let is_direct = matches!(kind, crate::cloud::RouteKind::DirectQuic);
+    Some(crate::cloud::CandidateEndpoint {
+        kind,
+        addr: addr.clone(),
+        observed_at: observed_at.to_string(),
+        scheme,
+        public_addr: is_direct.then(|| addr.clone()),
+        nat_type: if is_direct { nat_type.cloned() } else { None },
+        nat_observed_by: if is_direct {
+            nat_observed_by.map(str::to_string)
+        } else {
+            None
+        },
+        relay_url: None,
+        relay_protocol: None,
+    })
+}
+
+fn room_presence_relay_candidate_endpoint_from_url(
+    value: &str,
+    protocol: crate::cloud::RelayProtocol,
+    observed_at: &str,
+) -> Option<crate::cloud::CandidateEndpoint> {
+    let relay_url = value.trim().trim_end_matches('/').to_string();
+    if relay_url.is_empty() {
+        return None;
+    }
+    let addr = crate::bridge::rendezvous::endpoint_addr_from_url(&relay_url);
+    if addr.trim().is_empty() {
+        return None;
+    }
+    Some(crate::cloud::CandidateEndpoint {
+        kind: crate::cloud::RouteKind::Relay,
+        addr,
+        observed_at: observed_at.to_string(),
+        scheme: endpoint_scheme_from_url(&relay_url),
+        public_addr: None,
+        nat_type: None,
+        nat_observed_by: None,
+        relay_url: Some(relay_url),
+        relay_protocol: Some(protocol),
+    })
+}
+
+fn room_presence_report_candidate(
+    candidate: &crate::cloud::CandidateEndpoint,
+) -> RoomPresenceCandidate {
+    RoomPresenceCandidate {
+        kind: candidate.kind.clone(),
+        addr: candidate.addr.clone(),
+        scheme: candidate.scheme.clone(),
+        public_addr: candidate.public_addr.clone(),
+        nat_type: candidate.nat_type.clone(),
+        nat_observed_by: candidate.nat_observed_by.clone(),
+        relay_url: candidate.relay_url.clone(),
+        relay_protocol: candidate.relay_protocol.clone(),
+    }
 }
 
 fn local_room_public_key() -> Option<String> {
@@ -2565,7 +2694,7 @@ fn room_presence_request_from_opts(
     opts: &RoomPresencePublishOpts,
 ) -> Result<(
     crate::cloud::RoomPresenceRequest,
-    Option<RoomPresenceCandidate>,
+    Vec<RoomPresenceCandidate>,
 )> {
     let status = parse_room_presence_status(&opts.status)?;
     let node_id = opts.node_id.clone().unwrap_or_else(local_node_id);
@@ -2574,9 +2703,21 @@ fn room_presence_request_from_opts(
         .public_url
         .clone()
         .unwrap_or_else(resolve_public_bridge_url);
-    let addr = crate::bridge::rendezvous::endpoint_addr_from_url(&public_url);
-    let scheme = endpoint_scheme_from_url(&public_url);
-    let kind = cloud_route_kind_for_addr(&addr);
+    let nat_type = parse_candidate_nat_type(opts.nat_type.as_deref())?;
+    let nat_observed_by = opts
+        .nat_observed_by
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let relay_url = opts
+        .relay_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let relay_protocol = parse_relay_protocol(opts.relay_protocol.as_deref())?;
+    if opts.relay_protocol.is_some() && relay_url.is_none() {
+        return Err(anyhow!("relay protocol requires --relay-url"));
+    }
     let mut capabilities = if opts.capabilities.is_empty() {
         vec!["bridge_http_forward".to_string()]
     } else {
@@ -2585,16 +2726,33 @@ fn room_presence_request_from_opts(
     capabilities.sort();
     capabilities.dedup();
 
-    let candidate = if addr.trim().is_empty() {
-        None
-    } else {
-        Some(crate::cloud::CandidateEndpoint {
-            kind: kind.clone(),
-            addr: addr.clone(),
-            observed_at: chrono::Utc::now().to_rfc3339(),
-            scheme: scheme.clone(),
-        })
-    };
+    let observed_at = chrono::Utc::now().to_rfc3339();
+    let mut candidate_urls = vec![public_url];
+    candidate_urls.extend(opts.candidate_urls.iter().cloned());
+    let mut candidate_endpoints = Vec::new();
+    for candidate_url in candidate_urls {
+        if let Some(candidate) = room_presence_candidate_endpoint_from_url(
+            &candidate_url,
+            &observed_at,
+            nat_type.as_ref(),
+            nat_observed_by,
+        ) {
+            candidate_endpoints.push(candidate);
+        }
+    }
+    if let Some(relay_url) = relay_url {
+        let protocol = relay_protocol.unwrap_or(crate::cloud::RelayProtocol::WebsocketTunnel);
+        if let Some(candidate) =
+            room_presence_relay_candidate_endpoint_from_url(relay_url, protocol, &observed_at)
+        {
+            candidate_endpoints.push(candidate);
+        }
+    }
+
+    let report_candidates = candidate_endpoints
+        .iter()
+        .map(room_presence_report_candidate)
+        .collect::<Vec<_>>();
 
     let request = crate::cloud::RoomPresenceRequest {
         node_id,
@@ -2605,20 +2763,14 @@ fn room_presence_request_from_opts(
         project_id: opts.project_id.clone(),
         source_agent_id: opts.source_agent_id.clone(),
         active_work_order_ids: opts.work_order_ids.clone(),
-        candidate_endpoints: candidate.iter().cloned().collect(),
-        relay_capable: opts.relay_capable,
+        candidate_endpoints,
+        relay_capable: opts.relay_capable || relay_url.is_some(),
         public_key: local_room_public_key(),
         capabilities,
         origin: Some(opts.origin.clone()),
     };
 
-    let report_candidate = candidate.map(|candidate| RoomPresenceCandidate {
-        kind: candidate.kind,
-        addr: candidate.addr,
-        scheme: candidate.scheme,
-    });
-
-    Ok((request, report_candidate))
+    Ok((request, report_candidates))
 }
 
 async fn run_room_presence_publish(opts: RoomPresencePublishOpts) -> Result<()> {
@@ -2627,7 +2779,8 @@ async fn run_room_presence_publish(opts: RoomPresencePublishOpts) -> Result<()> 
     let token = crate::cloud::token::load_token(&home)
         .map(|token| token.trim().to_string())
         .filter(|token| !token.is_empty());
-    let (request, candidate) = room_presence_request_from_opts(&opts)?;
+    let (request, candidates) = room_presence_request_from_opts(&opts)?;
+    let candidate = candidates.first().cloned();
     let mut report = RoomPresencePublishReport {
         schema: "musu.room_presence_publish.v1",
         registry_url: registry_url.clone(),
@@ -2647,6 +2800,7 @@ async fn run_room_presence_publish(opts: RoomPresencePublishOpts) -> Result<()> 
             .unwrap_or("online")
             .to_string(),
         candidate,
+        candidates,
         presence: None,
         error: None,
         next_steps: vec![
@@ -5079,11 +5233,16 @@ mod tests {
             work_order_ids: vec!["wo-1".to_string()],
             capabilities: vec![],
             public_url: None,
+            candidate_urls: vec![],
+            nat_type: None,
+            nat_observed_by: None,
+            relay_url: None,
+            relay_protocol: None,
             relay_capable: false,
             origin: "musu.local-program".to_string(),
         };
 
-        let (request, candidate) = room_presence_request_from_opts(&opts).unwrap();
+        let (request, candidates) = room_presence_request_from_opts(&opts).unwrap();
 
         assert_eq!(request.node_id, "room-node");
         assert_eq!(request.node_name.as_deref(), Some("room-node"));
@@ -5104,10 +5263,82 @@ mod tests {
             request.candidate_endpoints[0].kind,
             crate::cloud::RouteKind::Lan
         ));
-        assert!(candidate.is_some());
+        assert!(request.candidate_endpoints[0].public_addr.is_none());
+        assert!(request.candidate_endpoints[0].nat_type.is_none());
+        assert!(request.candidate_endpoints[0].relay_url.is_none());
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].addr, "192.168.1.20:8949");
 
         std::env::remove_var("MUSU_NODE_NAME");
         std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
+    }
+
+    #[test]
+    fn room_presence_publish_request_accepts_public_nat_and_relay_candidates() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        std::env::set_var("MUSU_NODE_NAME", "room-node");
+        let opts = RoomPresencePublishOpts {
+            room_id: "project-room".to_string(),
+            json: true,
+            node_id: Some("pc-a".to_string()),
+            node_name: Some("HUGH_SECOND".to_string()),
+            status: "online".to_string(),
+            company_id: Some("company-a".to_string()),
+            project_id: Some("project-a".to_string()),
+            source_agent_id: Some("agent-a".to_string()),
+            work_order_ids: vec!["wo-1".to_string()],
+            capabilities: vec!["bridge_http_forward".to_string()],
+            public_url: Some("https://8.8.8.8:8949".to_string()),
+            candidate_urls: vec!["https://100.64.1.20:8949".to_string()],
+            nat_type: Some("symmetric".to_string()),
+            nat_observed_by: Some("stun:musu.pro".to_string()),
+            relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".to_string()),
+            relay_protocol: Some("websocket_tunnel".to_string()),
+            relay_capable: false,
+            origin: "musu.local-program".to_string(),
+        };
+
+        let (request, candidates) = room_presence_request_from_opts(&opts).unwrap();
+
+        assert_eq!(request.node_id, "pc-a");
+        assert_eq!(request.candidate_endpoints.len(), 3);
+        let direct = &request.candidate_endpoints[0];
+        assert!(matches!(direct.kind, crate::cloud::RouteKind::DirectQuic));
+        assert_eq!(direct.addr, "8.8.8.8:8949");
+        assert_eq!(direct.scheme.as_deref(), Some("https"));
+        assert_eq!(direct.public_addr.as_deref(), Some("8.8.8.8:8949"));
+        assert!(matches!(
+            direct.nat_type,
+            Some(crate::cloud::NatType::Symmetric)
+        ));
+        assert_eq!(direct.nat_observed_by.as_deref(), Some("stun:musu.pro"));
+
+        let tailscale = &request.candidate_endpoints[1];
+        assert!(matches!(tailscale.kind, crate::cloud::RouteKind::Tailscale));
+        assert_eq!(tailscale.addr, "100.64.1.20:8949");
+        assert!(tailscale.public_addr.is_none());
+        assert!(tailscale.nat_type.is_none());
+
+        let relay = &request.candidate_endpoints[2];
+        assert!(matches!(relay.kind, crate::cloud::RouteKind::Relay));
+        assert_eq!(relay.addr, "relay.musu.pro:443");
+        assert_eq!(
+            relay.relay_url.as_deref(),
+            Some("wss://relay.musu.pro/api/v1/relay/connect")
+        );
+        assert!(matches!(
+            relay.relay_protocol,
+            Some(crate::cloud::RelayProtocol::WebsocketTunnel)
+        ));
+        assert!(request.relay_capable);
+        assert_eq!(candidates.len(), 3);
+        assert_eq!(candidates[0].public_addr.as_deref(), Some("8.8.8.8:8949"));
+        assert_eq!(
+            candidates[2].relay_url.as_deref(),
+            Some("wss://relay.musu.pro/api/v1/relay/connect")
+        );
+
+        std::env::remove_var("MUSU_NODE_NAME");
     }
 
     #[tokio::test]

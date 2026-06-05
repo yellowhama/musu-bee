@@ -4059,4 +4059,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `.cargo\\bin\\musu.exe`, `runtime idle CPU 1/2`, `runtime matrix 1/2`, and
   `single-machine blocker removed`.
 
+- 2026-06-05 room presence candidate metadata client CLI:
+  `RELEASE_1_15_0_RC1_ROOM_PRESENCE_CANDIDATE_METADATA_CLIENT_CLI_2026_06_05.md`
+  (wiki/735) extends the local Rust room presence publisher so each installed
+  MUSU program can advertise public endpoint, NAT, extra candidate URL, and
+  relay fallback descriptors that `musu.pro` preserves. Search terms should
+  include `GOAL v548`, `wiki/735`, `NatType`, `RelayProtocol`,
+  `public_addr`, `nat_type`, `nat_observed_by`, `relay_url`,
+  `relay_protocol`, `--candidate-url`, `--nat-type`, `--nat-observed-by`,
+  `--relay-url`, `--relay-protocol`, `room_presence_publish_request_accepts_public_nat_and_relay_candidates`,
+  `cargo check --manifest-path .\\musu-rs\\Cargo.toml --bin musu`,
+  `room_presence 6/6`, `rendezvous 5/5`, `npm run test:p2p 79/79`,
+  `audit-p2p-store-forward-relay-contract ok=true`, `local program executes`,
+  `musu.pro project room/rendezvous`, and `fresh packaged evidence required`.
+
 **End of WIKI_INDEX.md.**

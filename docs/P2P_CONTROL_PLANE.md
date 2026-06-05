@@ -58,11 +58,12 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 08:32 KST post-candidate-metadata evidence refresh, the
+As of the 2026-06-05 09:06 KST local room presence candidate CLI hardening, the
 product direction above is documented, the lease-bound queue fallback source
 contract is gated, room presence/rendezvous candidate metadata is preserved,
-and fresh one-machine packaged local-runtime evidence is recorded. Public P2P
-release is still not release-complete.
+the local Rust CLI can publish public/NAT/relay candidate descriptors, and
+fresh one-machine packaged local-runtime evidence is recorded from the previous
+evidence refresh. Public P2P release is still not release-complete.
 
 Passing local state:
 
@@ -91,6 +92,10 @@ Passing local state:
   `public_addr`, `nat_type`, `nat_observed_by`, `relay_url`, and
   `relay_protocol` so local programs can use web-assisted discovery for better
   P2P path selection without making the web server the data path
+- `musu room presence publish` can now advertise extra `--candidate-url`
+  values, `--nat-type`, `--nat-observed-by`, `--relay-url`, and
+  `--relay-protocol`, so each local program can publish the same public/NAT
+  and relay fallback descriptors that `musu.pro` preserves
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
 

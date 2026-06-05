@@ -82,6 +82,28 @@ pub enum RouteKind {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
+pub enum NatType {
+    Unknown,
+    OpenInternet,
+    FullCone,
+    RestrictedCone,
+    PortRestrictedCone,
+    Symmetric,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
+#[serde(rename_all = "snake_case")]
+pub enum RelayProtocol {
+    #[serde(rename = "quic_tls_1_3")]
+    QuicTls13,
+    WebsocketTunnel,
+    StoreForwardQueue,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
+#[serde(rename_all = "snake_case")]
 pub enum RouteAttemptResult {
     Success,
     Failed,
@@ -95,6 +117,16 @@ pub struct CandidateEndpoint {
     pub observed_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scheme: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_addr: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nat_type: Option<NatType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nat_observed_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relay_protocol: Option<RelayProtocol>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1411,10 +1443,15 @@ mod tests {
             source_agent_id: Some("agent-a".into()),
             active_work_order_ids: vec!["wo-1".into()],
             candidate_endpoints: vec![CandidateEndpoint {
-                kind: RouteKind::Lan,
-                addr: "192.168.1.20:8949".into(),
+                kind: RouteKind::DirectQuic,
+                addr: "203.0.113.20:8949".into(),
                 observed_at: "2026-06-04T10:00:00Z".into(),
-                scheme: Some("http".into()),
+                scheme: Some("https".into()),
+                public_addr: Some("203.0.113.20:8949".into()),
+                nat_type: Some(NatType::Symmetric),
+                nat_observed_by: Some("stun:musu.pro".into()),
+                relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".into()),
+                relay_protocol: Some(RelayProtocol::WebsocketTunnel),
             }],
             relay_capable: false,
             public_key: Some("sha256:cert".into()),
@@ -1428,8 +1465,25 @@ mod tests {
         assert_eq!(value["node_name"], "HUGH_SECOND");
         assert_eq!(value["status"], "busy");
         assert_eq!(value["company_id"], "company-a");
-        assert_eq!(value["candidate_endpoints"][0]["kind"], "lan");
-        assert_eq!(value["candidate_endpoints"][0]["addr"], "192.168.1.20:8949");
+        assert_eq!(value["candidate_endpoints"][0]["kind"], "direct_quic");
+        assert_eq!(value["candidate_endpoints"][0]["addr"], "203.0.113.20:8949");
+        assert_eq!(
+            value["candidate_endpoints"][0]["public_addr"],
+            "203.0.113.20:8949"
+        );
+        assert_eq!(value["candidate_endpoints"][0]["nat_type"], "symmetric");
+        assert_eq!(
+            value["candidate_endpoints"][0]["nat_observed_by"],
+            "stun:musu.pro"
+        );
+        assert_eq!(
+            value["candidate_endpoints"][0]["relay_url"],
+            "wss://relay.musu.pro/api/v1/relay/connect"
+        );
+        assert_eq!(
+            value["candidate_endpoints"][0]["relay_protocol"],
+            "websocket_tunnel"
+        );
         assert_eq!(value["relay_capable"], false);
         assert_eq!(value["capabilities"][0], "bridge_http_forward");
         assert_eq!(value["origin"], "musu.local-program");
