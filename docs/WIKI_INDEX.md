@@ -5012,4 +5012,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `rendezvous_candidates_payload_bytes_not_accepted`, and
   `P2P store-forward relay audit check_count=61`.
 
+- 2026-06-06 room control strict metadata gate:
+  `RELEASE_1_15_0_RC1_ROOM_CONTROL_STRICT_METADATA_GATE_2026_06_06.md`
+  (wiki/803) records strict metadata-only room rendezvous and room presence.
+  Search terms should include `GOAL v628`, `wiki/803`,
+  `RoomRendezvousSchema strict`, `RoomPresenceSchema strict`,
+  `CandidateEndpointSchema strict`, `room_rendezvous_payload_bytes_not_accepted`,
+  `room_presence_payload_bytes_not_accepted`, `body room_id rejected`,
+  `rejects raw payload byte fields in room presence`, `npm run test:p2p 105/105`,
+  and `P2P store-forward relay audit check_count=64`.
+
+- 2026-06-06 room control strict metadata index refresh:
+  wiki/804 records the MUSU local index refresh after wiki/803 and GOAL v628.
+  Search terms should include `GOAL v629`, `wiki/804`, `2559 files`,
+  `2751 symbols`, `12944 ms`, `room control strict metadata index refresh`,
+  `RoomRendezvousSchema strict`, `RoomPresenceSchema strict`,
+  `CandidateEndpointSchema strict`, `room_rendezvous_payload_bytes_not_accepted`,
+  `room_presence_payload_bytes_not_accepted`, and
+  `P2P store-forward relay audit check_count=64`.
+
 **End of WIKI_INDEX.md.**

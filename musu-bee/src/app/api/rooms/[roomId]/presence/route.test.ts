@@ -310,3 +310,64 @@ test("GET accepts the diagnostic include_expired flag while returning fresh pres
     assert.equal(((await diagnostic.json()) as { count: number }).count, 1);
   });
 });
+
+test("POST rejects raw payload byte fields in room presence", async () => {
+  await withRoomPresenceEnv(async ({ POST }) => {
+    const res = await POST(
+      req({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          {
+            kind: "lan",
+            addr: "192.168.1.100:8949",
+            payload_base64: Buffer.from("do-not-store-room-presence-payload").toString("base64"),
+          },
+        ],
+      }),
+      ctx("release-room")
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      accepted: boolean;
+      error: string;
+      forbidden_fields: string[];
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.accepted, false);
+    assert.equal(body.error, "room_presence_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["candidate_endpoints.0.payload_base64"]);
+  });
+});
+
+test("POST rejects unknown room presence and candidate fields", async () => {
+  await withRoomPresenceEnv(async ({ POST }) => {
+    const res = await POST(
+      req({
+        node_id: "pc-a",
+        room_id: "body-room-must-not-win",
+        unexpected_release_field: true,
+        candidate_endpoints: [
+          {
+            kind: "lan",
+            addr: "192.168.1.100:8949",
+            unexpected_endpoint_field: true,
+          },
+        ],
+      }),
+      ctx("release-room")
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_room_presence");
+    assert.deepEqual(
+      body.issues.map((issue) => issue.path).sort(),
+      ["candidate_endpoints.0.unexpected_endpoint_field", "room_id", "unexpected_release_field"]
+    );
+  });
+});

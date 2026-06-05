@@ -6976,3 +6976,48 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2556 files`, `2745 symbols`, `10569 ms`
+
+## 2026-06-06 Room Control Strict Metadata Gate
+
+Room-scoped MUSU.PRO control-plane endpoints now accept strict metadata only:
+
+- `POST /api/rooms/[roomId]/rendezvous`
+- `POST /api/rooms/[roomId]/presence`
+
+Changed:
+
+- strict `RoomRendezvousSchema`
+- strict room presence `CandidateEndpointSchema`
+- strict `RoomPresenceSchema`
+- rejects raw payload byte fields in room rendezvous with
+  `room_rendezvous_payload_bytes_not_accepted`
+- rejects raw payload byte fields in room presence with
+  `room_presence_payload_bytes_not_accepted`
+- rejects body `room_id`; path `roomId` is canonical
+- P2P store-forward relay contract audit gates room strict metadata boundaries
+
+Validation:
+
+- room rendezvous route test: `5/5`
+- room presence route test: `8/8`
+- `npm run test:p2p`: `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`,
+  `check_count=64`
+- release evidence verifier regressions: `54/54`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This closes a room
+control-plane input-boundary gap only. Release remains No-Go on second-PC
+route/CPU/matrix, hosted MUSU.PRO P2P/relay proof, public metadata recheck,
+support mailbox proof, and Store/Partner Center proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_CONTROL_STRICT_METADATA_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2559 files`, `2751 symbols`, `12944 ms`

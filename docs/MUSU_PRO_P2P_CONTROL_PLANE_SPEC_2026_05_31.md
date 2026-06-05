@@ -1239,3 +1239,20 @@ metadata-only:
 This is the intended MUSU.PRO role: exchange enough metadata to make P2P path
 selection easier, then let local programs perform the actual work and data
 movement.
+
+## 2026-06-06 Room Control Input Boundary
+
+Room-scoped presence and rendezvous are strict metadata-only:
+
+- `POST /api/rooms/[roomId]/rendezvous` rejects unknown fields, body `room_id`,
+  and raw payload byte fields.
+- `POST /api/rooms/[roomId]/presence` rejects unknown fields and raw payload
+  byte fields before presence storage or candidate-cache seeding.
+- room presence candidate endpoints are strict route/NAT/relay descriptor
+  records.
+- the path `roomId` is the canonical room identity.
+- room events/work-orders remain separate bounded payload-capable surfaces.
+
+This preserves the split the product needs: MUSU.PRO can host the project room
+and bootstrap local-program connectivity, but presence/rendezvous do not carry
+work payload bytes.

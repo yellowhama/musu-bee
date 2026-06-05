@@ -20,7 +20,60 @@ const RoomRendezvousSchema = z.object({
   company_id: z.string().min(1).optional(),
   project_id: z.string().min(1).optional(),
   work_order_id: z.string().min(1).optional(),
-}).passthrough();
+}).strict();
+
+const FORBIDDEN_ROOM_RENDEZVOUS_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
+
+function pathKey(path: PropertyKey[]): string {
+  return path.map(String).join(".");
+}
+
+function forbiddenRoomRendezvousByteFields(
+  value: unknown,
+  path: PropertyKey[] = []
+): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      forbiddenRoomRendezvousByteFields(entry, [...path, index])
+    );
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => {
+    const childPath = [...path, key];
+    if (
+      FORBIDDEN_ROOM_RENDEZVOUS_BYTE_FIELDS.includes(
+        key as (typeof FORBIDDEN_ROOM_RENDEZVOUS_BYTE_FIELDS)[number]
+      )
+    ) {
+      return [pathKey(childPath)];
+    }
+    return forbiddenRoomRendezvousByteFields(entry, childPath);
+  });
+}
+
+function publicZodIssues(error: z.ZodError): Array<{ path: string; message: string }> {
+  return error.issues.flatMap((issue) => {
+    const keys = "keys" in issue && Array.isArray(issue.keys) ? issue.keys : [];
+    if (issue.code === "unrecognized_keys" && keys.length > 0) {
+      return keys.map((key) => ({
+        path: pathKey([...issue.path, String(key)]),
+        message: issue.message,
+      }));
+    }
+    return {
+      path: issue.path.join("."),
+      message: issue.message,
+    };
+  });
+}
 
 function normalizeContextValue(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -53,16 +106,31 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
+  const forbiddenFields = forbiddenRoomRendezvousByteFields(json);
+  if (forbiddenFields.length > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        error: "room_rendezvous_payload_bytes_not_accepted",
+        forbidden_fields: forbiddenFields,
+        next_steps: [
+          "send only room rendezvous source, target, capability, and context metadata",
+          "do not send payload bytes to /api/rooms/[roomId]/rendezvous",
+          "use local P2P execution after web-assisted rendezvous selects a route",
+        ],
+      },
+      { status: 400 }
+    );
+  }
+
   const parsed = RoomRendezvousSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       {
         ok: false,
         error: "invalid_room_rendezvous_request",
-        issues: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
+        issues: publicZodIssues(parsed.error),
       },
       { status: 400 }
     );

@@ -656,6 +656,26 @@ Current contract:
 
 This keeps MUSU.PRO as the P2P bootstrap and path-selection control plane.
 
+## 2026-06-06 room control input boundary
+
+MUSU.PRO room rendezvous and room presence are metadata-only.
+
+Current contract:
+
+- `POST /api/rooms/[roomId]/rendezvous` requires P2P control auth and accepts
+  only source/target/capability plus bounded context metadata.
+- body `room_id` is rejected; the path `roomId` is canonical.
+- `POST /api/rooms/[roomId]/presence` requires P2P control auth and accepts
+  only node identity, room context, route candidate, NAT, relay descriptor, and
+  capability metadata.
+- raw payload byte fields are rejected before room storage or candidate-cache
+  seeding.
+- unknown fields are rejected.
+- room presence and rendezvous do not transport payload bytes.
+
+This keeps MUSU.PRO as a project/company room and P2P bootstrap control plane;
+local MUSU programs still do the actual work.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

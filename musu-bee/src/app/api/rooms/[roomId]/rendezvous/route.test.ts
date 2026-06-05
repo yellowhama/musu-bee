@@ -122,7 +122,6 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
         requested_capability: "remote_command",
         company_id: "company-1",
         project_id: "project-rc1",
-        room_id: "body-room-must-not-win",
         work_order_id: "wo-room-1",
       }),
       ctx("release-room")
@@ -180,5 +179,55 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
       work_order_id: "wo-room-1",
       origin: "musu.pro",
     });
+  });
+});
+
+test("POST rejects raw payload byte fields in room rendezvous creation", async () => {
+  await withRoomRendezvousEnv(async ({ POST }) => {
+    const res = await POST(
+      req({
+        source_node_id: "pc-a",
+        target_node_id: "pc-b",
+        payload_base64: Buffer.from("do-not-store-room-rendezvous-payload").toString("base64"),
+      }),
+      ctx("release-room")
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      accepted: boolean;
+      error: string;
+      forbidden_fields: string[];
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.accepted, false);
+    assert.equal(body.error, "room_rendezvous_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+  });
+});
+
+test("POST rejects unknown room rendezvous fields including body room_id", async () => {
+  await withRoomRendezvousEnv(async ({ POST }) => {
+    const res = await POST(
+      req({
+        source_node_id: "pc-a",
+        target_node_id: "pc-b",
+        room_id: "body-room-must-not-win",
+        unexpected_release_field: true,
+      }),
+      ctx("release-room")
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_room_rendezvous_request");
+    assert.deepEqual(
+      body.issues.map((issue) => issue.path).sort(),
+      ["room_id", "unexpected_release_field"]
+    );
   });
 });

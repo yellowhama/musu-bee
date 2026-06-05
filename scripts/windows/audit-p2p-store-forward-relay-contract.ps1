@@ -69,6 +69,7 @@ $rendezvousStorePath = "musu-bee\src\lib\p2pRendezvousStore.ts"
 $rendezvousRoutePath = "musu-bee\src\app\api\v1\p2p\rendezvous\route.ts"
 $rendezvousCandidatesRoutePath = "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\candidates\route.ts"
 $roomPresenceRoutePath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.ts"
+$roomRendezvousRoutePath = "musu-bee\src\app\api\rooms\[roomId]\rendezvous\route.ts"
 $roomPresenceStorePath = "musu-bee\src\lib\roomPresenceStore.ts"
 $rendezvousRouteTestPath = "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts"
 $roomPresenceRouteTestPath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.test.ts"
@@ -100,6 +101,7 @@ $rendezvousStore = Get-RepoText $rendezvousStorePath
 $rendezvousRoute = Get-RepoText $rendezvousRoutePath
 $rendezvousCandidatesRoute = Get-RepoText $rendezvousCandidatesRoutePath
 $roomPresenceRoute = Get-RepoText $roomPresenceRoutePath
+$roomRendezvousRoute = Get-RepoText $roomRendezvousRoutePath
 $roomPresenceStore = Get-RepoText $roomPresenceStorePath
 $rendezvousRouteTest = Get-RepoText $rendezvousRouteTestPath
 $roomPresenceRouteTest = Get-RepoText $roomPresenceRouteTestPath
@@ -350,6 +352,51 @@ Add-Check `
     ) `
     -Path $rendezvousCandidatesRoutePath `
     -Message "Rendezvous candidate exchange accepts route candidate/NAT/relay descriptor metadata only and rejects raw payload fields before cache/session storage."
+
+Add-Check `
+    -Scope "web-rooms" `
+    -Name "room rendezvous request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
+            "rejects raw payload byte fields in room rendezvous creation",
+            "room_rendezvous_payload_bytes_not_accepted",
+            "rejects unknown room rendezvous fields including body room_id",
+            "unexpected_release_field"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRoute -Needles @(
+            "RoomRendezvousSchema",
+            "}).strict()",
+            "FORBIDDEN_ROOM_RENDEZVOUS_BYTE_FIELDS",
+            "room_rendezvous_payload_bytes_not_accepted",
+            "publicZodIssues"
+        )) -and
+        -not $roomRendezvousRoute.Contains("}).passthrough()")
+    ) `
+    -Path $roomRendezvousRoutePath `
+    -Message "Room-scoped rendezvous accepts room source/target/context metadata only and rejects body room_id, unknown fields, and raw payload fields."
+
+Add-Check `
+    -Scope "web-rooms" `
+    -Name "room presence request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $roomPresenceRouteTest -Needles @(
+            "rejects raw payload byte fields in room presence",
+            "room_presence_payload_bytes_not_accepted",
+            "rejects unknown room presence and candidate fields",
+            "unexpected_endpoint_field"
+        )) -and
+        (Test-ContainsAll -Text $roomPresenceRoute -Needles @(
+            "CandidateEndpointSchema",
+            "RoomPresenceSchema",
+            "}).strict()",
+            "FORBIDDEN_ROOM_PRESENCE_BYTE_FIELDS",
+            "room_presence_payload_bytes_not_accepted",
+            "publicZodIssues"
+        )) -and
+        -not $roomPresenceRoute.Contains("}).passthrough()")
+    ) `
+    -Path $roomPresenceRoutePath `
+    -Message "Room presence accepts node/candidate/NAT/relay descriptor metadata only and rejects unknown fields and raw payload fields before candidate-cache seeding."
 
 Add-Check `
     -Scope "route-evidence" `

@@ -9411,3 +9411,66 @@ Search terms should include `GOAL v627`, `wiki/802`,
 `rendezvous_payload_bytes_not_accepted`,
 `rendezvous_candidates_payload_bytes_not_accepted`, and
 `P2P store-forward relay audit check_count=61`.
+
+## 2026-06-06 Room Control Strict Metadata Gate (wiki/803)
+
+Room-scoped MUSU.PRO control-plane endpoints now accept strict metadata only:
+
+- `POST /api/rooms/[roomId]/rendezvous`
+- `POST /api/rooms/[roomId]/presence`
+
+Changed:
+
+- `RoomRendezvousSchema` is strict
+- room rendezvous rejects raw payload fields with
+  `room_rendezvous_payload_bytes_not_accepted`
+- room rendezvous rejects body `room_id`; the path `roomId` is canonical
+- room presence `CandidateEndpointSchema` is strict
+- `RoomPresenceSchema` is strict
+- room presence rejects raw payload fields with
+  `room_presence_payload_bytes_not_accepted`
+- unknown fields fail with concrete unknown-key paths
+- P2P store-forward relay contract audit gates the room metadata boundary
+
+Validation:
+
+- room rendezvous route test: `5/5`
+- room presence route test: `8/8`
+- `npm run test:p2p`: `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`,
+  `check_count=64`
+- release evidence verifier regressions: `54/54`
+- `git diff --check`: pass
+
+Code audit found no high/medium issue. Room events/work-orders remain separate
+bounded payload-capable surfaces; presence/rendezvous do not transport payload
+bytes. Public release remains No-Go on second-PC route/CPU/matrix, hosted
+MUSU.PRO P2P proof, release relay tunnel payload transport, public metadata
+recheck, support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_CONTROL_STRICT_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Room Control Strict Metadata Index Refresh (wiki/804)
+
+MUSU local indexer was refreshed after wiki/803 and GOAL v628.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2559 files`
+- `2751 symbols`
+- `12944 ms`
+
+Indexed context includes room rendezvous/presence strict metadata source/test
+changes, the P2P relay contract audit update, the room control strict metadata
+report, BETA checklist, network boundary spec, MUSU.PRO P2P control-plane
+spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v629`, `wiki/804`,
+`room control strict metadata index refresh`, `2559 files`, `2751 symbols`,
+`12944 ms`, `RoomRendezvousSchema strict`, `RoomPresenceSchema strict`,
+`CandidateEndpointSchema strict`, `room_rendezvous_payload_bytes_not_accepted`,
+`room_presence_payload_bytes_not_accepted`, and
+`P2P store-forward relay audit check_count=64`.
