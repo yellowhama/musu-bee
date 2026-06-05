@@ -98,7 +98,7 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_connect_endpoint_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, true);
     assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
@@ -157,7 +157,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_connect_endpoint_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, true);
     assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);

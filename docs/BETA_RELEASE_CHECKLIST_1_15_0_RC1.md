@@ -5943,3 +5943,58 @@ Index refresh:
 - gbrain was not rerun because the active same-session blocker remains missing
   `ZEROENTROPY_API_KEY`, import failures, `sync.last_commit` not advancing,
   and `gstack-brain-sync exited undefined`
+
+## 2026-06-05 relay connect preflight endpoint, audit, and next steps
+
+`/api/v1/relay/connect` is now an authenticated owner-scoped release-connect
+preflight endpoint instead of an always-501 placeholder.
+
+Current source state:
+
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+Behavior:
+
+- `GET /api/v1/relay/connect` requires P2P control auth and returns
+  `musu.relay_connect.v1` preflight status.
+- `POST /api/v1/relay/connect` requires P2P control auth, validates
+  `lease_id`, `session_id`, `source_node_id`, and `target_node_id`, and checks
+  an owner-scoped relay lease.
+- Lease store failures now return shaped `503 relay_connect_store_failed`.
+- A verified lease still returns `409 relay_payload_endpoint_not_wired` until a
+  distinct release tunnel payload endpoint and release-grade transport proof
+  exist.
+
+Validation passed:
+
+- PowerShell parser checks for the updated status/audit scripts
+- `npm run test:p2p` `85/85`
+- `npm run test:routes` `19/19`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- operator API security contract audit `ok=true`, `fail_count=0`
+- `git diff --check`
+
+`show-musu-pro-p2p-env-status.ps1 -Json` now reports connect source blockers
+cleared:
+
+- `relay_connect_endpoint_implemented=true`
+- `release_connect_fail_closed_placeholder_active=false`
+
+The status correctly remains `ok=false` with blockers for the release payload
+endpoint, queue-only payload path, non-release transport kind, missing
+KV/Upstash env, live relay transport proof, live relay route proof, and live
+payload delivery proof.
+
+Code audit found no high or medium issue. This is a real control-plane
+preflight improvement, not relay payload transport completion. Public release
+remains No-Go on second-PC multi-device evidence, second-PC CPU/matrix
+evidence, live hosted P2P proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_ENDPOINT_AUDIT_NEXT_STEPS_2026_06_05.md`

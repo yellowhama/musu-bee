@@ -435,9 +435,12 @@ if ($blockers -contains "live_evidence_relay_transport_not_wired") {
 if ($blockers -contains "source_relay_payload_queue_fallback_not_implemented") {
     $nextSteps.Add("Wire the full store-forward relay queue chain: policy marker, owner-scoped web queue store/claim/deliver, source enqueue after lease, and target drain with delivery proof.") | Out-Null
 }
-if ($blockers -contains "source_release_relay_connect_endpoint_not_implemented" -or $blockers -contains "source_release_relay_payload_endpoint_not_implemented") {
-    $nextSteps.Add("Current source has the store-forward relay payload queue fallback wired, but still marks release tunnel connect/payload endpoints false in musu-bee\src\lib\p2pRelayPolicy.ts; env flags alone cannot make relay_transport_wired=true.") | Out-Null
-    $nextSteps.Add("Replace the fail-closed /api/v1/relay/connect placeholder with a real Connect/Pro fallback relay/tunnel transport that can emit quic_tls_1_3 proof before enabling the release source markers.") | Out-Null
+if ($blockers -contains "source_release_relay_connect_endpoint_not_implemented") {
+    $nextSteps.Add("Wire the release relay connect preflight endpoint in musu-bee\src\app\api\v1\relay\connect before relying on hosted relay status; env flags alone cannot make relay_transport_wired=true.") | Out-Null
+}
+if ($blockers -contains "source_release_relay_payload_endpoint_not_implemented") {
+    $nextSteps.Add("Current source has relay connect preflight and the store-forward payload queue fallback wired, but still marks the release tunnel payload endpoint false in musu-bee\src\lib\p2pRelayPolicy.ts.") | Out-Null
+    $nextSteps.Add("Add a distinct release tunnel payload endpoint that can emit quic_tls_1_3 proof before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
 }
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
     $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release requirement quic_tls_1_3; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null

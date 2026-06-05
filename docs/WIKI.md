@@ -7356,6 +7356,90 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-05 relay connect preflight endpoint, audit, and next steps (wiki/751)
+
+`/api/v1/relay/connect` is now an authenticated owner-scoped release-connect
+preflight endpoint instead of an always-501 placeholder.
+
+What changed:
+
+- `GET /api/v1/relay/connect` requires P2P control auth and returns
+  `musu.relay_connect.v1`.
+- `POST /api/v1/relay/connect` requires P2P control auth, validates
+  `lease_id`, `session_id`, `source_node_id`, and `target_node_id`, and checks
+  an owner-scoped relay lease.
+- Lease store failures return `503 relay_connect_store_failed`.
+- `queryRelayLeases` can filter by `lease_id`.
+- `audit-operator-api-security-contract.ps1` now gates relay connect auth plus
+  owner-scoped lease validation.
+- `audit-p2p-store-forward-relay-contract.ps1` now accepts source-wired
+  connect preflight while still rejecting payload transport claims.
+
+Current source state:
+
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+Validation:
+
+- PowerShell parser checks passed for the updated status/audit scripts.
+- `npm run test:p2p` passed `85/85`.
+- `npm run test:routes` passed `19/19`.
+- `npm run typecheck` passed.
+- P2P store-forward relay contract audit passed with `ok=true`,
+  `fail_count=0`.
+- Operator API security contract audit passed with `ok=true`, `fail_count=0`.
+- `git diff --check` passed.
+
+`show-musu-pro-p2p-env-status.ps1 -Json` now reports
+`relay_connect_endpoint_implemented=true` and
+`release_connect_fail_closed_placeholder_active=false`. It correctly remains
+`ok=false` because the release payload endpoint is missing, the active payload
+path is queue-only/non-release-grade, `RELAY_TRANSPORT_KIND` is not
+`quic_tls_1_3`, KV/Upstash storage is not configured, and live relay route plus
+payload delivery proof are still absent.
+
+Dirty-tree go/no-go at `2026-06-05T23:47:55+09:00` still reports
+`ready_for_public_desktop_release=false`, `runtime idle CPU 1/2`, runtime CPU
+matrix `1/2`, `multi_device_verified=false`, `p2p_control_plane_verified=false`,
+and `manifest_git.dirty=true`. After this source change is committed, fresh
+packaged current-HEAD evidence should be refreshed before current-source local
+artifact readiness is claimed.
+
+Code audit found no high or medium issue. This is control-plane preflight
+progress, not release relay payload transport. MUSU Desktop remains the local
+executor, and MUSU.PRO remains remote input, project/company room, meeting,
+rendezvous, path-selection, relay fallback policy, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_ENDPOINT_AUDIT_NEXT_STEPS_2026_06_05.md`
+
+## 2026-06-05 relay connect preflight index refresh (wiki/752)
+
+Indexing was refreshed after wiki/751 and GOAL v576/v577.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2435 files`
+- `2707 symbols`
+- `10569 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`.
+
+Search terms: `musu.relay_connect.v1`, `relay_connect_store_failed`,
+`RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`,
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+`source_release_relay_payload_endpoint_not_implemented`,
+`source_relay_transport_kind_not_release_grade`, `MUSU Desktop local executor`,
+and `MUSU.PRO remote input control plane`.
+
 ## 2026-06-05 post native RPC exec primary evidence, audit, and next steps (wiki/749)
 
 Fresh HUGH_SECOND packaged local-runtime evidence was restored after native RPC

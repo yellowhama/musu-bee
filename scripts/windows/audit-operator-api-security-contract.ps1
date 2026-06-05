@@ -112,10 +112,10 @@ Add-Check -Scope "source" -Name "native RPC exec audit logging" `
     -Path "musu-rs\src\bridge\handlers\rpc.rs" `
     -Message "Native bridge /api/v1/rpc/exec logs rejected, timed-out, failed, and completed command attempts."
 
-Add-Check -Scope "source" -Name "relay connect requires P2P control auth" `
-    -Passed ($relayConnect.Contains("authorizeP2pControl") -and $relayConnect.Contains("const failedAuth = authorizeP2pControl(req)") -and $relayConnect.Contains("return failedAuth") -and $relayConnect.Contains("relay_payload_transport_not_implemented")) `
+Add-Check -Scope "source" -Name "relay connect requires P2P control auth and owner-scoped lease" `
+    -Passed ($relayConnect.Contains("authorizeP2pControl") -and $relayConnect.Contains("const failedAuth = authorizeP2pControl(req)") -and $relayConnect.Contains("return failedAuth") -and $relayConnect.Contains("p2pControlPrincipal(req)") -and $relayConnect.Contains("RelayConnectRequestSchema") -and $relayConnect.Contains("queryRelayLeases") -and $relayConnect.Contains("relay_lease_not_found") -and $relayConnect.Contains("relay_connect_store_failed") -and $relayConnect.Contains("relay_payload_endpoint_not_wired") -and $relayConnect.Contains("musu.relay_connect.v1") -and $relayConnect.Contains("owner_scoped: true")) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.ts" `
-    -Message "Relay connect preflight/fail-closed endpoint requires P2P control auth before exposing relay status."
+    -Message "Relay connect preflight requires P2P control auth and validates an owner-scoped relay lease before any release connect attempt."
 
 Add-Check -Scope "source" -Name "room work order requires P2P control auth" `
     -Passed ($roomWorkOrders.Contains("authorizeP2pControl") -and $roomWorkOrders.Contains("const failedAuth = authorizeP2pControl(req)") -and $roomWorkOrders.Contains("return failedAuth") -and $roomWorkOrders.Contains('origin: "musu.pro"') -and $roomWorkOrders.Contains("owner_scoped: true")) `
@@ -142,10 +142,10 @@ Add-Check -Scope "tests" -Name "room work order auth regression test" `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
     -Message "Route tests cover room work-order auth before web input can reach the local bridge."
 
-Add-Check -Scope "tests" -Name "relay connect auth regression test" `
-    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect status") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
+Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
+    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
-    -Message "P2P tests cover relay connect auth before fail-closed relay status is returned."
+    -Message "P2P tests cover relay connect auth and lease-bound preflight while payload transport remains fail-closed."
 
 Add-Check -Scope "tests" -Name "native RPC exec Rust regression tests" `
     -Passed ($nativeRpcExec.Contains("rpc_exec_allowlist_is_empty_by_default") -and $nativeRpcExec.Contains("rpc_exec_allowlist_normalizes_exe_suffix") -and $nativeRpcExec.Contains("rpc_exec_rejects_paths_even_when_basename_is_allowed") -and $nativeRpcExec.Contains("rpc_exec_rejects_control_characters_in_args") -and $nativeRpcExec.Contains("rpc_exec_rejects_cwd_to_avoid_path_resolution_ambiguity")) `

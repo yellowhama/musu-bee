@@ -35,6 +35,7 @@ type P2pRelayLeaseStoreState = {
 
 export type P2pRelayLeaseQuery = {
   owner_key?: string;
+  lease_id?: string;
   limit?: number;
   session_id?: string;
   source_node_id?: string;
@@ -278,6 +279,9 @@ export async function queryRelayLeases(
     .filter(leaseFresh)
     .filter((lease) => {
       if (query.owner_key && lease.owner_key !== query.owner_key) {
+        return false;
+      }
+      if (query.lease_id && lease.lease_id !== query.lease_id) {
         return false;
       }
       if (query.session_id && lease.session_id !== query.session_id) {

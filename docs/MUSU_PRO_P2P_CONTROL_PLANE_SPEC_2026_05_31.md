@@ -24,6 +24,18 @@ attempted and proven. Current bridge forwarding records
 `payload_transport_failure_class=relay_payload_transport_not_implemented` when
 a relay lease is issued because the relay payload path remains unwired.
 
+**2026-06-05 relay connect preflight update**:
+`/api/v1/relay/connect` is now an authenticated release-connect preflight
+endpoint instead of an always-501 placeholder. `GET` returns
+`musu.relay_connect.v1` status behind P2P control auth. `POST` validates
+`lease_id`, `session_id`, `source_node_id`, and `target_node_id`, queries the
+owner-scoped relay lease store, and only then reports whether a release connect
+attempt can proceed. Current source still returns `409` for a verified lease
+because `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+`RELAY_TRANSPORT_KIND=websocket_tunnel`, not the required `quic_tls_1_3`.
+This removes the source-level connect placeholder blocker without implementing
+release-grade relay payload transport.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P
@@ -71,9 +83,15 @@ P2P APIs:
 - `POST /api/v1/p2p/relay/lease` **(fallback lease policy API exists as of 2026-06-01; default fail-closed)**
 - `GET /api/v1/p2p/relay/lease` **(owner-scoped relay lease audit query exists as of 2026-06-01)**
 - `WS /api/v1/p2p/control?node_id=...`
-- `WS /api/v1/relay/connect?session_id=...&node_id=...`
-  - requires P2P control bearer auth before any relay status, preflight, or
-    eventual tunnel payload path is exposed
+- `GET /api/v1/relay/connect`
+  - requires P2P control bearer auth before returning release-connect preflight
+    status
+- `POST /api/v1/relay/connect`
+  - requires P2P control bearer auth
+  - validates an owner-scoped relay lease by `lease_id`, `session_id`,
+    `source_node_id`, and `target_node_id`
+  - currently remains non-release-grade until the distinct release tunnel
+    payload endpoint and `quic_tls_1_3` transport proof exist
 
 ## Candidate Endpoint Shape
 

@@ -4350,4 +4350,40 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 relay connect preflight endpoint, audit, and next steps:
+  `RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_ENDPOINT_AUDIT_NEXT_STEPS_2026_06_05.md`
+  (wiki/751) records that `/api/v1/relay/connect` is now an authenticated
+  owner-scoped preflight endpoint, not an always-501 placeholder. Search terms
+  should include `GOAL v576`, `wiki/751`,
+  `musu.relay_connect.v1`, `relay_connect_store_failed`,
+  `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `RELAY_TRANSPORT_KIND=websocket_tunnel`,
+  `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`,
+  `release_connect_fail_closed_placeholder_active=false`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `source_release_payload_endpoint_queue_only`,
+  `source_relay_transport_kind_not_release_grade`,
+  `npm run test:p2p 85/85`, `npm run test:routes 19/19`,
+  `operator API security audit ok=true`,
+  `P2P store-forward relay contract audit ok=true`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`, and
+  `ready_for_public_desktop_release=false`.
+
+- 2026-06-05 relay connect preflight index refresh:
+  MUSU local indexing was run after wiki/751. Search terms should include
+  `GOAL v577`, `wiki/752`, `wiki/751 index refresh`, `musu indexer sync`,
+  `2435 files`, `2707 symbols`, `10569 ms`,
+  `musu.relay_connect.v1`, `relay_connect_store_failed`,
+  `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `source_relay_transport_kind_not_release_grade`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

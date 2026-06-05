@@ -108,9 +108,9 @@ Add-Check `
 
 Add-Check `
     -Scope "policy" `
-    -Name "release tunnel marker remains separate" `
+    -Name "release connect preflight remains separate from payload transport" `
     -Passed (
-        $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = false") -and
+        $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true") -and
         $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
         $policy.Contains("return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED && relayConnectEndpointWired()") -and
         $policy.Contains("relayTransportKindReleaseGrade") -and
@@ -119,7 +119,7 @@ Add-Check `
         $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
     -Path $policyPath `
-    -Message "Store-forward queue fallback cannot be reported as release-grade tunnel payload transport by env flags or non-release transport kind alone."
+    -Message "Relay connect preflight can be source-wired without allowing env flags or non-release transport kind to claim release-grade payload transport."
 
 Add-Check `
     -Scope "web-payload-queue" `

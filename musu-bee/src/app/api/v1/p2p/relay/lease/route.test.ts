@@ -140,7 +140,7 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_connect_endpoint_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, true);
     assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
@@ -178,7 +178,7 @@ test("denies env-only relay fallback lease until payload endpoint is wired", asy
     assert.equal(body.lease_issued, false);
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_connect_endpoint_wired, false);
+    assert.equal(body.relay_connect_endpoint_wired, true);
     assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
