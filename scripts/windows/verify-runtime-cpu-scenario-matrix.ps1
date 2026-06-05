@@ -415,12 +415,24 @@ if ($matrix) {
         $measurementSampleSeconds = if ($measurement.PSObject.Properties["sample_seconds"]) { [double]$measurement.sample_seconds } else { 0.0 }
         Add-CheckFromCondition "measurement duration: $required" ($measurementSampleSeconds -ge $MinSampleSeconds) "scenario '$required' sample duration is at least ${MinSampleSeconds}s" "scenario '$required' sample duration is ${measurementSampleSeconds}s"
 
+        $processMetadataAvailable = ($measurement.PSObject.Properties["process_metadata_available"] -and [bool]$measurement.process_metadata_available)
+        Add-CheckFromCondition "process metadata available: $required" $processMetadataAvailable "scenario '$required' captured process metadata for PID/parent/path attribution" "scenario '$required' did not capture process metadata for PID/parent/path attribution"
+
+        $processMetadataTimedOut = if ($measurement.PSObject.Properties["process_metadata_timed_out"]) { [bool]$measurement.process_metadata_timed_out } else { $true }
+        Add-CheckFromCondition "process metadata timeout: $required" (-not $processMetadataTimedOut) "scenario '$required' process metadata lookup did not time out" "scenario '$required' process metadata lookup timed out or was not recorded"
+
+        $helperProcessScope = Get-JsonPropertyString -Object $measurement -Name "helper_process_scope"
+        Add-CheckFromCondition "helper process scope: $required" ($helperProcessScope -eq "musu_process_tree_or_repo_related") "scenario '$required' helper scope is limited to MUSU process tree or repo-related helpers" "scenario '$required' helper scope is '$helperProcessScope'"
+
         $cpuAttribution = Get-JsonPropertyValue -Object $measurement -Name "cpu_attribution"
         $cpuAttributionPresent = ($null -ne $cpuAttribution)
         Add-CheckFromCondition "CPU attribution present: $required" $cpuAttributionPresent "scenario '$required' records PID/role CPU attribution" "scenario '$required' lacks cpu_attribution"
         if ($cpuAttributionPresent) {
             $attributionSchema = Get-JsonPropertyString -Object $cpuAttribution -Name "schema"
             Add-CheckFromCondition "CPU attribution schema: $required" ($attributionSchema -eq "musu.runtime_idle_cpu_attribution.v1") "scenario '$required' CPU attribution schema is valid" "scenario '$required' CPU attribution schema is '$attributionSchema'"
+
+            $attributionScope = Get-JsonPropertyString -Object $cpuAttribution -Name "attribution_scope"
+            Add-CheckFromCondition "CPU attribution scope: $required" ($attributionScope -eq "musu_process_tree_or_repo_related") "scenario '$required' CPU attribution excludes unrelated helper processes" "scenario '$required' CPU attribution scope is '$attributionScope'"
 
             $cpuSampleCount = if ($measurement.PSObject.Properties["cpu_sample_count"]) { [int]$measurement.cpu_sample_count } else { -1 }
             $attributionSampleCount = if ($cpuAttribution.PSObject.Properties["sample_count"]) { [int]$cpuAttribution.sample_count } else { -1 }

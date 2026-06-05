@@ -689,6 +689,9 @@ function New-RuntimeMeasurement {
         git_dirty = $false
         sample_seconds = 60
         cpu_sample_count = 3
+        process_metadata_available = $true
+        process_metadata_timed_out = $false
+        helper_process_scope = "musu_process_tree_or_repo_related"
         process_counts_by_role = [pscustomobject]@{
             musu = 2
             node = 0
@@ -1350,6 +1353,25 @@ $badRuntimeMatrixMissingCpuAttribution.scenarios[0].measurement.PSObject.Propert
 $fixture = Write-Fixture -Name "runtime-matrix-missing-cpu-attribution" -Object $badRuntimeMatrixMissingCpuAttribution
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing CPU attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixMissingProcessMetadata = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingProcessMetadata.scenarios[0].measurement.process_metadata_available = $false
+$fixture = Write-Fixture -Name "runtime-matrix-missing-process-metadata" -Object $badRuntimeMatrixMissingProcessMetadata
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing process metadata attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixTimedOutProcessMetadata = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixTimedOutProcessMetadata.scenarios[0].measurement.process_metadata_timed_out = $true
+$fixture = Write-Fixture -Name "runtime-matrix-process-metadata-timeout" -Object $badRuntimeMatrixTimedOutProcessMetadata
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects timed-out process metadata attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixUnscopedHelpers = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixUnscopedHelpers.scenarios[0].measurement.helper_process_scope = "all_matching_process_names"
+$badRuntimeMatrixUnscopedHelpers.scenarios[0].measurement.cpu_attribution.attribution_scope = "all_matching_process_names"
+$fixture = Write-Fixture -Name "runtime-matrix-unscoped-helper-attribution" -Object $badRuntimeMatrixUnscopedHelpers
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects unscoped helper attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixMissingNodeCpuRole = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixMissingNodeCpuRole.scenarios[0].measurement.cpu_attribution.sample_count_by_role.PSObject.Properties.Remove("node")

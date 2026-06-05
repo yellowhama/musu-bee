@@ -277,6 +277,9 @@ function Invoke-MeasureScenario {
         git_dirty = [bool]$evidence.git_dirty
         sample_seconds = [double]$evidence.sample_seconds
         cpu_sample_count = @($evidence.samples).Count
+        process_metadata_available = if ($evidence.PSObject.Properties["process_metadata_available"]) { [bool]$evidence.process_metadata_available } else { $false }
+        process_metadata_timed_out = if ($evidence.PSObject.Properties["process_metadata_timed_out"]) { [bool]$evidence.process_metadata_timed_out } else { $true }
+        helper_process_scope = if ($evidence.PSObject.Properties["helper_process_scope"]) { [string]$evidence.helper_process_scope } else { "" }
         process_counts_by_role = $evidence.process_counts_by_role
         process_counts_by_subrole = $evidence.process_counts_by_subrole
         max_one_core_percent_by_role = $evidence.max_one_core_percent_by_role
