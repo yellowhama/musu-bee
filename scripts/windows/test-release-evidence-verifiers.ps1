@@ -170,6 +170,7 @@ function Test-ControlPlaneOnlySourceFilesAllowedAsStatusOnly {
         '"musu-bee/src/app/api/v1/p2p/*"',
         '"musu-bee/src/app/api/v1/relay/*"',
         '"musu-bee/src/app/api/rooms/*"',
+        '"musu-bee/src/lib/routeEvidence*.ts"',
         '"musu-bee/src/lib/p2p*.ts"'
     )
 
