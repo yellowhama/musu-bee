@@ -345,7 +345,7 @@ test("does not expose or mutate rendezvous sessions for another authorized owner
           candidate_endpoints: [
             { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z" },
           ],
-          relay_capable: true,
+          relay_capable: false,
         },
         "other-token"
       ),
@@ -394,6 +394,82 @@ test("rejects candidate updates for nodes outside the session", async () => {
       ctx(created.session_id)
     );
     assert.equal(res.status, 400);
+  });
+});
+
+test("rejects relay-capable candidates without relay endpoint details", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST: create } = await loadCreate("bad-relay-contract-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("bad-relay-contract-candidates");
+    const res = await candidates(
+      postReq({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          { kind: "lan", addr: "192.168.1.10:8070", observed_at: "2026-06-01T00:00:00Z" },
+        ],
+        relay_capable: true,
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_rendezvous_candidate_contract");
+    assert.equal(body.issues[0]?.path, "relay_capable");
+
+    const relayWithoutDetails = await candidates(
+      postReq({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          { kind: "relay", addr: "relay.musu.pro:443", observed_at: "2026-06-01T00:00:00Z" },
+        ],
+        relay_capable: true,
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(relayWithoutDetails.status, 400);
+    const relayBody = (await relayWithoutDetails.json()) as {
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.deepEqual(
+      relayBody.issues.map((issue) => issue.path),
+      ["candidate_endpoints.0.relay_url", "candidate_endpoints.0.relay_protocol"]
+    );
+  });
+});
+
+test("rejects direct_quic candidates without public endpoint and NAT metadata", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST: create } = await loadCreate("bad-quic-contract-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("bad-quic-contract-candidates");
+    const res = await candidates(
+      postReq({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          { kind: "direct_quic", addr: "203.0.113.10:8949", observed_at: "2026-06-01T00:00:00Z" },
+        ],
+        relay_capable: false,
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_rendezvous_candidate_contract");
+    assert.deepEqual(
+      body.issues.map((issue) => issue.path),
+      ["candidate_endpoints.0.public_addr", "candidate_endpoints.0.nat_type"]
+    );
   });
 });
 

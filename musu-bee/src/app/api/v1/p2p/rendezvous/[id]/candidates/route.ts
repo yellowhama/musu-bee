@@ -46,6 +46,53 @@ const CandidatesSchema = z.object({
   capabilities: z.array(z.string().min(1)).max(64).optional(),
 }).passthrough();
 
+function candidateContractIssues(data: z.infer<typeof CandidatesSchema>) {
+  const issues: Array<{ path: string; message: string }> = [];
+  let hasRelayEndpoint = false;
+
+  data.candidate_endpoints.forEach((endpoint, index) => {
+    if (endpoint.kind === "direct_quic") {
+      if (!endpoint.public_addr) {
+        issues.push({
+          path: `candidate_endpoints.${index}.public_addr`,
+          message: "direct_quic candidates must include public_addr for path selection",
+        });
+      }
+      if (!endpoint.nat_type) {
+        issues.push({
+          path: `candidate_endpoints.${index}.nat_type`,
+          message: "direct_quic candidates must include nat_type for path selection",
+        });
+      }
+    }
+
+    if (endpoint.kind === "relay") {
+      hasRelayEndpoint = true;
+      if (!endpoint.relay_url) {
+        issues.push({
+          path: `candidate_endpoints.${index}.relay_url`,
+          message: "relay candidates must include relay_url",
+        });
+      }
+      if (!endpoint.relay_protocol) {
+        issues.push({
+          path: `candidate_endpoints.${index}.relay_protocol`,
+          message: "relay candidates must include relay_protocol",
+        });
+      }
+    }
+  });
+
+  if (data.relay_capable && !hasRelayEndpoint) {
+    issues.push({
+      path: "relay_capable",
+      message: "relay_capable=true requires at least one relay candidate endpoint",
+    });
+  }
+
+  return issues;
+}
+
 function validSessionId(id: string): boolean {
   return Boolean(id) && !id.includes("/") && !id.includes("..");
 }
@@ -79,6 +126,17 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
           path: issue.path.join("."),
           message: issue.message,
         })),
+      },
+      { status: 400 }
+    );
+  }
+  const contractIssues = candidateContractIssues(parsed.data);
+  if (contractIssues.length > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "invalid_rendezvous_candidate_contract",
+        issues: contractIssues,
       },
       { status: 400 }
     );

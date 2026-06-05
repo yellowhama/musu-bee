@@ -5,6 +5,28 @@
 
 ---
 
+## 0. 2026-06-05 제품 로드맵 업데이트
+
+현재 우선순위는 UI 대시보드 자체가 아니라 **설치된 로컬 MUSU 프로그램 + musu.pro control-plane + P2P mesh**를 분리해 완성하는 것이다.
+
+- 로컬 MUSU 프로그램은 실제 실행 주체다. 파일 접근, 브라우저/앱 자동화, 셸 실행, AI 작업, peer mesh 통신은 각 기기에서 돌아가는 로컬 프로그램이 처리한다.
+- `musu.pro`는 사용자 입력, 프로젝트/회의실, 디바이스 presence, rendezvous, route evidence, relay fallback lease를 담당한다. 기본 실행 서버나 기본 payload 경로가 아니다.
+- `localhost`/`127.0.0.1` 대시보드는 같은 기기에서만 열리는 선택적 개발자/운영자 화면이다. 제품 UX는 사용자가 어디서든 `musu.pro`에 작업 주문을 넣고, 선택된 로컬 기기가 그 주문을 받는 형태로 간다.
+- 여러 기기의 MUSU 프로그램은 `musu.pro`를 통해 처음 서로를 발견하고 후보 경로를 교환한 뒤, 가능하면 LAN/Tailscale/direct QUIC 순서로 P2P 연결한다. relay는 직접 경로 실패가 증명된 뒤에만 fallback으로 쓴다.
+- 같은 프로젝트의 로컬 AI들은 `musu.pro`의 project room에서 presence, 토론, 결정, handoff, audit history를 공유할 수 있다. 그래도 실행과 큰 payload 이동은 로컬 프로그램/P2P mesh가 맡는다.
+
+### Current Execution Order
+
+1. 1기기 로컬 런타임 증명: 웹 대시보드 없이도 desktop/bridge가 정상이고 idle CPU 예산 안에 머무르는지 검증한다.
+2. Web-to-local 작업 주문: `musu.pro` 입력을 선택된 로컬 프로그램이 outbound control connection으로 받는 계약을 만든다.
+3. Rendezvous 후보 계약 강화: LAN/Tailscale/direct QUIC/relay 후보가 path selection에 필요한 public/NAT/relay metadata를 제공하도록 API와 테스트를 고정한다.
+4. 2기기 증명: 같은 MUSU build를 두 번째 Windows PC에 설치한 뒤, web order -> rendezvous -> P2P route -> route evidence -> idle budget까지 통과시킨다.
+5. Release-grade relay: Connect/Pro fallback은 QUIC/TLS 1.3 transport와 payload delivery proof가 준비되기 전까지 release blocker로 유지한다.
+
+자세한 제품/프로토콜 경계는 `docs/P2P_CONTROL_PLANE.md`를 기준 문서로 본다.
+
+---
+
 ## 1. 작업 중에 알게 된 것 (Lessons Learned)
 - **Pencil Dev 연동의 중요성**: 코드로 UI를 맹목적으로 구성하는 것보다, `pencil_batch_design`과 같은 전문 GUI 디자인 툴을 통해 시각적 컨트랙트(`musu.pen`)를 먼저 확정하고 픽셀 퍼펙트한 렌더링을 확인한 후 코드로 포팅하는 것이 디테일(그림자 방향, 곡률, 여백 등)을 살리는데 압도적으로 효율적입니다.
 - **Next.js 15 & ESLint 9 충돌**: 최신 생태계(Next 15)에서 제공되는 레거시 `next lint` 명령어는 ESLint 9의 Flat Config 환경 하의 React 플러그인과 순환 참조(Circular Reference) 구조 에러를 발생시킵니다. 인프라 측면의 마이그레이션이 필수적이라는 것을 확인했습니다.

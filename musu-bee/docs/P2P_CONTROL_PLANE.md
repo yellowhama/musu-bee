@@ -57,6 +57,26 @@ The room is a shared coordination surface:
 
 The room does not execute the work itself. When an agent in the room accepts a task, the matching local MUSU program performs the work on its own machine or coordinates with peers through the P2P mesh. Large payloads, file access, shell commands, browser automation, and local app control stay on the local programs unless a relay fallback is explicitly issued and recorded.
 
+## Roadmap
+
+1. **Single-machine local runtime proof**
+   - Keep the installed desktop program useful without a web dashboard.
+   - Treat `http://127.0.0.1:3001/app` as an optional developer dashboard, not as the product runtime.
+   - Prove idle CPU/resource behavior while the local bridge waits for work.
+2. **Web-to-local work orders**
+   - `musu.pro` accepts user input and sends work orders to the selected installed device through an authenticated outbound control connection.
+   - The local program executes the work locally and reports status/evidence back to the web control plane.
+3. **Rendezvous and path selection**
+   - Devices publish LAN, Tailscale/overlay, direct QUIC, and relay fallback candidates.
+   - Candidate metadata must be sufficient for path selection, including public/NAT details for direct QUIC and relay URL/protocol details for relay fallback.
+   - The first successful direct path becomes the peer route; `musu.pro` does not carry payloads on that path.
+4. **Project rooms**
+   - `musu.pro` groups local agents by project/repository, exposes presence and discussion, and records decisions, handoffs, and audit history.
+   - Agents in the room can coordinate with each other, but execution still happens inside each installed local program.
+5. **Multi-device release proof**
+   - Install the same MUSU build on a second Windows PC.
+   - Prove web work-order delivery, rendezvous, P2P route establishment, route evidence, and idle resource budget across both devices.
+
 ## API contract
 
 The rendezvous API returns `path_selection_order` so clients do not invent their own route priority:
