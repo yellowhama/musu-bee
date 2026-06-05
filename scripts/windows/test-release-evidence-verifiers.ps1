@@ -906,6 +906,14 @@ $fixture = Write-Fixture -Name "multidevice-bad-route-kind" -Object $badRouteKin
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "multidevice rejects failed route_kind" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
+$badRouteKindCandidateAddr = Copy-JsonObject -Object $validMultiDevice
+$badRouteKindCandidateAddr.route_explain.selected_candidate.route_kind = "lan"
+$badRouteKindCandidateAddr.route_evidence.route_kind = "lan"
+$badRouteKindCandidateAddr.route_evidence.candidate_addr = "203.0.113.2:8949"
+$fixture = Write-Fixture -Name "multidevice-bad-route-kind-candidate-addr" -Object $badRouteKindCandidateAddr
+$invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "multidevice rejects route_kind candidate_addr mismatch" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
 $badDirectTransit = Copy-JsonObject -Object $validMultiDevice
 $badDirectTransit.route_evidence.payload_transited_musu_infra = $true
 $fixture = Write-Fixture -Name "multidevice-bad-direct-transit" -Object $badDirectTransit

@@ -124,6 +124,85 @@ function Get-NumberProperty {
     }
 }
 
+function Get-CandidateHost {
+    param([string]$CandidateAddr)
+
+    if ([string]::IsNullOrWhiteSpace($CandidateAddr)) {
+        return ""
+    }
+
+    $withoutScheme = $CandidateAddr.Trim() -replace '^[a-z][a-z0-9+.-]*://', ''
+    $authority = (($withoutScheme -split '/', 2)[0]).Trim()
+    if ([string]::IsNullOrWhiteSpace($authority)) {
+        return ""
+    }
+
+    if ($authority.StartsWith("[")) {
+        $end = $authority.IndexOf("]")
+        if ($end -gt 1) {
+            return $authority.Substring(1, $end - 1).Trim()
+        }
+        return ""
+    }
+
+    $colonMatches = [regex]::Matches($authority, ":")
+    if ($colonMatches.Count -eq 1) {
+        return (($authority -split ":", 2)[0]).Trim()
+    }
+    return $authority
+}
+
+function Get-RouteKindForCandidateAddr {
+    param([string]$CandidateAddr)
+
+    $hostName = Get-CandidateHost -CandidateAddr $CandidateAddr
+    if ([string]::IsNullOrWhiteSpace($hostName)) {
+        return "direct_quic"
+    }
+
+    $ipAddress = $null
+    if (-not [System.Net.IPAddress]::TryParse($hostName, [ref]$ipAddress)) {
+        return "direct_quic"
+    }
+
+    if ($ipAddress.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork) {
+        $octets = $ipAddress.GetAddressBytes()
+        $a = [int]$octets[0]
+        $b = [int]$octets[1]
+        if ($a -eq 127) {
+            return "lan"
+        }
+        if ($a -eq 100 -and $b -ge 64 -and $b -le 127) {
+            return "tailscale"
+        }
+        if ($a -eq 10 -or ($a -eq 172 -and $b -ge 16 -and $b -le 31) -or ($a -eq 192 -and $b -eq 168) -or ($a -eq 169 -and $b -eq 254)) {
+            return "lan"
+        }
+        return "direct_quic"
+    }
+
+    if ($ipAddress.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6) {
+        if ($ipAddress.Equals([System.Net.IPAddress]::IPv6Loopback) -or $ipAddress.IsIPv6LinkLocal) {
+            return "lan"
+        }
+        return "direct_quic"
+    }
+
+    return "direct_quic"
+}
+
+function Test-RouteKindMatchesCandidateAddr {
+    param(
+        [string]$RouteKind,
+        [string]$CandidateAddr
+    )
+
+    if (@("lan", "tailscale", "direct_quic") -notcontains $RouteKind) {
+        return $true
+    }
+    return ((Get-RouteKindForCandidateAddr -CandidateAddr $CandidateAddr) -eq $RouteKind)
+}
+
 function Get-CommandEvidence {
     param(
         [object[]]$Commands = @(),
@@ -308,12 +387,14 @@ if ($routeRequired) {
             $routeExplainSelected = $routeExplainJson.selected_candidate
         }
         $routeExplainSelectedKind = if ($routeExplainSelected) { Get-StringProperty -Object $routeExplainSelected -Name "route_kind" } else { "" }
+        $routeExplainSelectedAddr = if ($routeExplainSelected) { Get-StringProperty -Object $routeExplainSelected -Name "addr" } else { "" }
 
         Add-CheckFromCondition "route explain schema" ($routeExplainSchema -eq "musu.route_explain.v1") "route explain schema is valid" "route explain schema is not musu.route_explain.v1"
         Add-CheckFromCondition "route explain version" ($routeExplainVersion -eq $ExpectedVersion) "route explain version matches $ExpectedVersion" "route explain version does not match $ExpectedVersion"
         Add-CheckFromCondition "route explain endpoint" ($routeExplainEndpoint -match "/api/tasks/delegate$") "route explain submission endpoint is a delegate endpoint" "route explain submission endpoint is missing or invalid"
         Add-CheckFromCondition "route explain selected candidate" ($null -ne $routeExplainSelected) "route explain selected a candidate" "route explain did not select a candidate"
         Add-CheckFromCondition "route explain route kind" (@("lan", "tailscale", "direct_quic", "relay") -contains $routeExplainSelectedKind) "route explain selected route_kind is $routeExplainSelectedKind" "route explain selected route_kind is missing or invalid"
+        Add-CheckFromCondition "route explain route kind matches address" (Test-RouteKindMatchesCandidateAddr -RouteKind $routeExplainSelectedKind -CandidateAddr $routeExplainSelectedAddr) "route explain selected route_kind matches candidate address" "route explain selected route_kind '$routeExplainSelectedKind' does not match candidate address '$routeExplainSelectedAddr'"
         Add-CheckFromCondition "route explain path priority" ((@($routeExplainPathPriority) -join ",") -eq "lan,tailscale,direct_quic,relay") "route explain path priority is lan,tailscale,direct_quic,relay" "route explain path priority is missing or out of order"
         Add-CheckFromCondition "route explain release transport" ($routeExplainReleaseTransport -eq "quic_tls_1_3") "route explain release transport is quic_tls_1_3" "route explain release transport is not quic_tls_1_3"
         Add-CheckFromCondition "route explain relay policy" ($routeExplainRelayPolicy -match "fallback" -and $routeExplainRelayPolicy -match "must not become the default data path") "route explain relay policy documents fallback, not default data path" "route explain relay policy is missing or unsafe"
@@ -354,6 +435,7 @@ if ($routeRequired) {
         Add-CheckFromCondition "route evidence version" ($routeEvidenceVersion -eq $ExpectedVersion) "route_evidence version matches $ExpectedVersion" "route_evidence version does not match $ExpectedVersion"
         Add-CheckFromCondition "route kind" ($allowedRouteKinds -contains $routeKind -and $routeKind -ne "failed") "route_kind is $routeKind" "route_kind must be one of lan/tailscale/direct_quic/relay and not failed for passing evidence"
         Add-CheckFromCondition "route candidate address" (-not [string]::IsNullOrWhiteSpace($candidateAddr) -and $candidateAddr -match ":\d+$") "route candidate_addr includes host:port" "route candidate_addr is missing or lacks a port"
+        Add-CheckFromCondition "route kind matches candidate address" (Test-RouteKindMatchesCandidateAddr -RouteKind $routeKind -CandidateAddr $candidateAddr) "route_kind matches candidate_addr" "route_kind '$routeKind' does not match candidate_addr '$candidateAddr'"
         Add-CheckFromCondition "route result" ($routeResult -eq "success") "route evidence result is success" "route evidence result is not success"
         Add-CheckFromCondition "route recorded timestamp" ($null -ne $recordedAt) "route evidence recorded_at parses" "route evidence recorded_at is missing or invalid"
         Add-CheckFromCondition "route handshake timing" ($null -ne $handshakeMs -and $handshakeMs -ge 0) "route handshake_ms is present" "route handshake_ms is missing or invalid"
