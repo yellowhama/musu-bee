@@ -4987,6 +4987,14 @@ pub async fn run_mount(node: Option<&str>) -> Result<()> {
 // ── V27 Account Auth CLI ────────────────────────────────────────────
 
 /// `musu login` — start the device code login flow.
+fn login_connection_checklist() -> [&'static str; 3] {
+    [
+        "Run `musu doctor` to verify local state.",
+        "Start the bridge with `musu bridge` if it is not already running.",
+        "Open MUSU Desktop or a MUSU.PRO workspace; localhost dashboards are optional developer surfaces only.",
+    ]
+}
+
 pub async fn run_login() -> Result<()> {
     let home = musu_home();
     let my_name = std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
@@ -5048,11 +5056,9 @@ pub async fn run_login() -> Result<()> {
 
                 println!();
                 println!("Connection checklist:");
-                println!("  1. Run `musu doctor` to verify local state.");
-                println!("  2. Start the bridge with `musu bridge` if it is not already running.");
-                println!(
-                    "  3. Open the dashboard: http://127.0.0.1:3000/app or http://127.0.0.1:3001/app"
-                );
+                for (index, step) in login_connection_checklist().iter().enumerate() {
+                    println!("  {}. {}", index + 1, step);
+                }
                 return Ok(());
             }
             Ok(None) => {
@@ -5128,6 +5134,16 @@ mod tests {
         let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, true, true);
 
         assert!(steps.iter().any(|step| step.contains("npm run dev")));
+    }
+
+    #[test]
+    fn login_connection_checklist_does_not_open_fixed_localhost_dashboard() {
+        let checklist = login_connection_checklist().join("\n");
+
+        assert!(checklist.contains("MUSU Desktop"));
+        assert!(checklist.contains("MUSU.PRO"));
+        assert!(!checklist.contains("127.0.0.1:3001"));
+        assert!(!checklist.contains("localhost:3001"));
     }
 
     #[test]

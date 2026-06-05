@@ -4127,4 +4127,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `WebView2 0.16`, `matrix max WebView2 0.1`, `runtime idle CPU 1/2`,
   `runtime matrix 1/2`, and `second-PC evidence still required`.
 
+- 2026-06-05 login checklist local runtime guidance:
+  `RELEASE_1_15_0_RC1_LOGIN_CHECKLIST_LOCAL_RUNTIME_GUIDANCE_2026_06_05.md`
+  (wiki/740) removes the remaining post-login CLI checklist instruction that
+  pointed users at fixed `127.0.0.1:3000/app` or `127.0.0.1:3001/app`
+  dashboards. Search terms should include `GOAL v560`, `wiki/740`,
+  `login_connection_checklist`, `MUSU Desktop`, `MUSU.PRO workspace`,
+  `localhost dashboards are optional developer surfaces only`,
+  `127.0.0.1:2414/health`, `worker_ok=true`, `auth_mode=production`,
+  `127.0.0.1:3001 no listener`, `cargo check --manifest-path .\\musu-rs\\Cargo.toml --bin musu`,
+  and `fresh packaged evidence required`.
+
 **End of WIKI_INDEX.md.**
