@@ -88,8 +88,12 @@ Passing local state:
   proving the preview store-forward queue fallback is owner/lease scoped,
   non-default, non-release-grade, and separated from release tunnel transport
 - release-grade relay route queries revalidate fallback, transport proof,
-  payload delivery proof, and now bind relay transport proof to the fallback
+  payload delivery proof, the release relay transport proof kind
+  `quic_relay_tunnel`, and now bind relay transport proof to the fallback
   lease/session before returning stored `release_grade=true` relay records
+- hosted P2P evidence verification now rejects relay descriptors whose
+  `relay_transport_kind` is only `websocket_tunnel` or another preview/queue
+  transport; the release descriptor must match `quic_tls_1_3`
 - direct route evidence now cross-checks `route_kind` against
   `candidate_addr`; loopback/private/link-local addresses must be `lan`,
   `100.64.0.0/10` addresses must be `tailscale`, and public IPs/hostnames
@@ -116,6 +120,8 @@ Open external gates:
 - hosted P2P KV/Upstash storage is not configured
 - release relay connect/payload tunnel endpoints and release relay transport
   are not wired as release-grade
+- current hosted relay transport descriptor still reports `websocket_tunnel`,
+  which is intentionally rejected by the release verifier
 - owner-scoped relay route evidence count is `0`
 - relay payload transport proof is `false`
 - relay payload delivery proof valid count is `0`

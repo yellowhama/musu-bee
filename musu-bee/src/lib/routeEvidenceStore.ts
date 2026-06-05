@@ -96,6 +96,7 @@ export type RouteEvidenceQuery = {
 
 const KV_KEY = "musu:p2p:route-evidence:v1";
 const DEFAULT_MAX_RECORDS = 1000;
+const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -180,6 +181,7 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
       (!evidenceSessionId || proof.session_id.trim() === evidenceSessionId) &&
       proof.tunnel_id?.trim() &&
       proof.relay_url?.trim().startsWith("wss://") &&
+      RELEASE_GRADE_RELAY_TRANSPORT_KINDS.has(proof.transport_kind.trim()) &&
       Number.isInteger(proof.handshake_ms) &&
       proof.handshake_ms >= 0 &&
       Number.isInteger(proof.payload_bytes_transited) &&

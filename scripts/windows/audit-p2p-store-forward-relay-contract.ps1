@@ -71,6 +71,8 @@ $relayPayloadDrainPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
 $cloudPath = "musu-rs\src\cloud\mod.rs"
 $statusScriptPath = "scripts\windows\show-musu-pro-p2p-env-status.ps1"
+$p2pEvidenceVerifierPath = "scripts\windows\verify-p2p-control-plane-evidence.ps1"
+$releaseEvidenceVerifierTestPath = "scripts\windows\test-release-evidence-verifiers.ps1"
 $packageJsonPath = "musu-bee\package.json"
 
 $policy = Get-RepoText $policyPath
@@ -93,6 +95,8 @@ $relayPayloadDrain = Get-RepoText $relayPayloadDrainPath
 $forward = Get-RepoText $forwardPath
 $cloud = Get-RepoText $cloudPath
 $statusScript = Get-RepoText $statusScriptPath
+$p2pEvidenceVerifier = Get-RepoText $p2pEvidenceVerifierPath
+$releaseEvidenceVerifierTest = Get-RepoText $releaseEvidenceVerifierTestPath
 $packageJson = Get-RepoText $packageJsonPath
 
 Add-Check `
@@ -282,6 +286,41 @@ Add-Check `
     ) `
     -Path $routeEvidenceStorePath `
     -Message "Release-grade relay queries reject stale records whose transport proof is not bound to the fallback lease and session."
+
+Add-Check `
+    -Scope "route-evidence" `
+    -Name "release-grade query rejects non release relay transport kind" `
+    -Passed (
+        (Test-ContainsAll -Text $routeEvidenceStore -Needles @(
+            "RELEASE_GRADE_RELAY_TRANSPORT_KINDS",
+            "quic_relay_tunnel",
+            "RELEASE_GRADE_RELAY_TRANSPORT_KINDS.has(proof.transport_kind.trim())"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "stale-relay-transport-kind-mismatch-release-grade",
+            'transport_kind: "websocket_tunnel"'
+        ))
+    ) `
+    -Path $routeEvidenceStorePath `
+    -Message "Release-grade relay queries reject stale/manual records whose transport proof kind is not the release tunnel kind."
+
+Add-Check `
+    -Scope "release-verifier" `
+    -Name "hosted P2P verifier rejects websocket relay descriptor" `
+    -Passed (
+        (Test-ContainsAll -Text $p2pEvidenceVerifier -Needles @(
+            '$transportKind = Get-StringProperty -Object $relayTransport -Name "relay_transport_kind"',
+            'relay transport kind is release requirement',
+            '$transportKind -eq $transportReleaseRequirement -and $transportKind -eq "quic_tls_1_3"'
+        )) -and
+        (Test-ContainsAll -Text $releaseEvidenceVerifierTest -Needles @(
+            "p2p-bad-relay-transport-kind",
+            "p2p rejects non-release relay transport kind",
+            '$badP2pRelayTransportKind.relay_transport.relay_transport_kind = "websocket_tunnel"'
+        ))
+    ) `
+    -Path $p2pEvidenceVerifierPath `
+    -Message "Hosted P2P evidence cannot pass with the non-release websocket/queue relay descriptor."
 
 Add-Check `
     -Scope "rust-source" `

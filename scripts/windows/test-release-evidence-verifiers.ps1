@@ -304,7 +304,7 @@ $validP2p = [pscustomobject]@{
         relay_default_data_path = $false
         relay_url = "wss://relay.musu.pro/api/v1/relay/connect"
         relay_connect_path = "/api/v1/relay/connect"
-        relay_transport_kind = "websocket_tunnel"
+        relay_transport_kind = "quic_tls_1_3"
         release_grade_transport_required = "quic_tls_1_3"
         payload_transit_requires_lease = $true
         policy = "connect_pro_fallback_only"
@@ -825,6 +825,12 @@ Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p accepts release-grade hosted control-plane evidence" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$badP2pRelayTransportKind = Copy-JsonObject -Object $validP2p
+$badP2pRelayTransportKind.relay_transport.relay_transport_kind = "websocket_tunnel"
+$fixture = Write-Fixture -Name "p2p-bad-relay-transport-kind" -Object $badP2pRelayTransportKind
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects non-release relay transport kind" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pBaseUrl = Copy-JsonObject -Object $validP2p
 $badP2pBaseUrl.base_url = "https://example.invalid"
