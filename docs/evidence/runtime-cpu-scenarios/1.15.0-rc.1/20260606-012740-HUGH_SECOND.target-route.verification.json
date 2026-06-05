@@ -1,0 +1,320 @@
+{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\runtime-cpu-scenarios\\1.15.0-rc.1\\20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "86b97f5aa3dad47e038f02a340c5ed6c828c7c48",
+    "operator_machine":  "HUGH_SECOND",
+    "required_scenarios":  [
+                               "post-route"
+                           ],
+    "present_required_scenarios":  [
+                                       "post-route"
+                                   ],
+    "require_post_route_probe":  true,
+    "require_post_route_target":  true,
+    "expected_post_route_target":  "HUGH-MAIN",
+    "allow_failed_post_route_probe":  true,
+    "checks":  [
+                   {
+                       "name":  "parse",
+                       "status":  "pass",
+                       "message":  "runtime CPU scenario matrix parses"
+                   },
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.1"
+                   },
+                   {
+                       "name":  "matrix ok",
+                       "status":  "pass",
+                       "message":  "matrix reports ok=true"
+                   },
+                   {
+                       "name":  "git commit present",
+                       "status":  "pass",
+                       "message":  "git commit is recorded"
+                   },
+                   {
+                       "name":  "git clean during matrix",
+                       "status":  "pass",
+                       "message":  "matrix was captured from clean git state"
+                   },
+                   {
+                       "name":  "MUSU executable release identity",
+                       "status":  "pass",
+                       "message":  "matrix used the packaged WindowsApps MUSU command"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "sample duration",
+                       "status":  "pass",
+                       "message":  "sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "cpu budget",
+                       "status":  "pass",
+                       "message":  "matrix CPU budget is \u003c= 5% of one logical core"
+                   },
+                   {
+                       "name":  "owned process budget present",
+                       "status":  "pass",
+                       "message":  "owned process budget is 16"
+                   },
+                   {
+                       "name":  "WebView2 budget present",
+                       "status":  "pass",
+                       "message":  "WebView2 process budget is 8"
+                   },
+                   {
+                       "name":  "working set budget present",
+                       "status":  "pass",
+                       "message":  "working set budget is 1024MB"
+                   },
+                   {
+                       "name":  "scenario present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 is present"
+                   },
+                   {
+                       "name":  "measurement present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "CPU attribution present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU post-route/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027musu\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027webview2\u0027 CPU 0.1% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027bridge_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027desktop_shell\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027webview2_helper\u0027 CPU 0.1% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "owned process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 working set 364.18MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "post-route route probe present",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a route probe"
+                   },
+                   {
+                       "name":  "post-route route probe",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt"
+                   },
+                   {
+                       "name":  "post-route route target present",
+                       "status":  "pass",
+                       "message":  "post-route route target is present"
+                   },
+                   {
+                       "name":  "post-route route target",
+                       "status":  "pass",
+                       "message":  "post-route route target matches HUGH-MAIN"
+                   }
+               ]
+}
