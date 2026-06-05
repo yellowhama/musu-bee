@@ -7356,6 +7356,107 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-05 Rust spawn/background-task audit coverage (wiki/747)
+
+The Rust background-loop release audit now covers Rust background execution
+entry points, not only explicit loop syntax.
+
+What changed:
+
+- `audit-rust-background-loop-contract.ps1` now audits current `tokio::spawn`,
+  `tokio::task::spawn_blocking`, `std::thread::spawn`, and `thread::spawn`
+  sites.
+- New Rust files using those spawn constructs now fail the audit unless they
+  are explicitly allowlisted and have named contract checks.
+- The audit JSON now emits `unaudited_spawn_hit_count` and
+  `unaudited_spawn_hits`.
+
+New audited scopes include:
+
+- planner/cloud heartbeat cancellation watcher spawns
+- file-sync configured-root gating
+- control MCP cancellation token service path
+- default cloud client timeout
+- clipboard opt-in blocking poller
+- relay payload poller task spawn
+- mDNS blocking receive timeout
+- indexer `spawn_blocking` await and empty-workspace return
+- PTY request-scoped write tasks
+- WebRTC one-shot pong, RTCP reader, and ffmpeg capture tasks
+- writer task registry, callback retries, and one-shot `musu-crawl` indexing
+- Claude stdin writer
+- company post-create sync, node health checks, route-evidence submit,
+  rendezvous publish/close, and workflow executor spawns
+
+Validation:
+
+- PowerShell parser: pass
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`,
+  `telemetry_flush_primitive_hit_count=0`, `check_count=200`
+- frontend polling audit: `ok=true`, `fail_count=0`,
+  `low_duty_polling_call_site_count=29`, direct interval hits `0`
+- `git diff --check`: pass
+
+Clean go/no-go after `94a89614`:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `idle_busy_loop_candidate_contract_verified=true`
+- `frontend_polling_contract_verified=true`
+- `p2p_store_forward_relay_contract_verified=true`
+- `manifest_git_dirty=false`
+- `ready_for_public_desktop_release=false`
+
+Remaining blockers are unchanged: second-PC multi-device evidence, second-PC
+idle CPU evidence, second-PC runtime CPU matrix evidence, hosted P2P
+control-plane proof, support mailbox proof, and Store proof.
+
+Qualitative status: no high or medium issue was found in this verifier-only
+change. It strengthens source-side idle CPU defense but does not replace the
+two-machine runtime CPU evidence gates.
+
+The product boundary is unchanged: MUSU Desktop is the local executor, and
+MUSU.PRO is remote input, project/company room, rendezvous, path-selection,
+relay-fallback policy, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_SPAWN_CONTRACT_AUDIT_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 Rust spawn audit index refresh
+
+Indexing was refreshed after wiki/747 and GOAL v570/v571.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2414 files`
+- `2690 symbols`
+- `10865 ms`
+
+gbrain:
+
+- quiet run exited code `1` with no output
+- non-quiet run used `mode=incremental`, `engine=pglite`
+- code stage `OK`: source `gstack-code-musu-bee-8815b622`,
+  `page_count=540`
+- import found `3599` code files, imported `92` pages, skipped `3507`
+  pages, created `5188` chunks, and hit `3059` file failures
+- `sync.last_commit` did not advance
+- memory stage `OK`: `0 imported`, `1 unchanged`, `0 failed`
+- final state: `2 ok, 1 error`
+- failing stage: `brain-sync`, `gstack-brain-sync exited undefined`
+- import blockers included missing `ZEROENTROPY_API_KEY`, `row.deleted_at`
+  import failures, and array-length import failures
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.
+
 ## 2026-06-05 Rust while-let loop audit coverage (wiki/746)
 
 The Rust background-loop release audit now gates new `while let` loop files and

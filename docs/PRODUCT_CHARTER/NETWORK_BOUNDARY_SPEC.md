@@ -242,6 +242,24 @@ This keeps the simple product rule intact: local and trusted-network execution
 is Core; remote web input, hosted rendezvous, relay/tunnel, and project-room
 coordination are Connect.
 
+## 2026-06-05 background-task audit boundary update
+
+Rust spawn/background-task audit coverage is now part of the local-executor
+quality gate.
+
+- New Rust files using `tokio::spawn`, `tokio::task::spawn_blocking`,
+  `std::thread::spawn`, or `thread::spawn` must be explicitly allowlisted and
+  contract-audited by `audit-rust-background-loop-contract.ps1`.
+- A spawn is acceptable only when it is tied to an explicit local runtime
+  contract such as opt-in feature gating, request scope, awaited bounded work,
+  timeout-bound cloud submission, cancellation-aware daemon shutdown, or
+  one-shot completion.
+- This protects MUSU Desktop idle CPU behavior. It is not a substitute for
+  two-machine runtime CPU evidence.
+- This does not move execution to `musu.pro`. Local MUSU programs still execute
+  work, and `musu.pro` remains the remote input, rendezvous, path-selection,
+  relay-fallback policy, and evidence coordination plane.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

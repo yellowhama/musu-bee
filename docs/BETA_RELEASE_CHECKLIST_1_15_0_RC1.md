@@ -5777,3 +5777,51 @@ support mailbox proof, and Store proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUST_WHILE_LET_LOOP_AUDIT_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 Rust spawn/background-task audit coverage
+
+Rust background-task verifier coverage was expanded after the `while let` audit.
+
+`audit-rust-background-loop-contract.ps1` now audits current Rust spawn entry
+points:
+
+- `tokio::spawn`
+- `tokio::task::spawn_blocking`
+- `std::thread::spawn`
+- `thread::spawn`
+
+New Rust files using those constructs now fail the audit unless the file is
+explicitly allowlisted and has named contract checks.
+
+Covered contracts include planner/cloud heartbeat cancellation watcher tasks,
+file-sync configured-root gating, control MCP cancellation, cloud client
+timeout, clipboard opt-in blocking poller, relay payload poller spawn, mDNS
+blocking receive timeout, indexer `spawn_blocking` await, PTY request-scoped
+writes, WebRTC one-shot/request-scoped tasks, writer task registry/callback
+bounded retries, Claude stdin writer, company post-create sync, node health
+joins, route evidence submit, rendezvous publish/close timeouts, and workflow
+execution.
+
+Validation passed:
+
+- PowerShell parser check
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`,
+  `telemetry_flush_primitive_hit_count=0`, `check_count=200`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `low_duty_polling_call_site_count=29`
+- `git diff --check`
+
+Clean go/no-go after `94a89614` reports local artifacts, single-machine, MSIX
+install, targeted second-PC route CPU, Rust/idle/frontend contracts, and P2P
+store-forward contract true, `manifest_git_dirty=false`, and public release
+still No-Go on second-PC multi-device/CPU/matrix evidence, hosted P2P proof,
+support mailbox proof, and Store proof.
+
+Qualitative audit: no high or medium issue was found. This is verifier-only
+source hardening; it does not replace runtime CPU evidence and does not change
+the MUSU Desktop local-executor / MUSU.PRO web-input control-plane boundary.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_SPAWN_CONTRACT_AUDIT_COVERAGE_2026_06_05.md`

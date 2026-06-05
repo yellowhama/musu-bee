@@ -4257,4 +4257,40 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 Rust spawn/background-task audit coverage:
+  `RELEASE_1_15_0_RC1_RUST_SPAWN_CONTRACT_AUDIT_COVERAGE_2026_06_05.md`
+  (wiki/747) expands the Rust background-loop contract with explicit coverage
+  for `tokio::spawn`, `tokio::task::spawn_blocking`, `std::thread::spawn`, and
+  `thread::spawn`. Search terms should include `GOAL v570`, `wiki/747`,
+  `94a89614`, `unaudited_spawn_hit_count=0`,
+  `new rust spawns must be audited`, `allowlistedSpawnFiles`,
+  `planner ctrl-c watcher spawn`, `heartbeat loop spawn`,
+  `sync loop spawn configured roots only`, `control MCP`,
+  `default cloud client timeout`, `clipboard monitor spawn blocking`,
+  `relay payload poller task spawn`, `browse blocking receive under timeout`,
+  `scan spawn_blocking awaited`, `pty write spawn_blocking request scoped`,
+  `data channel pong one-shot spawn`, `task spawn registered handle`,
+  `callback bounded retry spawn`, `musu-crawl fire-and-forget thread`,
+  `writer-claude stdin write one-shot spawn`,
+  `route evidence one-shot spawn`, `rendezvous timeout clamp`,
+  `workflow-handler execute workflow one-shot spawn`, `check_count=200`,
+  `rust_background_loop_contract_verified=true`,
+  `idle_busy_loop_candidate_contract_verified=true`,
+  `ready_for_public_desktop_release=false`,
+  `manifest_git_dirty=false`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-05 Rust spawn audit index refresh:
+  MUSU local indexing and gbrain sync were run after wiki/747. Search terms
+  should include `GOAL v571`, `wiki/747 index refresh`,
+  `musu indexer sync`, `2414 files`, `2690 symbols`, `10865 ms`,
+  `gstack-code-musu-bee-8815b622`, `page_count=540`,
+  `mode=incremental`, `engine=pglite`, `3599 code files`,
+  `92 pages imported`, `3507 pages skipped`, `5188 chunks created`,
+  `3059 file(s) failed`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit NOT advanced`, `row.deleted_at`,
+  `Array length must be a positive integer of safe magnitude`,
+  `gstack-brain-sync exited undefined`, `2 ok, 1 error`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
