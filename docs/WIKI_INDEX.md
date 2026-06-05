@@ -4138,4 +4138,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `127.0.0.1:3001 no listener`, `cargo check --manifest-path .\\musu-rs\\Cargo.toml --bin musu`,
   and `fresh packaged evidence required`.
 
+- 2026-06-05 post login checklist primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_LOGIN_CHECKLIST_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+  (wiki/741) records fresh HUGH_SECOND packaged evidence after the login
+  checklist localhost fix. Search terms should include `GOAL v561`,
+  `wiki/741`, `20260605-161147-HUGH_SECOND.evidence.json`,
+  `20260605-161246-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260605-162127-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-162127-HUGH_SECOND.verification.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_162127`,
+  `a38d0adc-e760-4962-8303-f863c665124d`,
+  `bridge http://127.0.0.1:13486`, `dashboard_required=false`,
+  `single_machine_surface=local-bridge-only`, `idle WebView2 0.52`,
+  `matrix max WebView2 0.1`, `runtime idle CPU 1/2`,
+  `runtime matrix 1/2`, `targeted second-PC route CPU 0/1`,
+  and `second-PC evidence still required`.
+
 **End of WIKI_INDEX.md.**
