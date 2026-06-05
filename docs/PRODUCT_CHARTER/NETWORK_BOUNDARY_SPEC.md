@@ -238,6 +238,30 @@ coordination.
 - A real multi-device claim requires the same current MUSU build installed and
   running on the other device, plus imported second-PC evidence.
 
+## 2026-06-06 primary evidence boundary update
+
+Fresh primary packaged evidence after the degraded/fallback gate confirms the
+local-runtime side of the boundary:
+
+- the installed WindowsApps MUSU runtime can be clean-started as a local
+  desktop program
+- `musu up --json` may report `dashboard.required=false`; this is valid for the
+  packaged local executor because user input can arrive through MUSU.PRO or
+  another connected operator surface
+- single-machine smoke can pass as `local-bridge-only` without
+  `localhost:3001`
+- desktop-open idle CPU and five-scenario runtime CPU matrix stay below the
+  one-core CPU budget on the primary machine
+
+This does not expand the network claim:
+
+- the targeted `HUGH-MAIN` route attempt still timed out at
+  `192.168.1.192:8949`
+- a failed targeted route CPU sample is not real multi-device success evidence
+- second-PC route/CPU/matrix evidence and hosted MUSU.PRO owner-scoped P2P/relay
+  proof remain required before account-assisted P2P or relay readiness can be
+  claimed
+
 This keeps the simple product rule intact: local and trusted-network execution
 is Core; remote web input, hosted rendezvous, relay/tunnel, and project-room
 coordination are Connect.

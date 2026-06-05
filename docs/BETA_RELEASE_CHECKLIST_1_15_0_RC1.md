@@ -6139,6 +6139,26 @@ This is expected because the degraded-mode gate changed Next/API source.
 Refresh primary packaged evidence before treating the second-PC evidence return
 as the only remaining runtime gate.
 
+Post-degraded primary evidence refresh:
+
+- HEAD `701988f39ce2f293077198e853d68cf84c470b5d`
+- packaged bridge `http://127.0.0.1:4760`, PID `32780`
+- single-machine smoke `20260606-043041-HUGH_SECOND.evidence.json` passed as
+  `local-bridge-only`
+- desktop-open CPU `20260606-043051-HUGH_SECOND.desktop-open.evidence.json`
+  passed for `60.039s`, `git_dirty=false`, MUSU `0`, Node `0`, WebView2
+  `0.03`, hot `0`, working set `369.01MB`
+- full runtime matrix `20260606-043203-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passed with token `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_043203`, max WebView2
+  `0.1`, max working set `371.01MB`
+- targeted `HUGH-MAIN` post-route CPU
+  `20260606-043811-HUGH_SECOND.runtime-cpu-scenario-matrix.json` passed CPU
+  verification with failure allowed, but the route to `192.168.1.192:8949`
+  timed out
+
+This restores primary evidence only. Second-PC runtime/multi-device evidence
+and hosted MUSU.PRO P2P/relay proof are still required.
+
 Final index refresh:
 
 - `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`

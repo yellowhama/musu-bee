@@ -140,6 +140,18 @@ What it does not close:
   The operator-reported primary busy-loop is not reproduced in current
   evidence, but the runtime gates remain `1/2` until second-PC CPU and matrix
   evidence are imported.
+- 2026-06-06 04:39 KST post-degraded-gate primary evidence refresh:
+  current packaged primary evidence is restored for
+  `701988f39ce2f293077198e853d68cf84c470b5d`. Single-machine smoke
+  `20260606-043041-HUGH_SECOND` passed as `local-bridge-only`; desktop-open
+  CPU `20260606-043051-HUGH_SECOND.desktop-open` passed with MUSU `0`, Node
+  `0`, WebView2 `0.03`, hot `0`, and working set `369.01MB`; five-scenario
+  matrix `20260606-043203-HUGH_SECOND` passed with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_043203` and max WebView2 `0.1`.
+  Targeted `HUGH-MAIN` post-route CPU evidence `20260606-043811-HUGH_SECOND`
+  also passed CPU verification, but the route to `192.168.1.192:8949` timed
+  out. The primary busy-loop is not reproduced; the release remains blocked on
+  second-PC CPU/matrix/route evidence and hosted MUSU.PRO P2P/relay proof.
 
 ## Code Audit Findings
 

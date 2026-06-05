@@ -4728,4 +4728,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `degraded_mode_contract_verified=true`,
   and `fresh primary packaged evidence required`.
 
+- 2026-06-06 post-degraded-gate primary evidence refresh:
+  `RELEASE_1_15_0_RC1_POST_DEGRADED_GATE_PRIMARY_EVIDENCE_REFRESH_2026_06_06.md`
+  (wiki/779) records the fresh primary packaged evidence for
+  `701988f39ce2f293077198e853d68cf84c470b5d`. Search terms should include
+  `GOAL v604`, `wiki/779`, `20260606-043041-HUGH_SECOND`,
+  `20260606-043051-HUGH_SECOND.desktop-open`, `20260606-043203-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_043203`,
+  `20260606-043811-HUGH_SECOND`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `local-bridge-only`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `targeted second-PC route CPU true`, and `primary busy-loop not reproduced`.
+
 **End of WIKI_INDEX.md.**

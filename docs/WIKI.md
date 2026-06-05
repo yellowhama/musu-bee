@@ -7356,6 +7356,41 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## wiki/779 - Post-Degraded-Gate Primary Evidence Refresh
+
+The primary packaged Windows evidence has been refreshed for
+`701988f39ce2f293077198e853d68cf84c470b5d` after the degraded/fallback
+contract gate.
+
+Key evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-043041-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-043051-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-043203-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted failed-route CPU attempt:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-043811-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Primary result:
+
+- bridge `http://127.0.0.1:4760`, PID `32780`
+- `dashboard.required=false`
+- single-machine surface `local-bridge-only`
+- desktop-open CPU: MUSU `0`, Node `0`, WebView2 `0.03`, hot `0`
+- full matrix max WebView2 `0.1`
+- targeted `HUGH-MAIN` route timed out at `192.168.1.192:8949`; failure was
+  allowed for CPU evidence only
+
+Search terms: `GOAL v604`, `wiki/779`,
+`POST_DEGRADED_GATE_PRIMARY_EVIDENCE_REFRESH`, `20260606-043041-HUGH_SECOND`,
+`20260606-043051-HUGH_SECOND.desktop-open`, `20260606-043203-HUGH_SECOND`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_043203`, `20260606-043811-HUGH_SECOND`,
+`HUGH-MAIN`, `192.168.1.192:8949`, `local-bridge-only`,
+`runtime_idle_cpu_valid_machine_count=1/2`, and
+`runtime_cpu_scenario_matrix_valid_machine_count=1/2`.
+
 ## 2026-06-06 degraded mode contract gate (wiki/775)
 
 Degraded/fallback truthfulness is now a release contract.
