@@ -186,6 +186,15 @@ Add-RegexCheck -Scope "indexer-watch" -Name "watch dirty flag" -Text $indexerWat
 Add-RegexCheck -Scope "indexer-watch" -Name "watch db sidecar filter" -Text $indexerWatchText -Pattern '\.db-wal[\s\S]*\.db-shm' -Path $indexerWatchPath -Message "Indexer watch loop filters sqlite sidecar writes to avoid feedback loops."
 Add-RegexCheck -Scope "indexer-watch" -Name "watch sync primitive" -Text $indexerWatchText -Pattern 'sync_workspace_async\(work_dir\.clone\(\),\s*name\.clone\(\)\)' -Path $indexerWatchPath -Message "Indexer watch loop uses the shared sync primitive after debounce."
 
+$indexerModPath = "musu-rs\src\indexer\mod.rs"
+$indexerModText = Get-RepoText $indexerModPath
+Add-RegexCheck -Scope "indexer-watch" -Name "watch command scoped dispatch" -Text $indexerModText -Pattern 'IndexerAction::Watch\s*\{[\s\S]*watch::run_watch\(work_dir,\s*name\)\.await' -Path $indexerModPath -Message "Indexer watch starts only from the explicit `musu indexer watch` subcommand dispatch."
+
+$mainPath = "musu-rs\src\main.rs"
+$mainText = Get-RepoText $mainPath
+Add-RegexCheck -Scope "indexer-watch" -Name "indexer command dispatch only" -Text $mainText -Pattern 'Cmd::Indexer\s*\{\s*action\s*\}[\s\S]*indexer::run\(action\)\.await' -Path $mainPath -Message "Indexer actions are reached through the CLI Indexer command dispatcher."
+Add-NoRegexCheck -Scope "indexer-watch" -Name "bridge does not start indexer watch" -Text $bridgeText -Pattern 'indexer::watch|run_watch\(' -Path $bridgePath -Message "Default bridge/runtime path does not call the indexer watcher."
+
 $autoUpdatePath = "musu-rs\src\install\auto_update.rs"
 $autoUpdateText = Get-RepoText $autoUpdatePath
 Add-RegexCheck -Scope "auto-update" -Name "config minimum interval" -Text $autoUpdateText -Pattern 'check_interval_minutes\s*<\s*5' -Path $autoUpdatePath -Message "Auto-update supervise interval refuses values below 5 minutes."
@@ -346,10 +355,20 @@ $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
 $unauditedSpawnHits = New-Object System.Collections.Generic.List[object]
 $telemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
+$filesystemWatcherPrimitiveHits = New-Object System.Collections.Generic.List[object]
+$fileSyncWatcherStartHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
     Add-Check -Scope "source" -Name "rust source root exists" -Passed $false -Path "musu-rs\src" -Message "Rust source root is missing."
 }
 else {
+    $allowedFilesystemWatcherFiles = @(
+        "musu-rs\src\indexer\watch.rs",
+        "musu-rs\src\install\sync.rs"
+    )
+    $allowedFileSyncWatcherCallFiles = @(
+        "musu-rs\src\bridge\mod.rs",
+        "musu-rs\src\install\cli_commands.rs"
+    )
     $allowlistedLoopFiles = @(
         "musu-rs\src\adapter\claude.rs",
         "musu-rs\src\brain\planner.rs",
@@ -420,6 +439,13 @@ else {
         if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|non_blocking|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
             $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
+        if ([regex]::IsMatch($text, 'RecommendedWatcher|recommended_watcher|watcher\.watch\(') -and ($relative -notin $allowedFilesystemWatcherFiles)) {
+            $filesystemWatcherPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+        }
+        $fileSyncWatcherStartMatches = [regex]::Matches($text, 'crate::install::sync::start_watcher\(')
+        if ($fileSyncWatcherStartMatches.Count -gt 0 -and ($relative -notin $allowedFileSyncWatcherCallFiles)) {
+            $fileSyncWatcherStartHits.Add([pscustomobject]@{ path = $relative; count = $fileSyncWatcherStartMatches.Count }) | Out-Null
+        }
     }
 
     Add-Check `
@@ -440,6 +466,18 @@ else {
         -Passed ($telemetryFlushPrimitiveHits.Count -eq 0) `
         -Path "musu-rs\src" `
         -Message ($(if ($telemetryFlushPrimitiveHits.Count -eq 0) { "No Rust background telemetry/log flush worker primitives found." } else { "Telemetry/log flush worker primitives found: $(@($telemetryFlushPrimitiveHits | ForEach-Object { $_.path }) -join ', ')." }))
+    Add-Check `
+        -Scope "source" `
+        -Name "filesystem watcher primitives stay allowlisted" `
+        -Passed ($filesystemWatcherPrimitiveHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($filesystemWatcherPrimitiveHits.Count -eq 0) { "Filesystem watcher primitives are limited to indexer watch and file sync implementations." } else { "Filesystem watcher primitives found outside the allowlist: $(@($filesystemWatcherPrimitiveHits | ForEach-Object { $_.path }) -join ', ')." }))
+    Add-Check `
+        -Scope "source" `
+        -Name "file sync watcher starts only from bridge config or sync CLI" `
+        -Passed ($fileSyncWatcherStartHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($fileSyncWatcherStartHits.Count -eq 0) { "File-sync watcher start calls are limited to the configured bridge path and explicit `musu sync` CLI." } else { "File-sync watcher start calls found outside the allowlist: $(@($fileSyncWatcherStartHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
 }
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
@@ -454,6 +492,10 @@ $result = [pscustomobject]@{
     unaudited_spawn_hits = $unauditedSpawnHits.ToArray()
     telemetry_flush_primitive_hit_count = $telemetryFlushPrimitiveHits.Count
     telemetry_flush_primitive_hits = $telemetryFlushPrimitiveHits.ToArray()
+    filesystem_watcher_primitive_hit_count = $filesystemWatcherPrimitiveHits.Count
+    filesystem_watcher_primitive_hits = $filesystemWatcherPrimitiveHits.ToArray()
+    file_sync_watcher_start_hit_count = $fileSyncWatcherStartHits.Count
+    file_sync_watcher_start_hits = $fileSyncWatcherStartHits.ToArray()
     checks = $checks.ToArray()
 }
 

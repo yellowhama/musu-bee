@@ -6221,6 +6221,50 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 filesystem watcher scope contract gate
+
+The Rust background-loop release audit now treats filesystem watcher scope as a
+release contract.
+
+Required local runtime model:
+
+- `musu indexer watch` is explicit CLI/operator mode only.
+- File sync watcher starts only when shared roots are configured for the bridge
+  or when an operator runs `musu sync`.
+- The default bridge/runtime path must not start the indexer watcher.
+- New Rust filesystem watcher primitives outside `indexer/watch.rs` and
+  `install/sync.rs` fail the audit until explicitly reviewed.
+
+Validation passed:
+
+- PowerShell parser checks
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `filesystem_watcher_primitive_hit_count=0`,
+  `file_sync_watcher_start_hit_count=0`
+- release evidence verifier regression `ok=true`, `case_count=47`,
+  `failed_case_count=0`
+- dirty-tree go/no-go with public metadata skipped preserved
+  `rust_background_loop_contract_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2`
+- `git diff --check`
+
+This is verifier hardening only. Public release still needs second-PC route,
+idle CPU, runtime matrix, hosted P2P/relay proof, support mailbox proof, and
+Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FILESYSTEM_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+
+Index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2483 files`, `2719 symbols`, `10455 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 release relay payload preflight byte rejection
 
 `/api/v1/relay/payload` remains preflight-only while

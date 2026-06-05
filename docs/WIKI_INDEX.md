@@ -4637,4 +4637,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 filesystem watcher scope contract gate:
+  `RELEASE_1_15_0_RC1_FILESYSTEM_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+  (wiki/771) records the Rust background-loop audit hardening that keeps
+  filesystem watcher primitives scoped to explicit local surfaces. Search
+  terms should include `GOAL v596`, `wiki/771`,
+  `filesystem watcher primitives stay allowlisted`,
+  `file sync watcher starts only from bridge config or sync CLI`,
+  `bridge does not start indexer watch`, `watch command scoped dispatch`,
+  `filesystem_watcher_primitive_hit_count=0`,
+  `file_sync_watcher_start_hit_count=0`, `release verifier 47/47`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 filesystem watcher scope index refresh:
+  wiki/772 records the MUSU local index refresh after wiki/771 and GOAL v596.
+  Search terms should include `GOAL v597`, `wiki/772`, `2483 files`,
+  `2719 symbols`, `10455 ms`, `filesystem watcher scope index refresh`,
+  `filesystem_watcher_primitive_hit_count=0`,
+  `file_sync_watcher_start_hit_count=0`,
+  `rust background audit limits filesystem watcher scope`,
+  `release verifier 47/47`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
+  and `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

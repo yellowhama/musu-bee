@@ -419,6 +419,27 @@ Current source therefore remains release-blocked for hosted relay transport:
 `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, hosted KV/Upstash evidence is not
 configured, and live relay payload delivery proof is absent.
 
+## 2026-06-06 filesystem watcher boundary update
+
+The default local desktop/runtime path must not start hidden file/index
+watchers as a side effect of MUSU.PRO control-plane work.
+
+Current contract:
+
+- `musu indexer watch` is an explicit CLI/operator command, not a default
+  bridge or desktop behavior.
+- File sync watcher starts only when shared file roots are configured for the
+  bridge, or when an operator explicitly runs `musu sync`.
+- The Rust background-loop release audit rejects filesystem watcher primitives
+  outside `musu-rs/src/indexer/watch.rs` and `musu-rs/src/install/sync.rs`.
+- The final operator packet verifier checks that the strengthened watcher-scope
+  audit is present.
+
+This reinforces the same product boundary: MUSU Desktop is the local executor
+and resource owner; MUSU.PRO can coordinate remote input, rooms, rendezvous,
+path selection, relay fallback, and evidence, but it does not turn the web
+control plane into a default local filesystem watcher or execution server.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

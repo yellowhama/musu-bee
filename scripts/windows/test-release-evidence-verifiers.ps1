@@ -291,6 +291,31 @@ function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
     return $true
 }
 
+function Test-RustBackgroundFilesystemWatcherScopeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'watch command scoped dispatch',
+        'indexer command dispatch only',
+        'bridge does not start indexer watch',
+        '$allowedFilesystemWatcherFiles',
+        '$allowedFileSyncWatcherCallFiles',
+        'RecommendedWatcher|recommended_watcher|watcher\.watch\(',
+        'filesystem watcher primitives stay allowlisted',
+        'file sync watcher starts only from bridge config or sync CLI',
+        'filesystem_watcher_primitive_hit_count',
+        'file_sync_watcher_start_hit_count'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -943,6 +968,18 @@ Add-CaseResult `
     -Name "go-no-go runtime idle CPU requires full role attribution" `
     -Verifier "runtime idle CPU source contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$rustBackgroundWatcherScopeContractOk = Test-RustBackgroundFilesystemWatcherScopeContract -ScriptPath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $rustBackgroundWatcherScopeContractOk `
+    -Message "Rust background-loop audit must keep filesystem watchers scoped to explicit indexer/sync surfaces and out of the default bridge path"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "rust background audit limits filesystem watcher scope" `
+    -Verifier "rust background loop source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

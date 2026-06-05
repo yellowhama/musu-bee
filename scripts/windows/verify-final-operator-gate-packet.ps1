@@ -349,9 +349,9 @@ try {
         $rustBackgroundLoopAuditScript = Get-Content -LiteralPath $rustBackgroundLoopAuditScriptPath -Raw
         Add-CheckFromCondition `
             "rust background loop contract audit script" `
-            ($rustBackgroundLoopAuditScript -like "*musu.rust_background_loop_contract.v1*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_MDNS*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_CLIPBOARD_SYNC*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_PLANNER*" -and $rustBackgroundLoopAuditScript -like "*MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC*" -and $rustBackgroundLoopAuditScript -like "*new rust loops must be audited*") `
-            "packet Rust background loop audit verifies opt-in/background-loop contracts" `
-            "packet Rust background loop audit does not verify opt-in/background-loop contracts"
+            ($rustBackgroundLoopAuditScript -like "*musu.rust_background_loop_contract.v1*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_MDNS*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_CLIPBOARD_SYNC*" -and $rustBackgroundLoopAuditScript -like "*MUSU_ENABLE_PLANNER*" -and $rustBackgroundLoopAuditScript -like "*MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC*" -and $rustBackgroundLoopAuditScript -like "*new rust loops must be audited*" -and $rustBackgroundLoopAuditScript -like "*filesystem watcher primitives stay allowlisted*" -and $rustBackgroundLoopAuditScript -like "*file sync watcher starts only from bridge config or sync CLI*" -and $rustBackgroundLoopAuditScript -like "*bridge does not start indexer watch*") `
+            "packet Rust background loop audit verifies opt-in/background-loop and filesystem watcher scope contracts" `
+            "packet Rust background loop audit does not verify opt-in/background-loop and filesystem watcher scope contracts"
     }
 
     $goNoGoScriptPath = Join-Path $packetRoot "scripts\windows\write-release-go-no-go.ps1"

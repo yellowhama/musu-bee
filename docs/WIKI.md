@@ -7356,6 +7356,92 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 filesystem watcher scope contract gate (wiki/771)
+
+The Rust background-loop release audit now explicitly gates filesystem watcher
+scope for the local desktop runtime.
+
+What changed:
+
+- `audit-rust-background-loop-contract.ps1` now checks that filesystem watcher
+  primitives stay only in `musu-rs/src/indexer/watch.rs` and
+  `musu-rs/src/install/sync.rs`.
+- The audit proves `musu indexer watch` is command-scoped through the explicit
+  `IndexerAction::Watch` CLI dispatch.
+- The audit proves the default bridge/runtime path does not call the indexer
+  watcher.
+- File-sync watcher starts are allowed only from the configured bridge sync
+  path or the explicit `musu sync` CLI.
+- The audit emits `filesystem_watcher_primitive_hit_count` and
+  `file_sync_watcher_start_hit_count`.
+- `test-release-evidence-verifiers.ps1` now has source-contract regression
+  `rust background audit limits filesystem watcher scope`.
+- `verify-final-operator-gate-packet.ps1` now verifies final packets contain
+  the strengthened watcher-scope audit strings.
+
+Validation:
+
+- PowerShell parser: pass
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`,
+  `filesystem_watcher_primitive_hit_count=0`,
+  `file_sync_watcher_start_hit_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=47`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+- dirty go/no-go with public metadata skipped:
+  `single_machine_verified=true`, `msix_install_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1/2`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `rust_background_loop_contract_verified=true`,
+  `p2p_control_plane_verified=false`
+
+Code audit found no high or medium runtime issue. This is verifier/source
+contract hardening only; runtime behavior is unchanged.
+
+Product boundary:
+
+- MUSU Desktop remains the local executor.
+- MUSU.PRO remains remote input, project/company room, rendezvous,
+  path-selection, relay-fallback policy, and evidence control plane.
+- Default desktop/runtime should not start hidden file/index watchers.
+- `musu indexer watch` remains explicit; file sync starts only when shared
+  roots are configured or `musu sync` is run.
+
+Public release remains No-Go on second-PC route/CPU/matrix evidence, hosted
+MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FILESYSTEM_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+
+## 2026-06-06 filesystem watcher scope index refresh (wiki/772)
+
+MUSU local indexing was refreshed after wiki/771, GOAL v596, the filesystem
+watcher scope contract report, BETA checklist, network boundary spec,
+WIKI/WIKI_INDEX, changed release verifier scripts, and CoS memory update.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2483 files`
+- `2719 symbols`
+- `10455 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`.
+
+The MUSU local index remains the reliable current code/document index. Search
+terms should include `GOAL v597`, `wiki/772`,
+`filesystem watcher scope index refresh`,
+`filesystem_watcher_primitive_hit_count=0`,
+`file_sync_watcher_start_hit_count=0`,
+`rust background audit limits filesystem watcher scope`,
+`release verifier 47/47`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.
+
 ## 2026-06-06 final operator packet after second-PC CPU subrole gate (wiki/761)
 
 The final operator packet and operator action pack were regenerated from clean
