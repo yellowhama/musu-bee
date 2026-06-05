@@ -323,6 +323,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-secon
 If you need the raw files, the wrapper also writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\runtime-idle-cpu\*.evidence.json`,
+`.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`. Record install
 evidence from the release repo root:
@@ -475,7 +476,12 @@ Keep MUSU open and idle during the sample. Close unrelated Node.js and
 WebView2-based apps before measuring, because this gate includes Node.js and
 the Tauri/WebView2 desktop process family in the CPU budget. The evidence also
 records owned process count, owned WebView2 process count, total working set,
-private memory total, and memory totals by role.
+private memory total, memory totals by role, and subrole attribution. Release
+CPU evidence must preserve `process_subrole`, `process_counts_by_subrole`,
+`max_one_core_percent_by_subrole`, and `memory_totals_by_subrole_mb`, with the
+packaged bridge and desktop shell separated as `bridge_runtime` and
+`desktop_shell`. For `desktop-open`, owned WebView2 helpers must appear as
+`webview2_helper`.
 
 Bring both generated `.local-build\runtime-idle-cpu\*.json` files back under the
 real MUSU release repo's `.local-build\runtime-idle-cpu\` folder or commit them
@@ -499,6 +505,10 @@ separately attributed.
 Each matrix scenario measurement must include `cpu_attribution` with
 `musu.runtime_idle_cpu_attribution.v1` and `top_processes`, so the operator can
 tie any hot state to specific MUSU, Node.js, or WebView2 PIDs.
+The returned second-PC release-check JSON must report
+`runtime_cpu_subrole_contract_ok=true`. Older matrix or idle CPU files without
+subrole fields are diagnostic only and cannot satisfy
+`import-second-pc-return.ps1 -RequireReleaseGateEvidence`.
 
 ## Gate F - Process ownership evidence
 

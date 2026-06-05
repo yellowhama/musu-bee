@@ -353,6 +353,26 @@ Current HUGH_SECOND evidence proves one-machine local execution only:
 Public release still requires another Windows PC plus live owner-scoped
 MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
 
+## 2026-06-06 second-PC CPU import boundary update
+
+The second-PC return importer now rejects release-gate CPU returns that do not
+carry current runtime CPU subrole attribution.
+
+- `run-second-pc-release-check.ps1` records
+  `runtime_cpu_subrole_contract_ok=true` only when imported CPU evidence
+  separates `bridge_runtime`, `desktop_shell`, and `webview2_helper`.
+- `import-second-pc-return.ps1 -RequireReleaseGateEvidence` directly checks the
+  returned idle CPU and runtime matrix JSONs for `process_counts_by_subrole`,
+  `max_one_core_percent_by_subrole`, `memory_totals_by_subrole_mb`, and
+  `process_subrole` top-process rows.
+- Stale second-PC return zips remain diagnostic but cannot close public
+  two-machine CPU/matrix gates.
+
+This keeps the product boundary explicit: MUSU Desktop on each device measures
+and executes locally; MUSU.PRO can coordinate input, rendezvous, path selection,
+room state, and evidence, but it does not become the executor or the default
+payload data path.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

@@ -7356,6 +7356,73 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 second-PC runtime CPU subrole import gate (wiki/759)
+
+The second-PC return path now enforces the runtime CPU subrole evidence
+contract during import.
+
+What changed:
+
+- `run-second-pc-release-check.ps1` now writes
+  `runtime_idle_cpu_subrole_summary`,
+  `runtime_cpu_scenario_subrole_summary`, and
+  `runtime_cpu_subrole_contract_ok`.
+- `import-second-pc-return.ps1 -RequireReleaseGateEvidence` now directly parses
+  the returned idle CPU and runtime matrix JSONs and rejects missing
+  `process_counts_by_subrole`, `max_one_core_percent_by_subrole`,
+  `memory_totals_by_subrole_mb`, CPU attribution subrole totals/max fields, or
+  `top_processes[*].process_subrole`.
+- Release imports now require `bridge_runtime`; desktop/startup evidence also
+  requires `desktop_shell`, and `desktop-open` requires `webview2_helper`.
+- Operator action pack, final operator packet, and multi-device kit templates
+  now document that old second-PC return zips without subrole fields are
+  diagnostic only.
+- `test-release-evidence-verifiers.ps1` now has a source-contract regression
+  case named `second-PC return import requires runtime CPU subrole contract`.
+
+Validation:
+
+- PowerShell parser: pass for edited scripts
+- release evidence verifier regressions: `ok=true`, `case_count=45`,
+  `failed_case_count=0`
+
+Code audit:
+
+- Fixed medium issue: second-PC release imports trusted returned release-check
+  booleans and file presence too much after the subrole evidence contract was
+  added. The importer now re-parses the returned CPU JSONs and requires
+  `runtime_cpu_subrole_contract_ok=true`.
+- No remaining high or medium issue was found in the changed scripts after the
+  regression run.
+
+Product boundary:
+
+- MUSU Desktop remains the local executor on each Windows device.
+- MUSU.PRO remains remote input, project/company room, rendezvous,
+  path-selection, relay-fallback policy, and evidence/control coordination.
+- This does not complete multi-device P2P, hosted relay payload transport,
+  support mailbox proof, or Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_RUNTIME_CPU_SUBROLE_IMPORT_GATE_2026_06_06.md`
+
+## 2026-06-06 second-PC runtime CPU subrole import gate index refresh (wiki/760)
+
+Indexing was refreshed after wiki/759 and GOAL v584.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2466 files`
+- `2717 symbols`
+- `8983 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+is the reliable current code/document index for this repo.
+
 ## 2026-06-06 post release relay payload preflight primary evidence audit (wiki/755)
 
 Fresh packaged MUSU Desktop evidence was restored on HUGH_SECOND after the

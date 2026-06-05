@@ -4483,4 +4483,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 second-PC runtime CPU subrole import gate:
+  `RELEASE_1_15_0_RC1_SECOND_PC_RUNTIME_CPU_SUBROLE_IMPORT_GATE_2026_06_06.md`
+  (wiki/759) records the importer/operator-kit hardening that makes current
+  second-PC return zips require `runtime_cpu_subrole_contract_ok=true`.
+  Search terms should include `GOAL v584`, `wiki/759`,
+  `runtime_cpu_subrole_contract_ok`, `runtime_idle_cpu_subrole_summary`,
+  `runtime_cpu_scenario_subrole_summary`,
+  `release_check_runtime_cpu_subrole_contract_ok_missing`,
+  `runtime_idle_cpu_subrole_contract_failed`,
+  `runtime_cpu_scenario_subrole_contract_failed`,
+  `process_counts_by_subrole`, `max_one_core_percent_by_subrole`,
+  `memory_totals_by_subrole_mb`, `process_subrole`, `bridge_runtime`,
+  `desktop_shell`, `webview2_helper`, `verifier regressions 45/45`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-06 second-PC runtime CPU subrole import gate index refresh:
+  MUSU local indexing was run after wiki/759 and GOAL v584/v585. Search terms
+  should include `GOAL v585`, `wiki/760`, `wiki/759 index refresh`,
+  `musu indexer sync`, `2466 files`, `2717 symbols`, `8983 ms`,
+  `runtime_cpu_subrole_contract_ok`,
+  `runtime_idle_cpu_subrole_summary`,
+  `runtime_cpu_scenario_subrole_summary`,
+  `release_check_runtime_cpu_subrole_contract_ok_missing`,
+  `runtime_idle_cpu_subrole_contract_failed`,
+  `runtime_cpu_scenario_subrole_contract_failed`,
+  `verifier regressions 45/45`, `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

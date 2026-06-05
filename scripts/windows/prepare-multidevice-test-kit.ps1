@@ -176,6 +176,14 @@ Each scenario measurement must preserve `cpu_attribution` with
 `musu.runtime_idle_cpu_attribution.v1` and `top_processes`, so CPU symptoms are
 traceable to concrete MUSU, Node.js, or WebView2 PIDs instead of aggregate
 percentages only.
+Release-grade returned CPU evidence must also preserve subrole fields:
+`process_subrole`, `process_counts_by_subrole`,
+`max_one_core_percent_by_subrole`, and `memory_totals_by_subrole_mb`. The
+second-PC release-check JSON reports `runtime_cpu_subrole_contract_ok=true`
+only when the bridge runtime, desktop shell, and WebView2 helpers are separated
+as `bridge_runtime`, `desktop_shell`, and `webview2_helper`. Older return zips
+without those fields are diagnostic only and cannot close the public release
+CPU/matrix gates.
 
 The wrapper also writes a process-attribution summary with schema
 `musu.process_attribution_summary.v1`. It separates machine-wide Node.js and

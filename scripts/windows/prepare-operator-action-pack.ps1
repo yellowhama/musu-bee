@@ -175,10 +175,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\install-and-
 Return these files/folders to the primary repo:
 - .local-build\second-pc-return\*.zip
 - .local-build\msix-install\*.evidence.json
+- .local-build\runtime-idle-cpu\*.evidence.json
+- .local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json
 - .local-build\process-attribution\*.process-attribution-summary.json
 - .local-build\runtime-cleanup\*.runtime-cleanup.json
 - .local-build\second-pc-handoff\*.handoff.json
 - .local-build\second-pc-release-check\*.release-check.json
+
+Release CPU evidence must include subrole attribution:
+- runtime_cpu_subrole_contract_ok=true in the release-check JSON
+- process_counts_by_subrole with bridge_runtime, desktop_shell, and webview2_helper
+- max_one_core_percent_by_subrole and memory_totals_by_subrole_mb
+- cpu_attribution.top_processes rows with process_subrole
+
+Older second-PC return zips that lack these fields are diagnostic only and
+cannot satisfy -RequireReleaseGateEvidence.
 
 After the return zip is copied back, run this on the primary PC from the real release repo:
 

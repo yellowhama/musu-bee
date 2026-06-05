@@ -146,6 +146,129 @@ function Resolve-PackagedMusuExe {
     return $null
 }
 
+$CpuSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
+
+function Test-ObjectHasNamedProperties {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string[]]$Names
+    )
+
+    if ($null -eq $Object) {
+        return $false
+    }
+    foreach ($name in $Names) {
+        if (-not $Object.PSObject.Properties[$name]) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Get-SubroleCount {
+    param(
+        $Counts,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Counts -or -not $Counts.PSObject.Properties[$Name]) {
+        return 0
+    }
+    return [int]$Counts.$Name
+}
+
+function New-CpuSubroleSummary {
+    param(
+        $Measurement,
+        [Parameter(Mandatory = $true)][string]$Scenario,
+        [switch]$RequireDesktopShell,
+        [switch]$RequireWebView2Helper
+    )
+
+    $issues = New-Object System.Collections.Generic.List[string]
+    $counts = if ($Measurement -and $Measurement.PSObject.Properties["process_counts_by_subrole"]) { $Measurement.process_counts_by_subrole } else { $null }
+    $maxCpu = if ($Measurement -and $Measurement.PSObject.Properties["max_one_core_percent_by_subrole"]) { $Measurement.max_one_core_percent_by_subrole } else { $null }
+    $memory = if ($Measurement -and $Measurement.PSObject.Properties["memory_totals_by_subrole_mb"]) { $Measurement.memory_totals_by_subrole_mb } else { $null }
+    $cpuAttribution = if ($Measurement -and $Measurement.PSObject.Properties["cpu_attribution"]) { $Measurement.cpu_attribution } else { $null }
+    $requiredSubroles = if ($cpuAttribution -and $cpuAttribution.PSObject.Properties["required_subroles_present"]) { $cpuAttribution.required_subroles_present } else { $null }
+
+    if (-not (Test-ObjectHasNamedProperties -Object $counts -Names $CpuSubroleNames)) {
+        $issues.Add("missing_process_counts_by_subrole") | Out-Null
+    }
+    if (-not (Test-ObjectHasNamedProperties -Object $maxCpu -Names $CpuSubroleNames)) {
+        $issues.Add("missing_max_one_core_percent_by_subrole") | Out-Null
+    }
+    if (-not (Test-ObjectHasNamedProperties -Object $memory -Names $CpuSubroleNames)) {
+        $issues.Add("missing_memory_totals_by_subrole_mb") | Out-Null
+    }
+    if ($null -eq $cpuAttribution) {
+        $issues.Add("missing_cpu_attribution") | Out-Null
+    }
+    else {
+        foreach ($field in @("sample_count_by_subrole", "total_cpu_seconds_by_subrole", "max_one_core_percent_by_subrole")) {
+            if (-not $cpuAttribution.PSObject.Properties[$field] -or -not (Test-ObjectHasNamedProperties -Object $cpuAttribution.$field -Names $CpuSubroleNames)) {
+                $issues.Add("missing_cpu_attribution_$field") | Out-Null
+            }
+        }
+        if (-not $cpuAttribution.PSObject.Properties["top_processes"] -or @($cpuAttribution.top_processes).Count -eq 0) {
+            $issues.Add("missing_cpu_attribution_top_processes") | Out-Null
+        }
+        else {
+            $missingTopSubroleCount = @($cpuAttribution.top_processes | Where-Object {
+                -not $_.PSObject.Properties["process_subrole"] -or ([string]$_.process_subrole) -notin $CpuSubroleNames
+            }).Count
+            if ($missingTopSubroleCount -gt 0) {
+                $issues.Add("malformed_cpu_attribution_top_process_subrole") | Out-Null
+            }
+        }
+    }
+
+    if ((Get-SubroleCount -Counts $counts -Name "bridge_runtime") -lt 1) {
+        $issues.Add("missing_bridge_runtime_process") | Out-Null
+    }
+    if ($RequireDesktopShell -and (Get-SubroleCount -Counts $counts -Name "desktop_shell") -lt 1) {
+        $issues.Add("missing_desktop_shell_process") | Out-Null
+    }
+    if ($RequireWebView2Helper -and (Get-SubroleCount -Counts $counts -Name "webview2_helper") -lt 1) {
+        $issues.Add("missing_webview2_helper_process") | Out-Null
+    }
+
+    $bridgeRequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["bridge_runtime"] -and [bool]$requiredSubroles.bridge_runtime)
+    if (-not $bridgeRequiredPresent) {
+        $issues.Add("missing_required_bridge_runtime_subrole") | Out-Null
+    }
+    if ($RequireDesktopShell) {
+        $desktopRequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["desktop_shell"] -and [bool]$requiredSubroles.desktop_shell)
+        if (-not $desktopRequiredPresent) {
+            $issues.Add("missing_required_desktop_shell_subrole") | Out-Null
+        }
+    }
+    if ($RequireWebView2Helper) {
+        $webView2RequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["webview2_helper"] -and [bool]$requiredSubroles.webview2_helper)
+        if (-not $webView2RequiredPresent) {
+            $issues.Add("missing_required_webview2_helper_subrole") | Out-Null
+        }
+    }
+
+    $topProcessSubroles = @()
+    if ($cpuAttribution -and $cpuAttribution.PSObject.Properties["top_processes"]) {
+        $topProcessSubroles = @($cpuAttribution.top_processes | ForEach-Object {
+            if ($_.PSObject.Properties["process_subrole"]) { [string]$_.process_subrole }
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    }
+
+    return [pscustomobject]@{
+        scenario = $Scenario
+        ok = ($issues.Count -eq 0)
+        issues = @($issues)
+        process_counts_by_subrole = $counts
+        max_one_core_percent_by_subrole = $maxCpu
+        memory_totals_by_subrole_mb = $memory
+        required_subroles_present = $requiredSubroles
+        top_process_subroles = $topProcessSubroles
+    }
+}
+
 function Invoke-RuntimeCleanup {
     param(
         [Parameter(Mandatory = $true)][string]$OutputPath
@@ -458,6 +581,30 @@ if (-not $NoReturnZip) {
     $returnFiles = @($returnZipPath) + $returnFiles
 }
 
+$runtimeIdleCpuSubroleSummary = if ($SkipRuntimeIdleCpu -or -not $runtimeIdleCpu) {
+    $null
+}
+else {
+    New-CpuSubroleSummary -Measurement $runtimeIdleCpu -Scenario "desktop-open" -RequireDesktopShell -RequireWebView2Helper
+}
+$runtimeCpuScenarioSubroleSummary = @()
+if (-not $SkipRuntimeCpuScenarioMatrix -and $runtimeCpuScenarioMatrix -and $runtimeCpuScenarioMatrix.PSObject.Properties["scenarios"]) {
+    $runtimeCpuScenarioSubroleSummary = @($runtimeCpuScenarioMatrix.scenarios | ForEach-Object {
+        $scenarioName = [string]$_.scenario
+        $requiresDesktop = ($scenarioName -eq "startup-open" -or $scenarioName -eq "desktop-open")
+        $requiresWebView2 = ($scenarioName -eq "desktop-open")
+        New-CpuSubroleSummary `
+            -Measurement $_.measurement `
+            -Scenario $scenarioName `
+            -RequireDesktopShell:$requiresDesktop `
+            -RequireWebView2Helper:$requiresWebView2
+    })
+}
+$runtimeCpuSubroleContractOk = (
+    ($SkipRuntimeIdleCpu -or ($runtimeIdleCpuSubroleSummary -and [bool]$runtimeIdleCpuSubroleSummary.ok)) -and
+    ($SkipRuntimeCpuScenarioMatrix -or ($runtimeCpuScenarioSubroleSummary.Count -gt 0 -and @($runtimeCpuScenarioSubroleSummary | Where-Object { -not [bool]$_.ok }).Count -eq 0))
+)
+
 $result = [pscustomobject]@{
     schema = "musu.second_pc_release_check.v1"
     ok = ([string]::IsNullOrWhiteSpace($errorText) -and ($runtimeCleanup -and [bool]$runtimeCleanup.ok))
@@ -482,6 +629,9 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_verified = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrixVerification) { [bool]$runtimeCpuScenarioMatrixVerification.ok } else { $false }
     runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
     runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
+    runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
+    runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
+    runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
     process_attribution_summary_path = $processAttributionSummaryPath
     process_attribution_ok = if ($processAttributionSummary) { [bool]$processAttributionSummary.ok } else { $false }
     process_attribution_error = $processAttributionError
@@ -536,6 +686,18 @@ else {
     "msix_legacy_conflicts_path: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not captured>' })"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
+    "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
+    if ($result.runtime_idle_cpu_subrole_summary) {
+        $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole
+        "runtime_idle_cpu_subroles: bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"
+    }
+    foreach ($summary in @($result.runtime_cpu_scenario_subrole_summary)) {
+        $counts = $summary.process_counts_by_subrole
+        "runtime_cpu_scenario_subroles[$($summary.scenario)]: ok=$($summary.ok), bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"
+        if (-not [bool]$summary.ok) {
+            "runtime_cpu_scenario_subrole_issues[$($summary.scenario)]: $(@($summary.issues) -join ', ')"
+        }
+    }
     "process_attribution_summary_path: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not captured>' })"
     "runtime_cleanup_report_path: $(if ($result.runtime_cleanup_report_path) { $result.runtime_cleanup_report_path } else { '<not captured>' })"
     "return_zip_path: $($result.return_zip_path)"

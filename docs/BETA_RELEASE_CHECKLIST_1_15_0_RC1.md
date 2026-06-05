@@ -77,6 +77,15 @@ idle and matrix evidence separates `bridge_runtime=1`, `desktop_shell=1`, and
 `webview2_helper=6`; older CPU evidence without those subrole fields is not
 release-current.
 
+Second-PC return import enforces the same subrole contract. A returned zip must
+include a current `*.release-check.json` with
+`runtime_cpu_subrole_contract_ok=true`, plus idle CPU and runtime matrix JSON
+that preserve `process_counts_by_subrole`,
+`max_one_core_percent_by_subrole`, `memory_totals_by_subrole_mb`, and
+`cpu_attribution.top_processes[*].process_subrole`. Older second-PC returns
+without those fields are diagnostic only and cannot satisfy
+`import-second-pc-return.ps1 -RequireReleaseGateEvidence`.
+
 ## Must-Pass Smoke
 
 Repeatable script:
@@ -266,10 +275,12 @@ Multi-device packet:
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
 - MSIX legacy conflict preflight: `scripts\windows\check-msix-legacy-conflicts.ps1 -Json -FailOnProblem`
 - release imports should use `-RequireReleaseGateEvidence` so MSIX-only return
-  archives cannot be mistaken for CPU/matrix release evidence
+  archives and stale CPU returns without subrole attribution cannot be mistaken
+  for CPU/matrix release evidence
 - MSIX install evidence capture: `scripts\windows\capture-msix-install-evidence.ps1`
 - runtime idle CPU evidence capture: `scripts\windows\measure-musu-idle-cpu.ps1` is now run by `run-second-pc-release-check.ps1` unless `-SkipRuntimeIdleCpu` is used
-- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `startup-open` must launch the packaged desktop app and start sampling within 3s, `dashboard-open` launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op startup/dashboard matrices, missing resource-budget fields, missing `cpu_attribution` / `top_processes`, working-set overages, and WebView2 process-count overages while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- runtime CPU scenario matrix: `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` writes `musu.runtime_cpu_scenario_matrix.v1` for `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; `startup-open` must launch the packaged desktop app and start sampling within 3s, `dashboard-open` launches an explicit dashboard URL or the `reachable_url` from `musu up --json` before sampling, never an unverified `dev_url`/`start_url` fallback, `post-route` requires the exact per-run route token, and `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` rejects no-op startup/dashboard matrices, missing resource-budget fields, missing `cpu_attribution` / `top_processes`, missing subrole attribution, working-set overages, and WebView2 process-count overages while verifying clean/current 60s matrices with a successful post-route probe; this is now bundled into the second-PC kit, captured by `run-second-pc-release-check.ps1` unless `-SkipRuntimeCpuScenarioMatrix` is used, imported by `import-second-pc-return.ps1`, and is a separate go/no-go attribution gate rather than a replacement for the release-grade two-machine `desktop-open` CPU evidence
+- second-PC release-check subrole summary: `run-second-pc-release-check.ps1` now records `runtime_idle_cpu_subrole_summary`, `runtime_cpu_scenario_subrole_summary`, and `runtime_cpu_subrole_contract_ok`; `import-second-pc-return.ps1 -RequireReleaseGateEvidence` rejects stale returns that lack those fields or whose imported CPU JSONs do not separate `bridge_runtime`, `desktop_shell`, and `webview2_helper`
 - process attribution summary: `scripts\windows\show-musu-process-attribution.ps1` writes `musu.process_attribution_summary.v1`; the second-PC wrapper includes `.local-build\process-attribution\*.process-attribution-summary.json` in the return zip, and the importer copies it back to `.local-build\process-attribution\`. Use this to distinguish machine-wide `node.exe`/WebView2 counts from MUSU-owned helpers before treating Task Manager process counts as release defects.
 - MSIX install evidence verifier: `scripts\windows\verify-msix-install-evidence.ps1`
 - MSIX install evidence recorder: `scripts\windows\record-msix-install-evidence.ps1`

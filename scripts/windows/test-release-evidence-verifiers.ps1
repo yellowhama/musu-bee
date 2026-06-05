@@ -222,6 +222,31 @@ function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     return $true
 }
 
+function Test-SecondPcImportRuntimeCpuSubroleContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'runtime_cpu_subrole_contract_ok',
+        'process_counts_by_subrole',
+        'max_one_core_percent_by_subrole',
+        'memory_totals_by_subrole_mb',
+        'bridge_runtime',
+        'desktop_shell',
+        'webview2_helper',
+        'release_check_runtime_cpu_subrole_contract_ok_missing',
+        'runtime_idle_cpu_subrole_contract_failed',
+        'runtime_cpu_scenario_subrole_contract_failed'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -856,6 +881,18 @@ Add-CaseResult `
     -Name "second-PC runtime CPU route wait timeout pass-through" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportSubroleContractOk = Test-SecondPcImportRuntimeCpuSubroleContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportSubroleContractOk `
+    -Message "second-PC return import must reject release-gate CPU evidence without current bridge/desktop/WebView2 subrole attribution"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import requires runtime CPU subrole contract" `
+    -Verifier "second-PC import source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

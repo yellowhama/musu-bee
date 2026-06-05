@@ -1018,3 +1018,31 @@ shell PID and WebView2 helper processes:
 This is local auditability and runtime-hardening evidence only. It does not
 complete multi-device P2P, live owner-scoped hosted P2P proof, or release-grade
 relay payload transport.
+
+## 2026-06-06 Second-PC Runtime CPU Subrole Import Contract
+
+The second-PC return path now enforces the runtime CPU subrole evidence contract
+at import time, not only at final go/no-go aggregation.
+
+Release-grade second-PC return imports require:
+
+- `musu.second_pc_release_check.v1` with
+  `runtime_cpu_subrole_contract_ok=true`
+- `musu.runtime_idle_cpu_evidence.v1` with `process_counts_by_subrole`,
+  `max_one_core_percent_by_subrole`, `memory_totals_by_subrole_mb`, and
+  `cpu_attribution.top_processes[*].process_subrole`
+- `musu.runtime_cpu_scenario_matrix.v1` with the same subrole fields per
+  scenario measurement
+- `bridge_runtime` present for runtime evidence
+- `desktop_shell` present for desktop/startup evidence
+- `webview2_helper` present for `desktop-open`
+
+This is an evidence/control-plane import contract. It does not move work to
+`musu.pro`; the local MUSU program on the second Windows PC still performs the
+install check, CPU sampling, process attribution, and route smoke. `musu.pro`
+continues to provide remote input, room/rendezvous/path-selection, and evidence
+coordination only.
+
+Older second-PC return archives generated before this contract are diagnostic
+only. They cannot satisfy `import-second-pc-return.ps1
+-RequireReleaseGateEvidence` or close the public two-machine CPU/matrix gates.

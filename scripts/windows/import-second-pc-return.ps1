@@ -141,6 +141,121 @@ function Get-JsonPropertyString {
     return [string]$property.Value
 }
 
+$CpuSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
+
+function Test-ObjectHasNamedProperties {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string[]]$Names
+    )
+
+    if ($null -eq $Object) {
+        return $false
+    }
+    foreach ($name in $Names) {
+        if (-not $Object.PSObject.Properties[$name]) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Get-SubroleCount {
+    param(
+        $Counts,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Counts -or -not $Counts.PSObject.Properties[$Name]) {
+        return 0
+    }
+    return [int]$Counts.$Name
+}
+
+function New-CpuSubroleSummary {
+    param(
+        $Measurement,
+        [Parameter(Mandatory = $true)][string]$Scenario,
+        [switch]$RequireDesktopShell,
+        [switch]$RequireWebView2Helper
+    )
+
+    $issues = New-Object System.Collections.Generic.List[string]
+    $counts = if ($Measurement -and $Measurement.PSObject.Properties["process_counts_by_subrole"]) { $Measurement.process_counts_by_subrole } else { $null }
+    $maxCpu = if ($Measurement -and $Measurement.PSObject.Properties["max_one_core_percent_by_subrole"]) { $Measurement.max_one_core_percent_by_subrole } else { $null }
+    $memory = if ($Measurement -and $Measurement.PSObject.Properties["memory_totals_by_subrole_mb"]) { $Measurement.memory_totals_by_subrole_mb } else { $null }
+    $cpuAttribution = if ($Measurement -and $Measurement.PSObject.Properties["cpu_attribution"]) { $Measurement.cpu_attribution } else { $null }
+    $requiredSubroles = if ($cpuAttribution -and $cpuAttribution.PSObject.Properties["required_subroles_present"]) { $cpuAttribution.required_subroles_present } else { $null }
+
+    if (-not (Test-ObjectHasNamedProperties -Object $counts -Names $CpuSubroleNames)) {
+        $issues.Add("missing_process_counts_by_subrole") | Out-Null
+    }
+    if (-not (Test-ObjectHasNamedProperties -Object $maxCpu -Names $CpuSubroleNames)) {
+        $issues.Add("missing_max_one_core_percent_by_subrole") | Out-Null
+    }
+    if (-not (Test-ObjectHasNamedProperties -Object $memory -Names $CpuSubroleNames)) {
+        $issues.Add("missing_memory_totals_by_subrole_mb") | Out-Null
+    }
+    if ($null -eq $cpuAttribution) {
+        $issues.Add("missing_cpu_attribution") | Out-Null
+    }
+    else {
+        foreach ($field in @("sample_count_by_subrole", "total_cpu_seconds_by_subrole", "max_one_core_percent_by_subrole")) {
+            if (-not $cpuAttribution.PSObject.Properties[$field] -or -not (Test-ObjectHasNamedProperties -Object $cpuAttribution.$field -Names $CpuSubroleNames)) {
+                $issues.Add("missing_cpu_attribution_$field") | Out-Null
+            }
+        }
+        if (-not $cpuAttribution.PSObject.Properties["top_processes"] -or @($cpuAttribution.top_processes).Count -eq 0) {
+            $issues.Add("missing_cpu_attribution_top_processes") | Out-Null
+        }
+        else {
+            $missingTopSubroleCount = @($cpuAttribution.top_processes | Where-Object {
+                -not $_.PSObject.Properties["process_subrole"] -or ([string]$_.process_subrole) -notin $CpuSubroleNames
+            }).Count
+            if ($missingTopSubroleCount -gt 0) {
+                $issues.Add("malformed_cpu_attribution_top_process_subrole") | Out-Null
+            }
+        }
+    }
+
+    if ((Get-SubroleCount -Counts $counts -Name "bridge_runtime") -lt 1) {
+        $issues.Add("missing_bridge_runtime_process") | Out-Null
+    }
+    if ($RequireDesktopShell -and (Get-SubroleCount -Counts $counts -Name "desktop_shell") -lt 1) {
+        $issues.Add("missing_desktop_shell_process") | Out-Null
+    }
+    if ($RequireWebView2Helper -and (Get-SubroleCount -Counts $counts -Name "webview2_helper") -lt 1) {
+        $issues.Add("missing_webview2_helper_process") | Out-Null
+    }
+
+    $bridgeRequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["bridge_runtime"] -and [bool]$requiredSubroles.bridge_runtime)
+    if (-not $bridgeRequiredPresent) {
+        $issues.Add("missing_required_bridge_runtime_subrole") | Out-Null
+    }
+    if ($RequireDesktopShell) {
+        $desktopRequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["desktop_shell"] -and [bool]$requiredSubroles.desktop_shell)
+        if (-not $desktopRequiredPresent) {
+            $issues.Add("missing_required_desktop_shell_subrole") | Out-Null
+        }
+    }
+    if ($RequireWebView2Helper) {
+        $webView2RequiredPresent = ($requiredSubroles -and $requiredSubroles.PSObject.Properties["webview2_helper"] -and [bool]$requiredSubroles.webview2_helper)
+        if (-not $webView2RequiredPresent) {
+            $issues.Add("missing_required_webview2_helper_subrole") | Out-Null
+        }
+    }
+
+    return [pscustomobject]@{
+        scenario = $Scenario
+        ok = ($issues.Count -eq 0)
+        issues = @($issues)
+        process_counts_by_subrole = $counts
+        max_one_core_percent_by_subrole = $maxCpu
+        memory_totals_by_subrole_mb = $memory
+        required_subroles_present = $requiredSubroles
+    }
+}
+
 $resolvedReturnZip = (Resolve-Path -LiteralPath $ReturnZipPath).Path
 $safeBaseName = [System.IO.Path]::GetFileNameWithoutExtension($resolvedReturnZip) -replace "[^A-Za-z0-9._-]", "_"
 $extractRoot = Join-Path $ImportRoot $safeBaseName
@@ -243,11 +358,52 @@ if ($RecordMsixInstall) {
 }
 
 $releaseGateEvidenceIssues = New-Object System.Collections.Generic.List[string]
+$runtimeIdleCpuSubroleSummary = $null
+$runtimeCpuScenarioSubroleSummary = @()
+$runtimeCpuSubroleContractOk = $false
 if (-not $canonicalRuntimeIdleCpuEvidence) {
     $releaseGateEvidenceIssues.Add("missing_runtime_idle_cpu_evidence") | Out-Null
 }
+else {
+    try {
+        $runtimeIdleCpuJson = Get-Content -LiteralPath $canonicalRuntimeIdleCpuEvidence -Raw | ConvertFrom-Json
+        $runtimeIdleCpuSubroleSummary = New-CpuSubroleSummary -Measurement $runtimeIdleCpuJson -Scenario "desktop-open" -RequireDesktopShell -RequireWebView2Helper
+        if (-not [bool]$runtimeIdleCpuSubroleSummary.ok) {
+            $releaseGateEvidenceIssues.Add("runtime_idle_cpu_subrole_contract_failed:$(@($runtimeIdleCpuSubroleSummary.issues) -join ',')") | Out-Null
+        }
+    }
+    catch {
+        $releaseGateEvidenceIssues.Add("runtime_idle_cpu_subrole_contract_unreadable:$($_.Exception.Message)") | Out-Null
+    }
+}
 if (-not $canonicalRuntimeCpuScenarioMatrix) {
     $releaseGateEvidenceIssues.Add("missing_runtime_cpu_scenario_matrix") | Out-Null
+}
+else {
+    try {
+        $runtimeCpuScenarioJson = Get-Content -LiteralPath $canonicalRuntimeCpuScenarioMatrix -Raw | ConvertFrom-Json
+        if (-not $runtimeCpuScenarioJson.PSObject.Properties["scenarios"] -or @($runtimeCpuScenarioJson.scenarios).Count -eq 0) {
+            $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_matrix_subrole_contract_missing_scenarios") | Out-Null
+        }
+        else {
+            $runtimeCpuScenarioSubroleSummary = @($runtimeCpuScenarioJson.scenarios | ForEach-Object {
+                $scenarioName = [string]$_.scenario
+                $requiresDesktop = ($scenarioName -eq "startup-open" -or $scenarioName -eq "desktop-open")
+                $requiresWebView2 = ($scenarioName -eq "desktop-open")
+                New-CpuSubroleSummary `
+                    -Measurement $_.measurement `
+                    -Scenario $scenarioName `
+                    -RequireDesktopShell:$requiresDesktop `
+                    -RequireWebView2Helper:$requiresWebView2
+            })
+            foreach ($summary in @($runtimeCpuScenarioSubroleSummary | Where-Object { -not [bool]$_.ok })) {
+                $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_subrole_contract_failed:$($summary.scenario):$(@($summary.issues) -join ',')") | Out-Null
+            }
+        }
+    }
+    catch {
+        $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_subrole_contract_unreadable:$($_.Exception.Message)") | Out-Null
+    }
 }
 if (-not $canonicalProcessAttributionSummary) {
     $releaseGateEvidenceIssues.Add("missing_process_attribution_summary") | Out-Null
@@ -274,6 +430,12 @@ else {
     elseif (-not [bool]$releaseCheck.process_attribution_ok) {
         $releaseGateEvidenceIssues.Add("release_check_process_attribution_not_ok") | Out-Null
     }
+    if (-not $releaseCheck.PSObject.Properties["runtime_cpu_subrole_contract_ok"]) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_subrole_contract_ok_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.runtime_cpu_subrole_contract_ok) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_subrole_contract_not_ok") | Out-Null
+    }
     if (-not $releaseCheck.PSObject.Properties["return_zip_ok"]) {
         $releaseGateEvidenceIssues.Add("release_check_return_zip_ok_missing") | Out-Null
     }
@@ -281,6 +443,10 @@ else {
         $releaseGateEvidenceIssues.Add("release_check_return_zip_not_ok") | Out-Null
     }
 }
+$runtimeCpuSubroleContractOk = (
+    ($runtimeIdleCpuSubroleSummary -and [bool]$runtimeIdleCpuSubroleSummary.ok) -and
+    ($runtimeCpuScenarioSubroleSummary.Count -gt 0 -and @($runtimeCpuScenarioSubroleSummary | Where-Object { -not [bool]$_.ok }).Count -eq 0)
+)
 $releaseGateEvidenceOk = ($releaseGateEvidenceIssues.Count -eq 0)
 
 $result = [pscustomobject]@{
@@ -295,6 +461,9 @@ $result = [pscustomobject]@{
     msix_legacy_conflicts_path = $canonicalMsixLegacyConflicts
     runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
     runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
+    runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
+    runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
+    runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
     process_attribution_summary_path = $canonicalProcessAttributionSummary
     release_check_path = $canonicalReleaseCheck
     remote_name = [string]$returnCard.remote_name
@@ -321,6 +490,15 @@ else {
     "msix_legacy_conflicts: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not present>' })"
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
+    "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
+    if ($result.runtime_idle_cpu_subrole_summary) {
+        $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole
+        "runtime_idle_cpu_subroles: bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"
+    }
+    foreach ($summary in @($result.runtime_cpu_scenario_subrole_summary)) {
+        $counts = $summary.process_counts_by_subrole
+        "runtime_cpu_scenario_subroles[$($summary.scenario)]: ok=$($summary.ok), bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"
+    }
     "process_attribution_summary: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not present>' })"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
