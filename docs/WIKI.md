@@ -7061,3 +7061,47 @@ mailbox, Store/Microsoft, and hosted `musu.pro` P2P release proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_POST_ROOM_PRESENCE_CANDIDATE_METADATA_PRIMARY_EVIDENCE_REFRESH_2026_06_05.md`
+
+## 2026-06-05 Rendezvous selector candidate metadata (wiki/737)
+
+Rust rendezvous path selection now consumes the public/NAT/relay candidate
+metadata preserved by `musu.pro` and published by local MUSU programs.
+
+Source change:
+
+- `musu-rs/src/bridge/rendezvous.rs`
+- direct candidates select `public_addr` when present
+- selected peer metadata preserves original `candidate_addr`,
+  `selected_addr_source`, `public_addr`, `nat_type`, and `nat_observed_by`
+- relay descriptors are carried under `relay_candidates` as fallback metadata
+- relay candidates remain excluded from default route selection
+
+Regression coverage:
+
+- LAN still wins over Tailscale/direct/relay when available
+- direct-only public candidates select `public_addr`
+- NAT metadata survives into `ResolvedPeer.meta`
+- relay descriptors are available for fallback diagnostics without making relay
+  the default data path
+
+Validation:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --bin musu rendezvous -- --nocapture`
+  passed `6/6`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu` passed
+- `audit-p2p-store-forward-relay-contract.ps1 -Json` passed with `ok=true`
+  and `fail_count=0`
+- `git diff --check` passed
+
+Release implication:
+
+- this closes the selector-side gap after wiki/733 and wiki/735
+- Rust source changed after the current packaged evidence refresh, so fresh
+  MSIX, single-machine, idle CPU, and runtime CPU matrix evidence is required
+  again before current-source local runtime gates can be claimed
+- public release remains No-Go on second-PC evidence, hosted P2P release proof,
+  support mailbox evidence, Store evidence, and packaged evidence freshness
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RENDEZVOUS_SELECTOR_CANDIDATE_METADATA_2026_06_05.md`

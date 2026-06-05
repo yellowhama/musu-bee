@@ -331,22 +331,28 @@ fn route_peer_from_target_candidates(
     target: &crate::cloud::NodeCandidateSet,
 ) -> Option<ResolvedPeer> {
     let peer_public_key = target.public_key.trim();
+    let relay_candidates = target
+        .candidate_endpoints
+        .iter()
+        .filter(|candidate| matches!(candidate.kind, crate::cloud::RouteKind::Relay))
+        .filter_map(relay_candidate_meta)
+        .collect::<Vec<_>>();
     let peers = target
         .candidate_endpoints
         .iter()
         .filter_map(|candidate| {
-            if candidate.addr.trim().is_empty() {
-                return None;
-            }
             if matches!(
                 candidate.kind,
                 crate::cloud::RouteKind::Relay | crate::cloud::RouteKind::Failed
             ) {
                 return None;
             }
+            let (selected_addr, selected_addr_source) = selected_candidate_addr(candidate)?;
             let mut meta = serde_json::json!({
                 "source": "musu.pro_rendezvous",
                 "candidate_kind": candidate.kind,
+                "candidate_addr": candidate.addr,
+                "selected_addr_source": selected_addr_source,
                 "observed_at": candidate.observed_at,
             });
             if !peer_public_key.is_empty() {
@@ -356,8 +362,20 @@ fn route_peer_from_target_candidates(
             if let Some(scheme) = candidate.scheme.as_deref() {
                 meta["transport_scheme"] = serde_json::json!(scheme);
             }
+            if let Some(public_addr) = trimmed_opt(candidate.public_addr.as_deref()) {
+                meta["public_addr"] = serde_json::json!(public_addr);
+            }
+            if let Some(nat_type) = candidate.nat_type.as_ref() {
+                meta["nat_type"] = serde_json::json!(nat_type);
+            }
+            if let Some(nat_observed_by) = trimmed_opt(candidate.nat_observed_by.as_deref()) {
+                meta["nat_observed_by"] = serde_json::json!(nat_observed_by);
+            }
+            if !relay_candidates.is_empty() {
+                meta["relay_candidates"] = serde_json::json!(relay_candidates);
+            }
             Some(ResolvedPeer {
-                addr: candidate.addr.trim().to_string(),
+                addr: selected_addr,
                 name: Some(target_node_id.to_string()),
                 source: crate::peer::discovery::PeerSource::Registry,
                 meta: Some(meta),
@@ -366,6 +384,38 @@ fn route_peer_from_target_candidates(
         .collect::<Vec<_>>();
 
     crate::bridge::router::select_best_remote_candidate(&peers)
+}
+
+fn trimmed_opt(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|value| !value.is_empty())
+}
+
+fn selected_candidate_addr(
+    candidate: &crate::cloud::CandidateEndpoint,
+) -> Option<(String, &'static str)> {
+    if matches!(candidate.kind, crate::cloud::RouteKind::DirectQuic) {
+        if let Some(public_addr) = trimmed_opt(candidate.public_addr.as_deref()) {
+            return Some((public_addr.to_string(), "public_addr"));
+        }
+    }
+
+    trimmed_opt(Some(candidate.addr.as_str())).map(|addr| (addr.to_string(), "addr"))
+}
+
+fn relay_candidate_meta(candidate: &crate::cloud::CandidateEndpoint) -> Option<serde_json::Value> {
+    let relay_url = trimmed_opt(candidate.relay_url.as_deref())?;
+    let mut meta = serde_json::json!({
+        "addr": candidate.addr,
+        "relay_url": relay_url,
+        "observed_at": candidate.observed_at,
+    });
+    if let Some(protocol) = candidate.relay_protocol.as_ref() {
+        meta["relay_protocol"] = serde_json::json!(protocol);
+    }
+    if let Some(scheme) = trimmed_opt(candidate.scheme.as_deref()) {
+        meta["scheme"] = serde_json::json!(scheme);
+    }
+    Some(meta)
 }
 
 pub async fn prepare_forward_rendezvous(
@@ -878,6 +928,93 @@ mod tests {
                 .and_then(|meta| meta.get("transport_scheme"))
                 .and_then(|value| value.as_str()),
             Some("https")
+        );
+        assert_eq!(
+            peer.meta
+                .as_ref()
+                .and_then(|meta| meta.get("selected_addr_source"))
+                .and_then(|value| value.as_str()),
+            Some("addr")
+        );
+        assert_eq!(
+            peer.meta
+                .as_ref()
+                .and_then(|meta| meta.get("relay_candidates"))
+                .and_then(|value| value.as_array())
+                .and_then(|values| values.first())
+                .and_then(|value| value.get("relay_url"))
+                .and_then(|value| value.as_str()),
+            Some("wss://relay.musu.pro/api/v1/relay/connect")
+        );
+    }
+
+    #[test]
+    fn route_peer_from_target_candidates_uses_direct_public_addr_and_preserves_nat_metadata() {
+        let now = chrono::Utc::now().to_rfc3339();
+        let target = crate::cloud::NodeCandidateSet {
+            node_id: "target-node".to_string(),
+            node_name: "target-node".to_string(),
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            public_key: "sha256:test".to_string(),
+            relay_capable: true,
+            capabilities: vec!["bridge_http_forward".to_string()],
+            candidate_endpoints: vec![
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::DirectQuic,
+                    addr: "10.0.0.10:8070".to_string(),
+                    observed_at: now.clone(),
+                    scheme: Some("https".to_string()),
+                    public_addr: Some("203.0.113.10:8949".to_string()),
+                    nat_type: Some(crate::cloud::NatType::Symmetric),
+                    nat_observed_by: Some("stun:musu.pro".to_string()),
+                    relay_url: None,
+                    relay_protocol: None,
+                },
+                crate::cloud::CandidateEndpoint {
+                    kind: crate::cloud::RouteKind::Relay,
+                    addr: "relay.musu.pro:443".to_string(),
+                    observed_at: now,
+                    scheme: Some("https".to_string()),
+                    public_addr: None,
+                    nat_type: None,
+                    nat_observed_by: None,
+                    relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".to_string()),
+                    relay_protocol: Some(crate::cloud::RelayProtocol::WebsocketTunnel),
+                },
+            ],
+        };
+
+        let peer = route_peer_from_target_candidates("target-node", &target).unwrap();
+        assert_eq!(peer.addr, "203.0.113.10:8949");
+        let meta = peer.meta.as_ref().unwrap();
+        assert_eq!(
+            meta.get("candidate_addr").and_then(|value| value.as_str()),
+            Some("10.0.0.10:8070")
+        );
+        assert_eq!(
+            meta.get("selected_addr_source")
+                .and_then(|value| value.as_str()),
+            Some("public_addr")
+        );
+        assert_eq!(
+            meta.get("public_addr").and_then(|value| value.as_str()),
+            Some("203.0.113.10:8949")
+        );
+        assert_eq!(
+            meta.get("nat_type").and_then(|value| value.as_str()),
+            Some("symmetric")
+        );
+        assert_eq!(
+            meta.get("nat_observed_by").and_then(|value| value.as_str()),
+            Some("stun:musu.pro")
+        );
+        assert_eq!(
+            meta.get("relay_candidates")
+                .and_then(|value| value.as_array())
+                .and_then(|values| values.first())
+                .and_then(|value| value.get("relay_protocol"))
+                .and_then(|value| value.as_str()),
+            Some("websocket_tunnel")
         );
     }
 

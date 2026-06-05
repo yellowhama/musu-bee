@@ -58,12 +58,12 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 09:46 KST post-room-presence-candidate evidence refresh, the
+As of the 2026-06-05 10:36 KST rendezvous selector metadata hardening, the
 product direction above is documented, the lease-bound queue fallback source
 contract is gated, room presence/rendezvous candidate metadata is preserved,
-the local Rust CLI can publish public/NAT/relay candidate descriptors, and
-fresh one-machine packaged local-runtime evidence is recorded for the current
-source. Public P2P release is still not release-complete.
+the local Rust CLI can publish public/NAT/relay candidate descriptors, and the
+Rust rendezvous route selector now carries those descriptors into selected peer
+metadata. Public P2P release is still not release-complete.
 
 Passing local state:
 
@@ -96,6 +96,11 @@ Passing local state:
   values, `--nat-type`, `--nat-observed-by`, `--relay-url`, and
   `--relay-protocol`, so each local program can publish the same public/NAT
   and relay fallback descriptors that `musu.pro` preserves
+- Rust rendezvous path selection now uses a direct candidate's `public_addr`
+  as the selected direct endpoint when present, preserves the original
+  candidate `addr`, NAT type/observer, and selected address source in
+  `ResolvedPeer.meta`, and carries relay descriptors as fallback metadata
+  without making relay the default data path
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
 
@@ -108,6 +113,9 @@ Open external gates:
 - owner-scoped relay route evidence count is `0`
 - relay payload transport proof is `false`
 - relay payload delivery proof valid count is `0`
+- fresh packaged MSIX/single-machine/CPU/matrix evidence is required again
+  after this Rust selector source change before current-source local runtime
+  evidence can be claimed
 
 This means current validation is still a one-machine test. Installing this
 work-in-progress build on another computer is required before multi-device work

@@ -5614,3 +5614,27 @@ Residual hardening note:
 Public release remains No-Go until second-PC runtime/multi-device evidence,
 hosted relay payload proof, support mailbox evidence, and Store evidence are
 complete.
+## 2026-06-05 Rendezvous selector candidate metadata hardening
+
+Rust rendezvous selection now consumes the candidate metadata preserved by
+`musu.pro` room presence/rendezvous and published by local MUSU programs.
+
+- direct candidates select `public_addr` when present
+- selected peer metadata keeps original `candidate_addr`,
+  `selected_addr_source`, `public_addr`, `nat_type`, and `nat_observed_by`
+- relay descriptors are carried as `relay_candidates` metadata for fallback
+  diagnostics
+- relay remains fallback-only and is still not selected as the default data path
+
+Validation passed:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --bin musu rendezvous -- --nocapture`
+  - `6/6`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu`
+- `scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -Json`
+  - `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Release implication: this is Rust runtime source. Fresh MSIX install,
+single-machine smoke, desktop-open idle CPU, and runtime CPU matrix evidence
+are required again before current-source local runtime gates can be claimed.

@@ -4089,4 +4089,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `strict MSIX evidence capture PATH shadow`, `.cargo\\bin\\musu.exe`,
   `runtime idle CPU 1/2`, and `runtime matrix 1/2`.
 
+- 2026-06-05 rendezvous selector candidate metadata:
+  `RELEASE_1_15_0_RC1_RENDEZVOUS_SELECTOR_CANDIDATE_METADATA_2026_06_05.md`
+  (wiki/737) wires preserved MUSU.PRO candidate descriptors into Rust
+  rendezvous path selection. Search terms should include `GOAL v550`,
+  `wiki/737`, `route_peer_from_target_candidates`, `selected_candidate_addr`,
+  `public_addr`, `candidate_addr`, `selected_addr_source`,
+  `nat_type=symmetric`, `nat_observed_by`, `relay_candidates`,
+  `websocket_tunnel`, `203.0.113.10:8949`,
+  `route_peer_from_target_candidates_uses_direct_public_addr_and_preserves_nat_metadata`,
+  `rendezvous 6/6`, `cargo check --manifest-path .\\musu-rs\\Cargo.toml --bin musu`,
+  `audit-p2p-store-forward-relay-contract ok=true`, `relay remains fallback`,
+  `fresh packaged evidence required`, and `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**
