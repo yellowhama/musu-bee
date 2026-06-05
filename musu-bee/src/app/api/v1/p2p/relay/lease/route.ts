@@ -15,6 +15,7 @@ import {
   relayLeaseStoreFields,
   relayPayloadEndpointWired,
   relayPayloadQueueEndpointWired,
+  relayTransportKindReleaseGrade,
   relayTransportWired,
   relayUrl,
   relayUrlIsWss,
@@ -45,6 +46,9 @@ function relayPolicyBlockers(input: {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayTransportKindReleaseGrade()) {
+    blockers.push("relay_transport_kind_not_release_grade");
   }
   if (!relayPayloadEndpointWired()) {
     blockers.push("relay_payload_endpoint_not_wired");

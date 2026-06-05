@@ -106,6 +106,7 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_disabled/);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_url_not_configured/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
@@ -168,6 +169,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_lease_store_configured, true);
     assert.equal(body.relay_lease_store_release_grade, true);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });

@@ -121,6 +121,7 @@ test("fails closed when relay connect is reached over HTTP", async () => {
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.payload_transit_requires_lease, true);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.doesNotMatch(body.blockers.join(","), /relay_disabled/);
     assert.doesNotMatch(body.blockers.join(","), /relay_url_not_configured/);
@@ -151,6 +152,7 @@ test("does not accept POST payload transit while the relay endpoint is unwired",
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_transport_proof, undefined);
+    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });

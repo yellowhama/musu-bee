@@ -163,6 +163,7 @@ function Get-SourceRelayMarker {
         }
         relay_transport_kind = ""
         release_grade_transport_required = ""
+        relay_transport_kind_release_grade = $false
     }
 
     if (-not (Test-Path -LiteralPath $policyPath)) {
@@ -225,6 +226,10 @@ function Get-SourceRelayMarker {
         if ($releaseRequirementMatch.Success) {
             $summary.release_grade_transport_required = $releaseRequirementMatch.Groups[1].Value
         }
+        $summary.relay_transport_kind_release_grade = (
+            -not [string]::IsNullOrWhiteSpace($summary.relay_transport_kind) -and
+            $summary.relay_transport_kind -eq $summary.release_grade_transport_required
+        )
     }
     catch {
         $summary.error = $_.Exception.Message
@@ -385,6 +390,9 @@ else {
     if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
         $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
     }
+    if (-not $sourceSummary.relay_transport_kind_release_grade) {
+        $blockers.Add("source_relay_transport_kind_not_release_grade") | Out-Null
+    }
 }
 foreach ($name in $githubMissing) {
     $blockers.Add(("missing_{0}" -f $name.ToLowerInvariant())) | Out-Null
@@ -430,6 +438,9 @@ if ($blockers -contains "source_relay_payload_queue_fallback_not_implemented") {
 if ($blockers -contains "source_release_relay_connect_endpoint_not_implemented" -or $blockers -contains "source_release_relay_payload_endpoint_not_implemented") {
     $nextSteps.Add("Current source has the store-forward relay payload queue fallback wired, but still marks release tunnel connect/payload endpoints false in musu-bee\src\lib\p2pRelayPolicy.ts; env flags alone cannot make relay_transport_wired=true.") | Out-Null
     $nextSteps.Add("Replace the fail-closed /api/v1/relay/connect placeholder with a real Connect/Pro fallback relay/tunnel transport that can emit quic_tls_1_3 proof before enabling the release source markers.") | Out-Null
+}
+if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
+    $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release requirement quic_tls_1_3; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
 }
 if ($blockers -contains "source_release_relay_connect_placeholder_active") {
     $nextSteps.Add("Keep /api/v1/relay/connect fail-closed until a real relay/tunnel handshake exists; remove the 501 placeholder only with tests proving release-grade QUIC/TLS payload transport.") | Out-Null
@@ -489,6 +500,7 @@ else {
     "source store-forward relay queue fallback implemented: $($result.source.relay_payload_queue_fallback_implemented)"
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
+    "source relay transport kind release-grade: $($result.source.relay_transport_kind_release_grade)"
     "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
     "source release payload endpoint queue-only: $($result.source.release_payload_endpoint_queue_only)"
     "evidence: $($result.evidence.path)"

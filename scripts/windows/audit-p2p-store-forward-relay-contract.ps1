@@ -113,10 +113,13 @@ Add-Check `
         $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = false") -and
         $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
         $policy.Contains("return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED && relayConnectEndpointWired()") -and
-        $policy.Contains("return relayTransportFlagEnabled() && relayPayloadEndpointWired()")
+        $policy.Contains("relayTransportKindReleaseGrade") -and
+        $policy.Contains("return transportKind === RELEASE_GRADE_TRANSPORT_REQUIRED") -and
+        $policy.Contains("return relayTransportFlagEnabled() && relayTransportKindReleaseGrade() && relayPayloadEndpointWired()") -and
+        $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
     -Path $policyPath `
-    -Message "Store-forward queue fallback cannot be reported as release-grade tunnel payload transport by env flags alone."
+    -Message "Store-forward queue fallback cannot be reported as release-grade tunnel payload transport by env flags or non-release transport kind alone."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -413,6 +416,7 @@ Add-Check `
             "rust_target_drain_and_delivery_proof",
             "source_release_relay_connect_endpoint_not_implemented",
             "source_release_relay_connect_placeholder_active",
+            "source_relay_transport_kind_not_release_grade",
             "source_release_relay_payload_marker_conflicts_with_queue_only_endpoint"
         )
     ) `

@@ -37,8 +37,13 @@ export function relayPayloadQueueEndpointWired(): boolean {
   return RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED;
 }
 
+export function relayTransportKindReleaseGrade(): boolean {
+  const transportKind: string = RELAY_TRANSPORT_KIND;
+  return transportKind === RELEASE_GRADE_TRANSPORT_REQUIRED;
+}
+
 export function relayTransportWired(): boolean {
-  return relayTransportFlagEnabled() && relayPayloadEndpointWired();
+  return relayTransportFlagEnabled() && relayTransportKindReleaseGrade() && relayPayloadEndpointWired();
 }
 
 export function relayUrlIsWss(value = relayUrl()): boolean {
@@ -75,6 +80,9 @@ export function relayTransportPreflightBlockers(): string[] {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayTransportKindReleaseGrade()) {
+    blockers.push("relay_transport_kind_not_release_grade");
   }
   if (!relayPayloadEndpointWired()) {
     blockers.push("relay_payload_endpoint_not_wired");
