@@ -367,10 +367,14 @@ Add-Check `
     -Passed (
         Test-ContainsAll -Text $statusScript -Needles @(
             "relay_payload_queue_fallback_implemented",
+            "release_connect_fail_closed_placeholder_active",
+            "release_payload_endpoint_queue_only",
             "web_queue_store_claim_deliver",
             "rust_enqueue_after_lease",
             "rust_target_drain_and_delivery_proof",
-            "source_release_relay_connect_endpoint_not_implemented"
+            "source_release_relay_connect_endpoint_not_implemented",
+            "source_release_relay_connect_placeholder_active",
+            "source_release_relay_payload_marker_conflicts_with_queue_only_endpoint"
         )
     ) `
     -Path $statusScriptPath `

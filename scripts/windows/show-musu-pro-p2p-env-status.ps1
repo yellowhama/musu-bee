@@ -141,6 +141,7 @@ function Get-SourceRelayMarker {
     )
 
     $policyPath = Join-Path $RepoRoot "musu-bee\src\lib\p2pRelayPolicy.ts"
+    $connectRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\relay\connect\route.ts"
     $payloadRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
     $rustRendezvousPath = Join-Path $RepoRoot "musu-rs\src\bridge\rendezvous.rs"
     $rustRelayPayloadDrainPath = Join-Path $RepoRoot "musu-rs\src\bridge\handlers\relay_payload.rs"
@@ -151,6 +152,8 @@ function Get-SourceRelayMarker {
         relay_connect_endpoint_implemented = $false
         relay_payload_endpoint_implemented = $false
         relay_payload_queue_endpoint_implemented = $false
+        release_connect_fail_closed_placeholder_active = $false
+        release_payload_endpoint_queue_only = $false
         relay_payload_queue_fallback_implemented = $false
         relay_payload_queue_fallback_components = [pscustomobject]@{
             policy_marker = $false
@@ -169,6 +172,7 @@ function Get-SourceRelayMarker {
 
     try {
         $text = Get-Content -LiteralPath $policyPath -Raw
+        $connectRouteText = if (Test-Path -LiteralPath $connectRoutePath) { Get-Content -LiteralPath $connectRoutePath -Raw } else { "" }
         $payloadRouteText = if (Test-Path -LiteralPath $payloadRoutePath) { Get-Content -LiteralPath $payloadRoutePath -Raw } else { "" }
         $rustRendezvousText = if (Test-Path -LiteralPath $rustRendezvousPath) { Get-Content -LiteralPath $rustRendezvousPath -Raw } else { "" }
         $rustRelayPayloadDrainText = if (Test-Path -LiteralPath $rustRelayPayloadDrainPath) { Get-Content -LiteralPath $rustRelayPayloadDrainPath -Raw } else { "" }
@@ -176,6 +180,16 @@ function Get-SourceRelayMarker {
         $summary.relay_connect_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_CONNECT_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.relay_payload_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.relay_payload_queue_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED\s*=\s*true')
+        $summary.release_connect_fail_closed_placeholder_active = (
+            [regex]::IsMatch($connectRouteText, 'relay_payload_transport_not_implemented') -and
+            [regex]::IsMatch($connectRouteText, '\{\s*status:\s*501\s*\}') -and
+            [regex]::IsMatch($connectRouteText, 'implement the QUIC/TLS relay payload service')
+        )
+        $summary.release_payload_endpoint_queue_only = (
+            [regex]::IsMatch($payloadRouteText, 'release_grade:\s*false') -and
+            [regex]::IsMatch($payloadRouteText, 'relay_payload_queue_not_quic_tls_transport') -and
+            [regex]::IsMatch($payloadRouteText, 'relay_payload_queue_endpoint_wired:\s*true')
+        )
         $queueFallbackComponents = [pscustomobject]@{
             policy_marker = [bool]$summary.relay_payload_queue_endpoint_implemented
             web_queue_store_claim_deliver = (
@@ -356,6 +370,18 @@ else {
     if (-not $sourceSummary.relay_payload_endpoint_implemented) {
         $blockers.Add("source_release_relay_payload_endpoint_not_implemented") | Out-Null
     }
+    if ($sourceSummary.release_connect_fail_closed_placeholder_active) {
+        $blockers.Add("source_release_relay_connect_placeholder_active") | Out-Null
+    }
+    if ($sourceSummary.release_payload_endpoint_queue_only) {
+        $blockers.Add("source_release_payload_endpoint_queue_only") | Out-Null
+    }
+    if ($sourceSummary.relay_connect_endpoint_implemented -and $sourceSummary.release_connect_fail_closed_placeholder_active) {
+        $blockers.Add("source_release_relay_connect_marker_conflicts_with_placeholder") | Out-Null
+    }
+    if ($sourceSummary.relay_payload_endpoint_implemented -and $sourceSummary.release_payload_endpoint_queue_only) {
+        $blockers.Add("source_release_relay_payload_marker_conflicts_with_queue_only_endpoint") | Out-Null
+    }
     if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
         $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
     }
@@ -404,6 +430,15 @@ if ($blockers -contains "source_relay_payload_queue_fallback_not_implemented") {
 if ($blockers -contains "source_release_relay_connect_endpoint_not_implemented" -or $blockers -contains "source_release_relay_payload_endpoint_not_implemented") {
     $nextSteps.Add("Current source has the store-forward relay payload queue fallback wired, but still marks release tunnel connect/payload endpoints false in musu-bee\src\lib\p2pRelayPolicy.ts; env flags alone cannot make relay_transport_wired=true.") | Out-Null
     $nextSteps.Add("Replace the fail-closed /api/v1/relay/connect placeholder with a real Connect/Pro fallback relay/tunnel transport that can emit quic_tls_1_3 proof before enabling the release source markers.") | Out-Null
+}
+if ($blockers -contains "source_release_relay_connect_placeholder_active") {
+    $nextSteps.Add("Keep /api/v1/relay/connect fail-closed until a real relay/tunnel handshake exists; remove the 501 placeholder only with tests proving release-grade QUIC/TLS payload transport.") | Out-Null
+}
+if ($blockers -contains "source_release_payload_endpoint_queue_only") {
+    $nextSteps.Add("Keep the store-forward payload queue labeled non-release-grade; add a distinct release tunnel payload endpoint before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
+}
+if ($blockers -contains "source_release_relay_connect_marker_conflicts_with_placeholder" -or $blockers -contains "source_release_relay_payload_marker_conflicts_with_queue_only_endpoint") {
+    $nextSteps.Add("Do not flip release source markers while the active implementation is still the fail-closed connect placeholder or queue-only payload fallback.") | Out-Null
 }
 if ($blockers -contains "live_evidence_relay_route_not_proven") {
     $nextSteps.Add("Record owner-scoped release-grade relay route evidence with route_kind=relay, result=success, payload_transited_musu_infra=true, and release_grade=true; env flags and relay leases alone are not sufficient.") | Out-Null
@@ -454,6 +489,8 @@ else {
     "source store-forward relay queue fallback implemented: $($result.source.relay_payload_queue_fallback_implemented)"
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
+    "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
+    "source release payload endpoint queue-only: $($result.source.release_payload_endpoint_queue_only)"
     "evidence: $($result.evidence.path)"
     "blockers: $(@($result.blockers) -join ', ')"
     if ($result.next_steps.Count -gt 0) {
