@@ -9474,3 +9474,82 @@ Search terms should include `GOAL v629`, `wiki/804`,
 `CandidateEndpointSchema strict`, `room_rendezvous_payload_bytes_not_accepted`,
 `room_presence_payload_bytes_not_accepted`, and
 `P2P store-forward relay audit check_count=64`.
+
+## 2026-06-06 Post Room-Control Current HEAD CPU Audit (wiki/805)
+
+Fresh current clean HEAD CPU/process evidence was captured on `HUGH_SECOND`
+after room control strict metadata hardening.
+
+Evidence:
+
+- CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-080201-HUGH_SECOND.desktop-open.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260606-080350-HUGH_SECOND.process-ownership.json`
+
+Key values:
+
+- commit `ade5b64f012c14a8de6f2c0fa99065de5db45f64`
+- `git_dirty=false`
+- CPU sample `60.045s`
+- hot process count `0`
+- process count `8`
+- role CPU: MUSU `0`, Node `0`, WebView2 `0.18`, other `0`
+- owned WebView2 helpers `6`
+- owned Node helpers `0`
+- working set `363.79MB`
+- private memory `193.86MB`
+- process ownership `ok=true`, `fail_count=0`
+- bridge `127.0.0.1:3622`, PID `4204`, health `HTTP 200`
+
+Audit:
+
+- Rust background-loop contract: `ok=true`, `fail_count=0`, unaudited loops
+  `0`, unaudited spawns `0`
+- frontend polling contract: `ok=true`, `fail_count=0`, low-duty call sites
+  `29`, direct intervals `0`, direct visibility listeners `0`
+- P2P store-forward relay contract: `ok=true`, `fail_count=0`,
+  `check_count=64`
+- process ownership: `ok=true`, `fail_count=0`
+
+Qualitative audit found no high/medium issue and no source changed. The local
+desktop-open busy-loop concern is not reproduced on the sampled HUGH_SECOND
+state. This is one-machine evidence only; public release remains No-Go on
+second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay proof, public metadata,
+support mailbox, and Store evidence.
+
+Product boundary remains unchanged: MUSU Desktop executes work locally, while
+MUSU.PRO accepts remote input and coordinates project/company rooms, presence,
+rendezvous, path selection, relay fallback, and evidence. Direct P2P mesh
+remains preferred after bootstrap.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_CONTROL_CURRENT_HEAD_CPU_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_POST_ROOM_CONTROL_CPU_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Post Room-Control Current HEAD CPU Audit Index Refresh (wiki/806)
+
+MUSU local indexer was refreshed after wiki/805 and GOAL v630.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2564 files`
+- `2751 symbols`
+- `13062 ms`
+
+Indexed context includes fresh `20260606-080201-HUGH_SECOND.desktop-open` CPU
+evidence, `20260606-080350-HUGH_SECOND.process-ownership`, the post
+room-control current HEAD CPU audit report, next-step plan, BETA checklist,
+network boundary spec, MUSU.PRO P2P control-plane spec, WIKI/WIKI_INDEX, and
+CoS memory updates.
+
+Search terms should include `GOAL v631`, `wiki/806`,
+`post room-control current HEAD CPU audit index refresh`, `2564 files`,
+`2751 symbols`, `13062 ms`, `20260606-080201-HUGH_SECOND.desktop-open`,
+`20260606-080350-HUGH_SECOND.process-ownership`, `WebView2 0.18`,
+`process ownership fail_count=0`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

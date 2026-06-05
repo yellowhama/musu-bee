@@ -7021,3 +7021,63 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2559 files`, `2751 symbols`, `12944 ms`
+
+## 2026-06-06 08:07 KST Post Room-Control Current HEAD CPU Audit
+
+Fresh current clean HEAD local evidence was captured after the room control
+strict metadata hardening commit:
+
+- CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-080201-HUGH_SECOND.desktop-open.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260606-080350-HUGH_SECOND.process-ownership.json`
+- commit: `ade5b64f012c14a8de6f2c0fa99065de5db45f64`
+- `git_dirty=false`
+
+CPU/process values:
+
+- `desktop-open` sample `60.045s`
+- hot process count `0`
+- process count after sample `8`
+- MUSU CPU `0`
+- Node CPU `0`
+- WebView2 CPU `0.18`
+- owned WebView2 helpers `6`
+- owned Node helpers `0`
+- working set `363.79MB`
+- private memory `193.86MB`
+- process ownership `ok=true`, `fail_count=0`
+- packaged runtime `1`, desktop shell `1`, orphan repo helpers `0`
+- bridge `127.0.0.1:3622`, PID `4204`, health `HTTP 200`
+
+Code/audit result:
+
+- Rust background-loop audit: `ok=true`, `fail_count=0`
+- frontend polling audit: `ok=true`, `fail_count=0`, low-duty call sites `29`
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`, `check_count=64`
+- process ownership audit: `ok=true`, `fail_count=0`
+- qualitative audit: no high/medium issue found; no source changed
+
+Interpretation:
+
+- the local busy-loop report is not reproduced on current HUGH_SECOND
+  desktop-open evidence
+- this is still only one-machine local CPU/process proof
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, public metadata recheck, support mailbox proof, and Store
+  evidence
+- the local-executor / MUSU.PRO control-plane product boundary is unchanged
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROOM_CONTROL_CURRENT_HEAD_CPU_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_POST_ROOM_CONTROL_CPU_AUDIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2564 files`, `2751 symbols`, `13062 ms`

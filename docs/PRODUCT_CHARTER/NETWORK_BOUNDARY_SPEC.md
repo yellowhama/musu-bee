@@ -676,6 +676,35 @@ Current contract:
 This keeps MUSU.PRO as a project/company room and P2P bootstrap control plane;
 local MUSU programs still do the actual work.
 
+## 2026-06-06 post room-control local CPU evidence boundary
+
+Current clean HEAD `ade5b64f012c14a8de6f2c0fa99065de5db45f64` has fresh
+one-machine `desktop-open` idle CPU and process ownership evidence on
+`HUGH_SECOND`.
+
+Contract interpretation:
+
+- the evidence proves local MUSU Desktop CPU/process behavior on the sampled
+  machine only
+- process ownership separates MUSU-owned runtime/shell/WebView2 helpers from
+  unrelated machine-wide Node/WebView2 processes
+- MUSU.PRO remains a remote input and coordination plane, not the executor
+- MUSU.PRO can help local programs discover each other through rooms,
+  presence, rendezvous, path selection, relay fallback, and evidence metadata
+- direct P2P mesh remains preferred after bootstrap
+- hosted relay remains fallback-only and still requires distinct release
+  tunnel payload transport proof
+
+Release interpretation:
+
+- `20260606-080201-HUGH_SECOND.desktop-open` does not reproduce the local
+  busy-loop concern
+- `20260606-080350-HUGH_SECOND.process-ownership` proves the live runtime is
+  packaged and owned
+- this does not satisfy second-PC route/CPU/matrix evidence
+- this does not satisfy live hosted MUSU.PRO P2P/relay proof
+- this does not satisfy public metadata, support mailbox, or Store proof
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

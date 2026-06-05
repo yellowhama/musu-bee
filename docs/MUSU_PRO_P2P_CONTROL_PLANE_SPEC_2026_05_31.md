@@ -1256,3 +1256,33 @@ Room-scoped presence and rendezvous are strict metadata-only:
 This preserves the split the product needs: MUSU.PRO can host the project room
 and bootstrap local-program connectivity, but presence/rendezvous do not carry
 work payload bytes.
+
+## 2026-06-06 Post Room-Control Local CPU Audit Update
+
+Fresh current clean HEAD evidence confirms the current one-machine local
+runtime is idle and owned after the room control strict metadata hardening:
+
+- CPU evidence:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-080201-HUGH_SECOND.desktop-open.evidence.json`
+- process ownership evidence:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260606-080350-HUGH_SECOND.process-ownership.json`
+- commit `ade5b64f012c14a8de6f2c0fa99065de5db45f64`
+- `git_dirty=false`
+- CPU sample `60.045s`
+- hot process count `0`
+- MUSU CPU `0`, Node CPU `0`, WebView2 CPU `0.18`
+- owned WebView2 helpers `6`, owned Node helpers `0`
+- process ownership `ok=true`, `fail_count=0`
+
+Spec interpretation is unchanged:
+
+- MUSU Desktop is the local executor on each device.
+- MUSU.PRO coordinates user input, rooms, presence, rendezvous, path
+  selection, relay fallback, and evidence.
+- MUSU.PRO can make P2P bootstrap easier, but local programs still do the
+  work.
+- Direct P2P mesh remains preferred after bootstrap.
+- Hosted relay is fallback-only and still needs separate release tunnel proof.
+
+This CPU/process audit is not a hosted P2P control-plane proof and does not
+replace second-PC route/CPU/matrix evidence.

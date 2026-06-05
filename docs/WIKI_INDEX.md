@@ -5031,4 +5031,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `room_presence_payload_bytes_not_accepted`, and
   `P2P store-forward relay audit check_count=64`.
 
+- 2026-06-06 post room-control current HEAD CPU audit:
+  `RELEASE_1_15_0_RC1_POST_ROOM_CONTROL_CURRENT_HEAD_CPU_AUDIT_2026_06_06.md`
+  (wiki/805) records fresh current clean HEAD `desktop-open` CPU and process
+  ownership evidence after room control strict metadata hardening. Search
+  terms should include `GOAL v630`, `wiki/805`,
+  `20260606-080201-HUGH_SECOND.desktop-open`,
+  `20260606-080350-HUGH_SECOND.process-ownership`,
+  `ade5b64f012c14a8de6f2c0fa99065de5db45f64`, `git_dirty=false`,
+  `60.045s`, `hot process count 0`, `owned WebView2 6`, `owned Node 0`,
+  `WebView2 0.18`, `working set 363.79MB`, `process ownership fail_count=0`,
+  `P2P store-forward relay audit check_count=64`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 post room-control current HEAD CPU audit index refresh:
+  wiki/806 records the MUSU local index refresh after wiki/805 and GOAL v630.
+  Search terms should include `GOAL v631`, `wiki/806`, `2564 files`,
+  `2751 symbols`, `13062 ms`,
+  `post room-control current HEAD CPU audit index refresh`,
+  `20260606-080201-HUGH_SECOND.desktop-open`,
+  `20260606-080350-HUGH_SECOND.process-ownership`, `WebView2 0.18`,
+  `process ownership fail_count=0`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
