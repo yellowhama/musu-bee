@@ -260,6 +260,25 @@ quality gate.
   work, and `musu.pro` remains the remote input, rendezvous, path-selection,
   relay-fallback policy, and evidence coordination plane.
 
+## 2026-06-05 native RPC exec boundary update
+
+Native bridge `/api/v1/rpc/exec` is a local-runtime execution boundary, not a
+general remote shell.
+
+- The endpoint fails closed unless `MUSU_RPC_EXEC_ALLOWLIST` explicitly names
+  the requested bare command.
+- Command paths are rejected even when their basename is allowlisted.
+- User-supplied `cwd` is rejected to avoid platform-specific executable path
+  resolution ambiguity.
+- Arguments, command length, stdout/stderr, and execution time are bounded.
+- Timed-out children are created with `kill_on_drop(true)`.
+- Rejected, failed, timed-out, and completed attempts are audit-logged.
+- The operator API security contract now covers this endpoint.
+
+This preserves the local-first rule: web or peer input can request bounded,
+audited work from a local MUSU program, but it cannot turn MUSU.PRO or the P2P
+control plane into an unrestricted command executor.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

@@ -5825,3 +5825,42 @@ the MUSU Desktop local-executor / MUSU.PRO web-input control-plane boundary.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RUST_SPAWN_CONTRACT_AUDIT_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 native RPC exec hardening
+
+Native bridge `/api/v1/rpc/exec` is now fail-closed and audit-logged. This
+endpoint is part of the local-runtime boundary, so it must never behave as an
+unrestricted remote shell from MUSU.PRO or a P2P control peer.
+
+Runtime policy:
+
+- `MUSU_RPC_EXEC_ALLOWLIST` defaults empty and must explicitly name the bare
+  command allowed for native RPC exec.
+- Paths are rejected even if the basename is allowlisted.
+- User-supplied `cwd` is rejected.
+- command and args are bounded and reject control characters.
+- stdout/stderr are bounded to `64 KiB`.
+- `MUSU_RPC_EXEC_TIMEOUT_SECS` defaults to `10` and is clamped to `1..60`.
+- child processes use `kill_on_drop(true)`.
+- rejected, spawn-failed, timed-out, and completed attempts are audit-logged.
+
+Validation passed:
+
+- Rust RPC exec tests `6/6`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu`
+- operator API security audit `ok=true`, `fail_count=0`, `check_count=44`
+- local API auth audit `ok=true`, `fail_count=0`, `check_count=39`
+- Rust background-loop audit `ok=true`, `fail_count=0`, `check_count=200`
+- `git diff --check`
+
+Clean go/no-go after `fe25c5d8` reports `manifest_git.dirty=false`,
+`local_artifacts_ready=true`, `msix_install_verified=true`, and all current
+hardening/source-contract gates true, but public release remains No-Go:
+`single_machine_verified=false`, runtime idle CPU false, runtime matrix false,
+targeted second-PC route CPU false, hosted P2P false, support mailbox false,
+and Store false. The local evidence reset is expected because native runtime
+source changed after the last packaged evidence refresh.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_NATIVE_RPC_EXEC_HARDENING_2026_06_05.md`

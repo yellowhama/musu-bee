@@ -7356,6 +7356,70 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-05 native RPC exec hardening (wiki/748)
+
+Native bridge `/api/v1/rpc/exec` is now treated as a local-runtime command
+boundary, not a remote shell.
+
+What changed:
+
+- `MUSU_RPC_EXEC_ALLOWLIST` defaults empty and must explicitly allow a bare
+  command name.
+- command paths are rejected even when their basename is allowlisted.
+- user-supplied `cwd` is rejected.
+- command and args are length-bounded and reject control characters.
+- stdout/stderr are capped at `64 KiB`.
+- `MUSU_RPC_EXEC_TIMEOUT_SECS` defaults to `10` and clamps to `1..60`.
+- children use `kill_on_drop(true)`.
+- rejected, spawn-failed, timed-out, and completed attempts are written to the
+  bridge audit log.
+- `audit-operator-api-security-contract.ps1` now gates this native endpoint.
+
+Validation passed Rust RPC exec tests `6/6`, `cargo check`, operator API
+security audit `ok=true`/`fail_count=0`/`check_count=44`, local API auth audit
+`ok=true`/`fail_count=0`/`check_count=39`, Rust background-loop audit
+`ok=true`/`fail_count=0`/`check_count=200`, and `git diff --check`.
+
+Qualitative audit: no high or medium issue remains. The audit found one issue
+before commit, namely that accepting bounded `cwd` was still unsafe for this
+remote-control boundary. Final behavior rejects `cwd`.
+
+Clean go/no-go after `fe25c5d8` reports `manifest_git.dirty=false`, hardening
+gates true, `local_artifacts_ready=true`, and `msix_install_verified=true`, but
+`single_machine_verified=false`, runtime idle CPU false, runtime matrix false,
+targeted second-PC route CPU false, hosted P2P false, support false, Store
+false, and `ready_for_public_desktop_release=false`. The local evidence reset
+is expected because native runtime source changed after the last packaged
+evidence refresh.
+
+The product boundary is unchanged: MUSU Desktop executes locally; MUSU.PRO is
+remote input, project/company room, rendezvous, path selection, relay-fallback
+policy, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_NATIVE_RPC_EXEC_HARDENING_2026_06_05.md`
+
+## 2026-06-05 native RPC exec hardening index refresh
+
+Indexing was refreshed after wiki/748 and GOAL v572/v573.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2415 files`
+- `2705 symbols`
+- `67396 ms`
+
+gbrain was not rerun for this incremental documentation refresh because the
+previous same-session run already found the active blocker: missing
+`ZEROENTROPY_API_KEY`, import failures, `sync.last_commit` not advancing, and
+`gstack-brain-sync exited undefined`.
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.
+
 ## 2026-06-05 Rust spawn/background-task audit coverage (wiki/747)
 
 The Rust background-loop release audit now covers Rust background execution

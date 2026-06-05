@@ -4293,4 +4293,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, `2 ok, 1 error`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 native RPC exec hardening:
+  `RELEASE_1_15_0_RC1_NATIVE_RPC_EXEC_HARDENING_2026_06_05.md` (wiki/748)
+  makes native bridge `/api/v1/rpc/exec` fail closed behind
+  `MUSU_RPC_EXEC_ALLOWLIST`, rejects command paths, rejects user-supplied
+  `cwd`, caps stdout/stderr, clamps `MUSU_RPC_EXEC_TIMEOUT_SECS`, uses
+  `kill_on_drop(true)`, and audit-logs rejected, failed, timed-out, and
+  completed attempts. Search terms should include `GOAL v572`, `wiki/748`,
+  `fe25c5d8`, `/api/v1/rpc/exec`, `MUSU_RPC_EXEC_ALLOWLIST`,
+  `MUSU_RPC_EXEC_TIMEOUT_SECS`, `cwd is not supported for rpc exec`,
+  `rpc exec rejected`, `rpc exec timed out`, `rpc exec completed`,
+  `operator_api_security_contract_verified=true`, `check_count=44`,
+  `single_machine_verified=false`,
+  `runtime_cpu_second_pc_route_attempt_verified=false`,
+  `ready_for_public_desktop_release=false`, `manifest_git.dirty=false`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-05 native RPC exec hardening index refresh:
+  MUSU local indexing was run after wiki/748. Search terms should include
+  `GOAL v573`, `wiki/748 index refresh`, `musu indexer sync`, `2415 files`,
+  `2705 symbols`, `67396 ms`, `MUSU_RPC_EXEC_ALLOWLIST`,
+  `MUSU_RPC_EXEC_TIMEOUT_SECS`, `native RPC exec hardening`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
