@@ -34,7 +34,7 @@ const CandidateEndpointSchema = z.object({
     "websocket_tunnel",
     "store_forward_queue",
   ]).nullable().optional(),
-});
+}).strict();
 
 const CandidatesSchema = z.object({
   node_id: z.string().min(1),
@@ -44,7 +44,60 @@ const CandidatesSchema = z.object({
   app_version: z.string().min(1).optional(),
   public_key: z.string().optional(),
   capabilities: z.array(z.string().min(1)).max(64).optional(),
-}).passthrough();
+}).strict();
+
+const FORBIDDEN_CANDIDATE_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
+
+function pathKey(path: PropertyKey[]): string {
+  return path.map(String).join(".");
+}
+
+function forbiddenCandidateByteFields(
+  value: unknown,
+  path: PropertyKey[] = []
+): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      forbiddenCandidateByteFields(entry, [...path, index])
+    );
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => {
+    const childPath = [...path, key];
+    if (
+      FORBIDDEN_CANDIDATE_BYTE_FIELDS.includes(
+        key as (typeof FORBIDDEN_CANDIDATE_BYTE_FIELDS)[number]
+      )
+    ) {
+      return [pathKey(childPath)];
+    }
+    return forbiddenCandidateByteFields(entry, childPath);
+  });
+}
+
+function publicZodIssues(error: z.ZodError): Array<{ path: string; message: string }> {
+  return error.issues.flatMap((issue) => {
+    const keys = "keys" in issue && Array.isArray(issue.keys) ? issue.keys : [];
+    if (issue.code === "unrecognized_keys" && keys.length > 0) {
+      return keys.map((key) => ({
+        path: pathKey([...issue.path, String(key)]),
+        message: issue.message,
+      }));
+    }
+    return {
+      path: issue.path.join("."),
+      message: issue.message,
+    };
+  });
+}
 
 function candidateContractIssues(data: z.infer<typeof CandidatesSchema>) {
   const issues: Array<{ path: string; message: string }> = [];
@@ -116,16 +169,31 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
+  const forbiddenFields = forbiddenCandidateByteFields(json);
+  if (forbiddenFields.length > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        error: "rendezvous_candidates_payload_bytes_not_accepted",
+        forbidden_fields: forbiddenFields,
+        next_steps: [
+          "send only node identity, route candidate, NAT, relay descriptor, and capability metadata",
+          "do not send payload bytes to rendezvous candidate exchange",
+          "use relay payload transport only after a lease and release-grade tunnel exist",
+        ],
+      },
+      { status: 400 }
+    );
+  }
+
   const parsed = CandidatesSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       {
         ok: false,
         error: "invalid_rendezvous_candidates",
-        issues: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
+        issues: publicZodIssues(parsed.error),
       },
       { status: 400 }
     );

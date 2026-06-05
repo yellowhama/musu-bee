@@ -9348,3 +9348,66 @@ Search terms should include `GOAL v625`, `wiki/800`,
 `route_evidence_payload_bytes_not_accepted`,
 `FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS`, `publicZodIssues`, and
 `P2P store-forward relay audit check_count=58`.
+
+## 2026-06-06 Rendezvous Strict Metadata Gate (wiki/801)
+
+The core P2P rendezvous control-plane surfaces now accept strict metadata only:
+
+- `POST /api/v1/p2p/rendezvous`
+- `POST /api/v1/p2p/rendezvous/[id]/candidates`
+
+Changed:
+
+- `CreateRendezvousSchema` is strict
+- `CandidateEndpointSchema` is strict
+- `CandidatesSchema` is strict
+- rendezvous creation rejects raw payload fields with
+  `rendezvous_payload_bytes_not_accepted`
+- candidate exchange rejects raw payload fields with
+  `rendezvous_candidates_payload_bytes_not_accepted`
+- unknown fields fail with concrete unknown-key paths
+- P2P store-forward relay contract audit gates the rendezvous/candidate
+  metadata boundary
+
+Validation:
+
+- rendezvous route test: `14/14`
+- `npm run test:p2p`: `101/101`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`,
+  `check_count=61`
+- release evidence verifier regressions: `54/54`
+- `git diff --check`: pass
+
+Code audit found no high/medium issue. This keeps MUSU.PRO as P2P bootstrap
+control plane, not a payload transport path. Public release remains No-Go on
+second-PC route/CPU/matrix, hosted MUSU.PRO P2P proof, release relay tunnel
+payload transport, public metadata recheck, support mailbox, and Store
+evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RENDEZVOUS_STRICT_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Rendezvous Strict Metadata Index Refresh (wiki/802)
+
+MUSU local indexer was refreshed after wiki/801 and GOAL v626.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2556 files`
+- `2745 symbols`
+- `10569 ms`
+
+Indexed context includes rendezvous strict metadata source/test changes, the
+P2P relay contract audit update, the rendezvous strict metadata report, BETA
+checklist, network boundary spec, MUSU.PRO P2P control-plane spec,
+WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v627`, `wiki/802`,
+`rendezvous strict metadata index refresh`, `2556 files`, `2745 symbols`,
+`10569 ms`, `CreateRendezvousSchema strict`,
+`CandidateEndpointSchema strict`, `CandidatesSchema strict`,
+`rendezvous_payload_bytes_not_accepted`,
+`rendezvous_candidates_payload_bytes_not_accepted`, and
+`P2P store-forward relay audit check_count=61`.

@@ -66,6 +66,7 @@ $routeEvidencePath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.ts"
 $routeEvidenceTestPath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.test.ts"
 $routeEvidenceStorePath = "musu-bee\src\lib\routeEvidenceStore.ts"
 $rendezvousStorePath = "musu-bee\src\lib\p2pRendezvousStore.ts"
+$rendezvousRoutePath = "musu-bee\src\app\api\v1\p2p\rendezvous\route.ts"
 $rendezvousCandidatesRoutePath = "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\candidates\route.ts"
 $roomPresenceRoutePath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.ts"
 $roomPresenceStorePath = "musu-bee\src\lib\roomPresenceStore.ts"
@@ -96,6 +97,7 @@ $routeEvidence = Get-RepoText $routeEvidencePath
 $routeEvidenceTest = Get-RepoText $routeEvidenceTestPath
 $routeEvidenceStore = Get-RepoText $routeEvidenceStorePath
 $rendezvousStore = Get-RepoText $rendezvousStorePath
+$rendezvousRoute = Get-RepoText $rendezvousRoutePath
 $rendezvousCandidatesRoute = Get-RepoText $rendezvousCandidatesRoutePath
 $roomPresenceRoute = Get-RepoText $roomPresenceRoutePath
 $roomPresenceStore = Get-RepoText $roomPresenceStorePath
@@ -303,6 +305,51 @@ Add-Check `
     ) `
     -Path $rendezvousStorePath `
     -Message "musu.pro room presence and rendezvous candidate exchange preserve public endpoint, NAT, and relay descriptors used for P2P path selection."
+
+Add-Check `
+    -Scope "web-rendezvous" `
+    -Name "rendezvous creation request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
+            "rejects raw payload byte fields in rendezvous creation",
+            "rendezvous_payload_bytes_not_accepted",
+            "rejects unknown rendezvous creation fields",
+            "unexpected_release_field"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRoute -Needles @(
+            "CreateRendezvousSchema",
+            "}).strict()",
+            "FORBIDDEN_RENDEZVOUS_BYTE_FIELDS",
+            "rendezvous_payload_bytes_not_accepted",
+            "publicZodIssues"
+        )) -and
+        -not $rendezvousRoute.Contains("}).passthrough()")
+    ) `
+    -Path $rendezvousRoutePath `
+    -Message "Rendezvous creation accepts source/target/capability metadata only and rejects raw payload fields before session storage."
+
+Add-Check `
+    -Scope "web-rendezvous" `
+    -Name "rendezvous candidate exchange request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
+            "rejects raw payload byte fields in rendezvous candidate exchange",
+            "rendezvous_candidates_payload_bytes_not_accepted",
+            "rejects unknown rendezvous candidate fields",
+            "unexpected_endpoint_field"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousCandidatesRoute -Needles @(
+            "CandidateEndpointSchema",
+            "CandidatesSchema",
+            "}).strict()",
+            "FORBIDDEN_CANDIDATE_BYTE_FIELDS",
+            "rendezvous_candidates_payload_bytes_not_accepted",
+            "publicZodIssues"
+        )) -and
+        -not $rendezvousCandidatesRoute.Contains("}).passthrough()")
+    ) `
+    -Path $rendezvousCandidatesRoutePath `
+    -Message "Rendezvous candidate exchange accepts route candidate/NAT/relay descriptor metadata only and rejects raw payload fields before cache/session storage."
 
 Add-Check `
     -Scope "route-evidence" `

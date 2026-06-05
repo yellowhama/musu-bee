@@ -382,6 +382,41 @@ test("rejects missing bearer token", async () => {
   });
 });
 
+test("rejects raw payload byte fields in rendezvous creation", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST } = await loadCreate("create-payload-bytes-not-accepted");
+    const res = await POST(postReq({
+      source_node_id: "pc-a",
+      target_node_id: "pc-b",
+      payload_base64: Buffer.from("do-not-store-rendezvous-payload").toString("base64"),
+    }));
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as { error: string; forbidden_fields: string[] };
+    assert.equal(body.error, "rendezvous_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+  });
+});
+
+test("rejects unknown rendezvous creation fields", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST } = await loadCreate("create-unknown-field");
+    const res = await POST(postReq({
+      source_node_id: "pc-a",
+      target_node_id: "pc-b",
+      unexpected_release_field: true,
+    }));
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_rendezvous_request");
+    assert.equal(body.issues.some((issue) => issue.path === "unexpected_release_field"), true);
+  });
+});
+
 test("rejects candidate updates for nodes outside the session", async () => {
   await withRendezvousEnv(async () => {
     const { POST: create } = await loadCreate("bad-node-create");
@@ -394,6 +429,72 @@ test("rejects candidate updates for nodes outside the session", async () => {
       ctx(created.session_id)
     );
     assert.equal(res.status, 400);
+  });
+});
+
+test("rejects raw payload byte fields in rendezvous candidate exchange", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST: create } = await loadCreate("candidate-payload-bytes-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("candidate-payload-bytes");
+    const res = await candidates(
+      postReq({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          {
+            kind: "lan",
+            addr: "192.168.1.10:8070",
+            observed_at: "2026-06-01T00:00:00Z",
+            payload_base64: Buffer.from("do-not-store-candidate-payload").toString("base64"),
+          },
+        ],
+        relay_capable: false,
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as { error: string; forbidden_fields: string[] };
+    assert.equal(body.error, "rendezvous_candidates_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["candidate_endpoints.0.payload_base64"]);
+  });
+});
+
+test("rejects unknown rendezvous candidate fields", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST: create } = await loadCreate("candidate-unknown-create");
+    const createRes = await create(postReq({ source_node_id: "pc-a", target_node_id: "pc-b" }));
+    const created = (await createRes.json()) as { session_id: string };
+
+    const { POST: candidates } = await loadCandidates("candidate-unknown");
+    const res = await candidates(
+      postReq({
+        node_id: "pc-a",
+        candidate_endpoints: [
+          {
+            kind: "lan",
+            addr: "192.168.1.10:8070",
+            observed_at: "2026-06-01T00:00:00Z",
+            unexpected_endpoint_field: true,
+          },
+        ],
+        relay_capable: false,
+      }),
+      ctx(created.session_id)
+    );
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_rendezvous_candidates");
+    assert.equal(
+      body.issues.some((issue) => issue.path === "candidate_endpoints.0.unexpected_endpoint_field"),
+      true
+    );
   });
 });
 

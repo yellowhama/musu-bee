@@ -639,6 +639,23 @@ Current contract:
 
 This keeps route evidence as a control-plane/evidence surface, not a data path.
 
+## 2026-06-06 rendezvous input boundary
+
+MUSU.PRO P2P rendezvous and candidate exchange are metadata-only.
+
+Current contract:
+
+- `POST /api/v1/p2p/rendezvous` requires P2P control auth and accepts only
+  source/target/capability metadata.
+- `POST /api/v1/p2p/rendezvous/[id]/candidates` requires P2P control auth and
+  accepts only node identity, route candidate, NAT, relay descriptor, and
+  capability metadata.
+- raw payload byte fields are rejected before session/candidate-cache storage.
+- unknown fields are rejected.
+- rendezvous does not transport payload bytes.
+
+This keeps MUSU.PRO as the P2P bootstrap and path-selection control plane.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

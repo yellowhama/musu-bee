@@ -1222,3 +1222,20 @@ owner-scoped hosted P2P/relay evidence from production infrastructure.
 This keeps MUSU.PRO as the evidence/control plane for P2P bootstrap and relay
 fallback. It does not move work or payload execution into the website, and it
 does not implement release-grade relay tunnel transport.
+
+## 2026-06-06 Rendezvous Input Boundary
+
+Core P2P rendezvous creation and candidate exchange are now strict
+metadata-only:
+
+- `POST /api/v1/p2p/rendezvous` rejects unknown fields and raw payload byte
+  fields
+- `POST /api/v1/p2p/rendezvous/[id]/candidates` rejects unknown fields and raw
+  payload byte fields
+- direct QUIC candidates still require public endpoint and NAT metadata
+- relay-capable candidate sets still require relay endpoint details
+- owner-scoped candidate/session isolation is unchanged
+
+This is the intended MUSU.PRO role: exchange enough metadata to make P2P path
+selection easier, then let local programs perform the actual work and data
+movement.
