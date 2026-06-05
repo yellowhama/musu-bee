@@ -217,6 +217,28 @@ else {
     Add-Check "desktop-shell" "Tauri shell source" "fail" "Missing Tauri shell source files: $($missingShellSources -join ', ')."
 }
 
+$msixBuildScript = Join-Path $scriptDir "build-msix.ps1"
+if (Test-Path -LiteralPath $msixBuildScript) {
+    $msixBuildText = Get-Content -LiteralPath $msixBuildScript -Raw
+    $usesTauriCliDesktopBuild = (
+        $msixBuildText -match '"tauri"' -and
+        $msixBuildText -match '"build"' -and
+        $msixBuildText -match '"--no-bundle"'
+    )
+    $usesDirectCargoDesktopBuild = (
+        $msixBuildText -match '(?s)Invoke-Checked\s+-FilePath\s+"cargo".*?-WorkingDirectory\s+\$tauriDir'
+    )
+    if ($usesTauriCliDesktopBuild -and -not $usesDirectCargoDesktopBuild) {
+        Add-Check "desktop-shell" "MSIX Tauri build contract" "pass" "MSIX build uses Tauri CLI so frontendDist is embedded before packaging."
+    }
+    else {
+        Add-Check "desktop-shell" "MSIX Tauri build contract" "fail" "MSIX build must use `npm run tauri -- build --no-bundle` for the desktop executable; direct cargo builds can package a devUrl shell."
+    }
+}
+else {
+    Add-Check "desktop-shell" "MSIX Tauri build contract" "fail" "build-msix.ps1 is missing."
+}
+
 $tauriLibPath = Join-Path $tauriRoot "src\lib.rs"
 $tauriLib = if (Test-Path -LiteralPath $tauriLibPath) { Get-Content -LiteralPath $tauriLibPath -Raw } else { "" }
 if (

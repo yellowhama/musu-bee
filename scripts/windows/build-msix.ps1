@@ -276,12 +276,11 @@ if (-not $SkipBuild) {
     Invoke-Checked -FilePath "cargo" -ArgumentList $buildArgs -WorkingDirectory $musuRsDir
 
     Write-Step "Building Tauri desktop executable"
-    Invoke-Checked -FilePath "npm" -ArgumentList @("run", "build:tauri-shell") -WorkingDirectory $musuBeeDir
-    $desktopBuildArgs = @("build")
-    if ($Configuration -eq "release") {
-        $desktopBuildArgs += "--release"
+    $desktopBuildArgs = @("run", "tauri", "--", "build", "--no-bundle")
+    if ($Configuration -eq "debug") {
+        $desktopBuildArgs += "--debug"
     }
-    Invoke-Checked -FilePath "cargo" -ArgumentList $desktopBuildArgs -WorkingDirectory $tauriDir
+    Invoke-Checked -FilePath "npm" -ArgumentList $desktopBuildArgs -WorkingDirectory $musuBeeDir
 }
 
 if (-not $DryRun -and -not (Test-Path -LiteralPath $musuExe)) {
