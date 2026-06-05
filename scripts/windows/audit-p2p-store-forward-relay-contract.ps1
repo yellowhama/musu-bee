@@ -52,6 +52,8 @@ function Test-ContainsAll {
 }
 
 $policyPath = "musu-bee\src\lib\p2pRelayPolicy.ts"
+$releaseConnectPreflightRoutePath = "musu-bee\src\app\api\v1\relay\connect\route.ts"
+$releaseConnectPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
 $payloadRoutePath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
 $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts"
 $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
@@ -78,6 +80,8 @@ $releaseEvidenceVerifierTestPath = "scripts\windows\test-release-evidence-verifi
 $packageJsonPath = "musu-bee\package.json"
 
 $policy = Get-RepoText $policyPath
+$releaseConnectPreflightRoute = Get-RepoText $releaseConnectPreflightRoutePath
+$releaseConnectPreflightRouteTest = Get-RepoText $releaseConnectPreflightRouteTestPath
 $payloadRoute = Get-RepoText $payloadRoutePath
 $payloadRouteTest = Get-RepoText $payloadRouteTestPath
 $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
@@ -166,6 +170,29 @@ Add-Check `
     ) `
     -Path $payloadRoutePath `
     -Message "Store-forward queue responses explicitly remain non-release-grade and non-default data path."
+
+Add-Check `
+    -Scope "web-release-payload-preflight" `
+    -Name "release connect preflight fails closed and accepts metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $releaseConnectPreflightRoute -Needles @(
+            "musu.relay_connect.v1",
+            "musu.relay_connect_request.v1",
+            "}).strict()",
+            "authorizeP2pControl(req)",
+            "p2pControlPrincipal(req)",
+            "queryRelayLeases",
+            "FORBIDDEN_RELAY_CONNECT_BYTE_FIELDS",
+            "relay_connect_payload_bytes_not_accepted",
+            "relay_connect_accepted: false",
+            "payload_transported: false",
+            "relay_payload_endpoint_not_wired"
+        )) -and
+        -not $releaseConnectPreflightRoute.Contains("appendRelayPayload") -and
+        -not $releaseConnectPreflightRoute.Contains("markRelayPayloadDelivered")
+    ) `
+    -Path $releaseConnectPreflightRoutePath `
+    -Message "The distinct release relay connect endpoint validates auth and lease state, rejects payload bytes and unknown fields, and never reuses the non-release-grade store-forward queue as release transport."
 
 Add-Check `
     -Scope "web-release-payload-preflight" `
@@ -475,6 +502,24 @@ Add-Check `
     ) `
     -Path $payloadRouteTestPath `
     -Message "P2P tests cover payload queue storage, target claim, delivery, and KV-backed ownership behavior."
+
+Add-Check `
+    -Scope "tests" `
+    -Name "release connect preflight regression coverage" `
+    -Passed (
+        $packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and
+        (Test-ContainsAll -Text $releaseConnectPreflightRouteTest -Needles @(
+            "requires P2P control auth before reporting relay connect preflight status",
+            "reports relay connect preflight without claiming payload transport",
+            "verifies relay lease but rejects payload transit while payload endpoint is unwired",
+            "rejects relay connect payload bytes before lease lookup",
+            "relay_connect_payload_bytes_not_accepted",
+            "rejects unknown relay connect preflight fields",
+            "unexpected_release_field"
+        ))
+    ) `
+    -Path $releaseConnectPreflightRouteTestPath `
+    -Message "P2P tests cover the distinct release relay connect preflight endpoint and keep it separate from queue storage."
 
 Add-Check `
     -Scope "tests" `

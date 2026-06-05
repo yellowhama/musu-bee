@@ -4897,4 +4897,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release verifier 54/54`, `ZEROENTROPY_API_KEY`, and
   `gstack-brain-sync exited undefined`.
 
+- 2026-06-06 relay connect preflight strict metadata gate:
+  `RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_STRICT_METADATA_GATE_2026_06_06.md`
+  (wiki/793) records strict metadata-only release connect preflight for
+  `/api/v1/relay/connect`. Search terms should include `GOAL v618`,
+  `wiki/793`, `musu.relay_connect_request.v1`,
+  `relay_connect_payload_bytes_not_accepted`, `payload_base64`,
+  `unexpected_release_field`, `release connect preflight fails closed and
+  accepts metadata only`, `release connect preflight regression coverage`,
+  `npm run test:p2p 92/92`, `P2P store-forward relay audit fail_count=0`,
+  `MUSU.PRO control-plane input boundary`, and
+  `relay_payload_endpoint_not_wired`.
+
+- 2026-06-06 relay connect preflight strict metadata index refresh:
+  wiki/794 records the MUSU local index refresh after wiki/793 and GOAL v618.
+  Search terms should include `GOAL v619`, `wiki/794`, `2543 files`,
+  `2734 symbols`, `9848 ms`,
+  `relay connect preflight strict metadata index refresh`,
+  `musu.relay_connect_request.v1`,
+  `relay_connect_payload_bytes_not_accepted`,
+  `release connect preflight regression coverage`,
+  `P2P store-forward relay audit fail_count=0`, `ZEROENTROPY_API_KEY`, and
+  `gstack-brain-sync exited undefined`.
+
 **End of WIKI_INDEX.md.**

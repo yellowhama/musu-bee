@@ -567,6 +567,26 @@ This reinforces the same product boundary: MUSU Desktop remains the local
 executor and resource owner, while MUSU.PRO can coordinate remote input,
 rooms, rendezvous, path selection, relay fallback, and evidence/control state.
 
+## 2026-06-06 relay connect preflight input boundary
+
+MUSU.PRO release relay connect preflight is metadata-only until real release
+tunnel payload transport exists.
+
+Current contract:
+
+- `/api/v1/relay/connect` requires P2P control auth.
+- `POST /api/v1/relay/connect` accepts only relay lease metadata:
+  optional `schema`, `lease_id`, `session_id`, `source_node_id`, and
+  `target_node_id`.
+- payload byte fields are rejected before lease lookup.
+- unknown request fields are rejected instead of passed through.
+- the endpoint does not call the preview store-forward payload queue.
+- verified leases still fail closed with `relay_payload_endpoint_not_wired`
+  until the release relay tunnel payload endpoint exists.
+
+This keeps MUSU.PRO as control plane and prevents the connect preflight surface
+from becoming an accidental data path.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

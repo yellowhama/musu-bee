@@ -212,3 +212,63 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
+
+test("rejects relay connect payload bytes before lease lookup", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-byte-reject");
+    const res = await POST(connectReq("POST", "test-token", {
+      schema: "musu.relay_connect_request.v1",
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-a",
+      target_node_id: "target-b",
+      payload_base64: "SGVsbG8=",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      relay_connect_accepted: boolean;
+      payload_transported: boolean;
+      forbidden_fields: string[];
+      relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
+      blockers: string[];
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "relay_connect_payload_bytes_not_accepted");
+    assert.equal(body.relay_connect_accepted, false);
+    assert.equal(body.payload_transported, false);
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
+    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+  });
+});
+
+test("rejects unknown relay connect preflight fields", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-strict-fields");
+    const res = await POST(connectReq("POST", "test-token", {
+      schema: "musu.relay_connect_request.v1",
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-a",
+      target_node_id: "target-b",
+      unexpected_release_field: "do-not-accept",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_connect_request");
+    assert.match(JSON.stringify(body.issues), /unexpected_release_field/);
+  });
+});

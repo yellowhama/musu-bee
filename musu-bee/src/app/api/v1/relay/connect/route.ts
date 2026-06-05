@@ -21,14 +21,32 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const RelayConnectRequestSchema = z.object({
+  schema: z.literal("musu.relay_connect_request.v1").optional(),
   lease_id: z.string().min(1),
   session_id: z.string().min(1),
   source_node_id: z.string().min(1),
   target_node_id: z.string().min(1),
-}).passthrough();
+}).strict();
+
+const FORBIDDEN_RELAY_CONNECT_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
 
 function uniqueBlockers(blockers: string[]): string[] {
   return Array.from(new Set(blockers));
+}
+
+function forbiddenRelayConnectByteFields(json: unknown): string[] {
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    return [];
+  }
+  return FORBIDDEN_RELAY_CONNECT_BYTE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(json, field)
+  );
 }
 
 function relayConnectStatus(method: string, blockers = relayTransportPreflightBlockers()) {
@@ -77,6 +95,25 @@ function relayConnectBlocked(method: string, extra: Record<string, unknown> = {}
   );
 }
 
+function relayConnectPayloadBytesNotAccepted(method: string, forbiddenFields: string[]) {
+  return NextResponse.json(
+    {
+      ...relayConnectStatus(method),
+      ok: false,
+      relay_connect_accepted: false,
+      payload_transported: false,
+      error: "relay_connect_payload_bytes_not_accepted",
+      forbidden_fields: forbiddenFields,
+      next_steps: [
+        "send only relay lease metadata to the release relay connect preflight endpoint",
+        "do not send payload bytes to /api/v1/relay/connect",
+        "keep preview store-forward payloads on /api/v1/p2p/relay/payload with release_grade=false",
+      ],
+    },
+    { status: 400 }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
@@ -97,6 +134,11 @@ export async function POST(req: NextRequest) {
     json = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const forbiddenFields = forbiddenRelayConnectByteFields(json);
+  if (forbiddenFields.length > 0) {
+    return relayConnectPayloadBytesNotAccepted(req.method, forbiddenFields);
   }
 
   const parsed = RelayConnectRequestSchema.safeParse(json);

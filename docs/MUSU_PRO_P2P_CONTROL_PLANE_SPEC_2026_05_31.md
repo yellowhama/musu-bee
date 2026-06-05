@@ -37,6 +37,16 @@ kind `quic_relay_tunnel`. `quic_tls_1_3` remains the required release
 encryption/proof contract. This removes the source-level connect placeholder
 blocker without implementing release-grade relay payload transport.
 
+**2026-06-06 relay connect strict metadata update**:
+`POST /api/v1/relay/connect` is strict metadata-only preflight. The request may
+include optional `schema=musu.relay_connect_request.v1`, but only `lease_id`,
+`session_id`, `source_node_id`, and `target_node_id` are accepted. Unknown
+fields are rejected, and known payload byte fields (`payload`, `payload_base64`,
+`payload_b64`, `payload_bytes`, `body_base64`) are rejected before lease lookup
+with `relay_connect_payload_bytes_not_accepted`. This keeps the release connect
+surface from becoming an accidental payload ingress path while the actual
+release relay tunnel payload transport remains unwired.
+
 **2026-06-06 release payload preflight update**:
 `/api/v1/relay/payload` now exists as a distinct authenticated release payload
 preflight surface, separate from the preview store-forward queue at
@@ -132,6 +142,9 @@ P2P APIs:
   - requires P2P control bearer auth
   - validates an owner-scoped relay lease by `lease_id`, `session_id`,
     `source_node_id`, and `target_node_id`
+  - accepts optional `schema=musu.relay_connect_request.v1`
+  - rejects payload byte fields before lease lookup
+  - rejects unknown request fields instead of passing them through
   - currently remains non-release-grade until the distinct release tunnel
     payload endpoint, `quic_relay_tunnel` relay kind, and `quic_tls_1_3`
     transport proof exist

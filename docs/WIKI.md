@@ -9097,3 +9097,60 @@ Search terms should include `GOAL v617`, `wiki/792`,
 `cpu_attribution.attribution_scope=musu_process_tree_or_repo_related`,
 `20260606-061932-HUGH_SECOND`, `20260606-062729-HUGH_SECOND`, and
 `release verifier 54/54`.
+
+## 2026-06-06 Relay Connect Preflight Strict Metadata Gate
+
+`POST /api/v1/relay/connect` now accepts only release connect preflight
+metadata.
+
+Changed:
+
+- optional request schema marker:
+  `musu.relay_connect_request.v1`
+- accepted fields:
+  `lease_id`, `session_id`, `source_node_id`, `target_node_id`
+- unknown fields now fail strict parsing
+- payload byte fields are rejected before lease lookup:
+  `payload`, `payload_base64`, `payload_b64`, `payload_bytes`, `body_base64`
+- byte attempts return `relay_connect_payload_bytes_not_accepted`
+- verified leases still fail closed with `relay_payload_endpoint_not_wired`
+  while release tunnel payload transport is unwired
+- P2P store-forward relay contract audit now gates connect preflight strict
+  metadata and regression coverage
+
+Validation:
+
+- PowerShell parser: pass
+- `npm run test:p2p -- --test-name-pattern "relay connect"`: `92/92`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+
+Qualitative audit found no high/medium issue. This hardens the MUSU.PRO
+control-plane input boundary and does not implement release-grade relay
+payload transport.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_STRICT_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Relay Connect Preflight Strict Metadata Index Refresh
+
+MUSU local indexer was refreshed after wiki/793 and GOAL v618.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2543 files`
+- `2734 symbols`
+- `9848 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures,
+`sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`.
+The MUSU local index is the current reliable code/document index.
+
+Search terms should include `GOAL v619`, `wiki/794`,
+`relay connect preflight strict metadata index refresh`, `2543 files`,
+`2734 symbols`, `9848 ms`, `musu.relay_connect_request.v1`,
+`relay_connect_payload_bytes_not_accepted`,
+`release connect preflight regression coverage`, and
+`P2P store-forward relay audit fail_count=0`.

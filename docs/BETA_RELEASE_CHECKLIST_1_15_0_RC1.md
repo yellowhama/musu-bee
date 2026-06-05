@@ -6125,6 +6125,47 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 Relay Connect Preflight Strict Metadata Gate
+
+`POST /api/v1/relay/connect` is now strict metadata-only preflight.
+
+Release connect preflight accepts:
+
+- optional `schema=musu.relay_connect_request.v1`
+- `lease_id`
+- `session_id`
+- `source_node_id`
+- `target_node_id`
+
+It rejects:
+
+- unknown request fields
+- `payload`
+- `payload_base64`
+- `payload_b64`
+- `payload_bytes`
+- `body_base64`
+
+Validation:
+
+- PowerShell parser: pass
+- `npm run test:p2p -- --test-name-pattern "relay connect"`: `92/92`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+
+This hardens the MUSU.PRO relay control-plane input boundary. It does not
+implement release relay tunnel payload transport; `relay_payload_endpoint_wired`
+and hosted P2P release proof remain blockers.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2543 files`, `2734 symbols`, `9848 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 Clean post-commit go/no-go:
 
 - HEAD `f8c8e4ed3ee23a00a4657e5753ed25954f38bcf8`
