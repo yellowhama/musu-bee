@@ -7440,6 +7440,80 @@ Search terms: `musu.relay_connect.v1`, `relay_connect_store_failed`,
 `source_relay_transport_kind_not_release_grade`, `MUSU Desktop local executor`,
 and `MUSU.PRO remote input control plane`.
 
+## 2026-06-06 release relay payload preflight endpoint (wiki/753)
+
+`/api/v1/relay/payload` now exists as a distinct authenticated release payload
+preflight endpoint. It is separate from the preview store-forward queue at
+`/api/v1/p2p/relay/payload`.
+
+Current source state:
+
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `release_payload_preflight_endpoint_implemented=true`
+- `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+What changed:
+
+- Added `RELAY_PAYLOAD_PATH=/api/v1/relay/payload`.
+- Added `GET /api/v1/relay/payload` returning
+  `musu.relay_payload_preflight.v1` behind P2P control auth.
+- Added `POST /api/v1/relay/payload` that validates owner-scoped relay lease
+  metadata before returning a release payload decision.
+- The endpoint returns `release_payload_accepted=false`,
+  `payload_stored=false`, `payload_transported=false`, and
+  `relay_payload_endpoint_not_wired`.
+- The endpoint does not call preview queue storage helpers.
+- `show-musu-pro-p2p-env-status.ps1` now reports
+  `release_payload_preflight_endpoint_implemented=true`.
+- `audit-p2p-store-forward-relay-contract.ps1` now gates the release payload
+  preflight/queue separation.
+
+Validation:
+
+- PowerShell parser checks passed.
+- `npm run test:p2p` passed `88/88`.
+- `npm run typecheck` passed.
+- P2P store-forward relay contract audit passed with `ok=true`,
+  `fail_count=0`.
+- P2P env status recheck reported release payload preflight true, release
+  payload endpoint marker false, queue-only true, and transport kind not
+  release-grade.
+- `git diff --check` passed.
+
+This is release endpoint contract preparation, not release-grade relay payload
+transport. MUSU Desktop remains the local executor. MUSU.PRO remains remote
+input, project/company room, rendezvous, path selection, relay fallback policy,
+and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_ENDPOINT_2026_06_06.md`
+
+## 2026-06-06 release relay payload preflight index refresh (wiki/754)
+
+Indexing was refreshed after wiki/753 and GOAL v578/v579.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2439 files`
+- `2717 symbols`
+- `15901 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`.
+
+Search terms: `musu.relay_payload_preflight.v1`,
+`RELAY_PAYLOAD_PATH=/api/v1/relay/payload`,
+`release_payload_preflight_endpoint_implemented=true`,
+`payload_stored=false`, `payload_transported=false`,
+`relay_payload_endpoint_not_wired`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.
+
 ## 2026-06-05 post native RPC exec primary evidence, audit, and next steps (wiki/749)
 
 Fresh HUGH_SECOND packaged local-runtime evidence was restored after native RPC

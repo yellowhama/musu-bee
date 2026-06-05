@@ -5998,3 +5998,49 @@ evidence, live hosted P2P proof, support mailbox proof, and Store proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_CONNECT_PREFLIGHT_ENDPOINT_AUDIT_NEXT_STEPS_2026_06_05.md`
+
+## 2026-06-06 release relay payload preflight endpoint
+
+Added a distinct release payload preflight endpoint:
+
+- `GET /api/v1/relay/payload`
+- `POST /api/v1/relay/payload`
+- schema `musu.relay_payload_preflight.v1`
+
+Current source state:
+
+- `RELAY_CONNECT_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `release_payload_preflight_endpoint_implemented=true`
+- `RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED=true`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+The new endpoint requires P2P control auth and validates owner-scoped relay
+lease metadata, but remains fail-closed:
+
+- `release_payload_accepted=false`
+- `payload_stored=false`
+- `payload_transported=false`
+- `relay_payload_endpoint_not_wired`
+
+It does not call the preview queue storage helpers, so
+`/api/v1/p2p/relay/payload` remains a non-release-grade store-forward preview
+path. The release payload endpoint marker stays false until real release tunnel
+payload transport exists and can emit `quic_tls_1_3` proof.
+
+Validation passed:
+
+- PowerShell parser checks for updated P2P status/audit scripts
+- `npm run test:p2p` `88/88`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- P2P env status recheck
+- `git diff --check`
+
+Public release remains No-Go on second-PC evidence, hosted P2P proof, support
+mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_ENDPOINT_2026_06_06.md`

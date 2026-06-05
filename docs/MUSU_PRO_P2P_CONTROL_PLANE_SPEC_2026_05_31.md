@@ -36,6 +36,17 @@ because `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
 This removes the source-level connect placeholder blocker without implementing
 release-grade relay payload transport.
 
+**2026-06-06 release payload preflight update**:
+`/api/v1/relay/payload` now exists as a distinct authenticated release payload
+preflight surface, separate from the preview store-forward queue at
+`/api/v1/p2p/relay/payload`. It validates P2P control auth, accepts only
+metadata needed to find an owner-scoped relay lease, and returns
+`musu.relay_payload_preflight.v1` with `release_payload_accepted=false`,
+`payload_stored=false`, and `payload_transported=false` while
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. It does not call queue storage and
+does not emit delivery or transport proof. This prepares the release endpoint
+contract without treating the preview queue as release-grade relay transport.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P
@@ -92,6 +103,18 @@ P2P APIs:
     `source_node_id`, and `target_node_id`
   - currently remains non-release-grade until the distinct release tunnel
     payload endpoint and `quic_tls_1_3` transport proof exist
+- `GET /api/v1/relay/payload`
+  - requires P2P control bearer auth before returning release payload preflight
+    status
+- `POST /api/v1/relay/payload`
+  - requires P2P control bearer auth
+  - validates the owner-scoped relay lease metadata before any release payload
+    decision
+  - currently remains fail-closed with `relay_payload_endpoint_not_wired`,
+    `release_payload_accepted=false`, `payload_stored=false`, and
+    `payload_transported=false`
+  - must not reuse `/api/v1/p2p/relay/payload` queue storage as release-grade
+    transport
 
 ## Candidate Endpoint Shape
 

@@ -4386,4 +4386,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 release relay payload preflight endpoint:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_ENDPOINT_2026_06_06.md`
+  (wiki/753) records the distinct fail-closed release payload preflight route
+  at `/api/v1/relay/payload`, separate from the preview queue at
+  `/api/v1/p2p/relay/payload`. Search terms should include `GOAL v578`,
+  `wiki/753`, `musu.relay_payload_preflight.v1`,
+  `RELAY_PAYLOAD_PATH=/api/v1/relay/payload`,
+  `release_payload_preflight_endpoint_implemented=true`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `release_payload_accepted=false`, `payload_stored=false`,
+  `payload_transported=false`, `relay_payload_endpoint_not_wired`,
+  `npm run test:p2p 88/88`,
+  `P2P store-forward relay contract audit ok=true`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-06 release relay payload preflight index refresh:
+  MUSU local indexing was run after wiki/753. Search terms should include
+  `GOAL v579`, `wiki/754`, `wiki/753 index refresh`, `musu indexer sync`,
+  `2439 files`, `2717 symbols`, `15901 ms`,
+  `musu.relay_payload_preflight.v1`,
+  `RELAY_PAYLOAD_PATH=/api/v1/relay/payload`,
+  `release_payload_preflight_endpoint_implemented=true`,
+  `payload_stored=false`, `payload_transported=false`,
+  `relay_payload_endpoint_not_wired`,
+  `MUSU Desktop local executor`,
+  `MUSU.PRO remote input rendezvous evidence control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

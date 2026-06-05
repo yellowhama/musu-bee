@@ -54,6 +54,8 @@ function Test-ContainsAll {
 $policyPath = "musu-bee\src\lib\p2pRelayPolicy.ts"
 $payloadRoutePath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
 $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts"
+$releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
+$releasePayloadPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\payload\route.test.ts"
 $leaseRoutePath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.ts"
 $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
 $routeEvidencePath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.ts"
@@ -78,6 +80,8 @@ $packageJsonPath = "musu-bee\package.json"
 $policy = Get-RepoText $policyPath
 $payloadRoute = Get-RepoText $payloadRoutePath
 $payloadRouteTest = Get-RepoText $payloadRouteTestPath
+$releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
+$releasePayloadPreflightRouteTest = Get-RepoText $releasePayloadPreflightRouteTestPath
 $leaseRoute = Get-RepoText $leaseRoutePath
 $transportRoute = Get-RepoText $transportRoutePath
 $routeEvidence = Get-RepoText $routeEvidencePath
@@ -160,6 +164,28 @@ Add-Check `
     ) `
     -Path $payloadRoutePath `
     -Message "Store-forward queue responses explicitly remain non-release-grade and non-default data path."
+
+Add-Check `
+    -Scope "web-release-payload-preflight" `
+    -Name "release payload preflight fails closed and does not use queue storage" `
+    -Passed (
+        (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
+            "musu.relay_payload_preflight.v1",
+            "authorizeP2pControl(req)",
+            "p2pControlPrincipal(req)",
+            "queryRelayLeases",
+            "RELAY_PAYLOAD_PATH",
+            "release_payload_endpoint_preflight_wired: true",
+            "release_payload_accepted: false",
+            "payload_stored: false",
+            "payload_transported: false",
+            "relay_payload_endpoint_not_wired"
+        )) -and
+        -not $releasePayloadPreflightRoute.Contains("appendRelayPayload") -and
+        -not $releasePayloadPreflightRoute.Contains("markRelayPayloadDelivered")
+    ) `
+    -Path $releasePayloadPreflightRoutePath `
+    -Message "The distinct release payload endpoint validates auth and lease state, but remains fail-closed and never reuses the non-release-grade store-forward queue as release transport."
 
 Add-Check `
     -Scope "web-lease-transport" `
@@ -409,6 +435,7 @@ Add-Check `
     -Passed (
         Test-ContainsAll -Text $statusScript -Needles @(
             "relay_payload_queue_fallback_implemented",
+            "release_payload_preflight_endpoint_implemented",
             "release_connect_fail_closed_placeholder_active",
             "release_payload_endpoint_queue_only",
             "web_queue_store_claim_deliver",
@@ -437,6 +464,22 @@ Add-Check `
     ) `
     -Path $payloadRouteTestPath `
     -Message "P2P tests cover payload queue storage, target claim, delivery, and KV-backed ownership behavior."
+
+Add-Check `
+    -Scope "tests" `
+    -Name "release payload preflight regression coverage" `
+    -Passed (
+        $packageJson.Contains("src/app/api/v1/relay/payload/route.test.ts") -and
+        (Test-ContainsAll -Text $releasePayloadPreflightRouteTest -Needles @(
+            "requires P2P control auth before reporting release relay payload preflight",
+            "reports release payload preflight without treating the queue as release transport",
+            "verifies relay lease but rejects release payload bytes while endpoint is unwired",
+            "payload_stored",
+            "payload_transported"
+        ))
+    ) `
+    -Path $releasePayloadPreflightRouteTestPath `
+    -Message "P2P tests cover the distinct release payload preflight endpoint and keep it separate from queue storage."
 
 Add-Check `
     -Scope "tests" `

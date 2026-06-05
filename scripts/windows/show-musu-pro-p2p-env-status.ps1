@@ -142,6 +142,7 @@ function Get-SourceRelayMarker {
 
     $policyPath = Join-Path $RepoRoot "musu-bee\src\lib\p2pRelayPolicy.ts"
     $connectRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\relay\connect\route.ts"
+    $releasePayloadRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\relay\payload\route.ts"
     $payloadRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
     $rustRendezvousPath = Join-Path $RepoRoot "musu-rs\src\bridge\rendezvous.rs"
     $rustRelayPayloadDrainPath = Join-Path $RepoRoot "musu-rs\src\bridge\handlers\relay_payload.rs"
@@ -151,6 +152,7 @@ function Get-SourceRelayMarker {
         error = $null
         relay_connect_endpoint_implemented = $false
         relay_payload_endpoint_implemented = $false
+        release_payload_preflight_endpoint_implemented = $false
         relay_payload_queue_endpoint_implemented = $false
         release_connect_fail_closed_placeholder_active = $false
         release_payload_endpoint_queue_only = $false
@@ -174,12 +176,20 @@ function Get-SourceRelayMarker {
     try {
         $text = Get-Content -LiteralPath $policyPath -Raw
         $connectRouteText = if (Test-Path -LiteralPath $connectRoutePath) { Get-Content -LiteralPath $connectRoutePath -Raw } else { "" }
+        $releasePayloadRouteText = if (Test-Path -LiteralPath $releasePayloadRoutePath) { Get-Content -LiteralPath $releasePayloadRoutePath -Raw } else { "" }
         $payloadRouteText = if (Test-Path -LiteralPath $payloadRoutePath) { Get-Content -LiteralPath $payloadRoutePath -Raw } else { "" }
         $rustRendezvousText = if (Test-Path -LiteralPath $rustRendezvousPath) { Get-Content -LiteralPath $rustRendezvousPath -Raw } else { "" }
         $rustRelayPayloadDrainText = if (Test-Path -LiteralPath $rustRelayPayloadDrainPath) { Get-Content -LiteralPath $rustRelayPayloadDrainPath -Raw } else { "" }
         $summary.checked = $true
         $summary.relay_connect_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_CONNECT_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.relay_payload_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED\s*=\s*true')
+        $summary.release_payload_preflight_endpoint_implemented = (
+            [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_payload_preflight\.v1') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'authorizeP2pControl\(req\)') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'queryRelayLeases') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'relay_payload_endpoint_not_wired') -and
+            -not [regex]::IsMatch($releasePayloadRouteText, 'appendRelayPayload')
+        )
         $summary.relay_payload_queue_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.release_connect_fail_closed_placeholder_active = (
             [regex]::IsMatch($connectRouteText, 'relay_payload_transport_not_implemented') -and
@@ -439,7 +449,12 @@ if ($blockers -contains "source_release_relay_connect_endpoint_not_implemented")
     $nextSteps.Add("Wire the release relay connect preflight endpoint in musu-bee\src\app\api\v1\relay\connect before relying on hosted relay status; env flags alone cannot make relay_transport_wired=true.") | Out-Null
 }
 if ($blockers -contains "source_release_relay_payload_endpoint_not_implemented") {
-    $nextSteps.Add("Current source has relay connect preflight and the store-forward payload queue fallback wired, but still marks the release tunnel payload endpoint false in musu-bee\src\lib\p2pRelayPolicy.ts.") | Out-Null
+    if ($sourceSummary.release_payload_preflight_endpoint_implemented) {
+        $nextSteps.Add("Current source has relay connect preflight, release payload preflight, and the store-forward payload queue fallback wired, but still marks the release tunnel payload endpoint false in musu-bee\src\lib\p2pRelayPolicy.ts.") | Out-Null
+    }
+    else {
+        $nextSteps.Add("Current source has relay connect preflight and the store-forward payload queue fallback wired, but still marks the release tunnel payload endpoint false in musu-bee\src\lib\p2pRelayPolicy.ts.") | Out-Null
+    }
     $nextSteps.Add("Add a distinct release tunnel payload endpoint that can emit quic_tls_1_3 proof before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
 }
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
@@ -503,6 +518,7 @@ else {
     "source store-forward relay queue fallback implemented: $($result.source.relay_payload_queue_fallback_implemented)"
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
+    "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
     "source relay transport kind release-grade: $($result.source.relay_transport_kind_release_grade)"
     "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
     "source release payload endpoint queue-only: $($result.source.release_payload_endpoint_queue_only)"
