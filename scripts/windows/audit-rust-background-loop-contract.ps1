@@ -210,6 +210,15 @@ Add-RegexCheck -Scope "pty" -Name "pty reader exits on send failure" -Text $ptyT
 Add-RegexCheck -Scope "pty" -Name "pty websocket select" -Text $ptyText -Pattern 'tokio::select!\s*\{[\s\S]*rx\.recv\(\)[\s\S]*socket\.recv\(\)' -Path $ptyPath -Message "PTY websocket loop waits on PTY output or websocket input."
 Add-RegexCheck -Scope "pty" -Name "pty websocket close break" -Text $ptyText -Pattern 'Message::Close\(_\)[\s\S]*None\s*=>\s*break' -Path $ptyPath -Message "PTY websocket loop exits on close or disconnected socket."
 
+$wsProxyPath = "musu-rs\src\bridge\handlers\ws_proxy.rs"
+$wsProxyText = Get-RepoText $wsProxyPath
+Add-RegexCheck -Scope "ws-proxy" -Name "websocket proxy request upgrade" -Text $wsProxyText -Pattern 'ws\.on_upgrade\(move \|socket\| handle_ws_proxy\(socket,\s*upstream_url\)\)' -Path $wsProxyPath -Message "WebSocket proxy loops are tied to explicit request upgrades."
+Add-RegexCheck -Scope "ws-proxy" -Name "client side awaits inbound websocket" -Text $wsProxyText -Pattern 'while let Some\(msg\) = client_rx\.next\(\)\.await' -Path $wsProxyPath -Message "WebSocket proxy client-to-upstream loop waits on inbound client frames instead of polling."
+Add-RegexCheck -Scope "ws-proxy" -Name "upstream side awaits inbound websocket" -Text $wsProxyText -Pattern 'while let Some\(msg\) = upstream_rx\.next\(\)\.await' -Path $wsProxyPath -Message "WebSocket proxy upstream-to-client loop waits on inbound upstream frames instead of polling."
+Add-RegexCheck -Scope "ws-proxy" -Name "client side exits on upstream send failure" -Text $wsProxyText -Pattern 'upstream_tx\.send\(tung_msg\)\.await\.is_err\(\)[\s\S]*break' -Path $wsProxyPath -Message "WebSocket proxy client side exits when upstream sending fails."
+Add-RegexCheck -Scope "ws-proxy" -Name "upstream side exits on client send failure" -Text $wsProxyText -Pattern 'client_tx\.send\(axum_msg\)\.await\.is_err\(\)[\s\S]*break' -Path $wsProxyPath -Message "WebSocket proxy upstream side exits when client sending fails."
+Add-RegexCheck -Scope "ws-proxy" -Name "bidirectional proxy closes on either side" -Text $wsProxyText -Pattern 'tokio::select!\s*\{[\s\S]*client_to_upstream[\s\S]*upstream_to_client' -Path $wsProxyPath -Message "WebSocket proxy drops the opposite half when either direction closes."
+
 $webrtcPath = "musu-rs\src\io\webrtc.rs"
 $webrtcText = Get-RepoText $webrtcPath
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share ffmpeg request path" -Text $webrtcText -Pattern 'Command::new\("ffmpeg"\)' -Path $webrtcPath -Message "WebRTC screen-share loop is tied to an explicit ffmpeg capture request."
@@ -247,6 +256,7 @@ else {
         "musu-rs\src\bridge\mod.rs",
         "musu-rs\src\bridge\handlers\relay_payload.rs",
         "musu-rs\src\bridge\handlers\pty.rs",
+        "musu-rs\src\bridge\handlers\ws_proxy.rs",
         "musu-rs\src\bridge\services.rs",
         "musu-rs\src\control\http_server.rs",
         "musu-rs\src\indexer\watch.rs",
