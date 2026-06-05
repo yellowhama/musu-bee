@@ -40,7 +40,7 @@ Result:
 - owned WebView2 count: `6`
 - hot process count: `0`
 
-## Targeted HUGH-MAIN Route Attempt
+## Targeted HUGH-MAIN Route Attempts
 
 Evidence:
 `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-174318-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
@@ -60,9 +60,32 @@ Result:
   - WebView2 `2.76%`
   - hot process count `0`
 
-This satisfies the current targeted post-route CPU-attempt evidence shape for
-HUGH_SECOND. It does not replace real second-PC multi-device evidence because no
-HUGH-MAIN peer was registered in the cleaned packaged runtime state.
+This first targeted run proved the cleaned packaged runtime stayed within the
+post-route CPU budget, but it was not enough for the route-attempt release gate
+because the runtime had no concrete peer endpoint registered.
+
+Registered endpoint evidence:
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-174834-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Registered endpoint verification:
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260605-174834-HUGH_SECOND.target-route.verification.json`
+
+Registered endpoint result:
+
+- `ok=true`, `fail_count=0`
+- target: `HUGH-MAIN`
+- registered endpoint: `192.168.1.192:8949`
+- route attempt reached the concrete LAN endpoint and timed out at
+  `http://192.168.1.192:8949/api/tasks/delegate`
+- post-route sample remained under budget:
+  - MUSU `0%`
+  - Node `0%`
+  - WebView2 `0.03%`
+  - hot process count `0`
+
+This satisfies the targeted post-route CPU-attempt evidence shape for
+HUGH_SECOND. It does not replace real second-PC multi-device evidence because the
+remote endpoint timed out rather than completing a two-machine route.
 
 ## Release Status
 

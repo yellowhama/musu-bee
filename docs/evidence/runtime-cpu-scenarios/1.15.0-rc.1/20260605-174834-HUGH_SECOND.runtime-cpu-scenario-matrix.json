@@ -1,0 +1,286 @@
+{
+  "schema": "musu.runtime_cpu_scenario_matrix.v1",
+  "ok": true,
+  "version": "1.15.0-rc.1",
+  "git_commit": "14862d794c4b71654c6dd083efa75de54633701f",
+  "git_dirty": false,
+  "started_at": "20260605-174834",
+  "completed_at": "2026-06-05T17:49:48.1690250+09:00",
+  "operator_machine": "HUGH_SECOND",
+  "operator_user": "empty",
+  "musu_exe": "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+  "allow_developer_runtime": false,
+  "musu_exe_release_identity": true,
+  "sample_seconds": 60,
+  "max_one_core_percent": 5.0,
+  "max_owned_process_count": 16,
+  "max_owned_webview2_process_count": 8,
+  "max_total_working_set_mb": 1024.0,
+  "requested_scenarios": [
+    "post-route"
+  ],
+  "route_probe": {
+    "prompt": "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834",
+    "expected_token": "MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834",
+    "target": "HUGH-MAIN",
+    "command": "musu route --target HUGH-MAIN --wait-timeout-sec 180 --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834\"",
+    "arguments": [
+      "route",
+      "--target",
+      "HUGH-MAIN",
+      "--wait-timeout-sec",
+      "180",
+      "--wait",
+      "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834"
+    ],
+    "wait_timeout_sec": 180,
+    "command_timeout_sec": 210,
+    "max_attempts": 3,
+    "attempt_count": 1,
+    "attempts": [
+      {
+        "attempt": 1,
+        "started_at": "2026-06-05T17:48:34.6670583+09:00",
+        "exit_code": 1,
+        "stdout": "→ Sending task to HUGH-MAIN...",
+        "stderr": "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+        "output": "→ Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+        "ok": false,
+        "retry_after_s": null,
+        "timeout_sec": 210
+      }
+    ],
+    "exit_code": 1,
+    "stdout": "→ Sending task to HUGH-MAIN...",
+    "stderr": "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+    "output": "→ Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+    "ok": false,
+    "failure_allowed": true
+  },
+  "fail_count": 0,
+  "scenarios": [
+    {
+      "scenario": "post-route",
+      "preparation": {
+        "action": "musu route --target --wait",
+        "route_probe": {
+          "prompt": "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834",
+          "expected_token": "MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834",
+          "target": "HUGH-MAIN",
+          "command": "musu route --target HUGH-MAIN --wait-timeout-sec 180 --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834\"",
+          "arguments": [
+            "route",
+            "--target",
+            "HUGH-MAIN",
+            "--wait-timeout-sec",
+            "180",
+            "--wait",
+            "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260605_174834"
+          ],
+          "wait_timeout_sec": 180,
+          "command_timeout_sec": 210,
+          "max_attempts": 3,
+          "attempt_count": 1,
+          "attempts": [
+            {
+              "attempt": 1,
+              "started_at": "2026-06-05T17:48:34.6670583+09:00",
+              "exit_code": 1,
+              "stdout": "→ Sending task to HUGH-MAIN...",
+              "stderr": "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+              "output": "→ Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+              "ok": false,
+              "retry_after_s": null,
+              "timeout_sec": 210
+            }
+          ],
+          "exit_code": 1,
+          "stdout": "→ Sending task to HUGH-MAIN...",
+          "stderr": "Error: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+          "output": "→ Sending task to HUGH-MAIN...\nError: error sending request for url (http://192.168.1.192:8949/api/tasks/delegate)\n\nCaused by:\n    operation timed out",
+          "ok": false,
+          "failure_allowed": true
+        }
+      },
+      "measurement": {
+        "scenario": "post-route",
+        "ok": true,
+        "evidence_path": ".local-build\\runtime-cpu-scenarios\\post-msix-tauri-fix-target-HUGH-MAIN-registered-20260605-174834-HUGH_SECOND\\20260605-174834-HUGH_SECOND.post-route.evidence.json",
+        "git_commit": "14862d794c4b71654c6dd083efa75de54633701f",
+        "git_dirty": false,
+        "sample_seconds": 60.064,
+        "cpu_sample_count": 8,
+        "process_counts_by_role": {
+          "musu": 2,
+          "node": 0,
+          "webview2": 6,
+          "other": 0
+        },
+        "max_one_core_percent_by_role": {
+          "musu": 0,
+          "node": 0,
+          "webview2": 0.03,
+          "other": 0
+        },
+        "cpu_attribution": {
+          "schema": "musu.runtime_idle_cpu_attribution.v1",
+          "attribution_scope": "musu_process_tree_or_repo_related",
+          "sample_count": 8,
+          "roles_observed": [
+            "musu",
+            "webview2"
+          ],
+          "sample_count_by_role": {
+            "musu": 2,
+            "node": 0,
+            "webview2": 6,
+            "other": 0
+          },
+          "total_cpu_seconds_by_role": {
+            "musu": 0,
+            "node": 0,
+            "webview2": 0.016,
+            "other": 0
+          },
+          "max_one_core_percent_by_role": {
+            "musu": 0,
+            "node": 0,
+            "webview2": 0.03,
+            "other": 0
+          },
+          "top_processes": [
+            {
+              "id": 10208,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0.016,
+              "cpu_pct_one_core": 0.03,
+              "working_set_mb": 76.92,
+              "parent_process_id": 4148,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "c30a775b6c5e318db9aadd5eeaf6a34febca73bd2c22efd455d94717f7ca7859",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+            },
+            {
+              "id": 44892,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 19.18,
+              "parent_process_id": 4148,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "e508f4ea70f5009ea585c951fe6bd667bfe60e8dfdc597528150472a55e41a9a",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+            },
+            {
+              "id": 31960,
+              "process_name": "musu-desktop",
+              "process_role": "musu",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 25.41,
+              "parent_process_id": 13568,
+              "is_descendant_of_musu": false,
+              "is_repo_related": false,
+              "classification_reason": "musu_process_name",
+              "command_line_present": true,
+              "command_line_sha256": "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+              "command_line_hint": "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+            },
+            {
+              "id": 2668,
+              "process_name": "musu",
+              "process_role": "musu",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 18.92,
+              "parent_process_id": 31880,
+              "is_descendant_of_musu": false,
+              "is_repo_related": false,
+              "classification_reason": "musu_process_name",
+              "command_line_present": true,
+              "command_line_sha256": "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+              "command_line_hint": "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+            },
+            {
+              "id": 40848,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 12.95,
+              "parent_process_id": 4148,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "c667a1897f4ccc82a433f5949129bcec72d6c1168902c8b0375054b177fcc239",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+            },
+            {
+              "id": 4148,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 117.7,
+              "parent_process_id": 31960,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "0b9c2d6bc56d0771cbdaf8769c9a4159d3e8833f31f2da9d44db7cbb47845566",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+            },
+            {
+              "id": 8212,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 36.61,
+              "parent_process_id": 4148,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "71e58ce9ccfcb17aaff28d075a298941feaef9c1428a12b18cb1d24089679d1f",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+            },
+            {
+              "id": 40072,
+              "process_name": "msedgewebview2",
+              "process_role": "webview2",
+              "cpu_seconds_delta": 0,
+              "cpu_pct_one_core": 0,
+              "working_set_mb": 70.41,
+              "parent_process_id": 4148,
+              "is_descendant_of_musu": true,
+              "is_repo_related": false,
+              "classification_reason": "musu_descendant",
+              "command_line_present": true,
+              "command_line_sha256": "a4d3aed10a53a9d5893437b9f4dc0424cb16a8e92de3bd07adfa7b3ee2ab0999",
+              "command_line_hint": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+            }
+          ],
+          "required_roles_present": {
+            "musu": true,
+            "webview2": true
+          }
+        },
+        "total_working_set_mb_after": 378.1,
+        "total_private_memory_mb_after": 236.47,
+        "resource_budget_violations": [],
+        "hot_process_count": 0
+      }
+    }
+  ],
+  "matrix_path": ".local-build\\runtime-cpu-scenarios\\post-msix-tauri-fix-target-HUGH-MAIN-registered-20260605-174834-HUGH_SECOND\\20260605-174834-HUGH_SECOND.runtime-cpu-scenario-matrix.json"
+}
