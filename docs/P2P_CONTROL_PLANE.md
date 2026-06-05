@@ -61,16 +61,16 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-05 relay transport proof peer-binding evidence refresh, the
-product direction above is documented, the lease-bound queue fallback source
-contract is gated, room presence/rendezvous candidate metadata is preserved,
-the local Rust CLI can publish public/NAT/relay candidate descriptors, the
-Rust rendezvous route selector carries those descriptors into selected peer
-metadata, the web route-evidence API rejects release-grade direct-route claims
-whose `candidate_addr` does not classify consistently with `route_kind`, and
-release-grade relay route queries now reject transport proof that is not bound
-to the same source/target peer pair. Public P2P release is still not
-release-complete.
+As of the 2026-06-06 second-PC CPU subrole import gate and final operator
+artifact refresh, the product direction above is documented, the lease-bound
+queue fallback source contract is gated, room presence/rendezvous candidate
+metadata is preserved, the local Rust CLI can publish public/NAT/relay
+candidate descriptors, the Rust rendezvous route selector carries those
+descriptors into selected peer metadata, the web route-evidence API rejects
+release-grade direct-route claims whose `candidate_addr` does not classify
+consistently with `route_kind`, and release-grade relay route queries reject
+transport proof that is not bound to the same source/target peer pair. Public
+P2P release is still not release-complete.
 
 Passing local state:
 
@@ -118,6 +118,14 @@ Passing local state:
   without making relay the default data path
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
+- current operator handoff artifacts are refreshed from clean `a45e6a1b`:
+  final operator packet `20260606-020415`, operator action pack
+  `20260606-020432`, and nested second-PC transfer
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
+- final operator packet and operator action pack verifiers pass with
+  `ok=true` and `fail_count=0`
+- the nested second-PC transfer requires the runtime CPU subrole import
+  contract before imported evidence can close release gates
 
 Open external gates:
 

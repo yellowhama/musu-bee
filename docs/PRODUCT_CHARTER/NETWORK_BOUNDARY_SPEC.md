@@ -373,6 +373,28 @@ and executes locally; MUSU.PRO can coordinate input, rendezvous, path selection,
 room state, and evidence, but it does not become the executor or the default
 payload data path.
 
+## 2026-06-06 final operator packet boundary update
+
+The final operator packet and operator action pack were regenerated after the
+second-PC CPU subrole import contract.
+
+- Current second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
+- Current final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-020415.zip`
+- Current operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432.zip`
+
+Both artifact verifiers pass with `fail_count=0`. This means operator handoff
+is aligned with the product boundary: the web/control-plane side can coordinate
+input and evidence, but the current second-PC kit still requires a local MUSU
+program on the other Windows device to perform install checks, route smoke,
+CPU sampling, runtime matrix capture, and process subrole attribution.
+
+This does not expand the public network claim. Public release still requires
+real second-PC evidence, live owner-scoped MUSU.PRO P2P proof, support mailbox
+proof, and Store proof.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

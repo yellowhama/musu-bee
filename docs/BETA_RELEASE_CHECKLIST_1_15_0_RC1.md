@@ -6068,3 +6068,56 @@ mailbox proof, and Store proof.
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_ENDPOINT_2026_06_06.md`
+
+## 2026-06-06 final operator packet after second-PC CPU subrole gate
+
+The final operator packet and operator action pack were regenerated from clean
+HEAD `a45e6a1b75a51cba4276cdf60a452041069fd6c3` after the second-PC runtime CPU
+subrole import gate.
+
+Artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-020415.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432\partner-center\MUSU-1.15.0-rc.1-store-submission-20260606-020432.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260606-020415`
+
+Validation:
+
+- final operator packet verification: `ok=true`, `fail_count=0`,
+  `kit_count=1`
+- operator action pack verification: `ok=true`, `fail_count=0`
+- clean go/no-go: `ready_for_public_desktop_release=false`,
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `msix_install_verified=true`, `public_metadata_ok=true`,
+  `manifest_git.dirty=false`
+
+Release meaning:
+
+- operator handoff artifacts are current after the CPU subrole import gate
+- the nested second-PC transfer requires current
+  `runtime_cpu_subrole_contract_ok=true` evidence
+- stale second-PC returns without subrole fields remain diagnostic only
+- public release remains No-Go until real second-PC route/CPU/matrix evidence,
+  live hosted MUSU.PRO P2P proof, support mailbox proof, and Store evidence
+  are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_SUBROLE_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2469 files`, `2717 symbols`, `18185 ms`
+- release evidence verifier regressions: `ok=true`, `45/45`, failed `0`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`

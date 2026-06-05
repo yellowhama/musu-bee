@@ -1046,3 +1046,27 @@ coordination only.
 Older second-PC return archives generated before this contract are diagnostic
 only. They cannot satisfy `import-second-pc-return.ps1
 -RequireReleaseGateEvidence` or close the public two-machine CPU/matrix gates.
+
+## 2026-06-06 Final Operator Packet Refresh After Subrole Gate
+
+Current operator handoff artifacts are refreshed from clean HEAD
+`a45e6a1b75a51cba4276cdf60a452041069fd6c3`:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-020415.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
+
+Both `verify-final-operator-gate-packet.ps1` and
+`verify-operator-action-pack.ps1` pass with `ok=true` and `fail_count=0`.
+
+This is an operator-readiness update, not hosted P2P completion. MUSU.PRO
+remains the remote input, room, rendezvous, path-selection, relay-fallback, and
+evidence control plane. The local MUSU programs still perform work and should
+move to direct P2P mesh paths after web-assisted discovery whenever possible.
+
+Release-grade MUSU.PRO proof remains open until live owner-scoped storage/auth,
+route evidence, relay transport proof, and payload delivery proof are captured
+without unverified bypasses.

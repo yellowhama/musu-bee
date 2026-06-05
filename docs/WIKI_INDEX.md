@@ -4515,4 +4515,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 final operator packet after second-PC CPU subrole gate:
+  `RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_SUBROLE_GATE_2026_06_06.md`
+  (wiki/761) records the clean `a45e6a1b` final operator packet and operator
+  action pack refresh after the CPU subrole import gate. Search terms should
+  include `GOAL v586`, `wiki/761`, `20260606-020415`, `20260606-020432`,
+  `musu-final-operator-gates-1.15.0-rc.1-20260606-020415.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260606-020432.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`,
+  `runtime_cpu_subrole_contract_ok`, `final operator packet fail_count=0`,
+  `operator action pack fail_count=0`, `support verification id`,
+  `musu-store-support-1.15.0-rc.1-20260606-020415`,
+  `ready_for_public_desktop_release=false`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 final operator packet/action pack index refresh:
+  MUSU local indexing was run after wiki/761 and GOAL v586/v587. Search terms
+  should include `GOAL v587`, `wiki/762`, `wiki/761 index refresh`,
+  `musu indexer sync`, `2469 files`, `2717 symbols`, `18185 ms`,
+  `20260606-020415`, `20260606-020432`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`,
+  `runtime_cpu_subrole_contract_ok`, `release evidence verifier 45/45`,
+  `MUSU Desktop local executor`, `MUSU.PRO remote input control plane`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
