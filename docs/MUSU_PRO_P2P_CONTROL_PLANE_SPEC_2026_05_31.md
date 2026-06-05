@@ -68,6 +68,16 @@ non-release-grade because `RELAY_TRANSPORT_KIND=websocket_tunnel`,
 `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, and hosted relay payload transport
 proof is absent.
 
+**2026-06-06 room work-order command audit update**:
+`POST /api/rooms/[roomId]/work-orders` now writes a privacy-preserving
+`rooms.work_orders` command audit event after P2P control auth whenever MUSU.PRO
+room input reaches the local bridge handoff, fails bridge forwarding, or is
+rejected after auth. The audit record includes the authenticated owner key,
+room/work-order/company/project context, target node, `origin=musu.pro`, result,
+HTTP status, bridge status, and trace id. It intentionally excludes the
+instruction body so command audit remains a control-plane forensic trail rather
+than a prompt/content store.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

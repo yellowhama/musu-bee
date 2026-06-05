@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { fileURLToPath } from "url";
 import { getBridgeUrl } from "@/lib/bridge-config";
 import { getBridgeToken } from "@/lib/bridge-token";
-import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+import { appendControlAudit, createTraceId } from "@/lib/control-audit";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
   if (failedAuth) {
     return failedAuth;
   }
+  const principal = p2pControlPrincipal(req);
+  const traceId = createTraceId();
 
   let body: {
     instruction?: unknown;
@@ -66,16 +69,48 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     body = (await req.json()) as typeof body;
   } catch {
+    await appendControlAudit({
+      event: "rooms.work_orders",
+      actor_id: principal.owner_key,
+      actor_email: null,
+      owner_key: principal.owner_key,
+      node: "local",
+      command: "room.work_order",
+      result: "rejected",
+      http_status: 400,
+      trace_id: traceId,
+      created_at: new Date().toISOString(),
+      origin: "musu.pro",
+      room_id,
+      reason: "invalid_json",
+    });
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
   const instruction = typeof body.instruction === "string" ? body.instruction.trim() : "";
   if (!instruction) {
+    await appendControlAudit({
+      event: "rooms.work_orders",
+      actor_id: principal.owner_key,
+      actor_email: null,
+      owner_key: principal.owner_key,
+      node: "local",
+      command: "room.work_order",
+      result: "rejected",
+      http_status: 400,
+      trace_id: traceId,
+      created_at: new Date().toISOString(),
+      origin: "musu.pro",
+      room_id,
+      reason: "instruction required",
+    });
     return NextResponse.json({ error: "instruction required" }, { status: 400 });
   }
 
   const work_order_id = normalizeContextValue(body.work_order_id) ?? generatedWorkOrderId();
   const target_node = normalizeContextValue(body.target_node);
+  const company_id = normalizeContextValue(body.company_id);
+  const project_id = normalizeContextValue(body.project_id);
   const bridgeUrl = getBridgeUrl().replace(/\/+$/, "");
   const token = await getBridgeToken();
   const upstreamBody = {
@@ -87,8 +122,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
       : undefined,
     adapter_type: normalizeContextValue(body.adapter_type),
     cwd: normalizeWorkspaceUri(body.workspace_uri),
-    company_id: normalizeContextValue(body.company_id),
-    project_id: normalizeContextValue(body.project_id),
+    company_id,
+    project_id,
     room_id,
     work_order_id,
     origin: "musu.pro",
@@ -112,6 +147,26 @@ export async function POST(req: NextRequest, context: RouteContext) {
       payload = { error: "non_json_bridge_response" };
     }
 
+    await appendControlAudit({
+      event: "rooms.work_orders",
+      actor_id: principal.owner_key,
+      actor_email: null,
+      owner_key: principal.owner_key,
+      node: upstreamBody.target_node ?? "local",
+      command: "room.work_order",
+      result: upstream.ok ? "accepted" : "bridge_error",
+      http_status: upstream.status,
+      bridge_status: upstream.status,
+      trace_id: traceId,
+      created_at: new Date().toISOString(),
+      origin: "musu.pro",
+      room_id,
+      work_order_id,
+      company_id,
+      project_id,
+      target_node: upstreamBody.target_node ?? "local",
+    });
+
     return NextResponse.json(
       {
         room_id,
@@ -123,6 +178,25 @@ export async function POST(req: NextRequest, context: RouteContext) {
       { status: upstream.status }
     );
   } catch (err) {
+    await appendControlAudit({
+      event: "rooms.work_orders",
+      actor_id: principal.owner_key,
+      actor_email: null,
+      owner_key: principal.owner_key,
+      node: upstreamBody.target_node ?? "local",
+      command: "room.work_order",
+      result: "bridge_error",
+      http_status: 503,
+      trace_id: traceId,
+      created_at: new Date().toISOString(),
+      origin: "musu.pro",
+      room_id,
+      work_order_id,
+      company_id,
+      project_id,
+      target_node: upstreamBody.target_node ?? "local",
+      reason: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
       { error: "bridge_unavailable", detail: err instanceof Error ? err.message : String(err) },
       { status: 503 }

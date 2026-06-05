@@ -4797,4 +4797,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 room work-order command audit:
+  `RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_COMMAND_AUDIT_2026_06_06.md`
+  (wiki/785) records privacy-preserving command audit logging for
+  `POST /api/rooms/[roomId]/work-orders`. Search terms should include
+  `GOAL v610`, `wiki/785`, `rooms.work_orders`, `room.work_order`,
+  `appendControlAudit`, `p2pControlPrincipal`, `owner_key`,
+  `command-center.jsonl`, `instruction text excluded`, `npm run test:routes 29/29`,
+  `npm run test:p2p 90/90`, `operator_api_security_contract_verified=true`,
+  `release verifier 51/51`, `MUSU.PRO remote input`, and
+  `MUSU Desktop local executor`.
+
+- 2026-06-06 room work-order command audit index refresh:
+  wiki/786 records the MUSU local index refresh after wiki/785 and GOAL v610.
+  Search terms should include `GOAL v611`, `wiki/786`, `2519 files`,
+  `2732 symbols`, `9705 ms`, `room work-order command audit index refresh`,
+  `rooms.work_orders`, `room.work_order`, `appendControlAudit`,
+  `p2pControlPrincipal`, `command-center.jsonl`, `instruction text excluded`,
+  `operator_api_security_contract_verified=true`, `MUSU.PRO remote input`, and
+  `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**

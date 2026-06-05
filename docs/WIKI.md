@@ -8852,3 +8852,60 @@ not advancing, and `brain-sync` exiting undefined.
 The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
+
+## 2026-06-06 Room Work-Order Command Audit
+
+`POST /api/rooms/[roomId]/work-orders` now writes a command-center audit event
+for MUSU.PRO room work-order handoff after P2P control auth.
+
+The event is `rooms.work_orders` and records:
+
+- authenticated P2P `owner_key`
+- `room_id`
+- `work_order_id`
+- optional `company_id` and `project_id`
+- `target_node`
+- `origin=musu.pro`
+- result, HTTP status, bridge status, and trace id
+
+The event intentionally does not store the room instruction body. Tests assert
+that neither `instruction` nor `text` appears in the audit JSONL.
+
+Validation:
+
+- `npm run test:routes`: `29/29`
+- `npm run test:p2p`: `90/90`
+- `npm run typecheck`
+- operator API security audit: `ok=true`, `fail_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=51`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Dirty-tree go/no-go with public metadata skipped kept
+`operator_api_security_contract_verified=true`, local artifacts/single-machine
+true, runtime idle CPU/matrix `1/2`, targeted second-PC route CPU true, and
+public release No-Go. The dirty git blocker is expected until commit.
+
+This is security hardening for the MUSU.PRO remote-input boundary. It does not
+implement release-grade relay payload transport or close second-PC/support/Store
+release blockers.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_COMMAND_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Room Work-Order Command Audit Index Refresh
+
+MUSU local indexer was refreshed after wiki/785 and GOAL v610.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2519 files`
+- `2732 symbols`
+- `9705 ms`
+
+Search terms should include `GOAL v611`, `wiki/786`,
+`rooms.work_orders`, `room.work_order`, `appendControlAudit`,
+`p2pControlPrincipal`, `command-center.jsonl`, `instruction text excluded`,
+`operator_api_security_contract_verified=true`, `MUSU.PRO remote input`, and
+`MUSU Desktop local executor`.

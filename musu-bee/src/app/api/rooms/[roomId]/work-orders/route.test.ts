@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,9 +11,10 @@ type Module = {
 };
 
 let POST: Module["POST"];
+let testHome = "";
 
 before(async () => {
-  const testHome = await mkdtemp(join(tmpdir(), "musu-room-work-orders-test-"));
+  testHome = await mkdtemp(join(tmpdir(), "musu-room-work-orders-test-"));
   process.env.HOME = testHome;
   process.env.USERPROFILE = testHome;
   process.env.MUSU_HOME = join(testHome, ".musu");
@@ -58,6 +59,16 @@ function withFetchMock(
   return fn().finally(() => {
     globalThis.fetch = orig;
   });
+}
+
+async function readAuditEvents(): Promise<Array<Record<string, unknown>>> {
+  const auditPath = join(testHome, ".musu", "audit", "command-center.jsonl");
+  const content = await readFile(auditPath, "utf-8").catch(() => "");
+  return content
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 
 test("POST requires a room id", async () => {
@@ -157,6 +168,59 @@ test("POST forwards a MUSU.PRO room work order to the local bridge", async () =>
       assert.equal(body.origin, "musu.pro");
       assert.equal(body.owner_scoped, true);
       assert.deepEqual(body.bridge, { task_id: "task-1", status: "queued" });
+
+      const auditEvents = await readAuditEvents();
+      const audit = auditEvents.at(-1);
+      assert.ok(audit);
+      assert.equal(audit.event, "rooms.work_orders");
+      assert.equal(audit.actor_id, audit.owner_key);
+      assert.match(String(audit.actor_id), /^token-sha256:[a-f0-9]{64}$/);
+      assert.equal(audit.actor_email, null);
+      assert.equal(audit.node, "HUGH_SECOND");
+      assert.equal(audit.command, "room.work_order");
+      assert.equal(audit.result, "accepted");
+      assert.equal(audit.http_status, 202);
+      assert.equal(audit.bridge_status, 202);
+      assert.equal(audit.origin, "musu.pro");
+      assert.equal(audit.room_id, "release-room");
+      assert.equal(audit.work_order_id, "wo-room-1");
+      assert.equal(audit.company_id, "company-1");
+      assert.equal(audit.project_id, "project-rc1");
+      assert.equal(audit.target_node, "HUGH_SECOND");
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
+    },
+  );
+});
+
+test("POST audit-logs bridge unavailable without storing the instruction text", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("bridge offline");
+    },
+    async () => {
+      const res = await POST(
+        req({
+          instruction: "This should not be written to the command audit log",
+          target_node: "local",
+          work_order_id: "wo-room-error",
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(res.status, 503);
+
+      const auditEvents = await readAuditEvents();
+      const audit = auditEvents.at(-1);
+      assert.ok(audit);
+      assert.equal(audit.event, "rooms.work_orders");
+      assert.equal(audit.result, "bridge_error");
+      assert.equal(audit.http_status, 503);
+      assert.equal(audit.room_id, "release-room");
+      assert.equal(audit.work_order_id, "wo-room-error");
+      assert.equal(audit.target_node, "local");
+      assert.equal(audit.reason, "bridge offline");
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
     },
   );
 });

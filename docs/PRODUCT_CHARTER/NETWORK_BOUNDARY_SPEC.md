@@ -528,6 +528,21 @@ The current audit keeps the local-vs-web split explicit:
   `quic_tls_1_3` proof is implemented and evidenced.
 
 Current validation found no high/medium code issue in the audited surfaces.
+
+## 2026-06-06 room work-order audit boundary
+
+MUSU.PRO room work-order input is now part of the command-audit boundary.
+
+- `POST /api/rooms/[roomId]/work-orders` still requires P2P control auth before
+  it can reach the local bridge.
+- After auth, accepted, rejected, and bridge-error room work-order handoffs
+  write `rooms.work_orders` events to command-center audit JSONL.
+- The event records owner key, room/work-order/company/project context, target
+  node, `origin=musu.pro`, status, and trace id.
+- The event does not store `instruction` or `text`.
+
+This keeps MUSU.PRO as remote input/control plane and MUSU Desktop as the local
+executor, while making remote-input-to-local-execution handoff auditable.
 Release remains No-Go because second-PC evidence, production hosted P2P proof,
 support mailbox proof, and Store evidence are still missing.
 

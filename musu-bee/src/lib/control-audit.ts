@@ -14,6 +14,13 @@ export interface ControlAuditEvent {
   trace_id: string;
   created_at: string;
   reason?: string;
+  owner_key?: string;
+  origin?: string;
+  room_id?: string;
+  work_order_id?: string;
+  company_id?: string;
+  project_id?: string;
+  target_node?: string;
 }
 
 const AUDIT_DIR = join(homedir(), ".musu", "audit");

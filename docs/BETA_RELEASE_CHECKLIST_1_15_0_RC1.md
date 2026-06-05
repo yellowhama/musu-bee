@@ -6582,3 +6582,46 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2516 files`, `2731 symbols`, `10322 ms`
+
+## 2026-06-06 Room Work-Order Command Audit
+
+MUSU.PRO room work-order input now has command-center audit coverage at the
+web-to-local bridge boundary.
+
+Changed:
+
+- `POST /api/rooms/[roomId]/work-orders` writes `rooms.work_orders` events
+  after P2P control auth.
+- accepted bridge forwarding, bridge errors, invalid JSON, and missing
+  instruction after auth are audit-logged.
+- audit records owner key, room/work-order/company/project context, target node,
+  `origin=musu.pro`, result, HTTP status, bridge status, and trace id.
+- audit intentionally excludes the instruction body; tests assert no
+  `instruction` or `text` field is stored.
+- operator API security audit now gates the room work-order auth + command
+  audit contract.
+
+Validation:
+
+- `npm run test:routes` `29/29`
+- `npm run test:p2p` `90/90`
+- `npm run typecheck`
+- operator API security audit `ok=true`, `fail_count=0`
+- release evidence verifier regressions `ok=true`, `case_count=51`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Dirty-tree go/no-go with public metadata skipped kept
+`operator_api_security_contract_verified=true`; public release remains No-Go on
+second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay proof, support mailbox,
+public metadata recheck, Store evidence, and dirty git until commit.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_COMMAND_AUDIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2519 files`, `2732 symbols`, `9705 ms`

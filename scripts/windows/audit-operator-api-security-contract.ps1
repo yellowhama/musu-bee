@@ -118,9 +118,9 @@ Add-Check -Scope "source" -Name "relay connect requires P2P control auth and own
     -Message "Relay connect preflight requires P2P control auth and validates an owner-scoped relay lease before any release connect attempt."
 
 Add-Check -Scope "source" -Name "room work order requires P2P control auth" `
-    -Passed ($roomWorkOrders.Contains("authorizeP2pControl") -and $roomWorkOrders.Contains("const failedAuth = authorizeP2pControl(req)") -and $roomWorkOrders.Contains("return failedAuth") -and $roomWorkOrders.Contains('origin: "musu.pro"') -and $roomWorkOrders.Contains("owner_scoped: true")) `
+    -Passed ($roomWorkOrders.Contains("authorizeP2pControl") -and $roomWorkOrders.Contains("const failedAuth = authorizeP2pControl(req)") -and $roomWorkOrders.Contains("return failedAuth") -and $roomWorkOrders.Contains("p2pControlPrincipal(req)") -and $roomWorkOrders.Contains("appendControlAudit") -and $roomWorkOrders.Contains('event: "rooms.work_orders"') -and $roomWorkOrders.Contains('command: "room.work_order"') -and $roomWorkOrders.Contains('origin: "musu.pro"') -and $roomWorkOrders.Contains("owner_scoped: true")) `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts" `
-    -Message "Room work-order web input requires P2P control auth before forwarding to the local bridge."
+    -Message "Room work-order web input requires P2P control auth and writes a command audit event before or after local bridge forwarding."
 
 Add-Check -Scope "source" -Name "rendezvous sessions are owner-scoped" `
     -Passed ($p2pRendezvousStore.Contains("owner_key: string") -and $p2pRendezvousStore.Contains("isSession(session) && session.owner_key === ownerKey") -and $p2pRendezvousCreate.Contains("p2pControlPrincipal(req).owner_key") -and $p2pRendezvousCreate.Contains("owner_key: ownerKey") -and $p2pRendezvousRead.Contains("getRendezvousSession(id, ownerKey)") -and $p2pRendezvousCandidates.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousApprove.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousClose.Contains("updateRendezvousSession(id, ownerKey") -and $roomRendezvous.Contains("owner_key: ownerKey")) `
@@ -138,9 +138,9 @@ Add-Check -Scope "tests" -Name "route security test script" `
     -Message "npm test:routes covers operator API security routes."
 
 Add-Check -Scope "tests" -Name "room work order auth regression test" `
-    -Passed ($packageJson.Contains("src/app/api/rooms/[[]roomId[]]/work-orders/route.test.ts") -and $roomWorkOrdersTest.Contains("requires P2P control auth before forwarding a room work order") -and $roomWorkOrdersTest.Contains('assert.equal(res.status, 401)') -and $roomWorkOrdersTest.Contains('assert.equal(body.error, "unauthorized")')) `
+    -Passed ($packageJson.Contains("src/app/api/rooms/[[]roomId[]]/work-orders/route.test.ts") -and $roomWorkOrdersTest.Contains("requires P2P control auth before forwarding a room work order") -and $roomWorkOrdersTest.Contains('assert.equal(res.status, 401)') -and $roomWorkOrdersTest.Contains('assert.equal(body.error, "unauthorized")') -and $roomWorkOrdersTest.Contains('event, "rooms.work_orders"') -and $roomWorkOrdersTest.Contains('command, "room.work_order"') -and $roomWorkOrdersTest.Contains('hasOwnProperty.call(audit, "instruction")')) `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
-    -Message "Route tests cover room work-order auth before web input can reach the local bridge."
+    -Message "Route tests cover room work-order auth and privacy-preserving command audit logging before web input can reach the local bridge."
 
 Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
     -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
