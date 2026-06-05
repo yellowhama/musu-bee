@@ -6265,6 +6265,48 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 network watcher scope contract gate
+
+The Rust background-loop release audit now treats network watcher/poller scope
+as a release contract.
+
+Required local runtime model:
+
+- `musu discover` is the explicit active mDNS discovery command.
+- mDNS bridge discovery stays opt-in behind `MUSU_ENABLE_MDNS=1`.
+- Relay payload target polling stays opt-in behind
+  `MUSU_ENABLE_RELAY_PAYLOAD_POLLER=1`.
+- Device-code polling stays scoped to explicit `musu login`.
+- Logged-in MUSU.PRO registration stays the low-duty heartbeat path.
+- Control SSE heartbeat, auto-update ticker, and relay payload handler/client
+  surfaces stay allowlisted and audited.
+- New network watcher/poller primitives outside the allowlist fail the audit
+  until reviewed.
+
+Validation passed:
+
+- PowerShell parser checks
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `network_watcher_primitive_hit_count=0`
+- release evidence verifier regression `ok=true`, `case_count=48`,
+  `failed_case_count=0`
+
+This is verifier hardening only. Public release still needs second-PC route,
+idle CPU, runtime matrix, hosted P2P/relay proof, support mailbox proof, and
+Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_NETWORK_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+
+Index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2486 files`, `2719 symbols`, `10887 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 release relay payload preflight byte rejection
 
 `/api/v1/relay/payload` remains preflight-only while

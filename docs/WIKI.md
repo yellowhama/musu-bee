@@ -7442,6 +7442,81 @@ terms should include `GOAL v597`, `wiki/772`,
 `release verifier 47/47`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
 
+## 2026-06-06 network watcher scope contract gate (wiki/773)
+
+The Rust background-loop release audit now explicitly gates network
+watcher/poller scope.
+
+What changed:
+
+- `audit-rust-background-loop-contract.ps1` now proves active mDNS discovery is
+  scoped to the explicit `musu discover` CLI command.
+- The audit adds `$allowedNetworkWatcherFiles`.
+- The audit scans for network watcher/poller primitives:
+  `poll_device_token`, `discover_peers`, `auto_register_peers`, relay payload
+  query/claim/deliver calls, relay payload poller calls,
+  `tokio::time::interval`, `IntervalStream::new`, mDNS `recv_timeout`, and the
+  low-duty cloud registration loop marker.
+- The audit emits `network_watcher_primitive_hit_count`.
+- `test-release-evidence-verifiers.ps1` now has source-contract regression
+  `rust background audit limits network watcher scope`.
+- `verify-final-operator-gate-packet.ps1` now checks final packets contain the
+  network watcher scope contract.
+
+Validation:
+
+- PowerShell parser: pass
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`,
+  `filesystem_watcher_primitive_hit_count=0`,
+  `file_sync_watcher_start_hit_count=0`,
+  `network_watcher_primitive_hit_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=48`,
+  `failed_case_count=0`
+
+Code audit found no high or medium runtime issue. This is verifier/source
+contract hardening only; runtime behavior is unchanged.
+
+Product boundary:
+
+- MUSU Desktop remains the local executor and resource owner.
+- MUSU.PRO remains remote input, project/company room, rendezvous,
+  path-selection, relay-fallback policy, and evidence control plane.
+- Default local runtime must not gain hidden network scan/poll loops outside
+  explicit CLI, opt-in, low-duty, or request-scoped surfaces.
+
+Public release remains No-Go on second-PC route/CPU/matrix evidence, hosted
+MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_NETWORK_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+
+## 2026-06-06 network watcher scope index refresh (wiki/774)
+
+MUSU local indexing was refreshed after wiki/773, GOAL v598, the network
+watcher scope contract report, BETA checklist, network boundary spec,
+WIKI/WIKI_INDEX, changed release verifier scripts, and CoS memory update.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2486 files`
+- `2719 symbols`
+- `10887 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`.
+
+The MUSU local index remains the reliable current code/document index. Search
+terms should include `GOAL v599`, `wiki/774`,
+`network watcher scope index refresh`,
+`network_watcher_primitive_hit_count=0`,
+`rust background audit limits network watcher scope`,
+`release verifier 48/48`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.
+
 ## 2026-06-06 final operator packet after second-PC CPU subrole gate (wiki/761)
 
 The final operator packet and operator action pack were regenerated from clean

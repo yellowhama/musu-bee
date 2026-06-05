@@ -4661,4 +4661,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
   and `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 network watcher scope contract gate:
+  `RELEASE_1_15_0_RC1_NETWORK_WATCHER_SCOPE_CONTRACT_GATE_2026_06_06.md`
+  (wiki/773) records the Rust background-loop audit hardening that keeps
+  network watcher/poller primitives scoped to explicit CLI, opt-in, low-duty,
+  or request-scoped surfaces. Search terms should include `GOAL v598`,
+  `wiki/773`, `network watcher primitives stay allowlisted`,
+  `network_watcher_primitive_hit_count=0`,
+  `rust background audit limits network watcher scope`,
+  `discover command scoped dispatch`, `$allowedNetworkWatcherFiles`,
+  `release verifier 48/48`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 network watcher scope index refresh:
+  wiki/774 records the MUSU local index refresh after wiki/773 and GOAL v598.
+  Search terms should include `GOAL v599`, `wiki/774`, `2486 files`,
+  `2719 symbols`, `10887 ms`, `network watcher scope index refresh`,
+  `network_watcher_primitive_hit_count=0`,
+  `rust background audit limits network watcher scope`,
+  `release verifier 48/48`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
+  and `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

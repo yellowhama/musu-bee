@@ -316,6 +316,28 @@ function Test-RustBackgroundFilesystemWatcherScopeContract {
     return $true
 }
 
+function Test-RustBackgroundNetworkWatcherScopeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'discover command scoped dispatch',
+        '$allowedNetworkWatcherFiles',
+        'poll_device_token\(|discover_peers\(|auto_register_peers\(|query_relay_payloads\(',
+        'claim_relay_payloads\(|mark_relay_payload_delivered\(|run_relay_payload_poller\(',
+        'start_relay_payload_poller_if_enabled\(|tokio::time::interval\(|IntervalStream::new\(',
+        'network watcher primitives stay allowlisted',
+        'network_watcher_primitive_hit_count'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -978,6 +1000,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "rust background audit limits filesystem watcher scope" `
+    -Verifier "rust background loop source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$rustBackgroundNetworkWatcherScopeContractOk = Test-RustBackgroundNetworkWatcherScopeContract -ScriptPath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $rustBackgroundNetworkWatcherScopeContractOk `
+    -Message "Rust background-loop audit must keep network watcher/poller primitives scoped to explicit CLI, opt-in, low-duty, or request-scoped surfaces"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "rust background audit limits network watcher scope" `
     -Verifier "rust background loop source contract" `
     -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
     -ShouldPass $true `

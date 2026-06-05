@@ -440,6 +440,28 @@ and resource owner; MUSU.PRO can coordinate remote input, rooms, rendezvous,
 path selection, relay fallback, and evidence, but it does not turn the web
 control plane into a default local filesystem watcher or execution server.
 
+## 2026-06-06 network watcher boundary update
+
+The default local desktop/runtime path must not grow hidden network scan or
+poll loops as a side effect of MUSU.PRO control-plane work.
+
+Current contract:
+
+- `musu discover` is the explicit active mDNS discovery command.
+- Bridge mDNS remains opt-in through `MUSU_ENABLE_MDNS=1`.
+- Relay payload target polling remains opt-in through
+  `MUSU_ENABLE_RELAY_PAYLOAD_POLLER=1`.
+- `musu login` owns device-code polling.
+- Logged-in MUSU.PRO registration remains the low-duty heartbeat path.
+- Control SSE heartbeat, auto-update ticker, and relay payload handler/client
+  surfaces are allowlisted and audited.
+- The Rust background-loop release audit rejects new network watcher/poller
+  primitives outside those reviewed surfaces.
+
+This keeps MUSU.PRO as remote input/rendezvous/path-selection/relay-fallback
+control plane, not a reason for the local desktop runtime to perform hidden
+network watching.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

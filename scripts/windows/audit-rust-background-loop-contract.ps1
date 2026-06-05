@@ -194,6 +194,7 @@ $mainPath = "musu-rs\src\main.rs"
 $mainText = Get-RepoText $mainPath
 Add-RegexCheck -Scope "indexer-watch" -Name "indexer command dispatch only" -Text $mainText -Pattern 'Cmd::Indexer\s*\{\s*action\s*\}[\s\S]*indexer::run\(action\)\.await' -Path $mainPath -Message "Indexer actions are reached through the CLI Indexer command dispatcher."
 Add-NoRegexCheck -Scope "indexer-watch" -Name "bridge does not start indexer watch" -Text $bridgeText -Pattern 'indexer::watch|run_watch\(' -Path $bridgePath -Message "Default bridge/runtime path does not call the indexer watcher."
+Add-RegexCheck -Scope "mdns" -Name "discover command scoped dispatch" -Text $mainText -Pattern 'Cmd::Discover\s*\{\s*timeout\s*\}[\s\S]*peer::mdns::discover_peers' -Path $mainPath -Message "mDNS active discovery is scoped to the explicit `musu discover` command dispatch."
 
 $autoUpdatePath = "musu-rs\src\install\auto_update.rs"
 $autoUpdateText = Get-RepoText $autoUpdatePath
@@ -357,6 +358,7 @@ $unauditedSpawnHits = New-Object System.Collections.Generic.List[object]
 $telemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
 $filesystemWatcherPrimitiveHits = New-Object System.Collections.Generic.List[object]
 $fileSyncWatcherStartHits = New-Object System.Collections.Generic.List[object]
+$networkWatcherPrimitiveHits = New-Object System.Collections.Generic.List[object]
 if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
     Add-Check -Scope "source" -Name "rust source root exists" -Passed $false -Path "musu-rs\src" -Message "Rust source root is missing."
 }
@@ -368,6 +370,16 @@ else {
     $allowedFileSyncWatcherCallFiles = @(
         "musu-rs\src\bridge\mod.rs",
         "musu-rs\src\install\cli_commands.rs"
+    )
+    $allowedNetworkWatcherFiles = @(
+        "musu-rs\src\bridge\mod.rs",
+        "musu-rs\src\bridge\handlers\relay_payload.rs",
+        "musu-rs\src\cloud\mod.rs",
+        "musu-rs\src\control\http_server.rs",
+        "musu-rs\src\install\auto_update.rs",
+        "musu-rs\src\install\cli_commands.rs",
+        "musu-rs\src\main.rs",
+        "musu-rs\src\peer\mdns.rs"
     )
     $allowlistedLoopFiles = @(
         "musu-rs\src\adapter\claude.rs",
@@ -446,6 +458,13 @@ else {
         if ($fileSyncWatcherStartMatches.Count -gt 0 -and ($relative -notin $allowedFileSyncWatcherCallFiles)) {
             $fileSyncWatcherStartHits.Add([pscustomobject]@{ path = $relative; count = $fileSyncWatcherStartMatches.Count }) | Out-Null
         }
+        $networkWatcherMatches = [regex]::Matches(
+            $text,
+            'poll_device_token\(|discover_peers\(|auto_register_peers\(|query_relay_payloads\(|claim_relay_payloads\(|mark_relay_payload_delivered\(|run_relay_payload_poller\(|start_relay_payload_poller_if_enabled\(|tokio::time::interval\(|IntervalStream::new\(|recv_timeout\(Duration::from_secs\(1\)\)|starting low-duty musu\.pro cloud registration loop'
+        )
+        if ($networkWatcherMatches.Count -gt 0 -and ($relative -notin $allowedNetworkWatcherFiles)) {
+            $networkWatcherPrimitiveHits.Add([pscustomobject]@{ path = $relative; count = $networkWatcherMatches.Count }) | Out-Null
+        }
     }
 
     Add-Check `
@@ -478,6 +497,12 @@ else {
         -Passed ($fileSyncWatcherStartHits.Count -eq 0) `
         -Path "musu-rs\src" `
         -Message ($(if ($fileSyncWatcherStartHits.Count -eq 0) { "File-sync watcher start calls are limited to the configured bridge path and explicit `musu sync` CLI." } else { "File-sync watcher start calls found outside the allowlist: $(@($fileSyncWatcherStartHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
+    Add-Check `
+        -Scope "source" `
+        -Name "network watcher primitives stay allowlisted" `
+        -Passed ($networkWatcherPrimitiveHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($networkWatcherPrimitiveHits.Count -eq 0) { "Network watcher/poller primitives are limited to explicit CLI, opt-in mDNS/relay-poller, low-duty cloud heartbeat, auto-update, control SSE, and relay payload handler/client surfaces." } else { "Network watcher/poller primitives found outside the allowlist: $(@($networkWatcherPrimitiveHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
 }
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
@@ -496,6 +521,8 @@ $result = [pscustomobject]@{
     filesystem_watcher_primitive_hits = $filesystemWatcherPrimitiveHits.ToArray()
     file_sync_watcher_start_hit_count = $fileSyncWatcherStartHits.Count
     file_sync_watcher_start_hits = $fileSyncWatcherStartHits.ToArray()
+    network_watcher_primitive_hit_count = $networkWatcherPrimitiveHits.Count
+    network_watcher_primitive_hits = $networkWatcherPrimitiveHits.ToArray()
     checks = $checks.ToArray()
 }
 
