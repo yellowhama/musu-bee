@@ -85,6 +85,8 @@ function relayTransportProof(
     schema: "musu.relay_transport_proof.v1",
     session_id: hardenedEvidence.session_id,
     lease_id: leaseId,
+    source_node_id: hardenedEvidence.source_node_id,
+    target_node_id: hardenedEvidence.target_node_id,
     transport_kind: "quic_relay_tunnel",
     relay_url: "wss://relay.musu.pro/connect",
     tunnel_id: "relay-tunnel-test",
@@ -726,6 +728,42 @@ test("keeps relay transport proof non release grade when kind or timestamps are 
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /relay_route_transport_proof_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_route_transport_proof_timestamp_order_invalid/);
+  });
+});
+
+test("keeps relay transport proof non release grade when peer binding does not match route evidence", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-transport-proof-peer-mismatch");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+      relay_transport_proof: relayTransportProof(lease.lease_id, {
+        source_node_id: "other-source",
+        target_node_id: "other-target",
+      }),
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.match(blockers, /relay_route_transport_proof_source_mismatch/);
+    assert.match(blockers, /relay_route_transport_proof_target_mismatch/);
   });
 });
 

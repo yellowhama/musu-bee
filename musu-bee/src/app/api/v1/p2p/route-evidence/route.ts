@@ -54,6 +54,8 @@ const RelayTransportProofSchema = z.object({
   schema: z.literal("musu.relay_transport_proof.v1"),
   session_id: z.string().min(1),
   lease_id: z.string().min(1),
+  source_node_id: z.string().min(1),
+  target_node_id: z.string().min(1),
   transport_kind: z.string().min(1),
   relay_url: z.string().min(1),
   tunnel_id: z.string().min(1),
@@ -299,6 +301,12 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   }
   if (evidence.session_id?.trim() && proof.session_id.trim() !== evidence.session_id.trim()) {
     blockers.push("relay_route_transport_proof_session_mismatch");
+  }
+  if (proof.source_node_id.trim() !== evidence.source_node_id.trim()) {
+    blockers.push("relay_route_transport_proof_source_mismatch");
+  }
+  if (proof.target_node_id.trim() !== evidence.target_node_id.trim()) {
+    blockers.push("relay_route_transport_proof_target_mismatch");
   }
   if (!proof.relay_url.trim().startsWith("wss://")) {
     blockers.push("relay_route_transport_proof_relay_url_not_wss");

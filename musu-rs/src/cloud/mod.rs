@@ -449,6 +449,8 @@ pub struct RouteRelayTransportProof {
     pub schema: String,
     pub session_id: String,
     pub lease_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
     pub transport_kind: String,
     pub relay_url: String,
     pub tunnel_id: String,
@@ -1625,6 +1627,65 @@ mod tests {
         assert_eq!(
             value["relay_payload_delivery_proof"]["delivered_at"],
             "2026-06-04T00:00:02Z"
+        );
+    }
+
+    #[test]
+    fn route_evidence_serializes_relay_transport_proof_peer_binding_fields() {
+        let evidence = RouteEvidence {
+            schema: "musu.route_evidence.v1".into(),
+            version: "1.15.0-rc.1".into(),
+            source_node_id: "node_src".into(),
+            target_node_id: "node_dst".into(),
+            session_id: Some("rv_123".into()),
+            route_kind: RouteKind::Relay,
+            candidate_addr: "relay.musu.pro:443".into(),
+            handshake_ms: Some(42),
+            total_attempt_ms: 611,
+            peer_identity_verified: true,
+            peer_identity_method: Some("quic_tls_cert_fingerprint".into()),
+            peer_public_key: Some("sha256:test".into()),
+            encryption: "quic_tls_1_3".into(),
+            transport_verified_by: Some("musu_quic_tls_transport".into()),
+            payload_transited_musu_infra: true,
+            result: RouteAttemptResult::Success,
+            failure_class: None,
+            relay_fallback: None,
+            relay_transport_proof: Some(RouteRelayTransportProof {
+                schema: "musu.relay_transport_proof.v1".into(),
+                session_id: "rv_123".into(),
+                lease_id: "lease-1".into(),
+                source_node_id: "node_src".into(),
+                target_node_id: "node_dst".into(),
+                transport_kind: "quic_relay_tunnel".into(),
+                relay_url: "wss://relay.musu.pro/connect".into(),
+                tunnel_id: "relay-tunnel-1".into(),
+                handshake_ms: 23,
+                payload_bytes_transited: 128,
+                payload_transited_musu_infra: true,
+                encryption: "quic_tls_1_3".into(),
+                transport_verified_by: "musu_quic_tls_transport".into(),
+                opened_at: "2026-06-04T00:00:01Z".into(),
+                closed_at: Some("2026-06-04T00:00:02Z".into()),
+            }),
+            relay_payload_delivery_proof: None,
+            recorded_at: "2026-06-04T00:00:03Z".into(),
+        };
+
+        let value = serde_json::to_value(evidence).unwrap();
+        assert_eq!(
+            value["relay_transport_proof"]["schema"],
+            "musu.relay_transport_proof.v1"
+        );
+        assert_eq!(value["relay_transport_proof"]["source_node_id"], "node_src");
+        assert_eq!(value["relay_transport_proof"]["target_node_id"], "node_dst");
+        assert_eq!(
+            value["relay_transport_proof"]["transport_kind"],
+            "quic_relay_tunnel"
+        );
+        assert_eq!(
+            value["relay_transport_proof"]["transport_verified_by"],
+            "musu_quic_tls_transport"
         );
     }
 

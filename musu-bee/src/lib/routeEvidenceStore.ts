@@ -44,6 +44,8 @@ export type RouteEvidencePayload = {
     schema: "musu.relay_transport_proof.v1";
     session_id: string;
     lease_id: string;
+    source_node_id: string;
+    target_node_id: string;
     transport_kind: string;
     relay_url: string;
     tunnel_id: string;
@@ -179,6 +181,8 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
       (!relayLeaseId || proof.lease_id.trim() === relayLeaseId) &&
       proof.session_id?.trim() &&
       (!evidenceSessionId || proof.session_id.trim() === evidenceSessionId) &&
+      proof.source_node_id?.trim() === evidence.source_node_id.trim() &&
+      proof.target_node_id?.trim() === evidence.target_node_id.trim() &&
       proof.tunnel_id?.trim() &&
       proof.relay_url?.trim().startsWith("wss://") &&
       RELEASE_GRADE_RELAY_TRANSPORT_KINDS.has(proof.transport_kind.trim()) &&
