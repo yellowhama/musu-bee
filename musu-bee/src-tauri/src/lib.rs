@@ -264,7 +264,7 @@ fn probe_dashboard() -> DashboardProbe {
 
     DashboardProbe {
         ok: false,
-        url: Some("http://127.0.0.1:3000/app".to_string()),
+        url: None,
         detail: "dashboard did not answer on 3000 or 3001".to_string(),
     }
 }

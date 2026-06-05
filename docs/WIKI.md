@@ -7105,3 +7105,46 @@ Release implication:
 Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RENDEZVOUS_SELECTOR_CANDIDATE_METADATA_2026_06_05.md`
+
+## 2026-06-05 Desktop shell dashboard URL hardening (wiki/738)
+
+The desktop shell and `/app` gate now align with the packaged local runtime /
+MUSU.PRO web split when no workspace dashboard is exposed.
+
+Root cause:
+
+- the installed MUSU bridge was healthy at `127.0.0.1:10325`
+- no process listened on `127.0.0.1:3001`
+- `http://127.0.0.1:3001/app` therefore produced
+  `ERR_CONNECTION_REFUSED` even though the local MUSU program was running
+- the remaining bad product surface was a fabricated dashboard fallback URL in
+  the Tauri shell plus `/app` copy that told users to visit
+  `localhost:3001/app`
+
+Source hardening:
+
+- `musu-bee/src-tauri/src/lib.rs`: absent dashboards now return
+  `dashboard_url=None` instead of `http://127.0.0.1:3000/app`
+- `musu-bee/src-tauri-shell/main.js`: `Open Dashboard` is disabled unless a
+  live dashboard URL is reported
+- `musu-bee/src/app/app/page.tsx`: the gate copy now says MUSU Desktop runs the
+  work locally and MUSU.PRO connects to the local runtime, without instructing
+  users to open `localhost:3001/app`
+
+Validation:
+
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml` passed `7/7`
+- direct `.\node_modules\.bin\tsc.cmd --noEmit` passed
+- `git diff --check` passed
+
+Release implication:
+
+- this is source hardening, so fresh MSIX/single-machine/idle CPU/runtime
+  matrix evidence is required before current-source local runtime gates can be
+  claimed
+- public release remains No-Go on second-PC evidence, hosted P2P release proof,
+  support mailbox evidence, Store evidence, and packaged evidence freshness
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_DESKTOP_SHELL_DASHBOARD_URL_HARDENING_2026_06_05.md`

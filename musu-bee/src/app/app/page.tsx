@@ -59,11 +59,11 @@ export default async function AppPage({ searchParams }: PageProps) {
       <div className="app-gate-outer">
         <div className="app-gate-card">
           <div className="app-gate-bee"><img src="/images/favicon-header.png" alt="MUSU" style={{ height: 40, width: "auto" }} /></div>
-          <h1 className="app-gate-title">Dashboard is Local-Only</h1>
+          <h1 className="app-gate-title">Use MUSU Desktop</h1>
           <p className="app-gate-body">
-            The MUSU dashboard is currently only available in local environments.
+            MUSU work runs on the device where the desktop app is installed.
             <br />
-            Cloud dashboard access is available on Pro plans and above.
+            MUSU.PRO only connects to that local runtime and sends user input.
           </p>
           <div className="app-gate-actions">
             <Link href="/pro#pricing" className="btn btn-primary app-gate-btn">
@@ -74,10 +74,10 @@ export default async function AppPage({ searchParams }: PageProps) {
             </Link>
           </div>
           <div className="app-gate-footer">
-            <strong className="app-gate-footer-label">How to Use the Local Dashboard</strong>
-            Run <code className="mono app-gate-code">musu start</code> in your terminal, then
+            <strong className="app-gate-footer-label">How to Use the Local Runtime</strong>
+            Open the MUSU desktop app on the machine that should do the work, then
             <br />
-            visit <code className="mono app-gate-code">http://localhost:3001/app</code>
+            connect it from the MUSU.PRO workspace.
           </div>
         </div>
       </div>

@@ -5638,3 +5638,26 @@ Validation passed:
 Release implication: this is Rust runtime source. Fresh MSIX install,
 single-machine smoke, desktop-open idle CPU, and runtime CPU matrix evidence
 are required again before current-source local runtime gates can be claimed.
+
+## 2026-06-05 Desktop shell dashboard URL hardening
+
+The desktop shell and `/app` gate now avoid sending users to a fixed workspace
+dashboard URL when the packaged local runtime exposes no dashboard.
+
+- `probe_dashboard()` returns no dashboard URL when `3000` and `3001` do not
+  answer, instead of fabricating `http://127.0.0.1:3000/app`.
+- `Open Dashboard` is disabled unless status reports a reachable dashboard URL.
+- The `/app` gate no longer tells users to visit `http://localhost:3001/app`;
+  it says MUSU Desktop runs work locally and MUSU.PRO connects to that local
+  runtime for web input/control-plane work.
+
+Validation passed:
+
+- `cargo test --manifest-path .\musu-bee\src-tauri\Cargo.toml`
+  - `7/7`
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `git diff --check`
+
+Release implication: this is desktop shell/web app source. Fresh MSIX install,
+single-machine smoke, desktop-open idle CPU, and runtime CPU matrix evidence
+are required again before current-source local runtime gates can be claimed.

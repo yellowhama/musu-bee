@@ -13,9 +13,17 @@ function log(message, detail) {
 
 function setBusy(value) {
   state.busy = value;
-  for (const id of ["refresh", "start-runtime", "open-dashboard", "copy-diagnostics"]) {
-    $(id).disabled = value;
-  }
+  syncActionState();
+}
+
+function syncActionState() {
+  const dashboardAvailable =
+    state.status?.dashboard_status === "ok" && Boolean(state.status?.dashboard_url);
+
+  $("refresh").disabled = state.busy;
+  $("start-runtime").disabled = state.busy;
+  $("open-dashboard").disabled = state.busy || !dashboardAvailable;
+  $("copy-diagnostics").disabled = state.busy;
 }
 
 async function invoke(command, args = {}) {
@@ -52,6 +60,8 @@ function renderStatus(status) {
   } else {
     setPill("bad", "Offline");
   }
+
+  syncActionState();
 }
 
 async function refreshStatus() {
@@ -82,7 +92,12 @@ async function startRuntime() {
 }
 
 async function openDashboard() {
-  const url = state.status?.dashboard_url || "http://127.0.0.1:3000/app";
+  const url = state.status?.dashboard_url;
+  if (!url) {
+    log("Dashboard is not available.", "No reachable local dashboard URL was reported. Start Runtime, then Refresh.");
+    return;
+  }
+
   try {
     const result = await invoke("open_dashboard", { url });
     log("Dashboard open requested.", result.message || url);

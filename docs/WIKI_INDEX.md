@@ -4102,4 +4102,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `audit-p2p-store-forward-relay-contract ok=true`, `relay remains fallback`,
   `fresh packaged evidence required`, and `ready_for_public_desktop_release=false`.
 
+- 2026-06-05 desktop shell dashboard URL hardening:
+  `RELEASE_1_15_0_RC1_DESKTOP_SHELL_DASHBOARD_URL_HARDENING_2026_06_05.md`
+  (wiki/738) removes the remaining user-facing fixed localhost dashboard
+  fallback when the packaged local runtime exposes no workspace dashboard.
+  Search terms should include `GOAL v551`, `wiki/738`,
+  `dashboard_url=None`, `Open Dashboard disabled`, `Use MUSU Desktop`,
+  `127.0.0.1:10325/health`, `127.0.0.1:3001 no listener`,
+  `localhost:3001/app removed`, `MUSU Desktop local executor`,
+  `MUSU.PRO connects to local runtime`, `Tauri shell 7/7`,
+  `tsc --noEmit`, and `fresh packaged evidence required`.
+
 **End of WIKI_INDEX.md.**
