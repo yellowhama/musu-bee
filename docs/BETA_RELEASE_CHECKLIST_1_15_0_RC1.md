@@ -6125,6 +6125,54 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 release relay payload preflight strict metadata schema
+
+`/api/v1/relay/payload` now uses a strict metadata-only request schema while
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+
+Accepted request fields:
+
+- optional `schema=musu.relay_payload_preflight_request.v1`
+- `lease_id`
+- `session_id`
+- `source_node_id`
+- `target_node_id`
+- optional `tunnel_id`
+- optional `payload_kind`
+- optional 64-hex `payload_sha256`
+
+Known byte fields still return `release_payload_bytes_not_accepted` before
+schema parsing. Any other unexpected field now returns
+`invalid_relay_payload_preflight_request` instead of being passed through to
+lease lookup.
+
+Validation passed:
+
+- `npm run test:p2p` `90/90`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- release evidence verifier regression `ok=true`, `case_count=45`,
+  `failed_case_count=0`
+- P2P env status recheck: expected `ok=false` on release relay payload
+  endpoint, KV/Upstash, live relay route, and relay payload delivery proof
+  blockers
+
+Code audit found no high or medium issue. This keeps the release preflight
+surface metadata-only and does not close release relay payload transport or
+external release gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_STRICT_METADATA_SCHEMA_2026_06_06.md`
+
+Index refresh:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2477 files`, `2719 symbols`, `10589 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 release relay payload preflight byte rejection
 
 `/api/v1/relay/payload` remains preflight-only while

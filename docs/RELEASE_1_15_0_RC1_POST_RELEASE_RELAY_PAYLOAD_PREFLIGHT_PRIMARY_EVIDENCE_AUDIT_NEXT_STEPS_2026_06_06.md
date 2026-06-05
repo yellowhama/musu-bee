@@ -24,6 +24,10 @@ The product split is unchanged.
 - The release relay payload preflight route at `/api/v1/relay/payload`
   remains fail-closed. It validates auth and lease metadata, but does not store
   or transport payload bytes.
+- The release relay payload preflight request schema is now strict
+  metadata-only: unknown fields fail with
+  `invalid_relay_payload_preflight_request`, and known byte fields still fail
+  first with `release_payload_bytes_not_accepted`.
 
 ## Evidence Refreshed
 

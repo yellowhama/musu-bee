@@ -20,6 +20,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const ReleasePayloadPreflightRequestSchema = z.object({
+  schema: z.literal("musu.relay_payload_preflight_request.v1").optional(),
   lease_id: z.string().min(1).max(128),
   session_id: z.string().min(1).max(128),
   source_node_id: z.string().min(1).max(128),
@@ -27,7 +28,7 @@ const ReleasePayloadPreflightRequestSchema = z.object({
   tunnel_id: z.string().min(1).max(128).optional(),
   payload_kind: z.string().min(1).max(64).optional(),
   payload_sha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
-}).passthrough();
+}).strict();
 
 const FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS = [
   "payload",

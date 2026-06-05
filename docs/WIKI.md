@@ -7507,6 +7507,65 @@ gbrain was not rerun because the same-session blocker remains missing
 not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
 remains the reliable current code/document index for this repo.
 
+## 2026-06-06 release relay payload preflight strict metadata schema (wiki/767)
+
+`/api/v1/relay/payload` now rejects all unexpected request fields while it is a
+preflight-only release surface.
+
+Accepted request fields:
+
+- optional `schema=musu.relay_payload_preflight_request.v1`
+- `lease_id`
+- `session_id`
+- `source_node_id`
+- `target_node_id`
+- optional `tunnel_id`
+- optional `payload_kind`
+- optional 64-hex `payload_sha256`
+
+Known payload byte fields still return `release_payload_bytes_not_accepted`
+before schema parsing. Other unexpected fields now return
+`invalid_relay_payload_preflight_request`.
+
+Validation:
+
+- `npm run test:p2p`: `90/90`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=45`,
+  `failed_case_count=0`
+- P2P env status recheck: expected `ok=false` because release relay payload
+  transport, KV/Upstash, live relay route, and relay payload delivery proof are
+  still missing
+
+Code audit found no high or medium issue. This is release-boundary hardening,
+not release relay payload transport completion.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_STRICT_METADATA_SCHEMA_2026_06_06.md`
+
+## 2026-06-06 release relay payload strict metadata index refresh (wiki/768)
+
+MUSU local indexing was refreshed after wiki/767, GOAL v592, the strict
+metadata report, the P2P control-plane spec, BETA checklist, WIKI/WIKI_INDEX,
+existing next-steps handoff note, and CoS memory updates.
+
+Command:
+
+`& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+
+Result:
+
+- files: `2477`
+- symbols: `2719`
+- elapsed: `10589 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+remains the reliable current code/document index for this repo.
+
 ## 2026-06-06 second-PC runtime CPU subrole import gate (wiki/759)
 
 The second-PC return path now enforces the runtime CPU subrole evidence

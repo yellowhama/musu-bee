@@ -157,6 +157,7 @@ test("rejects release payload bytes before lease lookup while endpoint is prefli
     enableRelayPolicyEnv();
     const { POST } = await loadModule("post-payload-bytes-rejected");
     const res = await POST(payloadReq("POST", "test-token", {
+      schema: "musu.relay_payload_preflight_request.v1",
       lease_id: "lease-1",
       session_id: "session-1",
       source_node_id: "source-a",
@@ -189,12 +190,41 @@ test("rejects release payload bytes before lease lookup while endpoint is prefli
   });
 });
 
+test("rejects unknown release payload preflight fields", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-unknown-field-rejected");
+    const res = await POST(payloadReq("POST", "test-token", {
+      schema: "musu.relay_payload_preflight_request.v1",
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-a",
+      target_node_id: "target-b",
+      unexpected_release_field: "must-not-pass-through",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_payload_preflight_request");
+    assert.equal(
+      body.issues.some((issue) => issue.message.includes("unexpected_release_field")),
+      true
+    );
+  });
+});
+
 test("verifies relay lease metadata but rejects release payload transport while endpoint is unwired", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const lease = await seedLease();
     const { POST } = await loadModule("post-lease-metadata-preflight");
     const res = await POST(payloadReq("POST", "test-token", {
+      schema: "musu.relay_payload_preflight_request.v1",
       lease_id: lease.lease_id,
       session_id: lease.session_id,
       source_node_id: lease.source_node_id,

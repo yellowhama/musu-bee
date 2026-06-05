@@ -4589,4 +4589,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
   and `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 release relay payload preflight strict metadata schema:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_PREFLIGHT_STRICT_METADATA_SCHEMA_2026_06_06.md`
+  (wiki/767) records the hardening that changes `/api/v1/relay/payload`
+  from passthrough to strict metadata schema while
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`. Search terms should include
+  `GOAL v592`, `wiki/767`,
+  `musu.relay_payload_preflight_request.v1`, `}).strict()`,
+  `unexpected_release_field`, `invalid_relay_payload_preflight_request`,
+  `release_payload_bytes_not_accepted`, `npm run test:p2p 90/90`,
+  `P2P store-forward relay contract audit ok=true`,
+  `release verifier 45/45`, `P2P env status ok=false`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 release relay payload strict metadata index refresh:
+  wiki/768 records the MUSU local index refresh after wiki/767, GOAL v592, the
+  strict metadata schema report, spec/checklist/wiki updates, existing
+  next-steps handoff note, and CoS memory updates. Search terms should include
+  `GOAL v593`, `wiki/768`, `2477 files`, `2719 symbols`, `10589 ms`,
+  `release relay payload strict metadata index refresh`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
+  and `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**

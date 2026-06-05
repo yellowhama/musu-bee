@@ -173,6 +173,8 @@ Add-Check `
     -Passed (
         (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
             "musu.relay_payload_preflight.v1",
+            "musu.relay_payload_preflight_request.v1",
+            "}).strict()",
             "authorizeP2pControl(req)",
             "p2pControlPrincipal(req)",
             "queryRelayLeases",
@@ -484,6 +486,8 @@ Add-Check `
             "reports release payload preflight without treating the queue as release transport",
             "rejects release payload bytes before lease lookup while endpoint is preflight-only",
             "release_payload_bytes_not_accepted",
+            "rejects unknown release payload preflight fields",
+            "unexpected_release_field",
             "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
             "payload_stored",
             "payload_transported"
