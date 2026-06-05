@@ -9553,3 +9553,78 @@ Search terms should include `GOAL v631`, `wiki/806`,
 `20260606-080350-HUGH_SECOND.process-ownership`, `WebView2 0.18`,
 `process ownership fail_count=0`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 External Gate Recheck (wiki/807)
+
+External release gates were rechecked without skipping public metadata.
+
+Evidence:
+
+- external gate recheck:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-082244-HUGH_SECOND.external-gates.evidence.json`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-082429-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-082429-musu.pro.verification.json`
+
+Public metadata:
+
+- `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passed
+  with `ok=true`, `fail_count=0`
+- `/privacy` returned HTTP `200`
+- `/support` returned HTTP `200`
+- both pages contain `musu@musu.pro`
+- go/no-go now reports `public_metadata_ok=True`
+- `store-public-metadata` is no longer a blocker when not skipped
+
+External recheck results:
+
+- release ready `False`
+- local artifacts ready `True`
+- single-machine verified `True`
+- runtime idle CPU valid machine count `1`
+- runtime CPU matrix valid machine count `1`
+- second PC `192.168.1.192:8949` ping `False`, TCP `False`
+- second PC TCP error `tcp_connect_timeout`
+- P2P env ready `False`
+- P2P evidence verified `False`
+- P2P relay route evidence count `0`
+- P2P relay payload transport proven `False`
+- P2P relay payload delivery proof valid count `0`
+
+Live P2P evidence used the packaged WindowsApps alias:
+`C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`. It fails closed
+because relay status, relay transport, relay leases, and relay route evidence
+all report `logged_in=false`; owner scope is not verified; relay lease storage
+is not configured or release-grade; and release relay transport/connect/payload
+endpoints are not wired.
+
+Remaining go/no-go blockers are `multi-device`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
+`p2p-control-plane`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md`
+
+## 2026-06-06 External Gate Recheck Index Refresh (wiki/808)
+
+MUSU local indexer was refreshed after wiki/807 and GOAL v632.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2571 files`
+- `2751 symbols`
+- `12705 ms`
+
+Indexed context includes external gate evidence
+`20260606-082244-HUGH_SECOND.external-gates`, live P2P evidence
+`20260606-082429-musu.pro`, the external gate recheck report, BETA checklist,
+MUSU.PRO P2P control-plane spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v633`, `wiki/808`,
+`external gate recheck index refresh`, `2571 files`, `2751 symbols`,
+`12705 ms`, `20260606-082244-HUGH_SECOND.external-gates`,
+`20260606-082429-musu.pro`, `public_metadata_ok=True`,
+`store-public-metadata no longer blocker`, `tcp_connect_timeout`,
+`logged_in=false`, and `relay payload transport proven False`.

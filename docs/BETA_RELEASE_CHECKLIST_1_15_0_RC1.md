@@ -7081,3 +7081,70 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2564 files`, `2751 symbols`, `13062 ms`
+
+## 2026-06-06 08:24 KST External Gate Recheck
+
+Live public metadata was rechecked without `-SkipPublicMetadata`:
+
+- `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`
+- result: `ok=true`, `fail_count=0`
+- `/privacy`: HTTP `200`, contains `MUSU Privacy Policy`,
+  `Data MUSU may process`, and `musu@musu.pro`
+- `/support`: HTTP `200`, contains `MUSU Support`,
+  `Include this diagnostic evidence`, and `musu@musu.pro`
+- go/no-go now reports `public_metadata_ok=True`
+- `store-public-metadata` is no longer a blocker when public metadata is not
+  skipped
+
+External gate evidence:
+
+- `docs\evidence\external-gates\1.15.0-rc.1\20260606-082244-HUGH_SECOND.external-gates.evidence.json`
+- summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-082244-HUGH_SECOND.external-gates.summary.md`
+- live P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-082429-musu.pro.evidence.json`
+- live P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-082429-musu.pro.verification.json`
+
+Current external recheck values:
+
+- release ready `False`
+- local artifacts ready `True`
+- single-machine verified `True`
+- runtime idle CPU valid machine count `1`
+- runtime CPU matrix valid machine count `1`
+- second PC `192.168.1.192:8949` ping `False`, TCP `False`
+- second PC TCP error `tcp_connect_timeout`
+- P2P env ready `False`
+- P2P evidence verified `False`
+- relay route evidence count `0`
+- relay payload transport proven `False`
+- relay payload delivery proof valid count `0`
+
+Live P2P root cause:
+
+- recorder used packaged alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- relay status/transport/leases/route evidence all report `logged_in=false`
+- owner scope is not verified
+- relay lease store is not configured or release-grade
+- release relay transport/connect/payload endpoints are not wired
+
+Remaining blockers:
+
+- `multi-device`
+- `runtime-idle-cpu`
+- `runtime-cpu-scenario-matrix`
+- `support-mailbox`
+- `store-release`
+- `p2p-control-plane`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2571 files`, `2751 symbols`, `12705 ms`

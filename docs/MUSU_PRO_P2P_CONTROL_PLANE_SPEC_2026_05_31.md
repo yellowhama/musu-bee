@@ -1286,3 +1286,33 @@ Spec interpretation is unchanged:
 
 This CPU/process audit is not a hosted P2P control-plane proof and does not
 replace second-PC route/CPU/matrix evidence.
+
+## 2026-06-06 Live External Gate Recheck
+
+Live public metadata is currently verified:
+
+- `https://musu.pro/privacy` returns HTTP `200`
+- `https://musu.pro/support` returns HTTP `200`
+- both pages contain `musu@musu.pro`
+- go/no-go without `-SkipPublicMetadata` reports `public_metadata_ok=True`
+
+Live hosted P2P control-plane proof is still not release-grade:
+
+- evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-082429-musu.pro.evidence.json`
+- verification fail count: `40`
+- packaged WindowsApps alias used:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- relay status/transport/leases/route-evidence report `logged_in=false`
+- owner scope is not verified
+- relay lease store is not configured or release-grade
+- release relay transport, connect endpoint, and payload endpoint are not
+  wired
+- relay route evidence count is `0`
+- relay payload transport proven is `False`
+
+Spec interpretation is unchanged. MUSU.PRO is still the remote input,
+room/rendezvous/path-selection/evidence control plane and fallback coordinator.
+The release-grade hosted P2P gate requires a logged-in production runtime,
+owner-scoped P2P control auth, release-grade relay lease storage, and actual
+relay payload transport proof.

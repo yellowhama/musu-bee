@@ -5054,4 +5054,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `process ownership fail_count=0`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 external gate recheck:
+  `RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md` (wiki/807)
+  records live public metadata passing without `-SkipPublicMetadata` and
+  current external blockers. Search terms should include `GOAL v632`,
+  `wiki/807`, `20260606-082244-HUGH_SECOND.external-gates`,
+  `20260606-082429-musu.pro`, `public_metadata_ok=True`,
+  `store-public-metadata no longer blocker`, `tcp_connect_timeout`,
+  `logged_in=false`, `relay lease store release-grade False`,
+  `relay payload transport proven False`, `multi-device`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `support-mailbox`,
+  `store-release`, and `p2p-control-plane`.
+
+- 2026-06-06 external gate recheck index refresh:
+  wiki/808 records the MUSU local index refresh after wiki/807 and GOAL v632.
+  Search terms should include `GOAL v633`, `wiki/808`, `2571 files`,
+  `2751 symbols`, `12705 ms`, `external gate recheck index refresh`,
+  `20260606-082244-HUGH_SECOND.external-gates`,
+  `20260606-082429-musu.pro`, `public_metadata_ok=True`,
+  `store-public-metadata no longer blocker`, `tcp_connect_timeout`,
+  `logged_in=false`, and `relay payload transport proven False`.
+
 **End of WIKI_INDEX.md.**
