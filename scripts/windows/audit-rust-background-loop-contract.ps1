@@ -118,6 +118,16 @@ $clipboardPath = "musu-rs\src\io\clipboard.rs"
 $clipboardText = Get-RepoText $clipboardPath
 Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor sleep" -Text $clipboardText -Pattern 'std::thread::sleep\(Duration::from_secs\(2\)\)' -Path $clipboardPath -Message "Clipboard monitor sleeps between polls."
 
+$auditPath = "musu-rs\src\bridge\audit.rs"
+$auditText = Get-RepoText $auditPath
+Add-RegexCheck -Scope "audit-failure-window" -Name "audit failure pruning finite deque loop" -Text $auditText -Pattern 'while let Some\(front\) = q\.front\(\)[\s\S]*q\.pop_front\(\)[\s\S]*break' -Path $auditPath -Message "Audit failure-window pruning only walks and drains a finite VecDeque."
+Add-RegexCheck -Scope "audit-failure-window" -Name "audit failure window bounded duration" -Text $auditText -Pattern 'FAILURE_RATE_WINDOW:\s*Duration\s*=\s*Duration::from_secs\(5 \* 60\)' -Path $auditPath -Message "Audit failure-window pruning is bounded by a fixed retention window."
+
+$rateLimitPath = "musu-rs\src\bridge\rate_limit.rs"
+$rateLimitText = Get-RepoText $rateLimitPath
+Add-RegexCheck -Scope "rate-limit-window" -Name "rate limit pruning finite deque loop" -Text $rateLimitText -Pattern 'while let Some\(front\) = self\.timestamps\.front\(\)[\s\S]*self\.timestamps\.pop_front\(\)[\s\S]*break' -Path $rateLimitPath -Message "Rate-limit window pruning only walks and drains a finite VecDeque."
+Add-RegexCheck -Scope "rate-limit-window" -Name "rate limit fixed window" -Text $rateLimitText -Pattern 'WINDOW:\s*Duration\s*=\s*Duration::from_secs\(60\)' -Path $rateLimitPath -Message "Rate-limit pruning is bounded by a fixed 60s window."
+
 $relayPayloadPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $relayPayloadText = Get-RepoText $relayPayloadPath
 Add-RegexCheck -Scope "relay-payload-poller" -Name "poller default low duty interval" -Text $relayPayloadText -Pattern 'RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC:\s*u64\s*=\s*60' -Path $relayPayloadPath -Message "Relay payload poller defaults to a 60s cadence."
@@ -195,6 +205,14 @@ Add-RegexCheck -Scope "workflow-executor" -Name "task completion poll sleep" -Te
 Add-RegexCheck -Scope "workflow-executor" -Name "task completion max wait" -Text $workflowExecutorText -Pattern 'max_wait\s*=\s*std::time::Duration::from_secs\(3600\)' -Path $workflowExecutorPath -Message "Workflow executor task-completion polling has a 1h cap."
 Add-RegexCheck -Scope "workflow-executor" -Name "task completion deadline break" -Text $workflowExecutorText -Pattern 'start\.elapsed\(\)\s*>\s*max_wait[\s\S]*break\s+"failed"\.to_string\(\)' -Path $workflowExecutorPath -Message "Workflow executor exits the poll loop when the max wait is reached."
 Add-RegexCheck -Scope "workflow-executor" -Name "task completion terminal states" -Text $workflowExecutorText -Pattern '"done"\s*\|\s*"failed"\s*\|\s*"cancelled"\s*=>\s*break\s*s' -Path $workflowExecutorPath -Message "Workflow executor exits the poll loop on terminal task states."
+Add-RegexCheck -Scope "workflow-executor" -Name "topological sort finite queue loop" -Text $workflowExecutorText -Pattern 'while let Some\(id\) = queue\.pop\(\)[\s\S]*queue\.push\(dep\.clone\(\)\)' -Path $workflowExecutorPath -Message "Workflow executor topological sort drains a finite dependency queue."
+Add-RegexCheck -Scope "workflow-executor" -Name "topological sort cycle rejection" -Text $workflowExecutorText -Pattern 'order\.len\(\) != steps\.len\(\)[\s\S]*workflow has circular dependencies' -Path $workflowExecutorPath -Message "Workflow executor topological sort rejects cycles instead of looping indefinitely."
+
+$workflowSpecPath = "musu-rs\src\workflow\workflow_spec.rs"
+$workflowSpecText = Get-RepoText $workflowSpecPath
+Add-RegexCheck -Scope "workflow-spec" -Name "cycle detection finite queue loop" -Text $workflowSpecText -Pattern 'while let Some\(node\) = queue\.pop_front\(\)[\s\S]*visited \+= 1[\s\S]*queue\.push_back\(neighbor\)' -Path $workflowSpecPath -Message "Workflow spec cycle detection drains a finite Kahn queue."
+Add-RegexCheck -Scope "workflow-spec" -Name "cycle detection mismatch rejection" -Text $workflowSpecText -Pattern 'visited != self\.agents\.len\(\)[\s\S]*WorkflowSpecError::CycleDetected' -Path $workflowSpecPath -Message "Workflow spec rejects cycles when the finite queue cannot visit all agents."
+Add-RegexCheck -Scope "workflow-spec" -Name "topological order finite queue loop" -Text $workflowSpecText -Pattern 'while let Some\(node\) = queue\.pop_front\(\)[\s\S]*order\.push\(node\.to_string\(\)\)[\s\S]*queue\.push_back\(n\)' -Path $workflowSpecPath -Message "Workflow spec topological order drains a finite queue."
 
 $hardwarePath = "musu-rs\src\peer\hardware.rs"
 $hardwareText = Get-RepoText $hardwarePath
@@ -219,6 +237,21 @@ Add-RegexCheck -Scope "ws-proxy" -Name "client side exits on upstream send failu
 Add-RegexCheck -Scope "ws-proxy" -Name "upstream side exits on client send failure" -Text $wsProxyText -Pattern 'client_tx\.send\(axum_msg\)\.await\.is_err\(\)[\s\S]*break' -Path $wsProxyPath -Message "WebSocket proxy upstream side exits when client sending fails."
 Add-RegexCheck -Scope "ws-proxy" -Name "bidirectional proxy closes on either side" -Text $wsProxyText -Pattern 'tokio::select!\s*\{[\s\S]*client_to_upstream[\s\S]*upstream_to_client' -Path $wsProxyPath -Message "WebSocket proxy drops the opposite half when either direction closes."
 
+$filesPath = "musu-rs\src\bridge\handlers\files.rs"
+$filesText = Get-RepoText $filesPath
+Add-RegexCheck -Scope "files-api" -Name "directory listing awaits next entry" -Text $filesText -Pattern 'while let Some\(entry\) = read_dir[\s\S]*\.next_entry\(\)[\s\S]*\.await' -Path $filesPath -Message "File API directory listing waits on async directory entries instead of polling."
+Add-RegexCheck -Scope "files-api" -Name "directory listing request scoped" -Text $filesText -Pattern 'pub async fn list_dir[\s\S]*while let Some\(entry\) = read_dir' -Path $filesPath -Message "File API directory listing loop is scoped to one list_dir request."
+
+$forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
+$forwardText = Get-RepoText $forwardPath
+Add-RegexCheck -Scope "forward-multipart" -Name "multipart loop awaits next field" -Text $forwardText -Pattern 'while let Some\(field\) = multipart[\s\S]*\.next_field\(\)[\s\S]*\.await' -Path $forwardPath -Message "Forwarded task multipart loop waits on request fields instead of polling."
+Add-RegexCheck -Scope "forward-multipart" -Name "multipart loop request scoped" -Text $forwardText -Pattern 'pub async fn receive_forwarded[\s\S]*while let Some\(field\) = multipart' -Path $forwardPath -Message "Forwarded task multipart loop is scoped to one receive request."
+
+$webdavPath = "musu-rs\src\bridge\handlers\webdav.rs"
+$webdavText = Get-RepoText $webdavPath
+Add-RegexCheck -Scope "webdav-propfind" -Name "propfind loop awaits directory entry" -Text $webdavText -Pattern 'while let Ok\(Some\(entry\)\) = rd\.next_entry\(\)\.await' -Path $webdavPath -Message "WebDAV PROPFIND waits on async directory entries instead of polling."
+Add-RegexCheck -Scope "webdav-propfind" -Name "propfind loop request scoped" -Text $webdavText -Pattern 'async fn handle_propfind[\s\S]*while let Ok\(Some\(entry\)\) = rd\.next_entry\(\)\.await' -Path $webdavPath -Message "WebDAV PROPFIND directory loop is scoped to one request."
+
 $webrtcPath = "musu-rs\src\io\webrtc.rs"
 $webrtcText = Get-RepoText $webrtcPath
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share ffmpeg request path" -Text $webrtcText -Pattern 'Command::new\("ffmpeg"\)' -Path $webrtcPath -Message "WebRTC screen-share loop is tied to an explicit ffmpeg capture request."
@@ -226,6 +259,7 @@ Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader request-scoped sp
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader awaits inbound packets" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}' -Path $webrtcPath -Message "WebRTC RTCP reader waits on inbound RTCP reads instead of polling."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "rtcp reader exits on read failure" -Text $webrtcText -Pattern 'while let Ok\(\(_, _\)\) = rtp_sender\.read\(&mut rtcp_buf\)\.await \{\}[\s\S]*RTCP reader loop exited' -Path $webrtcPath -Message "WebRTC RTCP reader exits when the RTCP read stream closes or errors."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share stdout read awaits" -Text $webrtcText -Pattern 'stdout\.read\(&mut buf\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop awaits ffmpeg stdout reads."
+Add-RegexCheck -Scope "webrtc-screen-share" -Name "NAL splitter drains finite buffer" -Text $webrtcText -Pattern 'while let Some\(idx\) = find_nal_unit_start\(&h264_stream\)[\s\S]*h264_stream\.drain' -Path $webrtcPath -Message "WebRTC NAL splitter drains the finite buffered stdout chunk."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share kills child on failure" -Text $webrtcText -Pattern 'track_clone[\s\S]*write_sample[\s\S]*child\.kill\(\)\.await' -Path $webrtcPath -Message "WebRTC screen-share loop kills ffmpeg if sample writes fail."
 Add-RegexCheck -Scope "webrtc-screen-share" -Name "screen share kills child on exit" -Text $webrtcText -Pattern 'let _ = child\.kill\(\)\.await;[\s\S]*FFmpeg screen capture loop exited' -Path $webrtcPath -Message "WebRTC screen-share loop kills ffmpeg when the capture loop exits."
 
@@ -270,6 +304,17 @@ else {
         "musu-rs\src\workflow\executor.rs",
         "musu-rs\src\writer\runner.rs"
     )
+    $allowlistedWhileLetFiles = @(
+        "musu-rs\src\bridge\audit.rs",
+        "musu-rs\src\bridge\handlers\files.rs",
+        "musu-rs\src\bridge\handlers\forward.rs",
+        "musu-rs\src\bridge\handlers\webdav.rs",
+        "musu-rs\src\bridge\handlers\ws_proxy.rs",
+        "musu-rs\src\bridge\rate_limit.rs",
+        "musu-rs\src\io\webrtc.rs",
+        "musu-rs\src\workflow\executor.rs",
+        "musu-rs\src\workflow\workflow_spec.rs"
+    )
 
     $rustFiles = Get-ChildItem -LiteralPath $rustSourceRoot -Recurse -File -Filter "*.rs"
     foreach ($file in $rustFiles) {
@@ -280,6 +325,9 @@ else {
         $relative = $relative.Replace("/", "\")
         $text = Get-Content -LiteralPath $file.FullName -Raw
         if ([regex]::IsMatch($text, 'while\s+true|loop\s*\{') -and ($relative -notin $allowlistedLoopFiles)) {
+            $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+        }
+        if ([regex]::IsMatch($text, 'while\s+let\s+') -and ($relative -notin $allowlistedWhileLetFiles)) {
             $rawBusyLoopHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
         if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|non_blocking|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
