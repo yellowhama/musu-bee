@@ -4968,4 +4968,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime CPU matrix 1/2`, `p2p_control_plane_verified=false`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 route evidence strict metadata gate:
+  `RELEASE_1_15_0_RC1_ROUTE_EVIDENCE_STRICT_METADATA_GATE_2026_06_06.md`
+  (wiki/799) records strict metadata-only route evidence submission for
+  `POST /api/v1/p2p/route-evidence`. Search terms should include
+  `GOAL v624`, `wiki/799`, `RouteEvidenceSchema`, `RelayFallbackSchema`,
+  `RelayTransportProofSchema`, `RelayPayloadDeliveryProofSchema`,
+  `FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS`,
+  `route_evidence_payload_bytes_not_accepted`, `publicZodIssues`,
+  `rejects raw payload byte fields in route evidence`,
+  `rejects nested raw payload byte fields in route evidence proofs`,
+  `rejects unknown route evidence fields`, `npm run test:p2p 97/97`,
+  `P2P store-forward relay audit check_count=58`, and
+  `MUSU.PRO control-plane evidence input boundary`.
+
+- 2026-06-06 route evidence strict metadata index refresh:
+  wiki/800 records the MUSU local index refresh after wiki/799 and GOAL v624.
+  Search terms should include `GOAL v625`, `wiki/800`, `2553 files`,
+  `2739 symbols`, `16468 ms`, `route evidence strict metadata index refresh`,
+  `RouteEvidenceSchema strict`, `route_evidence_payload_bytes_not_accepted`,
+  `FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS`, `publicZodIssues`, and
+  `P2P store-forward relay audit check_count=58`.
+
 **End of WIKI_INDEX.md.**

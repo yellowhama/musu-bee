@@ -624,6 +624,21 @@ This reinforces the product boundary: the local program is the executor and
 resource owner; MUSU.PRO is the web input, room, rendezvous, path-selection,
 relay-fallback, and evidence/control plane.
 
+## 2026-06-06 route evidence input boundary
+
+MUSU.PRO route evidence recording is metadata-only.
+
+Current contract:
+
+- `POST /api/v1/p2p/route-evidence` requires P2P control auth.
+- route evidence, relay fallback, relay transport proof, and relay payload
+  delivery proof schemas are strict.
+- raw payload byte fields are rejected before evidence storage.
+- numeric byte counts and hashes are proof metadata only.
+- route evidence does not transport payload bytes.
+
+This keeps route evidence as a control-plane/evidence surface, not a data path.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

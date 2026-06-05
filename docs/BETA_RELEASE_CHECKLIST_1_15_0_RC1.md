@@ -6889,3 +6889,45 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2550 files`, `2735 symbols`, `11702 ms`
+
+## 2026-06-06 Route Evidence Strict Metadata Gate
+
+`POST /api/v1/p2p/route-evidence` now accepts strict route/proof metadata only:
+
+- strict `RelayFallbackSchema`
+- strict `RelayTransportProofSchema`
+- strict `RelayPayloadDeliveryProofSchema`
+- strict `RouteEvidenceSchema`
+- rejects top-level and nested raw payload byte fields before storage with
+  `route_evidence_payload_bytes_not_accepted`
+- still allows `relay_payload_delivery_proof.payload_bytes` only as numeric
+  proof metadata
+- unknown fields fail with `invalid_route_evidence`
+- P2P store-forward relay contract audit now gates the route-evidence strict
+  metadata boundary
+
+Validation:
+
+- route-evidence route test: `31/31`
+- `npm run test:p2p`: `97/97`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`,
+  `check_count=58`
+- release evidence verifier regressions: `ok=true`, `case_count=54`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This closes an evidence input
+boundary gap only. Release remains No-Go on second-PC route/CPU/matrix, hosted
+MUSU.PRO P2P/relay proof, public metadata recheck, support mailbox proof, and
+Store/Partner Center proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROUTE_EVIDENCE_STRICT_METADATA_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2553 files`, `2739 symbols`, `16468 ms`

@@ -9287,3 +9287,64 @@ Search terms should include `GOAL v623`, `wiki/798`,
 `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
 `p2p_control_plane_verified=false`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Route Evidence Strict Metadata Gate (wiki/799)
+
+`POST /api/v1/p2p/route-evidence` now accepts strict route/proof metadata only.
+
+Changed:
+
+- `RelayFallbackSchema` is strict.
+- `RelayTransportProofSchema` is strict.
+- `RelayPayloadDeliveryProofSchema` is strict.
+- `RouteEvidenceSchema` is strict.
+- raw payload fields are rejected before storage:
+  `payload`, `payload_base64`, `payload_b64`, `payload_bytes`, `body_base64`
+- `relay_payload_delivery_proof.payload_bytes` remains allowed as numeric
+  proof metadata
+- raw payload attempts return `route_evidence_payload_bytes_not_accepted`
+- unknown fields return `invalid_route_evidence` with concrete unknown-key
+  paths
+- P2P store-forward relay contract audit now gates this route evidence
+  metadata boundary
+
+Validation:
+
+- route-evidence route test: `31/31`
+- `npm run test:p2p`: `97/97`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`,
+  `check_count=58`
+- release evidence verifier regressions: `54/54`
+- `git diff --check`: pass
+
+Code audit found no high/medium issue. This hardens hosted P2P evidence input
+and does not implement release relay tunnel payload transport. Public release
+remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO P2P proof, public
+metadata recheck, support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROUTE_EVIDENCE_STRICT_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Route Evidence Strict Metadata Index Refresh (wiki/800)
+
+MUSU local indexer was refreshed after wiki/799 and GOAL v624.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2553 files`
+- `2739 symbols`
+- `16468 ms`
+
+Indexed context includes route-evidence strict metadata source/test changes,
+the P2P relay contract audit update, the route evidence strict metadata
+report, BETA checklist, network boundary spec, MUSU.PRO P2P control-plane
+spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v625`, `wiki/800`,
+`route evidence strict metadata index refresh`, `2553 files`, `2739 symbols`,
+`16468 ms`, `RouteEvidenceSchema strict`,
+`route_evidence_payload_bytes_not_accepted`,
+`FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS`, `publicZodIssues`, and
+`P2P store-forward relay audit check_count=58`.

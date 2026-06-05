@@ -48,7 +48,7 @@ const RelayFallbackSchema = z.object({
   payload_transport_attempted: z.boolean().optional(),
   payload_transport_proven: z.boolean().optional(),
   payload_transport_failure_class: z.string().min(1).nullable().optional(),
-});
+}).strict();
 
 const RelayTransportProofSchema = z.object({
   schema: z.literal("musu.relay_transport_proof.v1"),
@@ -66,7 +66,7 @@ const RelayTransportProofSchema = z.object({
   transport_verified_by: z.string().min(1),
   opened_at: z.string().min(1),
   closed_at: z.string().min(1).nullable().optional(),
-}).passthrough();
+}).strict();
 
 const RelayPayloadDeliveryProofSchema = z.object({
   schema: z.literal("musu.relay_payload_delivery_proof.v1"),
@@ -79,7 +79,7 @@ const RelayPayloadDeliveryProofSchema = z.object({
   payload_sha256: z.string().min(1),
   payload_bytes: z.number().int().positive(),
   delivered_at: z.string().min(1),
-}).passthrough();
+}).strict();
 
 const RouteEvidenceSchema = z.object({
   schema: z.literal("musu.route_evidence.v1"),
@@ -103,9 +103,17 @@ const RouteEvidenceSchema = z.object({
   relay_transport_proof: RelayTransportProofSchema.optional(),
   relay_payload_delivery_proof: RelayPayloadDeliveryProofSchema.optional(),
   recorded_at: z.string().min(1),
-}).passthrough();
+}).strict();
 
 type RouteEvidence = z.infer<typeof RouteEvidenceSchema> & RouteEvidencePayload;
+
+const FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
 
 const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unknown"]);
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
@@ -113,6 +121,58 @@ const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
 const DIRECT_ROUTE_KIND_INDEX = new Map(DIRECT_PATH_SELECTION_ORDER.map((kind, index) => [kind, index]));
+
+function pathKey(path: PropertyKey[]): string {
+  return path.map(String).join(".");
+}
+
+function isAllowedPayloadBytesMetadata(path: Array<string | number>, value: unknown): boolean {
+  return pathKey(path) === "relay_payload_delivery_proof.payload_bytes" && typeof value === "number";
+}
+
+function forbiddenRouteEvidenceByteFields(
+  value: unknown,
+  path: Array<string | number> = []
+): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      forbiddenRouteEvidenceByteFields(entry, [...path, index])
+    );
+  }
+
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => {
+    const childPath = [...path, key];
+    if (
+      FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS.includes(
+        key as (typeof FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS)[number]
+      ) &&
+      !isAllowedPayloadBytesMetadata(childPath, entry)
+    ) {
+      return [pathKey(childPath)];
+    }
+    return forbiddenRouteEvidenceByteFields(entry, childPath);
+  });
+}
+
+function publicZodIssues(error: z.ZodError): Array<{ path: string; message: string }> {
+  return error.issues.flatMap((issue) => {
+    const keys = "keys" in issue && Array.isArray(issue.keys) ? issue.keys : [];
+    if (issue.code === "unrecognized_keys" && keys.length > 0) {
+      return keys.map((key) => ({
+        path: pathKey([...issue.path, String(key)]),
+        message: issue.message,
+      }));
+    }
+    return {
+      path: issue.path.join("."),
+      message: issue.message,
+    };
+  });
+}
 
 function parseIsoTimestamp(value: string | null | undefined): number | null {
   if (!value?.trim()) {
@@ -601,16 +661,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
+  const forbiddenFields = forbiddenRouteEvidenceByteFields(json);
+  if (forbiddenFields.length > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        stored: false,
+        owner_scoped: true,
+        release_grade: false,
+        error: "route_evidence_payload_bytes_not_accepted",
+        forbidden_fields: forbiddenFields,
+        next_steps: [
+          "send only route, peer identity, transport proof, and delivery proof metadata",
+          "do not send raw payload bytes to /api/v1/p2p/route-evidence",
+          "record payload byte counts and hashes as proof metadata after actual transport",
+        ],
+      },
+      { status: 400 }
+    );
+  }
+
   const parsed = RouteEvidenceSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       {
         ok: false,
         error: "invalid_route_evidence",
-        issues: parsed.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-        })),
+        issues: publicZodIssues(parsed.error),
       },
       { status: 400 }
     );

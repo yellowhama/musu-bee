@@ -1020,6 +1020,60 @@ test("rejects malformed evidence", async () => {
   });
 });
 
+test("rejects raw payload byte fields in route evidence", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("payload-bytes-not-accepted");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      payload_base64: Buffer.from("do-not-store-route-payload").toString("base64"),
+    }));
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as { error: string; forbidden_fields: string[] };
+    assert.equal(body.error, "route_evidence_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+  });
+});
+
+test("rejects nested raw payload byte fields in route evidence proofs", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("nested-payload-bytes-not-accepted");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_transport_proof: {
+        ...relayTransportProof("lease-test"),
+        payload_base64: Buffer.from("do-not-store-proof-payload").toString("base64"),
+      },
+    }));
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as { error: string; forbidden_fields: string[] };
+    assert.equal(body.error, "route_evidence_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["relay_transport_proof.payload_base64"]);
+  });
+});
+
+test("rejects unknown route evidence fields", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("unknown-field");
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      unexpected_release_field: true,
+    }));
+    assert.equal(res.status, 400);
+
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_route_evidence");
+    assert.equal(body.issues.some((issue) => issue.path === "unexpected_release_field"), true);
+  });
+});
+
 test("queries stored route evidence with filters", async () => {
   await withRouteEvidenceToken(async () => {
     const { GET, POST } = await loadModule("query");

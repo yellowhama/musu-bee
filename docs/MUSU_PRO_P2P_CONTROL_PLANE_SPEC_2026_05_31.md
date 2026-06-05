@@ -1206,3 +1206,19 @@ the same control-plane interpretation:
 
 Release proof still requires a second Windows PC on the same current build plus
 owner-scoped hosted P2P/relay evidence from production infrastructure.
+
+## 2026-06-06 Route Evidence Input Boundary
+
+`POST /api/v1/p2p/route-evidence` is now strict metadata-only:
+
+- route evidence, fallback, transport proof, and delivery proof schemas reject
+  unknown fields
+- raw payload byte fields are rejected before storage with
+  `route_evidence_payload_bytes_not_accepted`
+- `relay_payload_delivery_proof.payload_bytes` remains a numeric proof count,
+  not raw payload content
+- the P2P store-forward relay contract audit gates this boundary
+
+This keeps MUSU.PRO as the evidence/control plane for P2P bootstrap and relay
+fallback. It does not move work or payload execution into the website, and it
+does not implement release-grade relay tunnel transport.

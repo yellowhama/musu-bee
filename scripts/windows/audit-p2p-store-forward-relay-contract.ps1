@@ -320,6 +320,25 @@ Add-Check `
     -Message "Queue fallback delivery proof alone cannot create release-grade relay route evidence."
 
 Add-Check `
+    -Scope "route-evidence" `
+    -Name "route evidence request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $routeEvidence -Needles @(
+            "FORBIDDEN_ROUTE_EVIDENCE_BYTE_FIELDS",
+            "route_evidence_payload_bytes_not_accepted",
+            "RelayFallbackSchema",
+            "RelayTransportProofSchema",
+            "RelayPayloadDeliveryProofSchema",
+            "RouteEvidenceSchema",
+            "}).strict()",
+            "publicZodIssues"
+        )) -and
+        -not $routeEvidence.Contains("}).passthrough()")
+    ) `
+    -Path $routeEvidencePath `
+    -Message "Route evidence accepts strict route/proof metadata only and rejects raw payload fields before storage."
+
+Add-Check `
     -Scope "web-transport-proof" `
     -Name "relay transport proof request is strict metadata only" `
     -Passed (
@@ -593,6 +612,21 @@ Add-Check `
     ) `
     -Path $routeEvidenceTestPath `
     -Message "Route evidence tests keep queue/delivery proof from bypassing release-grade transport proof."
+
+Add-Check `
+    -Scope "tests" `
+    -Name "route evidence strict metadata regression coverage" `
+    -Passed (
+        Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "rejects raw payload byte fields in route evidence",
+            "rejects nested raw payload byte fields in route evidence proofs",
+            "rejects unknown route evidence fields",
+            "route_evidence_payload_bytes_not_accepted",
+            "unexpected_release_field"
+        )
+    ) `
+    -Path $routeEvidenceTestPath `
+    -Message "Route evidence tests cover strict metadata-only submission and keep raw payload bytes out of evidence records."
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
