@@ -5702,3 +5702,38 @@ Results:
 This restores current one-machine packaged evidence only. Public release still
 requires second-PC multi-device, second-PC idle CPU, second-PC runtime CPU
 matrix, hosted P2P, support mailbox, and Store evidence.
+
+## 2026-06-05 WebSocket proxy loop audit coverage
+
+The runtime/product boundary is unchanged: MUSU Desktop is the local executor,
+and MUSU.PRO is the remote input, project/company room, rendezvous,
+path-selection, relay-fallback policy, and evidence control plane.
+
+Release verifier coverage was tightened:
+
+- `audit-rust-background-loop-contract.ps1` now explicitly audits
+  `musu-rs\src\bridge\handlers\ws_proxy.rs`
+- `ws-proxy` checks prove websocket proxy loops are request-upgrade scoped,
+  await inbound client/upstream frames, exit on send failure, and close when
+  either direction ends
+- this is source-contract coverage only; it does not change runtime behavior or
+  refresh/replace packaged evidence
+
+Validation passed:
+
+- PowerShell parser check
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`
+- `ws-proxy` checks `6/6`
+- frontend polling audit `ok=true`, `fail_count=0`,
+  `low_duty_polling_call_site_count=29`
+- `git diff --check`
+
+Clean go/no-go after `918ac7a6` reports local artifacts and single-machine
+evidence still ready, Rust/idle-loop contracts true, `manifest_git_dirty=false`,
+and public release still No-Go on second-PC multi-device/CPU/matrix evidence,
+hosted P2P proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_WS_PROXY_LOOP_AUDIT_COVERAGE_2026_06_05.md`

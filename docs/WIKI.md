@@ -7275,3 +7275,83 @@ Indexing was refreshed after wiki/743 and wiki/744:
 
 Do not add GBrain Search Guidance to `AGENTS.md` until semantic/symbol search
 returns verified hits on this Windows machine.
+
+## 2026-06-05 WebSocket proxy loop audit coverage (wiki/745)
+
+The Rust background-loop release audit now explicitly covers
+`musu-rs/src/bridge/handlers/ws_proxy.rs`.
+
+What changed:
+
+- `audit-rust-background-loop-contract.ps1` now has a `ws-proxy` scope.
+- It verifies WebSocket proxy loops are tied to `ws.on_upgrade(...)`.
+- It verifies client-to-upstream waits on `client_rx.next().await`.
+- It verifies upstream-to-client waits on `upstream_rx.next().await`.
+- It verifies both directions exit on send failure.
+- It verifies `tokio::select!` closes the proxy when either side ends.
+
+This is audit coverage hardening only. It does not change runtime behavior,
+relay transport policy, or the product boundary. MUSU Desktop is still the
+local executor. MUSU.PRO is still remote input, project/company room,
+rendezvous, path-selection, relay-fallback policy, and evidence control plane.
+
+Validation:
+
+- PowerShell parser: pass
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `telemetry_flush_primitive_hit_count=0`
+- `ws-proxy` checks: `6/6`
+- frontend polling audit: `ok=true`, `fail_count=0`,
+  `low_duty_polling_call_site_count=29`, direct interval hits `0`
+- `git diff --check`: pass
+
+Clean go/no-go after `918ac7a6`:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `rust_background_loop_contract_verified=true`
+- `idle_busy_loop_candidate_contract_verified=true`
+- `manifest_git_dirty=false`
+- `ready_for_public_desktop_release=false`
+
+Remaining blockers are second-PC multi-device evidence, second-PC idle CPU
+evidence, second-PC runtime CPU matrix evidence, hosted P2P control-plane
+proof, support mailbox proof, and Store proof.
+
+Qualitative status: no high or medium issue was found in this verifier-only
+change. One-machine desktop readiness remains strong, and the source-side
+idle-loop contract is stronger. Public release remains No-Go.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_WS_PROXY_LOOP_AUDIT_COVERAGE_2026_06_05.md`
+
+## 2026-06-05 WebSocket proxy loop audit index refresh
+
+Indexing was refreshed after wiki/745 and GOAL v566/v567.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2407 files`
+- `2690 symbols`
+- `16395 ms`
+
+gbrain:
+
+- quiet run exited code `1` without useful output, so the sync was rerun
+  non-quiet
+- mode `incremental`, engine `pglite`
+- code stage `OK`: source `gstack-code-musu-bee-8815b622`,
+  `page_count=356`
+- memory stage `OK`: `0 imported`, `1 unchanged`, `0 failed`
+- final state: `2 ok, 1 error`
+- failing stage: `brain-sync`, `gstack-brain-sync exited undefined`
+- import blockers included missing `ZEROENTROPY_API_KEY` and generated/evidence
+  file failures; `sync.last_commit` did not advance
+
+The MUSU local index remains the reliable current repo index. Do not add GBrain
+Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
+hits on this Windows machine.

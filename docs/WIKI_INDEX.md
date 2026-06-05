@@ -4208,4 +4208,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay peer binding index refresh`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-05 WebSocket proxy loop audit coverage:
+  `RELEASE_1_15_0_RC1_WS_PROXY_LOOP_AUDIT_COVERAGE_2026_06_05.md`
+  (wiki/745) expands the Rust background-loop contract to explicitly audit
+  `musu-rs/src/bridge/handlers/ws_proxy.rs`. Search terms should include
+  `GOAL v566`, `wiki/745`, `918ac7a6`, `ws-proxy`,
+  `websocket proxy request upgrade`, `client_rx.next().await`,
+  `upstream_rx.next().await`, `client side exits on upstream send failure`,
+  `upstream side exits on client send failure`,
+  `bidirectional proxy closes on either side`, `ws-proxy checks 6/6`,
+  `rust_background_loop_contract_verified=true`,
+  `idle_busy_loop_candidate_contract_verified=true`,
+  `low_duty_polling_call_site_count=29`,
+  `ready_for_public_desktop_release=false`, `manifest_git_dirty=false`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input rendezvous evidence control plane`.
+
+- 2026-06-05 WebSocket proxy loop audit index refresh:
+  gbrain sync and the MUSU local indexer were run after wiki/745. Search terms
+  should include `GOAL v567`, `wiki/745 index refresh`, `musu indexer sync`,
+  `2407 files`, `2690 symbols`, `16395 ms`,
+  `gstack-code-musu-bee-8815b622`, `page_count=356`,
+  `mode=incremental`, `engine=pglite`, `2 ok, 1 error`,
+  `ZEROENTROPY_API_KEY`, `sync.last_commit did not advance`,
+  `gstack-brain-sync exited undefined`, and
+  `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
