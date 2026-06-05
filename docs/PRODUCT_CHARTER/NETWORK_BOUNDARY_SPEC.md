@@ -462,6 +462,31 @@ This keeps MUSU.PRO as remote input/rendezvous/path-selection/relay-fallback
 control plane, not a reason for the local desktop runtime to perform hidden
 network watching.
 
+## 2026-06-06 degraded/fallback truthfulness boundary
+
+MUSU.PRO/web may accept remote user input and coordinate rooms, rendezvous,
+path selection, relay fallback, and evidence. It must not make missing local
+runtime state look healthy.
+
+Current contract:
+
+- Local MUSU Desktop/bridge remains the executor and resource owner.
+- Web/API status surfaces must expose stale, unavailable, or fallback state as
+  `degraded`, `offline`, `health-fallback`, or `offline-fallback`.
+- Agents data failures return `agents_unavailable` and do not fabricate
+  department state.
+- Stale agents snapshots return `agents_stale`.
+- `/api/device-status` returns local status plus fallback source and `devices`;
+  failed bridge status/health returns `offline-fallback` and no fabricated
+  `recommended_for` capabilities.
+- COS synthesis and node mesh surfaces keep structured degraded envelopes.
+- The release gate `musu.degraded_mode_contract.v1` blocks if these surfaces
+  drift.
+
+This reinforces the same product boundary: MUSU.PRO is the remote input and
+coordination plane, while the installed local MUSU program remains the place
+where work and local status truth originate.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

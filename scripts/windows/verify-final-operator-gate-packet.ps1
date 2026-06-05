@@ -128,6 +128,7 @@ try {
         "scripts\windows\audit-rust-background-loop-contract.ps1",
         "scripts\windows\audit-local-api-auth-contract.ps1",
         "scripts\windows\audit-operator-api-security-contract.ps1",
+        "scripts\windows\audit-degraded-mode-contract.ps1",
         "scripts\windows\audit-secret-storage-contract.ps1",
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
@@ -193,6 +194,7 @@ try {
         Add-CheckFromCondition "readme runtime CPU scenario matrix audit" ($readme -like "*RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md*" -and $readme -like "*musu.runtime_cpu_scenario_matrix.v1*") "README points to runtime CPU scenario matrix diagnostics" "README missing runtime CPU scenario matrix diagnostic reference"
         Add-CheckFromCondition "readme local API auth contract audit" ($readme -like "*LOCAL_API_AUTH_CONTRACT_AUDIT_2026_06_02.md*" -and $readme -like "*audit-local-api-auth-contract.ps1*" -and $readme -like "*musu.local_api_auth_contract.v1*") "README points to local API auth contract audit" "README missing local API auth contract audit reference"
         Add-CheckFromCondition "readme operator API security contract audit" ($readme -like "*audit-operator-api-security-contract.ps1*" -and $readme -like "*musu.operator_api_security_contract.v1*" -and $readme -like "*operator_api_security_contract_verified=true*") "README includes operator API security contract audit" "README missing operator API security contract audit"
+        Add-CheckFromCondition "readme degraded mode contract audit" ($readme -like "*audit-degraded-mode-contract.ps1*" -and $readme -like "*musu.degraded_mode_contract.v1*" -and $readme -like "*degraded_mode_contract_verified=true*") "README includes degraded mode contract audit" "README missing degraded mode contract audit"
         Add-CheckFromCondition "readme secret storage contract audit" ($readme -like "*audit-secret-storage-contract.ps1*" -and $readme -like "*musu.secret_storage_contract.v1*" -and $readme -like "*secret_storage_contract_verified=true*") "README includes secret storage contract audit" "README missing secret storage contract audit"
         Add-CheckFromCondition "readme frontend polling contract audit" ($readme -like "*audit-frontend-polling-contract.ps1*" -and $readme -like "*musu.frontend_polling_contract.v1*" -and $readme -like "*frontend_polling_contract_verified=true*") "README includes frontend polling contract audit" "README missing frontend polling contract audit"
         Add-CheckFromCondition "readme rust background loop contract audit" ($readme -like "*audit-rust-background-loop-contract.ps1*" -and $readme -like "*musu.rust_background_loop_contract.v1*" -and $readme -like "*rust_background_loop_contract_verified=true*") "README includes Rust background loop contract audit" "README missing Rust background loop contract audit"
@@ -268,6 +270,11 @@ try {
             "packet handoff status script reports operator API security contract audit" `
             "packet handoff status script does not report operator API security contract audit"
         Add-CheckFromCondition `
+            "handoff status degraded mode gate" `
+            ($handoffStatusScript -like "*audit-degraded-mode-contract.ps1*" -and $handoffStatusScript -like "*degraded_mode_contract_verified*" -and $handoffStatusScript -like "*degraded-mode*") `
+            "packet handoff status script reports degraded mode contract audit" `
+            "packet handoff status script does not report degraded mode contract audit"
+        Add-CheckFromCondition `
             "handoff status secret storage gate" `
             ($handoffStatusScript -like "*audit-secret-storage-contract.ps1*" -and $handoffStatusScript -like "*secret_storage_contract_verified*" -and $handoffStatusScript -like "*secret-storage*") `
             "packet handoff status script reports secret storage contract audit" `
@@ -322,6 +329,16 @@ try {
             ($operatorApiSecurityAuditScript -like "*musu.operator_api_security_contract.v1*" -and $operatorApiSecurityAuditScript -like "*requireOperator*" -and $operatorApiSecurityAuditScript -like "*MUSU_NODE_EXECUTE_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_PROCESS_START_ALLOWLIST*" -and $operatorApiSecurityAuditScript -like "*MUSU_ENABLE_PROCESS_KILL*" -and $operatorApiSecurityAuditScript -like "*appendControlAudit*") `
             "packet operator API security audit verifies auth, allowlists, explicit kill enablement, and audit logging" `
             "packet operator API security audit does not verify auth, allowlists, explicit kill enablement, and audit logging"
+    }
+
+    $degradedModeAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-degraded-mode-contract.ps1"
+    if (Test-Path -LiteralPath $degradedModeAuditScriptPath) {
+        $degradedModeAuditScript = Get-Content -LiteralPath $degradedModeAuditScriptPath -Raw
+        Add-CheckFromCondition `
+            "degraded mode contract audit script" `
+            ($degradedModeAuditScript -like "*musu.degraded_mode_contract.v1*" -and $degradedModeAuditScript -like "*agents_unavailable*" -and $degradedModeAuditScript -like "*agents_stale*" -and $degradedModeAuditScript -like "*health-fallback*" -and $degradedModeAuditScript -like "*offline-fallback*" -and $degradedModeAuditScript -like "*DEGRADED*" -and $degradedModeAuditScript -like "*src/app/api/device-status/route.test.ts*") `
+            "packet degraded mode audit verifies unavailable/stale/fallback state exposure and route regression coverage" `
+            "packet degraded mode audit does not verify unavailable/stale/fallback state exposure and route regression coverage"
     }
 
     $secretStorageAuditScriptPath = Join-Path $packetRoot "scripts\windows\audit-secret-storage-contract.ps1"
@@ -402,6 +419,11 @@ try {
             ($goNoGoScript -like "*operator_api_security_contract_verified*" -and $goNoGoScript -like "*audit-operator-api-security-contract.ps1*" -and $goNoGoScript -like "*musu.operator_api_security_contract.v1*" -and $goNoGoScript -like "*operator-api-security*" -and $goNoGoScript -like "*authenticated operators, command allowlists*") `
             "packet go/no-go blocks on operator API security contract audit" `
             "packet go/no-go does not block on operator API security contract audit"
+        Add-CheckFromCondition `
+            "go no-go degraded mode contract gate" `
+            ($goNoGoScript -like "*degraded_mode_contract_verified*" -and $goNoGoScript -like "*audit-degraded-mode-contract.ps1*" -and $goNoGoScript -like "*musu.degraded_mode_contract.v1*" -and $goNoGoScript -like "*degraded-mode*" -and $goNoGoScript -like "*fabricated healthy state*") `
+            "packet go/no-go blocks on degraded mode contract audit" `
+            "packet go/no-go does not block on degraded mode contract audit"
         Add-CheckFromCondition `
             "go no-go secret storage contract gate" `
             ($goNoGoScript -like "*secret_storage_contract_verified*" -and $goNoGoScript -like "*audit-secret-storage-contract.ps1*" -and $goNoGoScript -like "*musu.secret_storage_contract.v1*" -and $goNoGoScript -like "*secret-storage*" -and $goNoGoScript -like "*raw-token redaction*") `

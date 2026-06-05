@@ -7356,6 +7356,87 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 degraded mode contract gate (wiki/775)
+
+Degraded/fallback truthfulness is now a release contract.
+
+The product boundary is unchanged but now stricter in API/UI terms:
+
+- MUSU Desktop/local runtime executes actual work.
+- MUSU.PRO/web can accept remote input and coordinate rooms, rendezvous, path
+  selection, relay fallback, and evidence.
+- If local state is unavailable, stale, or only reachable through fallback,
+  web/API surfaces must show `degraded`, `offline`, or fallback source instead
+  of fabricated healthy state.
+
+What changed:
+
+- Added `scripts\windows\audit-degraded-mode-contract.ps1`.
+- Audit schema: `musu.degraded_mode_contract.v1`.
+- Go/no-go field: `degraded_mode_contract_verified`.
+- Blocker area: `degraded-mode`.
+- Final handoff status, final operator packet, packet verifier, readiness
+  audit, freshness classifiers, and release verifier source-contract tests now
+  include the contract.
+- `/api/device-status` now emits a local status envelope with `source`,
+  `reason`, `cpu`, `gpu`, `ram`, `device_id`, `recommended_for`, `degraded`,
+  `degradedReason`, and `devices`.
+- `source=health-fallback` means bridge `/status` failed but `/health` returned
+  structured local bridge state.
+- `source=offline-fallback` means no usable bridge status/health was available;
+  no recommendations are fabricated.
+- Device discovery reads either the new envelope or the older bare array.
+- `npm run test:routes` now includes agents and device-status fallback tests.
+
+Code audit:
+
+- Medium issue found and fixed: `/api/device-status` returned only
+  `/api/fleet/status` array state while `@route` and route tests expected local
+  `/status` metrics and fallback source fields.
+- Test-infra issue fixed: agents/device-status route tests now no-op
+  `server-only` before importing route modules under Node's test runner.
+- No high or remaining medium issue after validation.
+
+Validation:
+
+- PowerShell parser checks: pass
+- `npm run test:routes`: 28/28
+- `npm run typecheck`: pass
+- degraded-mode audit: `ok=true`, `fail_count=0`
+- release verifier regressions: `ok=true`, `case_count=51`,
+  `failed_case_count=0`
+
+Qualitative status: this is a strong product-hardening step because it prevents
+the web/control plane from implying that the local executor is healthy when it
+is stale or unavailable. It does not close public release. Remaining blockers
+are still second-PC route/CPU/matrix evidence, hosted MUSU.PRO P2P/relay proof,
+support mailbox proof, and Store proof.
+
+Canonical reports:
+
+- `docs\RELEASE_1_15_0_RC1_DEGRADED_MODE_CONTRACT_GATE_2026_06_06.md`
+- `docs\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_DEGRADED_MODE_GATE_2026_06_06.md`
+
+## 2026-06-06 degraded mode contract index refresh (wiki/776)
+
+MUSU local indexing was refreshed after wiki/775 and GOAL v600.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2491 files`
+- `2731 symbols`
+- `11348 ms`
+
+Indexed context included the degraded-mode contract gate report, degraded-mode
+next steps, BETA checklist update, network boundary spec update, WIKI/WIKI_INDEX
+updates, release verifier source-contract updates, and CoS memory update.
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures, `sync.last_commit`
+not advancing, and `gstack-brain-sync exited undefined`. The MUSU local index
+remains the reliable current repo index.
+
 ## 2026-06-06 filesystem watcher scope contract gate (wiki/771)
 
 The Rust background-loop release audit now explicitly gates filesystem watcher

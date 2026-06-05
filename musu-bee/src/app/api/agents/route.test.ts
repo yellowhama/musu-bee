@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRequire } from "node:module";
 
 type AgentsGetHandler = () => Promise<Response>;
+
+const require = createRequire(import.meta.url);
+const serverOnlyPath = require.resolve("server-only");
+require.cache[serverOnlyPath] = {
+  id: serverOnlyPath,
+  filename: serverOnlyPath,
+  loaded: true,
+  exports: {},
+} as unknown as NodeJS.Module;
 
 const AGENTS_ENV_KEYS = [
   "PAPERCLIP_API_URL",

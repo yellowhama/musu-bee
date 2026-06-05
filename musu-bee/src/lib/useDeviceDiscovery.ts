@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
 import type { Device } from "@/types";
-import type { DeviceStatusItem } from "@/app/api/device-status/route";
+import type { DeviceStatusItem, DeviceStatusResponse } from "@/app/api/device-status/route";
 
 export interface UseDeviceDiscoveryReturn {
   devices: Device[];
@@ -26,6 +26,10 @@ function itemToDevice(item: DeviceStatusItem): Device {
   };
 }
 
+function normalizeDeviceStatusResponse(payload: DeviceStatusItem[] | DeviceStatusResponse): DeviceStatusItem[] {
+  return Array.isArray(payload) ? payload : payload.devices;
+}
+
 export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
   const [devices, setDevices] = useState<Device[]>([]);
 
@@ -45,7 +49,8 @@ export function useDeviceDiscovery(): UseDeviceDiscoveryReturn {
           markOffline();
           throw new Error(`HTTP ${res.status}`);
         }
-        const items = (await res.json()) as DeviceStatusItem[];
+        const payload = (await res.json()) as DeviceStatusItem[] | DeviceStatusResponse;
+        const items = normalizeDeviceStatusResponse(payload);
         if (!signal.aborted) setDevices(items.map(itemToDevice));
       } catch (err) {
         if (!signal.aborted) markOffline();

@@ -123,6 +123,7 @@ $scriptsToCopy = @(
     "audit-rust-background-loop-contract.ps1",
     "audit-local-api-auth-contract.ps1",
     "audit-operator-api-security-contract.ps1",
+    "audit-degraded-mode-contract.ps1",
     "audit-secret-storage-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
@@ -420,7 +421,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operat
 Expected schema: `musu.operator_api_security_contract.v1`.
 Expected result: `operator_api_security_contract_verified=true`.
 
-## Gate D3 - Secret storage contract audit
+## Gate D3 - Degraded mode contract audit
+
+Before final handoff, verify that local/runtime unavailable, stale, or fallback
+states are surfaced as degraded/offline/fallback states. Agents, device-status,
+nodes mesh, and COS synthesis must not fabricate healthy state when upstream
+data is missing.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-degraded-mode-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.degraded_mode_contract.v1`.
+Expected result: `degraded_mode_contract_verified=true`.
+
+## Gate D4 - Secret storage contract audit
 
 Before final handoff, verify that bridge/account tokens are written only under
 the operator MUSU home, token files are permission-restricted, P2P setup helpers
@@ -435,7 +450,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-secret
 Expected schema: `musu.secret_storage_contract.v1`.
 Expected result: `secret_storage_contract_verified=true`.
 
-## Gate D4 - Frontend polling contract audit
+## Gate D5 - Frontend polling contract audit
 
 Before final handoff, verify that dashboard, node-panel, onboarding, workflow,
 screen, relay, and SSE refresh paths still use the shared cancellable low-duty
@@ -448,7 +463,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-fronte
 Expected schema: `musu.frontend_polling_contract.v1`.
 Expected result: `frontend_polling_contract_verified=true`.
 
-## Gate D5 - Rust background loop contract audit
+## Gate D6 - Rust background loop contract audit
 
 Before final handoff, verify that bridge/runtime background loops still keep the
 default desktop path low-duty: planner, clipboard, and mDNS are opt-in; cloud

@@ -6307,6 +6307,61 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 degraded mode contract gate
+
+Degraded/fallback truthfulness is now a release gate. Web/API surfaces must not
+present unavailable, stale, or fallback local state as healthy local state.
+
+New gate:
+
+- `scripts\windows\audit-degraded-mode-contract.ps1`
+- schema `musu.degraded_mode_contract.v1`
+- go/no-go field `degraded_mode_contract_verified`
+- blocker area `degraded-mode`
+
+Source/product changes:
+
+- `/api/device-status` now returns a local status envelope with `source`,
+  `reason`, local metrics, `recommended_for`, `degraded`,
+  `degradedReason`, and `devices`.
+- `/status` is the primary bridge status path.
+- `/health` is the structured `health-fallback`.
+- failed status/health returns `offline-fallback` with no fabricated
+  recommendations.
+- device discovery accepts the new envelope and legacy bare arrays.
+- agents, device-status, nodes mesh, Sidebar, NodesPanel, COS synthesis, and
+  ProjectBriefing degraded paths are audited.
+
+Validation passed:
+
+- PowerShell parser checks
+- `npm run test:routes` `28/28`
+- `npm run typecheck`
+- degraded-mode audit `ok=true`, `fail_count=0`
+- release evidence verifier regression `ok=true`, `case_count=51`,
+  `failed_case_count=0`
+
+Code audit found and fixed one medium issue: `/api/device-status` returned only
+fleet array state even though `@route` and route tests expected local
+`/status` metrics plus explicit fallback source fields.
+
+This does not close public release. Remaining blockers are still second-PC
+route/CPU/matrix evidence, hosted MUSU.PRO P2P/relay proof, support mailbox
+proof, and Store proof.
+
+Canonical reports:
+
+- `docs\RELEASE_1_15_0_RC1_DEGRADED_MODE_CONTRACT_GATE_2026_06_06.md`
+- `docs\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_DEGRADED_MODE_GATE_2026_06_06.md`
+
+Index refresh:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `2491 files`, `2731 symbols`, `11348 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
 ## 2026-06-06 release relay payload preflight byte rejection
 
 `/api/v1/relay/payload` remains preflight-only while

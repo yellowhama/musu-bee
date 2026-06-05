@@ -338,6 +338,65 @@ function Test-RustBackgroundNetworkWatcherScopeContract {
     return $true
 }
 
+function Test-DegradedModeAuditSourceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'musu.degraded_mode_contract.v1',
+        'agents_unavailable',
+        'agents_stale',
+        'health-fallback',
+        'offline-fallback',
+        'fetch_error',
+        'DeviceStatusResponse',
+        'DEGRADED',
+        'ProjectBriefing',
+        'src/app/api/device-status/route.test.ts'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-DegradedModeGoNoGoContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'audit-degraded-mode-contract.ps1',
+        '$degradedModeContractVerified',
+        'degraded_mode_contract_verified',
+        'degraded_mode_contract_audit',
+        'degraded-mode',
+        'musu.degraded_mode_contract.v1',
+        'fabricated healthy state'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-DegradedModeFreshnessStatusOnlyContract {
+    param([Parameter(Mandatory = $true)][string[]]$ScriptPaths)
+
+    foreach ($scriptPath in $ScriptPaths) {
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        if (-not $source.Contains('"scripts/windows/audit-degraded-mode-contract.ps1"')) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -1014,6 +1073,46 @@ Add-CaseResult `
     -Name "rust background audit limits network watcher scope" `
     -Verifier "rust background loop source contract" `
     -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$degradedModeAuditSourceContractOk = Test-DegradedModeAuditSourceContract -ScriptPath (Join-Path $scriptDir "audit-degraded-mode-contract.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $degradedModeAuditSourceContractOk `
+    -Message "degraded-mode audit must verify unavailable, stale, fallback, and UI degraded-state exposure"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "degraded mode audit covers unavailable stale fallback surfaces" `
+    -Verifier "degraded mode source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-degraded-mode-contract.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$degradedModeGoNoGoContractOk = Test-DegradedModeGoNoGoContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $degradedModeGoNoGoContractOk `
+    -Message "go/no-go must block on the degraded mode contract audit and expose degraded_mode_contract_verified"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go blocks on degraded mode contract" `
+    -Verifier "degraded mode source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$degradedModeStatusOnlyContractOk = Test-DegradedModeFreshnessStatusOnlyContract -ScriptPaths @(
+    $singleMachineVerifier,
+    $runtimeCpuScenarioMatrixVerifier,
+    $releaseGoNoGoWriter
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $degradedModeStatusOnlyContractOk `
+    -Message "release freshness classifiers must treat the degraded-mode audit script as status-only"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "freshness classifiers allow degraded mode audit script as status-only" `
+    -Verifier "release freshness classifier contract" `
+    -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
 

@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
+import { createRequire } from "node:module";
 
 type Module = { GET: () => Promise<Response> };
 let GET: Module["GET"];
+
+const require = createRequire(import.meta.url);
+const serverOnlyPath = require.resolve("server-only");
+require.cache[serverOnlyPath] = {
+  id: serverOnlyPath,
+  filename: serverOnlyPath,
+  loaded: true,
+  exports: {},
+} as unknown as NodeJS.Module;
 
 before(async () => {
   process.env.MUSU_PORT_URL = "http://port.test";

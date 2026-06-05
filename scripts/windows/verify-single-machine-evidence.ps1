@@ -134,6 +134,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-rust-background-loop-contract.ps1",
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/audit-operator-api-security-contract.ps1",
+        "scripts/windows/audit-degraded-mode-contract.ps1",
         "scripts/windows/audit-musu-process-ownership.ps1",
         "scripts/windows/audit-musu-startup-single-instance.ps1",
         "scripts/windows/audit-p2p-store-forward-relay-contract.ps1",

@@ -4683,4 +4683,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
   and `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 degraded mode contract gate:
+  `RELEASE_1_15_0_RC1_DEGRADED_MODE_CONTRACT_GATE_2026_06_06.md`
+  (wiki/775) records the release contract that web/API surfaces must expose
+  unavailable, stale, or fallback local state as degraded/offline/fallback
+  instead of fabricated healthy state. Search terms should include `GOAL v600`,
+  `wiki/775`, `musu.degraded_mode_contract.v1`,
+  `degraded_mode_contract_verified`, `degraded-mode`,
+  `audit-degraded-mode-contract.ps1`, `health-fallback`,
+  `offline-fallback`, `agents_unavailable`, `agents_stale`,
+  `/api/device-status`, `recommended_for`, `DeviceStatusResponse`,
+  `npm run test:routes 28/28`, `release verifier 51/51`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 degraded mode contract index refresh:
+  wiki/776 records the MUSU local index refresh after wiki/775 and GOAL v600.
+  Search terms should include `GOAL v601`, `wiki/776`, `2491 files`,
+  `2731 symbols`, `11348 ms`, `degraded mode contract index refresh`,
+  `musu.degraded_mode_contract.v1`, `degraded_mode_contract_verified`,
+  `health-fallback`, `offline-fallback`, `DeviceStatusResponse`,
+  `release verifier 51/51`, `ZEROENTROPY_API_KEY`,
+  `sync.last_commit did not advance`, `gstack-brain-sync exited undefined`,
+  and `AGENTS.md GBrain Search Guidance not added`.
+
 **End of WIKI_INDEX.md.**
