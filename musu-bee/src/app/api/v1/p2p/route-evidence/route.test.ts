@@ -371,6 +371,70 @@ test("keeps stored-lease relay route evidence non release grade without transpor
   });
 });
 
+test("keeps relay route evidence non release grade when fallback attempts ignore path priority", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-attempt-order");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["tailscale", "lan"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.match(blockers, /relay_route_attempts_not_in_path_priority_order/);
+    assert.match(blockers, /relay_route_lease_attempts_order_mismatch/);
+  });
+});
+
+test("keeps relay route evidence non release grade when fallback attempts include relay or failed kinds", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-attempt-non-direct-kind");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["relay", "failed"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.match(blockers, /relay_route_attempts_include_non_direct_kind/);
+    assert.match(blockers, /relay_route_missing_direct_attempt/);
+  });
+});
+
 test("keeps transport-proof relay route evidence non release grade until payload endpoint is wired", async () => {
   await withRouteEvidenceToken(async () => {
     const { GET, POST } = await loadModule("relay-route-backed-transport-proof-endpoint-blocked");

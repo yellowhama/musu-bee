@@ -88,6 +88,7 @@ The rendezvous API returns `path_selection_order` so clients do not invent their
 Relay is a fallback, not the default path. Relay lease requests must prove that a direct path was attempted and failed. Release-grade route evidence must show:
 
 - `route_kind`: `lan`, `tailscale`, `direct_quic`, or `relay`
+- relay fallback `attempted_route_kinds` contains only direct route kinds and preserves path priority order: `lan`, then `tailscale`, then `direct_quic`
 - `peer_identity_verified: true`
 - `encryption: "quic_tls_1_3"`
 - `transport_verified_by: "musu_quic_tls_transport"`

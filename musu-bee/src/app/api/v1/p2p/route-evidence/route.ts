@@ -107,6 +107,8 @@ const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unkn
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
+const DIRECT_ROUTE_KIND_INDEX = new Map(DIRECT_PATH_SELECTION_ORDER.map((kind, index) => [kind, index]));
 
 function parseIsoTimestamp(value: string | null | undefined): number | null {
   if (!value?.trim()) {
@@ -128,6 +130,42 @@ function sameRouteKindSet(left: string[], right: string[]): boolean {
     }
   }
   return true;
+}
+
+function sameRouteKindSequence(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((kind, index) => kind === right[index]);
+}
+
+function relayAttemptPathBlockers(relay: z.infer<typeof RelayFallbackSchema>): string[] {
+  const blockers = new Set<string>();
+  const seen = new Set<string>();
+  let lastDirectKindIndex = -1;
+  let hasDirectAttempt = false;
+
+  for (const kind of relay.attempted_route_kinds) {
+    if (seen.has(kind)) {
+      blockers.add("relay_route_duplicate_attempt_kind");
+    }
+    seen.add(kind);
+
+    const directKindIndex = DIRECT_ROUTE_KIND_INDEX.get(kind as (typeof DIRECT_PATH_SELECTION_ORDER)[number]);
+    if (directKindIndex === undefined) {
+      blockers.add("relay_route_attempts_include_non_direct_kind");
+      continue;
+    }
+
+    hasDirectAttempt = true;
+    if (directKindIndex < lastDirectKindIndex) {
+      blockers.add("relay_route_attempts_not_in_path_priority_order");
+    }
+    lastDirectKindIndex = directKindIndex;
+  }
+
+  if (!hasDirectAttempt) {
+    blockers.add("relay_route_missing_direct_attempt");
+  }
+
+  return [...blockers];
 }
 
 async function relayLeaseStoreBlockers(evidence: RouteEvidence, ownerKey: string): Promise<string[]> {
@@ -160,6 +198,9 @@ async function relayLeaseStoreBlockers(evidence: RouteEvidence, ownerKey: string
     const blockers: string[] = [];
     if (!sameRouteKindSet(lease.attempted_route_kinds, relay.attempted_route_kinds)) {
       blockers.push("relay_route_lease_attempts_mismatch");
+    }
+    if (!sameRouteKindSequence(lease.attempted_route_kinds, relay.attempted_route_kinds)) {
+      blockers.push("relay_route_lease_attempts_order_mismatch");
     }
     const proofRelayUrl = evidence.relay_transport_proof?.relay_url.trim();
     if (proofRelayUrl && proofRelayUrl !== lease.relay_url.trim()) {
@@ -428,9 +469,7 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
       if (!relay.lease_id?.trim()) {
         blockers.push("relay_route_missing_lease_id");
       }
-      if (!relay.attempted_route_kinds.some((kind) => kind !== "relay")) {
-        blockers.push("relay_route_missing_direct_attempt");
-      }
+      blockers.push(...relayAttemptPathBlockers(relay));
       if (relay.blockers?.length) {
         blockers.push("relay_route_lease_blocked");
       }
