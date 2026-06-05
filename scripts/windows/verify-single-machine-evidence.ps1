@@ -98,8 +98,20 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     $normalizedPath = $Path.Replace("\", "/")
-    if ($normalizedPath -like "docs/*" -or $normalizedPath -like "musu-bee/docs/*") {
+    if ($normalizedPath -like "docs/*" -or $normalizedPath -like "musu-bee/docs/*" -or $normalizedPath -like "*.md") {
         return $true
+    }
+
+    $serverOnlyControlPlanePaths = @(
+        "musu-bee/src/app/api/v1/p2p/*",
+        "musu-bee/src/app/api/v1/relay/*",
+        "musu-bee/src/app/api/rooms/*",
+        "musu-bee/src/lib/p2p*.ts"
+    )
+    foreach ($pattern in $serverOnlyControlPlanePaths) {
+        if ($normalizedPath -like $pattern) {
+            return $true
+        }
     }
 
     $testOnlyPathPatterns = @(

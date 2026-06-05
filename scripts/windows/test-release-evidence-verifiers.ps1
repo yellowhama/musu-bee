@@ -162,6 +162,25 @@ function Test-TestSourceFilesAllowedAsStatusOnly {
     )
 }
 
+function Test-ControlPlaneOnlySourceFilesAllowedAsStatusOnly {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"musu-bee/src/app/api/v1/p2p/*"',
+        '"musu-bee/src/app/api/v1/relay/*"',
+        '"musu-bee/src/app/api/rooms/*"',
+        '"musu-bee/src/lib/p2p*.ts"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -727,6 +746,18 @@ foreach ($classifierScript in $freshnessClassifierScripts) {
     Add-CaseResult `
         -Cases $cases `
         -Name "freshness classifier allows test-only source files in $classifierName" `
+        -Verifier "release freshness classifier contract" `
+        -FixturePath $classifierScript `
+        -ShouldPass $true `
+        -Invocation $invocation
+
+    $controlPlaneClassifierOk = Test-ControlPlaneOnlySourceFilesAllowedAsStatusOnly -ScriptPath $classifierScript
+    $invocation = New-StaticVerifierInvocation `
+        -Ok $controlPlaneClassifierOk `
+        -Message "server-only P2P control-plane source files must not stale local-runtime CPU evidence in $classifierName"
+    Add-CaseResult `
+        -Cases $cases `
+        -Name "freshness classifier allows server-only P2P control-plane files in $classifierName" `
         -Verifier "release freshness classifier contract" `
         -FixturePath $classifierScript `
         -ShouldPass $true `
