@@ -4751,4 +4751,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `gstack-brain-sync exited undefined`, and
   `AGENTS.md GBrain Search Guidance not added`.
 
+- 2026-06-06 current P2P control-plane code audit and next steps:
+  `RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/781) records the current status, qualitative assessment, code audit,
+  and next-step plan. Search terms should include `GOAL v606`, `wiki/781`,
+  `eb8484ff4ab29a8db6c7f5b5f6841f7e246dd438`,
+  `ready_for_public_desktop_release=false`, `single_machine_verified=true`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `targeted second-PC route CPU true`, `p2p_control_plane_verified=false`,
+  `show-musu-pro-p2p-env-status ok=false`, `npm run test:p2p 90/90`,
+  `release verifier 51/51`, `cargo test --lib relay_payload 24/24`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current P2P control-plane code audit index refresh:
+  wiki/782 records the MUSU local index refresh after wiki/781 and GOAL v606.
+  Search terms should include `GOAL v607`, `wiki/782`, `2513 files`,
+  `2731 symbols`, `9304 ms`,
+  `current P2P control-plane code audit index refresh`,
+  `show-musu-pro-p2p-env-status ok=false`, `release verifier 51/51`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

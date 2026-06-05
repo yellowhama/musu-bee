@@ -6497,3 +6497,51 @@ Index refresh:
 - gbrain was not rerun because the same-session blocker remains missing
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
+## 2026-06-06 Current P2P Control-Plane Code Audit and Next Steps
+
+Current go/no-go on clean `eb8484ff4ab29a8db6c7f5b5f6841f7e246dd438`
+with public metadata skipped remains No-Go:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- targeted second-PC route CPU `true`
+- `p2p_control_plane_verified=false`
+- `manifest_git.dirty=false`
+- `ready_for_public_desktop_release=false`
+
+`show-musu-pro-p2p-env-status.ps1 -Json` still reports `ok=false`. The source
+split is correct: the store-forward relay queue fallback is implemented and the
+release payload preflight is fail-closed, but real release relay tunnel payload
+transport, production KV/Upstash relay lease storage, live relay route proof,
+and relay payload delivery proof are not complete.
+
+Validation passed:
+
+- `npm run test:p2p` `90/90`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- Rust background-loop audit `ok=true`, `fail_count=0`, unaudited
+  loop/spawn/network watcher hits `0`
+- release evidence verifier regressions `ok=true`, `case_count=51`,
+  `failed_case_count=0`
+- `cargo test --lib relay_payload` `24/24`
+- `cargo check --bin musu`
+- `git diff --check`
+
+Code audit found no high/medium issue. The remaining blockers are
+evidence/deployment: real second-PC direct route evidence, second-PC idle
+CPU/matrix evidence, production hosted P2P proof, release relay tunnel proof,
+support mailbox proof, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2513 files`, `2731 symbols`, `9304 ms`

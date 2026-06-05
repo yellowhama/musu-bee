@@ -1094,3 +1094,37 @@ move to direct P2P mesh paths after web-assisted discovery whenever possible.
 Release-grade MUSU.PRO proof remains open until live owner-scoped storage/auth,
 route evidence, relay transport proof, and payload delivery proof are captured
 without unverified bypasses.
+
+## 2026-06-06 Current Audit Boundary Update
+
+The latest code audit keeps the same product boundary and release posture.
+
+Current product contract:
+
+- MUSU Desktop is the local executor on every device.
+- MUSU.PRO accepts remote user input and coordinates project/company rooms,
+  presence, rendezvous, path selection, relay-fallback policy, and evidence.
+- MUSU.PRO may make P2P bootstrap easier by exchanging owner-scoped candidate,
+  NAT, relay descriptor, room, and route-evidence metadata.
+- After bootstrap, direct P2P mesh is the preferred work path.
+- Hosted relay remains fallback-only and non-default.
+
+Current release state:
+
+- store-forward relay queue fallback is implemented and audited
+- `/api/v1/relay/payload` is a metadata-only, fail-closed release preflight
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- release tunnel kind required: `quic_relay_tunnel`
+- release encryption/proof required: `quic_tls_1_3`
+- live production KV/Upstash relay lease storage is missing
+- live release-grade relay route proof and payload delivery proof are missing
+
+Validation passed `npm run test:p2p` `90/90`, `npm run typecheck`, P2P
+store-forward relay contract audit, Rust background-loop audit, release
+verifier regressions `51/51`, `cargo test --lib relay_payload` `24/24`,
+`cargo check --bin musu`, and `git diff --check`.
+
+No high/medium code issue was found in this audit. The open risk is
+deployment/evidence: second-PC route/CPU/matrix, production hosted P2P proof,
+release relay tunnel proof, support mailbox, and Store evidence.

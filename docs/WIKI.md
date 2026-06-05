@@ -7356,6 +7356,79 @@ The MUSU local index remains the reliable current repo index. Do not add GBrain
 Search Guidance to `AGENTS.md` until semantic/symbol search returns verified
 hits on this Windows machine.
 
+## 2026-06-06 Current P2P control-plane code audit and next steps (wiki/781)
+
+Current recheck stayed public-release No-Go, but no high/medium issue was found
+in the audited P2P/control-plane/runtime surfaces.
+
+Clean go/no-go on `eb8484ff4ab29a8db6c7f5b5f6841f7e246dd438` with public
+metadata skipped:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2`
+- runtime CPU matrix `1/2`
+- targeted second-PC route CPU `true`
+- `p2p_control_plane_verified=false`
+- `manifest_git.dirty=false`
+
+P2P env status remains `ok=false`: store-forward queue fallback and release
+payload preflight are audited, but release relay payload endpoint/tunnel
+transport, production KV/Upstash, live relay route proof, and relay payload
+delivery proof are still missing.
+
+Validation passed:
+
+- `npm run test:p2p` `90/90`
+- `npm run typecheck`
+- P2P store-forward relay contract audit `ok=true`, `fail_count=0`
+- Rust background-loop audit `ok=true`, `fail_count=0`, unaudited
+  loop/spawn/network watcher hits `0`
+- release evidence verifier regressions `51/51`
+- `cargo test --lib relay_payload` `24/24`
+- `cargo check --bin musu`
+- `git diff --check`
+
+Qualitative assessment: the local desktop executor path is healthy on
+HUGH_SECOND, and the gate posture is correctly fail-closed. The release risk is
+evidence/deployment, not a newly found code defect. The product boundary remains
+MUSU Desktop as local executor and MUSU.PRO as remote input, project/company
+room, rendezvous, path-selection, relay-fallback policy, and evidence/control
+plane.
+
+Next steps are second-PC current-build install and route/CPU/matrix evidence,
+production `musu.pro` KV/Upstash plus live owner-scoped P2P proof, release
+relay tunnel implementation/proof, support mailbox proof, Store evidence, and a
+full go/no-go without skipped metadata.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+## 2026-06-06 Current P2P control-plane code audit index refresh (wiki/782)
+
+Indexing was refreshed after wiki/781 and GOAL v606.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2513 files`
+- `2731 symbols`
+- `9304 ms`
+
+Indexed update set:
+
+- current P2P control-plane code audit and next-steps report
+- P2P control-plane spec
+- network boundary spec
+- BETA release checklist
+- GOAL/WIKI/WIKI_INDEX
+- chief-of-staff memory
+
+The MUSU local index remains the reliable current code/document index for this
+repo in this Windows environment.
+
 ## wiki/779 - Post-Degraded-Gate Primary Evidence Refresh
 
 The primary packaged Windows evidence has been refreshed for

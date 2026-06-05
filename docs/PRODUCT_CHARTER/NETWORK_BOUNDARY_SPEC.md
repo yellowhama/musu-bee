@@ -511,6 +511,26 @@ This reinforces the same product boundary: MUSU.PRO is the remote input and
 coordination plane, while the installed local MUSU program remains the place
 where work and local status truth originate.
 
+## 2026-06-06 current P2P/control-plane audit boundary
+
+The current audit keeps the local-vs-web split explicit:
+
+- Local MUSU Desktop/bridge executes work on the device.
+- MUSU.PRO provides authenticated remote input and coordination, not default
+  execution.
+- MUSU.PRO can host company/project room state so AIs attached to the same
+  project can coordinate.
+- MUSU.PRO can exchange presence, candidate, NAT, relay-fallback, and route
+  evidence metadata to bootstrap device connections.
+- Direct P2P mesh remains the preferred data/work path after bootstrap.
+- Hosted relay remains fallback-only, owner-scoped, non-default, and
+  release-blocked until real `quic_relay_tunnel` payload transport with
+  `quic_tls_1_3` proof is implemented and evidenced.
+
+Current validation found no high/medium code issue in the audited surfaces.
+Release remains No-Go because second-PC evidence, production hosted P2P proof,
+support mailbox proof, and Store evidence are still missing.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."
