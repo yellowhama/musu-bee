@@ -5,6 +5,7 @@ param(
     [double]$MaxRuntimeIdleCpuOneCorePercent = 5.0,
     [int]$MinRuntimeIdleCpuMachineCount = 2,
     [int]$MinRuntimeCpuScenarioMatrixMachineCount = 2,
+    [int]$MinRuntimeCpuSecondPcRouteAttemptMachineCount = 1,
     [int]$MinProcessOwnershipMachineCount = 1,
     [int]$MinStartupSingleInstanceMachineCount = 1,
     [int]$MinDesktopSingleInstanceMachineCount = 1,
@@ -1128,6 +1129,57 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
     candidates = $runtimeCpuScenarioMatrixResults
 }
 
+$runtimeCpuSecondPcRouteAttemptVerified = $false
+$runtimeCpuSecondPcRouteAttemptResults = @()
+$runtimeCpuSecondPcRouteAttemptMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
+    $targetAttemptArgs = @(
+        "-EvidencePath", $candidate.FullName,
+        "-ExpectedVersion", $version,
+        "-ExpectedGitCommit", $currentGitCommit,
+        "-RequiredScenarios", ($RequiredRuntimeCpuScenarioMatrixScenarios -join ",")
+    ) + @(
+        "-MinSampleSeconds", ([string]$MinRuntimeIdleCpuSampleSeconds),
+        "-MaxOneCorePercent", ([string]$MaxRuntimeIdleCpuOneCorePercent),
+        "-RequirePostRouteProbe",
+        "-RequirePostRouteTarget",
+        "-AllowFailedPostRouteProbe",
+        "-Json"
+    )
+    $verification = Invoke-JsonScript `
+        -FilePath $runtimeCpuScenarioMatrixVerifierScript `
+        -Arguments $targetAttemptArgs `
+        -AllowFailure
+    $runtimeCpuSecondPcRouteAttemptResults += if ($verification.json) {
+        $verification.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            evidence_path = $candidate.FullName
+            raw = $verification.raw
+        }
+    }
+    $latestTargetAttemptResult = $runtimeCpuSecondPcRouteAttemptResults | Select-Object -Last 1
+    if ([bool]$latestTargetAttemptResult.ok -and -not [string]::IsNullOrWhiteSpace([string]$latestTargetAttemptResult.operator_machine)) {
+        [void]$runtimeCpuSecondPcRouteAttemptMachines.Add([string]$latestTargetAttemptResult.operator_machine)
+    }
+}
+
+$runtimeCpuSecondPcRouteAttemptVerified = ($runtimeCpuSecondPcRouteAttemptMachines.Count -ge $MinRuntimeCpuSecondPcRouteAttemptMachineCount)
+$runtimeCpuSecondPcRouteAttemptEvidence = [pscustomobject]@{
+    ok = [bool]$runtimeCpuSecondPcRouteAttemptVerified
+    min_machine_count = $MinRuntimeCpuSecondPcRouteAttemptMachineCount
+    valid_machine_count = $runtimeCpuSecondPcRouteAttemptMachines.Count
+    valid_machines = @($runtimeCpuSecondPcRouteAttemptMachines)
+    candidate_count = $runtimeCpuSecondPcRouteAttemptResults.Count
+    available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
+    candidate_selection = "latest-per-machine"
+    required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
+    route_probe = "post-route target route attempt, success or explicitly allowed failure"
+    candidates = $runtimeCpuSecondPcRouteAttemptResults
+}
+
 $processOwnershipVerified = $false
 $processOwnershipEvidence = $null
 $processOwnershipEvidenceCandidates = @()
@@ -1527,6 +1579,9 @@ if (-not $runtimeIdleCpuVerified) {
 if (-not $runtimeCpuScenarioMatrixVerified) {
     Add-Blocker -List $blockers -Area "runtime-cpu-scenario-matrix" -Message "Runtime CPU scenario matrix evidence has not passed on at least ${MinRuntimeCpuScenarioMatrixMachineCount} machine(s) for scenarios '$($RequiredRuntimeCpuScenarioMatrixScenarios -join ', ')' with a successful post-route probe."
 }
+if (-not $runtimeCpuSecondPcRouteAttemptVerified) {
+    Add-Blocker -List $blockers -Area "runtime-cpu-second-pc-route-attempt" -Message "Runtime CPU matrix evidence has not recorded a post-route CPU sample after a targeted second-PC route attempt on at least ${MinRuntimeCpuSecondPcRouteAttemptMachineCount} machine(s). Run measure-musu-runtime-cpu-scenarios.ps1 with -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe."
+}
 if (-not $frontendPollingContractVerified) {
     Add-Blocker -List $blockers -Area "frontend-polling" -Message "Frontend polling contract audit (musu.frontend_polling_contract.v1) failed; dashboard/refetch/SSE loops are not proven to use cancellable low-duty polling and bounded reconnect."
 }
@@ -1651,6 +1706,12 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_candidate_count = $runtimeCpuScenarioMatrixEvidence.candidate_count
     runtime_cpu_scenario_matrix_required_scenarios = @($runtimeCpuScenarioMatrixEvidence.required_scenarios)
     runtime_cpu_scenario_matrix_evidence = $runtimeCpuScenarioMatrixEvidence
+    runtime_cpu_second_pc_route_attempt_verified = [bool]$runtimeCpuSecondPcRouteAttemptVerified
+    runtime_cpu_second_pc_route_attempt_min_machine_count = $runtimeCpuSecondPcRouteAttemptEvidence.min_machine_count
+    runtime_cpu_second_pc_route_attempt_valid_machine_count = $runtimeCpuSecondPcRouteAttemptEvidence.valid_machine_count
+    runtime_cpu_second_pc_route_attempt_valid_machines = @($runtimeCpuSecondPcRouteAttemptEvidence.valid_machines)
+    runtime_cpu_second_pc_route_attempt_candidate_count = $runtimeCpuSecondPcRouteAttemptEvidence.candidate_count
+    runtime_cpu_second_pc_route_attempt_evidence = $runtimeCpuSecondPcRouteAttemptEvidence
     frontend_polling_contract_verified = [bool]$frontendPollingContractVerified
     frontend_polling_contract_audit = if ($frontendPollingAuditResult.json) {
         $frontendPollingAuditResult.json
@@ -1772,6 +1833,8 @@ else {
     "runtime_idle_cpu_valid_machines: $($result.runtime_idle_cpu_valid_machine_count)/$($result.runtime_idle_cpu_min_machine_count) [$((@($result.runtime_idle_cpu_valid_machines) -join ', '))]"
     "runtime_cpu_scenario_matrix_verified: $($result.runtime_cpu_scenario_matrix_verified)"
     "runtime_cpu_scenario_matrix_valid_machines: $($result.runtime_cpu_scenario_matrix_valid_machine_count)/$($result.runtime_cpu_scenario_matrix_min_machine_count) [$((@($result.runtime_cpu_scenario_matrix_valid_machines) -join ', '))]"
+    "runtime_cpu_second_pc_route_attempt_verified: $($result.runtime_cpu_second_pc_route_attempt_verified)"
+    "runtime_cpu_second_pc_route_attempt_valid_machines: $($result.runtime_cpu_second_pc_route_attempt_valid_machine_count)/$($result.runtime_cpu_second_pc_route_attempt_min_machine_count) [$((@($result.runtime_cpu_second_pc_route_attempt_valid_machines) -join ', '))]"
     "frontend_polling_contract_verified: $($result.frontend_polling_contract_verified)"
     "rust_background_loop_contract_verified: $($result.rust_background_loop_contract_verified)"
     "idle_busy_loop_candidate_contract_verified: $($result.idle_busy_loop_candidate_contract_verified)"

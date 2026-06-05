@@ -7,6 +7,7 @@ param(
     [int]$MinSampleSeconds = 60,
     [double]$MaxOneCorePercent = 5.0,
     [switch]$RequirePostRouteProbe = $true,
+    [switch]$RequirePostRouteTarget,
     [string]$ExpectedPostRouteTarget,
     [switch]$AllowFailedPostRouteProbe,
     [switch]$Json
@@ -482,8 +483,15 @@ if ($matrix) {
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt" } else { "post-route matrix includes a successful route probe" })) `
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix lacks a successful route probe or explicitly allowed failed route attempt" } else { "post-route matrix lacks a successful route probe" }))
 
+            $routeTarget = Get-JsonPropertyString -Object $routeProbe -Name "target"
+            if ($RequirePostRouteTarget) {
+                Add-CheckFromCondition `
+                    "post-route route target present" `
+                    (-not [string]::IsNullOrWhiteSpace($routeTarget)) `
+                    "post-route route target is present" `
+                    "post-route route target is missing"
+            }
             if (-not [string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) {
-                $routeTarget = Get-JsonPropertyString -Object $routeProbe -Name "target"
                 Add-CheckFromCondition `
                     "post-route route target" `
                     ($routeTarget -eq $ExpectedPostRouteTarget) `
@@ -505,6 +513,7 @@ $result = [pscustomobject]@{
     required_scenarios = @($RequiredScenarios)
     present_required_scenarios = @($validScenarioNames)
     require_post_route_probe = [bool]$RequirePostRouteProbe
+    require_post_route_target = [bool]$RequirePostRouteTarget
     expected_post_route_target = if ([string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) { $null } else { $ExpectedPostRouteTarget }
     allow_failed_post_route_probe = [bool]$AllowFailedPostRouteProbe
     checks = $checks.ToArray()
