@@ -4154,4 +4154,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime matrix 1/2`, `targeted second-PC route CPU 0/1`,
   and `second-PC evidence still required`.
 
+- 2026-06-05 targeted HUGH-MAIN route CPU evidence:
+  `RELEASE_1_15_0_RC1_TARGETED_HUGH_MAIN_ROUTE_CPU_EVIDENCE_2026_06_05.md`
+  (wiki/742) records the post-login-checklist targeted HUGH-MAIN route CPU
+  sample on HUGH_SECOND. Search terms should include `GOAL v562`, `wiki/742`,
+  `20260605-163936-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260605-163936-HUGH_SECOND.post-route.evidence.json`,
+  `20260605-163936-HUGH_SECOND.target-route.verification.json`,
+  `20260605-163936-HUGH_SECOND.target-route.summary.md`,
+  `HUGH-MAIN`, `192.168.1.192:8949`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260605_163936`,
+  `route timeout`, `targeted second-PC route CPU 1/1`,
+  `runtime idle CPU 1/2`, `runtime matrix 1/2`,
+  `multi_device_verified=false`, and `public release remains No-Go`.
+
 **End of WIKI_INDEX.md.**
