@@ -4772,4 +4772,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 final operator packet after current P2P audit:
+  `RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_CURRENT_P2P_AUDIT_2026_06_06.md`
+  (wiki/783) records that the final operator packet generator/verifier now
+  requires the current P2P audit report, and that clean source commit
+  `b71c438bb764483b206d5da4e105744f796df58f` generated and verified current
+  handoff artifacts. Search terms should include `GOAL v608`, `wiki/783`,
+  `20260606-051216`, `20260606-051242`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-051242.zip`,
+  `musu-store-support-1.15.0-rc.1-20260606-051216`,
+  `release verifier 51/51`, `final operator packet fail_count=0`,
+  `operator action pack fail_count=0`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `p2p_control_plane_verified=false`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 final operator packet after current P2P audit index refresh:
+  wiki/784 records the MUSU local index refresh after wiki/783 and GOAL v608.
+  Search terms should include `GOAL v609`, `wiki/784`, `2516 files`,
+  `2731 symbols`, `10322 ms`,
+  `final operator packet after current P2P audit index refresh`,
+  `20260606-051216`, `20260606-051242`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-051242.zip`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

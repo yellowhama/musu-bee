@@ -6545,3 +6545,40 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2513 files`, `2731 symbols`, `9304 ms`
+
+## 2026-06-06 Final Operator Packet After Current P2P Audit
+
+`prepare-final-operator-gate-packet.ps1` now copies the current P2P
+control-plane code audit report, and `verify-final-operator-gate-packet.ps1`
+requires both the doc entry and README reference:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Generated from clean source commit
+`b71c438bb764483b206d5da4e105744f796df58f`:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-051216.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-051242.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242\partner-center\MUSU-1.15.0-rc.1-store-submission-20260606-051242.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260606-051216`
+
+Validation passed release verifier regressions `51/51`, final packet verifier
+`ok=true`/`fail_count=0`, and action pack verifier `ok=true`/`fail_count=0`.
+Clean go/no-go remains No-Go on second-PC route/CPU/matrix, hosted P2P proof,
+support mailbox proof, public metadata recheck, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_CURRENT_P2P_AUDIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2516 files`, `2731 symbols`, `10322 ms`

@@ -7429,6 +7429,75 @@ Indexed update set:
 The MUSU local index remains the reliable current code/document index for this
 repo in this Windows environment.
 
+## 2026-06-06 Final operator packet after current P2P audit (wiki/783)
+
+The final operator packet generator and verifier now include the current P2P
+control-plane code audit and next-step report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Source commit:
+
+- `b71c438bb764483b206d5da4e105744f796df58f`
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260606-051216.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260606-051242.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260606-051242\partner-center\MUSU-1.15.0-rc.1-store-submission-20260606-051242.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260606-051216`
+
+Validation passed:
+
+- script parser checks
+- `git diff --check`
+- release verifier regressions `51/51`
+- final operator packet verifier `ok=true`, `fail_count=0`
+- operator action pack verifier `ok=true`, `fail_count=0`
+- handoff status quick action-pack verification `ok=true`, `fail_count=0`
+
+Clean go/no-go on `b71c438b` still reports public release No-Go: runtime idle
+CPU `1/2`, runtime CPU matrix `1/2`, targeted second-PC route CPU `true`,
+`p2p_control_plane_verified=false`, and `manifest_git.dirty=false`.
+
+This is handoff hardening and artifact refresh only. The second-PC transfer
+must still be run on a real second Windows PC to close the two-machine gates.
+MUSU Desktop remains local executor; MUSU.PRO remains remote input,
+project/company room, rendezvous, path-selection, relay-fallback/evidence
+control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FINAL_OPERATOR_PACKET_AFTER_CURRENT_P2P_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Final operator packet after current P2P audit index refresh (wiki/784)
+
+Indexing was refreshed after wiki/783 and GOAL v608.
+
+MUSU local indexer:
+
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2516 files`
+- `2731 symbols`
+- `10322 ms`
+
+Indexed update set:
+
+- final operator packet after current P2P audit report
+- BETA release checklist
+- GOAL/WIKI/WIKI_INDEX
+- chief-of-staff memory
+
+Search terms should include `GOAL v609`, `wiki/784`, `20260606-051216`,
+`20260606-051242`, and
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260606-051242.zip`.
+
 ## wiki/779 - Post-Degraded-Gate Primary Evidence Refresh
 
 The primary packaged Windows evidence has been refreshed for
