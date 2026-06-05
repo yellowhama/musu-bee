@@ -9023,3 +9023,77 @@ Search terms should include `GOAL v615`, `wiki/790`, `2534 files`,
 `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-060103.zip`,
 `room work-order command audit`, `MUSU.PRO remote input`,
 `MUSU Desktop local executor`, and `p2p_control_plane_verified=false`.
+
+## 2026-06-06 Runtime CPU Matrix Process Metadata Gate
+
+Runtime CPU matrix release evidence now requires scoped process metadata for
+every scenario measurement.
+
+Changed:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` carries through
+  `process_metadata_available`, `process_metadata_timed_out`, and
+  `helper_process_scope`.
+- `verify-runtime-cpu-scenario-matrix.ps1` requires process metadata,
+  no metadata timeout, `helper_process_scope=musu_process_tree_or_repo_related`,
+  and
+  `cpu_attribution.attribution_scope=musu_process_tree_or_repo_related`.
+- `test-release-evidence-verifiers.ps1` added negative cases for missing
+  process metadata, timed-out metadata, and unscoped helper attribution.
+
+Validation:
+
+- parser checks: pass
+- release verifier regressions: `ok=true`, `case_count=54`,
+  `failed_case_count=0`
+- old `20260606-054415-HUGH_SECOND` matrix now fails the current verifier with
+  `ok=false`, `fail_count=15`
+- new full matrix verifier: `ok=true`, `fail_count=0`, `260` checks
+- new HUGH-MAIN targeted verifier: `ok=true`, `fail_count=0`, `65` checks
+
+Fresh evidence:
+
+- full matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-061932-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- full verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-061932-HUGH_SECOND.verification.json`
+- targeted HUGH-MAIN CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-062729-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-062729-HUGH_SECOND.target-route.verification.json`
+
+The full matrix route token is
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_061932`. The targeted HUGH-MAIN route
+still timed out to `192.168.1.192:8949`; it is CPU stability evidence after a
+failed route attempt, not successful multi-device route evidence.
+
+Qualitative audit found no high/medium issue. Product boundary is unchanged:
+MUSU Desktop executes locally, and MUSU.PRO coordinates remote input, rooms,
+rendezvous, path selection, relay fallback, and evidence/control state.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_PROCESS_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Runtime CPU Matrix Process Metadata Gate Index Refresh
+
+MUSU local indexer was refreshed after wiki/791 and GOAL v616.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2540 files`
+- `2732 symbols`
+- `15551 ms`
+
+gbrain was not rerun because the same-session blocker remains missing
+`ZEROENTROPY_API_KEY`, generated/evidence import failures,
+`sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`.
+The MUSU local index is the current reliable code/document index.
+
+Search terms should include `GOAL v617`, `wiki/792`,
+`runtime CPU matrix process metadata gate index refresh`, `2540 files`,
+`2732 symbols`, `15551 ms`, `process_metadata_available`,
+`helper_process_scope=musu_process_tree_or_repo_related`,
+`cpu_attribution.attribution_scope=musu_process_tree_or_repo_related`,
+`20260606-061932-HUGH_SECOND`, `20260606-062729-HUGH_SECOND`, and
+`release verifier 54/54`.

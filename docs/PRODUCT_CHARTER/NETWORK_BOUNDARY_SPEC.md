@@ -546,6 +546,27 @@ executor, while making remote-input-to-local-execution handoff auditable.
 Release remains No-Go because second-PC evidence, production hosted P2P proof,
 support mailbox proof, and Store evidence are still missing.
 
+## 2026-06-06 runtime CPU attribution boundary
+
+Release CPU evidence for the local runtime must prove which local process tree
+was measured.
+
+Current contract:
+
+- runtime CPU scenario matrices must carry per-scenario process metadata
+  availability
+- process metadata lookup must not time out
+- helper process scope must be limited to the MUSU process tree or
+  repo-related helpers
+- CPU attribution scope must be
+  `musu_process_tree_or_repo_related`
+- unrelated local helper processes must not be able to satisfy release CPU
+  evidence for the MUSU Desktop runtime
+
+This reinforces the same product boundary: MUSU Desktop remains the local
+executor and resource owner, while MUSU.PRO can coordinate remote input,
+rooms, rendezvous, path selection, relay fallback, and evidence/control state.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

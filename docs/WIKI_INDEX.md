@@ -4869,4 +4869,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, `p2p_control_plane_verified=false`,
   `ZEROENTROPY_API_KEY`, and `gstack-brain-sync exited undefined`.
 
+- 2026-06-06 runtime CPU matrix process metadata gate:
+  `RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_PROCESS_METADATA_GATE_2026_06_06.md`
+  (wiki/791) records the stricter release evidence gate requiring scoped
+  process metadata in every runtime CPU matrix scenario. Search terms should
+  include `GOAL v616`, `wiki/791`,
+  `525f5b0bdbeff99ec89ff37b99cfe30c0a13b5b5`,
+  `process_metadata_available`, `process_metadata_timed_out`,
+  `helper_process_scope=musu_process_tree_or_repo_related`,
+  `cpu_attribution.attribution_scope=musu_process_tree_or_repo_related`,
+  `release verifier 54/54`, `20260606-061932-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_061932`,
+  `20260606-062729-HUGH_SECOND`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `failed route allowed`,
+  `old matrix fail_count=15`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 runtime CPU matrix process metadata gate index refresh:
+  wiki/792 records the MUSU local index refresh after wiki/791 and GOAL v616.
+  Search terms should include `GOAL v617`, `wiki/792`, `2540 files`,
+  `2732 symbols`, `15551 ms`,
+  `runtime CPU matrix process metadata gate index refresh`,
+  `process_metadata_available`,
+  `helper_process_scope=musu_process_tree_or_repo_related`,
+  `cpu_attribution.attribution_scope=musu_process_tree_or_repo_related`,
+  `20260606-061932-HUGH_SECOND`, `20260606-062729-HUGH_SECOND`,
+  `release verifier 54/54`, `ZEROENTROPY_API_KEY`, and
+  `gstack-brain-sync exited undefined`.
+
 **End of WIKI_INDEX.md.**

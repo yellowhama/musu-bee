@@ -6719,3 +6719,51 @@ Index refresh:
 - gbrain was not rerun because the same-session blocker remains missing
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
+
+## 2026-06-06 Runtime CPU Matrix Process Metadata Gate
+
+Runtime CPU matrix evidence now requires scoped process metadata before it can
+count for release.
+
+Gate contract:
+
+- every scenario measurement must record `process_metadata_available=true`
+- every scenario measurement must record `process_metadata_timed_out=false`
+- helper process scope must be
+  `musu_process_tree_or_repo_related`
+- CPU attribution scope must be
+  `musu_process_tree_or_repo_related`
+
+Validation:
+
+- parser checks: pass
+- release verifier regressions: `ok=true`, `case_count=54`,
+  `failed_case_count=0`
+- previous `20260606-054415-HUGH_SECOND` matrix fails the new current verifier:
+  `ok=false`, `fail_count=15`
+- new full matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-061932-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- new full matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-061932-HUGH_SECOND.verification.json`
+- new targeted HUGH-MAIN CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-062729-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- new targeted HUGH-MAIN verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-062729-HUGH_SECOND.target-route.verification.json`
+
+The targeted HUGH-MAIN route still timed out to `192.168.1.192:8949`; it is
+CPU stability evidence after a failed route attempt, not successful
+multi-device route evidence.
+
+Qualitative audit: no high/medium issue found in the process metadata gate
+change. Remaining public release blockers are real second-PC route/CPU/matrix
+evidence, hosted MUSU.PRO P2P proof, public metadata recheck, support mailbox
+proof, and Store/Partner Center proof.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2540 files`, `2732 symbols`, `15551 ms`
+- gbrain was not rerun because the same-session blocker remains missing
+  `ZEROENTROPY_API_KEY`, generated/evidence import failures,
+  `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
