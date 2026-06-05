@@ -993,6 +993,14 @@ $fixture = Write-Fixture -Name "runtime-matrix-missing-cpu-attribution" -Object 
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing CPU attribution" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
+$badRuntimeMatrixMissingNodeCpuRole = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingNodeCpuRole.scenarios[0].measurement.cpu_attribution.sample_count_by_role.PSObject.Properties.Remove("node")
+$badRuntimeMatrixMissingNodeCpuRole.scenarios[0].measurement.cpu_attribution.total_cpu_seconds_by_role.PSObject.Properties.Remove("node")
+$badRuntimeMatrixMissingNodeCpuRole.scenarios[0].measurement.cpu_attribution.max_one_core_percent_by_role.PSObject.Properties.Remove("node")
+$fixture = Write-Fixture -Name "runtime-matrix-missing-node-cpu-role" -Object $badRuntimeMatrixMissingNodeCpuRole
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects CPU attribution without node role fields" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
 $badRuntimeMatrixWorkingSet = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixWorkingSet.scenarios[1].measurement.total_working_set_mb_after = 2048.0
 $fixture = Write-Fixture -Name "runtime-matrix-working-set-over-budget" -Object $badRuntimeMatrixWorkingSet
