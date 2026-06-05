@@ -25,7 +25,7 @@ export function getSupabaseClient(): SupabaseClient {
 }
 
 export function getPublicAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3001";
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://musu.pro";
 }
 
 export function getOAuthRedirectUrl(next = "/app"): string {

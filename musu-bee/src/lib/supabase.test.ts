@@ -4,9 +4,11 @@ import test from "node:test";
 test("supabase client module stays import-safe without env vars", async () => {
   const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
   delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  delete process.env.NEXT_PUBLIC_APP_URL;
 
   try {
     const moduleUrl = new URL(`./supabase.ts?case=${Date.now()}`, import.meta.url).href;
@@ -14,6 +16,7 @@ test("supabase client module stays import-safe without env vars", async () => {
 
     assert.equal(supabaseModule.isSupabaseConfigured(), false);
     assert.ok(supabaseModule.getSupabaseClient());
+    assert.equal(supabaseModule.getPublicAppUrl(), "https://musu.pro");
   } finally {
     if (originalUrl === undefined) {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,6 +28,12 @@ test("supabase client module stays import-safe without env vars", async () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     } else {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalKey;
+    }
+
+    if (originalAppUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_APP_URL;
+    } else {
+      process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
     }
   }
 });

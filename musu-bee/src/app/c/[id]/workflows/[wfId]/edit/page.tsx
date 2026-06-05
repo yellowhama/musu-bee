@@ -20,8 +20,8 @@ async function fetchWorkflow(wfId: string): Promise<WorkflowDetail | null> {
   if (wfId === "new") return null;
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3001";
-    const proto = h.get("x-forwarded-proto") ?? "http";
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "musu.pro";
+    const proto = h.get("x-forwarded-proto") ?? (host === "musu.pro" ? "https" : "http");
     const res = await fetch(`${proto}://${host}/api/workflows/${encodeURIComponent(wfId)}`, {
       cache: "no-store",
     });

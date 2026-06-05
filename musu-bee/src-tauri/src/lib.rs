@@ -265,7 +265,7 @@ fn probe_dashboard() -> DashboardProbe {
     DashboardProbe {
         ok: false,
         url: None,
-        detail: "dashboard did not answer on 3000 or 3001".to_string(),
+        detail: "optional developer dashboard is not running on 3000 or 3001; MUSU Desktop does not require it".to_string(),
     }
 }
 

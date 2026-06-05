@@ -47,7 +47,7 @@ function renderStatus(status) {
 
   $("bridge-status").textContent = bridgeOk ? "Online" : "Offline";
   $("bridge-detail").textContent = status.bridge_detail || "No bridge detail.";
-  $("dashboard-status").textContent = dashboardOk ? "Online" : "Offline";
+  $("dashboard-status").textContent = dashboardOk ? "Online" : "Optional";
   $("dashboard-detail").textContent = status.dashboard_detail || "No dashboard detail.";
   $("bridge-url").textContent = status.bridge_url || "-";
   $("dashboard-url").textContent = status.dashboard_url || "-";
@@ -55,8 +55,10 @@ function renderStatus(status) {
 
   if (bridgeOk && dashboardOk) {
     setPill("ok", "Ready");
-  } else if (bridgeOk || dashboardOk) {
-    setPill("warn", "Partial");
+  } else if (bridgeOk) {
+    setPill("ok", "Ready");
+  } else if (dashboardOk) {
+    setPill("warn", "Runtime Off");
   } else {
     setPill("bad", "Offline");
   }
@@ -94,7 +96,10 @@ async function startRuntime() {
 async function openDashboard() {
   const url = state.status?.dashboard_url;
   if (!url) {
-    log("Dashboard is not available.", "No reachable local dashboard URL was reported. Start Runtime, then Refresh.");
+    log(
+      "Developer dashboard is not running.",
+      "This is optional. MUSU Desktop runs local work through the bridge; MUSU.PRO sends user input to that local runtime."
+    );
     return;
   }
 

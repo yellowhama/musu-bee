@@ -26,8 +26,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+      req.nextUrl.origin ||
+      "https://musu.pro"
+    ).replace(/\/+$/, "");
 
     const session = await createPaddleCheckoutSession({
       tier,

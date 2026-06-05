@@ -14,8 +14,8 @@ interface WorkflowRow {
 async function fetchWorkflows(companyId: string): Promise<WorkflowRow[]> {
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3001";
-    const proto = h.get("x-forwarded-proto") ?? "http";
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "musu.pro";
+    const proto = h.get("x-forwarded-proto") ?? (host === "musu.pro" ? "https" : "http");
     const url = `${proto}://${host}/api/workflows?company_id=${encodeURIComponent(companyId)}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return [];

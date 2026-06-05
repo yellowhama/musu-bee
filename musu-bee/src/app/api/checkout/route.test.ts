@@ -164,3 +164,56 @@ test("checkout route returns Paddle redirect payload on success", async () => {
     restoreEnv(env);
   }
 });
+
+test("checkout route falls back to request origin instead of localhost", async () => {
+  const env = snapshotEnv(CHECKOUT_ENV_KEYS);
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ url: string; method: string; body: unknown }> = [];
+
+  try {
+    process.env.PADDLE_API_KEY = "pdl_test_key";
+    process.env.PADDLE_API_BASE_URL = "https://sandbox-api.mock-paddle.test";
+    process.env.PADDLE_PRICE_ID_PRO = "pri_pro_test";
+    process.env.PADDLE_PRICE_ID_TEAM = "pri_team_test";
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : null;
+      calls.push({
+        url: String(input),
+        method: String(init?.method ?? "GET"),
+        body,
+      });
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            id: "txn_mock_2",
+            checkout: { url: "https://checkout.paddle.test/txn_mock_2" },
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as typeof fetch;
+
+    const POST = await loadPostHandler(`origin-fallback-${Date.now()}`);
+    const res = await POST(makeJsonRequest({ tier: "team" }));
+
+    assert.equal(res.status, 200);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].body, {
+      items: [{ price_id: "pri_team_test", quantity: 1 }],
+      custom_data: { tier: "team" },
+      checkout: {
+        success_url: "http://example.test/pricing?success=1&tier=team",
+        cancel_url: "http://example.test/pricing?cancelled=1",
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreEnv(env);
+  }
+});
