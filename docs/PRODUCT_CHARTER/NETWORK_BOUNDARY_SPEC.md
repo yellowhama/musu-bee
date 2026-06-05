@@ -587,6 +587,24 @@ Current contract:
 This keeps MUSU.PRO as control plane and prevents the connect preflight surface
 from becoming an accidental data path.
 
+## 2026-06-06 relay transport proof input boundary
+
+MUSU.PRO relay transport proof recording is metadata-only.
+
+Current contract:
+
+- `POST /api/v1/p2p/relay/transport-proof` requires P2P control auth.
+- the request schema is strict.
+- raw payload byte fields are rejected before lease lookup.
+- unknown request fields are rejected.
+- `payload_bytes_transited` is allowed only as proof metadata.
+- the endpoint does not transport payload bytes and does not call the preview
+  store-forward payload queue.
+
+This keeps the release evidence API from becoming an accidental data path.
+Release payload transport still belongs to a future distinct
+`quic_relay_tunnel` path that can emit `quic_tls_1_3` proof.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

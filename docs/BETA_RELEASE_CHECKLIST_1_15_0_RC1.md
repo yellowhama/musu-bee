@@ -6125,6 +6125,44 @@ Index refresh:
   `ZEROENTROPY_API_KEY`, generated/evidence import failures,
   `sync.last_commit` not advancing, and `gstack-brain-sync exited undefined`
 
+## 2026-06-06 relay transport proof strict metadata gate
+
+`POST /api/v1/p2p/relay/transport-proof` now uses a strict metadata-only
+request schema. Raw payload byte fields are rejected before lease lookup with
+`relay_transport_proof_payload_bytes_not_accepted`, and unknown fields fail
+with `invalid_relay_transport_proof`.
+
+This endpoint records proof metadata only. It still allows
+`payload_bytes_transited`, but it does not accept raw payload bytes and does
+not call the preview store-forward queue. Release relay tunnel payload
+transport remains unwired.
+
+Validation:
+
+- `npm run test:p2p -- --test-name-pattern "transport proof"`: `94/94`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release verifier regressions: `ok=true`, `case_count=54`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+P2P env status still reports `ok=false` with expected blockers:
+`source_release_relay_payload_endpoint_not_implemented`,
+`source_release_payload_endpoint_queue_only`,
+`source_relay_transport_kind_not_release_grade`, missing KV/Upstash
+configuration, live relay transport not wired, live route not proven, and
+relay payload delivery proof missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_STRICT_METADATA_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2546 files`, `2735 symbols`, `17094 ms`
+
 ## 2026-06-06 Relay Connect Preflight Strict Metadata Gate
 
 `POST /api/v1/relay/connect` is now strict metadata-only preflight.

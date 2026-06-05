@@ -31,9 +31,17 @@ const RelayTransportProofRequestSchema = z.object({
   transport_verified_by: z.string().min(1),
   opened_at: z.string().min(1),
   closed_at: z.string().min(1).nullable().optional(),
-}).passthrough();
+}).strict();
 
 type RelayTransportProofRequest = z.infer<typeof RelayTransportProofRequestSchema>;
+
+const FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS = [
+  "payload",
+  "payload_base64",
+  "payload_b64",
+  "payload_bytes",
+  "body_base64",
+] as const;
 
 function parseIsoTimestamp(value: string | null | undefined): number | null {
   if (!value?.trim()) {
@@ -57,6 +65,15 @@ function parseLimit(value: string | null): number | undefined {
 function publicRecord<T extends { owner_key: string }>(record: T): Omit<T, "owner_key"> {
   const { owner_key: _ownerKey, ...publicProof } = record;
   return publicProof;
+}
+
+function forbiddenPayloadByteFields(json: unknown): string[] {
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    return [];
+  }
+  return FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(json, field)
+  );
 }
 
 function proofContentBlockers(proof: RelayTransportProofRequest): string[] {
@@ -131,6 +148,31 @@ export async function POST(req: NextRequest) {
     json = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const forbiddenFields = forbiddenPayloadByteFields(json);
+  if (forbiddenFields.length > 0) {
+    const storeStatus = p2pRelayTransportProofStoreStatus();
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        stored: false,
+        owner_scoped: true,
+        release_grade: false,
+        error: "relay_transport_proof_payload_bytes_not_accepted",
+        forbidden_fields: forbiddenFields,
+        relay_transport_proof_store_configured: storeStatus.configured,
+        relay_transport_proof_store_backend: storeStatus.backend,
+        relay_transport_proof_store_release_grade: storeStatus.release_grade,
+        next_steps: [
+          "send only release relay transport proof metadata to this endpoint",
+          "do not send raw payload bytes to the proof recorder",
+          "record payload_bytes_transited and payload_sha256/delivery proof from the actual relay tunnel path",
+        ],
+      },
+      { status: 400 }
+    );
   }
 
   const parsed = RelayTransportProofRequestSchema.safeParse(json);

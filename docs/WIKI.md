@@ -9154,3 +9154,62 @@ Search terms should include `GOAL v619`, `wiki/794`,
 `relay_connect_payload_bytes_not_accepted`,
 `release connect preflight regression coverage`, and
 `P2P store-forward relay audit fail_count=0`.
+
+## 2026-06-06 Relay Transport Proof Strict Metadata Gate (wiki/795)
+
+`POST /api/v1/p2p/relay/transport-proof` now uses a strict metadata-only
+request schema for release relay transport proof recording.
+
+Changed:
+
+- `RelayTransportProofRequestSchema` changed from `.passthrough()` to
+  `.strict()`
+- raw payload byte fields are rejected before lease lookup:
+  `payload`, `payload_base64`, `payload_b64`, `payload_bytes`, `body_base64`
+- byte attempts return `relay_transport_proof_payload_bytes_not_accepted`
+- unknown fields return `invalid_relay_transport_proof`
+- `payload_bytes_transited` remains allowed as proof metadata only
+- the P2P relay contract audit now gates the strict proof recorder boundary
+
+Validation:
+
+- `npm run test:p2p -- --test-name-pattern "transport proof"`: `94/94`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release verifier regressions: `ok=true`, `case_count=54`,
+  `failed_case_count=0`
+- P2P env status: `ok=false` with expected release relay tunnel/KV/live proof
+  blockers
+- `git diff --check`: pass
+
+Code audit found no high/medium issue. This is hosted P2P evidence input
+hardening only. Current source remains `RELAY_TRANSPORT_KIND=websocket_tunnel`
+and `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, so public release remains No-Go
+on second-PC route/CPU/matrix, hosted P2P release proof, support mailbox, and
+Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_STRICT_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 Relay Transport Proof Strict Metadata Index Refresh (wiki/796)
+
+MUSU local indexer was refreshed after wiki/795 and GOAL v620.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2546 files`
+- `2735 symbols`
+- `17094 ms`
+
+Indexed context includes the relay transport proof strict metadata report, P2P
+control-plane spec, network boundary spec, BETA checklist, WIKI/WIKI_INDEX,
+CoS memory updates, and source changes in
+`POST /api/v1/p2p/relay/transport-proof`.
+
+Search terms should include `GOAL v621`, `wiki/796`,
+`relay transport proof strict metadata index refresh`, `2546 files`,
+`2735 symbols`, `17094 ms`, `musu.relay_transport_proof.v1`,
+`relay_transport_proof_payload_bytes_not_accepted`,
+`payload_bytes_transited`, `FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS`, and
+`P2P store-forward relay audit fail_count=0`.

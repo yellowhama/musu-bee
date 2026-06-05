@@ -1118,6 +1118,32 @@ Release-grade MUSU.PRO proof remains open until live owner-scoped storage/auth,
 route evidence, relay transport proof, and payload delivery proof are captured
 without unverified bypasses.
 
+## 2026-06-06 Relay Transport Proof Input Boundary
+
+`POST /api/v1/p2p/relay/transport-proof` is a strict metadata-only proof
+recorder. It is not the relay payload transport endpoint.
+
+Current contract:
+
+- requires P2P control auth
+- requires `schema=musu.relay_transport_proof.v1`
+- accepts proof metadata for the actual relay tunnel path:
+  `session_id`, `lease_id`, `source_node_id`, `target_node_id`,
+  `transport_kind`, `relay_url`, `tunnel_id`, `handshake_ms`,
+  `payload_bytes_transited`, `payload_transited_musu_infra`, `encryption`,
+  `transport_verified_by`, `opened_at`, and optional `closed_at`
+- rejects raw payload byte fields before lease lookup:
+  `payload`, `payload_base64`, `payload_b64`, `payload_bytes`, and
+  `body_base64`
+- rejects unknown fields
+- keeps `payload_bytes_transited` as proof metadata only
+
+Release-grade relay transport still requires a distinct `quic_relay_tunnel`
+payload path and `quic_tls_1_3` proof emitted from that actual path. The
+current source remains `RELAY_TRANSPORT_KIND=websocket_tunnel` and
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, so this is input-boundary hardening
+only and does not close hosted P2P release proof.
+
 ## 2026-06-06 Current Audit Boundary Update
 
 The latest code audit keeps the same product boundary and release posture.

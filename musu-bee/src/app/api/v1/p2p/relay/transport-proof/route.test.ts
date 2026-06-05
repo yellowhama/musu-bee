@@ -154,6 +154,62 @@ test("does not store relay transport proof without an owner-scoped lease", async
   });
 });
 
+test("rejects relay transport proof payload bytes before lease lookup", async () => {
+  await withTransportProofEnv(async () => {
+    const { GET, POST } = await loadModule("payload-bytes");
+
+    const res = await POST(
+      postReq({
+        ...proofFixture,
+        lease_id: "relay-lease-missing",
+        payload_base64: "aGVsbG8=",
+      })
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      accepted: boolean;
+      stored: boolean;
+      release_grade: boolean;
+      error: string;
+      forbidden_fields: string[];
+    };
+    assert.equal(body.accepted, false);
+    assert.equal(body.stored, false);
+    assert.equal(body.release_grade, false);
+    assert.equal(body.error, "relay_transport_proof_payload_bytes_not_accepted");
+    assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
+
+    const getRes = await GET(getReq("?limit=10"));
+    assert.equal(getRes.status, 200);
+    const getBody = (await getRes.json()) as { count: number; proofs: unknown[] };
+    assert.equal(getBody.count, 0);
+    assert.equal(getBody.proofs.length, 0);
+  });
+});
+
+test("rejects unknown relay transport proof fields", async () => {
+  await withTransportProofEnv(async () => {
+    const { POST } = await loadModule("strict-fields");
+
+    const res = await POST(
+      postReq({
+        ...proofFixture,
+        lease_id: "relay-lease-missing",
+        unexpected_release_field: true,
+      })
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_transport_proof");
+    assert.match(JSON.stringify(body.issues), /unexpected_release_field/);
+  });
+});
+
 test("stores lease-bound relay transport proof owner-scoped", async () => {
   await withTransportProofEnv(async () => {
     const { GET, POST } = await loadModule("stores-proof");

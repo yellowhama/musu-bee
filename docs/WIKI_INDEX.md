@@ -4920,4 +4920,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `P2P store-forward relay audit fail_count=0`, `ZEROENTROPY_API_KEY`, and
   `gstack-brain-sync exited undefined`.
 
+- 2026-06-06 relay transport proof strict metadata gate:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_STRICT_METADATA_GATE_2026_06_06.md`
+  (wiki/795) records strict metadata-only relay transport proof recording for
+  `POST /api/v1/p2p/relay/transport-proof`. Search terms should include
+  `GOAL v620`, `wiki/795`, `musu.relay_transport_proof.v1`,
+  `RelayTransportProofRequestSchema`, `}).strict()`,
+  `FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS`,
+  `relay_transport_proof_payload_bytes_not_accepted`,
+  `payload_bytes_transited`, `unexpected_release_field`,
+  `relay transport proof request is strict metadata only`,
+  `relay transport proof strict metadata regression coverage`,
+  `npm run test:p2p 94/94`, `release verifier 54/54`,
+  `P2P store-forward relay audit fail_count=0`,
+  `RELAY_TRANSPORT_KIND=websocket_tunnel`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`, and
+  `MUSU.PRO control-plane evidence input boundary`.
+
+- 2026-06-06 relay transport proof strict metadata index refresh:
+  wiki/796 records the MUSU local index refresh after wiki/795 and GOAL v620.
+  Search terms should include `GOAL v621`, `wiki/796`, `2546 files`,
+  `2735 symbols`, `17094 ms`,
+  `relay transport proof strict metadata index refresh`,
+  `musu.relay_transport_proof.v1`,
+  `relay_transport_proof_payload_bytes_not_accepted`,
+  `payload_bytes_transited`, `FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS`,
+  `P2P store-forward relay audit fail_count=0`, and
+  `MUSU.PRO control-plane evidence input boundary`.
+
 **End of WIKI_INDEX.md.**

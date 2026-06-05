@@ -60,6 +60,8 @@ $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route
 $releasePayloadPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\payload\route.test.ts"
 $leaseRoutePath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.ts"
 $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
+$transportProofRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.ts"
+$transportProofRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.test.ts"
 $routeEvidencePath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.ts"
 $routeEvidenceTestPath = "musu-bee\src\app\api\v1\p2p\route-evidence\route.test.ts"
 $routeEvidenceStorePath = "musu-bee\src\lib\routeEvidenceStore.ts"
@@ -88,6 +90,8 @@ $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
 $releasePayloadPreflightRouteTest = Get-RepoText $releasePayloadPreflightRouteTestPath
 $leaseRoute = Get-RepoText $leaseRoutePath
 $transportRoute = Get-RepoText $transportRoutePath
+$transportProofRoute = Get-RepoText $transportProofRoutePath
+$transportProofRouteTest = Get-RepoText $transportProofRouteTestPath
 $routeEvidence = Get-RepoText $routeEvidencePath
 $routeEvidenceTest = Get-RepoText $routeEvidenceTestPath
 $routeEvidenceStore = Get-RepoText $routeEvidenceStorePath
@@ -316,6 +320,25 @@ Add-Check `
     -Message "Queue fallback delivery proof alone cannot create release-grade relay route evidence."
 
 Add-Check `
+    -Scope "web-transport-proof" `
+    -Name "relay transport proof request is strict metadata only" `
+    -Passed (
+        (Test-ContainsAll -Text $transportProofRoute -Needles @(
+            "musu.relay_transport_proof.v1",
+            "}).strict()",
+            "FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS",
+            "relay_transport_proof_payload_bytes_not_accepted",
+            "payload_bytes_transited",
+            "musu_quic_tls_transport",
+            "quic_tls_1_3"
+        )) -and
+        -not $transportProofRoute.Contains("appendRelayPayload") -and
+        -not $transportProofRoute.Contains("payload_base64:")
+    ) `
+    -Path $transportProofRoutePath `
+    -Message "Relay transport proof accepts proof metadata only, keeps payload bytes out of the proof recorder, and still requires actual quic_tls_1_3 tunnel proof."
+
+Add-Check `
     -Scope "route-evidence" `
     -Name "release-grade query revalidates relay delivery proof" `
     -Passed (
@@ -540,6 +563,22 @@ Add-Check `
     ) `
     -Path $releasePayloadPreflightRouteTestPath `
     -Message "P2P tests cover the distinct release payload preflight endpoint and keep it separate from queue storage."
+
+Add-Check `
+    -Scope "tests" `
+    -Name "relay transport proof strict metadata regression coverage" `
+    -Passed (
+        $packageJson.Contains("src/app/api/v1/p2p/relay/transport-proof/route.test.ts") -and
+        (Test-ContainsAll -Text $transportProofRouteTest -Needles @(
+            "rejects relay transport proof payload bytes before lease lookup",
+            "relay_transport_proof_payload_bytes_not_accepted",
+            "rejects unknown relay transport proof fields",
+            "unexpected_release_field",
+            "stores lease-bound relay transport proof owner-scoped"
+        ))
+    ) `
+    -Path $transportProofRouteTestPath `
+    -Message "P2P tests cover strict metadata-only relay transport proof submission and keep payload bytes out of the proof recorder."
 
 Add-Check `
     -Scope "tests" `
