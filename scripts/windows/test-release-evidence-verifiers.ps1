@@ -222,6 +222,25 @@ function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     return $true
 }
 
+function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 12 -MaxUnknown 12',
+        '$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")',
+        '"-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")',
+        'candidate_selection = "latest-per-machine-up-to-12"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -787,6 +806,18 @@ Add-CaseResult `
     -Name "second-PC runtime CPU route wait timeout pass-through" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeCpuGoNoGoMatrixSelectionOk = Test-RuntimeCpuGoNoGoMatrixSelectionContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeCpuGoNoGoMatrixSelectionOk `
+    -Message "go/no-go must evaluate full runtime matrices and post-route-only targeted attempts independently"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go separates full runtime matrix and targeted route attempt selection" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
 

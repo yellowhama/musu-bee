@@ -1096,7 +1096,7 @@ foreach ($root in $runtimeCpuScenarioMatrixRoots) {
 
 $runtimeCpuScenarioMatrixResults = @()
 $runtimeCpuScenarioMatrixMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-$runtimeCpuScenarioMatrixSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 3 -MaxUnknown 6
+$runtimeCpuScenarioMatrixSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 12 -MaxUnknown 12
 foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $matrixArgs = @(
         "-EvidencePath", $candidate.FullName,
@@ -1137,7 +1137,7 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuScenarioMatrixMachines)
     candidate_count = $runtimeCpuScenarioMatrixResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine"
+    candidate_selection = "latest-per-machine-up-to-12"
     required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
     candidates = $runtimeCpuScenarioMatrixResults
 }
@@ -1145,12 +1145,13 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
 $runtimeCpuSecondPcRouteAttemptVerified = $false
 $runtimeCpuSecondPcRouteAttemptResults = @()
 $runtimeCpuSecondPcRouteAttemptMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")
 foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $targetAttemptArgs = @(
         "-EvidencePath", $candidate.FullName,
         "-ExpectedVersion", $version,
         "-ExpectedGitCommit", $currentGitCommit,
-        "-RequiredScenarios", ($RequiredRuntimeCpuScenarioMatrixScenarios -join ",")
+        "-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")
     ) + @(
         "-MinSampleSeconds", ([string]$MinRuntimeIdleCpuSampleSeconds),
         "-MaxOneCorePercent", ([string]$MaxRuntimeIdleCpuOneCorePercent),
@@ -1187,8 +1188,8 @@ $runtimeCpuSecondPcRouteAttemptEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuSecondPcRouteAttemptMachines)
     candidate_count = $runtimeCpuSecondPcRouteAttemptResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine"
-    required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
+    candidate_selection = "latest-per-machine-up-to-12"
+    required_scenarios = @($runtimeCpuSecondPcRouteAttemptRequiredScenarios)
     route_probe = "post-route target route attempt, success or explicitly allowed failure"
     candidates = $runtimeCpuSecondPcRouteAttemptResults
 }
