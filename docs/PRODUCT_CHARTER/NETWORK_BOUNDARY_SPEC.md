@@ -605,6 +605,25 @@ This keeps the release evidence API from becoming an accidental data path.
 Release payload transport still belongs to a future distinct
 `quic_relay_tunnel` path that can emit `quic_tls_1_3` proof.
 
+## 2026-06-06 current HEAD local CPU evidence boundary
+
+Current clean HEAD `2387db2dea5fc983d0d3104b41037642b9939ccc` has fresh
+one-machine `desktop-open` idle CPU evidence on `HUGH_SECOND`.
+
+Contract interpretation:
+
+- the evidence proves MUSU Desktop local resource behavior on the sampled
+  machine
+- owned process attribution separates MUSU runtime/shell/WebView2 helpers from
+  unrelated machine-wide Node/WebView2 processes
+- this does not prove a second Windows PC route
+- this does not prove hosted MUSU.PRO P2P control-plane readiness
+- this does not prove release relay tunnel payload transport
+
+This reinforces the product boundary: the local program is the executor and
+resource owner; MUSU.PRO is the web input, room, rendezvous, path-selection,
+relay-fallback, and evidence/control plane.
+
 ## Product copy rule
 
 Do not describe this as "blocking remote access."

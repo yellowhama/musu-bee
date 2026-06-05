@@ -9213,3 +9213,77 @@ Search terms should include `GOAL v621`, `wiki/796`,
 `relay_transport_proof_payload_bytes_not_accepted`,
 `payload_bytes_transited`, `FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS`, and
 `P2P store-forward relay audit fail_count=0`.
+
+## 2026-06-06 Current HEAD Desktop-Open CPU Evidence (wiki/797)
+
+Fresh current-HEAD `desktop-open` idle CPU evidence was captured on
+`HUGH_SECOND` from clean commit
+`2387db2dea5fc983d0d3104b41037642b9939ccc`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-071122-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- `git_dirty=false`
+- sample time `60.04s`
+- hot process count `0`
+- owned process count `8`
+- MUSU runtime/shell `2`
+- owned WebView2 helpers `6`
+- owned Node helpers `0`
+- total working set `363.83MB`
+- total private memory `193.95MB`
+- max one-core CPU by role: MUSU `0`, Node `0`, WebView2 `0.08`,
+  other `0`
+
+Audits passed:
+
+- Rust background-loop contract: `ok=true`, `fail_count=0`
+- frontend polling contract: `ok=true`, `fail_count=0`
+- process ownership audit: `ok=true`, `fail_count=0`
+- startup single-instance audit: `ok=true`, `fail_count=0`
+
+Qualitative audit found no high/medium code issue and no code changed. The
+local desktop-open runtime looks healthy on one machine. This does not close
+second-PC, multi-device, or hosted MUSU.PRO P2P release gates.
+
+Current go/no-go with public metadata skipped remains No-Go:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- runtime idle CPU `1/2 [HUGH_SECOND]`
+- runtime CPU matrix `1/2`
+- targeted second-PC route CPU `true`
+- `p2p_control_plane_verified=false`
+
+Product boundary remains unchanged: MUSU Desktop is the local executor, while
+MUSU.PRO is remote input, project/company room, presence, rendezvous,
+path-selection, relay-fallback, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_EVIDENCE_2026_06_06.md`
+
+## 2026-06-06 Current HEAD Desktop-Open CPU Evidence Index Refresh (wiki/798)
+
+MUSU local indexer was refreshed after wiki/797 and GOAL v622.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2550 files`
+- `2735 symbols`
+- `11702 ms`
+
+Indexed context includes fresh
+`20260606-071122-HUGH_SECOND.desktop-open` CPU evidence, the current HEAD
+desktop-open CPU evidence report, BETA checklist, network boundary spec,
+MUSU.PRO P2P control-plane spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v623`, `wiki/798`,
+`current HEAD desktop-open CPU evidence index refresh`, `2550 files`,
+`2735 symbols`, `11702 ms`, `20260606-071122-HUGH_SECOND.desktop-open`,
+`runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+`p2p_control_plane_verified=false`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

@@ -1177,3 +1177,32 @@ verifier regressions `51/51`, `cargo test --lib relay_payload` `24/24`,
 No high/medium code issue was found in this audit. The open risk is
 deployment/evidence: second-PC route/CPU/matrix, production hosted P2P proof,
 release relay tunnel proof, support mailbox, and Store evidence.
+
+## 2026-06-06 Current HEAD Local CPU Evidence Boundary
+
+Current clean HEAD `2387db2dea5fc983d0d3104b41037642b9939ccc` has fresh
+`desktop-open` idle CPU evidence on `HUGH_SECOND`:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-071122-HUGH_SECOND.desktop-open.evidence.json`
+- `git_dirty=false`
+- sample time `60.04s`
+- hot process count `0`
+- owned MUSU runtime/shell processes `2`
+- owned WebView2 helpers `6`
+- owned Node helpers `0`
+- max WebView2 one-core CPU `0.08`
+- working set `363.83MB`
+
+This is local executor health evidence, not hosted P2P completion. It keeps
+the same control-plane interpretation:
+
+- MUSU Desktop executes work and owns local CPU/process/resource behavior.
+- MUSU.PRO accepts remote input and coordinates rooms, presence, rendezvous,
+  route selection, relay fallback, and evidence.
+- Web-assisted discovery can make P2P setup easier, but the preferred data path
+  after bootstrap remains direct P2P mesh.
+- Hosted relay remains fallback-only until release tunnel payload transport and
+  proof are real.
+
+Release proof still requires a second Windows PC on the same current build plus
+owner-scoped hosted P2P/relay evidence from production infrastructure.

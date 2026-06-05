@@ -4948,4 +4948,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `P2P store-forward relay audit fail_count=0`, and
   `MUSU.PRO control-plane evidence input boundary`.
 
+- 2026-06-06 current HEAD desktop-open CPU evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_EVIDENCE_2026_06_06.md`
+  (wiki/797) records fresh `desktop-open` idle CPU evidence from clean commit
+  `2387db2dea5fc983d0d3104b41037642b9939ccc`. Search terms should include
+  `GOAL v622`, `wiki/797`, `20260606-071122-HUGH_SECOND.desktop-open`,
+  `git_dirty=false`, `60.04s`, `hot process count 0`, `owned WebView2 6`,
+  `owned Node 0`, `working set 363.83MB`, `WebView2 0.08`,
+  `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`,
+  `p2p_control_plane_verified=false`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current HEAD desktop-open CPU evidence index refresh:
+  wiki/798 records the MUSU local index refresh after wiki/797 and GOAL v622.
+  Search terms should include `GOAL v623`, `wiki/798`, `2550 files`,
+  `2735 symbols`, `11702 ms`,
+  `current HEAD desktop-open CPU evidence index refresh`,
+  `20260606-071122-HUGH_SECOND.desktop-open`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `p2p_control_plane_verified=false`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
