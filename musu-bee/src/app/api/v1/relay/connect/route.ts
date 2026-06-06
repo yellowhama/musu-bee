@@ -13,6 +13,7 @@ import {
   relayConnectEndpointWired,
   relayPayloadEndpointWired,
   relayPayloadQueueEndpointWired,
+  relayTunnelRuntimeImplemented,
   relayTransportPreflightBlockers,
   relayTransportWired,
 } from "@/lib/p2pRelayPolicy";
@@ -59,6 +60,7 @@ function relayConnectStatus(method: string, blockers = relayTransportPreflightBl
     release_grade_relay_transport_kind: RELEASE_GRADE_RELAY_TRANSPORT_KIND,
     release_grade_transport_required: RELEASE_GRADE_TRANSPORT_REQUIRED,
     relay_transport_wired: relayTransportWired(),
+    relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
     relay_connect_endpoint_wired: relayConnectEndpointWired(),
     relay_payload_endpoint_wired: relayPayloadEndpointWired(),
     relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),

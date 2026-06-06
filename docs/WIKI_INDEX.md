@@ -5488,4 +5488,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_delivery_proof_valid_count=0`, `MUSU Desktop local executor`,
   and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 relay tunnel runtime source gate:
+  `RELEASE_1_15_0_RC1_RELAY_TUNNEL_RUNTIME_SOURCE_GATE_2026_06_06.md`
+  (wiki/849) records the distinct source marker for actual release tunnel
+  runtime implementation. Search terms should include `GOAL v674`, `wiki/849`,
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
+  `relay_tunnel_runtime_implemented=false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `relayTransportWired`, `P2P tests 108/108`, `release verifier 66/66`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 relay tunnel runtime source gate index refresh:
+  wiki/850 records the MUSU local index refresh after wiki/849 and GOAL v674.
+  Search terms should include `GOAL v675`, `wiki/850`, `2665 files`,
+  `2759 symbols`, `12696 ms`, `relay tunnel runtime source gate index
+  refresh`, `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

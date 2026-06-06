@@ -175,6 +175,7 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.equal(body.relay_lease_store_backend, "file");
     assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.doesNotMatch(body.blockers.join(","), /relay_disabled/);
@@ -223,6 +224,7 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_proof, undefined);
     assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });

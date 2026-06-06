@@ -162,6 +162,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.payload_transit_requires_lease, true);
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
   });
 });
@@ -201,6 +202,7 @@ test("returns release payload preflight status fields for invalid JSON", async (
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
   });
 });
 

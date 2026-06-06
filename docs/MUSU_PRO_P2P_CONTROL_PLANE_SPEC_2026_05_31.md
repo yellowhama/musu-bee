@@ -1636,3 +1636,18 @@ Current release evidence:
 Current blockers are second-PC route/CPU/matrix evidence, production runtime
 login, owner-scoped release-grade storage, release relay tunnel transport,
 payload endpoint wiring, support mailbox proof, and Store/Partner Center proof.
+
+## 2026-06-06 Relay tunnel runtime source gate
+
+Release relay readiness now requires a separate source marker for actual local
+runtime implementation:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- relay status surfaces expose `relay_tunnel_runtime_implemented=false`
+- P2P env status emits
+  `source_release_relay_tunnel_runtime_not_implemented`
+
+This is deliberate fail-closed behavior. The release tunnel is not implemented
+until local runtime code moves payload bytes through `quic_relay_tunnel` and
+emits `quic_tls_1_3` relay transport proof. The preview queue and proof
+recorders cannot satisfy this marker.

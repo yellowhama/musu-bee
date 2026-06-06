@@ -7952,3 +7952,39 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2662 files`, `2758 symbols`, `11836 ms`
+
+## 2026-06-06 Relay Tunnel Runtime Source Gate
+
+Relay tunnel runtime readiness is now a distinct source gate:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- API status exposes `relay_tunnel_runtime_implemented=false`
+- P2P env status emits
+  `source_release_relay_tunnel_runtime_not_implemented`
+- `relayTransportWired()` requires the runtime marker as well as env flag,
+  release transport kind, and release payload endpoint marker
+
+Validation:
+
+- P2P tests: `108/108`
+- `npm run typecheck`: pass
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is release-gate hardening,
+not release relay implementation.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TUNNEL_RUNTIME_SOURCE_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_TUNNEL_RUNTIME_SOURCE_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2665 files`, `2759 symbols`, `12696 ms`

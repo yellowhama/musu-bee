@@ -157,6 +157,7 @@ function Get-SourceRelayMarker {
         relay_payload_endpoint_implemented = $false
         release_payload_preflight_endpoint_implemented = $false
         relay_payload_queue_endpoint_implemented = $false
+        release_relay_tunnel_runtime_implemented = $false
         release_tunnel_payload_endpoint_missing = $false
         release_connect_fail_closed_placeholder_active = $false
         preview_store_forward_payload_queue_non_release_grade = $false
@@ -189,6 +190,7 @@ function Get-SourceRelayMarker {
         $summary.checked = $true
         $summary.relay_connect_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_CONNECT_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.relay_payload_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED\s*=\s*true')
+        $summary.release_relay_tunnel_runtime_implemented = [regex]::IsMatch($text, 'RELAY_TUNNEL_RUNTIME_IMPLEMENTED\s*=\s*true')
         $summary.release_payload_preflight_endpoint_implemented = (
             [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_payload_preflight\.v1') -and
             [regex]::IsMatch($releasePayloadRouteText, 'authorizeP2pControl\(req\)') -and
@@ -470,6 +472,9 @@ else {
     if (-not $sourceSummary.relay_payload_endpoint_implemented) {
         $blockers.Add("source_release_relay_payload_endpoint_not_implemented") | Out-Null
     }
+    if (-not $sourceSummary.release_relay_tunnel_runtime_implemented) {
+        $blockers.Add("source_release_relay_tunnel_runtime_not_implemented") | Out-Null
+    }
     if ($sourceSummary.release_connect_fail_closed_placeholder_active) {
         $blockers.Add("source_release_relay_connect_placeholder_active") | Out-Null
     }
@@ -553,6 +558,10 @@ if ($blockers -contains "source_release_relay_payload_endpoint_not_implemented")
     }
     $nextSteps.Add("Add a distinct release tunnel payload endpoint that can emit quic_tls_1_3 proof before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
 }
+if ($blockers -contains "source_release_relay_tunnel_runtime_not_implemented") {
+    $nextSteps.Add("Implement the local release relay tunnel runtime before setting RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true; DTO/proof recorders and preview queues are not enough.") | Out-Null
+    $nextSteps.Add("The runtime implementation must move payload bytes through an actual quic_relay_tunnel path and emit MUSU-bound quic_tls_1_3 transport proof before relay_transport_wired can pass.") | Out-Null
+}
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
     $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release relay tunnel kind quic_relay_tunnel; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
 }
@@ -622,6 +631,7 @@ else {
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
     "source release tunnel payload endpoint missing: $($result.source.release_tunnel_payload_endpoint_missing)"
+    "source release relay tunnel runtime implemented: $($result.source.release_relay_tunnel_runtime_implemented)"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
     "source preview store-forward payload queue non-release-grade: $($result.source.preview_store_forward_payload_queue_non_release_grade)"
     "source relay transport kind: $($result.source.relay_transport_kind)"

@@ -281,3 +281,16 @@ current product split and remaining P2P release blockers:
 Release implication: this is still external machine/account/infrastructure
 work. It is not a reason to use the localhost developer dashboard as the
 product surface, and it is not a reason to move execution into MUSU.PRO.
+
+## 2026-06-06 relay tunnel runtime source gate
+
+Release relay readiness now requires a distinct local runtime marker:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- `relay_tunnel_runtime_implemented=false` in relay status surfaces
+- `source_release_relay_tunnel_runtime_not_implemented` in P2P env status
+
+This keeps `relay_transport_wired=false` unless actual local runtime code can
+move payload bytes through a release `quic_relay_tunnel` and emit
+`quic_tls_1_3` transport proof. The preview store-forward queue and proof DTOs
+remain useful diagnostics, but they are not the release relay tunnel.

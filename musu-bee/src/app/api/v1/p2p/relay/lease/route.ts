@@ -15,6 +15,7 @@ import {
   relayLeaseStoreFields,
   relayPayloadEndpointWired,
   relayPayloadQueueEndpointWired,
+  relayTunnelRuntimeImplemented,
   relayTransportKindReleaseGrade,
   relayTransportWired,
   relayUrl,
@@ -46,6 +47,9 @@ function relayPolicyBlockers(input: {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayTunnelRuntimeImplemented()) {
+    blockers.push("relay_tunnel_runtime_not_implemented");
   }
   if (!relayTransportKindReleaseGrade()) {
     blockers.push("relay_transport_kind_not_release_grade");
@@ -114,6 +118,7 @@ export async function POST(req: NextRequest) {
         owner_scoped: true,
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
+        relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
         relay_connect_endpoint_wired: relayConnectEndpointWired(),
         relay_payload_endpoint_wired: relayPayloadEndpointWired(),
         relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
@@ -158,6 +163,7 @@ export async function POST(req: NextRequest) {
       owner_scoped: true,
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
+      relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
       relay_connect_endpoint_wired: relayConnectEndpointWired(),
       relay_payload_endpoint_wired: relayPayloadEndpointWired(),
       relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
@@ -203,6 +209,7 @@ export async function GET(req: NextRequest) {
       owner_scoped: true,
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
+      relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
       relay_connect_endpoint_wired: relayConnectEndpointWired(),
       relay_payload_endpoint_wired: relayPayloadEndpointWired(),
       relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
@@ -219,6 +226,7 @@ export async function GET(req: NextRequest) {
         detail: error instanceof Error ? error.message : "unknown",
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
+        relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
         relay_connect_endpoint_wired: relayConnectEndpointWired(),
         relay_payload_endpoint_wired: relayPayloadEndpointWired(),
         relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),

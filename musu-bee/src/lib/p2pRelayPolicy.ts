@@ -9,6 +9,7 @@ export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";
 export const RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true;
 export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false;
 export const RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED = true;
+export const RELAY_TUNNEL_RUNTIME_IMPLEMENTED = false;
 
 export function envEnabled(name: string): boolean {
   return process.env[name] === "1" || process.env[name]?.toLowerCase() === "true";
@@ -44,8 +45,17 @@ export function relayTransportKindReleaseGrade(): boolean {
   return transportKind === RELEASE_GRADE_RELAY_TRANSPORT_KIND;
 }
 
+export function relayTunnelRuntimeImplemented(): boolean {
+  return RELAY_TUNNEL_RUNTIME_IMPLEMENTED;
+}
+
 export function relayTransportWired(): boolean {
-  return relayTransportFlagEnabled() && relayTransportKindReleaseGrade() && relayPayloadEndpointWired();
+  return (
+    relayTransportFlagEnabled() &&
+    relayTransportKindReleaseGrade() &&
+    relayPayloadEndpointWired() &&
+    relayTunnelRuntimeImplemented()
+  );
 }
 
 export function relayUrlIsWss(value = relayUrl()): boolean {
@@ -82,6 +92,9 @@ export function relayTransportPreflightBlockers(): string[] {
   }
   if (!relayTransportWired()) {
     blockers.push("relay_transport_not_wired");
+  }
+  if (!relayTunnelRuntimeImplemented()) {
+    blockers.push("relay_tunnel_runtime_not_implemented");
   }
   if (!relayTransportKindReleaseGrade()) {
     blockers.push("relay_transport_kind_not_release_grade");

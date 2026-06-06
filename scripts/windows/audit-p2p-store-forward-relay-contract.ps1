@@ -132,10 +132,14 @@ Add-Check `
         $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
         $policy.Contains('RELEASE_GRADE_RELAY_TRANSPORT_KIND = "quic_relay_tunnel"') -and
         $policy.Contains('RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3"') -and
+        $policy.Contains("RELAY_TUNNEL_RUNTIME_IMPLEMENTED = false") -and
         $policy.Contains("return RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED && relayConnectEndpointWired()") -and
+        $policy.Contains("relayTunnelRuntimeImplemented") -and
         $policy.Contains("relayTransportKindReleaseGrade") -and
         $policy.Contains("return transportKind === RELEASE_GRADE_RELAY_TRANSPORT_KIND") -and
-        $policy.Contains("return relayTransportFlagEnabled() && relayTransportKindReleaseGrade() && relayPayloadEndpointWired()") -and
+        $policy.Contains("relayPayloadEndpointWired() &&") -and
+        $policy.Contains("relayTunnelRuntimeImplemented()") -and
+        $policy.Contains('blockers.push("relay_tunnel_runtime_not_implemented")') -and
         $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
     -Path $policyPath `
@@ -668,6 +672,7 @@ Add-Check `
         Test-ContainsAll -Text $statusScript -Needles @(
             "relay_payload_queue_fallback_implemented",
             "release_payload_preflight_endpoint_implemented",
+            "release_relay_tunnel_runtime_implemented",
             "release_tunnel_payload_endpoint_missing",
             "release_connect_fail_closed_placeholder_active",
             "preview_store_forward_payload_queue_non_release_grade",
@@ -676,6 +681,7 @@ Add-Check `
             "rust_enqueue_after_lease",
             "rust_target_drain_and_delivery_proof",
             "source_release_relay_connect_endpoint_not_implemented",
+            "source_release_relay_tunnel_runtime_not_implemented",
             "source_release_relay_connect_placeholder_active",
             "source_preview_store_forward_payload_queue_non_release_grade",
             "source_relay_transport_kind_not_release_grade",

@@ -12,6 +12,7 @@ import {
   relayLeaseStoreFields,
   relayPayloadEndpointWired,
   relayPayloadQueueEndpointWired,
+  relayTunnelRuntimeImplemented,
   relayTransportPreflightBlockers,
   relayTransportWired,
 } from "@/lib/p2pRelayPolicy";
@@ -61,6 +62,7 @@ function releasePayloadPreflightStatus(method: string, blockers = relayTransport
     relay_payload_endpoint_wired: relayPayloadEndpointWired(),
     relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
     relay_transport_wired: relayTransportWired(),
+    relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
     relay_transport_kind: RELAY_TRANSPORT_KIND,
     release_grade_relay_transport_kind: RELEASE_GRADE_RELAY_TRANSPORT_KIND,
     release_grade_transport_required: RELEASE_GRADE_TRANSPORT_REQUIRED,

@@ -10927,3 +10927,58 @@ snapshot index refresh`, `2662 files`, `2758 symbols`, `11836 ms`,
 `relay_route_transport_proof_valid_count=0`,
 `relay_payload_delivery_proof_valid_count=0`, `MUSU Desktop local executor`,
 and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Relay Tunnel Runtime Source Gate (wiki/849)
+
+Relay tunnel runtime readiness is now a distinct source gate.
+
+Changed:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- `relayTransportWired()` requires `relayTunnelRuntimeImplemented()`
+- relay lease, transport, connect, and release payload preflight APIs expose
+  `relay_tunnel_runtime_implemented=false`
+- P2P env status emits
+  `source_release_relay_tunnel_runtime_not_implemented`
+
+Validation:
+
+- P2P tests: `108/108`
+- `npm run typecheck`: pass
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This prevents fake release
+enablement; it does not implement the actual `quic_relay_tunnel` runtime.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TUNNEL_RUNTIME_SOURCE_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_TUNNEL_RUNTIME_SOURCE_GATE_2026_06_06.md`
+
+## 2026-06-06 Relay Tunnel Runtime Source Gate Index Refresh (wiki/850)
+
+MUSU local indexer was refreshed after wiki/849 and GOAL v674.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2665 files`
+- `2759 symbols`
+- `12696 ms`
+
+Indexed context includes `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`,
+`relay_tunnel_runtime_implemented`,
+`source_release_relay_tunnel_runtime_not_implemented`, relay API status
+updates, P2P env status source contract, canonical report, next-step plan,
+BETA checklist, P2P control-plane specs, GOAL v674, WIKI/WIKI_INDEX, and CoS
+memory.
+
+Search terms should include `GOAL v675`, `wiki/850`, `relay tunnel runtime
+source gate index refresh`, `2665 files`, `2759 symbols`, `12696 ms`,
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
+`source_release_relay_tunnel_runtime_not_implemented`, `MUSU Desktop local
+executor`, and `MUSU.PRO remote input control plane`.

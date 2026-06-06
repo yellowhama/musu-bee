@@ -118,3 +118,9 @@ second Windows PC.
 false, relay route evidence count `0`, relay route transport proof valid count
 `0`, and relay payload delivery proof valid count `0`. This is still external
 machine/account/infrastructure work; execution remains local in MUSU Desktop.
+
+2026-06-06 relay tunnel runtime source gate: release relay readiness now also
+requires `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true`. Current source keeps it
+`false`, and status surfaces report `relay_tunnel_runtime_implemented=false` so
+policy constants or env flags cannot fake a release tunnel without actual local
+payload transit and `quic_tls_1_3` transport proof.

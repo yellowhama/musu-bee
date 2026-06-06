@@ -563,10 +563,13 @@ function Test-P2pEnvStatusReleasePayloadTerminologyContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         'release_payload_preflight_endpoint_implemented',
+        'release_relay_tunnel_runtime_implemented',
         'release_tunnel_payload_endpoint_missing',
         'preview_store_forward_payload_queue_non_release_grade',
+        'source_release_relay_tunnel_runtime_not_implemented',
         'source_preview_store_forward_payload_queue_non_release_grade',
         'source_release_relay_payload_marker_conflicts_with_preview_queue_only',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true',
         'release payload endpoint queue-only legacy alias',
         'not the release /api/v1/relay/payload preflight endpoint',
         'it is not the release tunnel payload endpoint'
