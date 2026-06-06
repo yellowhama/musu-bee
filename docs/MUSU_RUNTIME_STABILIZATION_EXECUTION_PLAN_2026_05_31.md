@@ -149,6 +149,11 @@ Already applied:
   `peer_identity_verified=false`. Runtime stabilization next step is
   second-machine setup and route reachability, not another primary-machine
   `localhost:3001` dashboard test.
+- route reachability recovery is now tool-backed by
+  `record-route-reachability-diagnostic.ps1` and
+  `verify-route-reachability-diagnostic.ps1`. Use these before rerunning
+  full two-machine CPU/matrix evidence; do not treat failed diagnostics as
+  successful multi-device proof.
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing

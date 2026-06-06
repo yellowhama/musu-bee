@@ -1911,3 +1911,22 @@ This confirms the product boundary:
 - A manual HTTP bearer peer is diagnostic only; release P2P still requires
   verified peer identity, `quic_tls_1_3`, route metadata, relay transport
   proof when relay is used, and payload delivery proof.
+
+## 2026-06-07 route reachability tooling contract
+
+Second-PC reachability must now be captured through
+`record-route-reachability-diagnostic.ps1` and checked with
+`verify-route-reachability-diagnostic.ps1` before treating a peer endpoint as a
+real release candidate.
+
+The verifier rejects:
+
+- local-only targets when `-RequireNonLocalTarget` is used;
+- route diagnostics that claim successful multi-device proof;
+- diagnostics where the route attempt is not a failed route while the evidence
+  is being used as failed reachability proof;
+- missing route explain/path-priority evidence;
+- missing raw `musu.route_evidence.v1` route-attempt evidence.
+
+This keeps MUSU.PRO as the control plane and keeps failed manual LAN/HTTP
+evidence out of the successful P2P release path.

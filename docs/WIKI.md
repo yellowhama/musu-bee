@@ -12928,3 +12928,66 @@ reachability index refresh`, `2775 files`, `2776 symbols`, `23081 ms`,
 `127.0.0.1:1158`, `192.168.1.192:8949`, `submit_http_error`,
 `none_http_bearer`, `peer_identity_verified=false`, and `MUSU Desktop local
 executor`.
+
+## 2026-06-07 Route Reachability Diagnostic Tooling (wiki/905)
+
+Route reachability diagnostics are now reusable release tooling.
+
+Added scripts:
+
+- `scripts\windows\record-route-reachability-diagnostic.ps1`
+- `scripts\windows\verify-route-reachability-diagnostic.ps1`
+
+The recorder captures packaged MUSU status, route explain/path priority,
+TCP/ping/neighbor reachability, raw `musu.route_evidence.v1` route-attempt
+evidence, command captures, and an explicit conclusion that failed/manual HTTP
+routes are not successful multi-device proof.
+
+The verifier accepts failed non-local peer diagnostics and rejects local-only
+targets or fake successful route proof.
+
+Validation:
+
+- parser checks: pass
+- existing HUGH-MAIN diagnostic `20260607-011750` verified with `ok=true`,
+  `fail_count=0`
+- full recorder smoke against `HUGH-MAIN`: TCP `false`, route result `failed`,
+  failure `submit_http_error`
+- generated smoke diagnostic verified with `ok=true`, `fail_count=0`
+- release verifier regression: `ok=true`, `case_count=90`,
+  `failed_case_count=0`
+
+New regression cases:
+
+- `route reachability recorder captures status explain network and route evidence`
+- `route reachability accepts failed non-local peer diagnostic`
+- `route reachability rejects local-only target diagnostic`
+- `route reachability rejects fake successful route proof`
+
+Search terms should include `GOAL v730`, `wiki/905`, `route reachability
+diagnostic tooling`, `record-route-reachability-diagnostic.ps1`,
+`verify-route-reachability-diagnostic.ps1`, `case_count=90`,
+`submit_http_error`, `none_http_bearer`, `peer_identity_verified=false`,
+`RequireNonLocalTarget`, and `MUSU Desktop local executor`.
+
+## 2026-06-07 Route Reachability Diagnostic Tooling Index Refresh (wiki/906)
+
+MUSU local indexer was refreshed after wiki/905 and GOAL v730.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2780 files`
+- `2776 symbols`
+- `16843 ms`
+
+Indexed context includes `record-route-reachability-diagnostic.ps1`,
+`verify-route-reachability-diagnostic.ps1`, release verifier regression
+`case_count=90`, route reachability tooling report, next-step plan, beta
+checklist, P2P control-plane docs, MUSU.PRO P2P spec, runtime stabilization
+spec, network boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v731`, `wiki/906`, `route reachability
+diagnostic tooling index refresh`, `2780 files`, `2776 symbols`, `16843 ms`,
+`record-route-reachability-diagnostic.ps1`,
+`verify-route-reachability-diagnostic.ps1`, `RequireNonLocalTarget`,
+`case_count=90`, and `submit_http_error`.

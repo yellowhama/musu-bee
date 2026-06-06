@@ -8917,3 +8917,40 @@ Index refresh:
 - `2776 symbols`
 - `23081 ms`
 - wiki: `wiki/904`
+
+## 2026-06-07 01:47 KST Route Reachability Diagnostic Tooling
+
+Route reachability diagnostics are now script-backed instead of manual notes.
+
+Added:
+
+- `scripts\windows\record-route-reachability-diagnostic.ps1`
+- `scripts\windows\verify-route-reachability-diagnostic.ps1`
+
+Validation:
+
+- existing HUGH-MAIN diagnostic `20260607-011750` verified with `ok=true`,
+  `fail_count=0`
+- full recorder smoke against `HUGH-MAIN` captured TCP `false`, route result
+  `failed`, and failure `submit_http_error`
+- generated full smoke diagnostic verified with `ok=true`, `fail_count=0`
+- release verifier regression: `ok=true`, `case_count=90`,
+  `failed_case_count=0`
+
+Release interpretation:
+
+- Failed reachability diagnostics remain diagnostic evidence only.
+- Local-only targets are rejected by the verifier when `-RequireNonLocalTarget`
+  is used.
+- Fake successful route proof is rejected.
+- Public release remains No-Go until successful second-PC route/CPU/matrix,
+  hosted MUSU.PRO P2P/relay, support mailbox, and Store evidence pass.
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2780 files`
+- `2776 symbols`
+- `16843 ms`
+- wiki: `wiki/906`

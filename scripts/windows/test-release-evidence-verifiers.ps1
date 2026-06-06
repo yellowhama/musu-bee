@@ -25,6 +25,7 @@ $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
+$routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
@@ -33,6 +34,7 @@ $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
+$routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -457,6 +459,30 @@ function Test-GoNoGoLatestOutputContract {
         'Set-Content -LiteralPath $tempPath -Encoding UTF8',
         'Move-Item -LiteralPath $tempPath -Destination $goNoGoOutputPath -Force',
         'go_no_go_output_path: $($result.go_no_go_output_path)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RouteReachabilityRecorderSourceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.route_reachability_diagnostic.v1"',
+        '"status", "--json"',
+        '"route", "--target", $Target, "--explain", "--json", $RoutePrompt',
+        '"route", "--target", $Target, "--route-evidence-path", $routeAttemptEvidencePath, $RoutePrompt',
+        'Test-TcpPort -HostName $hostPort.host',
+        'neighbor_entry_is_not_route_success_proof = $true',
+        'local_musu_desktop_runtime_healthy',
+        'successful_multi_device_route_proof',
+        'Route reachability diagnostic only'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1290,6 +1316,106 @@ $validMultiDevice = [pscustomobject]@{
     }
 }
 
+function New-RouteReachabilityDiagnosticEvidence {
+    [pscustomobject]@{
+        schema = "musu.route_reachability_diagnostic.v1"
+        version = $ExpectedVersion
+        recorded_at_utc = $now.ToUniversalTime().ToString("o")
+        recorded_at_kst = $now.ToOffset([timespan]::FromHours(9)).ToString("yyyy-MM-ddTHH:mm:sszzz")
+        git_commit = $currentGitCommit
+        git_dirty = $false
+        operator_machine = "VERIFIER-TEST"
+        status = [pscustomobject]@{
+            schema = "musu.fleet_status_cli.v1"
+            ok = $true
+            bridge_url = "http://127.0.0.1:1158"
+            this_node = [pscustomobject]@{
+                name = "verifier-test"
+                addr = "127.0.0.1:1158"
+                healthy = $true
+                is_self = $true
+                version = $ExpectedVersion
+            }
+            peer = [pscustomobject]@{
+                name = "SECOND-PC"
+                addr = "192.168.1.192:8949"
+                healthy = $false
+                is_self = $false
+                version = "unknown"
+            }
+            total_nodes = 2
+            online_nodes = 1
+        }
+        route_explain = [pscustomobject]@{
+            schema = "musu.route_explain.v1"
+            version = $ExpectedVersion
+            requested_target = "SECOND-PC"
+            submission_endpoint = "http://192.168.1.192:8949/api/tasks/delegate"
+            candidate_count = 1
+            selected_candidate = [pscustomobject]@{
+                name = "SECOND-PC"
+                addr = "192.168.1.192:8949"
+                source = "manual"
+                route_kind = "lan"
+                transport_scheme = "http"
+                peer_identity_verified = $false
+                peer_identity_method = $null
+                peer_public_key_present = $false
+                https_fingerprint_pin_available = $false
+                encryption = "none_http_bearer"
+                payload_transited_musu_infra = $false
+            }
+            current_transport = "http_bearer"
+            bridge_path_selection_wired = $true
+            rendezvous_session_wired = $true
+            https_fingerprint_pinning_wired = $true
+            release_grade_transport_required = "quic_tls_1_3"
+            route_evidence_ready = $false
+            release_blockers = @("peer_identity_verified=false for current manual/local HTTP route", "relay/tunnel fallback transport is not wired")
+            path_priority = @("lan", "tailscale", "direct_quic", "relay")
+            relay_policy = "relay is Connect/Pro fallback only; it must not become the default data path"
+        }
+        network_probe = [pscustomobject]@{
+            target = "192.168.1.192"
+            port = 8949
+            tcp_test_succeeded = $false
+            ping_succeeded = $false
+            source_ipv4 = "192.168.1.154"
+            source_prefix_length = 24
+            interface_index = 12
+            neighbor_entry_present = $true
+            neighbor_link_layer_address = "A8-5E-45-15-38-C3"
+            neighbor_state_raw = 5
+            neighbor_entry_is_not_route_success_proof = $true
+        }
+        route_attempt = [pscustomobject]@{
+            schema = "musu.route_evidence.v1"
+            version = $ExpectedVersion
+            source_node_id = "verifier-test"
+            target_node_id = "SECOND-PC"
+            route_kind = "lan"
+            candidate_addr = "192.168.1.192:8949"
+            result = "failed"
+            failure_class = "submit_http_error"
+            handshake_ms = 10006
+            total_attempt_ms = 10006
+            peer_identity_verified = $false
+            encryption = "none_http_bearer"
+            payload_transited_musu_infra = $false
+        }
+        conclusion = [pscustomobject]@{
+            local_musu_desktop_runtime_healthy = $true
+            target_peer_registered = $true
+            target_peer_healthy = $false
+            target_tcp_port_reachable = $false
+            manual_lan_candidate_is_release_grade = $false
+            musu_pro_relay_route_used = $false
+            successful_multi_device_route_proof = $false
+            release_interpretation = "Fixture failed reachability diagnostic."
+        }
+    }
+}
+
 function New-RuntimeMeasurement {
     param(
         [int]$WebView2Count = 6,
@@ -1742,6 +1868,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$routeReachabilityRecorderSourceContractOk = Test-RouteReachabilityRecorderSourceContract -ScriptPath $routeReachabilityRecorder
+$invocation = New-StaticVerifierInvocation `
+    -Ok $routeReachabilityRecorderSourceContractOk `
+    -Message "route reachability recorder must capture local status, route explain, TCP probe, raw route evidence, and non-proof caveats"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "route reachability recorder captures status explain network and route evidence" `
+    -Verifier "route reachability source contract" `
+    -FixturePath $routeReachabilityRecorder `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $rustBackgroundWatcherScopeContractOk = Test-RustBackgroundFilesystemWatcherScopeContract -ScriptPath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $rustBackgroundWatcherScopeContractOk `
@@ -2179,6 +2317,32 @@ $badRelayTransit.route_evidence.payload_transited_musu_infra = $false
 $fixture = Write-Fixture -Name "multidevice-bad-relay-transit" -Object $badRelayTransit
 $invocation = Invoke-Verifier -ScriptPath $multiDeviceVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "multidevice rejects relay route without MUSU infra payload transit" -Verifier "verify-multidevice-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$fixture = Write-Fixture -Name "route-reachability-valid-failed-peer" -Object (New-RouteReachabilityDiagnosticEvidence)
+$invocation = Invoke-Verifier -ScriptPath $routeReachabilityVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedTarget", "SECOND-PC", "-RequireNonLocalTarget", "-Json")
+Add-CaseResult -Cases $cases -Name "route reachability accepts failed non-local peer diagnostic" -Verifier "verify-route-reachability-diagnostic.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$badRouteReachabilityLocalTarget = New-RouteReachabilityDiagnosticEvidence
+$badRouteReachabilityLocalTarget.status.peer.addr = "127.0.0.1:8949"
+$badRouteReachabilityLocalTarget.route_explain.submission_endpoint = "http://127.0.0.1:8949/api/tasks/delegate"
+$badRouteReachabilityLocalTarget.route_explain.selected_candidate.addr = "127.0.0.1:8949"
+$badRouteReachabilityLocalTarget.network_probe.target = "127.0.0.1"
+$badRouteReachabilityLocalTarget.route_attempt.candidate_addr = "127.0.0.1:8949"
+$fixture = Write-Fixture -Name "route-reachability-bad-local-target" -Object $badRouteReachabilityLocalTarget
+$invocation = Invoke-Verifier -ScriptPath $routeReachabilityVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedTarget", "SECOND-PC", "-RequireNonLocalTarget", "-Json")
+Add-CaseResult -Cases $cases -Name "route reachability rejects local-only target diagnostic" -Verifier "verify-route-reachability-diagnostic.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRouteReachabilityFakeSuccess = New-RouteReachabilityDiagnosticEvidence
+$badRouteReachabilityFakeSuccess.status.peer.healthy = $true
+$badRouteReachabilityFakeSuccess.network_probe.tcp_test_succeeded = $true
+$badRouteReachabilityFakeSuccess.route_attempt.result = "success"
+$badRouteReachabilityFakeSuccess.route_attempt.failure_class = ""
+$badRouteReachabilityFakeSuccess.route_attempt.peer_identity_verified = $true
+$badRouteReachabilityFakeSuccess.route_attempt.encryption = "quic_tls_1_3"
+$badRouteReachabilityFakeSuccess.conclusion.successful_multi_device_route_proof = $true
+$fixture = Write-Fixture -Name "route-reachability-bad-fake-success" -Object $badRouteReachabilityFakeSuccess
+$invocation = Invoke-Verifier -ScriptPath $routeReachabilityVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedTarget", "SECOND-PC", "-RequireNonLocalTarget", "-Json")
+Add-CaseResult -Cases $cases -Name "route reachability rejects fake successful route proof" -Verifier "verify-route-reachability-diagnostic.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")

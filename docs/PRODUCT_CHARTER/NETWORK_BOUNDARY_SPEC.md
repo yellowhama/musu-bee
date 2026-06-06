@@ -1065,3 +1065,20 @@ Boundary implications:
   Windows PC, followed by successful route/CPU/matrix evidence and hosted
   MUSU.PRO route/relay proof.
 
+## 2026-06-07 route reachability diagnostic tooling boundary
+
+Route reachability failure is now a first-class diagnostic evidence type:
+`musu.route_reachability_diagnostic.v1`.
+
+Boundary implications:
+
+- failed reachability diagnostics can guide recovery work;
+- failed reachability diagnostics cannot satisfy successful multi-device
+  release proof;
+- local-only targets are rejected when the verifier is run with
+  `-RequireNonLocalTarget`;
+- fake successful route proof is rejected by requiring failed diagnostics to
+  keep peer health, TCP reachability, route result, and conclusion fields
+  consistent;
+- neighbor/ARP presence remains explicitly marked as not route success proof.
+

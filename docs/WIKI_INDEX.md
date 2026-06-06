@@ -6017,4 +6017,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `none_http_bearer`, `peer_identity_verified=false`, and `MUSU Desktop local
   executor`.
 
+- 2026-06-07 route reachability diagnostic tooling:
+  `RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md`
+  (wiki/905) records reusable route reachability recorder/verifier tooling
+  for failed non-local peer diagnostics, local-only target rejection, and fake
+  success rejection. Search terms should include `GOAL v730`, `wiki/905`,
+  `record-route-reachability-diagnostic.ps1`,
+  `verify-route-reachability-diagnostic.ps1`, `case_count=90`,
+  `submit_http_error`, `none_http_bearer`, `peer_identity_verified=false`,
+  `RequireNonLocalTarget`, and `MUSU Desktop local executor`.
+
+- 2026-06-07 route reachability diagnostic tooling index refresh:
+  wiki/906 records the MUSU local index refresh after wiki/905 and GOAL v730.
+  Search terms should include `GOAL v731`, `wiki/906`, `2780 files`,
+  `2776 symbols`, `16843 ms`, `route reachability diagnostic tooling index
+  refresh`, `record-route-reachability-diagnostic.ps1`,
+  `verify-route-reachability-diagnostic.ps1`, `RequireNonLocalTarget`,
+  `case_count=90`, and `submit_http_error`.
+
 **End of WIKI_INDEX.md.**

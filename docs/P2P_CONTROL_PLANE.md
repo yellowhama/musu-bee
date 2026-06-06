@@ -452,3 +452,23 @@ Release interpretation:
 - the next release-grade path is current MUSU Desktop installed/running on a
   second Windows PC, reachable endpoint proof, successful two-machine route
   evidence, and then hosted MUSU.PRO rendezvous/relay proof.
+
+## 2026-06-07 route reachability diagnostic tooling
+
+Failed peer reachability diagnostics are now captured by
+`record-route-reachability-diagnostic.ps1` and verified by
+`verify-route-reachability-diagnostic.ps1`.
+
+The diagnostic schema records:
+
+- packaged MUSU status and local bridge URL
+- selected route explain candidate and canonical path priority
+- TCP/ping/neighbor probe result
+- raw `musu.route_evidence.v1` route-attempt evidence
+- command captures
+- explicit conclusion fields for local runtime health, peer health,
+  reachability, relay usage, and successful multi-device proof
+
+The verifier requires non-local target proof when `-RequireNonLocalTarget` is
+used and rejects fake successful route proof. This makes reachability failure
+useful for recovery without allowing it to satisfy release-grade route proof.
