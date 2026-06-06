@@ -6272,4 +6272,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `discover_peers_with_cancellation`, `auto_register_peers_with_cancellation`,
   `cloud_registration_cancel`, and `case_count=104`.
 
+- 2026-06-07 current-head local desktop evidence after mDNS cancellation:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_MDNS_CANCELLATION_2026_06_07.md`
+  (wiki/933) records fresh packaged local desktop evidence after mDNS
+  cancellation hardening changed runtime source. Search terms should include
+  `GOAL v758`, `wiki/933`, `current-head local desktop evidence after mDNS
+  cancellation`, `20260607-065454-HUGH_SECOND`,
+  `20260607-065630-HUGH_SECOND.desktop-open`,
+  `20260607-065748-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_065748`,
+  `31a7ad5a-d5fa-4731-b896-c490e6f5deb1`, `127.0.0.1:9020`,
+  `WebView2 0.23`, and `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
+- 2026-06-07 current-head local desktop evidence after mDNS cancellation index
+  refresh:
+  wiki/934 records the MUSU local index refresh after wiki/933 and GOAL v758.
+  Search terms should include `GOAL v759`, `wiki/934`, `2844 files`,
+  `2788 symbols`, `76659 ms`, `current-head local desktop evidence after mDNS
+  cancellation index refresh`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_065748`,
+  `31a7ad5a-d5fa-4731-b896-c490e6f5deb1`, `127.0.0.1:9020`, and
+  `WebView2 0.23`.
+
 **End of WIKI_INDEX.md.**

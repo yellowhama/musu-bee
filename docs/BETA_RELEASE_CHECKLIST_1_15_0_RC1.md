@@ -9525,3 +9525,70 @@ Validation:
 Canonical report:
 `docs\RELEASE_1_15_0_RC1_MDNS_CANCELLATION_HARDENING_2026_06_07.md`
 (wiki/931).
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence After mDNS Cancellation
+
+Current HEAD `24f360409efcf776e3e7196e7d1f01d27d7d8eb9` was rebuilt,
+reinstalled, and rechecked on `HUGH_SECOND` after mDNS cancellation hardening.
+
+Package refresh:
+
+- `run-msix-workflow.ps1 -Configuration release -StartupContract
+  local-sideload-manual -AttemptInstall -VerifyInstalled -ReplaceExisting`
+- installed package: `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- installed package contract: passed
+- local sideload/manual bridge contract: passed
+- current shell PATH still shadows `musu.exe`; release commands used the
+  explicit WindowsApps alias
+
+Evidence promoted to docs:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-065454-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-065525-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-065544-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-065620-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-065630-HUGH_SECOND.desktop-open.evidence.json`
+- five-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-065748-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-065748-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine verifier: `ok=true`, `fail_count=0`
+- local surface: `local-bridge-only`
+- bridge: `http://127.0.0.1:9020`
+- process ownership: packaged runtime `1`, owned Node `0`, owned WebView2 `0`,
+  orphan repo helpers `0`
+- startup single-instance: bridge PID `10828` reused
+- desktop single-instance: packaged desktop PID `44540`, activation failures
+  `0`
+- desktop-open CPU: `60.032s`, hot `0`, WebView2 max one-core `0.23`,
+  working set `362.39MB`
+- five-state matrix: verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_065748`, max WebView2 `0.13`, max
+  working set `365.78MB`
+
+Dirty go/no-go after evidence promotion:
+
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=0`
+- `p2p_control_plane_env_ready=false`
+
+This restores current one-machine local evidence only. Public release still
+requires second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay proof, support
+mailbox proof, and Store proof.
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_MDNS_CANCELLATION_2026_06_07.md`
+(wiki/933).
