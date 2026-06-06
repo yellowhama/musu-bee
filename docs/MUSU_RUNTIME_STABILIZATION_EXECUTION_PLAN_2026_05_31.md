@@ -442,3 +442,23 @@ Evidence-capture rule:
 This confirms the current primary packaged runtime is not busy-looping. It does
 not close second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay, support, or
 Store release gates.
+
+## 2026-06-07 runtime CPU matrix OutputRoot hygiene gate
+
+Runtime CPU matrix capture now rejects tracked in-repo output roots before any
+scenario sample starts.
+
+Runtime stabilization impact:
+
+- an operator can no longer point `-OutputRoot` directly at tracked
+  `docs\evidence\runtime-cpu-scenarios` and accidentally dirty later scenario
+  samples
+- default `.local-build\runtime-cpu-scenarios` remains the supported capture
+  root because it is git-ignored
+- matrix JSON records `output_root`, `output_root_within_repo`, and
+  `output_root_git_ignored`
+- release verifier regression now includes
+  `runtime CPU matrix rejects tracked in-repo output roots`
+
+This protects the evidence gate used for idle/busy-loop diagnosis. It does not
+change CPU budgets or close second-PC evidence requirements.

@@ -59,6 +59,42 @@ function Test-PackagedMusuCommandPath([string]$Path) {
     )
 }
 
+function ConvertTo-FullPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+
+    return [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $Path))
+}
+
+function Test-PathWithinDirectory {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Directory
+    )
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path).TrimEnd("\", "/")
+    $fullDirectory = [System.IO.Path]::GetFullPath($Directory).TrimEnd("\", "/")
+    if ($fullPath.Equals($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    $prefix = $fullDirectory + [System.IO.Path]::DirectorySeparatorChar
+    return $fullPath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Test-GitIgnoredPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $fullPath = ConvertTo-FullPath -Path $Path
+    $gitOutput = & git -C $repoRoot check-ignore -q -- $fullPath 2>$null
+    $ignored = ($LASTEXITCODE -eq 0)
+    $null = $gitOutput
+    return $ignored
+}
+
 if ([string]::IsNullOrWhiteSpace($MusuExe)) {
     $MusuExe = Get-DefaultMusuExe
 }
@@ -107,6 +143,12 @@ $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "unknown" } else { $env:COMPUTERNAME }
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$machine"
+}
+$outputRootFullPath = ConvertTo-FullPath -Path $OutputRoot
+$outputRootWithinRepo = Test-PathWithinDirectory -Path $outputRootFullPath -Directory $repoRoot
+$outputRootGitIgnored = if ($outputRootWithinRepo) { Test-GitIgnoredPath -Path $outputRootFullPath } else { $false }
+if ($outputRootWithinRepo -and -not $outputRootGitIgnored) {
+    throw "Runtime CPU scenario matrix OutputRoot is inside the repository but is not git-ignored: $outputRootFullPath. Capture release evidence in the default .local-build output root first, verify it, then copy verified matrix and verification JSON into docs/evidence."
 }
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
@@ -514,6 +556,9 @@ $result = [ordered]@{
     max_owned_webview2_process_count = $MaxOwnedWebView2ProcessCount
     max_total_working_set_mb = $MaxTotalWorkingSetMb
     requested_scenarios = @($Scenario)
+    output_root = $outputRootFullPath
+    output_root_within_repo = [bool]$outputRootWithinRepo
+    output_root_git_ignored = [bool]$outputRootGitIgnored
     route_probe = $routeProbe
     fail_count = $failed.Count
     scenarios = @($scenarioResults)

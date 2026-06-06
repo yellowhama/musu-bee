@@ -9092,3 +9092,44 @@ Index refresh:
 - `2776 symbols`
 - `15663 ms`
 - wiki: `wiki/912`
+
+## 2026-06-07 03:18 KST Runtime CPU Matrix OutputRoot Hygiene Gate
+
+Runtime CPU matrix capture now rejects tracked in-repo output roots before
+scenario sampling begins.
+
+Changed:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` normalizes `OutputRoot`
+- in-repo OutputRoot paths are checked with `git check-ignore`
+- tracked paths such as `docs\evidence\runtime-cpu-scenarios\...` fail before
+  sampling
+- matrix JSON records `output_root`, `output_root_within_repo`, and
+  `output_root_git_ignored`
+- release verifier regression added
+  `runtime CPU matrix rejects tracked in-repo output roots`
+
+Validation:
+
+- parser checks: pass
+- unsafe OutputRoot smoke: expected fail before sampling
+- default `.local-build` smoke: pass, `output_root_git_ignored=true`
+- release evidence verifier regression: `ok=true`, `case_count=95`,
+  `failed_case_count=0`
+
+Release interpretation:
+
+- multi-scenario CPU evidence must be captured in ignored `.local-build`
+  first, verified there, then copied into `docs\evidence`
+- this is evidence hygiene hardening only
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2796 files`
+- `2776 symbols`
+- `15618 ms`
+- wiki: `wiki/914`

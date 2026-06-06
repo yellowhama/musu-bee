@@ -13193,3 +13193,63 @@ Search terms should include `GOAL v737`, `wiki/912`, `current HEAD primary CPU
 refresh index refresh`, `2794 files`, `2776 symbols`, `15663 ms`,
 `20260607-024332`, `20260607-025704`, `Return exactly {TOKEN}`, and
 `WebView2 max 0.18`.
+
+## 2026-06-07 Runtime CPU Matrix OutputRoot Hygiene Gate (wiki/913)
+
+Runtime CPU matrix capture now rejects tracked in-repo output roots before any
+scenario sample starts.
+
+Root cause:
+
+- writing a multi-scenario matrix directly to tracked `docs\evidence` creates
+  the first scenario file in the repo
+- later scenarios then record `git_dirty=true`
+- that makes the matrix invalid for release evidence
+
+Implementation:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` normalizes `OutputRoot`
+- in-repo OutputRoot paths are checked with `git check-ignore`
+- unsafe tracked paths throw before `New-Item` and before sampling
+- matrix JSON now records `output_root`, `output_root_within_repo`, and
+  `output_root_git_ignored`
+- `test-release-evidence-verifiers.ps1` adds
+  `runtime CPU matrix rejects tracked in-repo output roots`
+
+Validation:
+
+- parser checks passed
+- unsafe `docs/evidence/.../unsafe-output-root-smoke` OutputRoot failed before
+  sampling
+- default `.local-build` smoke passed and recorded
+  `output_root_git_ignored=true`
+- release verifier regression passed with `ok=true`, `case_count=95`,
+  `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This hardens release evidence
+hygiene only; public release remains No-Go on second-PC route/CPU/matrix,
+hosted MUSU.PRO P2P/relay proof, support mailbox, and Store proof.
+
+Search terms should include `GOAL v738`, `wiki/913`, `OutputRoot hygiene`,
+`output_root_git_ignored`, `git check-ignore`, `unsafe-output-root-smoke`,
+`.local-build`, `case_count=95`, and `runtime CPU matrix rejects tracked
+in-repo output roots`.
+
+## 2026-06-07 Runtime CPU Matrix OutputRoot Hygiene Index Refresh (wiki/914)
+
+MUSU local indexer was refreshed after wiki/913 and GOAL v738.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2796 files`
+- `2776 symbols`
+- `15618 ms`
+
+Indexed context includes OutputRoot hygiene changes in
+`measure-musu-runtime-cpu-scenarios.ps1`, release verifier regression
+`case_count=95`, canonical report, next-step plan, BETA checklist, runtime
+stabilization spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v739`, `wiki/914`, `runtime CPU matrix
+OutputRoot hygiene index refresh`, `2796 files`, `2776 symbols`, `15618 ms`,
+`output_root_git_ignored`, `git check-ignore`, and `case_count=95`.

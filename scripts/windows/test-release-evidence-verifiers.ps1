@@ -220,6 +220,30 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
     return $true
 }
 
+function Test-RuntimeCpuScenarioMatrixOutputRootHygieneContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Test-GitIgnoredPath',
+        'git -C $repoRoot check-ignore -q -- $fullPath',
+        '$outputRootWithinRepo = Test-PathWithinDirectory',
+        '$outputRootGitIgnored = if ($outputRootWithinRepo) { Test-GitIgnoredPath',
+        'Runtime CPU scenario matrix OutputRoot is inside the repository but is not git-ignored',
+        'default .local-build output root',
+        'copy verified matrix and verification JSON into docs/evidence',
+        'output_root_within_repo = [bool]$outputRootWithinRepo',
+        'output_root_git_ignored = [bool]$outputRootGitIgnored'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1841,6 +1865,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "runtime CPU matrix route probe timeout and prompt contract" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$outputRootHygieneContractOk = Test-RuntimeCpuScenarioMatrixOutputRootHygieneContract -ScriptPath $runtimeCpuMeasureScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $outputRootHygieneContractOk `
+    -Message "runtime CPU matrix capture must reject tracked in-repo OutputRoot paths before scenario files can dirty later samples"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix rejects tracked in-repo output roots" `
     -Verifier "runtime CPU matrix source contract" `
     -FixturePath $runtimeCpuMeasureScript `
     -ShouldPass $true `

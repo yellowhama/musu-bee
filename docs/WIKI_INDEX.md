@@ -6088,4 +6088,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `20260607-024332`, `20260607-025704`, `Return exactly {TOKEN}`,
   and `WebView2 max 0.18`.
 
+- 2026-06-07 runtime CPU matrix OutputRoot hygiene gate:
+  `RELEASE_1_15_0_RC1_RUNTIME_CPU_MATRIX_OUTPUT_ROOT_HYGIENE_GATE_2026_06_07.md`
+  (wiki/913) records fail-fast protection against writing runtime CPU matrix
+  output directly into tracked in-repo evidence paths. Search terms should
+  include `GOAL v738`, `wiki/913`, `OutputRoot hygiene`,
+  `output_root_git_ignored`, `git check-ignore`, `unsafe-output-root-smoke`,
+  `.local-build`, `case_count=95`, and `runtime CPU matrix rejects tracked
+  in-repo output roots`.
+
+- 2026-06-07 runtime CPU matrix OutputRoot hygiene index refresh:
+  wiki/914 records the MUSU local index refresh after wiki/913 and GOAL v738.
+  Search terms should include `GOAL v739`, `wiki/914`, `2796 files`,
+  `2776 symbols`, `15618 ms`, `runtime CPU matrix OutputRoot hygiene index
+  refresh`, `output_root_git_ignored`, `git check-ignore`, and
+  `case_count=95`.
+
 **End of WIKI_INDEX.md.**
