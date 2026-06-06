@@ -13917,3 +13917,66 @@ Search terms should include `GOAL v761`, `wiki/936`, `2849 files`,
 `20260607-072059-HUGH_SECOND`, `HUGH-MAIN`,
 `runtime_cpu_second_pc_route_attempt_verified=true`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Current Operator Handoff Pack After Target Route CPU Audit (wiki/937)
+
+Current handoff scripts were refreshed after the target-route CPU audit.
+
+Changed behavior:
+
+- final operator packets include the current local desktop evidence report
+- final operator packets include the current target-route CPU audit/spec report
+- second-PC quickstart warns against self/local route targets for targeted
+  route diagnostics
+
+Generated from commit `981f37ac2a03fba228a252269d1cfc761ae87777`:
+
+- final packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`
+- multi-device kit:
+  `musu-multidevice-1.15.0-rc.1-20260607-074518.zip`
+- action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533.zip`
+- second-PC transfer:
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`
+- Partner Center zip:
+  `MUSU-1.15.0-rc.1-store-submission-20260607-074533.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260607-074518`
+
+Verification:
+
+- final packet verifier `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack verifier `ok=true`, `fail_count=0`
+- final packet zip includes both current CPU/local reports
+
+Release meaning: this prepares the next physical second-PC execution path. It
+does not close second-PC route/CPU/matrix, live MUSU.PRO P2P/relay, support
+mailbox, or Store gates.
+
+Search terms should include `GOAL v762`, `wiki/937`, `981f37ac`,
+`musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`,
+`MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533.zip`,
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`,
+`self/local route targets rejected`, and `kit_count=1`.
+
+## 2026-06-07 Current Operator Handoff After Target Route CPU Audit Index Refresh (wiki/938)
+
+MUSU local indexer was refreshed after wiki/937 and GOAL v762.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2852 files`
+- `2788 symbols`
+- `14742 ms`
+
+Indexed context includes handoff script updates, the current final operator
+packet/action pack paths, second-PC transfer
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`, canonical handoff
+report, BETA checklist, GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v763`, `wiki/938`, `2852 files`,
+`2788 symbols`, `14742 ms`,
+`current operator handoff after target-route CPU audit index refresh`,
+`981f37ac`, `musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`, and
+`self/local route targets rejected`.

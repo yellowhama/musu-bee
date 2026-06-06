@@ -9643,3 +9643,41 @@ developer/local dashboard surface, not the packaged desktop contract.
 Canonical report:
 `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_AUDIT_SPEC_REFRESH_2026_06_07.md`
 (wiki/935).
+
+## 2026-06-07 Current Operator Handoff Pack After Target Route CPU Audit
+
+The current operator handoff scripts now include the latest local desktop and
+target-route CPU audit reports in final operator gate packets, and the
+second-PC quickstart explicitly rejects self/local route targets for targeted
+route-attempt CPU diagnostics.
+
+Generated from commit `981f37ac2a03fba228a252269d1cfc761ae87777`:
+
+- final operator gate packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`
+- multi-device kit:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260607-074518\kits\musu-multidevice-1.15.0-rc.1-20260607-074518.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533.zip`
+- second-PC transfer zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533\partner-center\MUSU-1.15.0-rc.1-store-submission-20260607-074533.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260607-074518`
+
+Verification:
+
+- `git diff --check`
+- final packet verifier `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack verifier `ok=true`, `fail_count=0`
+- final packet zip includes the current local desktop evidence report and
+  current target-route CPU audit/spec report
+
+This prepares the next physical second-PC execution path. It does not by itself
+close second-PC route/CPU/matrix, hosted P2P/relay, support mailbox, or Store
+gates.
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_TARGET_ROUTE_CPU_AUDIT_2026_06_07.md`
+(wiki/937).

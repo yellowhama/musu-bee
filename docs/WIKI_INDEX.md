@@ -6315,4 +6315,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_second_pc_route_attempt_verified=true`,
   `release verifier 104/104`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-07 current operator handoff pack after target-route CPU audit:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_TARGET_ROUTE_CPU_AUDIT_2026_06_07.md`
+  (wiki/937) records the current final operator packet and action pack after
+  the target-route CPU audit. Search terms should include `GOAL v762`,
+  `wiki/937`, `981f37ac`, `musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`,
+  `musu-store-support-1.15.0-rc.1-20260607-074518`,
+  `self/local route targets rejected`, and `kit_count=1`.
+
+- 2026-06-07 current operator handoff after target-route CPU audit index
+  refresh:
+  wiki/938 records the MUSU local index refresh after wiki/937 and GOAL v762.
+  Search terms should include `GOAL v763`, `wiki/938`, `2852 files`,
+  `2788 symbols`, `14742 ms`,
+  `current operator handoff after target-route CPU audit index refresh`,
+  `981f37ac`, `musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`,
+  `MUSU-1.15.0-rc.1-operator-action-pack-20260607-074533.zip`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`, and
+  `self/local route targets rejected`.
+
 **End of WIKI_INDEX.md.**
