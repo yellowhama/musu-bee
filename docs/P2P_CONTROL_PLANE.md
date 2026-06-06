@@ -493,3 +493,27 @@ Control-plane interpretation:
   diagnostic.
 - Route reachability diagnostics explain endpoint state; they do not replace
   release-grade `musu.route_evidence.v1` proof.
+
+## 2026-06-07 current primary route-attempt CPU matrix
+
+The current primary-machine CPU matrix after process ownership CLI hardening
+keeps the same P2P boundary.
+
+Evidence:
+
+- matrix `20260607-025704-HUGH_SECOND` was captured clean from `.local-build`
+- target-route diagnostic verification passed with failed `HUGH-MAIN` route
+  allowed
+- full release matrix verification still fails on `post-route route probe`
+- route prompt and expected token are both
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_025704`
+- route target remains non-local: `HUGH-MAIN`
+- route failure remains timeout to `192.168.1.192:8949`
+
+Interpretation:
+
+- failed route CPU evidence is useful for busy-loop diagnosis only;
+- successful multi-device release still requires a second reachable local MUSU
+  Desktop executor;
+- MUSU.PRO remains the web control plane for remote input, rooms, rendezvous,
+  path selection, relay fallback, and evidence.

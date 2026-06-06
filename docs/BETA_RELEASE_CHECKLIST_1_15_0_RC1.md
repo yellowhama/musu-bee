@@ -9040,3 +9040,55 @@ Index refresh:
 - `2776 symbols`
 - `33404 ms`
 - wiki: `wiki/910`
+
+## 2026-06-07 03:05 KST Current HEAD Primary CPU Refresh After Process Ownership CLI Hardening
+
+Current primary-machine CPU evidence was refreshed after process ownership
+transient CLI hardening.
+
+Evidence:
+
+- clean desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-024332-HUGH_SECOND.desktop-open.evidence.json`
+- idle commit: `05904ae3cc714ae31984f11c56005718439e2335`
+- idle `git_dirty=false`, hot process count `0`
+- idle CPU: MUSU `0`, Node `0`, WebView2 `0.08`
+- idle working set: `361.49MB`
+- clean five-scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-025704-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix commit: `db4e0c8ef99dd2b75440a46c2d3da468dd57a72d`
+- matrix `git_dirty=false`, dirty scenarios none
+- matrix CPU max: MUSU `0`, Node `0`, WebView2 `0.18`
+- matrix working set max: `361.4MB`
+- target-route verification: `ok=true`, `fail_count=0`
+- full route-success verification: `ok=false`, `fail_count=1`, failing only
+  `post-route route probe`
+- release evidence verifier regression: `ok=true`, `case_count=94`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Procedure note:
+
+- multi-scenario CPU matrix output must be captured in ignored `.local-build`
+  first, then copied to `docs\evidence` after verification
+- route matrix prompts should use `-RoutePrompt "Return exactly {TOKEN}"`
+
+Release interpretation:
+
+- primary packaged MUSU Desktop is quiet on `HUGH_SECOND`
+- `HUGH-MAIN` still times out at `192.168.1.192:8949`
+- this is not a `localhost:3001` packaged runtime problem
+- MUSU Desktop remains the local executor
+- MUSU.PRO remains remote input, rooms, rendezvous, path-selection,
+  relay-fallback, and evidence/control plane
+- Public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2794 files`
+- `2776 symbols`
+- `15663 ms`
+- wiki: `wiki/912`

@@ -1958,3 +1958,30 @@ Product boundary:
   work.
 - Successful release still requires release-grade route evidence after the
   reachability diagnostic is healthy.
+
+## 2026-06-07 current primary CPU and route-attempt boundary
+
+Current primary-machine evidence after process ownership CLI hardening confirms
+the local packaged MUSU Desktop runtime is quiet, while `HUGH-MAIN` remains an
+unreachable peer endpoint.
+
+Current status:
+
+- local bridge on `HUGH_SECOND`: `127.0.0.1:1158`
+- clean desktop-open idle CPU: MUSU `0`, Node `0`, WebView2 `0.08`
+- clean five-scenario matrix: MUSU `0`, Node `0`, WebView2 max `0.18`
+- route target: `HUGH-MAIN`
+- route endpoint attempted: `192.168.1.192:8949`
+- route result: timeout
+- target-route CPU verifier: pass with failed route allowed
+- full route-success verifier: fail on `post-route route probe`
+
+Control-plane interpretation:
+
+- this is not a localhost dashboard problem;
+- this is not a reason to move execution into MUSU.PRO;
+- MUSU.PRO may help with remote input, room state, rendezvous, path selection,
+  relay fallback, and evidence;
+- release still requires a reachable second MUSU Desktop runtime and
+  release-grade `musu.route_evidence.v1` before hosted MUSU.PRO relay proof can
+  close the public P2P gate.

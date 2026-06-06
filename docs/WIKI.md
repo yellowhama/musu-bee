@@ -13124,3 +13124,72 @@ Search terms should include `GOAL v735`, `wiki/910`, `process ownership
 transient CLI hardening index refresh`, `2786 files`, `2776 symbols`,
 `33404 ms`, `musu_cli`, `Test-MusuRuntimeRoot`,
 `Test-MusuBridgeCommandLine`, and `case_count=94`.
+
+## 2026-06-07 Current HEAD Primary CPU Refresh After Process Ownership CLI Hardening (wiki/911)
+
+Current primary-machine CPU evidence was refreshed after process ownership CLI
+hardening.
+
+Evidence:
+
+- clean desktop-open idle CPU:
+  `20260607-024332-HUGH_SECOND.desktop-open.evidence.json`
+- idle commit: `05904ae3cc714ae31984f11c56005718439e2335`
+- idle `git_dirty=false`, hot process count `0`, MUSU `0`, Node `0`,
+  WebView2 `0.08`, working set `361.49MB`
+- clean runtime CPU matrix:
+  `20260607-025704-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix commit: `db4e0c8ef99dd2b75440a46c2d3da468dd57a72d`
+- matrix `git_dirty=false`, dirty scenarios none, MUSU `0`, Node `0`,
+  WebView2 max `0.18`, working set max `361.4MB`
+- target-route verifier passed with `ok=true`, `fail_count=0`
+- full route-success verifier failed with `ok=false`, `fail_count=1`, failing
+  only `post-route route probe`
+- release evidence verifier regression passed with `ok=true`, `case_count=94`,
+  `failed_case_count=0`
+
+Route state:
+
+- route target: `HUGH-MAIN`
+- endpoint attempted: `192.168.1.192:8949`
+- result: timeout
+- route wait prompt and expected token both use
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_025704`
+
+Process lesson:
+
+- capture multi-scenario matrix output in ignored `.local-build`
+- verify from `.local-build`
+- copy only verified matrix and verification JSON to `docs\evidence`
+- use `-RoutePrompt "Return exactly {TOKEN}"` to avoid token drift
+
+Qualitative audit found no high/medium code issue and no source code changed.
+The current primary packaged runtime is quiet; public release remains No-Go on
+second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay proof, support mailbox,
+and Store proof.
+
+Search terms should include `GOAL v736`, `wiki/911`, `20260607-024332`,
+`20260607-025704`, `db4e0c8e`, `HUGH-MAIN`, `192.168.1.192:8949`,
+`Return exactly {TOKEN}`, `target-route verifier ok`, and `WebView2 max 0.18`.
+
+## 2026-06-07 Current HEAD Primary CPU Refresh Index Refresh (wiki/912)
+
+MUSU local indexer was refreshed after wiki/911 and GOAL v736.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2794 files`
+- `2776 symbols`
+- `15663 ms`
+
+Indexed context includes clean desktop-open idle CPU evidence
+`20260607-024332`, clean runtime CPU matrix evidence `20260607-025704`,
+target-route and full route verification JSON, the current primary CPU refresh
+canonical report, next-step plan, BETA checklist, runtime stabilization spec,
+MUSU.PRO P2P control-plane spec, P2P control-plane notes, network boundary
+spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v737`, `wiki/912`, `current HEAD primary CPU
+refresh index refresh`, `2794 files`, `2776 symbols`, `15663 ms`,
+`20260607-024332`, `20260607-025704`, `Return exactly {TOKEN}`, and
+`WebView2 max 0.18`.

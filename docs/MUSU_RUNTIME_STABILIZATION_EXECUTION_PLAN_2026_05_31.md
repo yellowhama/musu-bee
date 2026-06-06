@@ -412,3 +412,33 @@ Current local evidence after the patch on `HUGH_SECOND` reports
 This is local audit hardening only. The next release reducer remains
 second-machine route reachability, clean two-machine CPU/matrix evidence, and
 hosted MUSU.PRO P2P/relay proof.
+
+## 2026-06-07 current HEAD primary CPU refresh after process ownership CLI hardening
+
+Current primary-machine CPU evidence after process ownership CLI hardening is
+quiet on `HUGH_SECOND`.
+
+Runtime stabilization impact:
+
+- clean `desktop-open` idle CPU evidence `20260607-024332` reports
+  `git_dirty=false`, hot process count `0`, MUSU `0`, Node `0`, WebView2
+  `0.08`, owned WebView2 helpers `6`, and working set `361.49MB`
+- clean five-scenario matrix `20260607-025704` reports `git_dirty=false`,
+  dirty scenarios none, MUSU `0`, Node `0`, WebView2 max `0.18`, and working
+  set max `361.4MB`
+- route prompt token binding now uses `{TOKEN}` in the operator command so the
+  wait prompt and expected token match
+- target-route CPU diagnostic verification passes with failed
+  `HUGH-MAIN` route allowed
+- full route-success verification still fails only because `HUGH-MAIN`
+  times out at `192.168.1.192:8949`
+
+Evidence-capture rule:
+
+- capture multi-scenario CPU matrices in ignored `.local-build` first
+- verify from `.local-build`
+- copy verified matrix and verification JSON into `docs\evidence` afterward
+
+This confirms the current primary packaged runtime is not busy-looping. It does
+not close second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay, support, or
+Store release gates.

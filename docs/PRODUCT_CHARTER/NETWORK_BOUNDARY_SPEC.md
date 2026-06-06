@@ -1100,3 +1100,23 @@ Boundary implications:
   proof still requires release-grade `musu.route_evidence.v1`, verified peer
   identity, hardened transport, and payload transit truth.
 
+## 2026-06-07 current primary CPU refresh boundary
+
+Current primary-machine evidence after process ownership CLI hardening confirms
+the local packaged MUSU Desktop runtime is healthy and quiet on `HUGH_SECOND`.
+
+Boundary implications:
+
+- `localhost:3001` remains outside the packaged desktop runtime contract;
+- the working local bridge is `127.0.0.1:1158`;
+- the current failing network edge is the non-local `HUGH-MAIN` peer at
+  `192.168.1.192:8949`;
+- failed route-attempt CPU evidence is diagnostic and does not become
+  successful P2P proof;
+- MUSU.PRO still coordinates remote input, rooms, rendezvous, path selection,
+  relay fallback, and evidence, while MUSU Desktop executes work locally.
+
+Release proof still requires successful second-machine route evidence, verified
+peer identity, hardened transport, and payload transit truth before any
+MUSU.PRO relay path can satisfy the public P2P gate.
+

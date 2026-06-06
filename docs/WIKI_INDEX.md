@@ -6071,4 +6071,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   index refresh`, `musu_cli`, `Test-MusuRuntimeRoot`,
   `Test-MusuBridgeCommandLine`, and `case_count=94`.
 
+- 2026-06-07 current HEAD primary CPU refresh after process ownership CLI
+  hardening:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_PRIMARY_CPU_REFRESH_AFTER_PROCESS_OWNERSHIP_CLI_HARDENING_2026_06_07.md`
+  (wiki/911) records clean primary-machine desktop-open idle CPU evidence and
+  clean five-scenario runtime CPU matrix evidence after process ownership CLI
+  attribution hardening. Search terms should include `GOAL v736`, `wiki/911`,
+  `20260607-024332`, `20260607-025704`, `db4e0c8e`,
+  `Return exactly {TOKEN}`, `target-route verifier ok`, `full route verifier
+  fail_count=1`, `HUGH-MAIN`, and `WebView2 max 0.18`.
+
+- 2026-06-07 current HEAD primary CPU refresh index refresh:
+  wiki/912 records the MUSU local index refresh after wiki/911 and GOAL v736.
+  Search terms should include `GOAL v737`, `wiki/912`, `2794 files`,
+  `2776 symbols`, `15663 ms`, `current HEAD primary CPU refresh index
+  refresh`, `20260607-024332`, `20260607-025704`, `Return exactly {TOKEN}`,
+  and `WebView2 max 0.18`.
+
 **End of WIKI_INDEX.md.**
