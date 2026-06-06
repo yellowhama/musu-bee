@@ -82,6 +82,26 @@ locks the route kinds (`lan`, `tailscale`, `direct_quic`, `relay`, `failed`),
 rendezvous API shape, and route evidence fields required before public
 multi-device claims.
 
+## 2026-06-06 packaged local/runtime boundary update
+
+Current packaged evidence on `HUGH_SECOND` confirms that MUSU Desktop is the
+local executor and does not depend on the developer dashboard at
+`localhost:3001`.
+
+- The packaged local bridge is the runtime surface for one-machine proof.
+- MUSU.PRO may receive remote input, host project/company rooms, coordinate
+  rendezvous/path selection, issue relay fallback policy, and store evidence.
+- The actual task execution still belongs to the local MUSU program on each
+  device.
+- A targeted failed HUGH-MAIN route attempt is valid CPU diagnostic evidence,
+  but it is not successful multi-device route proof.
+- Public remote/P2P claims still require second-PC route evidence and live
+  hosted P2P relay transport proof.
+
+This keeps the Core/Connect split intact: local execution and same-network
+operation remain Core; MUSU-hosted remote access, relay, and external
+account-authenticated coordination remain Connect/Pro surfaces.
+
 ## 2026-06-02 deployment boundary update
 
 The public `musu.pro` website and the `musu.pro` P2P control plane are

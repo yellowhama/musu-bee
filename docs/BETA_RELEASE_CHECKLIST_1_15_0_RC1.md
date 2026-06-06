@@ -7512,3 +7512,42 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2599 files`, `2754 symbols`, `33284 ms`
+
+## 2026-06-06 12:21 KST Current Packaged Local Evidence Refresh
+
+Current packaged local evidence on `HUGH_SECOND`:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-114258-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-114621-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-120547-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN failed-route CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-121806-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go at `2026-06-06T12:21:29+09:00` on commit `168f4530` reports:
+
+- `single_machine_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1/2`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`
+- `msix_current_legacy_conflicts_ok=true`
+- `ready_for_public_desktop_release=false`
+
+Qualitative audit: no high/medium issue found. The packaged local runtime is
+healthy on `HUGH_SECOND`; `localhost:3001` remains an optional developer
+dashboard, not a packaged runtime requirement.
+
+Public release remains No-Go until real second-PC multi-device evidence,
+two-machine CPU/matrix counts, live owner-scoped MUSU.PRO P2P relay proof,
+support mailbox evidence, and Store evidence pass.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`

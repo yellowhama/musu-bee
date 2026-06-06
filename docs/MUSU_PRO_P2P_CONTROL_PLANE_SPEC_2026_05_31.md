@@ -101,6 +101,21 @@ payload target poller, cloud heartbeat, and log/telemetry flush loop.
 MUSU.PRO role: hosted web remains control-plane/evidence/room input, while
 local MUSU Desktop processes execute work and own the idle resource budget.
 
+**2026-06-06 packaged local evidence update**:
+Current packaged local evidence on `HUGH_SECOND` now proves that the installed
+MUSU Desktop runtime can pass single-machine smoke, desktop-open idle CPU, the
+full runtime CPU scenario matrix, and a targeted failed HUGH-MAIN route CPU
+diagnostic without requiring the localhost developer dashboard. Clean go/no-go
+reports `single_machine_verified=true`,
+`runtime_cpu_second_pc_route_attempt_verified=true`, and
+`msix_current_legacy_conflicts_ok=true`, but public release remains blocked on
+real second-PC multi-device evidence, two-machine CPU/matrix counts, live
+MUSU.PRO owner-scoped relay proof, support mailbox evidence, and Store evidence.
+This preserves the control-plane boundary: MUSU.PRO can receive remote user
+input and coordinate project/company rooms, presence, rendezvous, path
+selection, relay fallback, and evidence, but local MUSU Desktop programs still
+execute the work on each device.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

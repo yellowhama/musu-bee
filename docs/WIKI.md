@@ -10335,3 +10335,74 @@ Search terms should include `GOAL v653`, `wiki/828`,
 `MSIX alias persisted PATH gate index refresh`, `2604 files`, `2754 symbols`,
 `17847 ms`, `alias_path_scope=persisted_user_machine`,
 `current_process_path_stale`, and `MUSU Desktop local executor`.
+
+## 2026-06-06 Current Packaged Local Evidence Refresh (wiki/829)
+
+Current packaged MUSU Desktop local evidence was refreshed on `HUGH_SECOND`
+after the MSIX alias persisted PATH gate.
+
+Evidence:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-114258-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-114621-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-120547-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-121806-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go at `2026-06-06T12:21:29+09:00` on commit `168f4530` reports:
+
+- `ready_for_public_desktop_release=false`
+- `git_dirty=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_current_legacy_conflicts_ok=true`
+- `current_process_path_stale=true` diagnostic only
+- `runtime_idle_cpu_valid_machine_count=1/2`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`
+
+The targeted HUGH-MAIN route attempt timed out against
+`http://192.168.1.192:8949/api/tasks/delegate`, but verifier accepted it as an
+explicitly allowed failed route diagnostic and the post-attempt CPU sample
+stayed healthy with WebView2 `0.03`, hot `0`, and working set `363.93MB`.
+
+Qualitative audit found no high/medium issue. `localhost:3001` is not required
+for the packaged local runtime. MUSU Desktop remains the local executor;
+MUSU.PRO remains remote input, project/company room, presence, rendezvous,
+path-selection, relay-fallback policy, and evidence/control plane.
+
+Public release remains No-Go on real second-PC multi-device evidence,
+two-machine CPU/matrix evidence, hosted MUSU.PRO P2P release relay proof,
+support mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`
+
+## 2026-06-06 Current Packaged Local Evidence Index Refresh (wiki/830)
+
+MUSU local indexer was refreshed after wiki/829 and GOAL v654.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2621 files`
+- `2754 symbols`
+- `28082 ms`
+
+Indexed context includes the current packaged local evidence report,
+next-step plan, BETA checklist update, MUSU.PRO P2P control-plane spec update,
+network boundary spec update, WIKI/WIKI_INDEX, GOAL v654, and CoS memory.
+
+Search terms should include `GOAL v655`, `wiki/830`,
+`current packaged local evidence index refresh`, `2621 files`, `2754 symbols`,
+`28082 ms`, `runtime_cpu_second_pc_route_attempt_verified`,
+`20260606-121806-HUGH_SECOND`, `localhost:3001 not required`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

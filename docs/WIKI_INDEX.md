@@ -5277,4 +5277,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `alias_path_scope=persisted_user_machine`, `current_process_path_stale`,
   and `MUSU Desktop local executor`.
 
+- 2026-06-06 current packaged local evidence refresh:
+  `RELEASE_1_15_0_RC1_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`
+  (wiki/829) records current packaged local evidence on `HUGH_SECOND` after the
+  MSIX alias persisted PATH gate. Search terms should include `GOAL v654`,
+  `wiki/829`, `20260606-114258-HUGH_SECOND`,
+  `20260606-114621-HUGH_SECOND.desktop-open`, `20260606-120547-HUGH_SECOND`,
+  `20260606-121806-HUGH_SECOND`, `runtime_cpu_second_pc_route_attempt_verified`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`,
+  `ready_for_public_desktop_release=false`, `localhost:3001 not required`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current packaged local evidence index refresh:
+  wiki/830 records the MUSU local index refresh after wiki/829 and GOAL v654.
+  Search terms should include `GOAL v655`, `wiki/830`, `2621 files`,
+  `2754 symbols`, `28082 ms`,
+  `current packaged local evidence index refresh`,
+  `runtime_cpu_second_pc_route_attempt_verified`,
+  `20260606-121806-HUGH_SECOND`, `localhost:3001 not required`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
