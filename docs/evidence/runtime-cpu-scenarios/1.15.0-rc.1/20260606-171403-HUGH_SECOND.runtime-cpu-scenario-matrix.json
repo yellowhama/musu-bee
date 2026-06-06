@@ -1,0 +1,1595 @@
+﻿{
+    "schema":  "musu.runtime_cpu_scenario_matrix.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+    "git_dirty":  false,
+    "started_at":  "20260606-171403",
+    "completed_at":  "2026-06-06T17:19:40.0234012+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "musu_exe":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "allow_developer_runtime":  false,
+    "musu_exe_release_identity":  true,
+    "sample_seconds":  60,
+    "max_one_core_percent":  5,
+    "max_owned_process_count":  16,
+    "max_owned_webview2_process_count":  8,
+    "max_total_working_set_mb":  1024,
+    "requested_scenarios":  [
+                                "startup-open",
+                                "runtime-started",
+                                "dashboard-open",
+                                "desktop-open",
+                                "post-route"
+                            ],
+    "route_probe":  {
+                        "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                        "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                        "target":  null,
+                        "command":  "musu route --wait-timeout-sec 180 --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403\"",
+                        "arguments":  [
+                                          "route",
+                                          "--wait-timeout-sec",
+                                          "180",
+                                          "--wait",
+                                          "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403"
+                                      ],
+                        "wait_timeout_sec":  180,
+                        "command_timeout_sec":  210,
+                        "max_attempts":  3,
+                        "attempt_count":  1,
+                        "attempts":  [
+                                         {
+                                             "attempt":  1,
+                                             "started_at":  "2026-06-06T17:18:28.8234992+09:00",
+                                             "exit_code":  0,
+                                             "stdout":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                             "stderr":  "",
+                                             "output":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                             "ok":  true,
+                                             "retry_after_s":  null,
+                                             "timeout_sec":  210
+                                         }
+                                     ],
+                        "exit_code":  0,
+                        "stdout":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                        "stderr":  "",
+                        "output":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                        "ok":  true,
+                        "failure_allowed":  false
+                    },
+    "fail_count":  0,
+    "scenarios":  [
+                      {
+                          "scenario":  "startup-open",
+                          "preparation":  {
+                                              "action":  "Start packaged desktop app",
+                                              "desktop_app_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+                                              "sample_delay_seconds":  2.017,
+                                              "note":  "Samples immediately after packaged app activation to catch startup busy-loop regressions."
+                                          },
+                          "measurement":  {
+                                              "scenario":  "startup-open",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.startup-open.evidence.json",
+                                              "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.038,
+                                              "cpu_sample_count":  8,
+                                              "process_metadata_available":  true,
+                                              "process_metadata_timed_out":  false,
+                                              "helper_process_scope":  "musu_process_tree_or_repo_related",
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "process_counts_by_subrole":  {
+                                                                                "musu_runtime":  0,
+                                                                                "bridge_runtime":  1,
+                                                                                "desktop_shell":  1,
+                                                                                "node_helper":  0,
+                                                                                "webview2_helper":  6,
+                                                                                "other":  0
+                                                                            },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "max_one_core_percent_by_subrole":  {
+                                                                                      "musu_runtime":  0,
+                                                                                      "bridge_runtime":  0,
+                                                                                      "desktop_shell":  0,
+                                                                                      "node_helper":  0,
+                                                                                      "webview2_helper":  0.08,
+                                                                                      "other":  0
+                                                                                  },
+                                              "bridge_registry":  {
+                                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                                      "exists":  true,
+                                                                      "parse_error":  null,
+                                                                      "pid":  37928,
+                                                                      "addr":  "127.0.0.1:4751",
+                                                                      "transport":  "tcp",
+                                                                      "started_at":  1780733254,
+                                                                      "captured_at":  "2026-06-06T17:15:07.6716080+09:00"
+                                                                  },
+                                              "cpu_attribution":  {
+                                                                      "schema":  "musu.runtime_idle_cpu_attribution.v1",
+                                                                      "attribution_scope":  "musu_process_tree_or_repo_related",
+                                                                      "sample_count":  8,
+                                                                      "roles_observed":  [
+                                                                                             "musu",
+                                                                                             "webview2"
+                                                                                         ],
+                                                                      "subroles_observed":  [
+                                                                                                "bridge_runtime",
+                                                                                                "desktop_shell",
+                                                                                                "webview2_helper"
+                                                                                            ],
+                                                                      "sample_count_by_role":  {
+                                                                                                   "musu":  2,
+                                                                                                   "node":  0,
+                                                                                                   "webview2":  6,
+                                                                                                   "other":  0
+                                                                                               },
+                                                                      "sample_count_by_subrole":  {
+                                                                                                      "musu_runtime":  0,
+                                                                                                      "bridge_runtime":  1,
+                                                                                                      "desktop_shell":  1,
+                                                                                                      "node_helper":  0,
+                                                                                                      "webview2_helper":  6,
+                                                                                                      "other":  0
+                                                                                                  },
+                                                                      "total_cpu_seconds_by_role":  {
+                                                                                                        "musu":  0,
+                                                                                                        "node":  0,
+                                                                                                        "webview2":  0.047,
+                                                                                                        "other":  0
+                                                                                                    },
+                                                                      "total_cpu_seconds_by_subrole":  {
+                                                                                                           "musu_runtime":  0,
+                                                                                                           "bridge_runtime":  0,
+                                                                                                           "desktop_shell":  0,
+                                                                                                           "node_helper":  0,
+                                                                                                           "webview2_helper":  0.047,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_role":  {
+                                                                                                           "musu":  0,
+                                                                                                           "node":  0,
+                                                                                                           "webview2":  0.08,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_subrole":  {
+                                                                                                              "musu_runtime":  0,
+                                                                                                              "bridge_runtime":  0,
+                                                                                                              "desktop_shell":  0,
+                                                                                                              "node_helper":  0,
+                                                                                                              "webview2_helper":  0.08,
+                                                                                                              "other":  0
+                                                                                                          },
+                                                                      "top_processes":  [
+                                                                                            {
+                                                                                                "id":  28464,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.047,
+                                                                                                "cpu_pct_one_core":  0.08,
+                                                                                                "working_set_mb":  68.09,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "4d93d81c19556ae074734ebbd3fe9112b3b9e9256bf317ddc86c110c37756f88",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41880,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  36.52,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "cfbd26cfddd66478d71b2aed8afea4d34a1792ab1e2be7c1b1559cbb7b558660",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  37928,
+                                                                                                "process_name":  "musu",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "bridge_runtime",
+                                                                                                "bridge_registry_pid_match":  true,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.04,
+                                                                                                "parent_process_id":  32464,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  33848,
+                                                                                                "process_name":  "musu-desktop",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "desktop_shell",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  27.08,
+                                                                                                "parent_process_id":  13568,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41380,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.45,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "56cf012eedc1765a4ac9b409beb3e0f2419119e0b9e905212f5abc0af8e0e425",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  17760,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  64.91,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "248f10393ebd40520952026b8256c758b3f863884341c33c7bc5f4c73dd87fa5",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  36276,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  12.84,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "b178eab96b89b32ff071199fe00cde9306df67c61004a0f56d41fd30e20f32b2",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  40620,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  117.12,
+                                                                                                "parent_process_id":  33848,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "5527c2a16b5c91eeff863a1abe459e0e0651c6d259e6b43ee84441ae358e307f",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+                                                                                            }
+                                                                                        ],
+                                                                      "required_roles_present":  {
+                                                                                                     "musu":  true,
+                                                                                                     "webview2":  true
+                                                                                                 },
+                                                                      "required_subroles_present":  {
+                                                                                                        "bridge_runtime":  true,
+                                                                                                        "desktop_shell":  true,
+                                                                                                        "webview2_helper":  true
+                                                                                                    }
+                                                                  },
+                                              "total_working_set_mb_after":  365.05,
+                                              "total_private_memory_mb_after":  183.74,
+                                              "memory_totals_by_subrole_mb":  {
+                                                                                  "musu_runtime":  {
+                                                                                                       "working_set_mb":  0,
+                                                                                                       "private_memory_mb":  0
+                                                                                                   },
+                                                                                  "bridge_runtime":  {
+                                                                                                         "working_set_mb":  19.04,
+                                                                                                         "private_memory_mb":  3.91
+                                                                                                     },
+                                                                                  "desktop_shell":  {
+                                                                                                        "working_set_mb":  27.08,
+                                                                                                        "private_memory_mb":  4.26
+                                                                                                    },
+                                                                                  "node_helper":  {
+                                                                                                      "working_set_mb":  0,
+                                                                                                      "private_memory_mb":  0
+                                                                                                  },
+                                                                                  "webview2_helper":  {
+                                                                                                          "working_set_mb":  318.93,
+                                                                                                          "private_memory_mb":  175.57
+                                                                                                      },
+                                                                                  "other":  {
+                                                                                                "working_set_mb":  0,
+                                                                                                "private_memory_mb":  0
+                                                                                            }
+                                                                              },
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "runtime-started",
+                          "preparation":  {
+                                              "action":  "musu up --json",
+                                              "bridge":  {
+                                                             "status":  "ok",
+                                                             "local_url":  "http://127.0.0.1:4751",
+                                                             "service_registry_addr":  "127.0.0.1:4751",
+                                                             "service_registry_pid":  37928,
+                                                             "public_url":  "http://127.0.0.1:4751",
+                                                             "public_url_valid":  true,
+                                                             "health_http_status":  200,
+                                                             "health_body":  {
+                                                                                 "status":  "ok",
+                                                                                 "version":  "1.15.0-rc.1",
+                                                                                 "worker_ok":  true,
+                                                                                 "db_size_mb":  0.11328125,
+                                                                                 "disk_free_pct":  0.0,
+                                                                                 "auth_mode":  "production",
+                                                                                 "audit_degraded":  false,
+                                                                                 "schema_applied":  true,
+                                                                                 "relay":  null
+                                                                             },
+                                                             "error":  null,
+                                                             "note":  "Local bridge is reachable."
+                                                         },
+                                              "dashboard":  {
+                                                                "status":  "ok",
+                                                                "dev_url":  "",
+                                                                "start_url":  "",
+                                                                "reachable_url":  null,
+                                                                "required":  false,
+                                                                "note":  "Packaged local runtime does not require a workspace dashboard; web input should arrive through MUSU.PRO or another connected operator surface."
+                                                            }
+                                          },
+                          "measurement":  {
+                                              "scenario":  "runtime-started",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.runtime-started.evidence.json",
+                                              "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.043,
+                                              "cpu_sample_count":  8,
+                                              "process_metadata_available":  true,
+                                              "process_metadata_timed_out":  false,
+                                              "helper_process_scope":  "musu_process_tree_or_repo_related",
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "process_counts_by_subrole":  {
+                                                                                "musu_runtime":  0,
+                                                                                "bridge_runtime":  1,
+                                                                                "desktop_shell":  1,
+                                                                                "node_helper":  0,
+                                                                                "webview2_helper":  6,
+                                                                                "other":  0
+                                                                            },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.03,
+                                                                                   "other":  0
+                                                                               },
+                                              "max_one_core_percent_by_subrole":  {
+                                                                                      "musu_runtime":  0,
+                                                                                      "bridge_runtime":  0,
+                                                                                      "desktop_shell":  0,
+                                                                                      "node_helper":  0,
+                                                                                      "webview2_helper":  0.03,
+                                                                                      "other":  0
+                                                                                  },
+                                              "bridge_registry":  {
+                                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                                      "exists":  true,
+                                                                      "parse_error":  null,
+                                                                      "pid":  37928,
+                                                                      "addr":  "127.0.0.1:4751",
+                                                                      "transport":  "tcp",
+                                                                      "started_at":  1780733254,
+                                                                      "captured_at":  "2026-06-06T17:16:12.6590623+09:00"
+                                                                  },
+                                              "cpu_attribution":  {
+                                                                      "schema":  "musu.runtime_idle_cpu_attribution.v1",
+                                                                      "attribution_scope":  "musu_process_tree_or_repo_related",
+                                                                      "sample_count":  8,
+                                                                      "roles_observed":  [
+                                                                                             "musu",
+                                                                                             "webview2"
+                                                                                         ],
+                                                                      "subroles_observed":  [
+                                                                                                "bridge_runtime",
+                                                                                                "desktop_shell",
+                                                                                                "webview2_helper"
+                                                                                            ],
+                                                                      "sample_count_by_role":  {
+                                                                                                   "musu":  2,
+                                                                                                   "node":  0,
+                                                                                                   "webview2":  6,
+                                                                                                   "other":  0
+                                                                                               },
+                                                                      "sample_count_by_subrole":  {
+                                                                                                      "musu_runtime":  0,
+                                                                                                      "bridge_runtime":  1,
+                                                                                                      "desktop_shell":  1,
+                                                                                                      "node_helper":  0,
+                                                                                                      "webview2_helper":  6,
+                                                                                                      "other":  0
+                                                                                                  },
+                                                                      "total_cpu_seconds_by_role":  {
+                                                                                                        "musu":  0,
+                                                                                                        "node":  0,
+                                                                                                        "webview2":  0.016,
+                                                                                                        "other":  0
+                                                                                                    },
+                                                                      "total_cpu_seconds_by_subrole":  {
+                                                                                                           "musu_runtime":  0,
+                                                                                                           "bridge_runtime":  0,
+                                                                                                           "desktop_shell":  0,
+                                                                                                           "node_helper":  0,
+                                                                                                           "webview2_helper":  0.016,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_role":  {
+                                                                                                           "musu":  0,
+                                                                                                           "node":  0,
+                                                                                                           "webview2":  0.03,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_subrole":  {
+                                                                                                              "musu_runtime":  0,
+                                                                                                              "bridge_runtime":  0,
+                                                                                                              "desktop_shell":  0,
+                                                                                                              "node_helper":  0,
+                                                                                                              "webview2_helper":  0.03,
+                                                                                                              "other":  0
+                                                                                                          },
+                                                                      "top_processes":  [
+                                                                                            {
+                                                                                                "id":  36276,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  12.79,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "b178eab96b89b32ff071199fe00cde9306df67c61004a0f56d41fd30e20f32b2",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41880,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  36.5,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "cfbd26cfddd66478d71b2aed8afea4d34a1792ab1e2be7c1b1559cbb7b558660",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  33848,
+                                                                                                "process_name":  "musu-desktop",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "desktop_shell",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  27.11,
+                                                                                                "parent_process_id":  13568,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  37928,
+                                                                                                "process_name":  "musu",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "bridge_runtime",
+                                                                                                "bridge_registry_pid_match":  true,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.02,
+                                                                                                "parent_process_id":  32464,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41380,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.45,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "56cf012eedc1765a4ac9b409beb3e0f2419119e0b9e905212f5abc0af8e0e425",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  17760,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  64.91,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "248f10393ebd40520952026b8256c758b3f863884341c33c7bc5f4c73dd87fa5",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  28464,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  68.09,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "4d93d81c19556ae074734ebbd3fe9112b3b9e9256bf317ddc86c110c37756f88",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  40620,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  116.99,
+                                                                                                "parent_process_id":  33848,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "5527c2a16b5c91eeff863a1abe459e0e0651c6d259e6b43ee84441ae358e307f",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+                                                                                            }
+                                                                                        ],
+                                                                      "required_roles_present":  {
+                                                                                                     "musu":  true,
+                                                                                                     "webview2":  true
+                                                                                                 },
+                                                                      "required_subroles_present":  {
+                                                                                                        "bridge_runtime":  true,
+                                                                                                        "desktop_shell":  true,
+                                                                                                        "webview2_helper":  true
+                                                                                                    }
+                                                                  },
+                                              "total_working_set_mb_after":  364.86,
+                                              "total_private_memory_mb_after":  183.42,
+                                              "memory_totals_by_subrole_mb":  {
+                                                                                  "musu_runtime":  {
+                                                                                                       "working_set_mb":  0,
+                                                                                                       "private_memory_mb":  0
+                                                                                                   },
+                                                                                  "bridge_runtime":  {
+                                                                                                         "working_set_mb":  19.02,
+                                                                                                         "private_memory_mb":  3.87
+                                                                                                     },
+                                                                                  "desktop_shell":  {
+                                                                                                        "working_set_mb":  27.11,
+                                                                                                        "private_memory_mb":  4.29
+                                                                                                    },
+                                                                                  "node_helper":  {
+                                                                                                      "working_set_mb":  0,
+                                                                                                      "private_memory_mb":  0
+                                                                                                  },
+                                                                                  "webview2_helper":  {
+                                                                                                          "working_set_mb":  318.73,
+                                                                                                          "private_memory_mb":  175.26
+                                                                                                      },
+                                                                                  "other":  {
+                                                                                                "working_set_mb":  0,
+                                                                                                "private_memory_mb":  0
+                                                                                            }
+                                                                              },
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "dashboard-open",
+                          "preparation":  {
+                                              "action":  "none",
+                                              "discovery_action":  "musu up --json",
+                                              "dashboard_url":  "",
+                                              "dashboard_url_source":  "musu_up_dashboard_open",
+                                              "note":  "DashboardUrl not supplied or discovered; measured current runtime state only."
+                                          },
+                          "measurement":  {
+                                              "scenario":  "dashboard-open",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.dashboard-open.evidence.json",
+                                              "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.048,
+                                              "cpu_sample_count":  8,
+                                              "process_metadata_available":  true,
+                                              "process_metadata_timed_out":  false,
+                                              "helper_process_scope":  "musu_process_tree_or_repo_related",
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "process_counts_by_subrole":  {
+                                                                                "musu_runtime":  0,
+                                                                                "bridge_runtime":  1,
+                                                                                "desktop_shell":  1,
+                                                                                "node_helper":  0,
+                                                                                "webview2_helper":  6,
+                                                                                "other":  0
+                                                                            },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.1,
+                                                                                   "other":  0
+                                                                               },
+                                              "max_one_core_percent_by_subrole":  {
+                                                                                      "musu_runtime":  0,
+                                                                                      "bridge_runtime":  0,
+                                                                                      "desktop_shell":  0,
+                                                                                      "node_helper":  0,
+                                                                                      "webview2_helper":  0.1,
+                                                                                      "other":  0
+                                                                                  },
+                                              "bridge_registry":  {
+                                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                                      "exists":  true,
+                                                                      "parse_error":  null,
+                                                                      "pid":  37928,
+                                                                      "addr":  "127.0.0.1:4751",
+                                                                      "transport":  "tcp",
+                                                                      "started_at":  1780733254,
+                                                                      "captured_at":  "2026-06-06T17:17:17.5378642+09:00"
+                                                                  },
+                                              "cpu_attribution":  {
+                                                                      "schema":  "musu.runtime_idle_cpu_attribution.v1",
+                                                                      "attribution_scope":  "musu_process_tree_or_repo_related",
+                                                                      "sample_count":  8,
+                                                                      "roles_observed":  [
+                                                                                             "musu",
+                                                                                             "webview2"
+                                                                                         ],
+                                                                      "subroles_observed":  [
+                                                                                                "bridge_runtime",
+                                                                                                "desktop_shell",
+                                                                                                "webview2_helper"
+                                                                                            ],
+                                                                      "sample_count_by_role":  {
+                                                                                                   "musu":  2,
+                                                                                                   "node":  0,
+                                                                                                   "webview2":  6,
+                                                                                                   "other":  0
+                                                                                               },
+                                                                      "sample_count_by_subrole":  {
+                                                                                                      "musu_runtime":  0,
+                                                                                                      "bridge_runtime":  1,
+                                                                                                      "desktop_shell":  1,
+                                                                                                      "node_helper":  0,
+                                                                                                      "webview2_helper":  6,
+                                                                                                      "other":  0
+                                                                                                  },
+                                                                      "total_cpu_seconds_by_role":  {
+                                                                                                        "musu":  0,
+                                                                                                        "node":  0,
+                                                                                                        "webview2":  0.094,
+                                                                                                        "other":  0
+                                                                                                    },
+                                                                      "total_cpu_seconds_by_subrole":  {
+                                                                                                           "musu_runtime":  0,
+                                                                                                           "bridge_runtime":  0,
+                                                                                                           "desktop_shell":  0,
+                                                                                                           "node_helper":  0,
+                                                                                                           "webview2_helper":  0.094,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_role":  {
+                                                                                                           "musu":  0,
+                                                                                                           "node":  0,
+                                                                                                           "webview2":  0.1,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_subrole":  {
+                                                                                                              "musu_runtime":  0,
+                                                                                                              "bridge_runtime":  0,
+                                                                                                              "desktop_shell":  0,
+                                                                                                              "node_helper":  0,
+                                                                                                              "webview2_helper":  0.1,
+                                                                                                              "other":  0
+                                                                                                          },
+                                                                      "top_processes":  [
+                                                                                            {
+                                                                                                "id":  28464,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.062,
+                                                                                                "cpu_pct_one_core":  0.1,
+                                                                                                "working_set_mb":  68.37,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "4d93d81c19556ae074734ebbd3fe9112b3b9e9256bf317ddc86c110c37756f88",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  40620,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  117.53,
+                                                                                                "parent_process_id":  33848,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "5527c2a16b5c91eeff863a1abe459e0e0651c6d259e6b43ee84441ae358e307f",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  17760,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  65.09,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "248f10393ebd40520952026b8256c758b3f863884341c33c7bc5f4c73dd87fa5",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  37928,
+                                                                                                "process_name":  "musu",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "bridge_runtime",
+                                                                                                "bridge_registry_pid_match":  true,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.02,
+                                                                                                "parent_process_id":  32464,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  33848,
+                                                                                                "process_name":  "musu-desktop",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "desktop_shell",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  27.27,
+                                                                                                "parent_process_id":  13568,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41880,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  36.65,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "cfbd26cfddd66478d71b2aed8afea4d34a1792ab1e2be7c1b1559cbb7b558660",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  36276,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  12.99,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "b178eab96b89b32ff071199fe00cde9306df67c61004a0f56d41fd30e20f32b2",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41380,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.64,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "56cf012eedc1765a4ac9b409beb3e0f2419119e0b9e905212f5abc0af8e0e425",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+                                                                                            }
+                                                                                        ],
+                                                                      "required_roles_present":  {
+                                                                                                     "musu":  true,
+                                                                                                     "webview2":  true
+                                                                                                 },
+                                                                      "required_subroles_present":  {
+                                                                                                        "bridge_runtime":  true,
+                                                                                                        "desktop_shell":  true,
+                                                                                                        "webview2_helper":  true
+                                                                                                    }
+                                                                  },
+                                              "total_working_set_mb_after":  366.56,
+                                              "total_private_memory_mb_after":  184.23,
+                                              "memory_totals_by_subrole_mb":  {
+                                                                                  "musu_runtime":  {
+                                                                                                       "working_set_mb":  0,
+                                                                                                       "private_memory_mb":  0
+                                                                                                   },
+                                                                                  "bridge_runtime":  {
+                                                                                                         "working_set_mb":  19.02,
+                                                                                                         "private_memory_mb":  3.87
+                                                                                                     },
+                                                                                  "desktop_shell":  {
+                                                                                                        "working_set_mb":  27.27,
+                                                                                                        "private_memory_mb":  4.29
+                                                                                                    },
+                                                                                  "node_helper":  {
+                                                                                                      "working_set_mb":  0,
+                                                                                                      "private_memory_mb":  0
+                                                                                                  },
+                                                                                  "webview2_helper":  {
+                                                                                                          "working_set_mb":  320.27,
+                                                                                                          "private_memory_mb":  176.07
+                                                                                                      },
+                                                                                  "other":  {
+                                                                                                "working_set_mb":  0,
+                                                                                                "private_memory_mb":  0
+                                                                                            }
+                                                                              },
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "desktop-open",
+                          "preparation":  {
+                                              "action":  "Start packaged desktop app",
+                                              "desktop_app_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+                                          },
+                          "measurement":  {
+                                              "scenario":  "desktop-open",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.desktop-open.evidence.json",
+                                              "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.048,
+                                              "cpu_sample_count":  8,
+                                              "process_metadata_available":  true,
+                                              "process_metadata_timed_out":  false,
+                                              "helper_process_scope":  "musu_process_tree_or_repo_related",
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "process_counts_by_subrole":  {
+                                                                                "musu_runtime":  0,
+                                                                                "bridge_runtime":  1,
+                                                                                "desktop_shell":  1,
+                                                                                "node_helper":  0,
+                                                                                "webview2_helper":  6,
+                                                                                "other":  0
+                                                                            },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "max_one_core_percent_by_subrole":  {
+                                                                                      "musu_runtime":  0,
+                                                                                      "bridge_runtime":  0,
+                                                                                      "desktop_shell":  0,
+                                                                                      "node_helper":  0,
+                                                                                      "webview2_helper":  0.08,
+                                                                                      "other":  0
+                                                                                  },
+                                              "bridge_registry":  {
+                                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                                      "exists":  true,
+                                                                      "parse_error":  null,
+                                                                      "pid":  37928,
+                                                                      "addr":  "127.0.0.1:4751",
+                                                                      "transport":  "tcp",
+                                                                      "started_at":  1780733254,
+                                                                      "captured_at":  "2026-06-06T17:18:28.3944839+09:00"
+                                                                  },
+                                              "cpu_attribution":  {
+                                                                      "schema":  "musu.runtime_idle_cpu_attribution.v1",
+                                                                      "attribution_scope":  "musu_process_tree_or_repo_related",
+                                                                      "sample_count":  8,
+                                                                      "roles_observed":  [
+                                                                                             "musu",
+                                                                                             "webview2"
+                                                                                         ],
+                                                                      "subroles_observed":  [
+                                                                                                "bridge_runtime",
+                                                                                                "desktop_shell",
+                                                                                                "webview2_helper"
+                                                                                            ],
+                                                                      "sample_count_by_role":  {
+                                                                                                   "musu":  2,
+                                                                                                   "node":  0,
+                                                                                                   "webview2":  6,
+                                                                                                   "other":  0
+                                                                                               },
+                                                                      "sample_count_by_subrole":  {
+                                                                                                      "musu_runtime":  0,
+                                                                                                      "bridge_runtime":  1,
+                                                                                                      "desktop_shell":  1,
+                                                                                                      "node_helper":  0,
+                                                                                                      "webview2_helper":  6,
+                                                                                                      "other":  0
+                                                                                                  },
+                                                                      "total_cpu_seconds_by_role":  {
+                                                                                                        "musu":  0,
+                                                                                                        "node":  0,
+                                                                                                        "webview2":  0.047,
+                                                                                                        "other":  0
+                                                                                                    },
+                                                                      "total_cpu_seconds_by_subrole":  {
+                                                                                                           "musu_runtime":  0,
+                                                                                                           "bridge_runtime":  0,
+                                                                                                           "desktop_shell":  0,
+                                                                                                           "node_helper":  0,
+                                                                                                           "webview2_helper":  0.047,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_role":  {
+                                                                                                           "musu":  0,
+                                                                                                           "node":  0,
+                                                                                                           "webview2":  0.08,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_subrole":  {
+                                                                                                              "musu_runtime":  0,
+                                                                                                              "bridge_runtime":  0,
+                                                                                                              "desktop_shell":  0,
+                                                                                                              "node_helper":  0,
+                                                                                                              "webview2_helper":  0.08,
+                                                                                                              "other":  0
+                                                                                                          },
+                                                                      "top_processes":  [
+                                                                                            {
+                                                                                                "id":  28464,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.047,
+                                                                                                "cpu_pct_one_core":  0.08,
+                                                                                                "working_set_mb":  68.37,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "4d93d81c19556ae074734ebbd3fe9112b3b9e9256bf317ddc86c110c37756f88",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41880,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  36.66,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "cfbd26cfddd66478d71b2aed8afea4d34a1792ab1e2be7c1b1559cbb7b558660",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  37928,
+                                                                                                "process_name":  "musu",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "bridge_runtime",
+                                                                                                "bridge_registry_pid_match":  true,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.06,
+                                                                                                "parent_process_id":  32464,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  33848,
+                                                                                                "process_name":  "musu-desktop",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "desktop_shell",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  27.3,
+                                                                                                "parent_process_id":  13568,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41380,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.62,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "56cf012eedc1765a4ac9b409beb3e0f2419119e0b9e905212f5abc0af8e0e425",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  17760,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  65.09,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "248f10393ebd40520952026b8256c758b3f863884341c33c7bc5f4c73dd87fa5",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  36276,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  12.99,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "b178eab96b89b32ff071199fe00cde9306df67c61004a0f56d41fd30e20f32b2",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  40620,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  117.56,
+                                                                                                "parent_process_id":  33848,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "5527c2a16b5c91eeff863a1abe459e0e0651c6d259e6b43ee84441ae358e307f",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+                                                                                            }
+                                                                                        ],
+                                                                      "required_roles_present":  {
+                                                                                                     "musu":  true,
+                                                                                                     "webview2":  true
+                                                                                                 },
+                                                                      "required_subroles_present":  {
+                                                                                                        "bridge_runtime":  true,
+                                                                                                        "desktop_shell":  true,
+                                                                                                        "webview2_helper":  true
+                                                                                                    }
+                                                                  },
+                                              "total_working_set_mb_after":  366.65,
+                                              "total_private_memory_mb_after":  184.22,
+                                              "memory_totals_by_subrole_mb":  {
+                                                                                  "musu_runtime":  {
+                                                                                                       "working_set_mb":  0,
+                                                                                                       "private_memory_mb":  0
+                                                                                                   },
+                                                                                  "bridge_runtime":  {
+                                                                                                         "working_set_mb":  19.06,
+                                                                                                         "private_memory_mb":  3.93
+                                                                                                     },
+                                                                                  "desktop_shell":  {
+                                                                                                        "working_set_mb":  27.3,
+                                                                                                        "private_memory_mb":  4.27
+                                                                                                    },
+                                                                                  "node_helper":  {
+                                                                                                      "working_set_mb":  0,
+                                                                                                      "private_memory_mb":  0
+                                                                                                  },
+                                                                                  "webview2_helper":  {
+                                                                                                          "working_set_mb":  320.29,
+                                                                                                          "private_memory_mb":  176.02
+                                                                                                      },
+                                                                                  "other":  {
+                                                                                                "working_set_mb":  0,
+                                                                                                "private_memory_mb":  0
+                                                                                            }
+                                                                              },
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      },
+                      {
+                          "scenario":  "post-route",
+                          "preparation":  {
+                                              "action":  "musu route --wait",
+                                              "route_probe":  {
+                                                                  "prompt":  "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                  "expected_token":  "MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                  "target":  null,
+                                                                  "command":  "musu route --wait-timeout-sec 180 --wait \"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403\"",
+                                                                  "arguments":  [
+                                                                                    "route",
+                                                                                    "--wait-timeout-sec",
+                                                                                    "180",
+                                                                                    "--wait",
+                                                                                    "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403"
+                                                                                ],
+                                                                  "wait_timeout_sec":  180,
+                                                                  "command_timeout_sec":  210,
+                                                                  "max_attempts":  3,
+                                                                  "attempt_count":  1,
+                                                                  "attempts":  [
+                                                                                   {
+                                                                                       "attempt":  1,
+                                                                                       "started_at":  "2026-06-06T17:18:28.8234992+09:00",
+                                                                                       "exit_code":  0,
+                                                                                       "stdout":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                                       "stderr":  "",
+                                                                                       "output":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                                       "ok":  true,
+                                                                                       "retry_after_s":  null,
+                                                                                       "timeout_sec":  210
+                                                                                   }
+                                                                               ],
+                                                                  "exit_code":  0,
+                                                                  "stdout":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                  "stderr":  "",
+                                                                  "output":  "??Sending task to local...\n??Task queued: 08b81687-bacf-40eb-a677-e92fca76149b\n??Waiting for task 08b81687-bacf-40eb-a677-e92fca76149b...\n??Task completed\nMUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403",
+                                                                  "ok":  true,
+                                                                  "failure_allowed":  false
+                                                              }
+                                          },
+                          "measurement":  {
+                                              "scenario":  "post-route",
+                                              "ok":  true,
+                                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.post-route.evidence.json",
+                                              "git_commit":  "94913cccafe108bd0600d9d22106a67ed58f457a",
+                                              "git_dirty":  false,
+                                              "sample_seconds":  60.039,
+                                              "cpu_sample_count":  8,
+                                              "process_metadata_available":  true,
+                                              "process_metadata_timed_out":  false,
+                                              "helper_process_scope":  "musu_process_tree_or_repo_related",
+                                              "process_counts_by_role":  {
+                                                                             "musu":  2,
+                                                                             "node":  0,
+                                                                             "webview2":  6,
+                                                                             "other":  0
+                                                                         },
+                                              "process_counts_by_subrole":  {
+                                                                                "musu_runtime":  0,
+                                                                                "bridge_runtime":  1,
+                                                                                "desktop_shell":  1,
+                                                                                "node_helper":  0,
+                                                                                "webview2_helper":  6,
+                                                                                "other":  0
+                                                                            },
+                                              "max_one_core_percent_by_role":  {
+                                                                                   "musu":  0,
+                                                                                   "node":  0,
+                                                                                   "webview2":  0.08,
+                                                                                   "other":  0
+                                                                               },
+                                              "max_one_core_percent_by_subrole":  {
+                                                                                      "musu_runtime":  0,
+                                                                                      "bridge_runtime":  0,
+                                                                                      "desktop_shell":  0,
+                                                                                      "node_helper":  0,
+                                                                                      "webview2_helper":  0.08,
+                                                                                      "other":  0
+                                                                                  },
+                                              "bridge_registry":  {
+                                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                                      "exists":  true,
+                                                                      "parse_error":  null,
+                                                                      "pid":  37928,
+                                                                      "addr":  "127.0.0.1:4751",
+                                                                      "transport":  "tcp",
+                                                                      "started_at":  1780733254,
+                                                                      "captured_at":  "2026-06-06T17:19:39.3806010+09:00"
+                                                                  },
+                                              "cpu_attribution":  {
+                                                                      "schema":  "musu.runtime_idle_cpu_attribution.v1",
+                                                                      "attribution_scope":  "musu_process_tree_or_repo_related",
+                                                                      "sample_count":  8,
+                                                                      "roles_observed":  [
+                                                                                             "musu",
+                                                                                             "webview2"
+                                                                                         ],
+                                                                      "subroles_observed":  [
+                                                                                                "bridge_runtime",
+                                                                                                "desktop_shell",
+                                                                                                "webview2_helper"
+                                                                                            ],
+                                                                      "sample_count_by_role":  {
+                                                                                                   "musu":  2,
+                                                                                                   "node":  0,
+                                                                                                   "webview2":  6,
+                                                                                                   "other":  0
+                                                                                               },
+                                                                      "sample_count_by_subrole":  {
+                                                                                                      "musu_runtime":  0,
+                                                                                                      "bridge_runtime":  1,
+                                                                                                      "desktop_shell":  1,
+                                                                                                      "node_helper":  0,
+                                                                                                      "webview2_helper":  6,
+                                                                                                      "other":  0
+                                                                                                  },
+                                                                      "total_cpu_seconds_by_role":  {
+                                                                                                        "musu":  0,
+                                                                                                        "node":  0,
+                                                                                                        "webview2":  0.111,
+                                                                                                        "other":  0
+                                                                                                    },
+                                                                      "total_cpu_seconds_by_subrole":  {
+                                                                                                           "musu_runtime":  0,
+                                                                                                           "bridge_runtime":  0,
+                                                                                                           "desktop_shell":  0,
+                                                                                                           "node_helper":  0,
+                                                                                                           "webview2_helper":  0.111,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_role":  {
+                                                                                                           "musu":  0,
+                                                                                                           "node":  0,
+                                                                                                           "webview2":  0.08,
+                                                                                                           "other":  0
+                                                                                                       },
+                                                                      "max_one_core_percent_by_subrole":  {
+                                                                                                              "musu_runtime":  0,
+                                                                                                              "bridge_runtime":  0,
+                                                                                                              "desktop_shell":  0,
+                                                                                                              "node_helper":  0,
+                                                                                                              "webview2_helper":  0.08,
+                                                                                                              "other":  0
+                                                                                                          },
+                                                                      "top_processes":  [
+                                                                                            {
+                                                                                                "id":  28464,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.047,
+                                                                                                "cpu_pct_one_core":  0.08,
+                                                                                                "working_set_mb":  68.71,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "4d93d81c19556ae074734ebbd3fe9112b3b9e9256bf317ddc86c110c37756f88",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41380,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  19.59,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "56cf012eedc1765a4ac9b409beb3e0f2419119e0b9e905212f5abc0af8e0e425",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  41880,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  36.64,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "cfbd26cfddd66478d71b2aed8afea4d34a1792ab1e2be7c1b1559cbb7b558660",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.ye..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  40620,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  117.39,
+                                                                                                "parent_process_id":  33848,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "5527c2a16b5c91eeff863a1abe459e0e0651c6d259e6b43ee84441ae358e307f",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebVie..."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  17760,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0.016,
+                                                                                                "cpu_pct_one_core":  0.03,
+                                                                                                "working_set_mb":  64.09,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "248f10393ebd40520952026b8256c758b3f863884341c33c7bc5f4c73dd87fa5",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1...."
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  33848,
+                                                                                                "process_name":  "musu-desktop",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "desktop_shell",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  27.25,
+                                                                                                "parent_process_id":  13568,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "51f9ce6eb4b3144bd8394aaff96999b0bf246e6312fff54dd6ab8d1c03578bf4",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" "
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  37928,
+                                                                                                "process_name":  "musu",
+                                                                                                "process_role":  "musu",
+                                                                                                "process_subrole":  "bridge_runtime",
+                                                                                                "bridge_registry_pid_match":  true,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  19.27,
+                                                                                                "parent_process_id":  32464,
+                                                                                                "is_descendant_of_musu":  false,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_process_name",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "972865a824bd9bbd0a408f8655804837744b5b506ef6b4576733589f85055f24",
+                                                                                                "command_line_hint":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge"
+                                                                                            },
+                                                                                            {
+                                                                                                "id":  36276,
+                                                                                                "process_name":  "msedgewebview2",
+                                                                                                "process_role":  "webview2",
+                                                                                                "process_subrole":  "webview2_helper",
+                                                                                                "bridge_registry_pid_match":  false,
+                                                                                                "cpu_seconds_delta":  0,
+                                                                                                "cpu_pct_one_core":  0,
+                                                                                                "working_set_mb":  12.93,
+                                                                                                "parent_process_id":  40620,
+                                                                                                "is_descendant_of_musu":  true,
+                                                                                                "is_repo_related":  false,
+                                                                                                "classification_reason":  "musu_descendant",
+                                                                                                "command_line_present":  true,
+                                                                                                "command_line_sha256":  "b178eab96b89b32ff071199fe00cde9306df67c61004a0f56d41fd30e20f32b2",
+                                                                                                "command_line_hint":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --m..."
+                                                                                            }
+                                                                                        ],
+                                                                      "required_roles_present":  {
+                                                                                                     "musu":  true,
+                                                                                                     "webview2":  true
+                                                                                                 },
+                                                                      "required_subroles_present":  {
+                                                                                                        "bridge_runtime":  true,
+                                                                                                        "desktop_shell":  true,
+                                                                                                        "webview2_helper":  true
+                                                                                                    }
+                                                                  },
+                                              "total_working_set_mb_after":  365.87,
+                                              "total_private_memory_mb_after":  193.42,
+                                              "memory_totals_by_subrole_mb":  {
+                                                                                  "musu_runtime":  {
+                                                                                                       "working_set_mb":  0,
+                                                                                                       "private_memory_mb":  0
+                                                                                                   },
+                                                                                  "bridge_runtime":  {
+                                                                                                         "working_set_mb":  19.27,
+                                                                                                         "private_memory_mb":  4.14
+                                                                                                     },
+                                                                                  "desktop_shell":  {
+                                                                                                        "working_set_mb":  27.25,
+                                                                                                        "private_memory_mb":  4.21
+                                                                                                    },
+                                                                                  "node_helper":  {
+                                                                                                      "working_set_mb":  0,
+                                                                                                      "private_memory_mb":  0
+                                                                                                  },
+                                                                                  "webview2_helper":  {
+                                                                                                          "working_set_mb":  319.35,
+                                                                                                          "private_memory_mb":  185.07
+                                                                                                      },
+                                                                                  "other":  {
+                                                                                                "working_set_mb":  0,
+                                                                                                "private_memory_mb":  0
+                                                                                            }
+                                                                              },
+                                              "resource_budget_violations":  [
+
+                                                                             ],
+                                              "hot_process_count":  0
+                                          }
+                      }
+                  ],
+    "matrix_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260606-171403-HUGH_SECOND\\20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix.json"
+}
