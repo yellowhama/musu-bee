@@ -5964,4 +5964,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ExpectedGitCommit`, `Test-DocumentationOrStatusOnlyGitDelta`, and
   `case_count=86`.
 
+- 2026-06-07 current-HEAD single-instance evidence refresh:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_SINGLE_INSTANCE_EVIDENCE_REFRESH_2026_06_07.md`
+  (wiki/899) records current-HEAD local-sideload MSIX rebuild/reinstall and
+  fresh primary-machine startup/desktop single-instance evidence. Search terms
+  should include `GOAL v724`, `wiki/899`, `20260607-002403`,
+  `20260607-002452`, `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, `new_desktop_shell=0`,
+  `repeated_spawn_count=0`, `run-msix-workflow`, and `HUGH_SECOND`.
+
+- 2026-06-07 current-HEAD single-instance evidence index refresh:
+  wiki/900 records the MUSU local index refresh after wiki/899 and GOAL v724.
+  Search terms should include `GOAL v725`, `wiki/900`, `2763 files`,
+  `2776 symbols`, `16196 ms`, `current-head single-instance evidence index
+  refresh`, `20260607-002403`, `20260607-002452`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `new_desktop_shell=0`, and `repeated_spawn_count=0`.
+
 **End of WIKI_INDEX.md.**

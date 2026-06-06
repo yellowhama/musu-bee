@@ -8758,3 +8758,61 @@ Index refresh:
 - `2776 symbols`
 - `15488 ms`
 - wiki: `wiki/898`
+
+## 2026-06-07 00:25 KST Current-HEAD Single-Instance Evidence Refresh
+
+Current-HEAD local-sideload MSIX was rebuilt, reinstalled, and verified on
+`HUGH_SECOND`.
+
+MSIX workflow:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/run-msix-workflow.ps1 -Configuration release -StartupContract local-sideload-manual -AttemptInstall -VerifyInstalled -ReplaceExisting`
+- commit under test:
+  `4dd6a8445b3a196009eb8dc4f3af6ebc91f04974`
+- package:
+  `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- result: release build, desktop build, package, startup smoke, install, and
+  installed contract checks passed
+
+Fresh evidence:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-002403-HUGH_SECOND.desktop-single-instance.json`
+  with `ok=true`, `git_dirty=false`, shell count `1 -> 1`, new shell `0`,
+  activation failures `0`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-002452-HUGH_SECOND.startup-single-instance.json`
+  with `ok=true`, runtime count `1 -> 1`, observed bridge PID count `1`,
+  repeated spawn `0`, failed invocation count `0`
+- nested process ownership:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-002452-HUGH_SECOND.startup-single-instance.process-ownership.json`
+  with `ok=true`, `fail_count=0`
+
+Dirty-tree go/no-go now reports `startup_single_instance_verified=true`,
+`desktop_single_instance_verified=true`, valid machine counts `1/1`, and
+blocker count `8` including only the temporary `git` blocker plus the remaining
+release blockers.
+
+Qualitative audit found no high/medium issue. Public release remains No-Go on
+current CPU evidence, second-PC route/CPU/matrix evidence, hosted MUSU.PRO
+P2P/relay proof, support mailbox evidence, and Store/Partner Center evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_SINGLE_INSTANCE_EVIDENCE_REFRESH_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_SINGLE_INSTANCE_EVIDENCE_REFRESH_2026_06_07.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2763 files`
+- `2776 symbols`
+- `16196 ms`
+- wiki: `wiki/900`

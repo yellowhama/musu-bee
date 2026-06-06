@@ -1,0 +1,145 @@
+﻿{
+    "schema":  "musu.desktop_single_instance_audit.v1",
+    "recorded_at":  "2026-06-07T00:24:18.2614877+09:00",
+    "version":  "1.15.0-rc.1",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "git_commit":  "4dd6a8445b3a196009eb8dc4f3af6ebc91f04974",
+    "git_dirty":  false,
+    "operator_machine":  "HUGH_SECOND",
+    "package_name":  "Yellowhama.MUSU",
+    "package_full_name":  "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6",
+    "package_family_name":  "Yellowhama.MUSU_ygcjq669as2b6",
+    "application_id":  "MUSU",
+    "app_user_model_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+    "start_app":  {
+                      "name":  "MUSU",
+                      "app_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+                  },
+    "repeat_count":  3,
+    "activation_delay_sec":  4,
+    "max_desktop_process_count":  1,
+    "require_installed_package":  true,
+    "cleanup":  {
+                    "requested":  true,
+                    "stopped_pids":  [
+
+                                     ],
+                    "errors":  [
+
+                               ],
+                    "final_desktop_shell_count":  1,
+                    "final_desktop_pids":  [
+                                               31040
+                                           ]
+                },
+    "process_counts":  {
+                           "before_desktop_shell":  1,
+                           "after_desktop_shell":  1,
+                           "new_desktop_shell":  0,
+                           "activation_failure_count":  0
+                       },
+    "before_processes":  [
+                             {
+                                 "pid":  31040,
+                                 "name":  "musu-desktop",
+                                 "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe",
+                                 "start_time":  "2026-06-07T00:22:30.2804713+09:00",
+                                 "cpu_seconds":  0.21875,
+                                 "working_set_mb":  27
+                             }
+                         ],
+    "after_processes":  [
+                            {
+                                "pid":  31040,
+                                "name":  "musu-desktop",
+                                "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe",
+                                "start_time":  "2026-06-07T00:22:30.2804713+09:00",
+                                "cpu_seconds":  0.21875,
+                                "working_set_mb":  27
+                            }
+                        ],
+    "new_desktop_pids":  [
+
+                         ],
+    "activations":  [
+                        {
+                            "index":  1,
+                            "started_at":  "2026-06-07T00:24:06.0877707+09:00",
+                            "app_user_model_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+                            "error":  null,
+                            "desktop_process_count_after_activation":  1,
+                            "desktop_pids_after_activation":  [
+                                                                  31040
+                                                              ]
+                        },
+                        {
+                            "index":  2,
+                            "started_at":  "2026-06-07T00:24:10.1435482+09:00",
+                            "app_user_model_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+                            "error":  null,
+                            "desktop_process_count_after_activation":  1,
+                            "desktop_pids_after_activation":  [
+                                                                  31040
+                                                              ]
+                        },
+                        {
+                            "index":  3,
+                            "started_at":  "2026-06-07T00:24:14.1737575+09:00",
+                            "app_user_model_id":  "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+                            "error":  null,
+                            "desktop_process_count_after_activation":  1,
+                            "desktop_pids_after_activation":  [
+                                                                  31040
+                                                              ]
+                        }
+                    ],
+    "checks":  [
+                   {
+                       "name":  "package installed",
+                       "status":  "pass",
+                       "message":  "MSIX package lookup is present or not required"
+                   },
+                   {
+                       "name":  "AppUserModelId resolved",
+                       "status":  "pass",
+                       "message":  "AppUserModelId is Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+                   },
+                   {
+                       "name":  "Start menu registration",
+                       "status":  "pass",
+                       "message":  "Start menu registration was found or not required"
+                   },
+                   {
+                       "name":  "repeat count",
+                       "status":  "pass",
+                       "message":  "repeat_count is 3"
+                   },
+                   {
+                       "name":  "activation attempts",
+                       "status":  "pass",
+                       "message":  "all 3 desktop activations were attempted without process launch errors"
+                   },
+                   {
+                       "name":  "baseline desktop shell count",
+                       "status":  "pass",
+                       "message":  "baseline desktop shell count 1 \u003c= 1"
+                   },
+                   {
+                       "name":  "desktop shell count after repeated activation",
+                       "status":  "pass",
+                       "message":  "desktop shell count after repeated activation 1 \u003c= 1"
+                   },
+                   {
+                       "name":  "new desktop shell count",
+                       "status":  "pass",
+                       "message":  "new desktop shell count 0 \u003c= 1"
+                   },
+                   {
+                       "name":  "cleanup completed",
+                       "status":  "pass",
+                       "message":  "cleanup left the desktop shell count inside the configured budget"
+                   }
+               ],
+    "fail_count":  0,
+    "ok":  true
+}

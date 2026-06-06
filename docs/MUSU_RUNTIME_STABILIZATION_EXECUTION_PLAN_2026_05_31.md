@@ -116,6 +116,15 @@ Already applied:
   differ only by documentation, evidence, status, or tooling-only commits.
   Runtime-affecting changes after startup or desktop single-instance capture
   require fresh local evidence.
+- current-HEAD local-sideload MSIX was rebuilt and reinstalled on
+  `HUGH_SECOND` at 2026-06-07 00:25 KST; fresh desktop single-instance evidence
+  `20260607-002403-HUGH_SECOND.desktop-single-instance.json` passed with
+  shell count `1 -> 1`, new shell `0`, activation failures `0`, and
+  `git_dirty=false`.
+- fresh startup single-instance evidence
+  `20260607-002452-HUGH_SECOND.startup-single-instance.json` passed with
+  runtime count `1 -> 1`, observed bridge PID count `1`, repeated spawn `0`,
+  failed invocation count `0`, and nested process ownership passing.
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing

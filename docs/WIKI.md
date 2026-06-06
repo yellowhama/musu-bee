@@ -12673,3 +12673,94 @@ freshness gate index refresh`, `2757 files`, `2776 symbols`, `15488 ms`,
 `Test-StartupSingleInstanceEvidence`, `Test-DesktopSingleInstanceEvidence`,
 `ExpectedGitCommit`, `Test-DocumentationOrStatusOnlyGitDelta`, and
 `case_count=86`.
+
+## 2026-06-07 Current-HEAD Single-Instance Evidence Refresh (wiki/899)
+
+The local-sideload MSIX was rebuilt, reinstalled, and verified from current
+HEAD. Fresh primary-machine startup and desktop single-instance evidence now
+passes the release freshness gate.
+
+Current-HEAD install:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/run-msix-workflow.ps1 -Configuration release -StartupContract local-sideload-manual -AttemptInstall -VerifyInstalled -ReplaceExisting`
+- commit under test:
+  `4dd6a8445b3a196009eb8dc4f3af6ebc91f04974`
+- MSIX:
+  `.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- installed package:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- build, package, smoke, install, installed contract, and packaged runtime
+  identity checks passed
+
+Fresh evidence:
+
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-002403-HUGH_SECOND.desktop-single-instance.json`
+  - `ok=true`
+  - `git_dirty=false`
+  - shell count stayed `1`
+  - new shell count `0`
+  - activation failures `0`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-002452-HUGH_SECOND.startup-single-instance.json`
+  - `ok=true`
+  - runtime count stayed `1`
+  - observed bridge PID count `1`
+  - repeated spawn count `0`
+  - failed invocation count `0`
+- nested process ownership:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-002452-HUGH_SECOND.startup-single-instance.process-ownership.json`
+  - `ok=true`
+  - `fail_count=0`
+
+Dirty-tree go/no-go after evidence capture:
+
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- valid machine counts `1/1`
+- blocker count `8`, with only temporary `git` added to the remaining release
+  blockers
+
+Qualitative audit found no high/medium issue. This closes the reopened
+primary-machine local single-instance blockers, not the second-PC, CPU,
+hosted P2P/relay, support, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_SINGLE_INSTANCE_EVIDENCE_REFRESH_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_SINGLE_INSTANCE_EVIDENCE_REFRESH_2026_06_07.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-07_current_head_single_instance_evidence_refresh.md`
+
+Search terms should include `GOAL v724`, `wiki/899`,
+`current-head single-instance evidence refresh`, `20260607-002403`,
+`20260607-002452`, `startup_single_instance_verified=true`,
+`desktop_single_instance_verified=true`, `new_desktop_shell=0`,
+`repeated_spawn_count=0`, `run-msix-workflow`, and `HUGH_SECOND`.
+
+## 2026-06-07 Current-HEAD Single-Instance Evidence Index Refresh (wiki/900)
+
+MUSU local indexer was refreshed after wiki/899 and GOAL v724.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2763 files`
+- `2776 symbols`
+- `16196 ms`
+
+Indexed context includes current-HEAD local-sideload MSIX rebuild/reinstall
+notes, fresh desktop/startup single-instance evidence, nested process
+ownership evidence, canonical report, next-step plan, BETA checklist, runtime
+stabilization spec update, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v725`, `wiki/900`, `current-head
+single-instance evidence index refresh`, `2763 files`, `2776 symbols`,
+`16196 ms`, `20260607-002403`, `20260607-002452`,
+`startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+`new_desktop_shell=0`, and `repeated_spawn_count=0`.
