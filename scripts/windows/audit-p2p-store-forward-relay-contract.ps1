@@ -632,15 +632,18 @@ Add-Check `
         Test-ContainsAll -Text $statusScript -Needles @(
             "relay_payload_queue_fallback_implemented",
             "release_payload_preflight_endpoint_implemented",
+            "release_tunnel_payload_endpoint_missing",
             "release_connect_fail_closed_placeholder_active",
+            "preview_store_forward_payload_queue_non_release_grade",
             "release_payload_endpoint_queue_only",
             "web_queue_store_claim_deliver",
             "rust_enqueue_after_lease",
             "rust_target_drain_and_delivery_proof",
             "source_release_relay_connect_endpoint_not_implemented",
             "source_release_relay_connect_placeholder_active",
+            "source_preview_store_forward_payload_queue_non_release_grade",
             "source_relay_transport_kind_not_release_grade",
-            "source_release_relay_payload_marker_conflicts_with_queue_only_endpoint"
+            "source_release_relay_payload_marker_conflicts_with_preview_queue_only"
         )
     ) `
     -Path $statusScriptPath `

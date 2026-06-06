@@ -157,7 +157,9 @@ function Get-SourceRelayMarker {
         relay_payload_endpoint_implemented = $false
         release_payload_preflight_endpoint_implemented = $false
         relay_payload_queue_endpoint_implemented = $false
+        release_tunnel_payload_endpoint_missing = $false
         release_connect_fail_closed_placeholder_active = $false
+        preview_store_forward_payload_queue_non_release_grade = $false
         release_payload_endpoint_queue_only = $false
         relay_payload_queue_fallback_implemented = $false
         relay_payload_queue_fallback_components = [pscustomobject]@{
@@ -200,11 +202,15 @@ function Get-SourceRelayMarker {
             [regex]::IsMatch($connectRouteText, '\{\s*status:\s*501\s*\}') -and
             [regex]::IsMatch($connectRouteText, 'implement the QUIC/TLS relay payload service')
         )
-        $summary.release_payload_endpoint_queue_only = (
+        $summary.release_tunnel_payload_endpoint_missing = -not $summary.relay_payload_endpoint_implemented
+        $summary.preview_store_forward_payload_queue_non_release_grade = (
             [regex]::IsMatch($payloadRouteText, 'release_grade:\s*false') -and
             [regex]::IsMatch($payloadRouteText, 'relay_payload_queue_not_quic_tls_transport') -and
             [regex]::IsMatch($payloadRouteText, 'relay_payload_queue_endpoint_wired:\s*true')
         )
+        # Backward-compatible alias for older evidence/readers. The value describes
+        # the preview store-forward queue, not the release /api/v1/relay/payload preflight endpoint.
+        $summary.release_payload_endpoint_queue_only = $summary.preview_store_forward_payload_queue_non_release_grade
         $queueFallbackComponents = [pscustomobject]@{
             policy_marker = [bool]$summary.relay_payload_queue_endpoint_implemented
             web_queue_store_claim_deliver = (
@@ -467,14 +473,14 @@ else {
     if ($sourceSummary.release_connect_fail_closed_placeholder_active) {
         $blockers.Add("source_release_relay_connect_placeholder_active") | Out-Null
     }
-    if ($sourceSummary.release_payload_endpoint_queue_only) {
-        $blockers.Add("source_release_payload_endpoint_queue_only") | Out-Null
+    if ($sourceSummary.preview_store_forward_payload_queue_non_release_grade) {
+        $blockers.Add("source_preview_store_forward_payload_queue_non_release_grade") | Out-Null
     }
     if ($sourceSummary.relay_connect_endpoint_implemented -and $sourceSummary.release_connect_fail_closed_placeholder_active) {
         $blockers.Add("source_release_relay_connect_marker_conflicts_with_placeholder") | Out-Null
     }
-    if ($sourceSummary.relay_payload_endpoint_implemented -and $sourceSummary.release_payload_endpoint_queue_only) {
-        $blockers.Add("source_release_relay_payload_marker_conflicts_with_queue_only_endpoint") | Out-Null
+    if ($sourceSummary.relay_payload_endpoint_implemented -and $sourceSummary.preview_store_forward_payload_queue_non_release_grade) {
+        $blockers.Add("source_release_relay_payload_marker_conflicts_with_preview_queue_only") | Out-Null
     }
     if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
         $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
@@ -556,11 +562,11 @@ if ($blockers -contains "source_release_relay_transport_kind_requirement_not_qui
 if ($blockers -contains "source_release_relay_connect_placeholder_active") {
     $nextSteps.Add("Keep /api/v1/relay/connect fail-closed until a real relay/tunnel handshake exists; remove the 501 placeholder only with tests proving release-grade QUIC/TLS payload transport.") | Out-Null
 }
-if ($blockers -contains "source_release_payload_endpoint_queue_only") {
-    $nextSteps.Add("Keep the store-forward payload queue labeled non-release-grade; add a distinct release tunnel payload endpoint before setting RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
+if ($blockers -contains "source_preview_store_forward_payload_queue_non_release_grade") {
+    $nextSteps.Add("Keep the preview store-forward payload queue labeled non-release-grade; it is not the release tunnel payload endpoint and cannot satisfy RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true.") | Out-Null
 }
-if ($blockers -contains "source_release_relay_connect_marker_conflicts_with_placeholder" -or $blockers -contains "source_release_relay_payload_marker_conflicts_with_queue_only_endpoint") {
-    $nextSteps.Add("Do not flip release source markers while the active implementation is still the fail-closed connect placeholder or queue-only payload fallback.") | Out-Null
+if ($blockers -contains "source_release_relay_connect_marker_conflicts_with_placeholder" -or $blockers -contains "source_release_relay_payload_marker_conflicts_with_preview_queue_only") {
+    $nextSteps.Add("Do not flip release source markers while the active implementation is still the fail-closed connect placeholder or non-release-grade preview queue fallback.") | Out-Null
 }
 if ($blockers -contains "live_evidence_relay_route_not_proven") {
     $nextSteps.Add("Record owner-scoped release-grade relay route evidence with route_kind=relay, result=success, payload_transited_musu_infra=true, and release_grade=true; env flags and relay leases alone are not sufficient.") | Out-Null
@@ -615,13 +621,15 @@ else {
     "source store-forward relay queue fallback implemented: $($result.source.relay_payload_queue_fallback_implemented)"
     "source release relay connect endpoint implemented: $($result.source.relay_connect_endpoint_implemented)"
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
+    "source release tunnel payload endpoint missing: $($result.source.release_tunnel_payload_endpoint_missing)"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
+    "source preview store-forward payload queue non-release-grade: $($result.source.preview_store_forward_payload_queue_non_release_grade)"
     "source relay transport kind: $($result.source.relay_transport_kind)"
     "source release relay transport kind required: $($result.source.release_grade_relay_transport_kind)"
     "source release transport encryption required: $($result.source.release_grade_transport_required)"
     "source relay transport kind release-grade: $($result.source.relay_transport_kind_release_grade)"
     "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
-    "source release payload endpoint queue-only: $($result.source.release_payload_endpoint_queue_only)"
+    "source release payload endpoint queue-only legacy alias: $($result.source.release_payload_endpoint_queue_only)"
     "evidence: $($result.evidence.path)"
     "evidence relay route transport proof valid count: $($result.evidence.relay_route_transport_proof_valid_count)"
     "evidence relay payload delivery proof valid count: $($result.evidence.relay_payload_delivery_proof_valid_count)"

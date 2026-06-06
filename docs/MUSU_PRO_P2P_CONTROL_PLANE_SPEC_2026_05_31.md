@@ -67,6 +67,21 @@ exists. The request schema is strict: aside from the optional
 target/tunnel metadata, optional `payload_kind`, and optional 64-hex
 `payload_sha256` are accepted.
 
+**2026-06-06 P2P env status release payload terminology update**:
+`show-musu-pro-p2p-env-status.ps1` now reports release payload terminology as
+three separate source facts. `release_payload_preflight_endpoint_implemented`
+means `/api/v1/relay/payload` exists as metadata-only release preflight.
+`release_tunnel_payload_endpoint_missing` means the actual release tunnel
+payload endpoint is still not implemented because
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`.
+`preview_store_forward_payload_queue_non_release_grade` means
+`/api/v1/p2p/relay/payload` remains the non-release preview queue fallback. The
+legacy `release_payload_endpoint_queue_only` field remains only as an evidence
+compatibility alias and must not be read as the release preflight endpoint
+state. Current status correctly stays No-Go until a distinct release tunnel
+payload endpoint, `quic_relay_tunnel` transport kind, `quic_tls_1_3` proof,
+live route transport proof, and relay payload delivery proof exist.
+
 **2026-06-06 relay transport kind/encryption split update**:
 Relay tunnel kind and encryption/proof are now separate source and evidence
 fields. API preflight/status responses expose

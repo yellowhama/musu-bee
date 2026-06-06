@@ -10406,3 +10406,65 @@ Search terms should include `GOAL v655`, `wiki/830`,
 `28082 ms`, `runtime_cpu_second_pc_route_attempt_verified`,
 `20260606-121806-HUGH_SECOND`, `localhost:3001 not required`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 P2P Env Status Release Payload Terminology (wiki/831)
+
+`show-musu-pro-p2p-env-status.ps1` now separates release payload preflight,
+missing release tunnel payload transport, and preview store-forward payload
+queue terminology.
+
+New/current source facts:
+
+- `release_payload_preflight_endpoint_implemented=true`
+- `release_tunnel_payload_endpoint_missing=true`
+- `preview_store_forward_payload_queue_non_release_grade=true`
+- `release_payload_endpoint_queue_only=true` remains a legacy alias only
+
+The current status stays `ok=false` with the expected blockers:
+
+- `source_release_relay_payload_endpoint_not_implemented`
+- `source_preview_store_forward_payload_queue_non_release_grade`
+- `source_relay_transport_kind_not_release_grade`
+- missing KV/Upstash URL/token
+- live runtime login, route proof, transport proof, and delivery proof gaps
+
+Validation passed parser checks, P2P env status JSON recheck, P2P
+store-forward relay contract audit `ok=true`/`fail_count=0`, and release
+evidence verifier regressions `ok=true`/`case_count=62`/`failed_case_count=0`.
+
+Qualitative audit found no high/medium issue. This is status/audit hardening
+only, not release relay tunnel implementation. MUSU Desktop remains the local
+executor; MUSU.PRO remains remote input, project/company room, rendezvous,
+path-selection, relay-fallback policy, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ENV_STATUS_RELEASE_PAYLOAD_TERMINOLOGY_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ENV_STATUS_RELEASE_PAYLOAD_TERMINOLOGY_2026_06_06.md`
+
+## 2026-06-06 P2P Env Status Release Payload Terminology Index Refresh (wiki/832)
+
+MUSU local indexer was refreshed after wiki/831 and GOAL v656.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2624 files`
+- `2754 symbols`
+- `18024 ms`
+
+Indexed context includes the P2P env status release payload terminology
+hardening, `show-musu-pro-p2p-env-status.ps1`, P2P relay contract audit,
+release evidence verifier source-contract update, canonical report, next-step
+plan, BETA checklist, MUSU.PRO P2P control-plane spec, network boundary spec,
+GOAL v656, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v657`, `wiki/832`,
+`P2P env status release payload terminology index refresh`, `2624 files`,
+`2754 symbols`, `18024 ms`, `release_tunnel_payload_endpoint_missing`,
+`preview_store_forward_payload_queue_non_release_grade`,
+`source_preview_store_forward_payload_queue_non_release_grade`,
+`release verifier 62/62`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

@@ -102,6 +102,23 @@ This keeps the Core/Connect split intact: local execution and same-network
 operation remain Core; MUSU-hosted remote access, relay, and external
 account-authenticated coordination remain Connect/Pro surfaces.
 
+## 2026-06-06 P2P status terminology boundary update
+
+The hosted P2P status surface now distinguishes release payload preflight from
+the missing release tunnel payload endpoint and the preview store-forward queue.
+
+- `release_payload_preflight_endpoint_implemented=true` means the hosted
+  metadata-only release preflight surface exists.
+- `release_tunnel_payload_endpoint_missing=true` means release payload bytes do
+  not yet have a proven tunnel transport endpoint.
+- `preview_store_forward_payload_queue_non_release_grade=true` means the
+  store-forward queue is wired for preview/fallback use but cannot satisfy the
+  Connect/Pro release tunnel proof.
+
+This reinforces the boundary: MUSU.PRO may coordinate and relay only when
+properly proven, but local MUSU Desktop remains the executor and the preview
+queue cannot be marketed or treated as release-grade remote transport.
+
 ## 2026-06-02 deployment boundary update
 
 The public `musu.pro` website and the `musu.pro` P2P control plane are

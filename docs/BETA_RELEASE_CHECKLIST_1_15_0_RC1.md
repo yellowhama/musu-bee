@@ -7551,3 +7551,48 @@ Canonical report:
 Next-step plan:
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_06.md`
+
+## 2026-06-06 12:37 KST P2P Env Status Release Payload Terminology
+
+The hosted P2P status script now separates release payload terminology:
+
+- `release_payload_preflight_endpoint_implemented=true`
+- `release_tunnel_payload_endpoint_missing=true`
+- `preview_store_forward_payload_queue_non_release_grade=true`
+- `release_payload_endpoint_queue_only=true` remains a legacy alias only
+
+Current expected status:
+
+- `show-musu-pro-p2p-env-status.ps1 -Json`: `ok=false`
+- source release connect preflight: `true`
+- source release payload preflight: `true`
+- source release tunnel payload endpoint: missing
+- source preview queue fallback: wired but non-release-grade
+- source relay transport kind: `websocket_tunnel`, not `quic_relay_tunnel`
+
+Validation:
+
+- parser checks passed for status/audit/verifier scripts
+- P2P env status JSON produced the new fields
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=62`,
+  `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This is status and audit
+terminology hardening only; it does not implement release relay tunnel payload
+transport, does not move execution into MUSU.PRO, and does not close the
+second-PC, hosted P2P, support mailbox, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ENV_STATUS_RELEASE_PAYLOAD_TERMINOLOGY_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ENV_STATUS_RELEASE_PAYLOAD_TERMINOLOGY_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2624 files`, `2754 symbols`, `18024 ms`

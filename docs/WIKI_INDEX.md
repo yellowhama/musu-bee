@@ -5297,4 +5297,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260606-121806-HUGH_SECOND`, `localhost:3001 not required`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 P2P env status release payload terminology:
+  `RELEASE_1_15_0_RC1_P2P_ENV_STATUS_RELEASE_PAYLOAD_TERMINOLOGY_2026_06_06.md`
+  (wiki/831) records status/audit hardening that separates release payload
+  preflight, missing release tunnel payload endpoint, and preview
+  store-forward queue terminology. Search terms should include `GOAL v656`,
+  `wiki/831`, `release_tunnel_payload_endpoint_missing`,
+  `preview_store_forward_payload_queue_non_release_grade`,
+  `source_preview_store_forward_payload_queue_non_release_grade`,
+  `release payload endpoint queue-only legacy alias`, `release verifier 62/62`,
+  `P2P env status separates release payload terminology`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 P2P env status release payload terminology index refresh:
+  wiki/832 records the MUSU local index refresh after wiki/831 and GOAL v656.
+  Search terms should include `GOAL v657`, `wiki/832`, `2624 files`,
+  `2754 symbols`, `18024 ms`,
+  `P2P env status release payload terminology index refresh`,
+  `release_tunnel_payload_endpoint_missing`,
+  `preview_store_forward_payload_queue_non_release_grade`,
+  `source_preview_store_forward_payload_queue_non_release_grade`,
+  `release verifier 62/62`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

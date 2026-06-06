@@ -514,6 +514,29 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
     return $true
 }
 
+function Test-P2pEnvStatusReleasePayloadTerminologyContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'release_payload_preflight_endpoint_implemented',
+        'release_tunnel_payload_endpoint_missing',
+        'preview_store_forward_payload_queue_non_release_grade',
+        'source_preview_store_forward_payload_queue_non_release_grade',
+        'source_release_relay_payload_marker_conflicts_with_preview_queue_only',
+        'release payload endpoint queue-only legacy alias',
+        'not the release /api/v1/relay/payload preflight endpoint',
+        'it is not the release tunnel payload endpoint'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-GoNoGoCurrentMsixLegacyConflictContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1373,6 +1396,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "P2P env status exposes runtime login remediation" `
+    -Verifier "P2P env status source contract" `
+    -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$p2pEnvStatusReleasePayloadTerminologyContractOk = Test-P2pEnvStatusReleasePayloadTerminologyContract -ScriptPath $p2pEnvStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pEnvStatusReleasePayloadTerminologyContractOk `
+    -Message "P2P env status must distinguish release payload preflight, missing release tunnel payload endpoint, and non-release preview queue terminology"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P env status separates release payload terminology" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
     -ShouldPass $true `
