@@ -5909,4 +5909,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_route_metadata_valid_count`,
   `p2p_relay_route_metadata_invalid_count`, and `case_count=83`.
 
+- 2026-06-06 P2P proof count triplet status surface:
+  `RELEASE_1_15_0_RC1_P2P_PROOF_COUNT_TRIPLET_STATUS_SURFACE_2026_06_06.md`
+  (wiki/893) records proof required/valid/invalid count propagation for route
+  transport proof and payload delivery proof. Search terms should include
+  `GOAL v718`, `wiki/893`,
+  `p2p_relay_route_transport_proof_required_count`,
+  `p2p_relay_route_transport_proof_invalid_count`,
+  `p2p_relay_payload_delivery_proof_required_count`,
+  `p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.
+
+- 2026-06-06 P2P proof count triplet status surface index refresh:
+  wiki/894 records the MUSU local index refresh after wiki/893 and GOAL v718.
+  Search terms should include `GOAL v719`, `wiki/894`, `2751 files`,
+  `2776 symbols`, `15134 ms`, `P2P proof count triplet status surface index
+  refresh`, `p2p_relay_route_transport_proof_required_count`,
+  `p2p_relay_route_transport_proof_invalid_count`,
+  `p2p_relay_payload_delivery_proof_required_count`,
+  `p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.
+
 **End of WIKI_INDEX.md.**

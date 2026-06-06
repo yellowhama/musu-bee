@@ -1655,6 +1655,15 @@ valid count:
 - `p2p_relay_route_metadata_valid_count`
 - `p2p_relay_route_metadata_invalid_count`
 
+The same rule applies to proof counts:
+
+- `p2p_relay_route_transport_proof_required_count`
+- `p2p_relay_route_transport_proof_valid_count`
+- `p2p_relay_route_transport_proof_invalid_count`
+- `p2p_relay_payload_delivery_proof_required_count`
+- `p2p_relay_payload_delivery_proof_valid_count`
+- `p2p_relay_payload_delivery_proof_invalid_count`
+
 This does not change the local-first product boundary. MUSU Desktop executes
 locally; MUSU.PRO coordinates remote input, rooms, rendezvous, path selection,
 relay fallback, and release evidence.

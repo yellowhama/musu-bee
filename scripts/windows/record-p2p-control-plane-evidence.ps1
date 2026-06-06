@@ -254,8 +254,12 @@ $summary = @"
 - Relay route metadata required count: $(if ($verification -and $verification.PSObject.Properties["relay_route_metadata_required_count"]) { $verification.relay_route_metadata_required_count } else { "" })
 - Relay route metadata valid count: $(if ($verification -and $verification.PSObject.Properties["relay_route_metadata_valid_count"]) { $verification.relay_route_metadata_valid_count } else { "" })
 - Relay route metadata invalid count: $(if ($verification -and $verification.PSObject.Properties["relay_route_metadata_invalid_count"]) { $verification.relay_route_metadata_invalid_count } else { "" })
+- Relay route transport proof required count: $(if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_required_count"]) { $verification.relay_route_transport_proof_required_count } else { "" })
 - Relay route transport proof valid count: $(if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_valid_count"]) { $verification.relay_route_transport_proof_valid_count } else { "" })
+- Relay route transport proof invalid count: $(if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_invalid_count"]) { $verification.relay_route_transport_proof_invalid_count } else { "" })
+- Relay payload delivery proof required count: $(if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_required_count"]) { $verification.relay_payload_delivery_proof_required_count } else { "" })
 - Relay payload delivery proof valid count: $(if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { $verification.relay_payload_delivery_proof_valid_count } else { "" })
+- Relay payload delivery proof invalid count: $(if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_invalid_count"]) { $verification.relay_payload_delivery_proof_invalid_count } else { "" })
 - Relay lease store configured: $(Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured")
 - Relay lease store backend: $(if ($relayLeases -and $relayLeases.PSObject.Properties["relay_lease_store_backend"]) { $relayLeases.relay_lease_store_backend } else { "" })
 - Relay lease store release-grade: $(Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_release_grade")
@@ -299,8 +303,12 @@ $result = [pscustomobject]@{
     relay_route_metadata_valid_count = if ($verification -and $verification.PSObject.Properties["relay_route_metadata_valid_count"]) { [int]$verification.relay_route_metadata_valid_count } else { 0 }
     relay_route_metadata_invalid_count = if ($verification -and $verification.PSObject.Properties["relay_route_metadata_invalid_count"]) { [int]$verification.relay_route_metadata_invalid_count } else { 0 }
     relay_payload_transport_proven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
+    relay_route_transport_proof_required_count = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_required_count"]) { [int]$verification.relay_route_transport_proof_required_count } else { 0 }
     relay_route_transport_proof_valid_count = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_valid_count"]) { [int]$verification.relay_route_transport_proof_valid_count } else { 0 }
+    relay_route_transport_proof_invalid_count = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_invalid_count"]) { [int]$verification.relay_route_transport_proof_invalid_count } else { 0 }
+    relay_payload_delivery_proof_required_count = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_required_count"]) { [int]$verification.relay_payload_delivery_proof_required_count } else { 0 }
     relay_payload_delivery_proof_valid_count = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { [int]$verification.relay_payload_delivery_proof_valid_count } else { 0 }
+    relay_payload_delivery_proof_invalid_count = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_invalid_count"]) { [int]$verification.relay_payload_delivery_proof_invalid_count } else { 0 }
     musu_exe = $MusuExe
     musu_exe_source = [string]$musuExeResolution.source
 }

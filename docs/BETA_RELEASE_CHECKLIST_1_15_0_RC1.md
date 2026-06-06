@@ -8605,3 +8605,54 @@ Index refresh:
 - `2776 symbols`
 - `15440 ms`
 - wiki: `wiki/892`
+
+## 2026-06-06 23:22 KST P2P Proof Count Triplet Status Surface
+
+P2P route transport proof and payload delivery proof now surface as
+required/valid/invalid triplets through release status reports.
+
+Changed:
+
+- `record-p2p-control-plane-evidence.ps1` records route transport proof and
+  payload delivery proof triplets.
+- `write-release-go-no-go.ps1` exposes:
+  `p2p_relay_route_transport_proof_required_count`,
+  `p2p_relay_route_transport_proof_valid_count`,
+  `p2p_relay_route_transport_proof_invalid_count`,
+  `p2p_relay_payload_delivery_proof_required_count`,
+  `p2p_relay_payload_delivery_proof_valid_count`, and
+  `p2p_relay_payload_delivery_proof_invalid_count`.
+- `record-external-release-gate-recheck.ps1` and
+  `show-final-release-handoff-status.ps1` carry the same triplets.
+- `test-release-evidence-verifiers.ps1` adds source-contract case
+  `P2P proof count triplets surface through release status reports`.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=84`,
+  `failed_case_count=0`
+- dirty-tree go/no-go status smoke: route transport proof and payload delivery
+  proof triplets `0/0/0`
+
+Qualitative audit found no high/medium issue. This is diagnostic hardening
+only; it does not close second-PC route/CPU/matrix, live MUSU.PRO relay proof,
+support mailbox, or Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_PROOF_COUNT_TRIPLET_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_PROOF_COUNT_TRIPLET_STATUS_SURFACE_2026_06_06.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2751 files`
+- `2776 symbols`
+- `15134 ms`
+- wiki: `wiki/894`

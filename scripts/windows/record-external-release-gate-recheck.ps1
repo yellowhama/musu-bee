@@ -535,14 +535,22 @@ $p2pRouteMetadataValidCountFromVerification = Get-IntProperty -Object $p2pVerifi
 $p2pRelayRouteMetadataValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_metadata_valid_count" -Default $p2pRouteMetadataValidCountFromVerification
 $p2pRouteMetadataInvalidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_metadata_invalid_count" -Default 0
 $p2pRelayRouteMetadataInvalidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_metadata_invalid_count" -Default $p2pRouteMetadataInvalidCountFromVerification
+$p2pRouteTransportProofRequiredCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_transport_proof_required_count" -Default 0
+$p2pRelayRouteTransportProofRequiredCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_transport_proof_required_count" -Default $p2pRouteTransportProofRequiredCountFromVerification
 $p2pRouteTransportProofValidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_transport_proof_valid_count" -Default 0
 $p2pRelayRouteTransportProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_transport_proof_valid_count" -Default $p2pRouteTransportProofValidCountFromVerification
+$p2pRouteTransportProofInvalidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_transport_proof_invalid_count" -Default 0
+$p2pRelayRouteTransportProofInvalidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_transport_proof_invalid_count" -Default $p2pRouteTransportProofInvalidCountFromVerification
 $p2pRelayPayloadTransportProven = (
     (Get-BoolProperty -Object $p2pEvidence.json -Name "relay_payload_transport_proven") -or
     (Get-BoolProperty -Object $p2pRelayRouteEvidence -Name "relay_transport_proven")
 )
+$p2pPayloadProofRequiredCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_payload_delivery_proof_required_count" -Default 0
+$p2pRelayPayloadDeliveryProofRequiredCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_required_count" -Default $p2pPayloadProofRequiredCountFromVerification
 $p2pPayloadProofValidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_payload_delivery_proof_valid_count" -Default 0
 $p2pRelayPayloadDeliveryProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_valid_count" -Default $p2pPayloadProofValidCountFromVerification
+$p2pPayloadProofInvalidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_payload_delivery_proof_invalid_count" -Default 0
+$p2pRelayPayloadDeliveryProofInvalidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_payload_delivery_proof_invalid_count" -Default $p2pPayloadProofInvalidCountFromVerification
 
 $goNoGoBlockers = @()
 if ($goNoGo.json -and $goNoGo.json.PSObject.Properties["blockers"]) {
@@ -657,9 +665,13 @@ $result = [pscustomobject]@{
     p2p_relay_route_metadata_required_count = [int]$p2pRelayRouteMetadataRequiredCount
     p2p_relay_route_metadata_valid_count = [int]$p2pRelayRouteMetadataValidCount
     p2p_relay_route_metadata_invalid_count = [int]$p2pRelayRouteMetadataInvalidCount
+    p2p_relay_route_transport_proof_required_count = [int]$p2pRelayRouteTransportProofRequiredCount
     p2p_relay_route_transport_proof_valid_count = [int]$p2pRelayRouteTransportProofValidCount
+    p2p_relay_route_transport_proof_invalid_count = [int]$p2pRelayRouteTransportProofInvalidCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
+    p2p_relay_payload_delivery_proof_required_count = [int]$p2pRelayPayloadDeliveryProofRequiredCount
     p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
+    p2p_relay_payload_delivery_proof_invalid_count = [int]$p2pRelayPayloadDeliveryProofInvalidCount
     blockers = $blockers.ToArray()
     go_no_go_blockers = $goNoGoBlockers
     go_no_go = $goNoGo.json
@@ -714,9 +726,13 @@ $summary = @"
 - P2P relay route metadata required count: $($result.p2p_relay_route_metadata_required_count)
 - P2P relay route metadata valid count: $($result.p2p_relay_route_metadata_valid_count)
 - P2P relay route metadata invalid count: $($result.p2p_relay_route_metadata_invalid_count)
+- P2P relay route transport proof required count: $($result.p2p_relay_route_transport_proof_required_count)
 - P2P relay route transport proof valid count: $($result.p2p_relay_route_transport_proof_valid_count)
+- P2P relay route transport proof invalid count: $($result.p2p_relay_route_transport_proof_invalid_count)
 - P2P relay payload transport proven: $($result.p2p_relay_payload_transport_proven)
+- P2P relay payload delivery proof required count: $($result.p2p_relay_payload_delivery_proof_required_count)
 - P2P relay payload delivery proof valid count: $($result.p2p_relay_payload_delivery_proof_valid_count)
+- P2P relay payload delivery proof invalid count: $($result.p2p_relay_payload_delivery_proof_invalid_count)
 - Blockers: $blockerText
 - Evidence: $([System.IO.Path]::GetFileName($evidencePath))
 - Evidence SHA256: $($hash.Hash.ToLowerInvariant())
@@ -765,9 +781,13 @@ $final = [pscustomobject]@{
     p2p_relay_route_metadata_required_count = [int]$result.p2p_relay_route_metadata_required_count
     p2p_relay_route_metadata_valid_count = [int]$result.p2p_relay_route_metadata_valid_count
     p2p_relay_route_metadata_invalid_count = [int]$result.p2p_relay_route_metadata_invalid_count
+    p2p_relay_route_transport_proof_required_count = [int]$result.p2p_relay_route_transport_proof_required_count
     p2p_relay_route_transport_proof_valid_count = [int]$result.p2p_relay_route_transport_proof_valid_count
+    p2p_relay_route_transport_proof_invalid_count = [int]$result.p2p_relay_route_transport_proof_invalid_count
     p2p_relay_payload_transport_proven = [bool]$result.p2p_relay_payload_transport_proven
+    p2p_relay_payload_delivery_proof_required_count = [int]$result.p2p_relay_payload_delivery_proof_required_count
     p2p_relay_payload_delivery_proof_valid_count = [int]$result.p2p_relay_payload_delivery_proof_valid_count
+    p2p_relay_payload_delivery_proof_invalid_count = [int]$result.p2p_relay_payload_delivery_proof_invalid_count
     blockers = $result.blockers
 }
 

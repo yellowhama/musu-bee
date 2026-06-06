@@ -629,7 +629,12 @@ function Test-ExternalGateRecheckActionableContract {
         'p2p_relay_route_metadata_required_count',
         'p2p_relay_route_metadata_valid_count',
         'p2p_relay_route_metadata_invalid_count',
+        'p2p_relay_route_transport_proof_required_count',
         'p2p_relay_route_transport_proof_valid_count',
+        'p2p_relay_route_transport_proof_invalid_count',
+        'p2p_relay_payload_delivery_proof_required_count',
+        'p2p_relay_payload_delivery_proof_valid_count',
+        'p2p_relay_payload_delivery_proof_invalid_count',
         'p2p_runtime_not_logged_in',
         'p2p_relay_lease_store_not_release_grade',
         'p2p_relay_transport_not_wired',
@@ -669,6 +674,9 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
         'relay_route_transport_proof_valid_count',
         'relay_route_transport_proof_required_count',
         'relay_route_transport_proof_invalid_count',
+        'relay_payload_delivery_proof_valid_count',
+        'relay_payload_delivery_proof_required_count',
+        'relay_payload_delivery_proof_invalid_count',
         'live_evidence_relay_route_metadata_missing',
         'live_evidence_relay_route_transport_proof_missing',
         'Log in the packaged MUSU runtime with the WindowsApps alias',
@@ -801,6 +809,51 @@ function Test-P2pRouteMetadataStatusSurfaceContract {
     foreach ($contract in $contracts) {
         $source = Get-Content -LiteralPath $contract.path -Raw
         foreach ($needle in $contract.needles) {
+            if (-not $source.Contains($needle)) {
+                return $false
+            }
+        }
+    }
+    return $true
+}
+
+function Test-P2pProofCountStatusSurfaceContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$RecorderScriptPath,
+        [Parameter(Mandatory = $true)][string]$GoNoGoScriptPath,
+        [Parameter(Mandatory = $true)][string]$ExternalScriptPath,
+        [Parameter(Mandatory = $true)][string]$EnvStatusScriptPath,
+        [Parameter(Mandatory = $true)][string]$FinalStatusScriptPath
+    )
+
+    $requiredNeedles = @(
+        'relay_route_transport_proof_required_count',
+        'relay_route_transport_proof_valid_count',
+        'relay_route_transport_proof_invalid_count',
+        'relay_payload_delivery_proof_required_count',
+        'relay_payload_delivery_proof_valid_count',
+        'relay_payload_delivery_proof_invalid_count'
+    )
+    $p2pRequiredNeedles = @(
+        'p2p_relay_route_transport_proof_required_count',
+        'p2p_relay_route_transport_proof_valid_count',
+        'p2p_relay_route_transport_proof_invalid_count',
+        'p2p_relay_payload_delivery_proof_required_count',
+        'p2p_relay_payload_delivery_proof_valid_count',
+        'p2p_relay_payload_delivery_proof_invalid_count'
+    )
+
+    foreach ($scriptPath in @($RecorderScriptPath, $EnvStatusScriptPath)) {
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        foreach ($needle in $requiredNeedles) {
+            if (-not $source.Contains($needle)) {
+                return $false
+            }
+        }
+    }
+    foreach ($scriptPath in @($GoNoGoScriptPath, $ExternalScriptPath, $FinalStatusScriptPath)) {
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        foreach ($needle in $p2pRequiredNeedles) {
             if (-not $source.Contains($needle)) {
                 return $false
             }
@@ -1806,6 +1859,23 @@ Add-CaseResult `
     -Cases $cases `
     -Name "P2P route metadata counts surface through release status reports" `
     -Verifier "P2P route metadata status source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$p2pProofCountStatusSurfaceContractOk = Test-P2pProofCountStatusSurfaceContract `
+    -RecorderScriptPath $p2pControlPlaneEvidenceRecorder `
+    -GoNoGoScriptPath $releaseGoNoGoWriter `
+    -ExternalScriptPath $externalGateRecheckRecorder `
+    -EnvStatusScriptPath $p2pEnvStatusReporter `
+    -FinalStatusScriptPath $finalHandoffStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pProofCountStatusSurfaceContractOk `
+    -Message "P2P proof required/valid/invalid counts must surface through recorder, go/no-go, external recheck, env status, and final handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P proof count triplets surface through release status reports" `
+    -Verifier "P2P proof count status source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

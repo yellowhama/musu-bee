@@ -1543,9 +1543,13 @@ $p2pRelayRouteEvidenceCount = -1
 $p2pRelayRouteMetadataRequiredCount = 0
 $p2pRelayRouteMetadataValidCount = 0
 $p2pRelayRouteMetadataInvalidCount = 0
+$p2pRelayRouteTransportProofRequiredCount = 0
 $p2pRelayRouteTransportProofValidCount = 0
+$p2pRelayRouteTransportProofInvalidCount = 0
 $p2pRelayPayloadTransportProven = $false
+$p2pRelayPayloadDeliveryProofRequiredCount = 0
 $p2pRelayPayloadDeliveryProofValidCount = 0
+$p2pRelayPayloadDeliveryProofInvalidCount = 0
 $p2pRelayLeaseStoreReleaseGrade = $false
 $p2pRelayStatusTransportPreflightOk = $false
 $p2pRelayStatusTransportDescriptorWired = $false
@@ -1583,14 +1587,26 @@ if ($p2pControlPlaneEvidence) {
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_metadata_invalid_count"]) {
         $p2pRelayRouteMetadataInvalidCount = [int]$p2pControlPlaneEvidence.relay_route_metadata_invalid_count
     }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_transport_proof_required_count"]) {
+        $p2pRelayRouteTransportProofRequiredCount = [int]$p2pControlPlaneEvidence.relay_route_transport_proof_required_count
+    }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_transport_proof_valid_count"]) {
         $p2pRelayRouteTransportProofValidCount = [int]$p2pControlPlaneEvidence.relay_route_transport_proof_valid_count
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_route_transport_proof_invalid_count"]) {
+        $p2pRelayRouteTransportProofInvalidCount = [int]$p2pControlPlaneEvidence.relay_route_transport_proof_invalid_count
     }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_transport_proven"]) {
         $p2pRelayPayloadTransportProven = [bool]$p2pControlPlaneEvidence.relay_payload_transport_proven
     }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_delivery_proof_required_count"]) {
+        $p2pRelayPayloadDeliveryProofRequiredCount = [int]$p2pControlPlaneEvidence.relay_payload_delivery_proof_required_count
+    }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) {
         $p2pRelayPayloadDeliveryProofValidCount = [int]$p2pControlPlaneEvidence.relay_payload_delivery_proof_valid_count
+    }
+    if ($p2pControlPlaneEvidence.PSObject.Properties["relay_payload_delivery_proof_invalid_count"]) {
+        $p2pRelayPayloadDeliveryProofInvalidCount = [int]$p2pControlPlaneEvidence.relay_payload_delivery_proof_invalid_count
     }
     if ($p2pControlPlaneEvidence.PSObject.Properties["relay_lease_store_release_grade"]) {
         $p2pRelayLeaseStoreReleaseGrade = [bool]$p2pControlPlaneEvidence.relay_lease_store_release_grade
@@ -2009,9 +2025,13 @@ $result = [pscustomobject]@{
     p2p_relay_route_metadata_required_count = [int]$p2pRelayRouteMetadataRequiredCount
     p2p_relay_route_metadata_valid_count = [int]$p2pRelayRouteMetadataValidCount
     p2p_relay_route_metadata_invalid_count = [int]$p2pRelayRouteMetadataInvalidCount
+    p2p_relay_route_transport_proof_required_count = [int]$p2pRelayRouteTransportProofRequiredCount
     p2p_relay_route_transport_proof_valid_count = [int]$p2pRelayRouteTransportProofValidCount
+    p2p_relay_route_transport_proof_invalid_count = [int]$p2pRelayRouteTransportProofInvalidCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
+    p2p_relay_payload_delivery_proof_required_count = [int]$p2pRelayPayloadDeliveryProofRequiredCount
     p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
+    p2p_relay_payload_delivery_proof_invalid_count = [int]$p2pRelayPayloadDeliveryProofInvalidCount
     p2p_control_plane_evidence = $p2pControlPlaneEvidence
     blockers = $blockers.ToArray()
     warnings = $warnings.ToArray()
@@ -2078,9 +2098,13 @@ else {
     "p2p_relay_route_evidence_ok: $($result.p2p_relay_route_evidence_ok)"
     "p2p_relay_route_evidence_count: $($result.p2p_relay_route_evidence_count)"
     "p2p_relay_route_metadata_valid_count: $($result.p2p_relay_route_metadata_valid_count)"
+    "p2p_relay_route_transport_proof_required_count: $($result.p2p_relay_route_transport_proof_required_count)"
     "p2p_relay_route_transport_proof_valid_count: $($result.p2p_relay_route_transport_proof_valid_count)"
+    "p2p_relay_route_transport_proof_invalid_count: $($result.p2p_relay_route_transport_proof_invalid_count)"
     "p2p_relay_payload_transport_proven: $($result.p2p_relay_payload_transport_proven)"
+    "p2p_relay_payload_delivery_proof_required_count: $($result.p2p_relay_payload_delivery_proof_required_count)"
     "p2p_relay_payload_delivery_proof_valid_count: $($result.p2p_relay_payload_delivery_proof_valid_count)"
+    "p2p_relay_payload_delivery_proof_invalid_count: $($result.p2p_relay_payload_delivery_proof_invalid_count)"
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap

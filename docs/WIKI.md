@@ -12440,3 +12440,83 @@ count completeness index refresh`, `2748 files`, `2776 symbols`, `15440 ms`,
 `p2p_relay_route_metadata_required_count`,
 `p2p_relay_route_metadata_valid_count`,
 `p2p_relay_route_metadata_invalid_count`, and `case_count=83`.
+
+## 2026-06-06 P2P Proof Count Triplet Status Surface (wiki/893)
+
+P2P route transport proof and payload delivery proof now surface as
+required/valid/invalid triplets through release status reports.
+
+Updated:
+
+- `record-p2p-control-plane-evidence.ps1`
+  - records route transport proof required/valid/invalid counts
+  - records payload delivery proof required/valid/invalid counts
+- `write-release-go-no-go.ps1`
+  - exposes `p2p_relay_route_transport_proof_required_count`
+  - exposes `p2p_relay_route_transport_proof_valid_count`
+  - exposes `p2p_relay_route_transport_proof_invalid_count`
+  - exposes `p2p_relay_payload_delivery_proof_required_count`
+  - exposes `p2p_relay_payload_delivery_proof_valid_count`
+  - exposes `p2p_relay_payload_delivery_proof_invalid_count`
+- `record-external-release-gate-recheck.ps1`
+  - carries the same proof triplets in JSON, summary markdown, and final JSON
+- `show-final-release-handoff-status.ps1`
+  - forwards the go/no-go proof triplets
+- `test-release-evidence-verifiers.ps1`
+  - adds source-contract case
+    `P2P proof count triplets surface through release status reports`
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=84`, `failed_case_count=0`
+- dirty-tree go/no-go status smoke surfaced route transport proof and payload
+  delivery proof triplets as `0/0/0`
+
+Qualitative audit found no high/medium issue. This is diagnostic hardening
+only; it makes hosted relay proof blockers easier to diagnose but does not
+implement release relay runtime or second-PC proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_PROOF_COUNT_TRIPLET_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_PROOF_COUNT_TRIPLET_STATUS_SURFACE_2026_06_06.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-06_p2p_proof_count_triplet_status_surface.md`
+
+Search terms should include `GOAL v718`, `wiki/893`,
+`p2p_relay_route_transport_proof_required_count`,
+`p2p_relay_route_transport_proof_invalid_count`,
+`p2p_relay_payload_delivery_proof_required_count`,
+`p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.
+
+## 2026-06-06 P2P Proof Count Triplet Status Surface Index Refresh (wiki/894)
+
+MUSU local indexer was refreshed after wiki/893 and GOAL v718.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2751 files`
+- `2776 symbols`
+- `15134 ms`
+
+Indexed context includes proof required/valid/invalid count propagation in
+`record-p2p-control-plane-evidence.ps1`, `write-release-go-no-go.ps1`,
+`record-external-release-gate-recheck.ps1`,
+`show-final-release-handoff-status.ps1`, release verifier source contract
+hardening, canonical report, next-step plan, BETA checklist, P2P control-plane
+specs, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v719`, `wiki/894`, `P2P proof count triplet
+status surface index refresh`, `2751 files`, `2776 symbols`, `15134 ms`,
+`p2p_relay_route_transport_proof_required_count`,
+`p2p_relay_route_transport_proof_invalid_count`,
+`p2p_relay_payload_delivery_proof_required_count`,
+`p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.

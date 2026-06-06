@@ -397,6 +397,18 @@ The external release handoff path must preserve the full count triplet:
   `p2p_relay_route_metadata_valid_count`, and
   `p2p_relay_route_metadata_invalid_count`
 
+Route transport proof and payload delivery proof status must also preserve
+required/valid/invalid triplets:
+
+- route transport proof:
+  `p2p_relay_route_transport_proof_required_count`,
+  `p2p_relay_route_transport_proof_valid_count`, and
+  `p2p_relay_route_transport_proof_invalid_count`
+- payload delivery proof:
+  `p2p_relay_payload_delivery_proof_required_count`,
+  `p2p_relay_payload_delivery_proof_valid_count`, and
+  `p2p_relay_payload_delivery_proof_invalid_count`
+
 Release interpretation:
 
 - hosted P2P No-Go diagnostics must name missing route metadata separately
