@@ -426,11 +426,16 @@ foreach ($name in $Scenario) {
                     $routeOutputParts = @($candidateResult.stdout, $candidateResult.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
                     $candidateOutput = ($routeOutputParts -join "`n").Trim()
                     $candidateOk = ($candidateResult.exit_code -eq 0 -and $candidateOutput -like "*$expectedRouteToken*")
+                    $effectiveRouteExitCode = [int]$candidateResult.exit_code
+                    if (-not $candidateOk -and $effectiveRouteExitCode -eq 0) {
+                        $effectiveRouteExitCode = 1
+                    }
                     $retryAfterSec = if ($candidateOk) { $null } else { Get-RouteProbeRetryAfterSec -Text $candidateOutput }
                     $routeAttempts.Add([pscustomobject]@{
                         attempt = $attempt
                         started_at = $attemptStartedAt
-                        exit_code = [int]$candidateResult.exit_code
+                        exit_code = $effectiveRouteExitCode
+                        raw_exit_code = [int]$candidateResult.exit_code
                         stdout = [string]$candidateResult.stdout
                         stderr = [string]$candidateResult.stderr
                         output = $candidateOutput
@@ -438,7 +443,12 @@ foreach ($name in $Scenario) {
                         retry_after_s = $retryAfterSec
                         timeout_sec = $routeProbeCommandTimeoutSec
                     }) | Out-Null
-                    $routeResult = $candidateResult
+                    $routeResult = [pscustomobject]@{
+                        exit_code = $effectiveRouteExitCode
+                        raw_exit_code = [int]$candidateResult.exit_code
+                        stdout = [string]$candidateResult.stdout
+                        stderr = [string]$candidateResult.stderr
+                    }
                     $routeOutput = $candidateOutput
                     if ($candidateOk -or $attempt -ge $RouteProbeMaxAttempts -or $null -eq $retryAfterSec) {
                         break
@@ -457,6 +467,7 @@ foreach ($name in $Scenario) {
                     attempt_count = $routeAttempts.Count
                     attempts = $routeAttempts.ToArray()
                     exit_code = [int]$routeResult.exit_code
+                    raw_exit_code = [int]$routeResult.raw_exit_code
                     stdout = [string]$routeResult.stdout
                     stderr = [string]$routeResult.stderr
                     output = $routeOutput

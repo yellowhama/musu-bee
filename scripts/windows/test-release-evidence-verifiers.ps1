@@ -202,6 +202,10 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
         'RoutePrompt must include expected token',
         '"--wait-timeout-sec"',
         '$routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)',
+        '$effectiveRouteExitCode = [int]$candidateResult.exit_code',
+        'if (-not $candidateOk -and $effectiveRouteExitCode -eq 0)',
+        'raw_exit_code = [int]$candidateResult.exit_code',
+        'exit_code = $effectiveRouteExitCode',
         'wait_timeout_sec = $RouteWaitTimeoutSec',
         'command_timeout_sec = $routeProbeCommandTimeoutSec'
     )
