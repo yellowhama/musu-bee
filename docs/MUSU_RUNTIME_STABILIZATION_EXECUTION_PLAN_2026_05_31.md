@@ -462,3 +462,32 @@ Runtime stabilization impact:
 
 This protects the evidence gate used for idle/busy-loop diagnosis. It does not
 change CPU budgets or close second-PC evidence requirements.
+
+## 2026-06-07 P2P env blockers go/no-go surface
+
+Release go/no-go now carries the hosted P2P env status root-cause split instead
+of only the broad `p2p-control-plane` blocker.
+
+Runtime stabilization impact:
+
+- `p2p_control_plane_env_ready` shows whether the hosted P2P env/status
+  preflight is ready
+- `p2p_control_plane_env_blockers` carries concrete blockers such as release
+  relay tunnel runtime missing, release payload endpoint missing, missing
+  KV/Upstash names, runtime login missing, and missing relay proof
+- `p2p_control_plane_env_status` preserves the full source/live/env detail for
+  release triage
+
+This does not reduce the P2P release requirements. It makes the next execution
+order explicit: implement actual release relay tunnel payload transport, record
+owner-scoped hosted proof, then combine it with second-PC route/CPU/matrix
+evidence.
+
+Validation and indexing:
+
+- release verifier regression now includes
+  `go-no-go surfaces P2P env status blockers`
+- verifier run passed with `case_count=96` and `failed_case_count=0`
+- dirty go/no-go smoke confirmed the env surface stays fail-closed with
+  `p2p_control_plane_env_ready=false` and `12` concrete P2P blockers
+- MUSU local indexer refreshed `2799 files`, `2776 symbols`, in `18256 ms`

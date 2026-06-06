@@ -1120,3 +1120,22 @@ Release proof still requires successful second-machine route evidence, verified
 peer identity, hardened transport, and payload transit truth before any
 MUSU.PRO relay path can satisfy the public P2P gate.
 
+## 2026-06-07 P2P env go/no-go boundary
+
+The public go/no-go report now exposes P2P env readiness and blockers from
+`show-musu-pro-p2p-env-status.ps1`.
+
+Boundary implications:
+
+- exposing `p2p_control_plane_env_status` is diagnostic/status hardening only;
+- a MUSU.PRO status preflight cannot replace local execution on each device;
+- a MUSU.PRO relay fallback cannot become the default payload path;
+- release-grade relay remains blocked until the local runtime implements the
+  release tunnel, the hosted endpoint proves owner-scoped storage/login, and
+  route records include metadata, transport proof, and payload delivery proof;
+- public release still needs successful second-PC route/CPU/matrix evidence.
+
+This keeps the product split intact: MUSU Desktop does the work locally, and
+MUSU.PRO coordinates input, rooms, rendezvous, path selection, relay fallback,
+and evidence.
+

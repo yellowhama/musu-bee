@@ -13253,3 +13253,76 @@ stabilization spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
 Search terms should include `GOAL v739`, `wiki/914`, `runtime CPU matrix
 OutputRoot hygiene index refresh`, `2796 files`, `2776 symbols`, `15618 ms`,
 `output_root_git_ignored`, `git check-ignore`, and `case_count=95`.
+
+## 2026-06-07 P2P Env Blockers Go/No-Go Surface (wiki/915)
+
+`write-release-go-no-go.ps1` now surfaces the P2P env status blocker list from
+`show-musu-pro-p2p-env-status.ps1`.
+
+Changed:
+
+- go/no-go invokes `show-musu-pro-p2p-env-status.ps1 -Json`
+- the selected latest P2P evidence path is passed through to the env status
+  reporter
+- go/no-go JSON now contains `p2p_control_plane_env_ready`
+- go/no-go JSON now contains `p2p_control_plane_env_blockers`
+- go/no-go JSON now contains `p2p_control_plane_env_status`
+- the `p2p-control-plane` blocker message now includes a short
+  `P2P env blockers:` summary
+- release verifier regression adds
+  `go-no-go surfaces P2P env status blockers`
+
+Current env status remains `ok=false` with expected blockers:
+
+- `source_release_relay_payload_endpoint_not_implemented`
+- `source_release_relay_tunnel_runtime_not_implemented`
+- `source_preview_store_forward_payload_queue_non_release_grade`
+- `source_relay_transport_kind_not_release_grade`
+- missing KV/Upstash URL/token names
+- `live_evidence_p2p_runtime_not_logged_in`
+- `live_evidence_relay_transport_not_wired`
+- missing relay route metadata, transport proof, and payload delivery proof
+
+Qualitative audit found no high/medium issue. This is status/evidence surface
+hardening only. It does not implement release relay tunnel transport and does
+not move execution into MUSU.PRO.
+
+Search terms should include `GOAL v740`, `wiki/915`,
+`p2p_control_plane_env_ready`, `p2p_control_plane_env_blockers`,
+`p2p_control_plane_env_status`, `P2P env blockers`,
+`source_release_relay_tunnel_runtime_not_implemented`,
+`source_release_relay_payload_endpoint_not_implemented`, and
+`go-no-go surfaces P2P env status blockers`.
+
+Validation:
+
+- parser checks passed for the touched PowerShell scripts
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=96`, and `failed_case_count=0`
+- dirty go/no-go smoke stayed fail-closed with
+  `p2p_control_plane_env_ready=false`, `12` P2P env blockers, and a `git`
+  blocker while the working tree was intentionally dirty
+
+## 2026-06-07 P2P Env Blockers Go/No-Go Index Refresh (wiki/916)
+
+MUSU local indexer was refreshed after wiki/915 and GOAL v740.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2799 files`
+- `2776 symbols`
+- `18256 ms`
+
+Indexed context includes go/no-go P2P env status fields,
+`show-musu-pro-p2p-env-status.ps1` source/live/env detail, release verifier
+regression `case_count=96`, dirty go/no-go smoke with `12` P2P env blockers,
+canonical report, next-step plan, BETA checklist, runtime stabilization spec,
+MUSU.PRO P2P control-plane spec, network boundary spec, GOAL, WIKI/WIKI_INDEX,
+and CoS memory.
+
+Search terms should include `GOAL v741`, `wiki/916`, `P2P env blockers
+go/no-go index refresh`, `2799 files`, `2776 symbols`, `18256 ms`,
+`p2p_control_plane_env_status`, `case_count=96`,
+`source_release_relay_tunnel_runtime_not_implemented`, and
+`source_release_relay_payload_endpoint_not_implemented`.

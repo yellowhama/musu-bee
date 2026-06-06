@@ -999,6 +999,7 @@ $msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.p
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
+$p2pEnvStatusScript = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
@@ -1581,6 +1582,31 @@ if ($p2pControlPlaneEvidenceCandidate) {
     }
 }
 
+$p2pEnvStatusArguments = @("-BaseUrl", $PublicMetadataBaseUrl, "-Version", $version, "-Json")
+if ($p2pControlPlaneEvidenceCandidate) {
+    $p2pEnvStatusArguments += @("-EvidencePath", $p2pControlPlaneEvidenceCandidate.FullName)
+}
+$p2pEnvStatusResult = Invoke-JsonScript `
+    -FilePath $p2pEnvStatusScript `
+    -Arguments $p2pEnvStatusArguments `
+    -AllowFailure
+$p2pEnvStatus = if ($p2pEnvStatusResult.json) {
+    $p2pEnvStatusResult.json
+}
+else {
+    [pscustomobject]@{
+        ok = $false
+        raw = $p2pEnvStatusResult.raw
+        exit_code = $p2pEnvStatusResult.exit_code
+        timed_out = $p2pEnvStatusResult.timed_out
+    }
+}
+$p2pEnvStatusReady = ($p2pEnvStatus -and $p2pEnvStatus.PSObject.Properties["ok"] -and [bool]$p2pEnvStatus.ok)
+$p2pEnvStatusBlockers = @()
+if ($p2pEnvStatus -and $p2pEnvStatus.PSObject.Properties["blockers"] -and $null -ne $p2pEnvStatus.blockers) {
+    $p2pEnvStatusBlockers = @($p2pEnvStatus.blockers | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
 $p2pRelayTransportWired = $false
 $p2pRelayRouteEvidenceOk = $false
 $p2pRelayRouteEvidenceCount = -1
@@ -1850,7 +1876,13 @@ if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
 }
 if (-not $p2pControlPlaneVerified) {
-    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true, count > 0, relay_route_metadata_valid_count > 0, relay_route_transport_proof_valid_count > 0, and relay_payload_delivery_proof present."
+    $p2pEnvBlockerSummary = if ($p2pEnvStatusBlockers.Count -gt 0) {
+        " P2P env blockers: $(@($p2pEnvStatusBlockers | Select-Object -First 12) -join ', ')."
+    }
+    else {
+        ""
+    }
+    Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true, count > 0, relay_route_metadata_valid_count > 0, relay_route_transport_proof_valid_count > 0, and relay_payload_delivery_proof present.$p2pEnvBlockerSummary"
 }
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
@@ -2057,6 +2089,9 @@ $result = [pscustomobject]@{
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
     p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
+    p2p_control_plane_env_ready = [bool]$p2pEnvStatusReady
+    p2p_control_plane_env_blockers = @($p2pEnvStatusBlockers)
+    p2p_control_plane_env_status = $p2pEnvStatus
     p2p_owner_scope_verified = [bool]$p2pOwnerScopeVerified
     p2p_relay_lease_store_release_grade = [bool]$p2pRelayLeaseStoreReleaseGrade
     p2p_relay_transport_wired = [bool]$p2pRelayTransportWired
@@ -2132,6 +2167,8 @@ else {
     "support_mailbox_verified: $($result.support_mailbox_verified)"
     "store_release_verified: $($result.store_release_verified)"
     "p2p_control_plane_verified: $($result.p2p_control_plane_verified)"
+    "p2p_control_plane_env_ready: $($result.p2p_control_plane_env_ready)"
+    "p2p_control_plane_env_blockers: $((@($result.p2p_control_plane_env_blockers) -join ', '))"
     "p2p_owner_scope_verified: $($result.p2p_owner_scope_verified)"
     "p2p_relay_lease_store_release_grade: $($result.p2p_relay_lease_store_release_grade)"
     "p2p_relay_transport_wired: $($result.p2p_relay_transport_wired)"

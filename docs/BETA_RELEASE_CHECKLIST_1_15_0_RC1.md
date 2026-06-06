@@ -9133,3 +9133,50 @@ Index refresh:
 - `2776 symbols`
 - `15618 ms`
 - wiki: `wiki/914`
+
+## 2026-06-07 03:32 KST P2P Env Blockers Go/No-Go Surface
+
+The primary release go/no-go report now includes P2P env status detail from
+`show-musu-pro-p2p-env-status.ps1`.
+
+Changed:
+
+- `write-release-go-no-go.ps1` emits `p2p_control_plane_env_ready`
+- `write-release-go-no-go.ps1` emits `p2p_control_plane_env_blockers`
+- `write-release-go-no-go.ps1` emits `p2p_control_plane_env_status`
+- the `p2p-control-plane` blocker message includes a concise
+  `P2P env blockers:` summary
+- release verifier regression added
+  `go-no-go surfaces P2P env status blockers`
+
+Current P2P env status remains expected No-Go:
+
+- release relay payload endpoint is not implemented
+- release relay tunnel runtime is not implemented
+- preview store-forward queue remains non-release-grade
+- relay transport kind is not release-grade
+- KV/Upstash URL/token names are missing
+- live runtime is not logged in
+- release relay route metadata, transport proof, and payload delivery proof are
+  missing
+
+Release interpretation:
+
+- this is status/evidence hardening only
+- it does not implement release relay tunnel payload transport
+- it does not move execution into MUSU.PRO
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+Validation and index refresh:
+
+- parser checks: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=96`,
+  `failed_case_count=0`
+- dirty go/no-go smoke: `ready_for_public_desktop_release=false`,
+  `manifest_git.dirty=true`, `p2p_control_plane_env_ready=false`, `12` P2P
+  env blockers, and `git` blocker present
+- MUSU indexer:
+  `2799 files`, `2776 symbols`, `18256 ms`
+- wiki: `wiki/916`

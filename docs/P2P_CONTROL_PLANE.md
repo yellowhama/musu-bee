@@ -517,3 +517,27 @@ Interpretation:
   Desktop executor;
 - MUSU.PRO remains the web control plane for remote input, rooms, rendezvous,
   path selection, relay fallback, and evidence.
+
+## 2026-06-07 P2P env blockers in go/no-go
+
+The release go/no-go report now embeds hosted P2P env status from
+`show-musu-pro-p2p-env-status.ps1`.
+
+The report must expose:
+
+- `p2p_control_plane_env_ready`
+- `p2p_control_plane_env_blockers`
+- `p2p_control_plane_env_status`
+- a concise `P2P env blockers:` summary on the `p2p-control-plane` blocker
+
+Current blocker split:
+
+- release relay tunnel runtime missing
+- release relay payload endpoint missing
+- preview store-forward queue non-release-grade
+- release transport kind not release-grade
+- KV/Upstash and login/proof evidence missing
+- relay route metadata, transport proof, and payload delivery proof missing
+
+This keeps the gate fail-closed and makes the next implementation work visible
+without changing the local-executor / MUSU.PRO control-plane boundary.

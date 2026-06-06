@@ -6104,4 +6104,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `output_root_git_ignored`, `git check-ignore`, and
   `case_count=95`.
 
+- 2026-06-07 P2P env blockers go/no-go surface:
+  `RELEASE_1_15_0_RC1_P2P_ENV_BLOCKERS_GO_NO_GO_SURFACE_2026_06_07.md`
+  (wiki/915) records go/no-go status hardening that carries
+  `show-musu-pro-p2p-env-status.ps1` readiness, blockers, and full source/live
+  env detail into the primary release report. Search terms should include
+  `GOAL v740`, `wiki/915`, `p2p_control_plane_env_ready`,
+  `p2p_control_plane_env_blockers`, `p2p_control_plane_env_status`,
+  `P2P env blockers`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `source_release_relay_payload_endpoint_not_implemented`, and
+  `go-no-go surfaces P2P env status blockers`.
+
+- 2026-06-07 P2P env blockers go/no-go index refresh:
+  wiki/916 records the MUSU local index refresh after wiki/915 and GOAL v740.
+  Search terms should include `GOAL v741`, `wiki/916`, `2799 files`,
+  `2776 symbols`, `18256 ms`, `P2P env blockers go/no-go index refresh`,
+  `p2p_control_plane_env_status`, `case_count=96`,
+  `source_release_relay_tunnel_runtime_not_implemented`, and
+  `source_release_relay_payload_endpoint_not_implemented`.
+
 **End of WIKI_INDEX.md.**

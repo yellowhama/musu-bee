@@ -1985,3 +1985,32 @@ Control-plane interpretation:
 - release still requires a reachable second MUSU Desktop runtime and
   release-grade `musu.route_evidence.v1` before hosted MUSU.PRO relay proof can
   close the public P2P gate.
+
+## 2026-06-07 P2P env blockers go/no-go surface
+
+Release go/no-go must surface hosted P2P env status detail, not only the broad
+`p2p-control-plane` blocker.
+
+Normative behavior:
+
+- go/no-go invokes `show-musu-pro-p2p-env-status.ps1 -Json`.
+- go/no-go passes the selected latest P2P control-plane evidence path to that
+  status reporter when evidence exists.
+- go/no-go JSON includes `p2p_control_plane_env_ready`.
+- go/no-go JSON includes `p2p_control_plane_env_blockers`.
+- go/no-go JSON includes `p2p_control_plane_env_status`.
+- the `p2p-control-plane` blocker message includes a concise
+  `P2P env blockers:` summary when env blockers exist.
+
+Current release interpretation:
+
+- source release relay tunnel runtime is still not implemented;
+- source release relay payload endpoint is still not implemented;
+- preview store-forward queue remains non-release-grade;
+- production KV/Upstash names and live runtime login/proof are still missing;
+- release relay route metadata, transport proof, and payload delivery proof are
+  still missing.
+
+This status surface is not a relay implementation. MUSU.PRO remains remote
+input, room, rendezvous, path-selection, relay fallback, and evidence/control
+plane. MUSU Desktop remains the local executor.

@@ -916,6 +916,32 @@ function Test-P2pEnvStatusReleasePayloadTerminologyContract {
     return $true
 }
 
+function Test-GoNoGoP2pEnvStatusSurfaceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$p2pEnvStatusScript = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"',
+        '$p2pEnvStatusArguments = @("-BaseUrl", $PublicMetadataBaseUrl, "-Version", $version, "-Json")',
+        '"-EvidencePath", $p2pControlPlaneEvidenceCandidate.FullName',
+        '$p2pEnvStatusReady',
+        '$p2pEnvStatusBlockers',
+        'P2P env blockers:',
+        'p2p_control_plane_env_ready',
+        'p2p_control_plane_env_blockers',
+        'p2p_control_plane_env_status',
+        'p2p_control_plane_env_ready:',
+        'p2p_control_plane_env_blockers:'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-P2pRouteRecordMetadataVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2223,6 +2249,18 @@ Add-CaseResult `
     -Name "P2P env status separates release payload terminology" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoP2pEnvStatusSurfaceContractOk = Test-GoNoGoP2pEnvStatusSurfaceContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoP2pEnvStatusSurfaceContractOk `
+    -Message "go/no-go must include P2P env status readiness, blockers, and source/live/env detail from show-musu-pro-p2p-env-status.ps1"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go surfaces P2P env status blockers" `
+    -Verifier "P2P go-no-go status source contract" `
+    -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
 
