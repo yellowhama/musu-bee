@@ -389,3 +389,26 @@ Runtime stabilization impact:
 This keeps the debugging order concrete: first prove the peer endpoint is
 registered and non-local, then prove CPU stays low around route attempts, then
 record successful release-grade route proof.
+
+## 2026-06-07 process ownership transient CLI hardening
+
+Process ownership now separates long-lived bridge runtime roots from
+short-lived `musu.exe` operator commands.
+
+Runtime stabilization impact:
+
+- `musu_runtime` means `musud`, the bridge registry PID, or a
+  `musu.exe bridge` command line.
+- transient CLI commands are reported as `musu_cli`.
+- a simultaneous `musu status --json` command no longer causes a false
+  `musu_runtime=2` duplicate-runtime finding.
+- bridge registry PID, packaged path, process ownership tree, and `/health`
+  checks still gate the actual runtime.
+
+Current local evidence after the patch on `HUGH_SECOND` reports
+`musu_runtime=1`, `musu_cli=0`, `desktop_shell=1`, `owned_node=0`,
+`owned_webview2=6`, and bridge `/health` HTTP `200`.
+
+This is local audit hardening only. The next release reducer remains
+second-machine route reachability, clean two-machine CPU/matrix evidence, and
+hosted MUSU.PRO P2P/relay proof.

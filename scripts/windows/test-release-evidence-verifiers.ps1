@@ -455,6 +455,27 @@ function Test-ProcessOwnershipGoNoGoFreshnessContract {
     return $true
 }
 
+function Test-ProcessOwnershipTransientCliContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Test-MusuBridgeCommandLine',
+        'function Test-MusuRuntimeRoot',
+        'Test-MusuRuntimeRoot $_ $bridgePid',
+        '$musuCliProcesses = @($rawProcesses',
+        '"musu_cli"',
+        'musu_cli = @($musuCliProcesses).Count'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SingleInstanceGoNoGoFreshnessContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1942,6 +1963,18 @@ Add-CaseResult `
     -Name "go-no-go process ownership requires current freshness" `
     -Verifier "process ownership source contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$processOwnershipTransientCliOk = Test-ProcessOwnershipTransientCliContract -ScriptPath (Join-Path $scriptDir "audit-musu-process-ownership.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $processOwnershipTransientCliOk `
+    -Message "process ownership audit must count only bridge runtime roots and expose transient MUSU CLI processes separately"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "process ownership excludes transient MUSU CLI from bridge runtime count" `
+    -Verifier "process ownership source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-musu-process-ownership.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

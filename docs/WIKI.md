@@ -13062,3 +13062,65 @@ Search terms should include `GOAL v733`, `wiki/908`, `second-PC route
 reachability handoff index refresh`, `2784 files`, `2776 symbols`, `15188 ms`,
 `RouteReachabilityTarget`, `route_reachability_diagnostic_verified`,
 `musu.route_reachability_diagnostic.v1`, and `case_count=93`.
+
+## 2026-06-07 Process Ownership Transient CLI Hardening (wiki/909)
+
+Process ownership now separates long-lived MUSU bridge runtime roots from
+transient `musu.exe` operator commands.
+
+Root cause:
+
+- overlapping `musu status --json` and process attribution could make the old
+  audit report `musu_runtime=2`
+- rerunning attribution by itself passed, so this was a false-positive audit
+  risk, not proven duplicate bridge startup
+
+Implementation:
+
+- `audit-musu-process-ownership.ps1` counts only `musud`, bridge registry PID,
+  or `musu.exe bridge` command line as `musu_runtime`
+- other `musu.exe` commands are reported as `musu_cli`
+- `show-musu-process-attribution.ps1` exposes `counts.musu_cli`
+- release verifier added
+  `process ownership excludes transient MUSU CLI from bridge runtime count`
+
+Evidence:
+
+- local bridge: `http://127.0.0.1:1158`, healthy
+- `HUGH-MAIN`: `192.168.1.192:8949`, unhealthy, `version=unknown`
+- process ownership: `ok=true`, `fail_count=0`, `musu_runtime=1`,
+  `musu_cli=0`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`
+- process attribution: `ok=true`, orphan repo helpers `0`
+- release verifier regression: `ok=true`, `case_count=94`,
+  `failed_case_count=0`
+- 60s desktop-open CPU diagnostic: `ok=true`, hot processes `0`, WebView2 max
+  `0.05`, dirty tree, diagnostic only
+
+Qualitative audit found no high/medium issue. This is local audit hardening
+only; public release remains No-Go on real second-PC route/CPU/matrix, hosted
+MUSU.PRO P2P/relay proof, support mailbox, and Store proof.
+
+Search terms should include `GOAL v734`, `wiki/909`, `musu_cli`,
+`Test-MusuRuntimeRoot`, `Test-MusuBridgeCommandLine`, `musu_runtime=1`,
+`case_count=94`, `127.0.0.1:1158`, `HUGH-MAIN unhealthy`, and `MUSU Desktop
+local executor`.
+
+## 2026-06-07 Process Ownership Transient CLI Hardening Index Refresh (wiki/910)
+
+MUSU local indexer was refreshed after wiki/909 and GOAL v734.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2786 files`
+- `2776 symbols`
+- `33404 ms`
+
+Indexed context includes `audit-musu-process-ownership.ps1`,
+`show-musu-process-attribution.ps1`, release verifier regression
+`case_count=94`, canonical report, next-step plan, beta checklist, runtime
+stabilization spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v735`, `wiki/910`, `process ownership
+transient CLI hardening index refresh`, `2786 files`, `2776 symbols`,
+`33404 ms`, `musu_cli`, `Test-MusuRuntimeRoot`,
+`Test-MusuBridgeCommandLine`, and `case_count=94`.

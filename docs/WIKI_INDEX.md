@@ -6055,4 +6055,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route_reachability_diagnostic_verified`,
   `musu.route_reachability_diagnostic.v1`, and `case_count=93`.
 
+- 2026-06-07 process ownership transient CLI hardening:
+  `RELEASE_1_15_0_RC1_PROCESS_OWNERSHIP_TRANSIENT_CLI_HARDENING_2026_06_07.md`
+  (wiki/909) records process ownership hardening that excludes short-lived
+  `musu.exe` operator commands from bridge runtime counts and reports them as
+  `musu_cli`. Search terms should include `GOAL v734`, `wiki/909`,
+  `musu_cli`, `Test-MusuRuntimeRoot`, `Test-MusuBridgeCommandLine`,
+  `musu_runtime=1`, `case_count=94`, `127.0.0.1:1158`, `HUGH-MAIN unhealthy`,
+  and `MUSU Desktop local executor`.
+
+- 2026-06-07 process ownership transient CLI hardening index refresh:
+  wiki/910 records the MUSU local index refresh after wiki/909 and GOAL v734.
+  Search terms should include `GOAL v735`, `wiki/910`, `2786 files`,
+  `2776 symbols`, `33404 ms`, `process ownership transient CLI hardening
+  index refresh`, `musu_cli`, `Test-MusuRuntimeRoot`,
+  `Test-MusuBridgeCommandLine`, and `case_count=94`.
+
 **End of WIKI_INDEX.md.**

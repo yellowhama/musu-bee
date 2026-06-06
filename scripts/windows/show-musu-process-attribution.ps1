@@ -28,6 +28,12 @@ if ($LASTEXITCODE -ne 0) {
 
 $audit = $auditText | ConvertFrom-Json
 $processes = @($audit.processes)
+$musuCliCount = if ($audit.process_counts.PSObject.Properties["musu_cli"]) {
+    [int]$audit.process_counts.musu_cli
+}
+else {
+    0
+}
 $nodeProcesses = @($processes | Where-Object { $_.role -eq "node_helper" })
 $webView2Processes = @($processes | Where-Object { $_.role -eq "webview2_helper" })
 $ownedNodeProcesses = @($nodeProcesses | Where-Object { [bool]$_.owned_by_musu })
@@ -76,6 +82,9 @@ else {
 if ($ownedWebView2Processes.Count -gt 0) {
     $findings.Add("$($ownedWebView2Processes.Count) WebView2 helper process(es) are owned by MUSU.") | Out-Null
 }
+if ($musuCliCount -gt 0) {
+    $findings.Add("$musuCliCount transient MUSU CLI process(es) were excluded from the bridge-runtime ownership count.") | Out-Null
+}
 if ($repoOrphanHelpers.Count -gt 0) {
     $findings.Add("$($repoOrphanHelpers.Count) repo-related Node/WebView2 helper process(es) are not owned by a live MUSU root.") | Out-Null
 }
@@ -96,6 +105,7 @@ $result = [pscustomobject]@{
     bridge_registry = $audit.bridge_registry
     counts = [pscustomobject]@{
         musu_runtime = [int]$audit.process_counts.musu_runtime
+        musu_cli = $musuCliCount
         desktop_shell = [int]$audit.process_counts.desktop_shell
         machine_wide_node = $nodeProcesses.Count
         owned_node = $ownedNodeProcesses.Count
@@ -128,6 +138,7 @@ else {
     }
     "audit_evidence: $($result.audit_evidence_path)"
     "musu_runtime: $($result.counts.musu_runtime)"
+    "musu_cli: $($result.counts.musu_cli)"
     "desktop_shell: $($result.counts.desktop_shell)"
     "node.exe: machine-wide=$($result.counts.machine_wide_node), owned_by_musu=$($result.counts.owned_node), unowned=$($result.counts.unowned_node)"
     "WebView2: machine-wide=$($result.counts.machine_wide_webview2), owned_by_musu=$($result.counts.owned_webview2), unowned=$($result.counts.unowned_webview2)"

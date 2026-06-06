@@ -195,6 +195,30 @@ function Test-PackagedMusuPath([string]$Path) {
     return ($lower.Contains("\windowsapps\yellowhama.musu_") -or $lower.Contains("\program files\windowsapps\yellowhama.musu_"))
 }
 
+function Test-MusuBridgeCommandLine([string]$CommandLine) {
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $false
+    }
+
+    return ($CommandLine -match '(?i)(^|\s)"?[^"]*musu(?:\.exe)?"?\s+bridge(\s|$)')
+}
+
+function Test-MusuRuntimeRoot($Process, $BridgePid) {
+    if (-not $Process) {
+        return $false
+    }
+    if ($Process.process_name -ieq "musud") {
+        return $true
+    }
+    if ($Process.process_name -ine "musu") {
+        return $false
+    }
+    if ($null -ne $BridgePid -and [int]$Process.pid -eq [int]$BridgePid) {
+        return $true
+    }
+    return (Test-MusuBridgeCommandLine ([string]$Process.command_line))
+}
+
 function Test-DescendantOfAnyRoot([int]$ProcessId, $RootIds, $ParentByPid) {
     $seen = New-Object 'System.Collections.Generic.HashSet[int]'
     $current = $ProcessId
@@ -239,6 +263,43 @@ function Test-HttpHealth([string]$Addr) {
     }
 }
 
+$musuHome = if ($env:MUSU_HOME) {
+    [System.IO.Path]::GetFullPath($env:MUSU_HOME)
+}
+elseif ($env:USERPROFILE) {
+    Join-Path $env:USERPROFILE ".musu"
+}
+elseif ($env:HOME) {
+    Join-Path $env:HOME ".musu"
+}
+else {
+    Join-Path $repoRoot ".musu"
+}
+$bridgeRegistryPath = Join-Path $musuHome "services\bridge.json"
+$bridgeRegistry = $null
+$bridgeRegistryParseError = $null
+if (Test-Path -LiteralPath $bridgeRegistryPath) {
+    try {
+        $bridgeRegistry = Get-Content -LiteralPath $bridgeRegistryPath -Raw | ConvertFrom-Json
+    }
+    catch {
+        $bridgeRegistryParseError = $_.Exception.Message
+    }
+}
+
+$bridgePid = if ($bridgeRegistry -and $bridgeRegistry.PSObject.Properties["pid"]) {
+    [int]$bridgeRegistry.pid
+}
+else {
+    $null
+}
+$bridgeAddr = if ($bridgeRegistry -and $bridgeRegistry.PSObject.Properties["addr"]) {
+    [string]$bridgeRegistry.addr
+}
+else {
+    $null
+}
+
 $script:nativeParentLookupAvailable = $false
 $targetNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 foreach ($name in @("musu", "musud", "musu-desktop", "node", "msedgewebview2")) {
@@ -273,7 +334,10 @@ foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
 }
 
 $musuRoots = @($rawProcesses | Where-Object {
-    $_.process_name -ieq "musu" -or $_.process_name -ieq "musud"
+    Test-MusuRuntimeRoot $_ $bridgePid
+})
+$musuCliProcesses = @($rawProcesses | Where-Object {
+    $_.process_name -ieq "musu" -and -not (Test-MusuRuntimeRoot $_ $bridgePid)
 })
 $desktopRoots = @($rawProcesses | Where-Object {
     $_.process_name -ieq "musu-desktop"
@@ -295,6 +359,9 @@ foreach ($process in $rawProcesses) {
     }
     elseif ($isRoot) {
         "musu_runtime"
+    }
+    elseif ($process.process_name -ieq "musu") {
+        "musu_cli"
     }
     elseif ($process.process_name -ieq "node") {
         "node_helper"
@@ -339,42 +406,6 @@ $nonPackagedDesktopProcesses = @($processes | Where-Object {
     $_.role -eq "desktop_shell" -and -not (Test-PackagedMusuPath $_.path)
 })
 
-$musuHome = if ($env:MUSU_HOME) {
-    [System.IO.Path]::GetFullPath($env:MUSU_HOME)
-}
-elseif ($env:USERPROFILE) {
-    Join-Path $env:USERPROFILE ".musu"
-}
-elseif ($env:HOME) {
-    Join-Path $env:HOME ".musu"
-}
-else {
-    Join-Path $repoRoot ".musu"
-}
-$bridgeRegistryPath = Join-Path $musuHome "services\bridge.json"
-$bridgeRegistry = $null
-$bridgeRegistryParseError = $null
-if (Test-Path -LiteralPath $bridgeRegistryPath) {
-    try {
-        $bridgeRegistry = Get-Content -LiteralPath $bridgeRegistryPath -Raw | ConvertFrom-Json
-    }
-    catch {
-        $bridgeRegistryParseError = $_.Exception.Message
-    }
-}
-
-$bridgePid = if ($bridgeRegistry -and $bridgeRegistry.PSObject.Properties["pid"]) {
-    [int]$bridgeRegistry.pid
-}
-else {
-    $null
-}
-$bridgeAddr = if ($bridgeRegistry -and $bridgeRegistry.PSObject.Properties["addr"]) {
-    [string]$bridgeRegistry.addr
-}
-else {
-    $null
-}
 $bridgePidProcess = if ($null -ne $bridgePid) {
     $processes | Where-Object { $_.pid -eq $bridgePid } | Select-Object -First 1
 }
@@ -447,6 +478,7 @@ $result = [pscustomobject]@{
     process_counts = [pscustomobject]@{
         all_target_processes = @($processes).Count
         musu_runtime = @($musuRoots).Count
+        musu_cli = @($musuCliProcesses).Count
         desktop_shell = @($desktopRoots).Count
         owned_node = @($ownedNode).Count
         owned_webview2 = @($ownedWebView2).Count

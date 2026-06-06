@@ -8998,3 +8998,45 @@ Index refresh:
 - `2776 symbols`
 - `15188 ms`
 - wiki: `wiki/908`
+
+## 2026-06-07 02:35 KST Process Ownership Transient CLI Hardening
+
+Process ownership now distinguishes a real bridge runtime from short-lived
+operator CLI commands.
+
+Changed:
+
+- `scripts\windows\audit-musu-process-ownership.ps1` counts only `musud`, the
+  bridge registry PID, or `musu.exe bridge` as `musu_runtime`.
+- Other `musu.exe` commands are reported separately as `musu_cli`.
+- `scripts\windows\show-musu-process-attribution.ps1` exposes `musu_cli`.
+- `scripts\windows\test-release-evidence-verifiers.ps1` adds regression case
+  `process ownership excludes transient MUSU CLI from bridge runtime count`.
+
+Evidence:
+
+- local bridge: `http://127.0.0.1:1158`, healthy
+- process ownership: `ok=true`, `fail_count=0`, `musu_runtime=1`,
+  `musu_cli=0`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`
+- process attribution: `ok=true`, orphan repo helpers `0`
+- release verifier regression: `ok=true`, `case_count=94`,
+  `failed_case_count=0`
+- 60s desktop-open CPU diagnostic: `ok=true`, hot processes `0`, WebView2 max
+  `0.05`, but `git_dirty=true`, so diagnostic only
+
+Release interpretation:
+
+- This removes a false-positive duplicate-runtime finding when `musu status`
+  or another short CLI command overlaps process attribution.
+- It does not reduce the release standard for the actual bridge runtime.
+- Public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof.
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2786 files`
+- `2776 symbols`
+- `33404 ms`
+- wiki: `wiki/910`
