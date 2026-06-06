@@ -8237,3 +8237,35 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2694 files`, `2776 symbols`, `12906 ms`
+
+## 2026-06-06 current HEAD external gate recheck after audit
+
+Current HEAD `c0886f197e3298d896d606b664da0de20b9b0e3a` has fresh external
+gate evidence after the current code audit/product-boundary update:
+
+- external gate:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-180122-HUGH_SECOND.external-gates.evidence.json`
+- hosted P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.evidence.json`
+- hosted P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.verification.json`
+
+Result:
+
+- release ready: `false`
+- public metadata checked/ok: `true`/`true`
+- local artifacts ready: `true`
+- single-machine verified: `true`
+- runtime idle CPU valid machines: `1/2`
+- runtime CPU matrix valid machines: `1/2`
+- second PC reachable: `false`, `tcp_connect_timeout`
+- P2P env ready: `false`
+- P2P evidence verified: `false`
+- P2P runtime logged in: `false`
+- relay route evidence count: `0`
+- relay route transport proof valid count: `0`
+- relay payload delivery proof valid count: `0`
+
+This confirms the current blocker split: local packaged desktop evidence remains
+good on `HUGH_SECOND`; second-PC proof, live MUSU.PRO P2P proof, release relay
+tunnel proof, support mailbox proof, and Store proof remain open.

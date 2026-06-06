@@ -5630,4 +5630,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   input control plane`, and `localhost:3001 is not the packaged desktop runtime
   contract`.
 
+- 2026-06-06 current HEAD external gate recheck after audit:
+  wiki/863 records external gate evidence
+  `20260606-180122-HUGH_SECOND.external-gates` and hosted P2P evidence
+  `20260606-180311-musu.pro` after the current code audit/product-boundary
+  commit. Search terms should include `GOAL v688`, `wiki/863`,
+  `c0886f197e3298d896d606b664da0de20b9b0e3a`,
+  `20260606-180122-HUGH_SECOND.external-gates`,
+  `20260606-180311-musu.pro`, `tcp_connect_timeout`,
+  `p2p_runtime_not_logged_in`, `p2p_relay_route_transport_proof_missing`,
+  `p2p_relay_payload_delivery_proof_missing`, `runtime idle CPU 1/2`,
+  `runtime CPU matrix 1/2`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current HEAD external gate recheck index refresh:
+  wiki/864 records the MUSU local index refresh after wiki/863 and GOAL v688.
+  Search terms should include `GOAL v689`, `wiki/864`, `2699 files`,
+  `2776 symbols`, `21591 ms`, `current HEAD external gate recheck index
+  refresh`, `20260606-180122-HUGH_SECOND.external-gates`,
+  `20260606-180311-musu.pro`, `tcp_connect_timeout`,
+  `p2p_runtime_not_logged_in`, `runtime idle CPU 1/2`, `runtime CPU matrix
+  1/2`, `MUSU Desktop local executor`, and `MUSU.PRO remote input control
+  plane`.
+
 **End of WIKI_INDEX.md.**

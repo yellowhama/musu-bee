@@ -191,3 +191,72 @@ Product boundary remains unchanged:
 Detailed next-step plan:
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_EXTERNAL_GATE_ROOT_CAUSE_RECHECK_2026_06_06.md`
+
+## 2026-06-06 18:01 KST Current HEAD Recheck
+
+Current HEAD `c0886f197e3298d896d606b664da0de20b9b0e3a` was rechecked after
+the current code-audit/product-boundary documentation commit.
+
+New evidence:
+
+- external gate:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-180122-HUGH_SECOND.external-gates.evidence.json`
+- external summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-180122-HUGH_SECOND.external-gates.summary.md`
+- hosted P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.evidence.json`
+- hosted P2P summary:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.summary.md`
+- hosted P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.verification.json`
+
+Results:
+
+- release ready: `False`
+- public metadata checked/ok: `True`/`True`
+- local artifacts ready: `True`
+- single-machine verified: `True`
+- runtime idle CPU valid machines: `1`
+- runtime CPU matrix valid machines: `1`
+- second PC reachable: `False`
+- second PC TCP error: `tcp_connect_timeout`
+- P2P env ready: `False`
+- P2P evidence verified: `False`
+- P2P evidence MUSU exe source: `windowsapps_alias`
+- relay status/transport/leases/route-evidence logged in: `False`
+- owner scope verified: `False`
+- relay lease store release-grade: `False`
+- relay transport wired: `False`
+- relay payload endpoint wired: `False`
+- relay route evidence count: `0`
+- relay route transport proof valid count: `0`
+- relay payload delivery proof valid count: `0`
+
+Blockers:
+
+- `release_go_no_go_not_ready`
+- `go_no_go_multi_device`
+- `go_no_go_runtime_idle_cpu`
+- `go_no_go_runtime_cpu_scenario_matrix`
+- `go_no_go_support_mailbox`
+- `go_no_go_store_release`
+- `go_no_go_p2p_control_plane`
+- `second_pc_unreachable`
+- `p2p_env_not_ready`
+- `p2p_control_plane_evidence_not_verified`
+- `p2p_runtime_not_logged_in`
+- `p2p_owner_scope_not_verified`
+- `p2p_relay_lease_store_not_release_grade`
+- `p2p_relay_transport_not_wired`
+- `p2p_relay_payload_endpoint_not_wired`
+- `p2p_relay_payload_transport_not_proven`
+- `p2p_relay_route_transport_proof_missing`
+- `p2p_relay_payload_delivery_proof_missing`
+
+Interpretation:
+
+This confirms the current blocker split after the latest documentation commit:
+local packaged desktop evidence remains good on `HUGH_SECOND`; the remaining
+release blockers are second-PC proof, production MUSU.PRO login/storage,
+release relay tunnel and payload proof, support mailbox evidence, and Store
+evidence. This is not a `localhost:3001` or web-dashboard dependency problem.

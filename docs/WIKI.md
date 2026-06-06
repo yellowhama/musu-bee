@@ -11373,3 +11373,61 @@ product spec index refresh`, `2694 files`, `2776 symbols`, `12906 ms`,
 `release verifier 66/66`, `MUSU Desktop local executor`, `MUSU.PRO remote input
 control plane`, and `localhost:3001 is not the packaged desktop runtime
 contract`.
+
+## 2026-06-06 Current HEAD External Gate Recheck After Audit (wiki/863)
+
+Current HEAD `c0886f197e3298d896d606b664da0de20b9b0e3a` has fresh external
+gate evidence after the code audit/product-boundary documentation commit.
+
+Evidence:
+
+- external gate:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-180122-HUGH_SECOND.external-gates.evidence.json`
+- hosted P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.evidence.json`
+- hosted P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-180311-musu.pro.verification.json`
+
+Result:
+
+- release ready: `false`
+- public metadata checked/ok: `true`/`true`
+- local artifacts ready: `true`
+- single-machine verified: `true`
+- runtime idle CPU valid machines: `1/2`
+- runtime CPU matrix valid machines: `1/2`
+- second PC reachable: `false`, `tcp_connect_timeout`
+- P2P env ready: `false`
+- P2P evidence verified: `false`
+- P2P runtime logged in: `false`
+- owner scope verified: `false`
+- relay transport/payload endpoint wired: `false`
+- relay route transport proof valid count: `0`
+- relay payload delivery proof valid count: `0`
+
+This confirms the blocker split: local packaged desktop evidence remains good
+on `HUGH_SECOND`; the remaining gates are real second-PC proof, production
+MUSU.PRO login/storage, release relay tunnel proof, support mailbox proof, and
+Store proof.
+
+## 2026-06-06 Current HEAD External Gate Recheck Index Refresh (wiki/864)
+
+MUSU local indexer was refreshed after wiki/863 and GOAL v688.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2699 files`
+- `2776 symbols`
+- `21591 ms`
+
+Indexed context includes current HEAD external gate evidence
+`20260606-180122-HUGH_SECOND.external-gates`, hosted P2P evidence
+`20260606-180311-musu.pro`, current external gate recheck report, BETA
+checklist, WIKI/WIKI_INDEX, GOAL v688, and CoS memory.
+
+Search terms should include `GOAL v689`, `wiki/864`, `current HEAD external
+gate recheck index refresh`, `2699 files`, `2776 symbols`, `21591 ms`,
+`20260606-180122-HUGH_SECOND.external-gates`, `20260606-180311-musu.pro`,
+`tcp_connect_timeout`, `p2p_runtime_not_logged_in`,
+`runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `MUSU Desktop local
+executor`, and `MUSU.PRO remote input control plane`.
