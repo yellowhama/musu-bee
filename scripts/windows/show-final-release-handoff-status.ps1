@@ -864,6 +864,7 @@ $result = [pscustomobject]@{
         p2p_relay_transport_wired = [bool]$goNoGo.p2p_relay_transport_wired
         p2p_relay_route_evidence_ok = [bool]$goNoGo.p2p_relay_route_evidence_ok
         p2p_relay_route_evidence_count = [int]$goNoGo.p2p_relay_route_evidence_count
+        p2p_relay_route_transport_proof_valid_count = [int]$goNoGo.p2p_relay_route_transport_proof_valid_count
         p2p_relay_payload_transport_proven = [bool]$goNoGo.p2p_relay_payload_transport_proven
         p2p_relay_payload_delivery_proof_valid_count = [int]$goNoGo.p2p_relay_payload_delivery_proof_valid_count
         manifest_git_dirty = if ($goNoGo.manifest_git) { [bool]$goNoGo.manifest_git.dirty } else { $null }

@@ -196,3 +196,25 @@ chain before returning stale/manual records whose stored `release_grade` flag
 is true. The release verifier exposes
 `relay_route_transport_proof_valid_count` so hosted evidence cannot pass with a
 lease-only or queue-only relay proof.
+
+## 2026-06-06 relay route transport proof status surface
+
+The relay route transport proof requirement is now propagated through the
+operator status layer:
+
+- go/no-go exposes `p2p_relay_route_transport_proof_valid_count`
+- external gate recheck exposes the same count and emits
+  `p2p_relay_route_transport_proof_missing`
+- P2P env status exposes
+  `relay_route_transport_proof_valid_count`,
+  `relay_route_transport_proof_required_count`, and
+  `relay_route_transport_proof_invalid_count`
+- P2P env status emits
+  `live_evidence_relay_route_transport_proof_missing` and next steps to rerun
+  hosted evidence until `relay_route_transport_proof_valid_count > 0`
+- final handoff status forwards the go/no-go count
+
+This is reporting hardening. The release rule is unchanged: MUSU.PRO can help
+local devices connect by exchanging control-plane metadata, but local MUSU
+Desktop programs do the work. Relay remains fallback-only and release-grade
+only after real tunnel proof and delivery proof are recorded.

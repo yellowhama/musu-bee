@@ -1459,3 +1459,35 @@ Server-side `queryRouteEvidenceRecords({ release_grade: true })` also
 revalidates fallback, transport proof, and delivery proof before returning
 stored records. This prevents stale/manual `release_grade=true` records from
 passing the hosted P2P gate when they lack the actual relay tunnel proof chain.
+
+## 2026-06-06 Relay Route Transport Proof Status Surface
+
+The route transport proof requirement is now visible in release status outputs,
+not only in the low-level verifier:
+
+- `write-release-go-no-go.ps1` exposes
+  `p2p_relay_route_transport_proof_valid_count`
+- `record-external-release-gate-recheck.ps1` exposes the same count and emits
+  `p2p_relay_route_transport_proof_missing`
+- `show-musu-pro-p2p-env-status.ps1` exposes
+  `relay_route_transport_proof_valid_count`,
+  `relay_route_transport_proof_required_count`, and
+  `relay_route_transport_proof_invalid_count`
+- `show-final-release-handoff-status.ps1` forwards the go/no-go count
+
+Current hosted status remains expectedly blocked: live P2P env status reports
+route transport proof count `0`, payload delivery proof count `0`, and blocker
+`live_evidence_relay_route_transport_proof_missing`.
+
+Spec interpretation is unchanged:
+
+- MUSU.PRO is remote input, project/company room, presence, rendezvous, path
+  selection, relay fallback, and evidence/control plane.
+- MUSU Desktop remains the local executor on each device.
+- Local programs should prefer direct P2P mesh routes after web-assisted
+  bootstrap.
+- Hosted relay is fallback-only and must not become release-grade until actual
+  `quic_relay_tunnel` payload transport and delivery proof exist.
+- A refused `localhost:3001` browser page does not define whether MUSU Desktop
+  is installed or working; release evidence comes from the packaged local
+  runtime and hosted MUSU.PRO gates.

@@ -5201,4 +5201,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p rejects relay route evidence without route transport proof`,
   `stale-relay-missing-session-release-grade`, and `quic_relay_tunnel`.
 
+- 2026-06-06 P2P relay route transport proof status surface:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_STATUS_SURFACE_2026_06_06.md`
+  (wiki/821) records go/no-go, external gate, P2P env status, and final
+  handoff propagation for `relay_route_transport_proof_valid_count`. Search
+  terms should include `GOAL v646`, `wiki/821`,
+  `p2p_relay_route_transport_proof_valid_count`,
+  `p2p_relay_route_transport_proof_missing`,
+  `live_evidence_relay_route_transport_proof_missing`,
+  `relay_route_transport_proof_required_count`, `release verifier 59/59`,
+  `P2P env status`, `go/no-go`, and `MUSU Desktop local executor`.
+
+- 2026-06-06 P2P relay route transport proof status surface index refresh:
+  wiki/822 records the MUSU local index refresh after wiki/821 and GOAL v646.
+  Search terms should include `GOAL v647`, `wiki/822`, `2598 files`,
+  `2752 symbols`, `13649 ms`,
+  `p2p relay route transport proof status surface index refresh`,
+  `p2p_relay_route_transport_proof_valid_count`,
+  `p2p_relay_route_transport_proof_missing`,
+  `live_evidence_relay_route_transport_proof_missing`, and
+  `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**

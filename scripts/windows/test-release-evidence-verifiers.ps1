@@ -462,10 +462,12 @@ function Test-ExternalGateRecheckActionableContract {
         'p2p_relay_transport_wired',
         'p2p_relay_connect_endpoint_wired',
         'p2p_relay_payload_endpoint_wired',
+        'p2p_relay_route_transport_proof_valid_count',
         'p2p_runtime_not_logged_in',
         'p2p_relay_lease_store_not_release_grade',
         'p2p_relay_transport_not_wired',
-        'p2p_relay_payload_endpoint_not_wired'
+        'p2p_relay_payload_endpoint_not_wired',
+        'p2p_relay_route_transport_proof_missing'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -493,9 +495,14 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
         'relay_transport_descriptor_wired',
         'relay_connect_endpoint_wired',
         'relay_payload_endpoint_wired',
+        'relay_route_transport_proof_valid_count',
+        'relay_route_transport_proof_required_count',
+        'relay_route_transport_proof_invalid_count',
+        'live_evidence_relay_route_transport_proof_missing',
         'Log in the packaged MUSU runtime with the WindowsApps alias',
         'Do not use the localhost developer dashboard to satisfy this gate',
-        'logged_in=true'
+        'logged_in=true',
+        'relay_route_transport_proof_valid_count > 0'
     )
 
     foreach ($needle in $requiredNeedles) {

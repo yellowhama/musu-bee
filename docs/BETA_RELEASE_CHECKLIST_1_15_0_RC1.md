@@ -7385,3 +7385,57 @@ Canonical report:
 Next-step plan:
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`
+
+## 2026-06-06 10:49 KST P2P Relay Route Transport Proof Status Surface
+
+The route transport proof requirement is now visible in every release handoff
+layer, not only in the hosted P2P verifier/recorder.
+
+Changed:
+
+- `write-release-go-no-go.ps1` exposes
+  `p2p_relay_route_transport_proof_valid_count`
+- `record-external-release-gate-recheck.ps1` records the same count and blocks
+  with `p2p_relay_route_transport_proof_missing`
+- `show-musu-pro-p2p-env-status.ps1` exposes route transport proof
+  valid/required/invalid counts and blocks with
+  `live_evidence_relay_route_transport_proof_missing`
+- `show-final-release-handoff-status.ps1` carries the count into final handoff
+  status
+- `test-release-evidence-verifiers.ps1` source-contracts these fields and
+  blockers
+
+Validation:
+
+- PowerShell parser check: pass
+- release evidence verifier regression: `ok=true`, `case_count=59`,
+  `failed_case_count=0`
+- `npm run test:p2p -- --test-name-pattern "route evidence|P2P route evidence"`:
+  `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- P2P env status now reports
+  `live_evidence_relay_route_transport_proof_missing`
+- go/no-go now reports
+  `p2p_relay_route_transport_proof_valid_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is status/evidence
+hardening only; it does not implement release relay tunnel transport and does
+not move execution into MUSU.PRO. MUSU Desktop remains the local executor,
+while MUSU.PRO remains remote input, room, rendezvous, path-selection,
+relay-fallback, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_RELAY_ROUTE_TRANSPORT_PROOF_STATUS_SURFACE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2598 files`, `2752 symbols`, `13649 ms`

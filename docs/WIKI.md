@@ -10049,3 +10049,76 @@ Search terms should include `GOAL v645`, `wiki/820`,
 `2752 symbols`, `9181 ms`, `relay_route_transport_proof_valid_count`,
 `p2p rejects relay route evidence without route transport proof`,
 `stale-relay-missing-session-release-grade`, and `quic_relay_tunnel`.
+
+## 2026-06-06 P2P Relay Route Transport Proof Status Surface (wiki/821)
+
+Release status tooling now carries the relay route transport proof count
+through every operator handoff layer.
+
+Changed:
+
+- `scripts/windows/write-release-go-no-go.ps1`
+  - exposes `p2p_relay_route_transport_proof_valid_count`
+  - updates the P2P blocker message to require the route transport proof count
+- `scripts/windows/record-external-release-gate-recheck.ps1`
+  - records `p2p_relay_route_transport_proof_valid_count`
+  - emits `p2p_relay_route_transport_proof_missing`
+- `scripts/windows/show-musu-pro-p2p-env-status.ps1`
+  - exposes route transport proof valid/required/invalid counts
+  - emits `live_evidence_relay_route_transport_proof_missing`
+  - adds next steps to rerun hosted evidence until
+    `relay_route_transport_proof_valid_count > 0`
+- `scripts/windows/show-final-release-handoff-status.ps1`
+  - forwards the go/no-go count
+- `scripts/windows/test-release-evidence-verifiers.ps1`
+  - source-contracts the new status fields and blockers
+
+Validation:
+
+- parser check: pass
+- release evidence verifier regression: `59/59`
+- `npm run test:p2p -- --test-name-pattern "route evidence|P2P route evidence"`:
+  `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status reports
+  `live_evidence_relay_route_transport_proof_missing`
+- go/no-go reports `p2p_relay_route_transport_proof_valid_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This closes an operator status
+blind spot only. It does not implement release relay tunnel transport and does
+not move execution into MUSU.PRO. MUSU Desktop remains the local executor, and
+MUSU.PRO remains the remote input/control-plane/rendezvous/relay-proof layer.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_RELAY_ROUTE_TRANSPORT_PROOF_STATUS_SURFACE_2026_06_06.md`
+
+## 2026-06-06 P2P Relay Route Transport Proof Status Surface Index Refresh (wiki/822)
+
+MUSU local indexer was refreshed after wiki/821 and GOAL v646.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2598 files`
+- `2752 symbols`
+- `13649 ms`
+
+Indexed context includes the release status surface hardening in go/no-go,
+external gate recheck, P2P env status, final handoff status, release verifier
+source contracts, the canonical wiki/821 report, next-step plan, BETA
+checklist, P2P control-plane spec, MUSU.PRO P2P spec, WIKI/WIKI_INDEX, and
+GOAL v646.
+
+Search terms should include `GOAL v647`, `wiki/822`,
+`p2p relay route transport proof status surface index refresh`, `2598 files`,
+`2752 symbols`, `13649 ms`,
+`p2p_relay_route_transport_proof_valid_count`,
+`p2p_relay_route_transport_proof_missing`,
+`live_evidence_relay_route_transport_proof_missing`, and `MUSU Desktop local
+executor`.
