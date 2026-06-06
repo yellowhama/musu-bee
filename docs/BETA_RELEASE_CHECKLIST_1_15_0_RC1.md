@@ -8098,3 +8098,61 @@ Validation:
 
 Release note: this is runtime evidence carry-path hardening, not release relay
 tunnel implementation. Current source must be rebuilt and evidence refreshed.
+
+## 2026-06-06 current desktop clean-start evidence after runtime relay candidate carry
+
+Current packaged MUSU Desktop was rebuilt, reinstalled, and revalidated on
+`HUGH_SECOND` after runtime relay candidate coverage carry.
+
+Evidence:
+
+- strict MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260606-171011-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-170759-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-171154-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- runtime CPU scenario matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-171403-HUGH_SECOND.verification.json`
+
+Results:
+
+- MSIX install strict verifier passed with WindowsApps alias first.
+- single-machine smoke passed as `local-bridge-only`, bridge
+  `http://127.0.0.1:4751`, dashboard required `false`, CLI route checked.
+- desktop-open CPU passed with `git_dirty=false`, sample `60.043s`, hot `0`,
+  WebView2 max one-core CPU `0.23`, working set `363.69MB`.
+- full matrix passed verifier `ok=true`, `fail_count=0`, with route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403` and route task
+  `08b81687-bacf-40eb-a677-e92fca76149b`.
+
+Clean go/no-go recognizes the current one-machine evidence:
+
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- runtime idle CPU valid machines: `1/2 [HUGH_SECOND]`
+- runtime CPU matrix valid machines: `1/2 [HUGH_SECOND]`
+- `manifest_git.dirty=false`
+
+Remaining blockers:
+
+- real second-PC multi-device evidence
+- second-PC desktop-open CPU evidence
+- second-PC five-scenario runtime CPU matrix evidence
+- targeted second-PC route-attempt CPU evidence
+- live hosted MUSU.PRO P2P/relay proof
+- support mailbox evidence
+- Store/Partner Center evidence
+
+Interpretation: `localhost:3001` refusal is not the packaged desktop contract.
+MUSU Desktop is the local executor. MUSU.PRO is remote input, project/company
+room, AI meeting room, presence, rendezvous, path-selection, relay fallback,
+and evidence/control plane.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2686 files`, `2776 symbols`, `67224 ms`

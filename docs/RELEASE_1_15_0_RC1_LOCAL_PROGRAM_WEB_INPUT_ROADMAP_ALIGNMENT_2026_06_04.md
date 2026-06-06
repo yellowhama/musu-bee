@@ -111,3 +111,27 @@ Public release remains No-Go. Current local artifacts and one-machine evidence
 are usable, but release still needs second-PC runtime/multi-device evidence,
 hosted owner-scoped `musu.pro` P2P relay proof, support mailbox evidence, and
 Store evidence.
+
+## 2026-06-06 Desktop Clean-Start Evidence Update
+
+The latest local packaged validation confirms the split again:
+
+- MUSU Desktop is the installed local executor.
+- `localhost:3001` is optional local/developer dashboard surface, not the
+  packaged runtime success criterion.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path-selection, relay-fallback coordination, and evidence/control
+  plane.
+
+Current HUGH_SECOND evidence:
+
+- strict MSIX install: `20260606-171011-HUGH_SECOND`
+- single-machine smoke: `20260606-170759-HUGH_SECOND`, `local-bridge-only`
+- desktop-open CPU: `20260606-171154-HUGH_SECOND.desktop-open`, WebView2 max
+  `0.23`, hot `0`
+- runtime CPU matrix: `20260606-171403-HUGH_SECOND`, verifier `ok=true`,
+  `fail_count=0`
+
+The remaining release work is not to make MUSU.PRO execute local work. It is to
+install the current desktop on another Windows PC, prove real P2P/multi-device
+execution, and make hosted MUSU.PRO release relay proof pass.

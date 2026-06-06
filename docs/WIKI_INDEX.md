@@ -5564,4 +5564,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `P2pRelayPayloadRequest`, `P2pRelayPayloadStoredRecord`, `MUSU Desktop local
   executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current desktop clean-start evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_DESKTOP_CLEAN_START_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/857) records the current packaged MUSU Desktop rebuild/reinstall and
+  one-machine evidence refresh after runtime relay candidate coverage carry.
+  Search terms should include `GOAL v682`, `wiki/857`,
+  `20260606-171011-HUGH_SECOND`, `20260606-170759-HUGH_SECOND`,
+  `20260606-171154-HUGH_SECOND.desktop-open`,
+  `20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`,
+  `08b81687-bacf-40eb-a677-e92fca76149b`, `local-bridge-only`,
+  `localhost:3001 is not the packaged desktop contract`, `runtime idle CPU
+  1/2`, `runtime matrix 1/2`, `MUSU Desktop local executor`, and `MUSU.PRO
+  remote input control plane`.
+
+- 2026-06-06 current desktop clean-start evidence index refresh:
+  wiki/858 records the MUSU local index refresh after wiki/857 and GOAL v682.
+  Search terms should include `GOAL v683`, `wiki/858`, `2686 files`,
+  `2776 symbols`, `67224 ms`, `current desktop clean-start evidence index
+  refresh`, `20260606-171011-HUGH_SECOND`,
+  `20260606-170759-HUGH_SECOND`,
+  `20260606-171154-HUGH_SECOND.desktop-open`,
+  `20260606-171403-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`,
+  `localhost:3001 is not the packaged desktop contract`, `MUSU Desktop local
+  executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

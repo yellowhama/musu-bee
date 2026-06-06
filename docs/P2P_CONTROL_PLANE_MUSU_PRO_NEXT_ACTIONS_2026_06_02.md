@@ -178,6 +178,25 @@ Testing implication:
 
 - a true other-computer connection test requires the current MUSU build
   installed and running on that other computer
+
+## 2026-06-06 Current Desktop Evidence Update
+
+Current HUGH_SECOND packaged desktop evidence is healthy after the latest
+runtime relay candidate coverage carry:
+
+- strict MSIX install evidence: `20260606-171011-HUGH_SECOND`
+- single-machine smoke: `20260606-170759-HUGH_SECOND`, `local-bridge-only`,
+  bridge `http://127.0.0.1:4751`
+- desktop-open CPU: `20260606-171154-HUGH_SECOND.desktop-open`, hot `0`,
+  WebView2 max one-core CPU `0.23`
+- full runtime CPU matrix: `20260606-171403-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`, verifier `ok=true`
+
+This does not close hosted P2P. It narrows the next work: install this current
+desktop build on the second PC, capture route/CPU/matrix evidence there, then
+finish live MUSU.PRO P2P storage/relay proof. MUSU.PRO should remain the
+remote input/project-room/rendezvous/control-plane surface; local MUSU Desktop
+programs still execute the work and own P2P traffic.
 - until then, current testing is one-machine only: local smoke, process
   ownership, idle CPU, runtime CPU matrix, and packaged artifact verification
 - second-PC evidence must be imported before claiming multi-device/P2P release

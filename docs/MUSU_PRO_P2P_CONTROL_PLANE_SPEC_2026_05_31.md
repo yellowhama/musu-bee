@@ -153,6 +153,25 @@ input and coordinate project/company rooms, presence, rendezvous, path
 selection, relay fallback, and evidence, but local MUSU Desktop programs still
 execute the work on each device.
 
+**2026-06-06 desktop clean-start evidence update**:
+After runtime relay candidate coverage carry, the current local-sideload MSIX
+was rebuilt, reinstalled, and revalidated on `HUGH_SECOND` as MUSU Desktop.
+Strict MSIX install evidence passed with the WindowsApps execution alias first.
+Single-machine smoke passed as `local-bridge-only` at
+`http://127.0.0.1:4751`. Desktop-open CPU evidence passed for `60.043s` with
+hot process count `0`, WebView2 max one-core CPU `0.23`, and working set
+`363.69MB`. The full runtime CPU scenario matrix passed for `startup-open`,
+`runtime-started`, `dashboard-open`, `desktop-open`, and `post-route` with route
+token `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`. Clean go/no-go now
+recognizes one-machine current evidence again: single-machine true, MSIX
+install true, runtime idle CPU `1/2`, and runtime matrix `1/2`.
+This update clarifies the product boundary again: a refused `localhost:3001`
+dashboard page is not the packaged desktop contract. MUSU Desktop is the local
+executor; MUSU.PRO is remote input, project/company room, AI meeting room,
+presence, rendezvous, path selection, relay fallback, and evidence/control
+plane. Public release remains blocked until a second Windows PC, live hosted
+MUSU.PRO P2P/relay proof, support mailbox, and Store evidence are recorded.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

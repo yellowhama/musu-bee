@@ -11169,3 +11169,88 @@ Search terms should include `GOAL v681`, `wiki/856`, `runtime relay candidate
 coverage carry index refresh`, `2675 files`, `2776 symbols`, `18098 ms`,
 `candidate_route_kinds`, `attempted_route_kinds`, `MUSU Desktop local
 executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current Desktop Clean-Start Evidence (wiki/857)
+
+Current source after runtime relay candidate coverage carry was rebuilt into
+the local-sideload MSIX, reinstalled on `HUGH_SECOND`, and revalidated as MUSU
+Desktop rather than the localhost developer dashboard.
+
+Evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260606-171011-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-170759-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-171154-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- runtime CPU matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-171403-HUGH_SECOND.verification.json`
+
+Results:
+
+- strict MSIX install evidence: `ok=true`, startup contract
+  `local-sideload-manual`, WindowsApps alias first
+- single-machine smoke: `ok=true`, `local-bridge-only`, bridge
+  `http://127.0.0.1:4751`, CLI route checked
+- desktop-open CPU: `ok=true`, `git_dirty=false`, `60.043s`, hot `0`,
+  WebView2 max one-core CPU `0.23`, working set `363.69MB`
+- full runtime CPU matrix: verifier `ok=true`, `fail_count=0`; scenarios
+  `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`,
+  `post-route`; route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`;
+  route task `08b81687-bacf-40eb-a677-e92fca76149b`
+
+Clean go/no-go recognizes current one-machine evidence:
+
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- runtime idle CPU valid machines: `1`
+- runtime CPU matrix valid machines: `1`
+- `manifest_git.dirty=false`
+
+Public release remains No-Go on real second-PC multi-device evidence, second-PC
+CPU/matrix counts, targeted second-PC route-attempt CPU evidence, live
+MUSU.PRO P2P/relay proof, support mailbox, and Store evidence.
+
+Root cause note: `localhost:3001` connection refusal is not the packaged MUSU
+Desktop contract. MUSU Desktop is the local executor; MUSU.PRO is remote input,
+project/company room, AI meeting room, presence, rendezvous, path selection,
+relay fallback coordination, and evidence/control plane.
+
+Qualitative audit found no high/medium issue in the current evidence refresh.
+No runtime source changed during this refresh.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_DESKTOP_CLEAN_START_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_DESKTOP_CLEAN_START_EVIDENCE_2026_06_06.md`
+
+## 2026-06-06 Current Desktop Clean-Start Evidence Index Refresh (wiki/858)
+
+MUSU local indexer was refreshed after wiki/857 and GOAL v682.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2686 files`
+- `2776 symbols`
+- `67224 ms`
+
+Indexed context includes current desktop clean-start evidence
+`20260606-171011-HUGH_SECOND`, `20260606-170759-HUGH_SECOND`,
+`20260606-171154-HUGH_SECOND.desktop-open`,
+`20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix`, canonical report,
+next-step plan, BETA checklist, P2P control-plane spec, GOAL v682,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v683`, `wiki/858`, `current desktop
+clean-start evidence index refresh`, `2686 files`, `2776 symbols`, `67224 ms`,
+`20260606-171011-HUGH_SECOND`, `20260606-170759-HUGH_SECOND`,
+`20260606-171154-HUGH_SECOND.desktop-open`, `20260606-171403-HUGH_SECOND`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`, `localhost:3001 is not the
+packaged desktop contract`, `MUSU Desktop local executor`, and `MUSU.PRO remote
+input control plane`.
