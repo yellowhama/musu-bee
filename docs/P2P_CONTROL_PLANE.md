@@ -61,7 +61,7 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-06 idle busy-loop source-contract audit, the product
+As of the 2026-06-06 current HEAD runtime CPU matrix refresh, the product
 direction above is still unchanged: MUSU Desktop is the local executor, while
 `musu.pro` is remote input, project/company room, presence, rendezvous,
 path-selection, relay fallback policy, and evidence control plane. The
@@ -81,6 +81,18 @@ Passing local state:
   `idle_busy_loop_candidate_contract_verified=true`, idle candidate count `8`,
   failed idle candidate count `0`, and public release
   `ready_for_public_desktop_release=false`
+- current clean full runtime CPU matrix evidence
+  `20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies
+  `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route` on commit `ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5` with
+  `git_dirty=false`, hot process count `0` in every scenario, MUSU CPU `0`,
+  Node CPU `0`, max WebView2 CPU `0.16`, owned process count `8`, WebView2
+  helper count `6`, and working set around `364MB`
+- current HUGH-MAIN target-route CPU diagnostic
+  `20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies an
+  explicitly allowed failed route attempt to
+  `http://192.168.1.192:8949/api/tasks/delegate`; it is diagnostic only and
+  does not count as successful multi-device route proof
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program

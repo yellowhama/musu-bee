@@ -62,14 +62,32 @@ Current runtime CPU subrole attribution packaged primary-machine evidence:
 - idle CPU:
   `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-011243-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012030-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- runtime CPU matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.verification.json`
 - targeted HUGH-MAIN post-route CPU diagnostic:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-012740-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN post-route CPU diagnostic verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.target-route.verification.json`
 
-Clean go/no-go after these evidence commits remains No-Go for public release,
-but local artifacts, MSIX install, single-machine smoke, primary idle CPU
-`1/2 [HUGH_SECOND]`, primary runtime matrix `1/2 [HUGH_SECOND]`, targeted
-second-PC route CPU `1/1 [HUGH_SECOND]`, public metadata, and the P2P
+The current full matrix was captured from clean commit
+`ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5` with `git_dirty=false`. It covers
+`startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+`post-route`; all five scenarios have hot process count `0`, MUSU CPU `0`, Node
+CPU `0`, owned process count `8`, WebView2 helper count `6`, and working set
+around `364MB`. The highest WebView2 one-core CPU value is `0.16`.
+
+The current HUGH-MAIN diagnostic attempted
+`http://192.168.1.192:8949/api/tasks/delegate`, timed out, and was verified as
+an explicitly allowed failed target-route CPU diagnostic. It is not successful
+multi-device route proof. Its 60s CPU sample stayed healthy: hot process count
+`0`, MUSU `0`, Node `0`, WebView2 `0.13`, owned process count `8`, WebView2
+helper count `6`, and working set `364.24MB`.
+
+Clean go/no-go remains No-Go for public release, but local artifacts, MSIX
+install, single-machine smoke, primary idle CPU `1/2 [HUGH_SECOND]`, primary
+runtime matrix `1/2 [HUGH_SECOND]`, targeted second-PC route CPU diagnostic,
+public metadata, idle busy-loop candidate source contract, and the P2P
 store-forward relay contract are current and passing.
 
 CPU evidence now requires process subrole attribution. The current HUGH_SECOND

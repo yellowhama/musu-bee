@@ -772,3 +772,27 @@ Contract interpretation:
   relay-fallback coordination, and evidence
 - local MUSU programs remain the execution and resource owners
 
+## 2026-06-06 current HEAD runtime CPU matrix boundary
+
+Fresh current clean HEAD runtime CPU matrix evidence on `HUGH_SECOND` confirms
+local packaged runtime resource behavior only.
+
+Evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Boundary interpretation:
+
+- the full matrix proves local MUSU Desktop CPU/process behavior on the
+  sampled machine across `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`, and `post-route`
+- the HUGH-MAIN diagnostic proves the local runtime stayed under CPU budget
+  while a target route attempt timed out against `192.168.1.192:8949`
+- the failed target diagnostic does not prove a successful second-PC route
+- `localhost:3001` remains optional developer/operator dashboard behavior, not
+  required packaged MUSU Desktop behavior
+- MUSU.PRO remains the web input, room, rendezvous, path-selection,
+  relay-fallback, and evidence control plane
+- local MUSU programs remain the execution and resource owners
+

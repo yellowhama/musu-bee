@@ -9845,3 +9845,76 @@ contract index refresh`, `2583 files`, `2751 symbols`, `24515 ms`,
 `go-no-go exposes all idle busy-loop candidate statuses`, `release verifier
 57/57`, `candidate count 8`, `failed candidate count 0`, and
 `MUSU Desktop local executor`.
+
+## 2026-06-06 Current HEAD Runtime CPU Matrix Refresh (wiki/815)
+
+Fresh current-HEAD runtime CPU scenario evidence was captured on `HUGH_SECOND`
+from clean commit `ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5`.
+
+Full matrix evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.verification.json`
+- verifier `ok=true`, `fail_count=0`
+
+The full matrix covers `startup-open`, `runtime-started`, `dashboard-open`,
+`desktop-open`, and `post-route`. All scenarios have hot process count `0`,
+MUSU CPU `0`, Node CPU `0`, owned process count `8`, WebView2 helper count
+`6`, and working set around `364MB`. The highest WebView2 CPU value is `0.16`.
+
+Targeted HUGH-MAIN route-attempt CPU diagnostic:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.target-route.verification.json`
+- verifier `ok=true`, `fail_count=0`
+- target `HUGH-MAIN`
+- route attempt timed out against
+  `http://192.168.1.192:8949/api/tasks/delegate`
+- failed route probe was explicitly allowed for this diagnostic
+- CPU after the failed route attempt stayed healthy: hot `0`, MUSU `0`, Node
+  `0`, WebView2 `0.13`, owned process count `8`, WebView2 helper count `6`,
+  working set `364.24MB`
+
+Qualitative audit found no high/medium issue. No runtime code changed in this
+update; the diff is evidence/docs only. The HUGH-MAIN route timeout is
+diagnostic and does not count as successful multi-device route proof.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor;
+MUSU.PRO is remote input, project/company rooms, presence, rendezvous, path
+selection, relay fallback, and evidence control plane. `localhost:3001` remains
+optional developer/operator dashboard behavior, not required packaged runtime
+behavior.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_RUNTIME_CPU_MATRIX_REFRESH_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_RUNTIME_CPU_MATRIX_REFRESH_2026_06_06.md`
+
+## 2026-06-06 Current HEAD Runtime CPU Matrix Index Refresh (wiki/816)
+
+MUSU local indexer was refreshed after wiki/815 and GOAL v640.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2590 files`
+- `2751 symbols`
+- `56258 ms`
+
+Indexed context includes full runtime CPU matrix evidence
+`20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix`, HUGH-MAIN
+target-route diagnostic evidence
+`20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix`, the current HEAD
+runtime CPU matrix refresh report, next-step plan, BETA checklist, P2P
+control-plane spec, MUSU.PRO P2P control-plane spec, network boundary spec,
+WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v641`, `wiki/816`, `current HEAD runtime CPU
+matrix index refresh`, `2590 files`, `2751 symbols`, `56258 ms`,
+`20260606-094149-HUGH_SECOND`, `20260606-095252-HUGH_SECOND`, `HUGH-MAIN`,
+`192.168.1.192:8949`, `WebView2 0.16`, `WebView2 0.13`, and `MUSU Desktop
+local executor`.

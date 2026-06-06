@@ -1367,3 +1367,39 @@ Flattened root-cause state:
 Release implication: this is external machine/account/infrastructure evidence
 work. It does not justify moving execution into MUSU.PRO or requiring the
 localhost developer dashboard for packaged MUSU Desktop.
+
+## 2026-06-06 Current HEAD Runtime CPU Matrix Refresh
+
+Current clean HEAD `ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5` has fresh
+one-machine runtime CPU scenario matrix evidence on `HUGH_SECOND`:
+
+- full matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- full matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.verification.json`
+- HUGH-MAIN route-attempt diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- HUGH-MAIN diagnostic verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.target-route.verification.json`
+
+The full matrix verifier passed with `ok=true` and `fail_count=0`. The matrix
+covers `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+`post-route`; all scenarios stayed under the local resource budget with hot
+process count `0`.
+
+The HUGH-MAIN diagnostic attempted
+`http://192.168.1.192:8949/api/tasks/delegate`, timed out, and was verified
+only as an allowed failed target-route CPU diagnostic. It does not prove a
+working second-PC route. It does prove the current local packaged runtime did
+not enter a CPU busy loop during the failed route attempt.
+
+Spec interpretation is unchanged:
+
+- MUSU Desktop executes work locally on each device.
+- MUSU.PRO accepts remote user input and hosts project/company room,
+  presence, rendezvous, path-selection, relay-fallback, and evidence surfaces.
+- The web control plane may bootstrap P2P connectivity, but local programs do
+  the work.
+- Direct P2P mesh remains preferred after bootstrap.
+- Hosted relay remains fallback-only and still needs release tunnel payload
+  proof.

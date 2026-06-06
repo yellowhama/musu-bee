@@ -5140,4 +5140,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   57/57`, `candidate count 8`, `failed candidate count 0`,
   `test-release-evidence-verifiers.ps1`, and `MUSU Desktop local executor`.
 
+- 2026-06-06 current HEAD runtime CPU matrix refresh:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_RUNTIME_CPU_MATRIX_REFRESH_2026_06_06.md`
+  (wiki/815) records fresh full runtime CPU matrix evidence
+  `20260606-094149-HUGH_SECOND` and HUGH-MAIN target-route diagnostic evidence
+  `20260606-095252-HUGH_SECOND` from clean commit
+  `ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5`. Search terms should include
+  `GOAL v640`, `wiki/815`, `current HEAD runtime CPU matrix refresh`,
+  `20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix`, `git_dirty=false`,
+  `HUGH-MAIN`, `192.168.1.192:8949`, `WebView2 0.16`, `WebView2 0.13`,
+  `working set 364.24MB`, `failed route diagnostic only`, and
+  `MUSU Desktop local executor`.
+
+- 2026-06-06 current HEAD runtime CPU matrix index refresh:
+  wiki/816 records the MUSU local index refresh after wiki/815 and GOAL v640.
+  Search terms should include `GOAL v641`, `wiki/816`, `2590 files`,
+  `2751 symbols`, `56258 ms`, `current HEAD runtime CPU matrix index refresh`,
+  `20260606-094149-HUGH_SECOND`, `20260606-095252-HUGH_SECOND`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `WebView2 0.16`, `WebView2 0.13`, and
+  `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**
