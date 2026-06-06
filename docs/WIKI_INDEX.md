@@ -5774,4 +5774,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `runtime_cpu_scenario_matrix_valid_machine_count=1`,
   `WebView2 0.13`, and `hot process count 0`.
 
+- 2026-06-06 second-PC route-attempt self-target gate:
+  `RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_SELF_TARGET_GATE_2026_06_06.md`
+  (wiki/877) records the targeted second-PC route-attempt CPU evidence
+  hardening. Search terms should include `GOAL v702`, `wiki/877`,
+  `RejectSelfPostRouteTarget`, `runtime matrix rejects self-target second-PC
+  route attempt`, `runtime_cpu_second_pc_route_attempt`, `route_probe.target`,
+  `operator_machine`, `case_count=71`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 second-PC route-attempt self-target gate index refresh:
+  wiki/878 records the MUSU local index refresh after wiki/877 and GOAL v702.
+  Search terms should include `GOAL v703`, `wiki/878`, `2727 files`,
+  `2776 symbols`, `20946 ms`, `RejectSelfPostRouteTarget`,
+  `runtime_cpu_second_pc_route_attempt`, `route_probe.target`,
+  `operator_machine`, and `case_count=71`.
+
 **End of WIKI_INDEX.md.**

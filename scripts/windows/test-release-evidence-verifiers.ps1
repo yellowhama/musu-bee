@@ -259,6 +259,7 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
         'Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 12 -MaxUnknown 12',
         '$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")',
         '"-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")',
+        '"-RejectSelfPostRouteTarget"',
         'candidate_selection = "latest-per-machine-up-to-12"'
     )
 
@@ -1884,6 +1885,15 @@ $targetMismatchRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRunti
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-target-mismatch" -Object $targetMismatchRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-ExpectedPostRouteTarget", "SECOND-PC", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt for wrong target" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$selfTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$selfTargetRuntimeRouteAttempt.route_probe.target = "VERIFIER-TEST"
+$selfTargetRuntimeRouteAttempt.route_probe.command = "musu route --target VERIFIER-TEST --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+$selfTargetRuntimeRouteAttempt.route_probe.arguments = @("route", "--target", "VERIFIER-TEST", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+$selfTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $selfTargetRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-self-target-route-attempt" -Object $selfTargetRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-RejectSelfPostRouteTarget", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects self-target second-PC route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixStartupPrep = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixStartupPrep.scenarios[0].preparation.action = "none"

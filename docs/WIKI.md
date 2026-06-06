@@ -11882,3 +11882,60 @@ Search terms should include `GOAL v701`, `wiki/876`, `current HEAD 5-state
 runtime CPU matrix index refresh`, `2724 files`, `2776 symbols`, `14849 ms`,
 `runtime_cpu_scenario_matrix_valid_machine_count=1`, `WebView2 0.13`, and `hot
 process count 0`.
+
+## 2026-06-06 Second-PC Route-Attempt Self-Target Gate (wiki/877)
+
+Targeted second-PC route-attempt CPU evidence now rejects self-target probes.
+
+`verify-runtime-cpu-scenario-matrix.ps1` gained
+`-RejectSelfPostRouteTarget`, and `write-release-go-no-go.ps1` now enables it
+for `runtime_cpu_second_pc_route_attempt_*` verification. A `post-route` matrix
+whose `route_probe.target` equals `operator_machine` can no longer satisfy the
+targeted second-PC CPU diagnostic gate, even when failed probes are explicitly
+allowed.
+
+Validation:
+
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=71`, `failed_case_count=0`
+- new negative case:
+  `runtime matrix rejects self-target second-PC route attempt`
+- go/no-go source contract now checks `"-RejectSelfPostRouteTarget"`
+
+Release interpretation: this is evidence hardening, not second-PC proof. It
+prevents self-target route attempts from being counted as targeted second-PC
+route-attempt CPU evidence. Public release remains No-Go until real second-PC
+route/CPU/matrix evidence, live MUSU.PRO P2P/relay proof, support mailbox
+proof, and Store/Partner Center proof are recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_SELF_TARGET_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v702`, `wiki/877`,
+`RejectSelfPostRouteTarget`, `runtime matrix rejects self-target second-PC
+route attempt`, `runtime_cpu_second_pc_route_attempt`, `route_probe.target`,
+`operator_machine`, `case_count=71`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Second-PC Route-Attempt Self-Target Gate Index Refresh (wiki/878)
+
+MUSU local indexer was refreshed after wiki/877 and GOAL v702.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2727 files`
+- `2776 symbols`
+- `20946 ms`
+
+Indexed context includes `verify-runtime-cpu-scenario-matrix.ps1`
+`-RejectSelfPostRouteTarget`, `write-release-go-no-go.ps1` targeted
+second-PC route-attempt verifier args, release verifier regression case
+`runtime matrix rejects self-target second-PC route attempt`, canonical report,
+GOAL v702, WIKI/WIKI_INDEX, BETA checklist, and CoS memory.
+
+Search terms should include `GOAL v703`, `wiki/878`, `second-PC route-attempt
+self-target gate index refresh`, `2727 files`, `2776 symbols`, `20946 ms`,
+`RejectSelfPostRouteTarget`, `runtime_cpu_second_pc_route_attempt`,
+`route_probe.target`, `operator_machine`, and `case_count=71`.

@@ -1267,6 +1267,7 @@ foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Obje
         "-MaxOneCorePercent", ([string]$MaxRuntimeIdleCpuOneCorePercent),
         "-RequirePostRouteProbe",
         "-RequirePostRouteTarget",
+        "-RejectSelfPostRouteTarget",
         "-AllowFailedPostRouteProbe",
         "-Json"
     )

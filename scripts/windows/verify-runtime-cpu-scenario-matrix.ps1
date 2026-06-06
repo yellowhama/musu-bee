@@ -9,6 +9,7 @@ param(
     [switch]$RequirePostRouteProbe = $true,
     [switch]$RequirePostRouteTarget,
     [string]$ExpectedPostRouteTarget,
+    [switch]$RejectSelfPostRouteTarget,
     [switch]$AllowFailedPostRouteProbe,
     [switch]$Json
 )
@@ -619,6 +620,13 @@ if ($matrix) {
                     "post-route route target matches $ExpectedPostRouteTarget" `
                     "post-route route target is '$routeTarget', expected '$ExpectedPostRouteTarget'"
             }
+            if ($RejectSelfPostRouteTarget) {
+                Add-CheckFromCondition `
+                    "post-route route target not self" `
+                    (-not [string]::IsNullOrWhiteSpace($routeTarget) -and -not ($routeTarget -eq $operatorMachine)) `
+                    "post-route route target is not the operator machine" `
+                    "post-route route target '$routeTarget' must not match operator_machine '$operatorMachine'"
+            }
         }
     }
 }
@@ -636,6 +644,7 @@ $result = [pscustomobject]@{
     require_post_route_probe = [bool]$RequirePostRouteProbe
     require_post_route_target = [bool]$RequirePostRouteTarget
     expected_post_route_target = if ([string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) { $null } else { $ExpectedPostRouteTarget }
+    reject_self_post_route_target = [bool]$RejectSelfPostRouteTarget
     allow_failed_post_route_probe = [bool]$AllowFailedPostRouteProbe
     checks = $checks.ToArray()
 }
