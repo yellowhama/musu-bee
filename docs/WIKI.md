@@ -13680,3 +13680,84 @@ memory.
 Search terms should include `GOAL v751`, `wiki/926`, `release relay tunnel
 source hook clean go/no-go index refresh`, `2814 files`, `2788 symbols`,
 `16331 ms`, `single_machine_verified=false`, and `P2P env blocker count 12`.
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence Refresh (wiki/927)
+
+Current HEAD `2b9ff2e1415aaf857bae2a1d3a6a9d6d77174b4e` has fresh local
+packaged desktop evidence on `HUGH_SECOND`.
+
+Evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-054358-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-053318-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-053336-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-053413-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-053429-HUGH_SECOND.desktop-open.evidence.json`
+- five-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-053555-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-053555-HUGH_SECOND.verification.json`
+
+Result:
+
+- single-machine verifier `ok=true`, `fail_count=0`
+- local surface `local-bridge-only`
+- bridge `http://127.0.0.1:1158`
+- process ownership `ok=true`: packaged runtime `1`, desktop shell `1`, owned
+  Node `0`, owned WebView2 `6`
+- startup single-instance reused bridge PID `39876`
+- desktop single-instance reused `musu-desktop` PID `31040`
+- desktop-open CPU `ok=true`, `git_dirty=false`, `60.036s`, hot `0`, WebView2
+  max `0.05`, working set `362.33MB`
+- matrix verifier `ok=true`, `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, hot `0`, WebView2 max `0.13`,
+  working set max `363.73MB`
+
+Dirty-tree go/no-go after docs evidence promotion reports
+`single_machine_verified=true`, runtime idle CPU valid machines
+`1 [HUGH_SECOND]`, runtime CPU matrix valid machines `1 [HUGH_SECOND]`, and
+process/startup/desktop single-instance true. The public release remains No-Go
+on second-PC route/CPU/matrix, clean targeted second-PC route-attempt CPU,
+hosted MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
+
+Product boundary: MUSU Desktop is the local executor; MUSU.PRO is remote input,
+rooms/meeting, rendezvous, path selection, relay fallback, and evidence/control
+plane. `localhost:3001` is not the packaged desktop runtime contract.
+
+Search terms should include `GOAL v752`, `wiki/927`,
+`current-head local desktop evidence refresh`,
+`20260607-054358-HUGH_SECOND`, `20260607-053429-HUGH_SECOND.desktop-open`,
+`20260607-053555-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, `local-bridge-only`,
+`127.0.0.1:1158`, `WebView2 0.13`, and `single_machine_verified=true`.
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence Index Refresh (wiki/928)
+
+MUSU local indexer was refreshed after wiki/927 and GOAL v752.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2828 files`
+- `2788 symbols`
+- `16114 ms`
+
+Indexed context includes current local desktop evidence
+`20260607-054358-HUGH_SECOND`, process ownership
+`20260607-053318-HUGH_SECOND`, startup single-instance
+`20260607-053336-HUGH_SECOND`, desktop single-instance
+`20260607-053413-HUGH_SECOND`, desktop-open CPU
+`20260607-053429-HUGH_SECOND`, five-state runtime CPU matrix
+`20260607-053555-HUGH_SECOND`, canonical report, BETA checklist, P2P
+control-plane spec, runtime stabilization spec, network boundary spec, GOAL,
+WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v753`, `wiki/928`,
+`current-head local desktop evidence index refresh`, `2828 files`,
+`2788 symbols`, `16114 ms`, `local-bridge-only`, `127.0.0.1:1158`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, and
+`single_machine_verified=true`.

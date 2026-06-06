@@ -6218,4 +6218,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release relay tunnel source hook clean go/no-go index refresh`,
   `single_machine_verified=false`, and `P2P env blocker count 12`.
 
+- 2026-06-07 current-head local desktop evidence refresh:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_REFRESH_2026_06_07.md`
+  (wiki/927) records fresh packaged MUSU Desktop evidence after the release
+  relay tunnel source hook contract changed runtime source. Search terms should
+  include `GOAL v752`, `wiki/927`, `current-head local desktop evidence
+  refresh`, `20260607-054358-HUGH_SECOND`,
+  `20260607-053429-HUGH_SECOND.desktop-open`,
+  `20260607-053555-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, `local-bridge-only`,
+  `127.0.0.1:1158`, `WebView2 0.13`, and `single_machine_verified=true`.
+
+- 2026-06-07 current-head local desktop evidence index refresh:
+  wiki/928 records the MUSU local index refresh after wiki/927 and GOAL v752.
+  Search terms should include `GOAL v753`, `wiki/928`, `2828 files`,
+  `2788 symbols`, `16114 ms`,
+  `current-head local desktop evidence index refresh`, `local-bridge-only`,
+  `127.0.0.1:1158`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, and
+  `single_machine_verified=true`.
+
 **End of WIKI_INDEX.md.**

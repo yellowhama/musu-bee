@@ -1217,3 +1217,20 @@ Current correct state remains fail-closed:
 - live hosted relay route metadata, transport proof, and payload delivery proof
   are absent
 
+## 2026-06-07 Local Desktop / Web Control-Plane Boundary
+
+The packaged MUSU Desktop runtime is allowed to operate without a local web
+dashboard on `localhost:3001`. The release contract is the packaged local
+program and bridge, not a developer dashboard port.
+
+Current evidence on `HUGH_SECOND` proves the packaged desktop surface as
+`local-bridge-only` with bridge `http://127.0.0.1:1158`.
+
+Network boundary:
+
+- local MUSU programs execute local tasks;
+- MUSU.PRO receives remote user input and coordinates rooms, presence,
+  rendezvous, path selection, relay fallback, and evidence;
+- after rendezvous/path selection, devices should prefer direct P2P routes and
+  use relay only as fallback;
+- MUSU.PRO must not be treated as a replacement for local execution.

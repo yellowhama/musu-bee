@@ -9375,3 +9375,65 @@ Clean post-commit go/no-go after commit
 This is expected because the Rust runtime source changed. Refresh current-HEAD
 local evidence before treating single-machine/process/single-instance/CPU gates
 as passing again.
+
+## 2026-06-07 05:52 KST Current-HEAD Local Desktop Evidence Refresh
+
+Current HEAD `2b9ff2e1415aaf857bae2a1d3a6a9d6d77174b4e` was rechecked on
+`HUGH_SECOND` with the installed packaged MUSU Desktop runtime.
+
+Evidence promoted to docs:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-054358-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-053318-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-053336-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-053413-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-053429-HUGH_SECOND.desktop-open.evidence.json`
+- full five-state CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-053555-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-053555-HUGH_SECOND.verification.json`
+
+Results:
+
+- single-machine verifier: `ok=true`, `fail_count=0`
+- local surface: `local-bridge-only`
+- bridge: `http://127.0.0.1:1158`
+- `dashboard_required=false`
+- process ownership: packaged runtime `1`, desktop shell `1`, owned Node `0`,
+  owned WebView2 `6`, bridge health `HTTP 200`
+- startup single-instance reused bridge PID `39876`
+- desktop single-instance reused `musu-desktop` PID `31040`
+- desktop-open CPU: `60.036s`, hot `0`, MUSU `0`, Node `0`, WebView2 `0.05`,
+  working set `362.33MB`
+- five-state matrix: verifier `ok=true`, `fail_count=0`, hot `0` in all
+  scenarios, WebView2 max `0.13`, working set max `363.73MB`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`
+
+Dirty-tree go/no-go after evidence promotion restored the local evidence state:
+`single_machine_verified=true`, process/startup/desktop single-instance true,
+runtime idle CPU valid machines `1 [HUGH_SECOND]`, and runtime CPU matrix valid
+machines `1 [HUGH_SECOND]`. Public release remains No-Go because two-machine
+CPU/matrix, real second-PC multi-device evidence, targeted clean second-PC route
+attempt evidence, hosted MUSU.PRO P2P/relay proof, support mailbox proof, and
+Store/Partner Center proof remain open.
+
+Product boundary remains unchanged:
+
+- MUSU Desktop is the local executor.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- `localhost:3001` is not the packaged desktop runtime contract.
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_REFRESH_2026_06_07.md`
+(wiki/927).
+
+Index refresh:
+
+- MUSU local indexer: `2828 files`, `2788 symbols`, `16114 ms`
+- wiki: `wiki/928`

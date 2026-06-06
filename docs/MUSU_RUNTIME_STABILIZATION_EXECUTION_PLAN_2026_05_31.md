@@ -574,3 +574,28 @@ Validation passed with release verifier `case_count=104` and
 `failed_case_count=0`, plus Rust `relay_payload` and `rendezvous` tests. The
 next runtime work is actual `quic_relay_tunnel` byte transit and proof
 emission.
+
+## 2026-06-07 Current-HEAD Local Runtime Evidence Refresh
+
+Current packaged desktop evidence on `HUGH_SECOND` restores the one-machine
+local runtime baseline after the Rust release relay tunnel source hook contract
+changed runtime source.
+
+Current one-machine pass:
+
+- single-machine smoke `ok=true`, `local-bridge-only`,
+  bridge `http://127.0.0.1:1158`
+- process ownership `ok=true`, packaged runtime `1`, desktop shell `1`, owned
+  Node `0`, owned WebView2 `6`
+- startup single-instance `ok=true`, bridge PID reused
+- desktop single-instance `ok=true`, desktop PID reused
+- desktop-open idle CPU `ok=true`, `60.036s`, hot `0`, WebView2 max `0.05`
+- five-state runtime CPU matrix verifier `ok=true`, hot `0`, WebView2 max
+  `0.13`, route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`
+
+Remaining stabilization gates:
+
+- capture the same idle CPU and five-state matrix evidence on a second machine;
+- capture a clean targeted second-PC route-attempt CPU diagnostic;
+- capture real second-PC route/multi-device evidence;
+- keep hosted MUSU.PRO relay proof separate from local execution proof.

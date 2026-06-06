@@ -2072,3 +2072,18 @@ Normative boundary:
 - hosted MUSU.PRO evidence must still prove runtime login, owner-scoped
   storage, relay route metadata, relay transport proof, and relay payload
   delivery proof
+
+## 2026-06-07 Current Runtime Boundary Note
+
+Current local evidence confirms the product split:
+
+- MUSU Desktop is the packaged local executor on each device.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- MUSU.PRO must not become the runtime that executes local work.
+- `localhost:3001` is not the packaged desktop runtime contract; the packaged
+  desktop runtime can be healthy as `local-bridge-only` through
+  `http://127.0.0.1:<bridge-port>`.
+- The 2026-06-07 current-head local evidence used bridge
+  `http://127.0.0.1:1158`, while the public release remains blocked on
+  two-machine evidence and hosted MUSU.PRO relay proof.

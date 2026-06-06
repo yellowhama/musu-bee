@@ -1,0 +1,797 @@
+﻿{
+    "schema":  "musu.startup_single_instance_audit.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.1",
+    "git_commit":  "2b9ff2e1415aaf857bae2a1d3a6a9d6d77174b4e",
+    "recorded_at":  "2026-06-07T05:33:52.3936812+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "musu_exe":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "allow_developer_runtime":  false,
+    "repeat_count":  3,
+    "command_timeout_sec":  45,
+    "max_musu_runtime_processes":  1,
+    "fail_count":  0,
+    "process_counts":  {
+                           "before_musu_runtime":  1,
+                           "after_musu_runtime":  1,
+                           "observed_bridge_pid_count":  1,
+                           "repeated_spawn_count":  0,
+                           "failed_invocation_count":  0
+                       },
+    "bridge_registry_before":  {
+                                   "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                   "exists":  true,
+                                   "parse_error":  null,
+                                   "pid":  39876,
+                                   "addr":  "127.0.0.1:1158"
+                               },
+    "bridge_registry_after":  {
+                                  "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                  "exists":  true,
+                                  "parse_error":  null,
+                                  "pid":  39876,
+                                  "addr":  "127.0.0.1:1158"
+                              },
+    "invocations":  [
+                        {
+                            "index":  1,
+                            "started_at":  "2026-06-07T05:33:37.0728267+09:00",
+                            "completed_at":  "2026-06-07T05:33:39.3263918+09:00",
+                            "duration_ms":  2254,
+                            "parse_ok":  true,
+                            "error":  null,
+                            "ok":  true,
+                            "bridge_started":  false,
+                            "bridge_status":  "ok",
+                            "dashboard_status":  "ok",
+                            "bridge_pid":  39876,
+                            "bridge_addr":  "127.0.0.1:1158",
+                            "registry_path":  "C:\\Users\\empty\\.musu\\services\\bridge.json"
+                        },
+                        {
+                            "index":  2,
+                            "started_at":  "2026-06-07T05:33:39.3716334+09:00",
+                            "completed_at":  "2026-06-07T05:33:41.5350174+09:00",
+                            "duration_ms":  2163,
+                            "parse_ok":  true,
+                            "error":  null,
+                            "ok":  true,
+                            "bridge_started":  false,
+                            "bridge_status":  "ok",
+                            "dashboard_status":  "ok",
+                            "bridge_pid":  39876,
+                            "bridge_addr":  "127.0.0.1:1158",
+                            "registry_path":  "C:\\Users\\empty\\.musu\\services\\bridge.json"
+                        },
+                        {
+                            "index":  3,
+                            "started_at":  "2026-06-07T05:33:41.5370175+09:00",
+                            "completed_at":  "2026-06-07T05:33:43.6929899+09:00",
+                            "duration_ms":  2156,
+                            "parse_ok":  true,
+                            "error":  null,
+                            "ok":  true,
+                            "bridge_started":  false,
+                            "bridge_status":  "ok",
+                            "dashboard_status":  "ok",
+                            "bridge_pid":  39876,
+                            "bridge_addr":  "127.0.0.1:1158",
+                            "registry_path":  "C:\\Users\\empty\\.musu\\services\\bridge.json"
+                        }
+                    ],
+    "before_processes":  [
+                             {
+                                 "pid":  39876,
+                                 "process_name":  "musu",
+                                 "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe",
+                                 "start_time":  "2026-06-07T00:20:18.9037014+09:00",
+                                 "cpu_seconds":  0.25,
+                                 "working_set_mb":  17.71
+                             }
+                         ],
+    "after_processes":  [
+                            {
+                                "pid":  39876,
+                                "process_name":  "musu",
+                                "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe",
+                                "start_time":  "2026-06-07T00:20:18.9037014+09:00",
+                                "cpu_seconds":  0.25,
+                                "working_set_mb":  17.71
+                            }
+                        ],
+    "process_ownership":  {
+                              "schema":  "musu.process_ownership_audit.v1",
+                              "ok":  true,
+                              "version":  "1.15.0-rc.1",
+                              "git_commit":  "2b9ff2e1415aaf857bae2a1d3a6a9d6d77174b4e",
+                              "recorded_at":  "2026-06-07T05:33:52.3225096+09:00",
+                              "operator_machine":  "HUGH_SECOND",
+                              "operator_user":  "empty",
+                              "repo_root":  "F:\\workspace\\musu-bee",
+                              "musu_home":  "C:\\Users\\empty\\.musu",
+                              "allow_developer_runtime":  false,
+                              "max_musu_runtime_processes":  1,
+                              "max_musu_desktop_processes":  1,
+                              "max_owned_node_processes":  1,
+                              "max_owned_webview2_processes":  12,
+                              "fail_count":  0,
+                              "process_counts":  {
+                                                     "all_target_processes":  38,
+                                                     "musu_runtime":  1,
+                                                     "musu_cli":  0,
+                                                     "desktop_shell":  1,
+                                                     "owned_node":  0,
+                                                     "owned_webview2":  6,
+                                                     "machine_wide_node":  18,
+                                                     "machine_wide_webview2":  18,
+                                                     "orphan_repo_helpers":  0,
+                                                     "repo_related_runtime":  0,
+                                                     "packaged_runtime":  1,
+                                                     "non_packaged_runtime":  0,
+                                                     "non_packaged_desktop_shell":  0
+                                                 },
+                              "bridge_registry":  {
+                                                      "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                                                      "exists":  true,
+                                                      "parse_error":  null,
+                                                      "pid":  39876,
+                                                      "addr":  "127.0.0.1:1158",
+                                                      "pid_alive":  true,
+                                                      "health":  {
+                                                                     "ok":  true,
+                                                                     "detail":  "HTTP 200",
+                                                                     "status_code":  200
+                                                                 }
+                                                  },
+                              "packaged_runtime_identity":  {
+                                                                "packaged_desktop_active":  true,
+                                                                "packaged_desktop_pids":  [
+                                                                                              31040
+                                                                                          ],
+                                                                "bridge_pid_packaged_runtime":  true,
+                                                                "bridge_pid_repo_related":  false,
+                                                                "dashboard_pid":  null,
+                                                                "dashboard_pid_repo_related":  false
+                                                            },
+                              "checks":  [
+                                             {
+                                                 "name":  "native parent lookup",
+                                                 "status":  "pass",
+                                                 "message":  "native parent-process lookup is available"
+                                             },
+                                             {
+                                                 "name":  "MUSU runtime process count",
+                                                 "status":  "pass",
+                                                 "message":  "1 MUSU runtime process(es) running"
+                                             },
+                                             {
+                                                 "name":  "MUSU desktop process count",
+                                                 "status":  "pass",
+                                                 "message":  "1 MUSU desktop shell process(es)"
+                                             },
+                                             {
+                                                 "name":  "release runtime identity",
+                                                 "status":  "pass",
+                                                 "message":  "all MUSU runtime processes belong to the packaged WindowsApps runtime"
+                                             },
+                                             {
+                                                 "name":  "release desktop shell identity",
+                                                 "status":  "pass",
+                                                 "message":  "desktop shell processes are packaged WindowsApps runtime(s) or absent"
+                                             },
+                                             {
+                                                 "name":  "owned Node helper count",
+                                                 "status":  "pass",
+                                                 "message":  "0 owned Node helper process(es)"
+                                             },
+                                             {
+                                                 "name":  "owned WebView2 helper count",
+                                                 "status":  "pass",
+                                                 "message":  "6 owned WebView2 helper process(es)"
+                                             },
+                                             {
+                                                 "name":  "orphan repo helper count",
+                                                 "status":  "pass",
+                                                 "message":  "no repo-related orphan Node/WebView2 helpers"
+                                             },
+                                             {
+                                                 "name":  "bridge registry exists",
+                                                 "status":  "pass",
+                                                 "message":  "bridge registry exists"
+                                             },
+                                             {
+                                                 "name":  "bridge registry parse",
+                                                 "status":  "pass",
+                                                 "message":  "bridge registry parses"
+                                             },
+                                             {
+                                                 "name":  "bridge registry pid alive",
+                                                 "status":  "pass",
+                                                 "message":  "bridge registry pid is a live MUSU process"
+                                             },
+                                             {
+                                                 "name":  "bridge health",
+                                                 "status":  "pass",
+                                                 "message":  "bridge /health is reachable at 127.0.0.1:1158"
+                                             },
+                                             {
+                                                 "name":  "bridge registry runtime identity",
+                                                 "status":  "pass",
+                                                 "message":  "bridge registry PID belongs to the packaged WindowsApps runtime"
+                                             },
+                                             {
+                                                 "name":  "dashboard server identity",
+                                                 "status":  "pass",
+                                                 "message":  "dashboard listener is absent or not a repo/workspace server"
+                                             },
+                                             {
+                                                 "name":  "packaged desktop bridge runtime identity",
+                                                 "status":  "pass",
+                                                 "message":  "packaged desktop is not active or bridge registry PID belongs to the packaged WindowsApps runtime"
+                                             },
+                                             {
+                                                 "name":  "packaged desktop dashboard server identity",
+                                                 "status":  "pass",
+                                                 "message":  "packaged desktop is not active or dashboard listener is not a repo/workspace server"
+                                             }
+                                         ],
+                              "processes":  [
+                                                {
+                                                    "pid":  31040,
+                                                    "process_name":  "musu-desktop",
+                                                    "role":  "desktop_shell",
+                                                    "parent_pid":  13568,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe",
+                                                    "command_line":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu-desktop.exe\" ",
+                                                    "start_time":  "2026-06-07T00:22:30.2804713+09:00",
+                                                    "cpu_seconds":  0.265625,
+                                                    "working_set_mb":  33.02
+                                                },
+                                                {
+                                                    "pid":  39876,
+                                                    "process_name":  "musu",
+                                                    "role":  "musu_runtime",
+                                                    "parent_pid":  2668,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe",
+                                                    "command_line":  "\"C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe\" bridge",
+                                                    "start_time":  "2026-06-07T00:20:18.9037014+09:00",
+                                                    "cpu_seconds":  0.25,
+                                                    "working_set_mb":  17.71
+                                                },
+                                                {
+                                                    "pid":  6484,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34544,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@upstash/context7-mcp\"",
+                                                    "start_time":  "2026-06-01T17:20:34.5075890+09:00",
+                                                    "cpu_seconds":  5.953125,
+                                                    "working_set_mb":  2.34
+                                                },
+                                                {
+                                                    "pid":  11292,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  10988,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\eea2bd7412d4593b\\node_modules\\.bin\\\\..\\@upstash\\context7-mcp\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:39.2461207+09:00",
+                                                    "cpu_seconds":  1.09375,
+                                                    "working_set_mb":  1.93
+                                                },
+                                                {
+                                                    "pid":  19964,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34424,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"F:\\Aisaak\\Projects\\musu-pro\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next\" start -p 3102",
+                                                    "start_time":  "2026-06-05T10:14:29.4615016+09:00",
+                                                    "cpu_seconds":  3.1875,
+                                                    "working_set_mb":  11.52
+                                                },
+                                                {
+                                                    "pid":  22688,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34620,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@morph-llm/morph-fast-apply\"",
+                                                    "start_time":  "2026-06-01T17:20:40.8790634+09:00",
+                                                    "cpu_seconds":  5.4375,
+                                                    "working_set_mb":  2.36
+                                                },
+                                                {
+                                                    "pid":  23900,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  33804,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\de2bd410102f5eda\\node_modules\\.bin\\\\..\\@modelcontextprotocol\\server-sequential-thinking\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:33.5545529+09:00",
+                                                    "cpu_seconds":  0.78125,
+                                                    "working_set_mb":  1.89
+                                                },
+                                                {
+                                                    "pid":  25308,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34080,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\0b9ff77863cb6e9f\\node_modules\\.bin\\\\..\\@executeautomation\\playwright-mcp-server\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:39.1169119+09:00",
+                                                    "cpu_seconds":  1.328125,
+                                                    "working_set_mb":  1.89
+                                                },
+                                                {
+                                                    "pid":  27360,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  25712,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\empty\\AppData\\Roaming\\npm/node_modules/@openai/codex/bin/codex.js",
+                                                    "start_time":  "2026-06-01T01:08:30.0061797+09:00",
+                                                    "cpu_seconds":  0.109375,
+                                                    "working_set_mb":  1.9
+                                                },
+                                                {
+                                                    "pid":  33464,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  21728,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@21st-dev/magic\"",
+                                                    "start_time":  "2026-06-01T17:20:40.5733810+09:00",
+                                                    "cpu_seconds":  5.265625,
+                                                    "working_set_mb":  2.33
+                                                },
+                                                {
+                                                    "pid":  33588,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34320,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@modelcontextprotocol/server-sequential-thinking\"",
+                                                    "start_time":  "2026-06-01T17:20:26.4626864+09:00",
+                                                    "cpu_seconds":  6.171875,
+                                                    "working_set_mb":  2.32
+                                                },
+                                                {
+                                                    "pid":  33832,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  6720,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\0726791833487271\\node_modules\\.bin\\\\..\\task-master-ai\\dist\\mcp-server.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:33.1701857+09:00",
+                                                    "cpu_seconds":  14.640625,
+                                                    "working_set_mb":  9.13
+                                                },
+                                                {
+                                                    "pid":  34112,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  3096,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@modelcontextprotocol/server-memory\"",
+                                                    "start_time":  "2026-06-01T17:20:19.3526203+09:00",
+                                                    "cpu_seconds":  8.828125,
+                                                    "working_set_mb":  2.39
+                                                },
+                                                {
+                                                    "pid":  34500,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34456,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\15b07286cbcc3329\\node_modules\\.bin\\\\..\\@modelcontextprotocol\\server-memory\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:31.6701684+09:00",
+                                                    "cpu_seconds":  0.765625,
+                                                    "working_set_mb":  1.93
+                                                },
+                                                {
+                                                    "pid":  34540,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34008,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"task-master-ai\"",
+                                                    "start_time":  "2026-06-01T17:20:23.8250191+09:00",
+                                                    "cpu_seconds":  7.796875,
+                                                    "working_set_mb":  2.36
+                                                },
+                                                {
+                                                    "pid":  34664,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  14656,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "node C:/Users/empty/godot-mcp/build/index.js",
+                                                    "start_time":  "2026-06-01T17:20:22.5450510+09:00",
+                                                    "cpu_seconds":  0.265625,
+                                                    "working_set_mb":  1.91
+                                                },
+                                                {
+                                                    "pid":  34772,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34468,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npx-cli.js\" \"-y\" \"@executeautomation/playwright-mcp-server\"",
+                                                    "start_time":  "2026-06-01T17:20:34.2069024+09:00",
+                                                    "cpu_seconds":  6.625,
+                                                    "working_set_mb":  2.36
+                                                },
+                                                {
+                                                    "pid":  34952,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  34780,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\41d1713f86af43bb\\node_modules\\.bin\\\\..\\@21st-dev\\magic\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:44.8386863+09:00",
+                                                    "cpu_seconds":  0.96875,
+                                                    "working_set_mb":  1.88
+                                                },
+                                                {
+                                                    "pid":  35280,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  35284,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"node\"   \"C:\\Users\\empty\\AppData\\Local\\npm-cache\\_npx\\9a04f97d82073705\\node_modules\\.bin\\\\..\\@morph-llm\\morph-fast-apply\\dist\\index.js\" ",
+                                                    "start_time":  "2026-06-01T17:20:45.4789028+09:00",
+                                                    "cpu_seconds":  1.0625,
+                                                    "working_set_mb":  1.91
+                                                },
+                                                {
+                                                    "pid":  40172,
+                                                    "process_name":  "node",
+                                                    "role":  "node_helper",
+                                                    "parent_pid":  42652,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files\\nodejs\\node.exe",
+                                                    "command_line":  "\"C:\\Program Files\\nodejs\\\\node.exe\"  \"C:\\Users\\empty\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npm-cli.js\" run start -- -p 3102",
+                                                    "start_time":  "2026-06-05T10:14:29.1871691+09:00",
+                                                    "cpu_seconds":  0.265625,
+                                                    "working_set_mb":  1.96
+                                                },
+                                                {
+                                                    "pid":  13340,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38332,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=KakaoTalk.exe --webview-exe-version=26.4.0.5128 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\" --noerrdialogs --embedded-browser-webview-dpi-awareness=2 --edge-webview-disable-crash-reporting=1 --disable-gpu --enable-features=ThirdPartyStoragePartitioning,PartitionedCookies --mojo-named-platform-channel-pipe=38332.40008.7647666996711014705 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472",
+                                                    "start_time":  "2026-06-05T16:38:05.2710988+09:00",
+                                                    "cpu_seconds":  15.234375,
+                                                    "working_set_mb":  34.49
+                                                },
+                                                {
+                                                    "pid":  19484,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  20436,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView /prefetch:4 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\\Crashpad --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=148.0.7778.217 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=148.0.3967.96 --initial-client-data=0x16c,0x170,0x174,0x14c,0x17c,0x7ffebe1a5d58,0x7ffebe1a5d64,0x7ffebe1a5d70",
+                                                    "start_time":  "2026-06-01T01:08:08.1380501+09:00",
+                                                    "cpu_seconds":  2.46875,
+                                                    "working_set_mb":  2.32
+                                                },
+                                                {
+                                                    "pid":  19632,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  20436,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 148.0.3967.70)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2126.8901.20.0 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=ko --device-scale-factor=1 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --js-flags=\"--expose-gc --ms-user-locale=ko_KR\" --time-ticks-at-unix-epoch=-1780243637267555 --launch-time-ticks=51582062 --always-read-main-dll --metrics-shmem-handle=3684,i,13057027590126845148,3129533727979838153,2097152 --field-trial-handle=1768,i,8876448653026618238,3409844444002848628,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1804,i,12413590381141321174,11861925879793385969,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=3660 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb /prefetch:1",
+                                                    "start_time":  "2026-06-01T01:08:08.9839826+09:00",
+                                                    "cpu_seconds":  26.53125,
+                                                    "working_set_mb":  55.73
+                                                },
+                                                {
+                                                    "pid":  20436,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  17940,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=SearchHost.exe --webview-exe-version=2126.8901.20.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --noerrdialogs --disable-features=msSmartScreenProtection --edge-webview-enable-mojo-ipcz --enable-features=msEdgeFluentOverlayScrollbar --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 148.0.3967.70)\" --lang=ko --mojo-named-platform-channel-pipe=17940.20352.13374583705147643719 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                                                    "start_time":  "2026-06-01T01:08:07.9988706+09:00",
+                                                    "cpu_seconds":  74.078125,
+                                                    "working_set_mb":  38.31
+                                                },
+                                                {
+                                                    "pid":  21296,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  20436,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 148.0.3967.70)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2126.8901.20.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=2096,i,7980115009469725761,7580908767415982226,524288 --field-trial-handle=1768,i,8876448653026618238,3409844444002848628,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1804,i,12413590381141321174,11861925879793385969,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2120 /prefetch:11 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                                                    "start_time":  "2026-06-01T01:08:08.6856703+09:00",
+                                                    "cpu_seconds":  13.0625,
+                                                    "working_set_mb":  21.44
+                                                },
+                                                {
+                                                    "pid":  21308,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  20436,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 148.0.3967.70)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2126.8901.20.0 --embedded-browser-webview=1 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --always-read-main-dll --metrics-shmem-handle=1660,i,7229520349973671635,7993977795872539350,262144 --field-trial-handle=1768,i,8876448653026618238,3409844444002848628,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1804,i,12413590381141321174,11861925879793385969,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1760 /prefetch:2 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                                                    "start_time":  "2026-06-01T01:08:08.7059833+09:00",
+                                                    "cpu_seconds":  12.921875,
+                                                    "working_set_mb":  10.05
+                                                },
+                                                {
+                                                    "pid":  21388,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  20436,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 148.0.3967.70)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2126.8901.20.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=2300,i,7781710520448949010,12613643066632907804,524288 --field-trial-handle=1768,i,8876448653026618238,3409844444002848628,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1804,i,12413590381141321174,11861925879793385969,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2428 /prefetch:13 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                                                    "start_time":  "2026-06-01T01:08:08.7514472+09:00",
+                                                    "cpu_seconds":  3.40625,
+                                                    "working_set_mb":  7.18
+                                                },
+                                                {
+                                                    "pid":  29732,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38840,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --startup-read-main-dll --metrics-shmem-handle=1784,i,9819388443602201718,6807959648789484848,262144 --field-trial-handle=1960,i,6448116364514353929,13599787014988521024,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1964,i,13079341085131820858,4005380590575459072,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1948 /prefetch:2 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d",
+                                                    "start_time":  "2026-06-07T00:22:30.7826888+09:00",
+                                                    "cpu_seconds":  14.3125,
+                                                    "working_set_mb":  68.61
+                                                },
+                                                {
+                                                    "pid":  29884,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38840,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2252,i,7873547343595434383,8933255631748443774,524288 --field-trial-handle=1960,i,6448116364514353929,13599787014988521024,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1964,i,13079341085131820858,4005380590575459072,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2272 /prefetch:11 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d",
+                                                    "start_time":  "2026-06-07T00:22:30.7965001+09:00",
+                                                    "cpu_seconds":  0.65625,
+                                                    "working_set_mb":  36.03
+                                                },
+                                                {
+                                                    "pid":  30052,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38840,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView /prefetch:4 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\\Crashpad --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=148.0.7778.217 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=148.0.3967.96 --initial-client-data=0x17c,0x180,0x184,0x158,0x118,0x7ffebe1a5d58,0x7ffebe1a5d64,0x7ffebe1a5d70",
+                                                    "start_time":  "2026-06-07T00:22:30.4943807+09:00",
+                                                    "cpu_seconds":  0.125,
+                                                    "working_set_mb":  12.89
+                                                },
+                                                {
+                                                    "pid":  30068,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  13340,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\" --webview-exe-name=KakaoTalk.exe --webview-exe-version=26.4.0.5128 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --use-gl=angle --use-angle=d3d11-warp-webgl --startup-read-main-dll --metrics-shmem-handle=1696,i,17659527279668287286,5706411761518674394,262144 --field-trial-handle=1904,i,3295155661118313035,5172949891822022792,262144 --enable-features=PartitionedCookies,ThirdPartyStoragePartitioning --variations-seed-version --pseudonymization-salt-handle=1908,i,2011221825627881250,1264644685103067880,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1900 /prefetch:2 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472",
+                                                    "start_time":  "2026-06-05T16:38:05.4731086+09:00",
+                                                    "cpu_seconds":  2.03125,
+                                                    "working_set_mb":  6.37
+                                                },
+                                                {
+                                                    "pid":  30996,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  13340,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\" --webview-exe-name=KakaoTalk.exe --webview-exe-version=26.4.0.5128 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2060,i,1776372336274236103,2481032107257756775,524288 --field-trial-handle=1904,i,3295155661118313035,5172949891822022792,262144 --enable-features=PartitionedCookies,ThirdPartyStoragePartitioning --variations-seed-version --pseudonymization-salt-handle=1908,i,2011221825627881250,1264644685103067880,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2068 /prefetch:11 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472",
+                                                    "start_time":  "2026-06-05T16:38:05.4805056+09:00",
+                                                    "cpu_seconds":  3.1875,
+                                                    "working_set_mb":  16.16
+                                                },
+                                                {
+                                                    "pid":  31192,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  13340,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\" --webview-exe-name=KakaoTalk.exe --webview-exe-version=26.4.0.5128 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --disable-gpu-compositing --video-capture-use-gpu-memory-buffer --lang=ko --device-scale-factor=1 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=7 --js-flags=\"--expose-gc --ms-user-locale=ko_KR\" --time-ticks-at-unix-epoch=-1780243621288713 --launch-time-ticks=401465848542 --skip-read-main-dll --metrics-shmem-handle=4324,i,1131045387036418425,10922820498687839660,2097152 --field-trial-handle=1904,i,3295155661118313035,5172949891822022792,262144 --enable-features=PartitionedCookies,ThirdPartyStoragePartitioning --variations-seed-version --pseudonymization-salt-handle=1908,i,2011221825627881250,1264644685103067880,4 --trace-process-track-uuid=3190708992871164437 --mojo-platform-channel-handle=4564 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472 /prefetch:1",
+                                                    "start_time":  "2026-06-05T16:38:07.1402210+09:00",
+                                                    "cpu_seconds":  1.1875,
+                                                    "working_set_mb":  7.9
+                                                },
+                                                {
+                                                    "pid":  35660,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38840,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --video-capture-use-gpu-memory-buffer --lang=ko --device-scale-factor=1 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --js-flags=\"--expose-gc --ms-user-locale=ko_KR\" --time-ticks-at-unix-epoch=-1780243617177280 --launch-time-ticks=515733798865 --ssd-no-pressure-read-main-dll --metrics-shmem-handle=3976,i,17714035544319142307,15696295470493855508,2097152 --field-trial-handle=1960,i,6448116364514353929,13599787014988521024,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1964,i,13079341085131820858,4005380590575459072,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=3988 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d /prefetch:1",
+                                                    "start_time":  "2026-06-07T00:22:30.9877977+09:00",
+                                                    "cpu_seconds":  0.3125,
+                                                    "working_set_mb":  59.19
+                                                },
+                                                {
+                                                    "pid":  36428,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  38840,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2496,i,13673980149116841618,7924680447437659867,524288 --field-trial-handle=1960,i,6448116364514353929,13599787014988521024,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1964,i,13079341085131820858,4005380590575459072,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2516 /prefetch:13 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d",
+                                                    "start_time":  "2026-06-07T00:22:30.8401415+09:00",
+                                                    "cpu_seconds":  0.25,
+                                                    "working_set_mb":  19.52
+                                                },
+                                                {
+                                                    "pid":  38840,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  31040,
+                                                    "owned_by_musu":  true,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.yellowhama.musu\\EBWebView\" --noerrdialogs --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --lang=ko-KR --mojo-named-platform-channel-pipe=31040.43520.967562178221305052 /pfhostedapp:15ff256732483f8edeb67f97a075e6fae8d1708d",
+                                                    "start_time":  "2026-06-07T00:22:30.4330793+09:00",
+                                                    "cpu_seconds":  3.84375,
+                                                    "working_set_mb":  115.39
+                                                },
+                                                {
+                                                    "pid":  42372,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  13340,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView /prefetch:4 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\\Crashpad --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=148.0.7778.217 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=148.0.3967.96 --initial-client-data=0x174,0x178,0x17c,0x150,0x184,0x7ffebe1a5d58,0x7ffebe1a5d64,0x7ffebe1a5d70",
+                                                    "start_time":  "2026-06-05T16:38:05.3103101+09:00",
+                                                    "cpu_seconds":  0.640625,
+                                                    "working_set_mb":  2.29
+                                                },
+                                                {
+                                                    "pid":  44456,
+                                                    "process_name":  "msedgewebview2",
+                                                    "role":  "webview2_helper",
+                                                    "parent_pid":  13340,
+                                                    "owned_by_musu":  false,
+                                                    "repo_related":  false,
+                                                    "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe",
+                                                    "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\148.0.3967.96\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Kakao\\KakaoTalk\\users\\bc1f1d6a8df588d005076c40b97643f600082cb5\\wv\\EBWebView\" --webview-exe-name=KakaoTalk.exe --webview-exe-version=26.4.0.5128 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2308,i,9553882261332106956,5758008156287104601,524288 --field-trial-handle=1904,i,3295155661118313035,5172949891822022792,262144 --enable-features=PartitionedCookies,ThirdPartyStoragePartitioning --variations-seed-version --pseudonymization-salt-handle=1908,i,2011221825627881250,1264644685103067880,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2320 /prefetch:13 /pfhostedapp:f88261e2b92f80698ef87ad916ddf030dcc3e472",
+                                                    "start_time":  "2026-06-05T16:38:05.5134395+09:00",
+                                                    "cpu_seconds":  1.046875,
+                                                    "working_set_mb":  4.89
+                                                }
+                                            ],
+                              "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\startup-single-instance\\musu-startup-single-instance-20260607-053336.process-ownership.json"
+                          },
+    "process_ownership_error":  null,
+    "checks":  [
+                   {
+                       "name":  "musu executable exists",
+                       "status":  "pass",
+                       "message":  "musu executable exists at C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe"
+                   },
+                   {
+                       "name":  "startup executable release identity",
+                       "status":  "pass",
+                       "message":  "startup audit uses the packaged WindowsApps MUSU command"
+                   },
+                   {
+                       "name":  "all startup invocations parsed",
+                       "status":  "pass",
+                       "message":  "all startup invocations returned parseable JSON"
+                   },
+                   {
+                       "name":  "all startup invocations ok",
+                       "status":  "pass",
+                       "message":  "all startup invocations reported ok=true"
+                   },
+                   {
+                       "name":  "all bridge statuses ok",
+                       "status":  "pass",
+                       "message":  "bridge status was ok on every startup invocation"
+                   },
+                   {
+                       "name":  "stable bridge pid",
+                       "status":  "pass",
+                       "message":  "all startup invocations reused bridge pid 39876"
+                   },
+                   {
+                       "name":  "no repeated bridge spawn",
+                       "status":  "pass",
+                       "message":  "startup invocations after the first reused the running bridge"
+                   },
+                   {
+                       "name":  "runtime process count",
+                       "status":  "pass",
+                       "message":  "1 MUSU runtime process(es) after repeated startup"
+                   },
+                   {
+                       "name":  "bridge registry exists",
+                       "status":  "pass",
+                       "message":  "bridge registry exists at C:\\Users\\empty\\.musu\\services\\bridge.json"
+                   },
+                   {
+                       "name":  "bridge registry parse",
+                       "status":  "pass",
+                       "message":  "bridge registry parses"
+                   },
+                   {
+                       "name":  "process ownership audit",
+                       "status":  "pass",
+                       "message":  "process ownership audit passed after repeated startup"
+                   }
+               ],
+    "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\startup-single-instance\\musu-startup-single-instance-20260607-053336.json"
+}
