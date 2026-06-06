@@ -11577,3 +11577,76 @@ index refresh`, `2707 files`, `2776 symbols`, `14571 ms`,
 `musu.crash_recovery_contract.v1`, `crash_recovery_contract_verified`,
 `release verifier 69/69`, `cargo check --bin musu`, `MUSU Desktop local
 executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Idle CPU 4-State Recheck (wiki/869)
+
+Current installed WindowsApps MUSU was rechecked on `HUGH_SECOND` at repo HEAD
+`e0474473e366f847f24bd77ec862c5a72f02e59b` for four 60s scenarios:
+`startup-open`, `runtime-started`, `dashboard-open`, and `desktop-open`.
+
+Matrix path:
+
+- `.local-build\runtime-cpu-scenarios\20260606-190449-HUGH_SECOND\20260606-190449-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- matrix `ok=true`
+- `git_dirty=false`
+- `fail_count=0`
+- hot process count `0` in all four scenarios
+- MUSU max `0%`
+- Node max `0%`
+- WebView2 max `0.16%`
+- owned Node helpers `0`
+- owned WebView2 helpers `6`
+- working set about `123 MB`
+
+Process ownership passed with one packaged runtime, one desktop shell, bridge
+PID `37928`, and bridge HTTP `200` at `127.0.0.1:4751`.
+
+Loop-candidate audits:
+
+- frontend polling audit: `ok=true`, `fail_count=0`, 29 low-duty polling
+  call-site files, direct interval hits `0`, direct visibility listener hits
+  `0`
+- Rust background-loop audit: `ok=true`, `fail_count=0`, unaudited loop hits
+  `0`, unaudited spawn hits `0`
+
+The four-state local verifier passes when scoped to these four scenarios with
+`-RequirePostRouteProbe:$false`. The default full release matrix verifier still
+fails because `post-route` is missing. This is expected: full release CPU
+evidence still needs second-PC route/post-route proof.
+
+Packaging note: the installed package reports `musu 1.15.0-rc.1` but does not
+expose a build commit and does not yet show the new `stale_bridge_registry_*`
+fields from the crash-recovery source change. Treat this as current installed
+runtime CPU evidence only, not crash-recovery package evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_IDLE_CPU_4_STATE_RECHECK_2026_06_06.md`
+
+Search terms should include `GOAL v694`, `wiki/869`, `20260606-190449-HUGH_SECOND`,
+`startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`,
+`WebView2 0.16`, `hot process count 0`, `frontend polling 29`, `direct interval
+0`, `unaudited loop hits 0`, `post-route missing`, `second-PC CPU evidence`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Idle CPU 4-State Index Refresh (wiki/870)
+
+MUSU local indexer was refreshed after wiki/869 and GOAL v694.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2709 files`
+- `2776 symbols`
+- `11901 ms`
+
+Indexed context includes the idle CPU 4-state recheck report, BETA checklist
+update, WIKI/WIKI_INDEX, GOAL v694, and CoS memory.
+
+Search terms should include `GOAL v695`, `wiki/870`, `idle CPU 4-state index
+refresh`, `2709 files`, `2776 symbols`, `11901 ms`,
+`20260606-190449-HUGH_SECOND`, `WebView2 0.16`, `hot process count 0`,
+`post-route missing`, `MUSU Desktop local executor`, and `MUSU.PRO remote input
+control plane`.

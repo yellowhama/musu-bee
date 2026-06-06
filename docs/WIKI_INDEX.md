@@ -5695,4 +5695,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release verifier 69/69`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 idle CPU 4-state recheck:
+  `RELEASE_1_15_0_RC1_IDLE_CPU_4_STATE_RECHECK_2026_06_06.md`
+  (wiki/869) records the current installed local runtime CPU recheck for
+  `startup-open`, `runtime-started`, `dashboard-open`, and `desktop-open`.
+  Search terms should include `GOAL v694`, `wiki/869`,
+  `20260606-190449-HUGH_SECOND`, `WebView2 0.16`, `hot process count 0`,
+  `frontend polling 29`, `direct interval 0`, `unaudited loop hits 0`,
+  `post-route missing`, `second-PC CPU evidence`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 idle CPU 4-state index refresh:
+  wiki/870 records the MUSU local index refresh after wiki/869 and GOAL v694.
+  Search terms should include `GOAL v695`, `wiki/870`, `2709 files`,
+  `2776 symbols`, `11901 ms`, `idle CPU 4-state index refresh`,
+  `20260606-190449-HUGH_SECOND`, `WebView2 0.16`, `hot process count 0`,
+  `post-route missing`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

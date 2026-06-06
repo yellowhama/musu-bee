@@ -8354,3 +8354,19 @@ Release interpretation: this closes a local runtime crash-recovery contract
 gap. Public release remains No-Go until second-PC route/CPU/matrix evidence,
 live MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
 proof exist.
+
+## 2026-06-06 Idle CPU 4-State Recheck
+
+- Current installed WindowsApps MUSU on `HUGH_SECOND` was sampled for four 60s
+  states: `startup-open`, `runtime-started`, `dashboard-open`, and
+  `desktop-open`.
+- Matrix path:
+  `.local-build\runtime-cpu-scenarios\20260606-190449-HUGH_SECOND\20260606-190449-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- Result: `ok=true`, `git_dirty=false`, `fail_count=0`, hot process count `0`
+  in all four states.
+- CPU attribution: MUSU `0%`, Node `0%`, WebView2 max `0.16%`; owned Node `0`,
+  owned WebView2 `6`.
+- Process ownership, frontend polling, and Rust background-loop audits passed
+  with `fail_count=0`.
+- This is not full release CPU evidence. The default runtime CPU matrix gate
+  still requires `post-route` and second-PC route proof.
