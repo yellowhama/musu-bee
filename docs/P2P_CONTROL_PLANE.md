@@ -170,6 +170,27 @@ Passing local state:
   without making relay the default data path
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
+
+2026-06-06 current HEAD MSIX reinstall and crash-recovery evidence addendum:
+the source crash-recovery contract is now proven in the installed package, not
+only in source tests. HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was
+rebuilt and reinstalled as
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`; packaged `musu up --json`
+exposes `stale_bridge_registry_removed` and `stale_bridge_registry_pid`. A
+dead bridge registry PID `999999` was removed before a healthy bridge started
+at `127.0.0.1:3678`, and the crash-recovery audit passed with `ok=true` and
+`fail_count=0`. Canonical single-machine evidence
+`20260606-195631-HUGH_SECOND` passes as `local-bridge-only`, and canonical
+desktop-open idle CPU evidence `20260606-200405-HUGH_SECOND.desktop-open`
+passes with hot process count `0` and WebView2 `0.08`.
+
+This does not change the release boundary. MUSU Desktop remains the local
+executor. MUSU.PRO remains remote input, project/company room, AI meeting room,
+presence, rendezvous, path selection, relay fallback policy, and
+evidence/control plane. `localhost:3001` is not the packaged desktop runtime
+contract. Current public P2P release still needs second-PC route/CPU/matrix
+proof, a current full `post-route` matrix, live MUSU.PRO login/storage, release
+`quic_relay_tunnel` proof, support mailbox proof, and Store proof.
 Open external gates:
 
 - second-PC current-build install, route, CPU, and matrix evidence is missing

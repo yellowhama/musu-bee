@@ -58,9 +58,9 @@ execution server or default data path.
 Current runtime CPU subrole attribution packaged primary-machine evidence:
 
 - single-machine:
-  `docs\evidence\single-machine\1.15.0-rc.1\20260606-013337-HUGH_SECOND.evidence.json`
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-195631-HUGH_SECOND.evidence.json`
 - idle CPU:
-  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-011243-HUGH_SECOND.desktop-open.evidence.json`
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-200405-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
   `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - runtime CPU matrix verification:
@@ -83,6 +83,23 @@ an explicitly allowed failed target-route CPU diagnostic. It is not successful
 multi-device route proof. Its 60s CPU sample stayed healthy: hot process count
 `0`, MUSU `0`, Node `0`, WebView2 `0.13`, owned process count `8`, WebView2
 helper count `6`, and working set `364.24MB`.
+
+Current post-crash-recovery-package reinstall evidence on `HUGH_SECOND`:
+
+- HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was rebuilt and reinstalled
+  as `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- packaged `musu up --json` exposes `stale_bridge_registry_removed` and
+  `stale_bridge_registry_pid`
+- a dynamic stale registry simulation removed dead PID `999999` and started a
+  healthy bridge at `127.0.0.1:3678`
+- crash-recovery audit passed with `ok=true` and `fail_count=0`
+- single-machine smoke
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-195631-HUGH_SECOND.evidence.json`
+  passed as `local-bridge-only`
+- desktop-open idle CPU
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-200405-HUGH_SECOND.desktop-open.evidence.json`
+  passed with `git_dirty=false`, hot process count `0`, MUSU `0`, Node `0`,
+  WebView2 `0.08`, and working set `178MB`
 
 Clean go/no-go remains No-Go for public release, but local artifacts, MSIX
 install, single-machine smoke, primary idle CPU `1/2 [HUGH_SECOND]`, primary

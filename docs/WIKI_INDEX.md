@@ -5713,4 +5713,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `post-route missing`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current HEAD MSIX reinstall crash-recovery evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_MSIX_REINSTALL_CRASH_RECOVERY_EVIDENCE_2026_06_06.md`
+  (wiki/871) records the rebuilt/reinstalled current HEAD package and local
+  crash-recovery proof. Search terms should include `GOAL v696`, `wiki/871`,
+  `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2`,
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`,
+  `stale_bridge_registry_removed`, `stale_bridge_registry_pid`, `999999`,
+  `127.0.0.1:3678`, `20260606-195631-HUGH_SECOND`,
+  `20260606-200405-HUGH_SECOND.desktop-open`, `WebView2 0.08`,
+  `hot process count 0`, `local-bridge-only`, `MUSU Desktop local executor`,
+  `MUSU.PRO remote input control plane`, and `localhost:3001 is not the
+  packaged desktop runtime contract`.
+
+- 2026-06-06 current HEAD MSIX reinstall crash-recovery index refresh:
+  wiki/872 records the MUSU local index refresh after wiki/871 and GOAL v696.
+  Search terms should include `GOAL v697`, `wiki/872`, `2716 files`,
+  `2776 symbols`, `42871 ms`, `current HEAD MSIX reinstall crash-recovery
+  index refresh`, `stale_bridge_registry_removed`,
+  `stale_bridge_registry_pid`, `127.0.0.1:3678`,
+  `20260606-195631-HUGH_SECOND`,
+  `20260606-200405-HUGH_SECOND.desktop-open`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

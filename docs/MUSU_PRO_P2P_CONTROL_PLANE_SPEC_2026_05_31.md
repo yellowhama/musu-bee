@@ -187,6 +187,27 @@ MUSU Desktop remains the local executor; MUSU.PRO remains remote input,
 project/company room, AI meeting room, presence, rendezvous, path selection,
 relay fallback coordination, and evidence/control plane.
 
+**2026-06-06 current HEAD reinstall crash-recovery evidence update**:
+The crash-recovery source contract was rebuilt into the current local-sideload
+MSIX and reinstalled on `HUGH_SECOND` as
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`. Packaged `musu up --json`
+exposes `stale_bridge_registry_removed` and `stale_bridge_registry_pid`. A
+dynamic stale registry simulation removed dead PID `999999`, started a healthy
+bridge at `127.0.0.1:3678`, and passed
+`audit-musu-crash-recovery-contract.ps1` with `ok=true` and `fail_count=0`.
+Canonical single-machine evidence
+`docs\evidence\single-machine\1.15.0-rc.1\20260606-195631-HUGH_SECOND.evidence.json`
+passed as `local-bridge-only`; canonical desktop-open CPU evidence
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-200405-HUGH_SECOND.desktop-open.evidence.json`
+passed with hot process count `0`, MUSU `0`, Node `0`, WebView2 `0.08`, and
+working set `178MB`.
+
+This evidence closes the package/source mismatch for local crash recovery. It
+still does not complete public P2P release: current proof is one-machine only,
+the current reinstall matrix lacks `post-route`, live MUSU.PRO runtime
+login/storage is still absent, and release `quic_relay_tunnel` transport plus
+payload delivery proof remain open.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

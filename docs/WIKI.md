@@ -11650,3 +11650,105 @@ refresh`, `2709 files`, `2776 symbols`, `11901 ms`,
 `20260606-190449-HUGH_SECOND`, `WebView2 0.16`, `hot process count 0`,
 `post-route missing`, `MUSU Desktop local executor`, and `MUSU.PRO remote input
 control plane`.
+
+## 2026-06-06 Current HEAD MSIX Reinstall Crash-Recovery Evidence (wiki/871)
+
+Current HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was rebuilt and
+reinstalled as MUSU Desktop on `HUGH_SECOND`.
+
+Installed package:
+
+- `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+
+Reinstall workflow:
+
+- release Rust runtime build passed
+- Tauri shell build passed
+- MSIX package/sign passed
+- packaged startup smoke passed
+- sideload readiness passed
+- install and installed package contract passed
+
+Crash-recovery evidence:
+
+- packaged `musu up --json` exposes `stale_bridge_registry_removed`
+- packaged `musu up --json` exposes `stale_bridge_registry_pid`
+- dynamic stale registry simulation removed dead PID `999999`
+- new bridge started healthy at `127.0.0.1:3678`
+- crash-recovery audit passed with `ok=true` and `fail_count=0`
+
+Canonical local evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-195631-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-200405-HUGH_SECOND.desktop-open.evidence.json`
+
+Idle CPU result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample `60.049s`
+- hot process count `0`
+- MUSU `0`
+- Node `0`
+- WebView2 `0.08`
+- working set `178 MB`
+
+Additional audits passed:
+
+- process ownership
+- Rust background-loop contract
+- frontend polling contract
+- scoped Rust crash-recovery library tests `2/2`
+
+Qualitative audit found no high or medium issue. Remaining release blockers are
+second-PC route/CPU/matrix proof, a current full matrix with `post-route`, live
+MUSU.PRO runtime login/storage, release `quic_relay_tunnel` transport and
+payload delivery proof, support mailbox proof, and Store proof.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor;
+MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+rendezvous, path selection, relay fallback, and evidence/control plane.
+`localhost:3001` is not the packaged desktop runtime contract.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_MSIX_REINSTALL_CRASH_RECOVERY_EVIDENCE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_MSIX_REINSTALL_CRASH_RECOVERY_EVIDENCE_2026_06_06.md`
+
+Search terms should include `GOAL v696`, `wiki/871`,
+`29dc84db1d8018fd8f8f7bf98588cb6bca0700a2`,
+`Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`,
+`stale_bridge_registry_removed`, `stale_bridge_registry_pid`, `999999`,
+`127.0.0.1:3678`, `20260606-195631-HUGH_SECOND`,
+`20260606-200405-HUGH_SECOND.desktop-open`, `WebView2 0.08`, `hot process
+count 0`, `local-bridge-only`, `MUSU Desktop local executor`,
+`MUSU.PRO remote input control plane`, and `localhost:3001 is not the packaged
+desktop runtime contract`.
+
+## 2026-06-06 Current HEAD MSIX Reinstall Crash-Recovery Index Refresh (wiki/872)
+
+MUSU local indexer was refreshed after wiki/871 and GOAL v696.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2716 files`
+- `2776 symbols`
+- `42871 ms`
+
+Indexed context includes the current HEAD MSIX reinstall/crash-recovery report,
+next-step plan, canonical single-machine evidence
+`20260606-195631-HUGH_SECOND`, canonical desktop-open idle CPU evidence
+`20260606-200405-HUGH_SECOND.desktop-open`, BETA checklist, P2P control-plane
+specs, network boundary spec, WIKI/WIKI_INDEX, GOAL v696, and CoS memory.
+
+Search terms should include `GOAL v697`, `wiki/872`, `current HEAD MSIX
+reinstall crash-recovery index refresh`, `2716 files`, `2776 symbols`,
+`42871 ms`, `stale_bridge_registry_removed`, `stale_bridge_registry_pid`,
+`127.0.0.1:3678`, `20260606-195631-HUGH_SECOND`,
+`20260606-200405-HUGH_SECOND.desktop-open`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

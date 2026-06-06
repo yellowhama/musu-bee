@@ -148,6 +148,22 @@ Local startup recovery is part of the MUSU Desktop/Core runtime boundary.
 - `localhost:3001` remains optional developer/operator dashboard behavior, not
   required packaged MUSU Desktop behavior.
 
+Current installed-package evidence:
+
+- HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was rebuilt and reinstalled
+  as `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- packaged `musu up --json` exposes the stale registry cleanup fields
+- a dead bridge registry PID `999999` was removed before bridge startup
+- bridge health recovered at `127.0.0.1:3678`
+- canonical single-machine smoke
+  `20260606-195631-HUGH_SECOND` passed as `local-bridge-only`
+- canonical desktop-open CPU
+  `20260606-200405-HUGH_SECOND.desktop-open` passed with hot process count `0`
+  and WebView2 `0.08`
+
+This keeps crash recovery inside the local Core runtime. It is not a Connect
+relay claim and not a MUSU.PRO execution claim.
+
 ## 2026-06-06 Relay Delivery Proof Boundary Update
 
 Hosted relay payload delivery proof must identify whether it came from the
