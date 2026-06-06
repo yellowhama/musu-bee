@@ -1491,3 +1491,25 @@ Spec interpretation is unchanged:
 - A refused `localhost:3001` browser page does not define whether MUSU Desktop
   is installed or working; release evidence comes from the packaged local
   runtime and hosted MUSU.PRO gates.
+
+## 2026-06-06 Rust Route Evidence Relay Transport Proof Carry
+
+Rust bridge route evidence now preserves relay route transport proof through
+the local-runtime evidence path:
+
+- `musu-rs/src/bridge/route_evidence.rs` defines
+  `RouteRelayTransportProof`
+- `RouteAttemptEvidence` and `RouteAttemptEvidenceInput` include optional
+  `relay_transport_proof`
+- `cloud_route_evidence()` maps the proof into
+  `crate::cloud::RouteRelayTransportProof`
+- direct/CLI route evidence continues to set `relay_transport_proof=None`
+- P2P store-forward relay contract audit now gates this with
+  `route evidence carries relay transport proof to cloud`
+
+This closes the carry-path gap where Rust could serialize the cloud DTO but
+bridge route evidence submitted `relay_transport_proof=None`.
+
+Spec interpretation remains unchanged: this is not the release relay tunnel.
+It is the evidence path needed once the real local runtime tunnel produces
+`musu.relay_transport_proof.v1`.

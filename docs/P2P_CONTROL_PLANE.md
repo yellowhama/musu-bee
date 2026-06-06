@@ -218,3 +218,15 @@ This is reporting hardening. The release rule is unchanged: MUSU.PRO can help
 local devices connect by exchanging control-plane metadata, but local MUSU
 Desktop programs do the work. Relay remains fallback-only and release-grade
 only after real tunnel proof and delivery proof are recorded.
+
+## 2026-06-06 Rust route evidence relay transport proof carry
+
+Rust bridge route evidence now has the same optional `relay_transport_proof`
+shape as the hosted cloud DTO and preserves it during cloud submission.
+
+This removes a runtime evidence plumbing gap: when a real release
+`quic_relay_tunnel` produces `musu.relay_transport_proof.v1`, local route
+evidence can carry the proof to MUSU.PRO instead of converting it to `None`.
+
+This still does not implement release tunnel transport. It only ensures the
+local executor can preserve proof once runtime transport code produces it.

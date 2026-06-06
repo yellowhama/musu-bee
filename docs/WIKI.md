@@ -10122,3 +10122,64 @@ Search terms should include `GOAL v647`, `wiki/822`,
 `p2p_relay_route_transport_proof_missing`,
 `live_evidence_relay_route_transport_proof_missing`, and `MUSU Desktop local
 executor`.
+
+## 2026-06-06 Rust Route Evidence Relay Transport Proof Carry (wiki/823)
+
+Rust bridge route evidence now preserves `relay_transport_proof` through local
+JSON and cloud submission DTOs.
+
+Changed:
+
+- `musu-rs/src/bridge/route_evidence.rs`
+  - adds `RouteRelayTransportProof`
+  - adds optional `relay_transport_proof` to `RouteAttemptEvidence`
+  - adds optional `relay_transport_proof` to `RouteAttemptEvidenceInput`
+  - maps proof to `crate::cloud::RouteRelayTransportProof` in
+    `cloud_route_evidence()`
+  - extends route evidence unit tests so local JSON and cloud DTO both preserve
+    proof fields
+- `musu-rs/src/install/cli_commands.rs`
+  - keeps direct/CLI route evidence explicitly proof-free
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1`
+  - adds `route evidence carries relay transport proof to cloud`
+
+Validation:
+
+- `cargo fmt --check`: pass
+- `cargo test -p musu-rs route_evidence --lib`: `14 passed`
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `59/59`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is runtime evidence plumbing
+only. It does not implement release `quic_relay_tunnel` transport and does not
+make store-forward queue fallback release-grade.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_ROUTE_EVIDENCE_RELAY_TRANSPORT_PROOF_CARRY_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RUST_ROUTE_EVIDENCE_RELAY_TRANSPORT_PROOF_CARRY_2026_06_06.md`
+
+## 2026-06-06 Rust Route Evidence Relay Transport Proof Carry Index Refresh (wiki/824)
+
+MUSU local indexer was refreshed after wiki/823 and GOAL v648.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2599 files`
+- `2754 symbols`
+- `33284 ms`
+
+Indexed context includes Rust route evidence relay transport proof carry-path
+changes, the P2P relay contract audit update, canonical wiki/823 report,
+next-step plan, BETA checklist, P2P control-plane spec, MUSU.PRO P2P spec,
+WIKI/WIKI_INDEX, and GOAL v648.
+
+Search terms should include `GOAL v649`, `wiki/824`,
+`rust route evidence relay transport proof carry index refresh`, `2599 files`,
+`2754 symbols`, `33284 ms`, `RouteRelayTransportProof`,
+`route evidence carries relay transport proof to cloud`, `cloud_route_evidence`,
+and `MUSU Desktop local executor`.

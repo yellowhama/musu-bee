@@ -7439,3 +7439,47 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2598 files`, `2752 symbols`, `13649 ms`
+
+## 2026-06-06 11:08 KST Rust Route Evidence Relay Transport Proof Carry
+
+Rust bridge route evidence now preserves `relay_transport_proof` through local
+JSON and MUSU.PRO cloud submission DTOs.
+
+Changed:
+
+- `musu-rs/src/bridge/route_evidence.rs`
+  - adds `RouteRelayTransportProof`
+  - adds optional `relay_transport_proof` to runtime route evidence
+  - maps proof into `crate::cloud::RouteRelayTransportProof` instead of
+    dropping it during `cloud_route_evidence()`
+- `musu-rs/src/install/cli_commands.rs`
+  - keeps direct/CLI route evidence explicitly proof-free
+- `audit-p2p-store-forward-relay-contract.ps1`
+  - adds `route evidence carries relay transport proof to cloud`
+
+Validation:
+
+- `cargo fmt --check`: pass
+- `cargo test -p musu-rs route_evidence --lib`: `14 passed`
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=59`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This closes a runtime evidence
+carry-path gap; it does not implement the release relay tunnel and does not
+make queue fallback release-grade.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUST_ROUTE_EVIDENCE_RELAY_TRANSPORT_PROOF_CARRY_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RUST_ROUTE_EVIDENCE_RELAY_TRANSPORT_PROOF_CARRY_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2599 files`, `2754 symbols`, `33284 ms`

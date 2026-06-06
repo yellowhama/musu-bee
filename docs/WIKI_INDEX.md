@@ -5222,4 +5222,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `live_evidence_relay_route_transport_proof_missing`, and
   `MUSU Desktop local executor`.
 
+- 2026-06-06 Rust route evidence relay transport proof carry:
+  `RELEASE_1_15_0_RC1_RUST_ROUTE_EVIDENCE_RELAY_TRANSPORT_PROOF_CARRY_2026_06_06.md`
+  (wiki/823) records Rust bridge route evidence carry-path support for
+  `relay_transport_proof`. Search terms should include `GOAL v648`,
+  `wiki/823`, `RouteRelayTransportProof`,
+  `route evidence carries relay transport proof to cloud`,
+  `cloud_route_evidence`, `musu.relay_transport_proof.v1`,
+  `cargo test -p musu-rs route_evidence --lib`, `14 passed`, and
+  `MUSU Desktop local executor`.
+
+- 2026-06-06 Rust route evidence relay transport proof carry index refresh:
+  wiki/824 records the MUSU local index refresh after wiki/823 and GOAL v648.
+  Search terms should include `GOAL v649`, `wiki/824`, `2599 files`,
+  `2754 symbols`, `33284 ms`,
+  `rust route evidence relay transport proof carry index refresh`,
+  `RouteRelayTransportProof`,
+  `route evidence carries relay transport proof to cloud`,
+  `cloud_route_evidence`, and `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**

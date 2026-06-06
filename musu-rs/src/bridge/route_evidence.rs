@@ -81,6 +81,26 @@ pub struct RouteRelayPayloadDeliveryProof {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct RouteRelayTransportProof {
+    pub schema: String,
+    pub session_id: String,
+    pub lease_id: String,
+    pub source_node_id: String,
+    pub target_node_id: String,
+    pub transport_kind: String,
+    pub relay_url: String,
+    pub tunnel_id: String,
+    pub handshake_ms: u64,
+    pub payload_bytes_transited: u64,
+    pub payload_transited_musu_infra: bool,
+    pub encryption: String,
+    pub transport_verified_by: String,
+    pub opened_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct RouteAttemptEvidence {
     schema: &'static str,
     version: String,
@@ -105,6 +125,8 @@ pub struct RouteAttemptEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     relay_fallback: Option<RouteRelayFallbackEvidence>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    relay_transport_proof: Option<RouteRelayTransportProof>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     relay_payload_delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
     recorded_at: String,
     note: &'static str,
@@ -126,6 +148,7 @@ pub struct RouteAttemptEvidenceInput {
     pub encryption: String,
     pub transport_verified_by: Option<String>,
     pub relay_fallback: Option<RouteRelayFallbackEvidence>,
+    pub relay_transport_proof: Option<RouteRelayTransportProof>,
     pub relay_payload_delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
 }
 
@@ -160,6 +183,7 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         result: input.result,
         failure_class: input.failure_class,
         relay_fallback: input.relay_fallback,
+        relay_transport_proof: input.relay_transport_proof,
         relay_payload_delivery_proof: input.relay_payload_delivery_proof,
         recorded_at: chrono::Utc::now().to_rfc3339(),
         note: input.note,
@@ -186,7 +210,10 @@ pub fn cloud_route_evidence(evidence: &RouteAttemptEvidence) -> crate::cloud::Ro
         result: cloud_route_result(evidence.result),
         failure_class: evidence.failure_class.clone(),
         relay_fallback: evidence.relay_fallback.as_ref().map(cloud_relay_fallback),
-        relay_transport_proof: None,
+        relay_transport_proof: evidence
+            .relay_transport_proof
+            .as_ref()
+            .map(cloud_relay_transport_proof),
         relay_payload_delivery_proof: evidence
             .relay_payload_delivery_proof
             .as_ref()
@@ -209,6 +236,28 @@ fn cloud_relay_payload_delivery_proof(
         payload_sha256: evidence.payload_sha256.clone(),
         payload_bytes: evidence.payload_bytes,
         delivered_at: evidence.delivered_at.clone(),
+    }
+}
+
+fn cloud_relay_transport_proof(
+    evidence: &RouteRelayTransportProof,
+) -> crate::cloud::RouteRelayTransportProof {
+    crate::cloud::RouteRelayTransportProof {
+        schema: evidence.schema.clone(),
+        session_id: evidence.session_id.clone(),
+        lease_id: evidence.lease_id.clone(),
+        source_node_id: evidence.source_node_id.clone(),
+        target_node_id: evidence.target_node_id.clone(),
+        transport_kind: evidence.transport_kind.clone(),
+        relay_url: evidence.relay_url.clone(),
+        tunnel_id: evidence.tunnel_id.clone(),
+        handshake_ms: evidence.handshake_ms,
+        payload_bytes_transited: evidence.payload_bytes_transited,
+        payload_transited_musu_infra: evidence.payload_transited_musu_infra,
+        encryption: evidence.encryption.clone(),
+        transport_verified_by: evidence.transport_verified_by.clone(),
+        opened_at: evidence.opened_at.clone(),
+        closed_at: evidence.closed_at.clone(),
     }
 }
 
@@ -444,6 +493,7 @@ pub fn record_bridge_forward_route_evidence(
         encryption: peer_identity.encryption,
         transport_verified_by: peer_identity.transport_verified_by,
         relay_fallback,
+        relay_transport_proof: None,
         relay_payload_delivery_proof: None,
     });
     write_route_attempt_evidence(&path, &evidence)?;
@@ -495,6 +545,7 @@ pub fn record_relay_payload_delivery_route_evidence(
             payload_transport_proven: true,
             payload_transport_failure_class: None,
         }),
+        relay_transport_proof: None,
         relay_payload_delivery_proof: Some(proof),
         recorded_at: chrono::Utc::now().to_rfc3339(),
         note: RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE,
@@ -525,6 +576,7 @@ mod tests {
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
             relay_fallback: None,
+            relay_transport_proof: None,
             relay_payload_delivery_proof: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
@@ -560,6 +612,7 @@ mod tests {
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
             relay_fallback: None,
+            relay_transport_proof: None,
             relay_payload_delivery_proof: None,
         });
         let value = serde_json::to_value(evidence).unwrap();
@@ -739,6 +792,7 @@ mod tests {
                 payload_transport_proven: false,
                 payload_transport_failure_class: None,
             }),
+            relay_transport_proof: None,
             relay_payload_delivery_proof: None,
         });
 
@@ -797,6 +851,23 @@ mod tests {
             encryption: "quic_tls_1_3".to_string(),
             transport_verified_by: Some(QUIC_TLS_TRANSPORT_VERIFIER.to_string()),
             relay_fallback: None,
+            relay_transport_proof: Some(RouteRelayTransportProof {
+                schema: "musu.relay_transport_proof.v1".to_string(),
+                session_id: "rv_test".to_string(),
+                lease_id: "lease-1".to_string(),
+                source_node_id: "source-node".to_string(),
+                target_node_id: "target-node".to_string(),
+                transport_kind: "quic_relay_tunnel".to_string(),
+                relay_url: "wss://relay.musu.pro/connect".to_string(),
+                tunnel_id: "relay-tunnel-1".to_string(),
+                handshake_ms: 23,
+                payload_bytes_transited: 128,
+                payload_transited_musu_infra: true,
+                encryption: "quic_tls_1_3".to_string(),
+                transport_verified_by: QUIC_TLS_TRANSPORT_VERIFIER.to_string(),
+                opened_at: "2026-06-04T00:00:01Z".to_string(),
+                closed_at: Some("2026-06-04T00:00:02Z".to_string()),
+            }),
             relay_payload_delivery_proof: Some(RouteRelayPayloadDeliveryProof {
                 schema: "musu.relay_payload_delivery_proof.v1".to_string(),
                 payload_id: "payload-1".to_string(),
@@ -820,8 +891,29 @@ mod tests {
             value["relay_payload_delivery_proof"]["payload_id"],
             "payload-1"
         );
+        assert_eq!(
+            value["relay_transport_proof"]["schema"],
+            "musu.relay_transport_proof.v1"
+        );
+        assert_eq!(
+            value["relay_transport_proof"]["transport_kind"],
+            "quic_relay_tunnel"
+        );
 
         let cloud = cloud_route_evidence(&evidence);
+        let transport_proof = cloud.relay_transport_proof.expect("cloud transport proof");
+        assert_eq!(transport_proof.schema, "musu.relay_transport_proof.v1");
+        assert_eq!(transport_proof.lease_id, "lease-1");
+        assert_eq!(transport_proof.source_node_id, "source-node");
+        assert_eq!(transport_proof.target_node_id, "target-node");
+        assert_eq!(transport_proof.transport_kind, "quic_relay_tunnel");
+        assert_eq!(transport_proof.payload_bytes_transited, 128);
+        assert!(transport_proof.payload_transited_musu_infra);
+        assert_eq!(transport_proof.encryption, "quic_tls_1_3");
+        assert_eq!(
+            transport_proof.transport_verified_by,
+            QUIC_TLS_TRANSPORT_VERIFIER
+        );
         let proof = cloud
             .relay_payload_delivery_proof
             .expect("cloud delivery proof");

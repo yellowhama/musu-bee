@@ -75,6 +75,7 @@ $rendezvousRouteTestPath = "musu-bee\src\app\api\v1\p2p\rendezvous\route.test.ts
 $roomPresenceRouteTestPath = "musu-bee\src\app\api\rooms\[roomId]\presence\route.test.ts"
 $roomRendezvousRouteTestPath = "musu-bee\src\app\api\rooms\[roomId]\rendezvous\route.test.ts"
 $rendezvousPath = "musu-rs\src\bridge\rendezvous.rs"
+$bridgeRouteEvidencePath = "musu-rs\src\bridge\route_evidence.rs"
 $relayPayloadDrainPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
 $cloudPath = "musu-rs\src\cloud\mod.rs"
@@ -107,6 +108,7 @@ $rendezvousRouteTest = Get-RepoText $rendezvousRouteTestPath
 $roomPresenceRouteTest = Get-RepoText $roomPresenceRouteTestPath
 $roomRendezvousRouteTest = Get-RepoText $roomRendezvousRouteTestPath
 $rendezvous = Get-RepoText $rendezvousPath
+$bridgeRouteEvidence = Get-RepoText $bridgeRouteEvidencePath
 $relayPayloadDrain = Get-RepoText $relayPayloadDrainPath
 $forward = Get-RepoText $forwardPath
 $cloud = Get-RepoText $cloudPath
@@ -542,6 +544,23 @@ Add-Check `
     ) `
     -Path $rendezvousPath `
     -Message "Rust bridge enqueues relay payloads only after a relay lease is issued."
+
+Add-Check `
+    -Scope "rust-source" `
+    -Name "route evidence carries relay transport proof to cloud" `
+    -Passed (
+        Test-ContainsAll -Text $bridgeRouteEvidence -Needles @(
+            "pub struct RouteRelayTransportProof",
+            "relay_transport_proof: Option<RouteRelayTransportProof>",
+            ".map(cloud_relay_transport_proof)",
+            "fn cloud_relay_transport_proof",
+            "musu.relay_transport_proof.v1",
+            "quic_relay_tunnel",
+            "cloud transport proof"
+        )
+    ) `
+    -Path $bridgeRouteEvidencePath `
+    -Message "Rust route evidence preserves release relay transport proof in local evidence and cloud submission DTOs."
 
 Add-Check `
     -Scope "rust-target" `
