@@ -753,3 +753,22 @@ Required path remains:
 - hosted relay is fallback-only and release-grade only after real tunnel
   payload proof exists
 
+## 2026-06-06 idle busy-loop source-contract boundary
+
+The idle busy-loop source-contract audit does not move execution or payload
+transport across the network boundary.
+
+Contract interpretation:
+
+- go/no-go must keep reporting all eight idle candidates: clipboard polling,
+  mDNS discovery, health check retry, bridge readiness wait, frontend
+  interval/refetch, relay payload target polling, cloud heartbeat, and
+  log/telemetry flush
+- the source verifier now fails if the candidate list, status field, verified
+  field, or blocker area disappears
+- this is a local desktop resource-budget release contract, not a hosted
+  execution feature
+- MUSU.PRO remains remote input, rooms, rendezvous, path selection,
+  relay-fallback coordination, and evidence
+- local MUSU programs remain the execution and resource owners
+

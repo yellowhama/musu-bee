@@ -293,6 +293,48 @@ function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
     return $true
 }
 
+function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $candidateCount = [regex]::Matches($source, '(?m)^\s*-Candidate\s+"').Count
+    if ($candidateCount -ne 8) {
+        return $false
+    }
+
+    $requiredNeedles = @(
+        '$idleBusyLoopCandidateStatuses = @(',
+        'idle_busy_loop_candidate_contract_verified',
+        'idle_busy_loop_candidate_status',
+        'idle-busy-loop-candidates',
+        '-Candidate "clipboard polling"',
+        '-Candidate "mDNS discovery"',
+        '-Candidate "health check retry loop"',
+        '-Candidate "bridge readiness wait loop"',
+        '-Candidate "frontend interval/refetch"',
+        '-Candidate "relay payload target poller"',
+        '-Candidate "cloud heartbeat"',
+        '-Candidate "log/telemetry flush loop"',
+        'clipboard opt-in env gate',
+        'clipboard monitor sleep',
+        'disconnect breaks browse',
+        'health poll sleep',
+        'bridge readiness backoff sleep',
+        'no direct setInterval in non-test frontend source',
+        'poller cancellation-aware sleep',
+        'failure backoff sleep',
+        'no background telemetry flush worker primitives',
+        'clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RustBackgroundFilesystemWatcherScopeContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1117,6 +1159,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go runtime idle CPU requires full role attribution" `
     -Verifier "runtime idle CPU source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$idleBusyLoopCandidateStatusContractOk = Test-IdleBusyLoopGoNoGoCandidateStatusContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $idleBusyLoopCandidateStatusContractOk `
+    -Message "go/no-go must expose all eight idle busy-loop candidate statuses and block if any candidate is not proven"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go exposes all idle busy-loop candidate statuses" `
+    -Verifier "idle busy-loop source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

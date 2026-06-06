@@ -7253,3 +7253,55 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2580 files`, `2751 symbols`, `12902 ms`
+
+## 2026-06-06 09:22 KST Idle Busy-Loop Source Contract Audit
+
+`test-release-evidence-verifiers.ps1` now gates the go/no-go idle busy-loop
+candidate inventory as a source contract.
+
+The required candidates are:
+
+- `clipboard polling`
+- `mDNS discovery`
+- `health check retry loop`
+- `bridge readiness wait loop`
+- `frontend interval/refetch`
+- `relay payload target poller`
+- `cloud heartbeat`
+- `log/telemetry flush loop`
+
+Validation:
+
+- PowerShell parser check: pass
+- release evidence verifier regression: `ok=true`, `case_count=57`,
+  `failed_case_count=0`
+- new case: `go-no-go exposes all idle busy-loop candidate statuses`
+- Rust background-loop audit: `ok=true`, `fail_count=0`, unaudited loops `0`,
+  unaudited spawns `0`, network watcher primitive hits `0`, telemetry flush
+  primitive hits `0`
+- frontend polling audit: `ok=true`, `fail_count=0`, low-duty call sites `29`,
+  direct intervals `0`
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- dirty-tree go/no-go with public metadata skipped:
+  `idle_busy_loop_candidate_contract_verified=true`, candidate count `8`,
+  failed candidate count `0`, runtime idle CPU `1/2`, runtime CPU matrix `1/2`
+
+Qualitative audit found no high/medium issue. This is verifier-only hardening:
+the packaged local runtime behavior is unchanged, the current HUGH_SECOND CPU
+evidence remains the one-machine baseline, and public release remains No-Go on
+second-PC route/CPU/matrix, hosted MUSU.PRO P2P login/auth/storage/relay proof,
+support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_SOURCE_CONTRACT_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_IDLE_BUSY_LOOP_SOURCE_CONTRACT_AUDIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2583 files`, `2751 symbols`, `24515 ms`

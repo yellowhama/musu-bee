@@ -9774,3 +9774,74 @@ Search terms should include `GOAL v637`, `wiki/812`,
 `relay_leases_logged_in`, `relay_route_evidence_logged_in`, `WindowsApps
 alias`, `musu.exe login`, `localhost developer dashboard`, and
 `20260606-090333-musu.pro`.
+
+## 2026-06-06 Idle Busy-Loop Source Contract Audit (wiki/813)
+
+`test-release-evidence-verifiers.ps1` now locks the go/no-go idle busy-loop
+candidate summary as a source contract.
+
+Required candidates:
+
+- `clipboard polling`
+- `mDNS discovery`
+- `health check retry loop`
+- `bridge readiness wait loop`
+- `frontend interval/refetch`
+- `relay payload target poller`
+- `cloud heartbeat`
+- `log/telemetry flush loop`
+
+Required go/no-go fields and blocker:
+
+- `idle_busy_loop_candidate_status`
+- `idle_busy_loop_candidate_contract_verified`
+- `idle-busy-loop-candidates`
+
+Validation:
+
+- parser check: pass
+- release evidence verifier regression: `57/57`
+- new case: `go-no-go exposes all idle busy-loop candidate statuses`
+- Rust background-loop audit: `ok=true`, unaudited loops `0`, unaudited spawns
+  `0`, network watcher primitive hits `0`, telemetry flush primitive hits `0`
+- frontend polling audit: `ok=true`, direct intervals `0`, low-duty call sites
+  `29`
+- P2P store-forward relay audit: `ok=true`
+- dirty-tree go/no-go: idle candidate count `8`, failed candidate count `0`,
+  runtime idle CPU `1/2`, runtime CPU matrix `1/2`
+
+Qualitative audit found no high/medium issue. This is verifier-only hardening:
+the packaged runtime behavior and MUSU Desktop local-executor / MUSU.PRO
+remote-input control-plane boundary are unchanged. Public release remains
+No-Go on second-PC route/CPU/matrix evidence, hosted MUSU.PRO P2P
+login/auth/storage/relay proof, support mailbox proof, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_SOURCE_CONTRACT_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_IDLE_BUSY_LOOP_SOURCE_CONTRACT_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Idle Busy-Loop Source Contract Index Refresh (wiki/814)
+
+MUSU local indexer was refreshed after wiki/813 and GOAL v638.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2583 files`
+- `2751 symbols`
+- `24515 ms`
+
+Indexed context includes `test-release-evidence-verifiers.ps1`
+source-contract hardening, the idle busy-loop source contract audit report,
+the next-step plan, P2P control-plane spec, MUSU.PRO P2P control-plane spec,
+network boundary spec, BETA checklist, GOAL v638, WIKI/WIKI_INDEX, and CoS
+memory updates.
+
+Search terms should include `GOAL v639`, `wiki/814`, `idle busy-loop source
+contract index refresh`, `2583 files`, `2751 symbols`, `24515 ms`,
+`go-no-go exposes all idle busy-loop candidate statuses`, `release verifier
+57/57`, `candidate count 8`, `failed candidate count 0`, and
+`MUSU Desktop local executor`.

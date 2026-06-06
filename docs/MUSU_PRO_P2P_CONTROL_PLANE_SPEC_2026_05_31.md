@@ -88,6 +88,19 @@ HTTP status, bridge status, and trace id. It intentionally excludes the
 instruction body so command audit remains a control-plane forensic trail rather
 than a prompt/content store.
 
+**2026-06-06 idle busy-loop source-contract update**:
+The P2P/control-plane release posture now includes an explicit idle busy-loop
+candidate source contract. `write-release-go-no-go.ps1` must continue exposing
+all eight idle candidates: clipboard polling, mDNS discovery, health check
+retry loop, bridge readiness wait loop, frontend interval/refetch, relay
+payload target poller, cloud heartbeat, and log/telemetry flush loop.
+`test-release-evidence-verifiers.ps1` fails if the candidate inventory,
+`idle_busy_loop_candidate_status`,
+`idle_busy_loop_candidate_contract_verified`, or the
+`idle-busy-loop-candidates` blocker is removed. This does not change the
+MUSU.PRO role: hosted web remains control-plane/evidence/room input, while
+local MUSU Desktop processes execute work and own the idle resource budget.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

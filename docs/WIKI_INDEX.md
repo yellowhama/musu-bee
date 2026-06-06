@@ -5119,4 +5119,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_route_evidence_logged_in`, `WindowsApps alias`, `musu.exe login`,
   `localhost developer dashboard`, and `20260606-090333-musu.pro`.
 
+- 2026-06-06 idle busy-loop source contract audit:
+  `RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_SOURCE_CONTRACT_AUDIT_2026_06_06.md`
+  (wiki/813) records the release verifier source contract that locks all eight
+  idle busy-loop candidates in go/no-go. Search terms should include
+  `GOAL v638`, `wiki/813`, `go-no-go exposes all idle busy-loop candidate
+  statuses`, `idle_busy_loop_candidate_status`,
+  `idle_busy_loop_candidate_contract_verified`, `idle-busy-loop-candidates`,
+  `clipboard polling`, `mDNS discovery`, `health check retry loop`,
+  `bridge readiness wait loop`, `frontend interval/refetch`,
+  `relay payload target poller`, `cloud heartbeat`,
+  `log/telemetry flush loop`, `release verifier 57/57`, `candidate count 8`,
+  `failed candidate count 0`, and `MUSU Desktop local executor`.
+
+- 2026-06-06 idle busy-loop source contract index refresh:
+  wiki/814 records the MUSU local index refresh after wiki/813 and GOAL v638.
+  Search terms should include `GOAL v639`, `wiki/814`, `2583 files`,
+  `2751 symbols`, `24515 ms`, `idle busy-loop source contract index refresh`,
+  `go-no-go exposes all idle busy-loop candidate statuses`, `release verifier
+  57/57`, `candidate count 8`, `failed candidate count 0`,
+  `test-release-evidence-verifiers.ps1`, and `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**

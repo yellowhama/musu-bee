@@ -61,29 +61,35 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
-As of the 2026-06-06 second-PC CPU subrole import gate and final operator
-artifact refresh, the product direction above is documented, the lease-bound
-queue fallback source contract is gated, room presence/rendezvous candidate
-metadata is preserved, the local Rust CLI can publish public/NAT/relay
-candidate descriptors, the Rust rendezvous route selector carries those
-descriptors into selected peer metadata, the web route-evidence API rejects
-release-grade direct-route claims whose `candidate_addr` does not classify
-consistently with `route_kind`, and release-grade relay route queries reject
-transport proof that is not bound to the same source/target peer pair. Public
-P2P release is still not release-complete.
+As of the 2026-06-06 idle busy-loop source-contract audit, the product
+direction above is still unchanged: MUSU Desktop is the local executor, while
+`musu.pro` is remote input, project/company room, presence, rendezvous,
+path-selection, relay fallback policy, and evidence control plane. The
+lease-bound queue fallback source contract is gated, room
+presence/rendezvous candidate metadata is preserved, room control-plane inputs
+are strict metadata-only, and release relay route queries reject transport
+proof that is not bound to the same source/target peer pair. Public P2P
+release is still not release-complete.
 
 Passing local state:
 
-- clean go/no-go after commit `b001924a` reports
+- current source contract audit on commit `7ad2e6eb` plus this verifier-only
+  change reports
   `local_artifacts_ready=true`, `single_machine_verified=true`,
-  `msix_install_verified=true`, `runtime_cpu_second_pc_route_attempt_verified=true`,
-  `p2p_store_forward_relay_contract_verified=true`, `manifest_git_dirty=false`,
-  and public release `ready_for_public_desktop_release=false`
+  runtime idle CPU valid machine count `1/2`, runtime CPU matrix valid machine
+  count `1/2`, `p2p_store_forward_relay_contract_verified=true`,
+  `idle_busy_loop_candidate_contract_verified=true`, idle candidate count `8`,
+  failed idle candidate count `0`, and public release
+  `ready_for_public_desktop_release=false`
 - `dashboard-open` matrix evidence measured packaged runtime state because no
   required dashboard URL was exposed; `localhost:3001` is an optional workspace
   dashboard, not the installed local program
 - Rust background-loop, frontend polling, process ownership, local API auth,
   operator API security, and secret storage audits pass
+- `test-release-evidence-verifiers.ps1` now locks the eight idle busy-loop
+  candidates exposed by go/no-go: clipboard polling, mDNS discovery, health
+  check retry, bridge readiness wait, frontend interval/refetch, relay payload
+  target polling, cloud heartbeat, and log/telemetry flush
 - `/api/v1/relay/connect` is auth-gated and still fail-closed while the relay
   transport remains unwired
 - `POST /api/rooms/[roomId]/work-orders` is P2P-control-auth gated before
@@ -120,19 +126,13 @@ Passing local state:
   without making relay the default data path
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
-- current operator handoff artifacts are refreshed from clean `a45e6a1b`:
-  final operator packet `20260606-020415`, operator action pack
-  `20260606-020432`, and nested second-PC transfer
-  `MUSU-second-PC-transfer-1.15.0-rc.1-20260606-020432.zip`
-- final operator packet and operator action pack verifiers pass with
-  `ok=true` and `fail_count=0`
-- the nested second-PC transfer requires the runtime CPU subrole import
-  contract before imported evidence can close release gates
-
 Open external gates:
 
 - second-PC current-build install, route, CPU, and matrix evidence is missing
-- hosted P2P KV/Upstash storage is not configured
+- hosted P2P evidence currently fails because the packaged runtime is not
+  logged in to production P2P evidence paths
+- hosted owner scope is not verified
+- hosted P2P KV/Upstash storage is not configured or release-grade
 - release relay connect/payload tunnel endpoints and release relay transport
   are not wired as release-grade
 - current hosted relay transport descriptor still reports `websocket_tunnel`,
