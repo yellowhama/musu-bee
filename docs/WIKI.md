@@ -10640,3 +10640,68 @@ Search terms should include `GOAL v663`, `wiki/838`,
 `telemetry_flush_primitive_hit_count=0`, `release verifier 65/65`,
 `musu-rs\src\install\uninstall.rs`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current HEAD Packaged Local Evidence After Relay Proof Hardening (wiki/839)
+
+Current HEAD `83e8bd415432529474930bcf54c6408847c0ad24` was rebuilt into the
+local-sideload MSIX, reinstalled, and refreshed on `HUGH_SECOND`.
+
+Evidence includes MSIX install
+`docs\evidence\msix-install\1.15.0-rc.1\20260606-141418-HUGH_SECOND.evidence.json`,
+single-machine smoke
+`docs\evidence\single-machine\1.15.0-rc.1\20260606-140158-HUGH_SECOND.evidence.json`,
+desktop-open CPU
+`docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-140222-HUGH_SECOND.desktop-open.evidence.json`,
+full runtime matrix
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-140335-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+and targeted HUGH-MAIN route CPU diagnostic
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-140947-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+
+Key results: single-machine `ok=true`, `local-bridge-only`, bridge
+`http://127.0.0.1:8179`; desktop-open CPU `ok=true`, `git_dirty=false`,
+`60.038s`, WebView2 max `0.16`, hot process `0`; full matrix `ok=true` with
+route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_140335`; targeted HUGH-MAIN
+diagnostic `ok=true`, failed route allowed, timeout to `192.168.1.192:8949`,
+post-route WebView2 max `0.05`, hot process `0`.
+
+Dirty worktree go/no-go before committing evidence restored single-machine
+true, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime matrix
+`1/2 [HUGH_SECOND]`, and targeted second-PC route CPU diagnostic `1/1`.
+
+Qualitative audit found no high/medium issue. The local packaged 20% idle CPU
+issue is not reproduced on `HUGH_SECOND`; remaining release blockers are real
+second-PC evidence, hosted MUSU.PRO P2P release proof, support mailbox, and
+Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_PACKAGED_LOCAL_EVIDENCE_AFTER_RELAY_PROOF_HARDENING_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_PACKAGED_LOCAL_EVIDENCE_AFTER_RELAY_PROOF_HARDENING_2026_06_06.md`
+
+## 2026-06-06 Current HEAD Packaged Local Evidence After Relay Proof Hardening Index Refresh (wiki/840)
+
+MUSU local indexer was refreshed after wiki/839 and GOAL v664.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2647 files`
+- `2755 symbols`
+- `13328 ms`
+
+Indexed context includes current HEAD packaged local evidence after relay proof
+hardening, MSIX install evidence `20260606-141418-HUGH_SECOND`,
+single-machine evidence `20260606-140158-HUGH_SECOND`, desktop-open CPU
+evidence `20260606-140222-HUGH_SECOND.desktop-open`, full runtime CPU matrix
+`20260606-140335-HUGH_SECOND`, targeted HUGH-MAIN route CPU diagnostic
+`20260606-140947-HUGH_SECOND`, canonical report, next-step plan, BETA
+checklist, WIKI/WIKI_INDEX, GOAL v664, and CoS memory.
+
+Search terms should include `GOAL v665`, `wiki/840`, `2647 files`,
+`2755 symbols`, `13328 ms`,
+`current HEAD packaged local evidence after relay proof hardening index
+refresh`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_140335`,
+`runtime idle CPU 1/2`, `runtime matrix 1/2`, `targeted second-PC route CPU
+1/1`, `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

@@ -7730,3 +7730,61 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2633 files`, `2755 symbols`, `29667 ms`
+
+## 2026-06-06 Current HEAD Packaged Local Evidence After Relay Proof Hardening
+
+Current HEAD `83e8bd415432529474930bcf54c6408847c0ad24` was rebuilt into the
+local-sideload MSIX, reinstalled, and refreshed on `HUGH_SECOND` after relay
+proof hardening changed runtime source.
+
+Evidence:
+
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260606-141418-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-140158-HUGH_SECOND.evidence.json`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-140222-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-140335-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted HUGH-MAIN route CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-140947-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Results:
+
+- single-machine: `ok=true`, `local-bridge-only`, bridge
+  `http://127.0.0.1:8179`, CLI route checked
+- desktop-open CPU: `ok=true`, `git_dirty=false`, `60.038s`, MUSU `0`,
+  Node `0`, WebView2 `0.16`, hot process `0`, working set `372.87MB`
+- full matrix: `ok=true`, verifier `fail_count=0`, route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_140335`
+- targeted HUGH-MAIN diagnostic: `ok=true`, verifier `fail_count=0`, failed
+  route allowed, timeout to `192.168.1.192:8949`, post-route WebView2 `0.05`,
+  hot process `0`
+
+Dirty worktree go/no-go before committing this evidence restored:
+
+- `single_machine_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`
+
+Qualitative audit found no high/medium issue. The local packaged 20% idle CPU
+problem is not reproduced on `HUGH_SECOND`; remaining release blockers are real
+second-PC evidence, hosted MUSU.PRO P2P release proof, support mailbox, and
+Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_PACKAGED_LOCAL_EVIDENCE_AFTER_RELAY_PROOF_HARDENING_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_PACKAGED_LOCAL_EVIDENCE_AFTER_RELAY_PROOF_HARDENING_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2647 files`, `2755 symbols`, `13328 ms`

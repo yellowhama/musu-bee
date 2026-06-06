@@ -5381,4 +5381,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-rs\src\install\uninstall.rs`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current HEAD packaged local evidence after relay proof hardening:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_PACKAGED_LOCAL_EVIDENCE_AFTER_RELAY_PROOF_HARDENING_2026_06_06.md`
+  (wiki/839) records current HEAD MSIX rebuild/reinstall and primary-machine
+  evidence refresh after relay proof hardening. Search terms should include
+  `GOAL v664`, `wiki/839`, `83e8bd415432529474930bcf54c6408847c0ad24`,
+  `20260606-140158-HUGH_SECOND`, `20260606-140222-HUGH_SECOND.desktop-open`,
+  `20260606-140335-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `20260606-140947-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_140335`,
+  `041f5d11-e26c-4122-bb86-4c9b687848a5`, `runtime idle CPU 1/2`,
+  `runtime matrix 1/2`, `targeted second-PC route CPU 1/1`,
+  `local-bridge-only`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current HEAD packaged local evidence after relay proof hardening
+  index refresh:
+  wiki/840 records the MUSU local index refresh after wiki/839 and GOAL v664.
+  Search terms should include `GOAL v665`, `wiki/840`, `2647 files`,
+  `2755 symbols`, `13328 ms`,
+  `current HEAD packaged local evidence after relay proof hardening index
+  refresh`, `20260606-140158-HUGH_SECOND`,
+  `20260606-140222-HUGH_SECOND.desktop-open`, `20260606-140335-HUGH_SECOND`,
+  `20260606-140947-HUGH_SECOND`, `runtime idle CPU 1/2`,
+  `runtime matrix 1/2`, `targeted second-PC route CPU 1/1`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
