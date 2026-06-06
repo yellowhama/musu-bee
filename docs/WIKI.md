@@ -11816,3 +11816,69 @@ Search terms should include `GOAL v699`, `wiki/874`, `go-no-go latest output
 index refresh`, `2719 files`, `2776 symbols`, `18409 ms`,
 `.local-build\go-no-go\latest.json`, `go_no_go_output_path`,
 `go-no-go writes current latest output evidence`, and `release verifier 70/70`.
+
+## 2026-06-06 Current HEAD 5-State Runtime CPU Matrix (wiki/875)
+
+Current HEAD `d6e494eabb9dcc70dd90e78b621e7f520067a192` restored the primary
+five-state runtime CPU matrix on `HUGH_SECOND`.
+
+Canonical evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-203857-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-203857-HUGH_SECOND.verification.json`
+
+Results:
+
+- `ok=true`
+- `git_dirty=false`
+- `fail_count=0`
+- scenarios: `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`, `post-route`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_203857`
+- route task id: `1bb405b5-76cf-4084-a542-e7ee0beca780`
+- hot process count `0` in every scenario
+- MUSU `0`
+- Node `0`
+- WebView2 max `0.13`
+- `bridge_runtime=1`
+- `desktop_shell=1`
+- `webview2_helper=6`
+- working set range `179.72-183.95MB`
+
+Go/no-go after capture reports runtime matrix valid machines `1 [HUGH_SECOND]`,
+runtime idle CPU valid machines `1 [HUGH_SECOND]`, single-machine true, and
+manifest dirty false. Public release remains No-Go because second-PC
+route/CPU/matrix proof, live MUSU.PRO P2P/relay proof, support mailbox proof,
+and Store proof remain missing.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_5_STATE_RUNTIME_CPU_MATRIX_2026_06_06.md`
+
+Search terms should include `GOAL v700`, `wiki/875`, `20260606-203857`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_203857`, `runtime matrix 1/2`,
+`WebView2 0.13`, `hot process count 0`, `bridge_runtime=1`,
+`desktop_shell=1`, `webview2_helper=6`, `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=0`, `MUSU Desktop
+local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current HEAD 5-State Runtime CPU Matrix Index Refresh (wiki/876)
+
+MUSU local indexer was refreshed after wiki/875 and GOAL v700.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2724 files`
+- `2776 symbols`
+- `14849 ms`
+
+Indexed context includes canonical matrix evidence
+`20260606-203857-HUGH_SECOND.runtime-cpu-scenario-matrix.json`, verification
+`20260606-203857-HUGH_SECOND.verification.json`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_203857`, current matrix report, BETA
+checklist, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v701`, `wiki/876`, `current HEAD 5-state
+runtime CPU matrix index refresh`, `2724 files`, `2776 symbols`, `14849 ms`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, `WebView2 0.13`, and `hot
+process count 0`.

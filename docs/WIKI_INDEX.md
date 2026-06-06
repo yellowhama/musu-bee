@@ -5756,4 +5756,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `go-no-go writes current latest output evidence`, and
   `release verifier 70/70`.
 
+- 2026-06-06 current HEAD 5-state runtime CPU matrix:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_5_STATE_RUNTIME_CPU_MATRIX_2026_06_06.md`
+  (wiki/875) records the current primary five-state CPU matrix refresh.
+  Search terms should include `GOAL v700`, `wiki/875`, `20260606-203857`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_203857`, `runtime matrix 1/2`,
+  `WebView2 0.13`, `hot process count 0`, `bridge_runtime=1`,
+  `desktop_shell=1`, `webview2_helper=6`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=0`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current HEAD 5-state runtime CPU matrix index refresh:
+  wiki/876 records the MUSU local index refresh after wiki/875 and GOAL v700.
+  Search terms should include `GOAL v701`, `wiki/876`, `2724 files`,
+  `2776 symbols`, `14849 ms`, `current HEAD 5-state runtime CPU matrix index
+  refresh`, `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `WebView2 0.13`, and `hot process count 0`.
+
 **End of WIKI_INDEX.md.**

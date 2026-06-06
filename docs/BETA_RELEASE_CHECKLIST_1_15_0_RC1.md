@@ -62,20 +62,20 @@ Current runtime CPU subrole attribution packaged primary-machine evidence:
 - idle CPU:
   `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-200405-HUGH_SECOND.desktop-open.evidence.json`
 - runtime CPU matrix:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-203857-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - runtime CPU matrix verification:
-  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-094149-HUGH_SECOND.verification.json`
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-203857-HUGH_SECOND.verification.json`
 - targeted HUGH-MAIN post-route CPU diagnostic:
   `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - targeted HUGH-MAIN post-route CPU diagnostic verification:
   `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-095252-HUGH_SECOND.target-route.verification.json`
 
 The current full matrix was captured from clean commit
-`ac1e67a4dd8f610a6f09ff61d3107f556e2ac5e5` with `git_dirty=false`. It covers
+`d6e494eabb9dcc70dd90e78b621e7f520067a192` with `git_dirty=false`. It covers
 `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
 `post-route`; all five scenarios have hot process count `0`, MUSU CPU `0`, Node
 CPU `0`, owned process count `8`, WebView2 helper count `6`, and working set
-around `364MB`. The highest WebView2 one-core CPU value is `0.16`.
+`179.72-183.95MB`. The highest WebView2 one-core CPU value is `0.13`.
 
 The current HUGH-MAIN diagnostic attempted
 `http://192.168.1.192:8949/api/tasks/delegate`, timed out, and was verified as
