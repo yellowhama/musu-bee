@@ -628,6 +628,20 @@ async function releaseBlockers(evidence: RouteEvidence, ownerKey: string): Promi
   ) {
     blockers.push("missing_peer_identity_proof");
   }
+  if (
+    evidence.peer_identity_verified &&
+    evidence.peer_identity_method?.trim() &&
+    !RELEASE_GRADE_PEER_IDENTITY_METHODS.has(evidence.peer_identity_method.trim())
+  ) {
+    blockers.push("peer_identity_method_not_release_grade");
+  }
+  if (
+    evidence.peer_identity_verified &&
+    evidence.peer_public_key?.trim() &&
+    !evidence.peer_public_key.trim().startsWith("sha256:")
+  ) {
+    blockers.push("peer_public_key_not_fingerprint");
+  }
   if (LEGACY_ENCRYPTION.has(evidence.encryption.trim().toLowerCase())) {
     blockers.push("legacy_or_missing_encryption");
   }

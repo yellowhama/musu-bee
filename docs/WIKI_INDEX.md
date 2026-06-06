@@ -5444,4 +5444,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `payload_transported=false`, `lease_verified=false`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 route evidence peer identity gate:
+  `RELEASE_1_15_0_RC1_ROUTE_EVIDENCE_PEER_IDENTITY_GATE_2026_06_06.md`
+  (wiki/845) records release evidence integrity hardening for top-level route
+  peer identity proof. Search terms should include `GOAL v670`, `wiki/845`,
+  `route evidence peer identity gate`, `peer_identity_method_not_release_grade`,
+  `peer_public_key_not_fingerprint`, `hasCurrentPeerIdentityProof`,
+  `quic_tls_cert_fingerprint`, `sha256:`, `P2P tests 108/108`,
+  `release verifier 66/66`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 route evidence peer identity gate index refresh:
+  wiki/846 records the MUSU local index refresh after wiki/845 and GOAL v670.
+  Search terms should include `GOAL v671`, `wiki/846`, `2655 files`,
+  `2758 symbols`, `11366 ms`,
+  `route evidence peer identity gate index refresh`,
+  `peer_identity_method_not_release_grade`,
+  `peer_public_key_not_fingerprint`, `hasCurrentPeerIdentityProof`,
+  `quic_tls_cert_fingerprint`, `sha256:`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

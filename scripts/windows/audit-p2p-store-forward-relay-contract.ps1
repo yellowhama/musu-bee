@@ -442,6 +442,8 @@ Add-Check `
             "RelayTransportProofSchema",
             "RelayPayloadDeliveryProofSchema",
             "RouteEvidenceSchema",
+            "peer_identity_method_not_release_grade",
+            "peer_public_key_not_fingerprint",
             "}).strict()",
             "publicZodIssues"
         )) -and
@@ -503,9 +505,14 @@ Add-Check `
             "proof.session_id.trim() === evidenceSessionId",
             "proof.peer_identity_method",
             "proof.peer_public_key",
-            "RELEASE_GRADE_PEER_IDENTITY_METHODS"
+            "RELEASE_GRADE_PEER_IDENTITY_METHODS",
+            "hasCurrentPeerIdentityProof",
+            'evidence.peer_public_key?.trim().startsWith("sha256:")'
         )) -and
         (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "requires release-grade peer identity method and fingerprint for route evidence",
+            "stale-direct-peer-method-release-grade",
+            "stale-direct-peer-key-release-grade",
             "stale-relay-transport-lease-mismatch-release-grade",
             "stale-relay-transport-session-mismatch-release-grade",
             "stale-relay-missing-session-release-grade",

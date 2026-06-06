@@ -1024,6 +1024,29 @@ test("requires identity proof material when evidence claims peer verification", 
   });
 });
 
+test("requires release-grade peer identity method and fingerprint for route evidence", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("non-release-peer-identity");
+    const methodRes = await POST(postReq({
+      ...hardenedEvidence,
+      peer_identity_method: "advertised_tls_cert_fingerprint_unverified",
+    }));
+    assert.equal(methodRes.status, 202);
+    const methodBody = (await methodRes.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(methodBody.release_grade, false);
+    assert.match(methodBody.blockers.join(","), /peer_identity_method_not_release_grade/);
+
+    const keyRes = await POST(postReq({
+      ...hardenedEvidence,
+      peer_public_key: "ed25519:test-key",
+    }));
+    assert.equal(keyRes.status, 202);
+    const keyBody = (await keyRes.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(keyBody.release_grade, false);
+    assert.match(keyBody.blockers.join(","), /peer_public_key_not_fingerprint/);
+  });
+});
+
 test("keeps HTTPS fingerprint-pinned bridge evidence non release grade until QUIC/TLS transport", async () => {
   await withRouteEvidenceToken(async () => {
     const { POST } = await loadModule("non-quic-tls-proof");
@@ -1287,6 +1310,28 @@ test("excludes stale relay records without current transport proof from release-
         ),
       },
     });
+    await appendRouteEvidenceRecord({
+      id: "stale-direct-peer-method-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:08Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...hardenedEvidence,
+        peer_identity_method: "advertised_tls_cert_fingerprint_unverified",
+      },
+    });
+    await appendRouteEvidenceRecord({
+      id: "stale-direct-peer-key-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:09Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...hardenedEvidence,
+        peer_public_key: "ed25519:stale",
+      },
+    });
 
     const filteredRes = await GET(getReq("?release_grade=true&limit=10"));
     assert.equal(filteredRes.status, 200);
@@ -1328,6 +1373,14 @@ test("excludes stale relay records without current transport proof from release-
       filteredBody.records.some(
         (record) => record.id === "stale-relay-transport-kind-mismatch-release-grade"
       ),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-direct-peer-method-release-grade"),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-direct-peer-key-release-grade"),
       false
     );
   });

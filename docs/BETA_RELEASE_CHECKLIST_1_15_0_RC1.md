@@ -7854,3 +7854,31 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2652 files`, `2757 symbols`, `12802 ms`
+
+## 2026-06-06 Route Evidence Peer Identity Gate
+
+Route evidence release grading now rejects top-level peer identity claims that
+do not use the release-grade identity method and fingerprint shape.
+
+New blockers:
+
+- `peer_identity_method_not_release_grade`
+- `peer_public_key_not_fingerprint`
+
+Validation:
+
+- P2P tests: `108/108`
+- typecheck: pass
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is release evidence
+integrity hardening only; it does not close second-PC, hosted relay tunnel,
+support mailbox, or Store gates.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2655 files`, `2758 symbols`, `11366 ms`

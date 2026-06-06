@@ -81,6 +81,14 @@ and release evidence quality without accepting payload bytes, using the preview
 queue as release transport, or emitting release relay proof before the actual
 `quic_relay_tunnel` payload path exists.
 
+2026-06-06 route evidence peer identity addendum: release-grade route evidence
+now requires the top-level route peer identity claim to use
+`peer_identity_method=quic_tls_cert_fingerprint` and a `sha256:` fingerprint.
+Stored route evidence queries also revalidate this before returning
+`release_grade=true` records. This prevents direct or relay route evidence from
+passing with a non-release identity method even if the route claims
+`peer_identity_verified=true`.
+
 As of the 2026-06-06 current HEAD runtime CPU matrix refresh, the product
 direction above is still unchanged: MUSU Desktop is the local executor, while
 `musu.pro` is remote input, project/company room, presence, rendezvous,

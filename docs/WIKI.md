@@ -10802,3 +10802,49 @@ evidence index refresh`, `2652 files`, `2757 symbols`, `12802 ms`,
 `release_payload_accepted=false`, `payload_transported=false`,
 `lease_verified=false`, `MUSU Desktop local executor`, and `MUSU.PRO remote
 input control plane`.
+
+## 2026-06-06 Route Evidence Peer Identity Gate (wiki/845)
+
+Route evidence release grading now requires top-level peer identity proof to
+use `peer_identity_method=quic_tls_cert_fingerprint` and a `sha256:`
+fingerprint. The route evidence API adds blockers
+`peer_identity_method_not_release_grade` and
+`peer_public_key_not_fingerprint`; the route evidence store adds
+`hasCurrentPeerIdentityProof()` so release-grade queries revalidate stale/manual
+records before returning them.
+
+Validation passed P2P tests `108/108`, `npm run typecheck`, P2P relay contract
+audit `ok=true`/`fail_count=0`, release verifier `ok=true`/`case_count=66`/
+`failed_case_count=0`, and `git diff --check`.
+
+Qualitative audit found no high/medium issue. This is route evidence integrity
+hardening only; second-PC, hosted relay tunnel, support mailbox, and Store
+gates remain open. Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROUTE_EVIDENCE_PEER_IDENTITY_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_ROUTE_EVIDENCE_PEER_IDENTITY_GATE_2026_06_06.md`
+
+## 2026-06-06 Route Evidence Peer Identity Gate Index Refresh (wiki/846)
+
+MUSU local indexer was refreshed after wiki/845 and GOAL v670.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2655 files`
+- `2758 symbols`
+- `11366 ms`
+
+Indexed context includes route evidence peer identity release gate hardening,
+`peer_identity_method_not_release_grade`,
+`peer_public_key_not_fingerprint`, `hasCurrentPeerIdentityProof`, canonical
+report, next-step plan, P2P control-plane spec addendum, BETA checklist, GOAL
+v670, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v671`, `wiki/846`, `route evidence peer
+identity gate index refresh`, `2655 files`, `2758 symbols`, `11366 ms`,
+`peer_identity_method_not_release_grade`, `peer_public_key_not_fingerprint`,
+`hasCurrentPeerIdentityProof`, `quic_tls_cert_fingerprint`, `sha256:`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

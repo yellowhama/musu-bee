@@ -269,8 +269,18 @@ function hasCurrentRelayPayloadDeliveryProof(evidence: RouteEvidencePayload): bo
   );
 }
 
+function hasCurrentPeerIdentityProof(evidence: RouteEvidencePayload): boolean {
+  return Boolean(
+    evidence.peer_identity_verified === true &&
+      evidence.peer_identity_method?.trim() &&
+      RELEASE_GRADE_PEER_IDENTITY_METHODS.has(evidence.peer_identity_method.trim()) &&
+      evidence.peer_public_key?.trim().startsWith("sha256:")
+  );
+}
+
 function hasCurrentReleaseGradeProofs(evidence: RouteEvidencePayload): boolean {
   return (
+    hasCurrentPeerIdentityProof(evidence) &&
     hasCurrentRelayFallbackProof(evidence) &&
     hasCurrentRelayTransportProof(evidence) &&
     hasCurrentRelayPayloadDeliveryProof(evidence)
