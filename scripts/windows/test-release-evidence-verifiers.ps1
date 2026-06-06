@@ -372,6 +372,28 @@ function Test-ProcessOwnershipGoNoGoFreshnessContract {
     return $true
 }
 
+function Test-SingleInstanceGoNoGoFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Test-StartupSingleInstanceEvidence',
+        'function Test-DesktopSingleInstanceEvidence',
+        '[Parameter(Mandatory = $true)][string]$ExpectedGitCommit',
+        'no runtime-affecting changes after the startup single-instance evidence commit',
+        'no runtime-affecting changes after the desktop single-instance evidence commit',
+        'Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit',
+        '-ExpectedGitCommit $currentGitCommit'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1676,6 +1698,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go process ownership requires current freshness" `
     -Verifier "process ownership source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$singleInstanceGoNoGoFreshnessOk = Test-SingleInstanceGoNoGoFreshnessContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $singleInstanceGoNoGoFreshnessOk `
+    -Message "go/no-go startup and desktop single-instance evidence must be current HEAD or differ only by documentation/evidence/status/tooling-only commits"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go single-instance evidence requires current freshness" `
+    -Verifier "single-instance source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

@@ -111,6 +111,11 @@ Already applied:
   verifies one stable bridge PID, and embeds the process ownership audit
 - release go/no-go now reports `startup_single_instance_verified` and blocks if
   repeated startup evidence is missing or failing
+- release go/no-go now treats startup and desktop single-instance evidence as
+  freshness-gated: the recorded `git_commit` must match current HEAD, or
+  differ only by documentation, evidence, status, or tooling-only commits.
+  Runtime-affecting changes after startup or desktop single-instance capture
+  require fresh local evidence.
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing
@@ -309,12 +314,13 @@ Release gates that must remain false until evidence exists:
 - `runtime_idle_cpu_verified`
 - `process_ownership_verified`
 - `startup_single_instance_verified`
+- `desktop_single_instance_verified`
 - `multi_device_verified`
 - `support_mailbox_verified`
 - `store_release_verified`
 
-The public desktop release decision remains No-Go until all four are true and
-the worktree/manifest are clean.
+The public desktop release decision remains No-Go until all listed gates are
+true and the worktree/manifest are clean.
 
 ## Practical Answer to "How We Handle the Three"
 

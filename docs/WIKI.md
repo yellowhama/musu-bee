@@ -12594,3 +12594,82 @@ freshness gate index refresh`, `2754 files`, `2776 symbols`, `26216 ms`,
 `process_ownership_verified`, `ExpectedGitCommit`,
 `Test-ProcessOwnershipEvidence`, `Test-DocumentationOrStatusOnlyGitDelta`,
 and `case_count=85`.
+
+## 2026-06-07 Single-Instance Freshness Gate (wiki/897)
+
+Startup and desktop single-instance release evidence is now freshness-gated.
+
+Updated:
+
+- `write-release-go-no-go.ps1`
+  - passes current HEAD into `Test-StartupSingleInstanceEvidence`
+  - passes current HEAD into `Test-DesktopSingleInstanceEvidence`
+  - requires each single-instance evidence candidate to record a valid
+    `git_commit`
+  - allows stale single-instance evidence only when the delta to current HEAD
+    is documentation/evidence/status/tooling-only
+  - exposes candidate `git_commit` in each single-instance result object
+- `test-release-evidence-verifiers.ps1`
+  - adds source-contract case
+    `go-no-go single-instance evidence requires current freshness`
+- `MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
+  - records the product/spec rule that runtime-affecting changes after startup
+    or desktop single-instance capture require fresh local evidence
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=86`, `failed_case_count=0`
+- dirty-tree go/no-go smoke rejected stale startup single-instance candidate
+  `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2` and desktop single-instance
+  candidate `fad519c509d784453f938a79df28b02fff497c10`
+- dirty-tree go/no-go reported `startup_single_instance_verified=false`,
+  `desktop_single_instance_verified=false`, and blockers
+  `startup-single-instance` plus `desktop-single-instance`
+
+Qualitative audit found no high/medium issue. This prevents stale local
+single-instance proof from surviving runtime-affecting changes, but it does
+not replace fresh current-HEAD startup/desktop evidence or second-PC proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SINGLE_INSTANCE_FRESHNESS_GATE_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_SINGLE_INSTANCE_FRESHNESS_GATE_2026_06_07.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-07_single_instance_freshness_gate.md`
+
+Search terms should include `GOAL v722`, `wiki/897`,
+`single-instance freshness gate`, `startup_single_instance_verified`,
+`desktop_single_instance_verified`, `Test-StartupSingleInstanceEvidence`,
+`Test-DesktopSingleInstanceEvidence`, `ExpectedGitCommit`,
+`Test-DocumentationOrStatusOnlyGitDelta`, and `case_count=86`.
+
+## 2026-06-07 Single-Instance Freshness Gate Index Refresh (wiki/898)
+
+MUSU local indexer was refreshed after wiki/897 and GOAL v722.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2757 files`
+- `2776 symbols`
+- `15488 ms`
+
+Indexed context includes startup/desktop single-instance freshness hardening in
+`write-release-go-no-go.ps1`, release verifier source contract
+`go-no-go single-instance evidence requires current freshness`, runtime
+stabilization spec update, canonical report, next-step plan, BETA checklist,
+GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v723`, `wiki/898`, `single-instance
+freshness gate index refresh`, `2757 files`, `2776 symbols`, `15488 ms`,
+`startup_single_instance_verified`, `desktop_single_instance_verified`,
+`Test-StartupSingleInstanceEvidence`, `Test-DesktopSingleInstanceEvidence`,
+`ExpectedGitCommit`, `Test-DocumentationOrStatusOnlyGitDelta`, and
+`case_count=86`.

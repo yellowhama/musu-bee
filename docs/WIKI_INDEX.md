@@ -5945,4 +5945,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Test-ProcessOwnershipEvidence`, `Test-DocumentationOrStatusOnlyGitDelta`,
   and `case_count=85`.
 
+- 2026-06-07 single-instance freshness gate:
+  `RELEASE_1_15_0_RC1_SINGLE_INSTANCE_FRESHNESS_GATE_2026_06_07.md`
+  (wiki/897) records go/no-go hardening that requires startup and desktop
+  single-instance evidence to match current HEAD or differ only by
+  docs/evidence/status/tooling-only commits. Search terms should include
+  `GOAL v722`, `wiki/897`, `startup_single_instance_verified`,
+  `desktop_single_instance_verified`, `Test-StartupSingleInstanceEvidence`,
+  `Test-DesktopSingleInstanceEvidence`, `ExpectedGitCommit`,
+  `Test-DocumentationOrStatusOnlyGitDelta`, and `case_count=86`.
+
+- 2026-06-07 single-instance freshness gate index refresh:
+  wiki/898 records the MUSU local index refresh after wiki/897 and GOAL v722.
+  Search terms should include `GOAL v723`, `wiki/898`, `2757 files`,
+  `2776 symbols`, `15488 ms`, `single-instance freshness gate index refresh`,
+  `startup_single_instance_verified`, `desktop_single_instance_verified`,
+  `Test-StartupSingleInstanceEvidence`, `Test-DesktopSingleInstanceEvidence`,
+  `ExpectedGitCommit`, `Test-DocumentationOrStatusOnlyGitDelta`, and
+  `case_count=86`.
+
 **End of WIKI_INDEX.md.**

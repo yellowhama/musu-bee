@@ -8706,3 +8706,55 @@ Index refresh:
 - `2776 symbols`
 - `26216 ms`
 - wiki: `wiki/896`
+
+## 2026-06-07 00:03 KST Single-Instance Freshness Gate
+
+Startup and desktop single-instance evidence now follows the same
+current/freshness discipline as runtime CPU and process ownership evidence.
+
+Changed:
+
+- `write-release-go-no-go.ps1` passes current HEAD into
+  `Test-StartupSingleInstanceEvidence`.
+- `write-release-go-no-go.ps1` passes current HEAD into
+  `Test-DesktopSingleInstanceEvidence`.
+- Both single-instance verifiers require valid `git_commit` and accept stale
+  evidence only when the delta to current HEAD is
+  documentation/evidence/status/tooling-only.
+- Single-instance result objects now expose candidate `git_commit`.
+- `test-release-evidence-verifiers.ps1` adds source-contract case
+  `go-no-go single-instance evidence requires current freshness`.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=86`,
+  `failed_case_count=0`
+- dirty-tree go/no-go smoke: `startup_single_instance_verified=false`,
+  `desktop_single_instance_verified=false`, stale startup commit
+  `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2`, stale desktop commit
+  `fad519c509d784453f938a79df28b02fff497c10`, and both `expected git commit`
+  checks fail as intended
+
+Qualitative audit found no high/medium issue. This hardens stale
+single-instance proof handling; it does not close fresh single-instance
+evidence, second-PC CPU/matrix, real route, hosted MUSU.PRO relay proof,
+support mailbox, or Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SINGLE_INSTANCE_FRESHNESS_GATE_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_SINGLE_INSTANCE_FRESHNESS_GATE_2026_06_07.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2757 files`
+- `2776 symbols`
+- `15488 ms`
+- wiki: `wiki/898`
