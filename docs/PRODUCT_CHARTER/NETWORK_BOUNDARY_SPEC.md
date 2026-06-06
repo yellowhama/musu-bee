@@ -1191,3 +1191,29 @@ Boundary implications:
 - MUSU Desktop remains the local executor while MUSU.PRO remains the
   rendezvous/path-selection/relay-fallback/evidence control plane.
 
+## 2026-06-07 release relay tunnel source hook boundary
+
+Release relay tunnel source hooks are now explicit in Rust, but they are still
+inside the local executor boundary.
+
+Boundary implications:
+
+- `submit_release_relay_tunnel_payload` and
+  `accept_release_relay_tunnel_payload` are local runtime contracts, not
+  hosted execution;
+- source contract readiness is not runtime readiness;
+- release payload movement must still happen locally through an actual
+  `quic_relay_tunnel`;
+- MUSU.PRO may coordinate the relay fallback and verify owner-scoped evidence,
+  but it does not execute the user task;
+- preview store-forward queue delivery remains non-release-grade and cannot be
+  promoted to release relay proof.
+
+Current correct state remains fail-closed:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- live hosted relay route metadata, transport proof, and payload delivery proof
+  are absent
+

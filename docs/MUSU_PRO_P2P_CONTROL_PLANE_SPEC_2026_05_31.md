@@ -2051,3 +2051,24 @@ Current required hooks before release tunnel runtime can be marked ready:
 
 This keeps MUSU.PRO on the control-plane path and prevents the preview
 store-forward queue from being treated as the release relay tunnel.
+
+## 2026-06-07 release relay tunnel source hook contract
+
+Release relay tunnel source hooks are now present in Rust:
+
+- `submit_release_relay_tunnel_payload`
+- `accept_release_relay_tunnel_payload`
+- proof-boundary metadata for `quic_relay_tunnel`, `quic_tls_1_3`,
+  `quic_tls_cert_fingerprint`, and `musu_quic_tls_transport`
+
+Normative boundary:
+
+- source hook presence is necessary but not sufficient
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remains correct until payload bytes
+  move through an actual `quic_relay_tunnel`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` remains correct until the release
+  endpoint accepts/transports bytes and emits release proof
+- preview store-forward queue proof remains non-release-grade
+- hosted MUSU.PRO evidence must still prove runtime login, owner-scoped
+  storage, relay route metadata, relay transport proof, and relay payload
+  delivery proof

@@ -9322,3 +9322,40 @@ Index refresh:
 
 - MUSU local indexer: `2810 files`, `2776 symbols`, `14922 ms`
 - wiki: `wiki/922`
+
+## 2026-06-07 05:14 KST Release Relay Tunnel Source Hook Contract
+
+Rust release relay tunnel source hooks are now explicit, but the release tunnel
+runtime is still not implemented.
+
+Changed:
+
+- source submit hook: `submit_release_relay_tunnel_payload`
+- target accept hook: `accept_release_relay_tunnel_payload`
+- release metadata contract includes `quic_relay_tunnel`, `quic_tls_1_3`,
+  `quic_tls_cert_fingerprint`, and `musu_quic_tls_transport`
+- preview store-forward delivery proof is rejected by the release tunnel accept
+  contract
+- release verifier regression added
+  `Rust release relay tunnel hook contract is explicit`
+
+Validation:
+
+- parser checks: pass
+- `cargo fmt --check`: pass
+- `cargo test --lib relay_payload`: `26 passed`
+- `cargo test --lib rendezvous`: `8 passed`
+- `cargo check --lib`: pass
+- release evidence verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+- P2P env status: `release_relay_tunnel_runtime_source_contract_ready=true`,
+  zero missing hooks, but still `ok=false` with 12 blockers
+
+Release interpretation:
+
+- this does not implement payload movement through `quic_relay_tunnel`
+- keep `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- keep `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- keep `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof

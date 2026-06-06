@@ -550,3 +550,27 @@ Validation passed with release verifier `case_count=103` and
 CPU diagnostic path; it does not convert failed routes into release-grade route
 success proof or stale existing successful post-route matrices that predate
 attempt metadata.
+
+## 2026-06-07 release relay tunnel source hook contract
+
+Runtime stabilization now has explicit Rust source hooks for release relay
+tunnel submit and target accept:
+
+- `submit_release_relay_tunnel_payload`
+- `accept_release_relay_tunnel_payload`
+- `quic_relay_tunnel`
+- `quic_tls_1_3`
+- `musu_quic_tls_transport`
+
+This removes the "missing Rust hook names" sub-gap from the P2P env status
+source contract. It does not remove the runtime blocker:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- hosted KV/login/route proof are still missing
+
+Validation passed with release verifier `case_count=104` and
+`failed_case_count=0`, plus Rust `relay_payload` and `rendezvous` tests. The
+next runtime work is actual `quic_relay_tunnel` byte transit and proof
+emission.

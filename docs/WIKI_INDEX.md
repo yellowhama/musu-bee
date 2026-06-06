@@ -6183,4 +6183,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `attempt_count`, `attempts[]`, `raw_exit_code`, and
   `case_count=103`.
 
+- 2026-06-07 release relay tunnel source hook contract:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_TUNNEL_SOURCE_HOOK_CONTRACT_2026_06_07.md`
+  (wiki/923) records Rust source hook contracts for release relay tunnel
+  submit/accept without enabling release runtime markers. Search terms should
+  include `GOAL v748`, `wiki/923`,
+  `release relay tunnel source hook contract`,
+  `submit_release_relay_tunnel_payload`,
+  `accept_release_relay_tunnel_payload`,
+  `release_relay_tunnel_runtime_source_contract_ready=true`,
+  `release_relay_tunnel_runtime_not_implemented`, and `case_count=104`.
+
+- 2026-06-07 release relay tunnel source hook contract index refresh:
+  wiki/924 records the MUSU local index refresh after wiki/923 and GOAL v748.
+  Search terms should include `GOAL v749`, `wiki/924`, `2812 files`,
+  `2788 symbols`, `15395 ms`,
+  `release relay tunnel source hook contract index refresh`,
+  `submit_release_relay_tunnel_payload`,
+  `accept_release_relay_tunnel_payload`,
+  `release_relay_tunnel_runtime_source_contract_ready=true`, and
+  `case_count=104`.
+
 **End of WIKI_INDEX.md.**

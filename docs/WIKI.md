@@ -13554,3 +13554,76 @@ memory.
 Search terms should include `GOAL v747`, `wiki/922`, `route attempt CPU
 attempt metadata index refresh`, `2810 files`, `2776 symbols`, `14922 ms`,
 `attempt_count`, `attempts[]`, `raw_exit_code`, and `case_count=103`.
+
+## 2026-06-07 Release Relay Tunnel Source Hook Contract (wiki/923)
+
+Rust release relay tunnel source hooks now exist without enabling release
+runtime markers.
+
+Changed:
+
+- `musu-rs/src/bridge/rendezvous.rs` adds
+  `release_relay_tunnel_submission_contract()` and
+  `submit_release_relay_tunnel_payload(...)`
+- submit contract binds release metadata to `quic_relay_tunnel`,
+  `quic_tls_1_3`, `quic_tls_cert_fingerprint`, and
+  `musu_quic_tls_transport`
+- submit still returns `release_relay_tunnel_runtime_not_implemented` after
+  validation, so no source scaffold can be mistaken for real payload transit
+- `musu-rs/src/bridge/handlers/relay_payload.rs` adds
+  `release_relay_tunnel_acceptance_contract()` and
+  `accept_release_relay_tunnel_payload(...)`
+- target accept contract requires `transport_kind=quic_relay_tunnel`,
+  `release_grade=true`, `relay_default_data_path=false`, `wss://` relay URL,
+  and matching session/lease/source/target/tunnel/payload fields
+- preview store-forward delivery proof is rejected as non-release-grade
+- release verifier regression adds
+  `Rust release relay tunnel hook contract is explicit`
+
+Validation:
+
+- parser checks passed
+- `cargo fmt --check`
+- `cargo test --lib relay_payload`: `26 passed`
+- `cargo test --lib rendezvous`: `8 passed`
+- `cargo check --lib`
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=104`, and `failed_case_count=0`
+- P2P env status now reports
+  `release_relay_tunnel_runtime_source_contract_ready=true` and zero missing
+  source hooks
+
+No high/medium issue was found. The release gate remains fail-closed:
+`release_relay_tunnel_runtime_implemented=false`,
+`relay_payload_endpoint_implemented=false`, `relay_transport_kind=websocket_tunnel`,
+and the same 12 source/env/live P2P blockers remain. This is source-contract
+hardening only, not actual `quic_relay_tunnel` payload movement.
+
+Search terms should include `GOAL v748`, `wiki/923`,
+`release relay tunnel source hook contract`,
+`submit_release_relay_tunnel_payload`,
+`accept_release_relay_tunnel_payload`,
+`release_relay_tunnel_runtime_source_contract_ready=true`,
+`release_relay_tunnel_runtime_not_implemented`, and `case_count=104`.
+
+## 2026-06-07 Release Relay Tunnel Source Hook Contract Index Refresh (wiki/924)
+
+MUSU local indexer was refreshed after wiki/923 and GOAL v748.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2812 files`
+- `2788 symbols`
+- `15395 ms`
+
+Indexed context includes Rust release relay tunnel source hook contracts,
+release verifier regression `case_count=104`, canonical report, next-step
+plan, BETA checklist, P2P control-plane specs, runtime stabilization spec,
+network boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v749`, `wiki/924`, `release relay tunnel
+source hook contract index refresh`, `2812 files`, `2788 symbols`, `15395 ms`,
+`submit_release_relay_tunnel_payload`,
+`accept_release_relay_tunnel_payload`,
+`release_relay_tunnel_runtime_source_contract_ready=true`, and
+`case_count=104`.

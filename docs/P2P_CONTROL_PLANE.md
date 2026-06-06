@@ -578,3 +578,27 @@ If release markers claim readiness while `/api/v1/relay/payload` is still
 preflight-only or those hooks are missing, env status emits source conflict
 blockers. This prevents the preview store-forward queue and proof DTOs from
 being mistaken for a real `quic_relay_tunnel` payload path.
+
+## 2026-06-07 release relay tunnel source hook contract
+
+Rust now has the release relay tunnel source hooks required by the env-status
+source contract:
+
+- source submit: `submit_release_relay_tunnel_payload`
+- target accept: `accept_release_relay_tunnel_payload`
+- transport kind: `quic_relay_tunnel`
+- release encryption/proof requirement: `quic_tls_1_3`
+- verifier: `musu_quic_tls_transport`
+
+Control-plane interpretation:
+
+- `release_relay_tunnel_runtime_source_contract_ready=true` means the local
+  Rust source now has explicit submit/accept/proof-boundary hooks.
+- It does not mean release runtime is implemented.
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED` remains false.
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED` remains false.
+- `RELAY_TRANSPORT_KIND` remains `websocket_tunnel`.
+- MUSU.PRO remains remote input, room, rendezvous, path-selection, relay
+  fallback, and evidence/control plane.
+- MUSU Desktop remains the local executor that must actually move payload
+  bytes and record proof.

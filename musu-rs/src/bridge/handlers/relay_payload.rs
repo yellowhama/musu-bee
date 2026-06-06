@@ -20,6 +20,8 @@ use crate::bridge::AppState;
 const RELAY_PAYLOAD_DRAIN_SCHEMA: &str = "musu.relay_payload_drain.v1";
 const RELAY_PAYLOAD_CLAIM_SCHEMA: &str = "musu.relay_payload_claim.v1";
 const RELAY_PAYLOAD_DELIVERY_SCHEMA: &str = "musu.relay_payload_delivery.v1";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_KIND: &str = "quic_relay_tunnel";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 const DEFAULT_DRAIN_LIMIT: u32 = 1;
 const MAX_DRAIN_LIMIT: u32 = 5;
 const DEFAULT_DRAIN_TIMEOUT_MS: u64 = 3_000;
@@ -93,6 +95,57 @@ pub struct RelayPayloadDrainReport {
     pub error: Option<String>,
     pub payloads: Vec<RelayPayloadDrainItem>,
     pub next_steps: Vec<&'static str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseRelayTunnelAcceptanceContract {
+    pub transport_kind: &'static str,
+    pub release_grade: bool,
+    pub transport_verified_by: &'static str,
+}
+
+pub fn release_relay_tunnel_acceptance_contract() -> ReleaseRelayTunnelAcceptanceContract {
+    ReleaseRelayTunnelAcceptanceContract {
+        transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND,
+        release_grade: true,
+        transport_verified_by: RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER,
+    }
+}
+
+pub fn accept_release_relay_tunnel_payload(
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    proof: &crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof,
+) -> std::result::Result<crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof, &'static str>
+{
+    let contract = release_relay_tunnel_acceptance_contract();
+    if payload.transport_kind != contract.transport_kind
+        || proof.transport_kind != contract.transport_kind
+    {
+        return Err("release_relay_tunnel_payload_transport_kind_not_release_grade");
+    }
+    if !payload.release_grade || !proof.release_grade {
+        return Err("release_relay_tunnel_payload_not_release_grade");
+    }
+    if payload.relay_default_data_path || proof.relay_default_data_path {
+        return Err("release_relay_tunnel_payload_default_data_path");
+    }
+    if !payload.relay_url.trim().starts_with("wss://")
+        || !proof.relay_url.trim().starts_with("wss://")
+    {
+        return Err("release_relay_tunnel_relay_url_not_wss");
+    }
+    if payload.payload_id != proof.payload_id
+        || payload.session_id != proof.session_id
+        || payload.lease_id != proof.lease_id
+        || payload.source_node_id != proof.source_node_id
+        || payload.target_node_id != proof.target_node_id
+        || payload.tunnel_id != proof.tunnel_id
+        || payload.payload_sha256 != proof.payload_sha256
+        || payload.payload_bytes != proof.payload_bytes
+    {
+        return Err("release_relay_tunnel_payload_proof_mismatch");
+    }
+    Ok(proof.clone())
 }
 
 fn drain_limit(raw: Option<u32>) -> u32 {
@@ -681,6 +734,13 @@ mod tests {
         }
     }
 
+    fn release_relay_tunnel_payload_record() -> crate::cloud::P2pRelayPayloadStoredRecord {
+        let mut payload = delivered_payload_record();
+        payload.transport_kind = "quic_relay_tunnel".to_string();
+        payload.release_grade = true;
+        payload
+    }
+
     #[test]
     fn delivered_payload_record_builds_delivery_proof() {
         let proof =
@@ -700,6 +760,31 @@ mod tests {
         assert_eq!(proof.payload_sha256, "abc123");
         assert_eq!(proof.payload_bytes, 128);
         assert_eq!(proof.delivered_at, "2026-06-04T00:00:02Z");
+    }
+
+    #[test]
+    fn release_relay_tunnel_acceptance_contract_requires_release_payload_proof() {
+        let contract = release_relay_tunnel_acceptance_contract();
+        assert_eq!(contract.transport_kind, "quic_relay_tunnel");
+        assert!(contract.release_grade);
+        assert_eq!(contract.transport_verified_by, "musu_quic_tls_transport");
+
+        let payload = release_relay_tunnel_payload_record();
+        let proof = delivery_proof_from_delivered_payload(&payload).expect("proof");
+        let accepted = accept_release_relay_tunnel_payload(&payload, &proof).expect("accepted");
+        assert_eq!(accepted.transport_kind, "quic_relay_tunnel");
+        assert!(accepted.release_grade);
+    }
+
+    #[test]
+    fn accept_release_relay_tunnel_payload_rejects_preview_queue_delivery() {
+        let payload = delivered_payload_record();
+        let proof = delivery_proof_from_delivered_payload(&payload).expect("proof");
+
+        assert_eq!(
+            accept_release_relay_tunnel_payload(&payload, &proof).unwrap_err(),
+            "release_relay_tunnel_payload_transport_kind_not_release_grade"
+        );
     }
 
     #[test]

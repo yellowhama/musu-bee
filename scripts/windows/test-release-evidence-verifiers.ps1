@@ -995,6 +995,48 @@ function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
     return $true
 }
 
+function Test-P2pReleaseRelayTunnelRuntimeHookContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$RendezvousPath,
+        [Parameter(Mandatory = $true)][string]$RelayPayloadDrainPath
+    )
+
+    $rendezvous = Get-Content -LiteralPath $RendezvousPath -Raw
+    $relayPayloadDrain = Get-Content -LiteralPath $RelayPayloadDrainPath -Raw
+    $rendezvousNeedles = @(
+        'submit_release_relay_tunnel_payload',
+        'release_relay_tunnel_submission_contract',
+        'quic_relay_tunnel',
+        'quic_tls_1_3',
+        'musu_quic_tls_transport',
+        'release_relay_tunnel_runtime_not_implemented',
+        'release_relay_tunnel_relay_url_not_wss',
+        'release_relay_tunnel_peer_public_key_not_fingerprint'
+    )
+    $relayPayloadNeedles = @(
+        'accept_release_relay_tunnel_payload',
+        'release_relay_tunnel_acceptance_contract',
+        'quic_relay_tunnel',
+        'musu_quic_tls_transport',
+        'release_grade: true',
+        'release_relay_tunnel_payload_transport_kind_not_release_grade',
+        'release_relay_tunnel_payload_not_release_grade',
+        'release_relay_tunnel_payload_proof_mismatch'
+    )
+
+    foreach ($needle in $rendezvousNeedles) {
+        if (-not $rendezvous.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $relayPayloadNeedles) {
+        if (-not $relayPayloadDrain.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-GoNoGoP2pEnvStatusSurfaceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2432,6 +2474,22 @@ Add-CaseResult `
     -Name "P2P env status rejects marker-only relay tunnel flips" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$rustRendezvousPath = Join-Path $repoRoot "musu-rs\src\bridge\rendezvous.rs"
+$rustRelayPayloadDrainPath = Join-Path $repoRoot "musu-rs\src\bridge\handlers\relay_payload.rs"
+$p2pReleaseRelayTunnelRuntimeHookContractOk = Test-P2pReleaseRelayTunnelRuntimeHookContract `
+    -RendezvousPath $rustRendezvousPath `
+    -RelayPayloadDrainPath $rustRelayPayloadDrainPath
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pReleaseRelayTunnelRuntimeHookContractOk `
+    -Message "Rust release relay tunnel hooks must bind submit/accept to quic_relay_tunnel, quic_tls_1_3 proof metadata, and non-release preview rejection"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Rust release relay tunnel hook contract is explicit" `
+    -Verifier "P2P release relay tunnel runtime source contract" `
+    -FixturePath $rustRendezvousPath `
     -ShouldPass $true `
     -Invocation $invocation
 
