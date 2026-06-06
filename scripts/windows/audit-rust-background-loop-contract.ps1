@@ -356,6 +356,7 @@ $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
 $unauditedSpawnHits = New-Object System.Collections.Generic.List[object]
 $telemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
+$allowedTelemetryFlushPrimitiveHits = New-Object System.Collections.Generic.List[object]
 $filesystemWatcherPrimitiveHits = New-Object System.Collections.Generic.List[object]
 $fileSyncWatcherStartHits = New-Object System.Collections.Generic.List[object]
 $networkWatcherPrimitiveHits = New-Object System.Collections.Generic.List[object]
@@ -380,6 +381,9 @@ else {
         "musu-rs\src\install\cli_commands.rs",
         "musu-rs\src\main.rs",
         "musu-rs\src\peer\mdns.rs"
+    )
+    $allowedTelemetryFlushPrimitiveFiles = @(
+        "musu-rs\src\install\uninstall.rs"
     )
     $allowlistedLoopFiles = @(
         "musu-rs\src\adapter\claude.rs",
@@ -448,8 +452,17 @@ else {
         if ($spawnMatches.Count -gt 0 -and ($relative -notin $allowlistedSpawnFiles)) {
             $unauditedSpawnHits.Add([pscustomobject]@{ path = $relative; count = $spawnMatches.Count }) | Out-Null
         }
-        if ([regex]::IsMatch($text, 'opentelemetry|tracing_appender|non_blocking|force_flush|flush_tracer_provider|metrics_exporter|prometheus_exporter')) {
-            $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
+        $telemetryFlushMatches = [regex]::Matches(
+            $text,
+            '\b(?:std::io::stdout\(\)|std::io::stderr\(\)|stdout\(\)|stderr\(\))\.flush\(\)|\bforce_flush\s*\(|\bflush_tracer_provider\s*\(|\b(?:opentelemetry|tracing_appender|non_blocking|metrics_exporter|prometheus_exporter)\b'
+        )
+        if ($telemetryFlushMatches.Count -gt 0) {
+            if ($relative -in $allowedTelemetryFlushPrimitiveFiles) {
+                $allowedTelemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative; count = $telemetryFlushMatches.Count }) | Out-Null
+            }
+            else {
+                $telemetryFlushPrimitiveHits.Add([pscustomobject]@{ path = $relative; count = $telemetryFlushMatches.Count }) | Out-Null
+            }
         }
         if ([regex]::IsMatch($text, 'RecommendedWatcher|recommended_watcher|watcher\.watch\(') -and ($relative -notin $allowedFilesystemWatcherFiles)) {
             $filesystemWatcherPrimitiveHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
@@ -481,10 +494,16 @@ else {
         -Message ($(if ($unauditedSpawnHits.Count -eq 0) { "No unaudited Rust spawn constructs found outside the allowlist." } else { "Unaudited Rust spawn constructs found: $(@($unauditedSpawnHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
     Add-Check `
         -Scope "logging-telemetry" `
+        -Name "one-shot log flush primitives stay allowlisted" `
+        -Passed ($telemetryFlushPrimitiveHits.Count -eq 0) `
+        -Path "musu-rs\src" `
+        -Message ($(if ($telemetryFlushPrimitiveHits.Count -eq 0) { "Allowed one-shot log flush primitives: $(@($allowedTelemetryFlushPrimitiveHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." } else { "Log/telemetry flush primitives found outside the allowlist: $(@($telemetryFlushPrimitiveHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
+    Add-Check `
+        -Scope "logging-telemetry" `
         -Name "no background telemetry flush worker primitives" `
         -Passed ($telemetryFlushPrimitiveHits.Count -eq 0) `
         -Path "musu-rs\src" `
-        -Message ($(if ($telemetryFlushPrimitiveHits.Count -eq 0) { "No Rust background telemetry/log flush worker primitives found." } else { "Telemetry/log flush worker primitives found: $(@($telemetryFlushPrimitiveHits | ForEach-Object { $_.path }) -join ', ')." }))
+        -Message ($(if ($telemetryFlushPrimitiveHits.Count -eq 0) { "No Rust background telemetry/log flush worker primitives found." } else { "Telemetry/log flush worker primitives found: $(@($telemetryFlushPrimitiveHits | ForEach-Object { "$($_.path) ($($_.count))" }) -join ', ')." }))
     Add-Check `
         -Scope "source" `
         -Name "filesystem watcher primitives stay allowlisted" `
@@ -517,6 +536,8 @@ $result = [pscustomobject]@{
     unaudited_spawn_hits = $unauditedSpawnHits.ToArray()
     telemetry_flush_primitive_hit_count = $telemetryFlushPrimitiveHits.Count
     telemetry_flush_primitive_hits = $telemetryFlushPrimitiveHits.ToArray()
+    allowed_telemetry_flush_primitive_hit_count = $allowedTelemetryFlushPrimitiveHits.Count
+    allowed_telemetry_flush_primitive_hits = $allowedTelemetryFlushPrimitiveHits.ToArray()
     filesystem_watcher_primitive_hit_count = $filesystemWatcherPrimitiveHits.Count
     filesystem_watcher_primitive_hits = $filesystemWatcherPrimitiveHits.ToArray()
     file_sync_watcher_start_hit_count = $fileSyncWatcherStartHits.Count

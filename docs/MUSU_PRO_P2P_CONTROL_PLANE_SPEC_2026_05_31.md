@@ -1585,3 +1585,23 @@ and `release_grade=false`, which cannot close hosted P2P release proof.
 Spec interpretation remains unchanged: this is not the release relay tunnel.
 It is the evidence path needed once the real local runtime tunnel produces
 `musu.relay_transport_proof.v1`.
+
+## 2026-06-06 Telemetry Flush Scope Audit
+
+The local runtime idle contract now includes explicit log/telemetry flush scope
+verification.
+
+Release interpretation:
+
+- A one-shot uninstall TTY prompt flush is allowed in
+  `musu-rs\src\install\uninstall.rs`.
+- Background telemetry/log flush workers remain disallowed unless they are
+  explicitly designed, gated, audited, and backed by release CPU evidence.
+- Final operator packets must include the Rust background-loop audit with the
+  `one-shot log flush primitives stay allowlisted` check and
+  `allowed_telemetry_flush_primitive_hit_count`.
+
+This does not change the P2P product split. MUSU.PRO may receive remote input,
+host project/company rooms, coordinate rendezvous/path selection/relay
+fallback, and store evidence. MUSU Desktop remains the executor and local
+resource owner on each device.

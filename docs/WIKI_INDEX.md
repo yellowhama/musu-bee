@@ -5361,4 +5361,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 telemetry flush scope audit:
+  `RELEASE_1_15_0_RC1_TELEMETRY_FLUSH_SCOPE_AUDIT_2026_06_06.md`
+  (wiki/837) records Rust background-loop audit hardening that separates
+  one-shot CLI log flushes from background telemetry/log flush worker
+  primitives. Search terms should include `GOAL v662`, `wiki/837`,
+  `telemetry flush scope audit`, `one-shot log flush primitives stay
+  allowlisted`, `allowed_telemetry_flush_primitive_hit_count`,
+  `telemetry_flush_primitive_hit_count=0`, `allowed flush 1`,
+  `musu-rs\src\install\uninstall.rs`, `release verifier 65/65`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 telemetry flush scope index refresh:
+  wiki/838 records the MUSU local index refresh after wiki/837 and GOAL v662.
+  Search terms should include `GOAL v663`, `wiki/838`, `2633 files`,
+  `2755 symbols`, `29667 ms`, `telemetry flush scope index refresh`,
+  `allowed_telemetry_flush_primitive_hit_count`,
+  `telemetry_flush_primitive_hit_count=0`, `release verifier 65/65`,
+  `musu-rs\src\install\uninstall.rs`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

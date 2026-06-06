@@ -10585,3 +10585,58 @@ Search terms should include `GOAL v661`, `wiki/836`,
 `quic_relay_tunnel`, `release verifier 64/64`,
 `relay_fallback_payload_delivery_proof_stored_not_release_grade`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Telemetry Flush Scope Audit (wiki/837)
+
+Rust background-loop auditing now explicitly separates one-shot log flushes
+from background telemetry/log flush worker primitives.
+
+The only current Rust flush primitive is the uninstall purge prompt in
+`musu-rs\src\install\uninstall.rs`; it is now tracked as an allowlisted
+one-shot flush. Disallowed telemetry/log flush primitive count remains `0`.
+
+Validation passed PowerShell parser checks, Rust background-loop audit
+`ok=true`/`fail_count=0` with
+`telemetry_flush_primitive_hit_count=0` and
+`allowed_telemetry_flush_primitive_hit_count=1`, and release evidence verifier
+regressions `ok=true`/`case_count=65`/`failed_case_count=0`.
+
+Qualitative audit found no high/medium issue. The fixed issue was a low-risk
+audit blind spot: plain Rust `stdout/stderr.flush()` calls are now classified
+instead of relying only on telemetry/exporter keyword detection.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor and
+resource owner; MUSU.PRO remains remote input, project/company room,
+rendezvous, path-selection, relay-fallback policy, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TELEMETRY_FLUSH_SCOPE_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_TELEMETRY_FLUSH_SCOPE_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Telemetry Flush Scope Audit Index Refresh (wiki/838)
+
+MUSU local indexer was refreshed after wiki/837 and GOAL v662.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2633 files`
+- `2755 symbols`
+- `29667 ms`
+
+Indexed context includes telemetry/log flush scope audit hardening,
+`allowed_telemetry_flush_primitive_hit_count`, source-contract case
+`rust background audit limits telemetry flush scope`, final operator packet
+log-flush scope check, canonical report, next-step plan, BETA checklist,
+MUSU.PRO P2P control-plane spec, network boundary spec, GOAL v662,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v663`, `wiki/838`,
+`telemetry flush scope index refresh`, `2633 files`, `2755 symbols`,
+`29667 ms`, `allowed_telemetry_flush_primitive_hit_count`,
+`telemetry_flush_primitive_hit_count=0`, `release verifier 65/65`,
+`musu-rs\src\install\uninstall.rs`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

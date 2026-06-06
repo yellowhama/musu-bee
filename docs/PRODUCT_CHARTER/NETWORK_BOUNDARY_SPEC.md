@@ -905,3 +905,22 @@ gate. The production runtime still needs real owner-scoped MUSU.PRO login,
 release relay tunnel transport, nonzero relay route evidence, and second-PC
 route/CPU/matrix evidence.
 
+## 2026-06-06 telemetry flush scope boundary
+
+Log/telemetry flush scope is now part of the local-runtime idle boundary.
+
+Boundary interpretation:
+
+- one-shot CLI prompt flushing is allowed only from explicit request-scoped
+  surfaces such as uninstall confirmation
+- background telemetry/log flush workers are not allowed in packaged MUSU
+  Desktop unless a future change adds explicit opt-in, low-duty behavior,
+  cancellation, and release CPU evidence
+- final operator gate packets must preserve this audit contract
+- this is a local desktop resource-budget contract, not a hosted execution
+  feature
+
+MUSU Desktop remains the local executor. MUSU.PRO remains remote input,
+project/company room, rendezvous, path-selection, relay-fallback policy, and
+evidence/control plane.
+

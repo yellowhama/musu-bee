@@ -7685,3 +7685,48 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2630 files`, `2755 symbols`, `20544 ms`
+
+## 2026-06-06 Telemetry Flush Scope Audit
+
+Rust background-loop auditing now explicitly separates allowlisted one-shot log
+flushes from background telemetry/log flush worker primitives.
+
+Current source state:
+
+- allowed one-shot flush:
+  `musu-rs\src\install\uninstall.rs`
+- disallowed telemetry/log flush primitives:
+  `0`
+- allowed one-shot flush primitive hits:
+  `1`
+
+Validation:
+
+- PowerShell parser checks: pass
+- Rust background-loop audit:
+  - `ok=true`
+  - `fail_count=0`
+  - `telemetry_flush_primitive_hit_count=0`
+  - `allowed_telemetry_flush_primitive_hit_count=1`
+- release evidence verifier regressions:
+  - `ok=true`
+  - `case_count=65`
+  - `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This fixes a low-risk audit
+blind spot: plain Rust `stdout/stderr.flush()` calls are now classified instead
+of relying only on telemetry/exporter keyword detection.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TELEMETRY_FLUSH_SCOPE_AUDIT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_TELEMETRY_FLUSH_SCOPE_AUDIT_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2633 files`, `2755 symbols`, `29667 ms`

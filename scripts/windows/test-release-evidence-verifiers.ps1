@@ -384,6 +384,29 @@ function Test-RustBackgroundNetworkWatcherScopeContract {
     return $true
 }
 
+function Test-RustBackgroundTelemetryFlushScopeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$allowedTelemetryFlushPrimitiveFiles',
+        'std::io::stdout\(\)|std::io::stderr\(\)|stdout\(\)|stderr\(\)',
+        'one-shot log flush primitives stay allowlisted',
+        'no background telemetry flush worker primitives',
+        'telemetry_flush_primitive_hit_count',
+        'allowed_telemetry_flush_primitive_hit_count',
+        'allowed_telemetry_flush_primitive_hits',
+        'musu-rs\src\install\uninstall.rs'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-DegradedModeAuditSourceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1327,6 +1350,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "rust background audit limits network watcher scope" `
+    -Verifier "rust background loop source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$rustBackgroundTelemetryFlushScopeContractOk = Test-RustBackgroundTelemetryFlushScopeContract -ScriptPath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $rustBackgroundTelemetryFlushScopeContractOk `
+    -Message "Rust background-loop audit must keep log/telemetry flush primitives scoped to explicit one-shot CLI surfaces and reject background flush workers"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "rust background audit limits telemetry flush scope" `
     -Verifier "rust background loop source contract" `
     -FixturePath (Join-Path $scriptDir "audit-rust-background-loop-contract.ps1") `
     -ShouldPass $true `
