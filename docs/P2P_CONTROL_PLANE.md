@@ -294,3 +294,18 @@ This keeps `relay_transport_wired=false` unless actual local runtime code can
 move payload bytes through a release `quic_relay_tunnel` and emit
 `quic_tls_1_3` transport proof. The preview store-forward queue and proof DTOs
 remain useful diagnostics, but they are not the release relay tunnel.
+
+## 2026-06-06 relay fallback candidate coverage gate
+
+Relay fallback route evidence now includes candidate coverage metadata via
+`relay_fallback.candidate_route_kinds`. Release grading blocks relay records
+that do not prove the available direct route candidates were attempted in the
+canonical order before fallback:
+
+1. `lan`
+2. `tailscale`
+3. `direct_quic`
+4. `relay`
+
+This makes MUSU.PRO's rendezvous/path-selection role auditable without turning
+MUSU.PRO into the default payload data path.

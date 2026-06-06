@@ -8032,3 +8032,43 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2668 files`, `2759 symbols`, `15241 ms`
+
+## 2026-06-06 Relay Fallback Candidate Coverage Gate
+
+Relay fallback route evidence now has to prove candidate coverage before a
+relay route can be release-grade:
+
+- `relay_fallback.candidate_route_kinds` records rendezvous/path-selection
+  candidate availability
+- release grading blocks missing candidate sets
+- release grading blocks missing relay fallback availability
+- release grading blocks skipped available direct candidates
+- release grading blocks attempted unavailable direct candidates
+- release grading blocks direct attempt sequences that do not match
+  `lan -> tailscale -> direct_quic`
+
+Validation:
+
+- P2P tests: `111/111`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is evidence/path-selection
+hardening only. It does not implement the second-machine route, release relay
+tunnel runtime, support mailbox, or Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_FALLBACK_CANDIDATE_COVERAGE_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_FALLBACK_CANDIDATE_COVERAGE_GATE_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2671 files`, `2763 symbols`, `26393 ms`

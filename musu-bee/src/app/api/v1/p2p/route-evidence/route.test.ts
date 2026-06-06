@@ -511,6 +511,100 @@ test("keeps relay route evidence non release grade when fallback attempts includ
   });
 });
 
+test("keeps relay route evidence non release grade without candidate route set", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-missing-candidate-set");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_candidate_set_missing/);
+  });
+});
+
+test("keeps relay route evidence non release grade when fallback skips available direct candidates", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-skipped-direct-candidate");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        candidate_route_kinds: ["lan", "tailscale", "direct_quic", "relay"],
+        attempted_route_kinds: ["lan", "direct_quic"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    const blockers = body.blockers.join(",");
+    assert.equal(body.release_grade, false);
+    assert.match(blockers, /relay_route_skipped_available_direct_candidate/);
+    assert.match(blockers, /relay_route_candidate_attempt_order_mismatch/);
+  });
+});
+
+test("keeps relay route evidence non release grade when fallback attempts unavailable direct candidates", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-unavailable-direct-candidate");
+    const lease = await seedRelayLeaseForEvidence();
+
+    const res = await POST(postReq({
+      ...hardenedEvidence,
+      route_kind: "relay",
+      candidate_addr: "relay.musu.pro:443",
+      payload_transited_musu_infra: true,
+      relay_fallback: {
+        direct_path_failed: true,
+        lease_requested: true,
+        status: "issued",
+        lease_issued: true,
+        candidate_route_kinds: ["lan", "relay"],
+        attempted_route_kinds: ["lan", "tailscale"],
+        requested_capability: "remote_command",
+        policy: "connect_pro_fallback_only",
+        blockers: [],
+        lease_id: lease.lease_id,
+      },
+    }));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(body.blockers.join(","), /relay_route_attempted_unavailable_direct_candidate/);
+  });
+});
+
 test("keeps transport-proof relay route evidence non release grade until payload endpoint is wired", async () => {
   await withRouteEvidenceToken(async () => {
     const { GET, POST } = await loadModule("relay-route-backed-transport-proof-endpoint-blocked");

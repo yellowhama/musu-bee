@@ -437,6 +437,32 @@ Add-Check `
 
 Add-Check `
     -Scope "route-evidence" `
+    -Name "relay fallback proves candidate coverage before relay" `
+    -Passed (
+        (Test-ContainsAll -Text $routeEvidence -Needles @(
+            "candidate_route_kinds",
+            "relay_route_candidate_set_missing",
+            "relay_route_candidate_set_missing_relay_fallback",
+            "relay_route_skipped_available_direct_candidate",
+            "relay_route_attempted_unavailable_direct_candidate",
+            "relay_route_candidate_attempt_order_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidenceStore -Needles @(
+            "hasCurrentRelayCandidateCoverage",
+            "candidate_route_kinds",
+            "DIRECT_PATH_SELECTION_ORDER"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "keeps relay route evidence non release grade without candidate route set",
+            "keeps relay route evidence non release grade when fallback skips available direct candidates",
+            "keeps relay route evidence non release grade when fallback attempts unavailable direct candidates"
+        ))
+    ) `
+    -Path $routeEvidencePath `
+    -Message "Relay fallback evidence must prove available direct/relay candidate coverage and cannot skip LAN/Tailscale/QUIC candidates before claiming fallback."
+
+Add-Check `
+    -Scope "route-evidence" `
     -Name "route evidence request is strict metadata only" `
     -Passed (
         (Test-ContainsAll -Text $routeEvidence -Needles @(

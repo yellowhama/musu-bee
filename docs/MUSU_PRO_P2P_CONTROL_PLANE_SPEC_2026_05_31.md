@@ -1651,3 +1651,27 @@ This is deliberate fail-closed behavior. The release tunnel is not implemented
 until local runtime code moves payload bytes through `quic_relay_tunnel` and
 emits `quic_tls_1_3` relay transport proof. The preview queue and proof
 recorders cannot satisfy this marker.
+
+## 2026-06-06 Relay fallback candidate coverage gate
+
+Release relay route evidence now has to prove candidate coverage before
+fallback can be considered release-grade.
+
+`relay_fallback.candidate_route_kinds` records the route kinds made available
+by rendezvous/path selection. For a relay route, release grading blocks records
+when this candidate set is absent, lacks a relay fallback candidate, lacks any
+direct candidate, skips an available direct candidate, attempts a direct
+candidate that was not available, or attempts direct candidates out of canonical
+priority order.
+
+Canonical order remains:
+
+1. `lan`
+2. `tailscale`
+3. `direct_quic`
+4. `relay`
+
+This prevents a false fallback pass where the route evidence claims relay after
+trying only one direct route while another available direct candidate was
+skipped. MUSU.PRO remains rendezvous/path-selection/evidence control plane;
+the local MUSU runtime still performs the route attempts and payload work.

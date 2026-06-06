@@ -30,6 +30,7 @@ export type RouteEvidencePayload = {
     lease_requested: boolean;
     status: "skipped_no_token" | "skipped_no_session" | "denied" | "issued" | "failed" | "timed_out";
     lease_issued: boolean;
+    candidate_route_kinds?: Array<"lan" | "tailscale" | "direct_quic" | "relay" | "failed">;
     attempted_route_kinds: Array<"lan" | "tailscale" | "direct_quic" | "relay" | "failed">;
     requested_capability?: string | null;
     policy?: string | null;
@@ -108,6 +109,8 @@ const DEFAULT_MAX_RECORDS = 1000;
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
+const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
+const DIRECT_ROUTE_KINDS = new Set<string>(DIRECT_PATH_SELECTION_ORDER);
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -212,6 +215,34 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
   );
 }
 
+function directRouteKindsInPriorityOrder(kinds: string[]): string[] {
+  const present = new Set(kinds.filter((kind) => DIRECT_ROUTE_KINDS.has(kind)));
+  return DIRECT_PATH_SELECTION_ORDER.filter((kind) => present.has(kind));
+}
+
+function sameRouteKindSequence(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((kind, index) => kind === right[index]);
+}
+
+function hasCurrentRelayCandidateCoverage(evidence: RouteEvidencePayload): boolean {
+  if (evidence.route_kind !== "relay") {
+    return true;
+  }
+  const relay = evidence.relay_fallback;
+  const candidateKinds = relay?.candidate_route_kinds ?? [];
+  if (candidateKinds.length === 0 || !candidateKinds.includes("relay")) {
+    return false;
+  }
+  const directCandidates = directRouteKindsInPriorityOrder(candidateKinds);
+  const directAttempts = (relay?.attempted_route_kinds ?? []).filter((kind) =>
+    DIRECT_ROUTE_KINDS.has(kind)
+  );
+  if (directCandidates.length === 0) {
+    return false;
+  }
+  return sameRouteKindSequence(directAttempts, directCandidates);
+}
+
 function hasCurrentRelayFallbackProof(evidence: RouteEvidencePayload): boolean {
   if (evidence.route_kind !== "relay") {
     return true;
@@ -226,6 +257,7 @@ function hasCurrentRelayFallbackProof(evidence: RouteEvidencePayload): boolean {
       relay.lease_issued === true &&
       relay.lease_id?.trim() &&
       relay.attempted_route_kinds.some((kind) => kind !== "relay") &&
+      hasCurrentRelayCandidateCoverage(evidence) &&
       relay.payload_transport_attempted === true &&
       relay.payload_transport_proven === true
   );

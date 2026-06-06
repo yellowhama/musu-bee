@@ -39,6 +39,7 @@ const RelayFallbackSchema = z.object({
     "timed_out",
   ]),
   lease_issued: z.boolean(),
+  candidate_route_kinds: z.array(RouteKindSchema).optional(),
   attempted_route_kinds: z.array(RouteKindSchema),
   requested_capability: z.string().min(1).nullable().optional(),
   policy: z.string().min(1).nullable().optional(),
@@ -129,6 +130,7 @@ const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
+const DIRECT_ROUTE_KINDS = new Set<string>(DIRECT_PATH_SELECTION_ORDER);
 const DIRECT_ROUTE_KIND_INDEX = new Map(DIRECT_PATH_SELECTION_ORDER.map((kind, index) => [kind, index]));
 
 function pathKey(path: PropertyKey[]): string {
@@ -277,11 +279,36 @@ function sameRouteKindSequence(left: string[], right: string[]): boolean {
   return left.length === right.length && left.every((kind, index) => kind === right[index]);
 }
 
+function directRouteKindsInPriorityOrder(kinds: string[]): string[] {
+  const present = new Set(kinds.filter((kind) => DIRECT_ROUTE_KINDS.has(kind)));
+  return DIRECT_PATH_SELECTION_ORDER.filter((kind) => present.has(kind));
+}
+
 function relayAttemptPathBlockers(relay: z.infer<typeof RelayFallbackSchema>): string[] {
   const blockers = new Set<string>();
   const seen = new Set<string>();
+  const candidateKinds = relay.candidate_route_kinds ?? [];
+  const candidateSeen = new Set<string>();
   let lastDirectKindIndex = -1;
   let hasDirectAttempt = false;
+
+  if (candidateKinds.length === 0) {
+    blockers.add("relay_route_candidate_set_missing");
+  }
+
+  for (const kind of candidateKinds) {
+    if (candidateSeen.has(kind)) {
+      blockers.add("relay_route_duplicate_candidate_kind");
+    }
+    candidateSeen.add(kind);
+    if (kind === "failed") {
+      blockers.add("relay_route_candidates_include_failed_kind");
+    }
+  }
+
+  if (candidateKinds.length > 0 && !candidateSeen.has("relay")) {
+    blockers.add("relay_route_candidate_set_missing_relay_fallback");
+  }
 
   for (const kind of relay.attempted_route_kinds) {
     if (seen.has(kind)) {
@@ -304,6 +331,32 @@ function relayAttemptPathBlockers(relay: z.infer<typeof RelayFallbackSchema>): s
 
   if (!hasDirectAttempt) {
     blockers.add("relay_route_missing_direct_attempt");
+  }
+
+  if (candidateKinds.length > 0) {
+    const directCandidates = directRouteKindsInPriorityOrder(candidateKinds);
+    const directAttempts = relay.attempted_route_kinds.filter((kind) =>
+      DIRECT_ROUTE_KINDS.has(kind)
+    );
+    const directCandidateSet = new Set<string>(directCandidates);
+    const directAttemptSet = new Set<string>(directAttempts);
+
+    if (directCandidates.length === 0) {
+      blockers.add("relay_route_candidate_set_missing_direct_candidate");
+    }
+    for (const kind of directCandidates) {
+      if (!directAttemptSet.has(kind)) {
+        blockers.add("relay_route_skipped_available_direct_candidate");
+      }
+    }
+    for (const kind of directAttempts) {
+      if (!directCandidateSet.has(kind)) {
+        blockers.add("relay_route_attempted_unavailable_direct_candidate");
+      }
+    }
+    if (!sameRouteKindSequence(directAttempts, directCandidates)) {
+      blockers.add("relay_route_candidate_attempt_order_mismatch");
+    }
   }
 
   return [...blockers];

@@ -124,3 +124,9 @@ requires `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true`. Current source keeps it
 `false`, and status surfaces report `relay_tunnel_runtime_implemented=false` so
 policy constants or env flags cannot fake a release tunnel without actual local
 payload transit and `quic_tls_1_3` transport proof.
+
+2026-06-06 relay fallback candidate coverage gate: relay route evidence now
+supports `relay_fallback.candidate_route_kinds`. Release grading blocks relay
+fallback claims that omit the candidate set, omit relay fallback availability,
+skip available `lan`/`tailscale`/`direct_quic` candidates, or attempt direct
+candidates outside the canonical priority order before relay.

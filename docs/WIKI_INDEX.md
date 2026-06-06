@@ -5525,4 +5525,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `diagnostic matrix git_dirty=true`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 relay fallback candidate coverage gate:
+  `RELEASE_1_15_0_RC1_RELAY_FALLBACK_CANDIDATE_COVERAGE_GATE_2026_06_06.md`
+  (wiki/853) records the route evidence gate that requires
+  `relay_fallback.candidate_route_kinds` before release relay fallback.
+  Search terms should include `GOAL v678`, `wiki/853`,
+  `relay_route_candidate_set_missing`,
+  `relay_route_skipped_available_direct_candidate`,
+  `relay_route_attempted_unavailable_direct_candidate`,
+  `relay_route_candidate_attempt_order_mismatch`,
+  `hasCurrentRelayCandidateCoverage`, `P2P tests 111/111`,
+  `release verifier 66/66`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 relay fallback candidate coverage gate index refresh:
+  wiki/854 records the MUSU local index refresh after wiki/853 and GOAL v678.
+  Search terms should include `GOAL v679`, `wiki/854`, `2671 files`,
+  `2763 symbols`, `26393 ms`, `relay fallback candidate coverage gate index
+  refresh`, `candidate_route_kinds`, `hasCurrentRelayCandidateCoverage`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

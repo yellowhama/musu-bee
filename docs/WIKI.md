@@ -11045,3 +11045,62 @@ desktop-open CPU after relay runtime gate index refresh`, `2668 files`,
 `WebView2 0.03`, `hot process count 0`, `git_dirty=false`, `diagnostic matrix
 git_dirty=true`, `MUSU Desktop local executor`, and `MUSU.PRO remote input
 control plane`.
+
+## 2026-06-06 Relay Fallback Candidate Coverage Gate (wiki/853)
+
+Relay fallback route evidence now has to prove candidate coverage before a
+relay route can be release-grade.
+
+Changed:
+
+- `relay_fallback.candidate_route_kinds`
+- `relay_route_candidate_set_missing`
+- `relay_route_candidate_set_missing_relay_fallback`
+- `relay_route_candidate_set_missing_direct_candidate`
+- `relay_route_skipped_available_direct_candidate`
+- `relay_route_attempted_unavailable_direct_candidate`
+- `relay_route_candidate_attempt_order_mismatch`
+- `hasCurrentRelayCandidateCoverage()`
+
+Validation:
+
+- P2P tests: `111/111`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is evidence/path-selection
+hardening only; second-PC route proof and the release relay tunnel runtime
+remain open.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_FALLBACK_CANDIDATE_COVERAGE_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_FALLBACK_CANDIDATE_COVERAGE_GATE_2026_06_06.md`
+
+## 2026-06-06 Relay Fallback Candidate Coverage Gate Index Refresh (wiki/854)
+
+MUSU local indexer was refreshed after wiki/853 and GOAL v678.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2671 files`
+- `2763 symbols`
+- `26393 ms`
+
+Indexed context includes `relay_fallback.candidate_route_kinds`,
+`relay_route_candidate_set_missing`,
+`relay_route_skipped_available_direct_candidate`,
+`relay_route_attempted_unavailable_direct_candidate`,
+`relay_route_candidate_attempt_order_mismatch`,
+`hasCurrentRelayCandidateCoverage`, canonical report, next-step plan, BETA
+checklist, P2P control-plane specs, GOAL v678, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v679`, `wiki/854`, `relay fallback
+candidate coverage gate index refresh`, `2671 files`, `2763 symbols`,
+`26393 ms`, `candidate_route_kinds`, `hasCurrentRelayCandidateCoverage`, `MUSU
+Desktop local executor`, and `MUSU.PRO remote input control plane`.
