@@ -106,6 +106,30 @@ function Test-RouteProbeArgumentsBindTarget {
     return $false
 }
 
+function Test-RouteProbeArgumentsBindWaitToken {
+    param(
+        $Arguments,
+        [AllowEmptyString()][string]$ExpectedToken
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ExpectedToken) -or $null -eq $Arguments) {
+        return $false
+    }
+
+    $argumentList = @($Arguments | ForEach-Object { [string]$_ })
+    for ($index = 0; $index -lt $argumentList.Count; $index++) {
+        $argument = [string]$argumentList[$index]
+        if ($argument -eq "--wait" -and ($index + 1) -lt $argumentList.Count -and ([string]$argumentList[$index + 1]).Contains($ExpectedToken)) {
+            return $true
+        }
+        if ($argument.StartsWith("--wait=") -and $argument.Contains($ExpectedToken)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -617,6 +641,10 @@ if ($matrix) {
             $routeProbeOk = ($routeProbe.PSObject.Properties["ok"] -and [bool]$routeProbe.ok)
             $routeProbeHasExitCode = ($routeProbe.PSObject.Properties["exit_code"] -and $null -ne $routeProbe.exit_code)
             $routeProbeFailureAllowed = ($routeProbe.PSObject.Properties["failure_allowed"] -and [bool]$routeProbe.failure_allowed)
+            $routeExpectedToken = Get-JsonPropertyString -Object $routeProbe -Name "expected_token"
+            $routeCommand = Get-JsonPropertyString -Object $routeProbe -Name "command"
+            $routeArguments = Get-JsonPropertyValue -Object $routeProbe -Name "arguments"
+            $routeOutput = Get-JsonPropertyString -Object $routeProbe -Name "output"
             $routeProbeAccepted = if ($AllowFailedPostRouteProbe) {
                 ($routeProbeOk -or ($routeProbeHasExitCode -and $routeProbeFailureAllowed))
             }
@@ -629,6 +657,29 @@ if ($matrix) {
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt" } else { "post-route matrix includes a successful route probe" })) `
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix lacks a successful route probe or explicitly allowed failed route attempt" } else { "post-route matrix lacks a successful route probe" }))
 
+            Add-CheckFromCondition `
+                "post-route expected token present" `
+                (-not [string]::IsNullOrWhiteSpace($routeExpectedToken)) `
+                "post-route route probe records an expected token" `
+                "post-route route probe lacks expected_token"
+            Add-CheckFromCondition `
+                "post-route route command binds wait token" `
+                (-not [string]::IsNullOrWhiteSpace($routeExpectedToken) -and $routeCommand.Contains("--wait") -and $routeCommand.Contains($routeExpectedToken)) `
+                "post-route route command records the wait prompt token" `
+                "post-route route command does not bind expected token '$routeExpectedToken'"
+            Add-CheckFromCondition `
+                "post-route route arguments bind wait token" `
+                (Test-RouteProbeArgumentsBindWaitToken -Arguments $routeArguments -ExpectedToken $routeExpectedToken) `
+                "post-route route arguments record --wait with the expected token" `
+                "post-route route arguments do not bind --wait to expected token '$routeExpectedToken'"
+            if ($routeProbeOk) {
+                Add-CheckFromCondition `
+                    "post-route successful output contains expected token" `
+                    (-not [string]::IsNullOrWhiteSpace($routeExpectedToken) -and $routeOutput.Contains($routeExpectedToken)) `
+                    "post-route successful route output contains the expected token" `
+                    "post-route successful route output does not contain expected token '$routeExpectedToken'"
+            }
+
             $routeTarget = Get-JsonPropertyString -Object $routeProbe -Name "target"
             if ($RequirePostRouteTarget) {
                 Add-CheckFromCondition `
@@ -636,13 +687,11 @@ if ($matrix) {
                     (-not [string]::IsNullOrWhiteSpace($routeTarget)) `
                     "post-route route target is present" `
                     "post-route route target is missing"
-                $routeCommand = Get-JsonPropertyString -Object $routeProbe -Name "command"
                 Add-CheckFromCondition `
                     "post-route route command binds target" `
                     (-not [string]::IsNullOrWhiteSpace($routeTarget) -and $routeCommand.Contains("--target") -and $routeCommand.Contains($routeTarget)) `
                     "post-route route command records the target route attempt" `
                     "post-route route command does not bind target '$routeTarget'"
-                $routeArguments = Get-JsonPropertyValue -Object $routeProbe -Name "arguments"
                 $routeArgumentsBindTarget = if ([string]::IsNullOrWhiteSpace($routeTarget)) {
                     $false
                 }

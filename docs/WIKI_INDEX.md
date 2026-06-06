@@ -5806,4 +5806,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route_probe.arguments`, `--target <target>`,
   `runtime_cpu_second_pc_route_attempt`, and `case_count=73`.
 
+- 2026-06-06 post-route wait token binding gate:
+  `RELEASE_1_15_0_RC1_POST_ROUTE_WAIT_TOKEN_BINDING_GATE_2026_06_06.md`
+  (wiki/881) records runtime CPU `post-route` wait prompt/token evidence
+  hardening. Search terms should include `GOAL v706`, `wiki/881`,
+  `post-route wait token binding gate`, `expected_token`,
+  `--wait <prompt-with-token>`, `runtime matrix rejects route wait prompt
+  without expected token`, `runtime matrix rejects successful route probe
+  without token output`, and `case_count=75`.
+
+- 2026-06-06 post-route wait token binding gate index refresh:
+  wiki/882 records the MUSU local index refresh after wiki/881 and GOAL v706.
+  Search terms should include `GOAL v707`, `wiki/882`, `2733 files`,
+  `2776 symbols`, `11708 ms`, `expected_token`,
+  `--wait <prompt-with-token>`, `runtime matrix rejects successful route probe
+  without token output`, and `case_count=75`.
+
 **End of WIKI_INDEX.md.**

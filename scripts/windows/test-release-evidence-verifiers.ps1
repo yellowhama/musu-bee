@@ -215,10 +215,15 @@ function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         'Test-RouteProbeArgumentsBindTarget',
+        'Test-RouteProbeArgumentsBindWaitToken',
+        'post-route route command binds wait token',
+        'post-route route arguments bind wait token',
+        'post-route successful output contains expected token',
         'post-route route command binds target',
         'post-route route arguments bind target',
         '$routeCommand.Contains("--target")',
-        'Test-RouteProbeArgumentsBindTarget -Arguments $routeArguments -Target $routeTarget'
+        'Test-RouteProbeArgumentsBindTarget -Arguments $routeArguments -Target $routeTarget',
+        'Test-RouteProbeArgumentsBindWaitToken -Arguments $routeArguments -ExpectedToken $routeExpectedToken'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1925,6 +1930,22 @@ $unboundTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $unboun
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-unbound-target" -Object $unboundTargetRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "SECOND-PC", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects target field not bound to route command arguments" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$unboundWaitTokenRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$unboundWaitTokenRuntimeRouteAttempt.route_probe.command = "musu route --target PRIMARY-PC --wait `"Reply when ready`""
+$unboundWaitTokenRuntimeRouteAttempt.route_probe.arguments = @("route", "--target", "PRIMARY-PC", "--wait", "Reply when ready")
+$unboundWaitTokenRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $unboundWaitTokenRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-unbound-wait-token" -Object $unboundWaitTokenRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects route wait prompt without expected token" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$successWithoutTokenRuntimeRouteAttempt = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$successWithoutTokenRuntimeRouteAttempt.route_probe.output = "task completed without verifier token"
+$successWithoutTokenRuntimeRouteAttempt.route_probe.stdout = "task completed without verifier token"
+$successWithoutTokenRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $successWithoutTokenRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-success-route-attempt-missing-output-token" -Object $successWithoutTokenRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects successful route probe without token output" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $selfTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
 $selfTargetRuntimeRouteAttempt.route_probe.target = "VERIFIER-TEST"

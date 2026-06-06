@@ -11998,3 +11998,60 @@ Search terms should include `GOAL v705`, `wiki/880`, `second-PC route-attempt
 target binding gate index refresh`, `2730 files`, `2776 symbols`, `13306 ms`,
 `route_probe.command`, `route_probe.arguments`, `--target <target>`,
 `runtime_cpu_second_pc_route_attempt`, and `case_count=73`.
+
+## 2026-06-06 Post-Route Wait Token Binding Gate (wiki/881)
+
+Runtime CPU `post-route` evidence now verifies that the route probe is bound to
+the recorded wait prompt and expected token.
+
+`verify-runtime-cpu-scenario-matrix.ps1` now checks route probes for non-empty
+`expected_token`, command text containing `--wait` and the expected token,
+arguments containing `--wait <prompt-with-token>` or
+`--wait=<prompt-with-token>`, and successful output containing the expected
+token. Failed-route diagnostics remain allowed only when explicitly enabled,
+but they must still prove which wait prompt and token were attempted.
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=75`, `failed_case_count=0`
+- new negative cases:
+  - `runtime matrix rejects route wait prompt without expected token`
+  - `runtime matrix rejects successful route probe without token output`
+
+Release interpretation: this is evidence hardening, not second-PC proof. Public
+release remains No-Go until real second-PC route/CPU/matrix evidence, live
+MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+are recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_POST_ROUTE_WAIT_TOKEN_BINDING_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v706`, `wiki/881`, `post-route wait token
+binding gate`, `expected_token`, `--wait <prompt-with-token>`, `runtime matrix
+rejects route wait prompt without expected token`, `runtime matrix rejects
+successful route probe without token output`, and `case_count=75`.
+
+## 2026-06-06 Post-Route Wait Token Binding Gate Index Refresh (wiki/882)
+
+MUSU local indexer was refreshed after wiki/881 and GOAL v706.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2733 files`
+- `2776 symbols`
+- `11708 ms`
+
+Indexed context includes `verify-runtime-cpu-scenario-matrix.ps1` wait-token
+binding checks, release verifier negative cases `runtime matrix rejects route
+wait prompt without expected token` and `runtime matrix rejects successful
+route probe without token output`, canonical report, BETA checklist, GOAL,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v707`, `wiki/882`, `post-route wait token
+binding gate index refresh`, `2733 files`, `2776 symbols`, `11708 ms`,
+`expected_token`, `--wait <prompt-with-token>`, `runtime matrix rejects
+successful route probe without token output`, and `case_count=75`.
