@@ -6166,4 +6166,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `freshness classifiers allow support mailbox tooling as status-only`, and
   `case_count=102`.
 
+- 2026-06-07 route attempt CPU attempt metadata gate:
+  `RELEASE_1_15_0_RC1_ROUTE_ATTEMPT_CPU_ATTEMPT_METADATA_GATE_2026_06_07.md`
+  (wiki/921) records runtime CPU post-route verifier hardening requiring
+  allowed failed route probe per-attempt metadata. Search terms should include
+  `GOAL v746`,
+  `wiki/921`, `route attempt CPU attempt metadata gate`, `attempt_count`,
+  `attempts[]`, `raw_exit_code`,
+  `runtime matrix rejects allowed failed route attempt without per-attempt
+  metadata`, `20260607-025704`, and `case_count=103`.
+
+- 2026-06-07 route attempt CPU attempt metadata index refresh:
+  wiki/922 records the MUSU local index refresh after wiki/921 and GOAL v746.
+  Search terms should include `GOAL v747`, `wiki/922`, `2810 files`,
+  `2776 symbols`, `14922 ms`, `route attempt CPU attempt metadata index
+  refresh`, `attempt_count`, `attempts[]`, `raw_exit_code`, and
+  `case_count=103`.
+
 **End of WIKI_INDEX.md.**

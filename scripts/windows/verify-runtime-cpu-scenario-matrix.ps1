@@ -698,11 +698,20 @@ if ($matrix) {
             [int]$routeProbeExitCode = 0
             $routeProbeHasNumericExitCode = if ($routeProbeHasExitCode) { [int]::TryParse(([string]$routeProbe.exit_code), [ref]$routeProbeExitCode) } else { $false }
             $routeProbeHasNonZeroExitCode = ($routeProbeHasNumericExitCode -and $routeProbeExitCode -ne 0)
+            $routeProbeHasRawExitCode = ($routeProbe.PSObject.Properties["raw_exit_code"] -and $null -ne $routeProbe.raw_exit_code)
+            [int]$routeProbeRawExitCode = 0
+            $routeProbeHasNumericRawExitCode = if ($routeProbeHasRawExitCode) { [int]::TryParse(([string]$routeProbe.raw_exit_code), [ref]$routeProbeRawExitCode) } else { $false }
             $routeProbeFailureAllowed = ($routeProbe.PSObject.Properties["failure_allowed"] -and [bool]$routeProbe.failure_allowed)
             $routeExpectedToken = Get-JsonPropertyString -Object $routeProbe -Name "expected_token"
             $routeCommand = Get-JsonPropertyString -Object $routeProbe -Name "command"
             $routeArguments = Get-JsonPropertyValue -Object $routeProbe -Name "arguments"
             $routeOutput = Get-JsonPropertyString -Object $routeProbe -Name "output"
+            $routeProbeAttemptCount = if ($routeProbe.PSObject.Properties["attempt_count"] -and $null -ne $routeProbe.attempt_count) { [int]$routeProbe.attempt_count } else { -1 }
+            $routeProbeAttempts = @(
+                if ($routeProbe.PSObject.Properties["attempts"] -and $null -ne $routeProbe.attempts) {
+                    @($routeProbe.attempts)
+                }
+            )
             $routeProbeAccepted = if ($AllowFailedPostRouteProbe) {
                 ($routeProbeOk -or ($routeProbeHasNonZeroExitCode -and $routeProbeFailureAllowed))
             }
@@ -721,6 +730,66 @@ if ($matrix) {
                     $routeProbeHasNonZeroExitCode `
                     "post-route failed route probe records a numeric non-zero exit code" `
                     "post-route failed route probe must record a numeric non-zero exit code"
+            }
+
+            if ($AllowFailedPostRouteProbe -and $routeProbeFailureAllowed -and -not $routeProbeOk) {
+                Add-CheckFromCondition `
+                    "post-route failed route probe raw exit code" `
+                    $routeProbeHasNumericRawExitCode `
+                    "post-route failed route probe records raw_exit_code" `
+                    "post-route failed route probe must record a numeric raw_exit_code"
+
+                Add-CheckFromCondition `
+                    "post-route failed route attempt metadata" `
+                    ($routeProbeAttemptCount -gt 0 -and $routeProbeAttempts.Count -gt 0 -and $routeProbeAttempts.Count -eq $routeProbeAttemptCount) `
+                    "post-route failed route probe records per-attempt metadata" `
+                    "post-route failed route probe must record attempt_count and matching attempts[]"
+
+                $badRouteAttemptRows = @(
+                    foreach ($attemptRow in $routeProbeAttempts) {
+                        $attemptNumber = if ($attemptRow.PSObject.Properties["attempt"] -and $null -ne $attemptRow.attempt) { [int]$attemptRow.attempt } else { 0 }
+                        [int]$attemptExitCode = 0
+                        $attemptHasExitCode = ($attemptRow.PSObject.Properties["exit_code"] -and $null -ne $attemptRow.exit_code -and [int]::TryParse(([string]$attemptRow.exit_code), [ref]$attemptExitCode))
+                        [int]$attemptRawExitCode = 0
+                        $attemptHasRawExitCode = ($attemptRow.PSObject.Properties["raw_exit_code"] -and $null -ne $attemptRow.raw_exit_code -and [int]::TryParse(([string]$attemptRow.raw_exit_code), [ref]$attemptRawExitCode))
+                        $attemptStartedAt = Get-JsonPropertyString -Object $attemptRow -Name "started_at"
+                        $attemptHasOutputFields = (
+                            $attemptRow.PSObject.Properties["stdout"] -and
+                            $attemptRow.PSObject.Properties["stderr"] -and
+                            $attemptRow.PSObject.Properties["output"] -and
+                            $attemptRow.PSObject.Properties["ok"]
+                        )
+                        $attemptTimeoutSec = if ($attemptRow.PSObject.Properties["timeout_sec"] -and $null -ne $attemptRow.timeout_sec) { [int]$attemptRow.timeout_sec } else { 0 }
+                        if ($attemptNumber -le 0 -or -not $attemptHasExitCode -or -not $attemptHasRawExitCode -or [string]::IsNullOrWhiteSpace($attemptStartedAt) -or -not $attemptHasOutputFields -or $attemptTimeoutSec -le 0) {
+                            $attemptRow
+                        }
+                    }
+                )
+                Add-CheckFromCondition `
+                    "post-route failed route attempt fields" `
+                    ($routeProbeAttempts.Count -gt 0 -and $badRouteAttemptRows.Count -eq 0) `
+                    "post-route failed route probe attempts include attempt number, timestamp, exit/raw exit, output fields, ok, and timeout" `
+                    "post-route failed route probe has $($badRouteAttemptRows.Count) malformed attempt row(s)"
+
+                $lastRouteAttempt = if ($routeProbeAttempts.Count -gt 0) { $routeProbeAttempts | Select-Object -Last 1 } else { $null }
+                [int]$lastRouteAttemptExitCode = 0
+                [int]$lastRouteAttemptRawExitCode = 0
+                $lastRouteAttemptMatchesSummary = (
+                    $null -ne $lastRouteAttempt -and
+                    $routeProbeHasNumericExitCode -and
+                    $routeProbeHasNumericRawExitCode -and
+                    $lastRouteAttempt.PSObject.Properties["exit_code"] -and
+                    $lastRouteAttempt.PSObject.Properties["raw_exit_code"] -and
+                    [int]::TryParse(([string]$lastRouteAttempt.exit_code), [ref]$lastRouteAttemptExitCode) -and
+                    [int]::TryParse(([string]$lastRouteAttempt.raw_exit_code), [ref]$lastRouteAttemptRawExitCode) -and
+                    $lastRouteAttemptExitCode -eq $routeProbeExitCode -and
+                    $lastRouteAttemptRawExitCode -eq $routeProbeRawExitCode
+                )
+                Add-CheckFromCondition `
+                    "post-route failed route attempt summary" `
+                    $lastRouteAttemptMatchesSummary `
+                    "post-route failed route probe summary matches the final attempt" `
+                    "post-route failed route probe summary exit/raw exit codes must match the final attempt"
             }
 
             Add-CheckFromCondition `

@@ -532,3 +532,21 @@ Runtime stabilization impact:
 Validation passed with release verifier `case_count=102` and
 `failed_case_count=0`. This does not close support, second-PC, hosted P2P, or
 Store release gates.
+
+## 2026-06-07 route attempt CPU attempt metadata gate
+
+Allowed failed post-route target CPU evidence now requires per-attempt route
+probe metadata:
+
+- route probe `raw_exit_code`
+- `attempt_count`
+- matching `attempts[]`
+- attempt number, timestamp, exit/raw exit, output fields, `ok`, and timeout
+  per attempt
+- top-level route probe summary matching the final attempt
+
+Validation passed with release verifier `case_count=103` and
+`failed_case_count=0`. This strengthens only the allowed failed target-route
+CPU diagnostic path; it does not convert failed routes into release-grade route
+success proof or stale existing successful post-route matrices that predate
+attempt metadata.

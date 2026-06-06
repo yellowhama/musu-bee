@@ -9282,3 +9282,43 @@ Index refresh:
 
 - MUSU local indexer: `2807 files`, `2776 symbols`, `23584 ms`
 - wiki: `wiki/920`
+
+## 2026-06-07 04:42 KST Route Attempt CPU Attempt Metadata Gate
+
+Allowed failed target-route CPU evidence now requires route probe per-attempt
+metadata.
+
+Changed:
+
+- `verify-runtime-cpu-scenario-matrix.ps1` requires allowed failed route probe
+  `raw_exit_code`, `attempt_count`, matching `attempts[]`, complete attempt
+  row fields, and summary/final-attempt exit-code agreement
+- `test-release-evidence-verifiers.ps1` adds
+  `runtime matrix rejects allowed failed route attempt without per-attempt metadata`
+- runtime CPU matrix source contract now checks that the writer emits
+  `attempt_count` and `attempts`
+
+Validation:
+
+- parser checks: pass
+- direct verifier against
+  `20260607-025704-HUGH_SECOND.runtime-cpu-scenario-matrix.json`: `ok=true`,
+  `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=103`,
+  `failed_case_count=0`
+- dirty-tree go/no-go after narrowing the check: `single_machine=true`,
+  runtime idle count `1`, runtime matrix count `1`, targeted route-attempt CPU
+  true; temporary `git` blocker present before commit
+
+Release interpretation:
+
+- this hardens second-PC route-attempt CPU evidence only
+- failed route attempts remain diagnostics, not route success proof
+- public release remains No-Go on second-PC route/CPU/matrix 2/2, hosted
+  MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
+  proof
+
+Index refresh:
+
+- MUSU local indexer: `2810 files`, `2776 symbols`, `14922 ms`
+- wiki: `wiki/922`

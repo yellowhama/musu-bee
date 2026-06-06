@@ -1176,3 +1176,18 @@ MUSU Desktop remains the local executor. MUSU.PRO remains remote input,
 project/company room, rendezvous, path selection, relay fallback coordination,
 and evidence/control plane.
 
+## 2026-06-07 route attempt CPU evidence boundary
+
+Post-route CPU evidence for an allowed failed target route attempt must prove
+the route probe attempt metadata, not only a summary status.
+
+Boundary implications:
+
+- failed target-route attempts may support CPU diagnostics only;
+- route probe evidence must include `raw_exit_code`, `attempt_count`,
+  `attempts[]`, timeout/output fields, and summary/final-attempt agreement;
+- failed route attempts are not route success proof and do not close hosted
+  P2P/relay gates;
+- MUSU Desktop remains the local executor while MUSU.PRO remains the
+  rendezvous/path-selection/relay-fallback/evidence control plane.
+

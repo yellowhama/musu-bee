@@ -13484,3 +13484,73 @@ packet index refresh`, `2807 files`, `2776 symbols`, `23584 ms`,
 `support mailbox rejects placeholder sender evidence`,
 `freshness classifiers allow support mailbox tooling as status-only`, and
 `case_count=102`.
+
+## 2026-06-07 Route Attempt CPU Attempt Metadata Gate (wiki/921)
+
+Allowed failed target-route CPU evidence now requires route probe per-attempt
+metadata.
+
+Changed:
+
+- `verify-runtime-cpu-scenario-matrix.ps1` requires allowed failed route probe
+  `raw_exit_code`
+- it requires `attempt_count`
+- it requires matching `attempts[]`
+- it requires complete attempt row fields: attempt number, timestamp,
+  exit/raw exit, stdout/stderr/output fields, `ok`, and timeout
+- it requires top-level route probe summary exit/raw-exit codes to match the
+  final attempt
+- release verifier regression added
+  `runtime matrix rejects allowed failed route attempt without per-attempt metadata`
+
+Evidence:
+
+- current primary matrix
+  `20260607-025704-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- target `HUGH-MAIN`
+- route probe `ok=false`, `failure_allowed=true`
+- `attempt_count=1`
+- `attempts[]` count `1`
+- direct target-route verifier passed with `ok=true`, `fail_count=0`
+
+Validation:
+
+- parser checks passed
+- direct verifier passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=103`, and `failed_case_count=0`
+- dirty-tree go/no-go preserved `single_machine=true`, runtime idle count `1`,
+  runtime matrix count `1`, and targeted route-attempt CPU true; temporary
+  `git` blocker was expected before commit
+
+No high/medium issue was found. This is evidence hardening only: failed route
+attempts remain CPU diagnostics, not route success proof. Public release remains
+No-Go on second-PC route/CPU/matrix 2/2, hosted MUSU.PRO P2P/relay proof,
+support mailbox proof, and Store proof.
+
+Search terms should include `GOAL v746`, `wiki/921`,
+`route attempt CPU attempt metadata gate`, `attempt_count`, `attempts[]`,
+`raw_exit_code`, `runtime matrix rejects allowed failed route attempt without
+per-attempt metadata`, `20260607-025704`, and `case_count=103`.
+
+## 2026-06-07 Route Attempt CPU Attempt Metadata Index Refresh (wiki/922)
+
+MUSU local indexer was refreshed after wiki/921 and GOAL v746.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2810 files`
+- `2776 symbols`
+- `14922 ms`
+
+Indexed context includes the route attempt CPU attempt metadata gate,
+`verify-runtime-cpu-scenario-matrix.ps1` allowed failed route probe attempt
+metadata checks,
+`test-release-evidence-verifiers.ps1` regression `case_count=103`, canonical
+report, next-step plan, BETA checklist, runtime stabilization spec, P2P
+control-plane notes, network boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS
+memory.
+
+Search terms should include `GOAL v747`, `wiki/922`, `route attempt CPU
+attempt metadata index refresh`, `2810 files`, `2776 symbols`, `14922 ms`,
+`attempt_count`, `attempts[]`, `raw_exit_code`, and `case_count=103`.

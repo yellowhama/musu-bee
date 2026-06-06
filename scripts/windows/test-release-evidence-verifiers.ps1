@@ -210,6 +210,8 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
         'if (-not $candidateOk -and $effectiveRouteExitCode -eq 0)',
         'raw_exit_code = [int]$candidateResult.exit_code',
         'exit_code = $effectiveRouteExitCode',
+        'attempt_count = $routeAttempts.Count',
+        'attempts = $routeAttempts.ToArray()',
         'wait_timeout_sec = $RouteWaitTimeoutSec',
         'command_timeout_sec = $routeProbeCommandTimeoutSec'
     )
@@ -1813,9 +1815,28 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         command = "musu route --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
         arguments = @("route", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
         exit_code = 0
+        raw_exit_code = 0
         stdout = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
         stderr = ""
         output = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+        wait_timeout_sec = 180
+        command_timeout_sec = 210
+        max_attempts = 1
+        attempt_count = 1
+        attempts = @(
+            [pscustomobject]@{
+                attempt = 1
+                started_at = $now.AddSeconds(-90).ToString("o")
+                exit_code = 0
+                raw_exit_code = 0
+                stdout = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+                stderr = ""
+                output = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
+                ok = $true
+                retry_after_s = $null
+                timeout_sec = 210
+            }
+        )
         failure_allowed = $false
     }
     fail_count = 0
@@ -2765,9 +2786,28 @@ $allowedFailedRuntimeRouteAttempt.route_probe = [pscustomobject]@{
     command = "musu route --target PRIMARY-PC --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
     arguments = @("route", "--target", "PRIMARY-PC", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
     exit_code = 1
+    raw_exit_code = 1
     stdout = ""
     stderr = "route failed: peer not reachable"
     output = "route failed: peer not reachable"
+    wait_timeout_sec = 180
+    command_timeout_sec = 210
+    max_attempts = 1
+    attempt_count = 1
+    attempts = @(
+        [pscustomobject]@{
+            attempt = 1
+            started_at = $now.AddSeconds(-90).ToString("o")
+            exit_code = 1
+            raw_exit_code = 1
+            stdout = ""
+            stderr = "route failed: peer not reachable"
+            output = "route failed: peer not reachable"
+            ok = $false
+            retry_after_s = $null
+            timeout_sec = 210
+        }
+    )
     failure_allowed = $true
 }
 $allowedFailedRuntimeRouteAttempt.scenarios[4].preparation.action = "musu route --target --wait"
@@ -2776,8 +2816,17 @@ $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-allow
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts explicitly allowed failed target route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
+$missingAttemptMetadataRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$missingAttemptMetadataRuntimeRouteAttempt.route_probe.PSObject.Properties.Remove("attempt_count")
+$missingAttemptMetadataRuntimeRouteAttempt.route_probe.PSObject.Properties.Remove("attempts")
+$missingAttemptMetadataRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $missingAttemptMetadataRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-missing-attempts" -Object $missingAttemptMetadataRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt without per-attempt metadata" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
 $zeroExitFailedRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
 $zeroExitFailedRuntimeRouteAttempt.route_probe.exit_code = 0
+$zeroExitFailedRuntimeRouteAttempt.route_probe.attempts[0].exit_code = 0
 $zeroExitFailedRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $zeroExitFailedRuntimeRouteAttempt.route_probe
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-zero-exit" -Object $zeroExitFailedRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")

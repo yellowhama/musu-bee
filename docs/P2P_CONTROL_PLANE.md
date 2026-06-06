@@ -203,6 +203,14 @@ an email template and post-delivery record command under
 Support mailbox request/record/verify/operator-card scripts are freshness
 status-only tooling, so support workflow changes do not invalidate unrelated
 local MUSU Desktop evidence.
+
+2026-06-07 route-attempt CPU addendum: post-route CPU evidence for an allowed
+failed target route attempt must include per-attempt route probe metadata.
+Failed target attempts may be accepted for CPU sampling only when the route
+probe records
+`raw_exit_code`, `attempt_count`, matching `attempts[]`, timeout/output fields,
+and summary/final-attempt agreement. This remains diagnostic CPU evidence; it is
+not release-grade route success proof.
 Open external gates:
 
 - second-PC current-build install, route, CPU, and matrix evidence is missing
