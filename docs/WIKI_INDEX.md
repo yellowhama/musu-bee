@@ -5859,4 +5859,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_route_metadata_valid_count`, `relay route metadata coverage`, and
   `case_count=81`.
 
+- 2026-06-06 second-PC route-attempt local target gate:
+  `RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`
+  (wiki/887) records targeted second-PC route-attempt CPU verifier hardening
+  against localhost/loopback false positives. Search terms should include
+  `GOAL v712`, `wiki/887`, `RejectLocalPostRouteTarget`, `runtime matrix
+  rejects localhost second-PC route attempt`, `127.0.0.1:2751`,
+  `runtime_cpu_second_pc_route_attempt`, and `case_count=82`.
+
+- 2026-06-06 second-PC route-attempt local target index refresh:
+  wiki/888 records the MUSU local index refresh after wiki/887 and GOAL v712.
+  Search terms should include `GOAL v713`, `wiki/888`, `2742 files`,
+  `2776 symbols`, `14224 ms`, `second-PC route-attempt local target index
+  refresh`, `RejectLocalPostRouteTarget`,
+  `runtime_cpu_second_pc_route_attempt`, and `case_count=82`.
+
 **End of WIKI_INDEX.md.**

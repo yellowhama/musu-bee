@@ -8463,3 +8463,39 @@ Canonical report:
 Next-step plan:
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`
+
+## 2026-06-06 22:35 KST Second-PC Route-Attempt Local Target Gate
+
+Targeted second-PC route-attempt CPU evidence now rejects localhost and
+loopback targets.
+
+Changed:
+
+- `verify-runtime-cpu-scenario-matrix.ps1` adds
+  `-RejectLocalPostRouteTarget`.
+- `write-release-go-no-go.ps1` passes this switch for
+  `runtime_cpu_second_pc_route_attempt_*` verification.
+- Rejected targets include `localhost`, `*.localhost`, `127.0.0.0/8`, `::1`,
+  `0.0.0.0`, and `host.docker.internal`.
+- `test-release-evidence-verifiers.ps1` adds
+  `runtime matrix rejects localhost second-PC route attempt`.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=82`,
+  `failed_case_count=0`
+- remote-target failed diagnostic remains accepted when explicitly allowed
+- `127.0.0.1:2751` target fails with `fail_count=1`
+
+This is evidence hardening only. It prevents localhost from satisfying the
+targeted second-PC CPU diagnostic but does not create second-PC proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`

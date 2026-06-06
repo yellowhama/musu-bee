@@ -1025,3 +1025,18 @@ This keeps MUSU.PRO as web input, room, rendezvous, path-selection,
 relay-fallback, and evidence control plane. MUSU Desktop remains the local
 executor and resource owner on each device.
 
+## 2026-06-06 second-PC route-attempt local target boundary
+
+Targeted second-PC route-attempt CPU diagnostics must not use a local-only
+target.
+
+Boundary interpretation:
+
+- `localhost`, loopback, and local-only aliases are local runtime diagnostics,
+  not second-PC route attempts.
+- A failed route attempt can be useful for CPU attribution only when the target
+  is non-local, command-bound, argument-bound, token-bound, and not the
+  operator machine.
+- This does not make failed route attempts multi-device proof.
+- Successful two-machine route evidence remains required for release.
+

@@ -1268,6 +1268,7 @@ foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Obje
         "-RequirePostRouteProbe",
         "-RequirePostRouteTarget",
         "-RejectSelfPostRouteTarget",
+        "-RejectLocalPostRouteTarget",
         "-AllowFailedPostRouteProbe",
         "-Json"
     )

@@ -291,6 +291,7 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
         '$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")',
         '"-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")',
         '"-RejectSelfPostRouteTarget"',
+        '"-RejectLocalPostRouteTarget"',
         'candidate_selection = "latest-per-machine-up-to-12"'
     )
 
@@ -2035,6 +2036,15 @@ $selfTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $selfTarge
 $fixture = Write-Fixture -Name "runtime-matrix-failed-self-target-route-attempt" -Object $selfTargetRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-RejectSelfPostRouteTarget", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects self-target second-PC route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$localTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$localTargetRuntimeRouteAttempt.route_probe.target = "127.0.0.1:2751"
+$localTargetRuntimeRouteAttempt.route_probe.command = "musu route --target 127.0.0.1:2751 --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+$localTargetRuntimeRouteAttempt.route_probe.arguments = @("route", "--target", "127.0.0.1:2751", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+$localTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $localTargetRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-local-target-route-attempt" -Object $localTargetRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-RejectLocalPostRouteTarget", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects localhost second-PC route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixStartupPrep = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixStartupPrep.scenarios[0].preparation.action = "none"

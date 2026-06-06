@@ -12216,3 +12216,71 @@ Search terms should include `GOAL v711`, `wiki/886`, `P2P route record
 metadata index refresh`, `2739 files`, `2776 symbols`, `17136 ms`,
 `relay_route_metadata_valid_count`, `relay route metadata coverage`, and
 `case_count=81`.
+
+## 2026-06-06 Second-PC Route-Attempt Local Target Gate (wiki/887)
+
+Targeted second-PC route-attempt CPU evidence now rejects localhost and
+loopback targets.
+
+`verify-runtime-cpu-scenario-matrix.ps1` gained
+`-RejectLocalPostRouteTarget`. The verifier normalizes route targets from URLs,
+`host:port`, bracketed IPv6, and hostnames, then rejects local-only targets:
+
+- `localhost`
+- `*.localhost`
+- `localhost.localdomain`
+- `127.0.0.0/8`
+- `::1`
+- `0.0.0.0`
+- `host.docker.internal`
+
+`write-release-go-no-go.ps1` now passes this switch for
+`runtime_cpu_second_pc_route_attempt_*` verification.
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=82`, `failed_case_count=0`
+- direct remote-target diagnostic with local-target rejection passed
+- direct `127.0.0.1:2751` diagnostic failed with `fail_count=1`
+
+Qualitative code audit found no high/medium issue. This is false-positive
+prevention only; it does not create second-PC route evidence or change the
+two-machine CPU requirement.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v712`, `wiki/887`, `second-PC
+route-attempt local target gate`, `RejectLocalPostRouteTarget`, `runtime
+matrix rejects localhost second-PC route attempt`, `127.0.0.1:2751`,
+`runtime_cpu_second_pc_route_attempt`, and `case_count=82`.
+
+## 2026-06-06 Second-PC Route-Attempt Local Target Index Refresh (wiki/888)
+
+MUSU local indexer was refreshed after wiki/887 and GOAL v712.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2742 files`
+- `2776 symbols`
+- `14224 ms`
+
+Indexed context includes `verify-runtime-cpu-scenario-matrix.ps1`
+`-RejectLocalPostRouteTarget`, `write-release-go-no-go.ps1` targeted
+second-PC route-attempt verifier args, release verifier negative case
+`runtime matrix rejects localhost second-PC route attempt`, canonical report,
+next-step plan, BETA checklist, network boundary spec, GOAL, WIKI/WIKI_INDEX,
+and CoS memory.
+
+Search terms should include `GOAL v713`, `wiki/888`, `second-PC
+route-attempt local target index refresh`, `2742 files`, `2776 symbols`,
+`14224 ms`, `RejectLocalPostRouteTarget`,
+`runtime_cpu_second_pc_route_attempt`, and `case_count=82`.

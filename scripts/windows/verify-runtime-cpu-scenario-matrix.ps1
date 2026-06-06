@@ -10,6 +10,7 @@ param(
     [switch]$RequirePostRouteTarget,
     [string]$ExpectedPostRouteTarget,
     [switch]$RejectSelfPostRouteTarget,
+    [switch]$RejectLocalPostRouteTarget,
     [switch]$AllowFailedPostRouteProbe,
     [switch]$Json
 )
@@ -125,6 +126,54 @@ function Test-RouteProbeArgumentsBindWaitToken {
         if ($argument.StartsWith("--wait=") -and $argument.Contains($ExpectedToken)) {
             return $true
         }
+    }
+
+    return $false
+}
+
+function Get-RouteTargetHost {
+    param([AllowEmptyString()][string]$Target)
+
+    $value = $Target.Trim()
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return ""
+    }
+
+    $uri = $null
+    if ([System.Uri]::TryCreate($value, [System.UriKind]::Absolute, [ref]$uri) -and -not [string]::IsNullOrWhiteSpace($uri.Host)) {
+        return $uri.Host.Trim().TrimEnd(".")
+    }
+
+    if ($value.StartsWith("[") -and $value.Contains("]")) {
+        return $value.Substring(1, $value.IndexOf("]") - 1).Trim().TrimEnd(".")
+    }
+
+    $colonCount = ([regex]::Matches($value, ":")).Count
+    if ($colonCount -eq 1) {
+        return ($value -split ":", 2)[0].Trim().TrimEnd(".")
+    }
+
+    return $value.Trim().TrimEnd(".")
+}
+
+function Test-RouteTargetIsLocal {
+    param([AllowEmptyString()][string]$Target)
+
+    $hostName = (Get-RouteTargetHost -Target $Target).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($hostName)) {
+        return $true
+    }
+
+    if ($hostName -in @("localhost", "localhost.localdomain", "::1", "0:0:0:0:0:0:0:1", "0.0.0.0", "host.docker.internal")) {
+        return $true
+    }
+
+    if ($hostName -like "*.localhost") {
+        return $true
+    }
+
+    if ($hostName -eq "127.0.0.1" -or $hostName.StartsWith("127.")) {
+        return $true
     }
 
     return $false
@@ -729,6 +778,13 @@ if ($matrix) {
                     "post-route route target is not the operator machine" `
                     "post-route route target '$routeTarget' must not match operator_machine '$operatorMachine'"
             }
+            if ($RejectLocalPostRouteTarget) {
+                Add-CheckFromCondition `
+                    "post-route route target not local" `
+                    (-not (Test-RouteTargetIsLocal -Target $routeTarget)) `
+                    "post-route route target is not localhost or loopback" `
+                    "post-route route target '$routeTarget' must not be localhost, loopback, or a local-only alias for second-PC route-attempt evidence"
+            }
         }
     }
 }
@@ -747,6 +803,7 @@ $result = [pscustomobject]@{
     require_post_route_target = [bool]$RequirePostRouteTarget
     expected_post_route_target = if ([string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) { $null } else { $ExpectedPostRouteTarget }
     reject_self_post_route_target = [bool]$RejectSelfPostRouteTarget
+    reject_local_post_route_target = [bool]$RejectLocalPostRouteTarget
     allow_failed_post_route_probe = [bool]$AllowFailedPostRouteProbe
     checks = $checks.ToArray()
 }
