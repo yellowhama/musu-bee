@@ -162,7 +162,7 @@ function Invoke-JsonScript {
 
 function Get-BoolProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        [AllowNull()]$Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
@@ -178,7 +178,7 @@ function Get-BoolProperty {
 
 function Get-IntProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        [AllowNull()]$Object,
         [Parameter(Mandatory = $true)][string]$Name,
         [int]$Default = 0
     )
@@ -195,7 +195,7 @@ function Get-IntProperty {
 
 function Get-StringProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        [AllowNull()]$Object,
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Default = ""
     )
@@ -212,7 +212,7 @@ function Get-StringProperty {
 
 function Get-ObjectProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
+        [AllowNull()]$Object,
         [Parameter(Mandatory = $true)][string]$Name
     )
 
