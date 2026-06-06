@@ -366,13 +366,18 @@ pub fn route_task(
 
 /// Pick the best concrete remote candidate after a control-plane session has
 /// already authorized the target.
+#[cfg(test)]
 pub fn select_best_remote_candidate(peers: &[ResolvedPeer]) -> Option<ResolvedPeer> {
+    select_remote_candidates_in_order(peers).into_iter().next()
+}
+
+pub fn select_remote_candidates_in_order(peers: &[ResolvedPeer]) -> Vec<ResolvedPeer> {
     let mut candidates: Vec<&ResolvedPeer> = peers
         .iter()
         .filter(|peer| !is_circuit_open(&peer.addr))
         .collect();
     candidates.sort_by_key(|peer| peer_sort_key(peer));
-    candidates.first().map(|peer| (*peer).clone())
+    candidates.into_iter().cloned().collect()
 }
 
 #[cfg(test)]

@@ -309,3 +309,22 @@ canonical order before fallback:
 
 This makes MUSU.PRO's rendezvous/path-selection role auditable without turning
 MUSU.PRO into the default payload data path.
+
+## 2026-06-06 runtime relay candidate coverage carry
+
+The local runtime now carries the same candidate coverage contract that the
+hosted route-evidence verifier requires.
+
+- Rendezvous-selected peer metadata preserves `candidate_route_kinds`.
+- Forwarding builds an ordered direct candidate list and attempts direct
+  candidates before relay fallback.
+- Runtime `relay_fallback` evidence submits `candidate_route_kinds` to
+  MUSU.PRO.
+- Relay payload enqueue/store records `candidate_route_kinds` and
+  `attempted_route_kinds` as metadata.
+- Target-side relay payload delivery route evidence reuses the stored route
+  metadata instead of using placeholder `failed`/`relay` attempts.
+
+This is evidence carry-path hardening. It does not implement the release
+`quic_relay_tunnel` runtime and does not make the preview relay queue
+release-grade.

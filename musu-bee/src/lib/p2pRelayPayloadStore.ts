@@ -8,6 +8,7 @@ import {
   hasP2pKvCredentials,
   p2pKvEnvStatus,
 } from "@/lib/p2pKvEnv";
+import type { RelayRouteKind } from "@/lib/p2pRelayLeaseStore";
 
 export type RelayPayloadStatus = "queued" | "claimed" | "delivered";
 
@@ -24,6 +25,8 @@ export type StoredP2pRelayPayload = {
   payload_bytes: number;
   payload_sha256: string;
   payload_base64: string;
+  candidate_route_kinds?: RelayRouteKind[];
+  attempted_route_kinds?: RelayRouteKind[];
   status: RelayPayloadStatus;
   relay_default_data_path: boolean;
   release_grade: boolean;
@@ -99,6 +102,12 @@ const KV_KEY = "musu:p2p:relay-payloads:v1";
 const DEFAULT_MAX_PAYLOADS = 1000;
 const DEFAULT_TTL_SECONDS = 300;
 const DEFAULT_MAX_PAYLOAD_BYTES = 256 * 1024;
+const RELAY_ROUTE_KINDS = new Set<RelayRouteKind>([
+  "lan",
+  "tailscale",
+  "direct_quic",
+  "relay",
+]);
 
 const KV_APPEND_PAYLOAD_SCRIPT = `
 -- musu_relay_payload_append_v1
@@ -383,10 +392,26 @@ function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
       payload.transport_kind === "quic_relay_tunnel") &&
     typeof payload.created_at === "string" &&
     typeof payload.expires_at === "string" &&
+    (payload.candidate_route_kinds === undefined ||
+      (Array.isArray(payload.candidate_route_kinds) &&
+        payload.candidate_route_kinds.every((kind) => RELAY_ROUTE_KINDS.has(kind)))) &&
+    (payload.attempted_route_kinds === undefined ||
+      (Array.isArray(payload.attempted_route_kinds) &&
+        payload.attempted_route_kinds.every((kind) => RELAY_ROUTE_KINDS.has(kind)))) &&
     (payload.claimed_by === undefined || typeof payload.claimed_by === "string") &&
     (payload.claimed_at === undefined || typeof payload.claimed_at === "string") &&
     (payload.delivered_at === undefined || typeof payload.delivered_at === "string")
   );
+}
+
+function normalizedRouteKinds(value?: RelayRouteKind[] | null): RelayRouteKind[] {
+  const kinds: RelayRouteKind[] = [];
+  for (const kind of value ?? []) {
+    if (RELAY_ROUTE_KINDS.has(kind) && !kinds.includes(kind)) {
+      kinds.push(kind);
+    }
+  }
+  return kinds;
 }
 
 function coerceStoredRelayPayload(value: unknown): StoredP2pRelayPayload | null {
@@ -481,10 +506,12 @@ export function createRelayPayload(input: {
   payload_kind: string;
   payload_base64: string;
   payload_sha256?: string | null;
+  candidate_route_kinds?: RelayRouteKind[] | null;
+  attempted_route_kinds?: RelayRouteKind[] | null;
 }): StoredP2pRelayPayload {
   const decoded = decodeRelayPayload(input);
   const now = new Date();
-  return {
+  const payload: StoredP2pRelayPayload = {
     payload_id: `relay-payload-${Date.now()}-${randomUUID()}`,
     owner_key: input.owner_key,
     session_id: input.session_id,
@@ -504,6 +531,15 @@ export function createRelayPayload(input: {
     created_at: now.toISOString(),
     expires_at: new Date(now.getTime() + relayPayloadTtlSeconds() * 1000).toISOString(),
   };
+  const candidateRouteKinds = normalizedRouteKinds(input.candidate_route_kinds);
+  if (candidateRouteKinds.length > 0) {
+    payload.candidate_route_kinds = candidateRouteKinds;
+  }
+  const attemptedRouteKinds = normalizedRouteKinds(input.attempted_route_kinds);
+  if (attemptedRouteKinds.length > 0) {
+    payload.attempted_route_kinds = attemptedRouteKinds;
+  }
+  return payload;
 }
 
 export async function appendRelayPayload(payload: StoredP2pRelayPayload): Promise<void> {

@@ -130,3 +130,12 @@ supports `relay_fallback.candidate_route_kinds`. Release grading blocks relay
 fallback claims that omit the candidate set, omit relay fallback availability,
 skip available `lan`/`tailscale`/`direct_quic` candidates, or attempt direct
 candidates outside the canonical priority order before relay.
+
+2026-06-06 runtime relay candidate coverage carry: local runtime source now
+preserves the hosted candidate coverage contract. Rendezvous-selected peer
+metadata includes `candidate_route_kinds`, forwarding attempts ordered direct
+candidates before relay fallback, relay payload enqueue/store preserves
+`candidate_route_kinds` and `attempted_route_kinds`, and target-side relay
+delivery evidence reuses the stored route metadata. This remains evidence
+carry-path hardening only; the release `quic_relay_tunnel` runtime is still
+unimplemented.

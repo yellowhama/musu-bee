@@ -673,6 +673,11 @@ mod tests {
             claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
             delivered_at: Some("2026-06-04T00:00:02Z".to_string()),
             payload_base64: None,
+            candidate_route_kinds: vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Relay,
+            ],
+            attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
         }
     }
 

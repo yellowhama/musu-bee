@@ -26,6 +26,7 @@ pub struct RendezvousPreparation {
     pub status: RendezvousStatus,
     pub session_id: Option<String>,
     pub route_peer: Option<ResolvedPeer>,
+    pub route_peers: Vec<ResolvedPeer>,
     pub target_candidate_count: usize,
     pub failure_class: Option<String>,
 }
@@ -36,6 +37,7 @@ impl RendezvousPreparation {
             status: RendezvousStatus::SkippedNoToken,
             session_id: None,
             route_peer: None,
+            route_peers: Vec::new(),
             target_candidate_count: 0,
             failure_class: Some("rendezvous_no_account_token".to_string()),
         }
@@ -46,6 +48,7 @@ impl RendezvousPreparation {
             status: RendezvousStatus::Failed,
             session_id: None,
             route_peer: None,
+            route_peers: Vec::new(),
             target_candidate_count: 0,
             failure_class: Some(failure_class.into()),
         }
@@ -236,6 +239,34 @@ fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
     }
 }
 
+fn cloud_route_kind_label(kind: &crate::cloud::RouteKind) -> &'static str {
+    match kind {
+        crate::cloud::RouteKind::Lan => "lan",
+        crate::cloud::RouteKind::Tailscale => "tailscale",
+        crate::cloud::RouteKind::DirectQuic => "direct_quic",
+        crate::cloud::RouteKind::Relay => "relay",
+        crate::cloud::RouteKind::Failed => "failed",
+    }
+}
+
+fn push_route_kind_label(kinds: &mut Vec<&'static str>, kind: &'static str) {
+    if matches!(kind, "lan" | "tailscale" | "direct_quic" | "relay")
+        && !kinds.iter().any(|existing| *existing == kind)
+    {
+        kinds.push(kind);
+    }
+}
+
+fn target_candidate_route_kind_labels(
+    target: &crate::cloud::NodeCandidateSet,
+) -> Vec<&'static str> {
+    let mut kinds = Vec::new();
+    for candidate in &target.candidate_endpoints {
+        push_route_kind_label(&mut kinds, cloud_route_kind_label(&candidate.kind));
+    }
+    kinds
+}
+
 fn relay_attempted_route_kinds(
     fallback_peer: &ResolvedPeer,
     attempted_peers: &[ResolvedPeer],
@@ -326,11 +357,22 @@ pub fn local_candidate_request_for_node_id(
     }
 }
 
+#[cfg(test)]
 fn route_peer_from_target_candidates(
     target_node_id: &str,
     target: &crate::cloud::NodeCandidateSet,
 ) -> Option<ResolvedPeer> {
+    route_peers_from_target_candidates(target_node_id, target)
+        .into_iter()
+        .next()
+}
+
+fn route_peers_from_target_candidates(
+    target_node_id: &str,
+    target: &crate::cloud::NodeCandidateSet,
+) -> Vec<ResolvedPeer> {
     let peer_public_key = target.public_key.trim();
+    let candidate_route_kinds = target_candidate_route_kind_labels(target);
     let relay_candidates = target
         .candidate_endpoints
         .iter()
@@ -352,6 +394,7 @@ fn route_peer_from_target_candidates(
                 "source": "musu.pro_rendezvous",
                 "candidate_kind": candidate.kind,
                 "candidate_addr": candidate.addr,
+                "candidate_route_kinds": candidate_route_kinds.clone(),
                 "selected_addr_source": selected_addr_source,
                 "observed_at": candidate.observed_at,
             });
@@ -383,7 +426,7 @@ fn route_peer_from_target_candidates(
         })
         .collect::<Vec<_>>();
 
-    crate::bridge::router::select_best_remote_candidate(&peers)
+    crate::bridge::router::select_remote_candidates_in_order(&peers)
 }
 
 fn trimmed_opt(value: Option<&str>) -> Option<&str> {
@@ -451,7 +494,8 @@ pub async fn prepare_forward_rendezvous(
 
     match tokio::time::timeout(rendezvous_timeout(), fut).await {
         Ok(Ok(session)) => {
-            let route_peer = route_peer_from_target_candidates(&target_node_id, &session.target);
+            let route_peers = route_peers_from_target_candidates(&target_node_id, &session.target);
+            let route_peer = route_peers.first().cloned();
             tracing::info!(
                 session_id = %session.session_id,
                 source_node_id = %source_node_id,
@@ -464,6 +508,7 @@ pub async fn prepare_forward_rendezvous(
                 status: RendezvousStatus::Created,
                 session_id: Some(session.session_id),
                 route_peer,
+                route_peers,
                 target_candidate_count: session.target.candidate_endpoints.len(),
                 failure_class: None,
             }
@@ -945,6 +990,19 @@ mod tests {
                 .and_then(|value| value.get("relay_url"))
                 .and_then(|value| value.as_str()),
             Some("wss://relay.musu.pro/api/v1/relay/connect")
+        );
+        assert_eq!(
+            peer.meta
+                .as_ref()
+                .and_then(|meta| meta.get("candidate_route_kinds"))
+                .and_then(|value| value.as_array())
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_str())
+                        .collect::<Vec<_>>()
+                }),
+            Some(vec!["direct_quic", "tailscale", "lan", "relay"])
         );
     }
 

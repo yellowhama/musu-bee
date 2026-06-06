@@ -1675,3 +1675,25 @@ This prevents a false fallback pass where the route evidence claims relay after
 trying only one direct route while another available direct candidate was
 skipped. MUSU.PRO remains rendezvous/path-selection/evidence control plane;
 the local MUSU runtime still performs the route attempts and payload work.
+
+## 2026-06-06 runtime relay candidate coverage carry
+
+The desktop/runtime source now preserves route candidate coverage through the
+relay fallback preview path:
+
+- `candidate_route_kinds` is preserved in rendezvous-selected peer metadata.
+- local forwarding attempts ordered direct candidates before relay lease
+  fallback.
+- `RouteRelayFallbackEvidence` includes `candidate_route_kinds` in local JSON
+  and cloud submission DTOs.
+- relay payload enqueue and stored records carry `candidate_route_kinds` and
+  `attempted_route_kinds`.
+- target-side relay delivery route evidence reuses the stored source route
+  metadata.
+
+Release interpretation:
+
+- missing route metadata remains non-release-grade;
+- store-forward relay payloads remain preview/non-release transport;
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` still blocks release relay transport;
+- fresh packaged evidence is required because runtime source changed.

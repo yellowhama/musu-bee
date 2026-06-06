@@ -566,6 +566,10 @@ pub struct P2pRelayPayloadRequest {
     pub payload_base64: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_route_kinds: Vec<RouteKind>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attempted_route_kinds: Vec<RouteKind>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -595,6 +599,10 @@ pub struct P2pRelayPayloadStoredRecord {
     pub delivered_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload_base64: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_route_kinds: Vec<RouteKind>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attempted_route_kinds: Vec<RouteKind>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -764,6 +772,8 @@ pub struct RouteRelayFallbackEvidence {
     pub lease_requested: bool,
     pub status: String,
     pub lease_issued: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_route_kinds: Vec<RouteKind>,
     pub attempted_route_kinds: Vec<RouteKind>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requested_capability: Option<String>,
@@ -1795,6 +1805,8 @@ mod tests {
             payload_kind: "forwarded_task_envelope".into(),
             payload_base64: "e30=".into(),
             payload_sha256: Some("sha256".into()),
+            candidate_route_kinds: vec![RouteKind::Lan, RouteKind::Relay],
+            attempted_route_kinds: vec![RouteKind::Lan],
         };
 
         let value = serde_json::to_value(payload).unwrap();
@@ -1808,6 +1820,9 @@ mod tests {
         assert_eq!(value["payload_kind"], "forwarded_task_envelope");
         assert_eq!(value["payload_base64"], "e30=");
         assert_eq!(value["payload_sha256"], "sha256");
+        assert_eq!(value["candidate_route_kinds"][0], "lan");
+        assert_eq!(value["candidate_route_kinds"][1], "relay");
+        assert_eq!(value["attempted_route_kinds"][0], "lan");
     }
 
     #[test]

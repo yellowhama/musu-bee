@@ -16,6 +16,8 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const RouteKindSchema = z.enum(["lan", "tailscale", "direct_quic", "relay"]);
+
 const PayloadRequestSchema = z.object({
   schema: z.literal("musu.relay_payload_envelope.v1"),
   session_id: z.string().min(1),
@@ -26,6 +28,8 @@ const PayloadRequestSchema = z.object({
   payload_kind: z.string().min(1),
   payload_base64: z.string().min(1),
   payload_sha256: z.string().min(1).optional(),
+  candidate_route_kinds: z.array(RouteKindSchema).optional(),
+  attempted_route_kinds: z.array(RouteKindSchema).optional(),
 }).passthrough();
 
 const PayloadClaimRequestSchema = z.object({
@@ -158,6 +162,8 @@ export async function POST(req: NextRequest) {
       payload_kind: parsed.data.payload_kind,
       payload_base64: parsed.data.payload_base64,
       payload_sha256: parsed.data.payload_sha256,
+      candidate_route_kinds: parsed.data.candidate_route_kinds,
+      attempted_route_kinds: parsed.data.attempted_route_kinds,
     });
   } catch (error) {
     return NextResponse.json(

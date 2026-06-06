@@ -49,6 +49,8 @@ pub struct RouteRelayFallbackEvidence {
     pub lease_requested: bool,
     pub status: String,
     pub lease_issued: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidate_route_kinds: Vec<String>,
     pub attempted_route_kinds: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requested_capability: Option<String>,
@@ -283,6 +285,11 @@ fn cloud_relay_fallback(
         lease_requested: evidence.lease_requested,
         status: evidence.status.clone(),
         lease_issued: evidence.lease_issued,
+        candidate_route_kinds: evidence
+            .candidate_route_kinds
+            .iter()
+            .map(|kind| cloud_route_kind(kind))
+            .collect(),
         attempted_route_kinds: evidence
             .attempted_route_kinds
             .iter()
@@ -306,6 +313,16 @@ fn cloud_route_kind(route_kind: &str) -> crate::cloud::RouteKind {
         "direct_quic" => crate::cloud::RouteKind::DirectQuic,
         "relay" => crate::cloud::RouteKind::Relay,
         _ => crate::cloud::RouteKind::Failed,
+    }
+}
+
+fn route_kind_label(route_kind: &crate::cloud::RouteKind) -> Option<String> {
+    match route_kind {
+        crate::cloud::RouteKind::Lan => Some("lan".to_string()),
+        crate::cloud::RouteKind::Tailscale => Some("tailscale".to_string()),
+        crate::cloud::RouteKind::DirectQuic => Some("direct_quic".to_string()),
+        crate::cloud::RouteKind::Relay => Some("relay".to_string()),
+        crate::cloud::RouteKind::Failed => None,
     }
 }
 
@@ -549,7 +566,16 @@ pub fn record_relay_payload_delivery_route_evidence(
             lease_requested: true,
             status: "issued".to_string(),
             lease_issued: true,
-            attempted_route_kinds: vec!["failed".to_string(), "relay".to_string()],
+            candidate_route_kinds: payload
+                .candidate_route_kinds
+                .iter()
+                .filter_map(route_kind_label)
+                .collect(),
+            attempted_route_kinds: payload
+                .attempted_route_kinds
+                .iter()
+                .filter_map(route_kind_label)
+                .collect(),
             requested_capability: Some("remote_command".to_string()),
             policy: None,
             blockers: Vec::new(),
@@ -796,6 +822,11 @@ mod tests {
                 lease_requested: true,
                 status: "denied".to_string(),
                 lease_issued: false,
+                candidate_route_kinds: vec![
+                    "lan".to_string(),
+                    "tailscale".to_string(),
+                    "relay".to_string(),
+                ],
                 attempted_route_kinds: vec!["lan".to_string(), "tailscale".to_string()],
                 requested_capability: Some("remote_command".to_string()),
                 policy: Some("connect_pro_fallback_only".to_string()),
@@ -827,6 +858,14 @@ mod tests {
         assert!(relay.lease_requested);
         assert_eq!(relay.status, "denied");
         assert!(!relay.lease_issued);
+        assert_eq!(
+            relay.candidate_route_kinds,
+            vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Tailscale,
+                crate::cloud::RouteKind::Relay
+            ]
+        );
         assert_eq!(
             relay.attempted_route_kinds,
             vec![
@@ -983,6 +1022,11 @@ mod tests {
             claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
             delivered_at: Some("2026-06-04T00:00:02Z".to_string()),
             payload_base64: None,
+            candidate_route_kinds: vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Relay,
+            ],
+            attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
         };
         let proof = RouteRelayPayloadDeliveryProof {
             schema: "musu.relay_payload_delivery_proof.v1".to_string(),
@@ -1020,6 +1064,9 @@ mod tests {
         assert_eq!(value["relay_fallback"]["status"], "issued");
         assert_eq!(value["relay_fallback"]["payload_transport_attempted"], true);
         assert_eq!(value["relay_fallback"]["payload_transport_proven"], true);
+        assert_eq!(value["relay_fallback"]["candidate_route_kinds"][0], "lan");
+        assert_eq!(value["relay_fallback"]["candidate_route_kinds"][1], "relay");
+        assert_eq!(value["relay_fallback"]["attempted_route_kinds"][0], "lan");
         assert_eq!(
             value["relay_payload_delivery_proof"]["schema"],
             "musu.relay_payload_delivery_proof.v1"
@@ -1048,6 +1095,11 @@ mod tests {
             lease_requested: true,
             status: "issued".to_string(),
             lease_issued: true,
+            candidate_route_kinds: vec![
+                "lan".to_string(),
+                "tailscale".to_string(),
+                "relay".to_string(),
+            ],
             attempted_route_kinds: vec!["lan".to_string(), "tailscale".to_string()],
             requested_capability: Some("remote_command".to_string()),
             policy: Some("connect_pro_fallback_only".to_string()),

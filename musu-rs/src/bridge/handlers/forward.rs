@@ -287,6 +287,7 @@ fn relay_payload_request_for_forwarded_task(
     relay: &crate::bridge::rendezvous::RelayLeaseFallback,
     session_id: &str,
     task: &ForwardedTask,
+    relay_route_metadata: &crate::bridge::route_evidence::RouteRelayFallbackEvidence,
 ) -> std::result::Result<crate::cloud::P2pRelayPayloadRequest, String> {
     let lease_id = relay
         .lease_id
@@ -309,6 +310,12 @@ fn relay_payload_request_for_forwarded_task(
         payload_kind: RELAY_PAYLOAD_KIND_FORWARDED_TASK.to_string(),
         payload_base64,
         payload_sha256: Some(payload_sha256),
+        candidate_route_kinds: route_kind_labels_to_cloud(
+            &relay_route_metadata.candidate_route_kinds,
+        ),
+        attempted_route_kinds: route_kind_labels_to_cloud(
+            &relay_route_metadata.attempted_route_kinds,
+        ),
     })
 }
 
@@ -339,6 +346,80 @@ fn attempted_route_kind_labels(
         }
     }
     kinds
+}
+
+fn push_route_kind_label(kinds: &mut Vec<String>, kind: &str) {
+    if matches!(kind, "lan" | "tailscale" | "direct_quic" | "relay")
+        && !kinds.iter().any(|existing| existing == kind)
+    {
+        kinds.push(kind.to_string());
+    }
+}
+
+fn route_kind_labels_from_meta(peer: &ResolvedPeer, key: &str) -> Vec<String> {
+    peer.meta
+        .as_ref()
+        .and_then(|meta| meta.get(key))
+        .and_then(|value| value.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str())
+                .filter(|value| matches!(*value, "lan" | "tailscale" | "direct_quic" | "relay"))
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn route_kind_labels_in_priority_order(kinds: Vec<String>) -> Vec<String> {
+    let mut ordered = Vec::new();
+    for preferred in ["lan", "tailscale", "direct_quic", "relay"] {
+        if kinds.iter().any(|kind| kind == preferred) {
+            ordered.push(preferred.to_string());
+        }
+    }
+    ordered
+}
+
+fn candidate_route_kind_labels(
+    attempted_peers: &[ResolvedPeer],
+    fallback_peer: &ResolvedPeer,
+    include_relay: bool,
+) -> Vec<String> {
+    let mut kinds = Vec::new();
+    for peer in attempted_peers.iter().chain(std::iter::once(fallback_peer)) {
+        for kind in route_kind_labels_from_meta(peer, "candidate_route_kinds") {
+            push_route_kind_label(&mut kinds, &kind);
+        }
+    }
+    for peer in attempted_peers.iter().chain(std::iter::once(fallback_peer)) {
+        let kind = crate::bridge::route_evidence::route_evidence_kind_for_addr(&peer.addr);
+        push_route_kind_label(&mut kinds, kind);
+    }
+    if include_relay {
+        push_route_kind_label(&mut kinds, "relay");
+    }
+    route_kind_labels_in_priority_order(kinds)
+}
+
+fn route_kind_labels_to_cloud(labels: &[String]) -> Vec<crate::cloud::RouteKind> {
+    labels
+        .iter()
+        .filter_map(|label| match label.as_str() {
+            "lan" => Some(crate::cloud::RouteKind::Lan),
+            "tailscale" => Some(crate::cloud::RouteKind::Tailscale),
+            "direct_quic" => Some(crate::cloud::RouteKind::DirectQuic),
+            "relay" => Some(crate::cloud::RouteKind::Relay),
+            _ => None,
+        })
+        .collect()
+}
+
+fn push_unique_peer(peers: &mut Vec<ResolvedPeer>, peer: ResolvedPeer) {
+    if !peers.iter().any(|existing| existing.addr == peer.addr) {
+        peers.push(peer);
+    }
 }
 
 fn relay_fallback_route_evidence(
@@ -379,6 +460,11 @@ fn relay_fallback_route_evidence(
         lease_requested,
         status: relay_fallback_status_label(&relay.status).to_string(),
         lease_issued: relay.lease_issued,
+        candidate_route_kinds: candidate_route_kind_labels(
+            attempted_peers,
+            fallback_peer,
+            lease_requested,
+        ),
         attempted_route_kinds: attempted_route_kind_labels(attempted_peers, fallback_peer),
         requested_capability: requested_capability.map(str::to_string),
         policy: relay.policy.clone(),
@@ -685,9 +771,13 @@ pub async fn forward_to_peer_with_retry(
     let rendezvous =
         crate::bridge::rendezvous::prepare_forward_rendezvous(state, peer, Some("task_forward"))
             .await;
-    let route_peer = rendezvous
-        .route_peer
-        .clone()
+    let mut route_candidates = rendezvous.route_peers.clone();
+    push_unique_peer(&mut route_candidates, peer.clone());
+    route_candidates = crate::bridge::router::select_remote_candidates_in_order(&route_candidates);
+    let route_peer = route_candidates
+        .first()
+        .cloned()
+        .or_else(|| rendezvous.route_peer.clone())
         .unwrap_or_else(|| peer.clone());
     if let Some(session_id) = rendezvous.session_id.clone() {
         let target_node_id = crate::bridge::route_evidence::target_node_id(peer);
@@ -720,95 +810,70 @@ pub async fn forward_to_peer_with_retry(
     }
 
     let session_id = task.rendezvous_session_id.clone();
-    let attempted_route_peers = if route_peer.addr != peer.addr {
-        vec![route_peer.clone(), peer.clone()]
-    } else {
-        vec![route_peer.clone()]
-    };
+    let mut attempted_route_peers = Vec::new();
     let mut last_err: Option<ForwardAttemptError> = None;
-    for attempt in 0..=max_retries {
-        match forward_to_peer_attempt(
-            &state.http_client,
-            &route_peer,
-            task.clone(),
-            &state.config.token,
-        )
-        .await
-        {
-            Ok(mut report) => {
-                report.total_attempt_ms = elapsed_ms(route_started.elapsed());
-                report.rendezvous_session_id = session_id.clone();
-                if let Some(session_id) = session_id.clone() {
-                    let musu_home = state
-                        .config
-                        .nodes_toml_path
-                        .parent()
-                        .unwrap_or_else(|| std::path::Path::new("."))
-                        .to_path_buf();
-                    crate::bridge::rendezvous::spawn_close_rendezvous_session(
-                        musu_home,
-                        session_id,
-                        "forward",
-                        task.source_task_id.clone(),
-                    );
-                }
-                return Ok(report);
-            }
-            Err(e) => {
-                let mut e = e;
-                e.rendezvous_session_id = session_id.clone();
-                let err_message = e.message.clone();
-                last_err = Some(e);
-                if attempt < max_retries {
-                    let delay = std::time::Duration::from_secs(1 << attempt);
-                    tracing::warn!(
-                        peer = %peer.addr,
-                        attempt = attempt + 1,
-                        max = max_retries,
-                        delay_sec = delay.as_secs(),
-                        err = %err_message,
-                        "forward failed, retrying"
-                    );
-                    tokio::time::sleep(delay).await;
-                }
-            }
+
+    for (candidate_index, candidate) in route_candidates.iter().enumerate() {
+        push_unique_peer(&mut attempted_route_peers, candidate.clone());
+        if candidate_index > 0 {
+            tracing::warn!(
+                original_peer = %peer.addr,
+                selected_peer = %candidate.addr,
+                selected_route_kind = crate::bridge::router::route_kind_for_addr(&candidate.addr).as_str(),
+                "previous forward route candidate failed; trying next direct candidate before relay fallback"
+            );
         }
-    }
-    if route_peer.addr != peer.addr {
-        tracing::warn!(
-            original_peer = %peer.addr,
-            selected_peer = %route_peer.addr,
-            "rendezvous target candidate failed; falling back to original selected peer"
-        );
-        match forward_to_peer_attempt(&state.http_client, peer, task.clone(), &state.config.token)
+        let retries_for_candidate = if candidate_index == 0 { max_retries } else { 0 };
+        for attempt in 0..=retries_for_candidate {
+            match forward_to_peer_attempt(
+                &state.http_client,
+                candidate,
+                task.clone(),
+                &state.config.token,
+            )
             .await
-        {
-            Ok(mut report) => {
-                report.total_attempt_ms = elapsed_ms(route_started.elapsed());
-                report.rendezvous_session_id = session_id.clone();
-                if let Some(session_id) = session_id.clone() {
-                    let musu_home = state
-                        .config
-                        .nodes_toml_path
-                        .parent()
-                        .unwrap_or_else(|| std::path::Path::new("."))
-                        .to_path_buf();
-                    crate::bridge::rendezvous::spawn_close_rendezvous_session(
-                        musu_home,
-                        session_id,
-                        "forward",
-                        task.source_task_id.clone(),
-                    );
+            {
+                Ok(mut report) => {
+                    report.total_attempt_ms = elapsed_ms(route_started.elapsed());
+                    report.rendezvous_session_id = session_id.clone();
+                    if let Some(session_id) = session_id.clone() {
+                        let musu_home = state
+                            .config
+                            .nodes_toml_path
+                            .parent()
+                            .unwrap_or_else(|| std::path::Path::new("."))
+                            .to_path_buf();
+                        crate::bridge::rendezvous::spawn_close_rendezvous_session(
+                            musu_home,
+                            session_id,
+                            "forward",
+                            task.source_task_id.clone(),
+                        );
+                    }
+                    return Ok(report);
                 }
-                return Ok(report);
-            }
-            Err(e) => {
-                let mut e = e;
-                e.rendezvous_session_id = session_id.clone();
-                last_err = Some(e);
+                Err(e) => {
+                    let mut e = e;
+                    e.rendezvous_session_id = session_id.clone();
+                    let err_message = e.message.clone();
+                    last_err = Some(e);
+                    if attempt < retries_for_candidate {
+                        let delay = std::time::Duration::from_secs(1 << attempt);
+                        tracing::warn!(
+                            peer = %candidate.addr,
+                            attempt = attempt + 1,
+                            max = retries_for_candidate,
+                            delay_sec = delay.as_secs(),
+                            err = %err_message,
+                            "forward failed, retrying"
+                        );
+                        tokio::time::sleep(delay).await;
+                    }
+                }
             }
         }
     }
+
     let mut err = last_err.unwrap_or_else(|| ForwardAttemptError {
         message: "forward failed before first attempt".to_string(),
         route_peer: route_peer.clone(),
@@ -818,7 +883,7 @@ pub async fn forward_to_peer_with_retry(
         failure_class: "forward_no_attempt".to_string(),
         relay_fallback: None,
     });
-    let total_attempts = max_retries + 1 + if route_peer.addr != peer.addr { 1 } else { 0 };
+    let total_attempts = (max_retries + 1) + route_candidates.len().saturating_sub(1) as u32;
     err.message = format!(
         "forward failed after {} attempts: {}",
         total_attempts, err.message
@@ -834,6 +899,13 @@ pub async fn forward_to_peer_with_retry(
         Some("remote_command"),
     )
     .await;
+    let relay_route_metadata = relay_fallback_route_evidence(
+        &relay,
+        peer,
+        &attempted_route_peers,
+        Some("remote_command"),
+        None,
+    );
     let relay_payload_queue = if relay.lease_issued
         && matches!(
             relay.status,
@@ -846,6 +918,7 @@ pub async fn forward_to_peer_with_retry(
                 &relay,
                 session_id,
                 &task,
+                &relay_route_metadata,
             ) {
                 Ok(payload) => {
                     crate::bridge::rendezvous::submit_relay_payload_after_lease(
@@ -1111,6 +1184,13 @@ mod tests {
             rendezvous_session_id: Some("session/1".to_string()),
             rendezvous_target_node_id: Some("target-node".to_string()),
         };
+        let relay_route_metadata = relay_fallback_route_evidence(
+            &relay,
+            &target,
+            &[target.clone()],
+            Some("remote_command"),
+            None,
+        );
 
         let req = relay_payload_request_for_forwarded_task(
             "source-node",
@@ -1118,6 +1198,7 @@ mod tests {
             &relay,
             "session/1",
             &task,
+            &relay_route_metadata,
         )
         .expect("relay payload request");
         let decoded = BASE64_STANDARD
@@ -1142,6 +1223,14 @@ mod tests {
         assert_eq!(
             req.payload_sha256,
             Some(hex::encode(Sha256::digest(&decoded)))
+        );
+        assert_eq!(
+            req.candidate_route_kinds,
+            vec![crate::cloud::RouteKind::Lan, crate::cloud::RouteKind::Relay]
+        );
+        assert_eq!(
+            req.attempted_route_kinds,
+            vec![crate::cloud::RouteKind::Lan]
         );
     }
 
@@ -1171,6 +1260,11 @@ mod tests {
             claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
             delivered_at: None,
             payload_base64: Some(BASE64_STANDARD.encode(&payload_json)),
+            candidate_route_kinds: vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::Relay,
+            ],
+            attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
         }
     }
 
@@ -1279,6 +1373,11 @@ mod tests {
         assert!(evidence.direct_path_failed);
         assert!(evidence.lease_requested);
         assert!(evidence.lease_issued);
+        assert_eq!(
+            evidence.candidate_route_kinds,
+            vec!["lan".to_string(), "relay".to_string()]
+        );
+        assert_eq!(evidence.attempted_route_kinds, vec!["lan".to_string()]);
         assert!(evidence.payload_transport_attempted);
         assert!(!evidence.payload_transport_proven);
         assert_eq!(

@@ -5545,4 +5545,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `candidate_route_kinds`, `hasCurrentRelayCandidateCoverage`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 runtime relay candidate coverage carry:
+  `RELEASE_1_15_0_RC1_RUNTIME_RELAY_CANDIDATE_COVERAGE_CARRY_2026_06_06.md`
+  (wiki/855) records runtime/source carry for
+  `relay_fallback.candidate_route_kinds`. Search terms should include
+  `GOAL v680`, `wiki/855`, `route_peers_from_target_candidates`,
+  `candidate_route_kind_labels`, `route_kind_labels_to_cloud`,
+  `P2pRelayPayloadRequest`, `P2pRelayPayloadStoredRecord`,
+  `runtime relay candidate coverage carry`, `P2P tests 111/111`, `Rust route
+  evidence 14/14`, `release verifier 66/66`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 runtime relay candidate coverage carry index refresh:
+  wiki/856 records the MUSU local index refresh after wiki/855 and GOAL v680.
+  Search terms should include `GOAL v681`, `wiki/856`, `2675 files`,
+  `2776 symbols`, `18098 ms`, `runtime relay candidate coverage carry index
+  refresh`, `candidate_route_kinds`, `attempted_route_kinds`,
+  `P2pRelayPayloadRequest`, `P2pRelayPayloadStoredRecord`, `MUSU Desktop local
+  executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

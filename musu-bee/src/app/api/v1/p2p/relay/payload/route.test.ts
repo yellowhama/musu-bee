@@ -307,7 +307,14 @@ test("stores lease-bound relay payload as owner-scoped non release-grade queue r
     await seedLease("lease-1");
     const { GET, POST } = await loadModule("store");
     const res = await POST(
-      bearerReq("http://localhost/api/v1/p2p/relay/payload", payloadBody({ lease_id: "lease-1" }))
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({
+          lease_id: "lease-1",
+          candidate_route_kinds: ["lan", "tailscale", "direct_quic", "relay"],
+          attempted_route_kinds: ["lan", "tailscale", "direct_quic"],
+        })
+      )
     );
     assert.equal(res.status, 202);
     const body = (await res.json()) as {
@@ -326,6 +333,8 @@ test("stores lease-bound relay payload as owner-scoped non release-grade queue r
         status: string;
         transport_kind: string;
         release_grade: boolean;
+        candidate_route_kinds?: RelayRouteKind[];
+        attempted_route_kinds?: RelayRouteKind[];
       };
     };
     assert.equal(body.ok, true);
@@ -338,6 +347,13 @@ test("stores lease-bound relay payload as owner-scoped non release-grade queue r
     assert.equal(body.payload.payload_base64, undefined);
     assert.equal(body.payload.payload_bytes > 0, true);
     assert.equal(body.payload.relay_url, "wss://relay.musu.pro/api/v1/relay/connect");
+    assert.deepEqual(body.payload.candidate_route_kinds, [
+      "lan",
+      "tailscale",
+      "direct_quic",
+      "relay",
+    ]);
+    assert.deepEqual(body.payload.attempted_route_kinds, ["lan", "tailscale", "direct_quic"]);
     assert.equal(body.payload.status, "queued");
     assert.equal(body.payload.transport_kind, "http_store_forward_preview");
     assert.equal(body.payload.release_grade, false);

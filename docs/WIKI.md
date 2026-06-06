@@ -11104,3 +11104,68 @@ Search terms should include `GOAL v679`, `wiki/854`, `relay fallback
 candidate coverage gate index refresh`, `2671 files`, `2763 symbols`,
 `26393 ms`, `candidate_route_kinds`, `hasCurrentRelayCandidateCoverage`, `MUSU
 Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Runtime Relay Candidate Coverage Carry (wiki/855)
+
+The local runtime now carries the hosted relay fallback candidate coverage
+contract through the source and target-side preview relay path.
+
+Changed:
+
+- Rust rendezvous preserves `candidate_route_kinds` in selected peer metadata.
+- Rust forwarding attempts ordered direct candidates before relay fallback.
+- `RouteRelayFallbackEvidence` carries `candidate_route_kinds` into local JSON
+  and cloud route evidence DTOs.
+- Relay payload enqueue/store preserves `candidate_route_kinds` and
+  `attempted_route_kinds`.
+- Target-side relay delivery route evidence reuses the stored route metadata
+  instead of the old `failed`/`relay` placeholder.
+- The P2P relay contract audit checks the web verifier and Rust source path.
+
+Validation:
+
+- Rust route evidence tests: `14/14`
+- Rust relay payload tests: `24/24`
+- Rust rendezvous tests: `6/6`
+- Rust router candidate test: `1/1`
+- `cargo check --bin musu`: pass
+- P2P tests: `111/111`
+- `npm run typecheck`: pass
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is runtime evidence
+carry-path hardening only. It does not implement the release
+`quic_relay_tunnel`, does not make the preview store-forward queue
+release-grade, and does not close second-PC/support/Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_RELAY_CANDIDATE_COVERAGE_CARRY_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RUNTIME_RELAY_CANDIDATE_COVERAGE_CARRY_2026_06_06.md`
+
+## 2026-06-06 Runtime Relay Candidate Coverage Carry Index Refresh (wiki/856)
+
+MUSU local indexer was refreshed after wiki/855 and GOAL v680.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2675 files`
+- `2776 symbols`
+- `18098 ms`
+
+Indexed context includes `route_peers_from_target_candidates`,
+`candidate_route_kind_labels`, `route_kind_labels_to_cloud`,
+`candidate_route_kinds`, `attempted_route_kinds`,
+`P2pRelayPayloadRequest`, `P2pRelayPayloadStoredRecord`, canonical report,
+next-step plan, BETA checklist, P2P control-plane specs, GOAL v680,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v681`, `wiki/856`, `runtime relay candidate
+coverage carry index refresh`, `2675 files`, `2776 symbols`, `18098 ms`,
+`candidate_route_kinds`, `attempted_route_kinds`, `MUSU Desktop local
+executor`, and `MUSU.PRO remote input control plane`.

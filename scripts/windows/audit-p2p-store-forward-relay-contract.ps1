@@ -456,10 +456,35 @@ Add-Check `
             "keeps relay route evidence non release grade without candidate route set",
             "keeps relay route evidence non release grade when fallback skips available direct candidates",
             "keeps relay route evidence non release grade when fallback attempts unavailable direct candidates"
+        )) -and
+        (Test-ContainsAll -Text $bridgeRouteEvidence -Needles @(
+            "candidate_route_kinds",
+            "route_kind_label",
+            "cloud_relay_fallback"
+        )) -and
+        (Test-ContainsAll -Text $forward -Needles @(
+            "candidate_route_kind_labels",
+            "route_kind_labels_to_cloud",
+            "relay_route_metadata",
+            "attempted_route_peers"
+        )) -and
+        (Test-ContainsAll -Text $rendezvous -Needles @(
+            "candidate_route_kinds",
+            "route_peers_from_target_candidates",
+            "select_remote_candidates_in_order"
+        )) -and
+        (Test-ContainsAll -Text $cloud -Needles @(
+            "candidate_route_kinds",
+            "P2pRelayPayloadRequest",
+            "P2pRelayPayloadStoredRecord"
+        )) -and
+        (Test-ContainsAll -Text $payloadRoute -Needles @(
+            "candidate_route_kinds",
+            "attempted_route_kinds"
         ))
     ) `
     -Path $routeEvidencePath `
-    -Message "Relay fallback evidence must prove available direct/relay candidate coverage and cannot skip LAN/Tailscale/QUIC candidates before claiming fallback."
+    -Message "Relay fallback evidence must prove available direct/relay candidate coverage, and Rust runtime plus payload queue metadata must preserve that coverage before claiming fallback."
 
 Add-Check `
     -Scope "route-evidence" `

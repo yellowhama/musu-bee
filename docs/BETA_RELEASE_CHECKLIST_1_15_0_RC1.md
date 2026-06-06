@@ -8072,3 +8072,29 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2671 files`, `2763 symbols`, `26393 ms`
+
+## 2026-06-06 Runtime Relay Candidate Coverage Carry
+
+Runtime/source now carries the hosted candidate coverage contract:
+
+- rendezvous selected peer metadata includes `candidate_route_kinds`
+- direct candidates are attempted before relay fallback
+- `RouteRelayFallbackEvidence` submits `candidate_route_kinds`
+- relay payload enqueue/store preserves `candidate_route_kinds` and
+  `attempted_route_kinds`
+- target-side relay delivery route evidence reuses the stored route metadata
+
+Validation:
+
+- Rust route evidence tests: `14/14`
+- Rust relay payload tests: `24/24`
+- Rust rendezvous tests: `6/6`
+- Rust router candidate ordering test: `1/1`
+- `cargo check --bin musu`: pass
+- P2P tests: `111/111`
+- `npm run typecheck`: pass
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+
+Release note: this is runtime evidence carry-path hardening, not release relay
+tunnel implementation. Current source must be rebuilt and evidence refreshed.
