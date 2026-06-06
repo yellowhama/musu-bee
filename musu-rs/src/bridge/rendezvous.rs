@@ -207,8 +207,24 @@ pub fn submit_release_relay_tunnel_payload(
     if payload.payload_base64.trim().is_empty() {
         return Err("release_relay_tunnel_payload_empty");
     }
-    if payload.lease_id.trim().is_empty() || payload.session_id.trim().is_empty() {
+    if payload.lease_id.trim().is_empty()
+        || payload.session_id.trim().is_empty()
+        || payload.source_node_id.trim().is_empty()
+        || payload.target_node_id.trim().is_empty()
+        || payload.tunnel_id.trim().is_empty()
+    {
         return Err("release_relay_tunnel_payload_missing_lease_or_session");
+    }
+    if payload.payload_kind.trim() != "forwarded_task_envelope" {
+        return Err("release_relay_tunnel_payload_kind_not_forwarded_task_envelope");
+    }
+    if !payload
+        .payload_sha256
+        .as_deref()
+        .map(is_hex_sha256)
+        .unwrap_or(false)
+    {
+        return Err("release_relay_tunnel_payload_sha256_invalid");
     }
     if !relay_url.starts_with("wss://") {
         return Err("release_relay_tunnel_relay_url_not_wss");
@@ -218,6 +234,10 @@ pub fn submit_release_relay_tunnel_payload(
     }
 
     Err(RELEASE_RELAY_TUNNEL_NOT_IMPLEMENTED)
+}
+
+fn is_hex_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn rendezvous_timeout() -> Duration {
@@ -871,7 +891,7 @@ mod tests {
             tunnel_id: "relay-tunnel-1".to_string(),
             payload_kind: "forwarded_task_envelope".to_string(),
             payload_base64: "e30=".to_string(),
-            payload_sha256: Some("abc123".to_string()),
+            payload_sha256: Some("a".repeat(64)),
             candidate_route_kinds: vec![
                 crate::cloud::RouteKind::Lan,
                 crate::cloud::RouteKind::Relay,
@@ -917,6 +937,55 @@ mod tests {
                 "target"
             ),
             Err("release_relay_tunnel_peer_public_key_not_fingerprint")
+        );
+    }
+
+    #[test]
+    fn submit_release_relay_tunnel_payload_requires_release_metadata() {
+        let payload = release_relay_payload_request();
+
+        let mut missing_tunnel = payload.clone();
+        missing_tunnel.tunnel_id.clear();
+        assert_eq!(
+            submit_release_relay_tunnel_payload(
+                &missing_tunnel,
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:target"
+            ),
+            Err("release_relay_tunnel_payload_missing_lease_or_session")
+        );
+
+        let mut wrong_kind = payload.clone();
+        wrong_kind.payload_kind = "remote_command".to_string();
+        assert_eq!(
+            submit_release_relay_tunnel_payload(
+                &wrong_kind,
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:target"
+            ),
+            Err("release_relay_tunnel_payload_kind_not_forwarded_task_envelope")
+        );
+
+        let mut invalid_digest = payload.clone();
+        invalid_digest.payload_sha256 = Some("abc123".to_string());
+        assert_eq!(
+            submit_release_relay_tunnel_payload(
+                &invalid_digest,
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:target"
+            ),
+            Err("release_relay_tunnel_payload_sha256_invalid")
+        );
+
+        let mut missing_digest = payload;
+        missing_digest.payload_sha256 = None;
+        assert_eq!(
+            submit_release_relay_tunnel_payload(
+                &missing_digest,
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:target"
+            ),
+            Err("release_relay_tunnel_payload_sha256_invalid")
         );
     }
 

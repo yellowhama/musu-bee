@@ -637,6 +637,25 @@ Add-Check `
 
 Add-Check `
     -Scope "rust-source" `
+    -Name "release relay tunnel submit requires payload metadata" `
+    -Passed (
+        Test-ContainsAll -Text $rendezvous -Needles @(
+            "submit_release_relay_tunnel_payload",
+            "payload.source_node_id.trim().is_empty()",
+            "payload.target_node_id.trim().is_empty()",
+            "payload.tunnel_id.trim().is_empty()",
+            'payload.payload_kind.trim() != "forwarded_task_envelope"',
+            "release_relay_tunnel_payload_kind_not_forwarded_task_envelope",
+            "payload_sha256",
+            "is_hex_sha256",
+            "release_relay_tunnel_payload_sha256_invalid"
+        )
+    ) `
+    -Path $rendezvousPath `
+    -Message "Release relay tunnel submission cannot advance without source/target/tunnel metadata, forwarded task kind, and a 64-hex digest."
+
+Add-Check `
+    -Scope "rust-source" `
     -Name "route evidence carries relay transport proof to cloud" `
     -Passed (
         Test-ContainsAll -Text $bridgeRouteEvidence -Needles @(

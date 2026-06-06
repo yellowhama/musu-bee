@@ -708,3 +708,21 @@ audit `ok=true`, P2P env expected No-Go, and release verifier
 `case_count=104`, `failed_case_count=0`. The next stabilization work is still
 real `quic_relay_tunnel` payload transit/proof plus physical second-PC
 route/CPU/matrix evidence.
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Gate
+
+The Rust release relay tunnel submit hook now requires release payload metadata
+before the not-implemented runtime marker can be reached:
+
+- source node id
+- target node id
+- tunnel id
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+This is runtime source-contract hardening only. It does not implement
+`quic_relay_tunnel` payload transit, does not flip
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, and does not flip
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`. Because runtime source changed, packaged
+local evidence must be refreshed after this lands before local desktop evidence
+can be treated as current for release.

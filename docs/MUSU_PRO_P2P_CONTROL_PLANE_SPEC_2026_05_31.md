@@ -2130,6 +2130,13 @@ Normative boundary:
   storage, relay route metadata, relay transport proof, and relay payload
   delivery proof
 
+2026-06-07 submit metadata tightening: `submit_release_relay_tunnel_payload`
+now also requires non-empty source, target, and tunnel ids,
+`payload_kind=forwarded_task_envelope`, and a 64-hex `payload_sha256` before
+the fail-closed not-implemented branch. This keeps the local runtime source
+hook aligned with `/api/v1/relay/payload` release preflight and prevents future
+runtime work from accepting underspecified tunnel payload metadata.
+
 ## 2026-06-07 Current Runtime Boundary Note
 
 Current local evidence confirms the product split:

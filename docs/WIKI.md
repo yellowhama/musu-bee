@@ -14054,3 +14054,125 @@ Search terms should include `GOAL v765`, `wiki/940`, `2856 files`,
 `release payload preflight required metadata gate index refresh`,
 `payload_kind=forwarded_task_envelope`, `release_payload_metadata`, and
 `case_count=104`.
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Gate (wiki/941)
+
+Rust release relay tunnel submission now requires the same release payload
+metadata as the MUSU.PRO release payload preflight before it can reach the
+fail-closed runtime branch.
+
+Changed source:
+
+- `musu-rs/src/bridge/rendezvous.rs`
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1`
+- `scripts/windows/test-release-evidence-verifiers.ps1`
+
+`submit_release_relay_tunnel_payload(...)` still returns
+`release_relay_tunnel_runtime_not_implemented` for otherwise valid inputs, but
+now rejects:
+
+- missing `source_node_id`
+- missing `target_node_id`
+- missing `tunnel_id`
+- `payload_kind` other than `forwarded_task_envelope`
+- missing `payload_sha256`
+- non-64-hex `payload_sha256`
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib release_relay_tunnel -- --nocapture`
+  passed `5/5`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Qualitative audit found no high or medium issue. This hardens the local
+runtime source contract before actual `quic_relay_tunnel` payload movement
+exists. It does not enable `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, does not enable
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`, and does not move execution into
+MUSU.PRO. Because Rust runtime source changed, current packaged local desktop
+evidence must be refreshed before local desktop gates can be current again.
+
+Search terms should include `GOAL v766`, `wiki/941`,
+`release relay tunnel submit metadata gate`,
+`submit_release_relay_tunnel_payload`,
+`release_relay_tunnel_payload_kind_not_forwarded_task_envelope`,
+`release_relay_tunnel_payload_sha256_invalid`, `is_hex_sha256`,
+`payload_kind=forwarded_task_envelope`, and
+`release_relay_tunnel_runtime_not_implemented`.
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Gate Index Refresh (wiki/942)
+
+MUSU local indexer was refreshed after wiki/941 and GOAL v766.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2858 files`
+- `2790 symbols`
+- `18362 ms`
+
+Indexed context includes Rust release relay tunnel submit metadata hardening,
+`submit_release_relay_tunnel_payload`, `payload_kind=forwarded_task_envelope`,
+`release_relay_tunnel_payload_sha256_invalid`, `is_hex_sha256`, the P2P relay
+contract audit source gate, release verifier source needles, canonical report,
+BETA checklist, MUSU.PRO P2P control-plane spec, runtime stabilization spec,
+GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v767`, `wiki/942`, `2858 files`,
+`2790 symbols`, `18362 ms`,
+`release relay tunnel submit metadata gate index refresh`,
+`submit_release_relay_tunnel_payload`,
+`release_relay_tunnel_payload_sha256_invalid`, and `is_hex_sha256`.
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Clean Go/No-Go (wiki/943)
+
+Clean go/no-go after the release relay tunnel submit metadata code change
+correctly requires fresh packaged local evidence.
+
+Result:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=false`
+- `runtime_idle_cpu_valid_machine_count=0`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0`
+- `runtime_cpu_second_pc_route_attempt_verified=false`
+- `p2p_control_plane_env_ready=false`
+- `multi_device_verified=false`
+- `manifest_git.dirty=false`
+
+Interpretation: this is expected because `musu-rs/src/bridge/rendezvous.rs`
+changed runtime source after the latest packaged local evidence. The release
+freshness gate is behaving conservatively. The next local evidence step is
+rebuild/reinstall and refresh of single-machine, process ownership,
+single-instance, desktop-open idle CPU, five-state runtime matrix, and targeted
+second-PC route-attempt CPU evidence.
+
+Search terms should include `GOAL v768`, `wiki/943`,
+`single_machine_verified=false`, `runtime_idle_cpu_valid_machine_count=0`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0`,
+`runtime_cpu_second_pc_route_attempt_verified=false`, and
+`manifest_git.dirty=false`.
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Clean Go/No-Go Index Refresh (wiki/944)
+
+MUSU local indexer was refreshed after wiki/943 and GOAL v768.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2861 files`
+- `2790 symbols`
+- `11722 ms`
+
+Indexed context includes the Rust release relay tunnel submit metadata gate,
+the clean go/no-go interpretation that fresh packaged local evidence is now
+required, canonical report updates, BETA checklist, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v769`, `wiki/944`,
+`release relay tunnel submit metadata clean go-no-go index refresh`,
+`2861 files`, `2790 symbols`,
+`11722 ms`, `single_machine_verified=false`,
+`runtime_idle_cpu_valid_machine_count=0`, and `fresh packaged local evidence`.

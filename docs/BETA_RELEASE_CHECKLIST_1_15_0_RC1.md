@@ -9736,3 +9736,54 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2856 files`, `2788 symbols`, `20378 ms`
 - wiki: `wiki/940`
+
+## 2026-06-07 Release Relay Tunnel Submit Metadata Gate
+
+Rust release relay tunnel submission now rejects underspecified release payload
+metadata before it can reach the fail-closed runtime branch.
+
+Required metadata:
+
+- `source_node_id`
+- `target_node_id`
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+`submit_release_relay_tunnel_payload(...)` remains blocked by
+`release_relay_tunnel_runtime_not_implemented` for valid metadata because the
+actual `quic_relay_tunnel` runtime is still not implemented. Validation passed
+Rust release relay tunnel tests `5/5`, P2P relay contract audit `ok=true`,
+release verifier `104/104`, and `git diff --check`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_TUNNEL_SUBMIT_METADATA_GATE_2026_06_07.md`
+  (wiki/941).
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2858 files`, `2790 symbols`, `18362 ms`
+- wiki: `wiki/942`
+
+Clean go/no-go:
+
+- after the release relay tunnel submit metadata code change
+- `manifest_git.dirty=false`, `local_artifacts_ready=true`
+- `single_machine_verified=false`
+- `runtime_idle_cpu_valid_machine_count=0`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0`
+- `runtime_cpu_second_pc_route_attempt_verified=false`
+- `ready_for_public_desktop_release=false`
+- expected result: Rust runtime source changed, so fresh packaged local
+  desktop evidence is required before local release gates can be current again
+- wiki: `wiki/943`
+
+Final index refresh after clean go/no-go docs:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2861 files`, `2790 symbols`, `11722 ms`
+- wiki: `wiki/944`

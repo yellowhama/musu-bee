@@ -1018,7 +1018,11 @@ function Test-P2pReleaseRelayTunnelRuntimeHookContract {
         'musu_quic_tls_transport',
         'release_relay_tunnel_runtime_not_implemented',
         'release_relay_tunnel_relay_url_not_wss',
-        'release_relay_tunnel_peer_public_key_not_fingerprint'
+        'release_relay_tunnel_peer_public_key_not_fingerprint',
+        'release_relay_tunnel_payload_kind_not_forwarded_task_envelope',
+        'release_relay_tunnel_payload_sha256_invalid',
+        'payload_kind.trim() != "forwarded_task_envelope"',
+        'is_hex_sha256'
     )
     $relayPayloadNeedles = @(
         'accept_release_relay_tunnel_payload',

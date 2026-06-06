@@ -6356,4 +6356,42 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `payload_kind=forwarded_task_envelope`, `release_payload_metadata`, and
   `case_count=104`.
 
+- 2026-06-07 release relay tunnel submit metadata gate:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_TUNNEL_SUBMIT_METADATA_GATE_2026_06_07.md`
+  (wiki/941) records Rust runtime source hook hardening requiring release
+  tunnel submit metadata before the fail-closed not-implemented branch. Search
+  terms should include `GOAL v766`, `wiki/941`,
+  `submit_release_relay_tunnel_payload`,
+  `release_relay_tunnel_payload_kind_not_forwarded_task_envelope`,
+  `release_relay_tunnel_payload_sha256_invalid`, `is_hex_sha256`,
+  `payload_kind=forwarded_task_envelope`, and
+  `release_relay_tunnel_runtime_not_implemented`.
+
+- 2026-06-07 release relay tunnel submit metadata gate index refresh:
+  wiki/942 records the MUSU local index refresh after wiki/941 and GOAL v766.
+  Search terms should include `GOAL v767`, `wiki/942`, `2858 files`,
+  `2790 symbols`, `18362 ms`,
+  `release relay tunnel submit metadata gate index refresh`,
+  `submit_release_relay_tunnel_payload`,
+  `release_relay_tunnel_payload_sha256_invalid`, and `is_hex_sha256`.
+
+- 2026-06-07 release relay tunnel submit metadata clean go/no-go:
+  wiki/943 records the clean go/no-go after the release relay tunnel submit
+  metadata code change, where runtime source freshness correctly invalidates
+  local desktop evidence until a new package/evidence refresh. Search terms
+  should include `GOAL v768`,
+  `wiki/943`, `single_machine_verified=false`,
+  `runtime_idle_cpu_valid_machine_count=0`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`,
+  `runtime_cpu_second_pc_route_attempt_verified=false`, and
+  `manifest_git.dirty=false`.
+
+- 2026-06-07 release relay tunnel submit metadata clean go/no-go index refresh:
+  wiki/944 records the MUSU local index refresh after wiki/943 and GOAL v768.
+  Search terms should include `GOAL v769`, `wiki/944`,
+  `2861 files`, `2790 symbols`,
+  `11722 ms`,
+  `release relay tunnel submit metadata clean go-no-go index refresh`,
+  `single_machine_verified=false`, and `fresh packaged local evidence`.
+
 **End of WIKI_INDEX.md.**
