@@ -77,11 +77,16 @@ As of the byte-rejection hardening pass, this endpoint also rejects known
 payload byte fields such as `payload_base64`, `payload`, `payload_b64`,
 `payload_bytes`, and `body_base64` with
 `release_payload_bytes_not_accepted` before lease lookup. Release clients must
-send only relay lease metadata here until real release tunnel payload transport
-exists. The request schema is strict: aside from the optional
-`schema=musu.relay_payload_preflight_request.v1`, only lease/session/source/
-target/tunnel metadata, optional `payload_kind`, and optional 64-hex
-`payload_sha256` are accepted.
+send only relay lease and tunnel payload metadata here until real release
+tunnel payload transport exists. The request schema is strict: aside from the
+optional `schema=musu.relay_payload_preflight_request.v1`, only `lease_id`,
+`session_id`, `source_node_id`, `target_node_id`, `tunnel_id`,
+`payload_kind=forwarded_task_envelope`, and 64-hex `payload_sha256` are
+accepted. `tunnel_id`, `payload_kind`, and `payload_sha256` are required before
+lease lookup so a metadata-only preflight cannot look like an underspecified
+release tunnel payload path. Lease-verified fail-closed responses echo
+`release_payload_metadata`, but still keep `release_payload_accepted=false`,
+`payload_stored=false`, and `payload_transported=false`.
 
 **2026-06-06 P2P env status release payload terminology update**:
 `show-musu-pro-p2p-env-status.ps1` now reports release payload terminology as
@@ -301,11 +306,16 @@ P2P APIs:
     status
 - `POST /api/v1/relay/payload`
   - requires P2P control bearer auth
+  - requires `lease_id`, `session_id`, `source_node_id`, `target_node_id`,
+    `tunnel_id`, `payload_kind=forwarded_task_envelope`, and 64-hex
+    `payload_sha256` before owner-scoped lease lookup
   - validates the owner-scoped relay lease metadata before any release payload
     decision
   - currently remains fail-closed with `relay_payload_endpoint_not_wired`,
     `release_payload_accepted=false`, `payload_stored=false`, and
     `payload_transported=false`
+  - echoes `release_payload_metadata` only after lease verification, as
+    metadata evidence rather than payload transit proof
   - rejects payload byte fields before lease lookup while it is preflight-only
   - rejects unknown request fields instead of passing them through
   - must not reuse `/api/v1/p2p/relay/payload` queue storage as release-grade

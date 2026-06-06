@@ -13980,3 +13980,77 @@ Search terms should include `GOAL v763`, `wiki/938`, `2852 files`,
 `current operator handoff after target-route CPU audit index refresh`,
 `981f37ac`, `musu-final-operator-gates-1.15.0-rc.1-20260607-074518.zip`, and
 `self/local route targets rejected`.
+
+## 2026-06-07 Release Payload Preflight Required Metadata Gate (wiki/939)
+
+`/api/v1/relay/payload` remains an authenticated, metadata-only release
+payload preflight surface, but now requires release tunnel payload metadata
+before owner-scoped lease lookup:
+
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+Changed behavior:
+
+- missing tunnel payload metadata fails with
+  `invalid_relay_payload_preflight_request`
+- known byte fields still fail before schema parsing with
+  `release_payload_bytes_not_accepted`
+- unknown fields still fail strict parsing
+- lease-verified blocked responses echo `release_payload_metadata`
+- `release_payload_accepted=false`, `payload_stored=false`, and
+  `payload_transported=false` remain false
+
+Release boundary:
+
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`
+- P2P env status remains expected No-Go
+
+Validation:
+
+- `git diff --check`
+- `npm run test:p2p -- --test-name-pattern "release payload"` passed `112/112`
+- `npm run typecheck`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- P2P env status expected `ok=false`
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Qualitative audit found no high or medium issue. This hardens MUSU.PRO remote
+input/control-plane metadata without moving local execution or payload transit
+into MUSU.PRO. Clean go/no-go keeps current packaged local desktop evidence
+accepted because this is server-only P2P control-plane source. Public release
+remains No-Go on real second-PC route/CPU/matrix evidence, hosted MUSU.PRO
+P2P/relay proof, support mailbox proof, and Store proof.
+
+Search terms should include `GOAL v764`, `wiki/939`,
+`release payload preflight required metadata gate`,
+`payload_kind=forwarded_task_envelope`, `release_payload_metadata`,
+`release_payload_bytes_not_accepted`, `source_release_relay_payload_endpoint_not_implemented`,
+`source_release_relay_tunnel_runtime_not_implemented`, `case_count=104`, and
+`MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Release Payload Preflight Required Metadata Gate Index Refresh (wiki/940)
+
+MUSU local indexer was refreshed after wiki/939 and GOAL v764.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2856 files`
+- `2788 symbols`
+- `20378 ms`
+
+Indexed context includes release payload preflight schema hardening,
+`payload_kind=forwarded_task_envelope`, `release_payload_metadata`, required
+`tunnel_id` and `payload_sha256`, clean go/no-go interpretation, the canonical
+report, BETA checklist, MUSU.PRO P2P control-plane spec, runtime stabilization
+spec, network boundary spec, GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v765`, `wiki/940`, `2856 files`,
+`2788 symbols`, `20378 ms`,
+`release payload preflight required metadata gate index refresh`,
+`payload_kind=forwarded_task_envelope`, `release_payload_metadata`, and
+`case_count=104`.

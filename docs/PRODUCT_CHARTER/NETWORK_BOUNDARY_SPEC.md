@@ -685,6 +685,33 @@ Current contract:
 This keeps MUSU.PRO as control plane and prevents the connect preflight surface
 from becoming an accidental data path.
 
+## 2026-06-07 release payload preflight metadata boundary
+
+MUSU.PRO release payload preflight is still metadata-only until real release
+relay tunnel payload transport exists. The preflight now requires enough tunnel
+metadata to identify the intended release payload before any lease lookup:
+
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+Boundary interpretation:
+
+- byte fields are rejected before schema parsing
+- unknown fields are rejected before lease lookup
+- a verified lease still returns `relay_payload_endpoint_not_wired`
+- `release_payload_metadata` is audit metadata only
+- `release_payload_accepted=false`, `payload_stored=false`, and
+  `payload_transported=false` remain normative until the release tunnel is
+  implemented
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`, and
+  `RELAY_TRANSPORT_KIND=websocket_tunnel` keep the hosted P2P release gate
+  closed
+
+This keeps MUSU.PRO as remote input/control plane and prevents a loose
+metadata preflight from becoming an accidental payload or execution path.
+
 ## 2026-06-06 relay transport proof input boundary
 
 MUSU.PRO relay transport proof recording is metadata-only.

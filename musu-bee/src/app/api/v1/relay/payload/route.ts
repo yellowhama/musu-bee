@@ -26,9 +26,9 @@ const ReleasePayloadPreflightRequestSchema = z.object({
   session_id: z.string().min(1).max(128),
   source_node_id: z.string().min(1).max(128),
   target_node_id: z.string().min(1).max(128),
-  tunnel_id: z.string().min(1).max(128).optional(),
-  payload_kind: z.string().min(1).max(64).optional(),
-  payload_sha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+  tunnel_id: z.string().min(1).max(128),
+  payload_kind: z.literal("forwarded_task_envelope"),
+  payload_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
 }).strict();
 
 const FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS = [
@@ -222,6 +222,11 @@ export async function POST(req: NextRequest) {
 
   return releasePayloadBlocked(req.method, {
     lease_verified: true,
+    release_payload_metadata: {
+      tunnel_id: parsed.data.tunnel_id,
+      payload_kind: parsed.data.payload_kind,
+      payload_sha256: parsed.data.payload_sha256,
+    },
     lease: {
       lease_id: lease.lease_id,
       session_id: lease.session_id,

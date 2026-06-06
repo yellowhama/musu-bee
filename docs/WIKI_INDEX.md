@@ -6336,4 +6336,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-074533.zip`, and
   `self/local route targets rejected`.
 
+- 2026-06-07 release payload preflight required metadata gate:
+  `RELEASE_1_15_0_RC1_RELEASE_PAYLOAD_PREFLIGHT_REQUIRED_METADATA_GATE_2026_06_07.md`
+  (wiki/939) records the release payload preflight tightening requiring
+  `tunnel_id`, `payload_kind=forwarded_task_envelope`, and 64-hex
+  `payload_sha256` before owner-scoped lease lookup. Search terms should
+  include `GOAL v764`, `wiki/939`,
+  `release payload preflight required metadata gate`,
+  `release_payload_metadata`, `release_payload_bytes_not_accepted`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `RELAY_TRANSPORT_KIND=websocket_tunnel`, and `case_count=104`.
+
+- 2026-06-07 release payload preflight required metadata gate index refresh:
+  wiki/940 records the MUSU local index refresh after wiki/939 and GOAL v764.
+  Search terms should include `GOAL v765`, `wiki/940`, `2856 files`,
+  `2788 symbols`, `20378 ms`,
+  `release payload preflight required metadata gate index refresh`,
+  `payload_kind=forwarded_task_envelope`, `release_payload_metadata`, and
+  `case_count=104`.
+
 **End of WIKI_INDEX.md.**

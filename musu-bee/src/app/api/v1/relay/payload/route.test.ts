@@ -217,7 +217,7 @@ test("rejects release payload bytes before lease lookup while endpoint is prefli
       source_node_id: "source-a",
       target_node_id: "target-b",
       tunnel_id: "release-tunnel-preview",
-      payload_kind: "remote_command",
+      payload_kind: "forwarded_task_envelope",
       payload_sha256: "a".repeat(64),
       payload_base64: "c2hvdWxkLW5vdC1iZS1hY2NlcHRlZA==",
     }));
@@ -244,6 +244,40 @@ test("rejects release payload bytes before lease lookup while endpoint is prefli
   });
 });
 
+test("requires release tunnel payload metadata before lease lookup", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-release-metadata-required");
+    const res = await POST(payloadReq("POST", "test-token", {
+      schema: "musu.relay_payload_preflight_request.v1",
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-a",
+      target_node_id: "target-b",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      lease_verified: boolean;
+      release_payload_accepted: boolean;
+      payload_stored: boolean;
+      payload_transported: boolean;
+      issues: Array<{ path: string; message: string }>;
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_payload_preflight_request");
+    assert.equal(body.lease_verified, false);
+    assert.equal(body.release_payload_accepted, false);
+    assert.equal(body.payload_stored, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.issues.some((issue) => issue.path === "tunnel_id"), true);
+    assert.equal(body.issues.some((issue) => issue.path === "payload_kind"), true);
+    assert.equal(body.issues.some((issue) => issue.path === "payload_sha256"), true);
+  });
+});
+
 test("rejects unknown release payload preflight fields", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
@@ -254,6 +288,9 @@ test("rejects unknown release payload preflight fields", async () => {
       session_id: "session-1",
       source_node_id: "source-a",
       target_node_id: "target-b",
+      tunnel_id: "release-tunnel-preview",
+      payload_kind: "forwarded_task_envelope",
+      payload_sha256: "a".repeat(64),
       unexpected_release_field: "must-not-pass-through",
     }));
     assert.equal(res.status, 400);
@@ -300,7 +337,7 @@ test("verifies relay lease metadata but rejects release payload transport while 
       source_node_id: lease.source_node_id,
       target_node_id: lease.target_node_id,
       tunnel_id: "release-tunnel-preview",
-      payload_kind: "remote_command",
+      payload_kind: "forwarded_task_envelope",
       payload_sha256: "a".repeat(64),
     }));
     assert.equal(res.status, 409);
@@ -317,6 +354,11 @@ test("verifies relay lease metadata but rejects release payload transport while 
       relay_payload_queue_endpoint_wired: boolean;
       relay_transport_wired: boolean;
       release_grade: boolean;
+      release_payload_metadata: {
+        tunnel_id: string;
+        payload_kind: string;
+        payload_sha256: string;
+      };
       blockers: string[];
       delivery_proof?: unknown;
       relay_transport_proof?: unknown;
@@ -334,6 +376,11 @@ test("verifies relay lease metadata but rejects release payload transport while 
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.release_grade, false);
+    assert.deepEqual(body.release_payload_metadata, {
+      tunnel_id: "release-tunnel-preview",
+      payload_kind: "forwarded_task_envelope",
+      payload_sha256: "a".repeat(64),
+    });
     assert.equal(body.delivery_proof, undefined);
     assert.equal(body.relay_transport_proof, undefined);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);

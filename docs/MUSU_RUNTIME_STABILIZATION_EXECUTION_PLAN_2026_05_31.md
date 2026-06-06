@@ -681,3 +681,30 @@ Release contract:
 - this hardening does not replace 60s CPU evidence
 - after this runtime source change lands, packaged local evidence must be
   refreshed before public release can reuse the local desktop pass
+
+## 2026-06-07 Release Payload Preflight Required Metadata Gate
+
+The hosted control-plane release payload preflight now requires tunnel payload
+metadata before owner-scoped lease lookup:
+
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+Runtime stabilization interpretation:
+
+- the web/control-plane side is stricter, but no payload bytes are accepted
+- release tunnel runtime remains blocked by
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- release payload endpoint remains blocked by
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- relay transport kind remains `websocket_tunnel`, not `quic_relay_tunnel`
+- current packaged local evidence remains a separate local desktop gate; this
+  server-side P2P control-plane change is freshness-classified separately by
+  go/no-go
+
+Validation passed with P2P tests `112/112`, typecheck, P2P relay contract
+audit `ok=true`, P2P env expected No-Go, and release verifier
+`case_count=104`, `failed_case_count=0`. The next stabilization work is still
+real `quic_relay_tunnel` payload transit/proof plus physical second-PC
+route/CPU/matrix evidence.

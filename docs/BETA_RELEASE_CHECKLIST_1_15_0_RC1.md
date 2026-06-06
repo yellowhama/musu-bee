@@ -6378,14 +6378,23 @@ Accepted request fields:
 - `session_id`
 - `source_node_id`
 - `target_node_id`
-- optional `tunnel_id`
-- optional `payload_kind`
-- optional 64-hex `payload_sha256`
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
 
 Known byte fields still return `release_payload_bytes_not_accepted` before
 schema parsing. Any other unexpected field now returns
 `invalid_relay_payload_preflight_request` instead of being passed through to
 lease lookup.
+
+Current 2026-06-07 tightening: `tunnel_id`, `payload_kind`, and
+`payload_sha256` are no longer optional. The release payload preflight must
+receive the release tunnel metadata before lease lookup, and lease-verified
+blocked responses echo `release_payload_metadata`. This is still preflight
+only: `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`,
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`, and
+`RELAY_TRANSPORT_KIND=websocket_tunnel` keep the public P2P release gate
+closed.
 
 Validation passed:
 
@@ -9681,3 +9690,49 @@ gates.
 Canonical report:
 `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_PACK_AFTER_TARGET_ROUTE_CPU_AUDIT_2026_06_07.md`
 (wiki/937).
+
+## 2026-06-07 Release Payload Preflight Required Metadata Gate
+
+`/api/v1/relay/payload` now requires release tunnel payload metadata before any
+owner-scoped relay lease lookup:
+
+- `tunnel_id`
+- `payload_kind=forwarded_task_envelope`
+- 64-hex `payload_sha256`
+
+The endpoint remains metadata-only and fail-closed while the release tunnel is
+not implemented. Known byte fields still fail before schema parsing with
+`release_payload_bytes_not_accepted`; unknown fields fail strict parsing with
+`invalid_relay_payload_preflight_request`; lease-verified blocked responses now
+echo `release_payload_metadata` and keep `release_payload_accepted=false`,
+`payload_stored=false`, and `payload_transported=false`.
+
+Validation:
+
+- `npm run test:p2p -- --test-name-pattern "release payload"` passed `112/112`
+- `npm run typecheck` passed
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false` with release relay payload endpoint,
+  release tunnel runtime, relay transport kind, hosted storage/login, and live
+  relay proof blockers
+- release evidence verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Qualitative audit found no high or medium issue. This hardens the MUSU.PRO
+remote-input control plane without moving execution or payload transit into
+MUSU.PRO. Clean go/no-go keeps current packaged local desktop evidence
+accepted because this is server-only P2P control-plane source. Public release
+remains No-Go on real second-PC route/CPU/matrix evidence, hosted MUSU.PRO
+P2P/relay proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_PAYLOAD_PREFLIGHT_REQUIRED_METADATA_GATE_2026_06_07.md`
+  (wiki/939).
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2856 files`, `2788 symbols`, `20378 ms`
+- wiki: `wiki/940`

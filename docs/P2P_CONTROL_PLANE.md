@@ -81,6 +81,15 @@ and release evidence quality without accepting payload bytes, using the preview
 queue as release transport, or emitting release relay proof before the actual
 `quic_relay_tunnel` payload path exists.
 
+2026-06-07 release payload preflight required metadata addendum:
+`POST /api/v1/relay/payload` now requires `tunnel_id`,
+`payload_kind=forwarded_task_envelope`, and 64-hex `payload_sha256` before
+lease lookup. Lease-verified blocked responses echo this as
+`release_payload_metadata`, but the endpoint remains preflight-only with
+`release_payload_accepted=false`, `payload_stored=false`, and
+`payload_transported=false`. This is a control-plane input hardening change; it
+does not implement release relay tunnel payload transport.
+
 2026-06-06 route evidence peer identity addendum: release-grade route evidence
 now requires the top-level route peer identity claim to use
 `peer_identity_method=quic_tls_cert_fingerprint` and a `sha256:` fingerprint.
