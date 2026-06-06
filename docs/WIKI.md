@@ -10982,3 +10982,66 @@ source gate index refresh`, `2665 files`, `2759 symbols`, `12696 ms`,
 `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
 `source_release_relay_tunnel_runtime_not_implemented`, `MUSU Desktop local
 executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current HEAD Desktop-Open CPU Evidence After Relay Runtime Gate (wiki/851)
+
+Clean HEAD `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2` was sampled on
+`HUGH_SECOND` in actual packaged `desktop-open` state.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-154524-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample: `60.028s`
+- hot process count: `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.03`
+- subrole max: bridge `0`, desktop shell `0`, WebView2 helper `0.03`
+- process counts: bridge runtime `1`, desktop shell `1`, node helper `0`,
+  WebView2 helper `6`
+- working set: `366.33MB`
+- resource budget violations: none
+
+Post-evidence audits passed:
+
+- frontend polling contract: `ok=true`, `fail_count=0`
+- Rust background-loop contract: `ok=true`, `fail_count=0`
+- process ownership audit: `ok=true`, `fail_count=0`
+
+Diagnostic matrix:
+
+- `.local-build\runtime-cpu-scenarios\20260606-154644-HUGH_SECOND\20260606-154644-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- scenarios: `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`
+- `ok=true`, `fail_count=0`
+- not release evidence because `git_dirty=true`
+
+Qualitative audit found no high/medium issue. The reported 20% idle CPU loop
+is not reproduced on this current one-machine packaged desktop state. Public
+release remains No-Go until second-PC CPU/matrix, real route evidence, hosted
+P2P control-plane/relay proof, support mailbox, and Store evidence are real.
+
+## 2026-06-06 Current HEAD Desktop-Open CPU Evidence Index Refresh (wiki/852)
+
+MUSU local indexer was refreshed after wiki/851 and GOAL v676.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2668 files`
+- `2759 symbols`
+- `15241 ms`
+
+Indexed context includes evidence
+`20260606-154524-HUGH_SECOND.desktop-open`, dirty diagnostic matrix
+`20260606-154644-HUGH_SECOND`, updated CPU reports, next-step plan, BETA
+checklist, GOAL v676, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v677`, `wiki/852`, `current HEAD
+desktop-open CPU after relay runtime gate index refresh`, `2668 files`,
+`2759 symbols`, `15241 ms`, `20260606-154524-HUGH_SECOND.desktop-open`,
+`WebView2 0.03`, `hot process count 0`, `git_dirty=false`, `diagnostic matrix
+git_dirty=true`, `MUSU Desktop local executor`, and `MUSU.PRO remote input
+control plane`.

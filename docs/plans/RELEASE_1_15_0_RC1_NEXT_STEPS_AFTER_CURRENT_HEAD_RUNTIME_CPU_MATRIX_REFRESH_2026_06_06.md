@@ -14,6 +14,12 @@ presence, rendezvous, path selection, relay fallback, and evidence.
 - Full runtime CPU scenario matrix is current and clean on `HUGH_SECOND`.
 - Failed HUGH-MAIN route-attempt CPU diagnostic is current and clean on
   `HUGH_SECOND`.
+- Current HEAD `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2` has fresh clean
+  `desktop-open` idle CPU evidence on `HUGH_SECOND`:
+  `20260606-154524-HUGH_SECOND.desktop-open`.
+- A four-state matrix run for the same commit also showed no hot process, but
+  it is diagnostic only because it records `git_dirty=true` after the new
+  desktop-open evidence file was created.
 - The failed HUGH-MAIN route is diagnostic only; it is not multi-device proof.
 - No local idle busy loop was reproduced in the current packaged runtime.
 - `localhost:3001` is not required packaged runtime behavior.
@@ -35,6 +41,19 @@ Exit criteria:
 - runtime CPU scenario matrix valid machine count reaches `2/2`
 - route evidence is either successful and release-grade or explicitly
   diagnostic without claiming release route success
+
+## Workstream 1A: Current-HEAD CPU Evidence Hygiene
+
+1. Keep `20260606-154524-HUGH_SECOND.desktop-open` as clean current-HEAD
+   one-machine idle CPU evidence.
+2. Do not count `.local-build\runtime-cpu-scenarios\20260606-154644-HUGH_SECOND`
+   as release matrix evidence because it is dirty diagnostic output.
+3. After committing this evidence/docs update, re-run the full five-state
+   matrix from a clean tree only if the next step needs current-commit matrix
+   proof before the second PC is available.
+4. If the 20% CPU issue reappears, inspect the evidence `top_processes` and
+   `max_one_core_percent_by_subrole` first, then narrow to WebView2, bridge,
+   node helper, or desktop shell instead of guessing.
 
 ## Workstream 2: Packaged Runtime MUSU.PRO Login
 

@@ -144,3 +144,33 @@ Still blocking:
 ## Next Step Document
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_RUNTIME_CPU_MATRIX_REFRESH_2026_06_06.md`
+
+## 2026-06-06 15:46 KST Diagnostic Addendum
+
+A four-state packaged runtime CPU matrix was run after the relay tunnel runtime
+source gate commit:
+
+- `.local-build\runtime-cpu-scenarios\20260606-154644-HUGH_SECOND\20260606-154644-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- commit: `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2`
+- requested scenarios: `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`
+- `ok=true`
+- `fail_count=0`
+
+This is diagnostic evidence only, not release matrix evidence, because it
+records `git_dirty=true`. The dirty state was caused by the newly generated
+untracked desktop-open evidence file already present in `docs\evidence`.
+
+Diagnostic scenario summary:
+
+| Scenario | Hot | MUSU CPU | Node CPU | WebView2 CPU | WebView2 count | Working set |
+|---|---:|---:|---:|---:|---:|---:|
+| `startup-open` | 0 | 0 | 0 | 0.08 | 6 | 366.44MB |
+| `runtime-started` | 0 | 0 | 0 | 0.05 | 6 | 366.38MB |
+| `dashboard-open` | 0 | 0 | 0 | 0 | 6 | 366.34MB |
+| `desktop-open` | 0 | 0 | 0 | 0.05 | 6 | 366.49MB |
+
+Interpretation: the current packaged local runtime still does not reproduce the
+reported 20% idle CPU loop on `HUGH_SECOND`. To refresh release matrix evidence
+for this exact commit, commit the clean desktop-open evidence/docs first, then
+run the full five-state matrix from a clean tree with a real post-route probe.

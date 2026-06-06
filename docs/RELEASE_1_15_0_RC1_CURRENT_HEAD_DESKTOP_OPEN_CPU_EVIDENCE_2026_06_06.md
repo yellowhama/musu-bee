@@ -136,3 +136,37 @@ machine.
    `musu.relay_transport_proof.v1` only from actual payload transit.
 6. Re-run go/no-go without `-SkipPublicMetadata`, then refresh final operator
    packet/action pack only after the external gates are real.
+
+## 2026-06-06 15:45 KST Addendum
+
+Fresh `desktop-open` idle CPU evidence was captured again from clean HEAD
+`dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2` after the relay tunnel runtime
+source gate commit.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-154524-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample: `60.028s`
+- hot process count: `0`
+- max one-core CPU by role: MUSU `0`, Node `0`, WebView2 `0.03`, other `0`
+- max one-core CPU by subrole: bridge `0`, desktop shell `0`,
+  WebView2 helper `0.03`
+- process counts by subrole: bridge runtime `1`, desktop shell `1`,
+  node helper `0`, WebView2 helper `6`
+- total working set: `366.33MB`
+- resource budget violations: none
+
+The 20% busy-loop concern was not reproduced in the current packaged
+desktop-open state. This remains one-machine proof only; the public runtime
+idle CPU gate still needs a second Windows machine.
+
+Rechecked audits after the evidence run:
+
+- frontend polling contract: `ok=true`, `fail_count=0`
+- Rust background-loop contract: `ok=true`, `fail_count=0`
+- process ownership audit: `ok=true`, `fail_count=0`

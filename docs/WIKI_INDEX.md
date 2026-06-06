@@ -5506,4 +5506,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_tunnel_runtime_not_implemented`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current HEAD desktop-open CPU evidence after relay runtime gate:
+  wiki/851 records clean one-machine packaged `desktop-open` CPU evidence for
+  `dd0e409ee3a8ade2153bb858f74c4c5a0abf5bc2`. Search terms should include
+  `GOAL v676`, `wiki/851`,
+  `20260606-154524-HUGH_SECOND.desktop-open`, `git_dirty=false`,
+  `hot process count 0`, `WebView2 0.03`, `bridge runtime 1`,
+  `desktop shell 1`, `WebView2 helper 6`,
+  `20260606-154644-HUGH_SECOND`, `diagnostic only`, `git_dirty=true`,
+  `20% idle CPU loop not reproduced`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current HEAD desktop-open CPU evidence index refresh:
+  wiki/852 records the MUSU local index refresh after wiki/851 and GOAL v676.
+  Search terms should include `GOAL v677`, `wiki/852`, `2668 files`,
+  `2759 symbols`, `15241 ms`, `20260606-154524-HUGH_SECOND.desktop-open`,
+  `WebView2 0.03`, `hot process count 0`, `git_dirty=false`,
+  `diagnostic matrix git_dirty=true`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
