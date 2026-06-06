@@ -11939,3 +11939,62 @@ Search terms should include `GOAL v703`, `wiki/878`, `second-PC route-attempt
 self-target gate index refresh`, `2727 files`, `2776 symbols`, `20946 ms`,
 `RejectSelfPostRouteTarget`, `runtime_cpu_second_pc_route_attempt`,
 `route_probe.target`, `operator_machine`, and `case_count=71`.
+
+## 2026-06-06 Second-PC Route-Attempt Target Binding Gate (wiki/879)
+
+Targeted second-PC route-attempt CPU evidence now requires the recorded target
+to be bound to the actual route command and arguments.
+
+`verify-runtime-cpu-scenario-matrix.ps1` checks targeted `post-route` probes
+for command text containing `--target` plus the reported target, and arguments
+containing either `--target <target>` or `--target=<target>`. This closes the
+case where `route_probe.target` is changed in JSON while command/arguments
+still show another peer.
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=73`, `failed_case_count=0`
+- new source-contract case:
+  `runtime CPU matrix target command binding contract`
+- new negative case:
+  `runtime matrix rejects target field not bound to route command arguments`
+
+Release interpretation: this is evidence hardening, not second-PC proof. Public
+release remains No-Go until real second-PC route/CPU/matrix evidence, live
+MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+are recorded.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_TARGET_BINDING_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v704`, `wiki/879`,
+`runtime CPU matrix target command binding contract`,
+`runtime matrix rejects target field not bound to route command arguments`,
+`route_probe.command`, `route_probe.arguments`, `--target <target>`,
+`runtime_cpu_second_pc_route_attempt`, and `case_count=73`.
+
+## 2026-06-06 Second-PC Route-Attempt Target Binding Gate Index Refresh (wiki/880)
+
+MUSU local indexer was refreshed after wiki/879 and GOAL v704.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2730 files`
+- `2776 symbols`
+- `13306 ms`
+
+Indexed context includes `verify-runtime-cpu-scenario-matrix.ps1` route
+command/argument target binding checks, `test-release-evidence-verifiers.ps1`
+source-contract case `runtime CPU matrix target command binding contract`,
+negative regression `runtime matrix rejects target field not bound to route
+command arguments`, canonical report, BETA checklist, GOAL, WIKI/WIKI_INDEX,
+and CoS memory.
+
+Search terms should include `GOAL v705`, `wiki/880`, `second-PC route-attempt
+target binding gate index refresh`, `2730 files`, `2776 symbols`, `13306 ms`,
+`route_probe.command`, `route_probe.arguments`, `--target <target>`,
+`runtime_cpu_second_pc_route_attempt`, and `case_count=73`.

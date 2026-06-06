@@ -209,6 +209,26 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
     return $true
 }
 
+function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Test-RouteProbeArgumentsBindTarget',
+        'post-route route command binds target',
+        'post-route route arguments bind target',
+        '$routeCommand.Contains("--target")',
+        'Test-RouteProbeArgumentsBindTarget -Arguments $routeArguments -Target $routeTarget'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1364,6 +1384,7 @@ foreach ($classifierScript in $freshnessClassifierScripts) {
 }
 
 $runtimeCpuMeasureScript = Join-Path $scriptDir "measure-musu-runtime-cpu-scenarios.ps1"
+$runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeProbeContractOk = Test-RuntimeCpuScenarioMatrixRouteProbeContract -ScriptPath $runtimeCpuMeasureScript
 $invocation = New-StaticVerifierInvocation `
     -Ok $routeProbeContractOk `
@@ -1373,6 +1394,18 @@ Add-CaseResult `
     -Name "runtime CPU matrix route probe timeout and prompt contract" `
     -Verifier "runtime CPU matrix source contract" `
     -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$targetBindingContractOk = Test-RuntimeCpuScenarioMatrixTargetBindingContract -ScriptPath $runtimeCpuScenarioMatrixVerifierScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $targetBindingContractOk `
+    -Message "runtime CPU matrix verifier must bind targeted post-route evidence to the recorded route command and arguments"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix target command binding contract" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuScenarioMatrixVerifierScript `
     -ShouldPass $true `
     -Invocation $invocation
 
@@ -1885,6 +1918,13 @@ $targetMismatchRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRunti
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-target-mismatch" -Object $targetMismatchRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-ExpectedPostRouteTarget", "SECOND-PC", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt for wrong target" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$unboundTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$unboundTargetRuntimeRouteAttempt.route_probe.target = "SECOND-PC"
+$unboundTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $unboundTargetRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-unbound-target" -Object $unboundTargetRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "SECOND-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects target field not bound to route command arguments" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $selfTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
 $selfTargetRuntimeRouteAttempt.route_probe.target = "VERIFIER-TEST"

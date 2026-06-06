@@ -5790,4 +5790,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_second_pc_route_attempt`, `route_probe.target`,
   `operator_machine`, and `case_count=71`.
 
+- 2026-06-06 second-PC route-attempt target binding gate:
+  `RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_ATTEMPT_TARGET_BINDING_GATE_2026_06_06.md`
+  (wiki/879) records targeted route probe command/argument binding for
+  second-PC route-attempt CPU evidence. Search terms should include
+  `GOAL v704`, `wiki/879`, `runtime CPU matrix target command binding
+  contract`, `runtime matrix rejects target field not bound to route command
+  arguments`, `route_probe.command`, `route_probe.arguments`, `--target
+  <target>`, `runtime_cpu_second_pc_route_attempt`, and `case_count=73`.
+
+- 2026-06-06 second-PC route-attempt target binding gate index refresh:
+  wiki/880 records the MUSU local index refresh after wiki/879 and GOAL v704.
+  Search terms should include `GOAL v705`, `wiki/880`, `2730 files`,
+  `2776 symbols`, `13306 ms`, `route_probe.command`,
+  `route_probe.arguments`, `--target <target>`,
+  `runtime_cpu_second_pc_route_attempt`, and `case_count=73`.
+
 **End of WIKI_INDEX.md.**

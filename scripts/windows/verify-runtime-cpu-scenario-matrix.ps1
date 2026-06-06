@@ -82,6 +82,30 @@ function Get-JsonPropertyValue {
     return $property.Value
 }
 
+function Test-RouteProbeArgumentsBindTarget {
+    param(
+        $Arguments,
+        [AllowEmptyString()][string]$Target
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Target) -or $null -eq $Arguments) {
+        return $false
+    }
+
+    $argumentList = @($Arguments | ForEach-Object { [string]$_ })
+    for ($index = 0; $index -lt $argumentList.Count; $index++) {
+        $argument = [string]$argumentList[$index]
+        if ($argument -eq "--target" -and ($index + 1) -lt $argumentList.Count -and ([string]$argumentList[$index + 1]) -eq $Target) {
+            return $true
+        }
+        if ($argument -eq "--target=$Target") {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -612,6 +636,24 @@ if ($matrix) {
                     (-not [string]::IsNullOrWhiteSpace($routeTarget)) `
                     "post-route route target is present" `
                     "post-route route target is missing"
+                $routeCommand = Get-JsonPropertyString -Object $routeProbe -Name "command"
+                Add-CheckFromCondition `
+                    "post-route route command binds target" `
+                    (-not [string]::IsNullOrWhiteSpace($routeTarget) -and $routeCommand.Contains("--target") -and $routeCommand.Contains($routeTarget)) `
+                    "post-route route command records the target route attempt" `
+                    "post-route route command does not bind target '$routeTarget'"
+                $routeArguments = Get-JsonPropertyValue -Object $routeProbe -Name "arguments"
+                $routeArgumentsBindTarget = if ([string]::IsNullOrWhiteSpace($routeTarget)) {
+                    $false
+                }
+                else {
+                    Test-RouteProbeArgumentsBindTarget -Arguments $routeArguments -Target $routeTarget
+                }
+                Add-CheckFromCondition `
+                    "post-route route arguments bind target" `
+                    $routeArgumentsBindTarget `
+                    "post-route route arguments record --target $routeTarget" `
+                    "post-route route arguments do not bind --target $routeTarget"
             }
             if (-not [string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) {
                 Add-CheckFromCondition `
