@@ -1234,3 +1234,20 @@ Network boundary:
 - after rendezvous/path selection, devices should prefer direct P2P routes and
   use relay only as fallback;
 - MUSU.PRO must not be treated as a replacement for local execution.
+
+## 2026-06-07 Local Optional Watcher Boundary
+
+Optional local watchers are part of the MUSU Desktop local executor boundary,
+not MUSU.PRO execution.
+
+Clipboard polling remains local-only and opt-in:
+
+- default packaged behavior keeps `MUSU_ENABLE_CLIPBOARD_SYNC` off;
+- when enabled, the local clipboard monitor now owns a cancellation token;
+- Ctrl-C cancellation and loop exit are required by the Rust background-loop
+  release audit;
+- clipboard polling evidence is CPU/hardening evidence, not hosted control-plane
+  evidence.
+
+MUSU.PRO may receive user input and coordinate devices, but it does not read a
+device clipboard or execute clipboard work on behalf of the local runtime.

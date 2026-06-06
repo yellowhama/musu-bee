@@ -9437,3 +9437,45 @@ Index refresh:
 
 - MUSU local indexer: `2828 files`, `2788 symbols`, `16114 ms`
 - wiki: `wiki/928`
+
+## 2026-06-07 Clipboard Poller Cancellation Hardening
+
+The opt-in clipboard monitor now has a cancellation contract. Clipboard polling
+is still disabled by default unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`, but if an
+operator enables it the blocking monitor loop is no longer sleep-only.
+
+Changes:
+
+- `start_clipboard_monitor(...)` creates and returns a `CancellationToken`
+- a Ctrl-C watcher cancels the token
+- the blocking loop runs under `while !worker_token.is_cancelled()`
+- cancellation is checked again after the 2s sleep before reading the OS
+  clipboard
+- `audit-rust-background-loop-contract.ps1` now gates the cancellation token,
+  Ctrl-C cancellation, cancellation-scoped blocking loop, sleep, and
+  exit-after-cancel behavior
+- `write-release-go-no-go.ps1` now requires those cancellation checks in the
+  `clipboard polling` idle busy-loop candidate
+- `test-release-evidence-verifiers.ps1` now fails if the go/no-go candidate
+  mapping regresses
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --lib`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib clipboard` compiled
+  successfully with `0` matching tests and `338` filtered
+- release verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+This is a runtime hardening change against the idle busy-loop candidate list.
+It does not close the public release gate. Because runtime source changed, the
+current packaged local evidence must be refreshed again after this lands before
+single-machine/process/startup/desktop-single-instance/CPU evidence can be
+treated as current for release.
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_CLIPBOARD_POLLER_CANCELLATION_HARDENING_2026_06_07.md`
+(wiki/929).

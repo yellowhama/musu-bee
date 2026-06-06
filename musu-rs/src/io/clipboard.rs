@@ -13,6 +13,7 @@ use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 
 static LAST_CLIPBOARD_TEXT: Mutex<String> = Mutex::new(String::new());
 
@@ -45,7 +46,17 @@ impl ClipboardSync {
 }
 
 /// Start a background loop to monitor the OS clipboard and broadcast changes via SSE.
-pub fn start_clipboard_monitor(state: AppState) {
+pub fn start_clipboard_monitor(state: AppState) -> CancellationToken {
+    let cancellation_token = CancellationToken::new();
+    let worker_token = cancellation_token.clone();
+    let ctrl_c_token = cancellation_token.clone();
+
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            ctrl_c_token.cancel();
+        }
+    });
+
     tokio::task::spawn_blocking(move || {
         let sync = match ClipboardSync::new() {
             Ok(s) => s,
@@ -55,8 +66,11 @@ pub fn start_clipboard_monitor(state: AppState) {
             }
         };
 
-        loop {
+        while !worker_token.is_cancelled() {
             std::thread::sleep(Duration::from_secs(2));
+            if worker_token.is_cancelled() {
+                break;
+            }
 
             if let Ok(current) = sync.read_local_text() {
                 let mut last = LAST_CLIPBOARD_TEXT.lock().unwrap();
@@ -83,7 +97,11 @@ pub fn start_clipboard_monitor(state: AppState) {
                 }
             }
         }
+
+        tracing::info!("clipboard monitor stopped");
     });
+
+    cancellation_token
 }
 
 /// Endpoint for external peers/UI to update this node's OS clipboard.

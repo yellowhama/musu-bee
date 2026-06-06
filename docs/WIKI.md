@@ -13761,3 +13761,77 @@ Search terms should include `GOAL v753`, `wiki/928`,
 `2788 symbols`, `16114 ms`, `local-bridge-only`, `127.0.0.1:1158`,
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, and
 `single_machine_verified=true`.
+
+## 2026-06-07 Clipboard Poller Cancellation Hardening (wiki/929)
+
+The opt-in clipboard monitor now has an explicit cancellation contract.
+
+Changed runtime behavior:
+
+- `start_clipboard_monitor(...)` creates a `CancellationToken`
+- a Ctrl-C watcher cancels the token
+- the blocking monitor loop runs under `while !worker_token.is_cancelled()`
+- the loop rechecks cancellation after its 2s sleep before reading the OS
+  clipboard
+- the function returns the token for future explicit shutdown use
+
+Changed release audit:
+
+- `audit-rust-background-loop-contract.ps1` now requires clipboard
+  cancellation token ownership
+- it requires Ctrl-C cancellation
+- it requires the blocking poll loop to be scoped by the cancellation token
+- it keeps the existing 2s sleep requirement
+- it requires an exit-after-cancellation branch
+- `write-release-go-no-go.ps1` now requires those clipboard cancellation checks
+  in the `clipboard polling` idle busy-loop candidate
+- `test-release-evidence-verifiers.ps1` now fails if the go/no-go candidate
+  mapping regresses
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --lib`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib clipboard`
+  compiled successfully with `0` matching tests and `338` filtered
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Product interpretation:
+
+- default packaged idle behavior is unchanged because clipboard polling remains
+  off unless `MUSU_ENABLE_CLIPBOARD_SYNC=1`
+- when an operator opts in, the monitor no longer has only sleep; it also has a
+  shutdown path
+- this is CPU/hardening progress, not a public-release closeout
+- because runtime source changed, packaged local evidence needs another refresh
+  after this lands
+
+Search terms should include `GOAL v754`, `wiki/929`, `clipboard poller
+cancellation hardening`, `CancellationToken`, `worker_token.is_cancelled`,
+`MUSU_ENABLE_CLIPBOARD_SYNC`, `audit-rust-background-loop-contract.ps1`,
+`write-release-go-no-go.ps1`, `unaudited_spawn_hit_count=0`, `case_count=104`,
+and `cargo check --lib`.
+
+## 2026-06-07 Clipboard Poller Cancellation Hardening Index Refresh (wiki/930)
+
+MUSU local indexer was refreshed after wiki/929 and GOAL v754.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2830 files`
+- `2788 symbols`
+- `14867 ms`
+
+Indexed context includes clipboard monitor `CancellationToken` hardening,
+`worker_token.is_cancelled`, go/no-go idle busy-loop candidate mapping,
+release verifier idle source contract, canonical clipboard poller cancellation
+report, BETA checklist, runtime stabilization spec, MUSU.PRO P2P control-plane
+spec, network boundary spec, GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v755`, `wiki/930`, `clipboard poller
+cancellation hardening index refresh`, `2830 files`, `2788 symbols`,
+`14867 ms`, `worker_token.is_cancelled`, `write-release-go-no-go.ps1`, and
+`case_count=104`.

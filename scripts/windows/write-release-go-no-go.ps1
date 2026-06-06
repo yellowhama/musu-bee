@@ -1697,9 +1697,12 @@ $idleBusyLoopCandidateStatuses = @(
         -Audit $rustBackgroundLoopAuditResult.json `
         -RequiredChecks @(
             [pscustomobject]@{ scope = "clipboard"; name = "clipboard opt-in env gate" },
-            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor sleep" }
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor cancellation token" },
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor ctrl-c cancellation" },
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor sleep" },
+            [pscustomobject]@{ scope = "clipboard"; name = "clipboard monitor exits after cancellation" }
         ) `
-        -Evidence "Clipboard sync is off by default and, when explicitly enabled, sleeps between polls."
+        -Evidence "Clipboard sync is off by default and, when explicitly enabled, sleeps between polls and exits through an explicit cancellation token."
     New-IdleBusyLoopCandidateStatus `
         -Candidate "mDNS discovery" `
         -AuditName "rust-background-loop" `

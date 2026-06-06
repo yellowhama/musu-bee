@@ -131,8 +131,11 @@ Add-RegexCheck -Scope "adapter-claude" -Name "shim shared kill path" -Text $clau
 
 $clipboardPath = "musu-rs\src\io\clipboard.rs"
 $clipboardText = Get-RepoText $clipboardPath
-Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor spawn blocking" -Text $clipboardText -Pattern 'tokio::task::spawn_blocking\(move \|\| \{[\s\S]*loop\s*\{' -Path $clipboardPath -Message "Clipboard monitor is the known blocking background poller covered by the clipboard opt-in gate."
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor cancellation token" -Text $clipboardText -Pattern 'CancellationToken::new\(\)' -Path $clipboardPath -Message "Clipboard monitor owns an explicit cancellation token."
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor ctrl-c cancellation" -Text $clipboardText -Pattern 'tokio::spawn\(async move \{[\s\S]*ctrl_c_token\.cancel\(\)' -Path $clipboardPath -Message "Clipboard monitor cancellation token is cancelled on Ctrl-C."
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor spawn blocking" -Text $clipboardText -Pattern 'tokio::task::spawn_blocking\(move \|\| \{[\s\S]*while !worker_token\.is_cancelled\(\)' -Path $clipboardPath -Message "Clipboard monitor is the known blocking background poller covered by the clipboard opt-in gate and cancellation token."
 Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor sleep" -Text $clipboardText -Pattern 'std::thread::sleep\(Duration::from_secs\(2\)\)' -Path $clipboardPath -Message "Clipboard monitor sleeps between polls."
+Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor exits after cancellation" -Text $clipboardText -Pattern 'worker_token\.is_cancelled\(\)[\s\S]*break' -Path $clipboardPath -Message "Clipboard monitor exits the blocking loop after cancellation."
 
 $auditPath = "musu-rs\src\bridge\audit.rs"
 $auditText = Get-RepoText $auditPath

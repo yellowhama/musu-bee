@@ -599,3 +599,30 @@ Remaining stabilization gates:
 - capture a clean targeted second-PC route-attempt CPU diagnostic;
 - capture real second-PC route/multi-device evidence;
 - keep hosted MUSU.PRO relay proof separate from local execution proof.
+
+## 2026-06-07 Clipboard Poller Cancellation Contract
+
+The clipboard idle candidate now has an explicit cancellation contract when the
+operator opts in with `MUSU_ENABLE_CLIPBOARD_SYNC=1`.
+
+Runtime contract:
+
+- clipboard polling remains default-off
+- the monitor owns a `CancellationToken`
+- Ctrl-C cancels the token
+- the blocking loop is scoped by `worker_token.is_cancelled()`
+- the loop sleeps for 2s between polls and rechecks cancellation before reading
+  the OS clipboard
+
+Release contract:
+
+- `audit-rust-background-loop-contract.ps1` must fail if the clipboard monitor
+  loses token ownership, Ctrl-C cancellation, cancellation-scoped loop, sleep,
+  or exit-after-cancel behavior
+- `write-release-go-no-go.ps1` must require those checks in the
+  `clipboard polling` idle busy-loop candidate
+- `test-release-evidence-verifiers.ps1` must fail if that go/no-go candidate
+  mapping regresses
+- this hardening does not replace 60s CPU evidence
+- after this runtime source change lands, packaged local evidence must be
+  refreshed before public release can reuse the local desktop pass

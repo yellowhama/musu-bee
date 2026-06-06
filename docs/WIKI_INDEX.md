@@ -6238,4 +6238,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`, and
   `single_machine_verified=true`.
 
+- 2026-06-07 clipboard poller cancellation hardening:
+  `RELEASE_1_15_0_RC1_CLIPBOARD_POLLER_CANCELLATION_HARDENING_2026_06_07.md`
+  (wiki/929) records the opt-in clipboard monitor cancellation contract.
+  Search terms should include `GOAL v754`, `wiki/929`,
+  `clipboard poller cancellation hardening`, `CancellationToken`,
+  `worker_token.is_cancelled`, `MUSU_ENABLE_CLIPBOARD_SYNC`,
+  `audit-rust-background-loop-contract.ps1`, `write-release-go-no-go.ps1`,
+  `unaudited_spawn_hit_count=0`, `case_count=104`, and `cargo check --lib`.
+
+- 2026-06-07 clipboard poller cancellation hardening index refresh:
+  wiki/930 records the MUSU local index refresh after wiki/929 and GOAL v754.
+  Search terms should include `GOAL v755`, `wiki/930`, `2830 files`,
+  `2788 symbols`, `14867 ms`,
+  `clipboard poller cancellation hardening index refresh`,
+  `worker_token.is_cancelled`, `write-release-go-no-go.ps1`, and
+  `case_count=104`.
+
 **End of WIKI_INDEX.md.**

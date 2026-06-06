@@ -2027,6 +2027,20 @@ This status surface is not a relay implementation. MUSU.PRO remains remote
 input, room, rendezvous, path-selection, relay fallback, and evidence/control
 plane. MUSU Desktop remains the local executor.
 
+## 2026-06-07 runtime hardening note: optional local watchers
+
+The clipboard cancellation hardening does not change the P2P control-plane
+contract, but it tightens the local executor side of the boundary.
+
+- MUSU.PRO must not execute local clipboard work.
+- Clipboard polling remains a local, opt-in watcher behind
+  `MUSU_ENABLE_CLIPBOARD_SYNC`.
+- If enabled, the local monitor now has a `CancellationToken` and Ctrl-C
+  cancellation path.
+- Hosted P2P release proof remains focused on rendezvous, path selection,
+  owner-scoped relay storage, relay route metadata, transport proof, and payload
+  delivery proof.
+
 ## 2026-06-07 release relay tunnel marker conflict rule
 
 Release source markers are not sufficient proof.
