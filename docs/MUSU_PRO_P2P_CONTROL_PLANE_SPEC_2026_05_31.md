@@ -1881,3 +1881,33 @@ Current audited implementation status:
 - relay route transport proof count is `0`
 - relay payload delivery proof count is `0`
 - current public release state is No-Go
+
+## 2026-06-07 desktop runtime and HUGH-MAIN route reachability boundary
+
+The current local product surface is MUSU Desktop, not the localhost web
+dashboard. On `HUGH_SECOND`, packaged `musu status --json` reported the local
+desktop bridge healthy at `http://127.0.0.1:1158`.
+
+The active second-PC blocker is the `HUGH-MAIN` peer endpoint:
+
+- registered peer: `HUGH-MAIN`
+- registered address: `192.168.1.192:8949`
+- peer health: `false`
+- peer version: `unknown`
+- selected route kind: manual `lan`
+- selected transport: `http_bearer`
+- encryption: `none_http_bearer`
+- peer identity verified: `false`
+- TCP probe to `192.168.1.192:8949`: `false`
+- ping probe to `192.168.1.192`: `false`
+
+This confirms the product boundary:
+
+- MUSU Desktop executes local work on each device.
+- MUSU.PRO receives remote input, hosts project/company room state, assists
+  rendezvous/path selection/relay fallback, and stores route evidence.
+- MUSU.PRO does not become the local executor.
+- `localhost:3001` is not the packaged desktop runtime dependency.
+- A manual HTTP bearer peer is diagnostic only; release P2P still requires
+  verified peer identity, `quic_tls_1_3`, route metadata, relay transport
+  proof when relay is used, and payload delivery proof.

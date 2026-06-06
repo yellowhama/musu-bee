@@ -420,3 +420,35 @@ Release interpretation:
   payload path;
 - the local MUSU runtime must still produce the route attempt, route metadata,
   `quic_relay_tunnel` transport proof, and payload delivery proof.
+
+## 2026-06-07 HUGH-MAIN route reachability diagnostic
+
+Packaged MUSU Desktop status on `HUGH_SECOND` proves the local runtime is
+healthy at `http://127.0.0.1:1158`. The currently registered `HUGH-MAIN`
+manual LAN peer is unhealthy at `192.168.1.192:8949`.
+
+Route explain selected exactly one candidate:
+
+- source: `manual`
+- route kind: `lan`
+- transport scheme: `http`
+- encryption: `none_http_bearer`
+- peer identity: `peer_identity_verified=false`
+- release transport requirement: `quic_tls_1_3`
+- route evidence ready: `false`
+
+The direct network probe recorded TCP `false` and ping `false` to
+`192.168.1.192:8949`; a LAN neighbor entry existed but is not route success
+proof. The raw route attempt failed with `submit_http_error` after `10006 ms`.
+
+Release interpretation:
+
+- this is a peer endpoint reachability blocker, not proof that the local MUSU
+  Desktop runtime is down;
+- this does not satisfy successful multi-device route evidence;
+- this does not use a MUSU.PRO relay path;
+- a manual HTTP bearer candidate remains diagnostic/non-release-grade even if
+  it starts responding;
+- the next release-grade path is current MUSU Desktop installed/running on a
+  second Windows PC, reachable endpoint proof, successful two-machine route
+  evidence, and then hosted MUSU.PRO rendezvous/relay proof.

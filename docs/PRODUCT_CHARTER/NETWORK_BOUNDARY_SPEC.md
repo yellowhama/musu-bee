@@ -1040,3 +1040,28 @@ Boundary interpretation:
 - This does not make failed route attempts multi-device proof.
 - Successful two-machine route evidence remains required for release.
 
+## 2026-06-07 MUSU Desktop HUGH-MAIN reachability boundary
+
+MUSU Desktop is the local executor. `localhost:3001` is not the packaged
+desktop runtime contract.
+
+The current `HUGH_SECOND` diagnostic reports local packaged MUSU Desktop
+healthy at `http://127.0.0.1:1158`. The registered `HUGH-MAIN` peer is
+`192.168.1.192:8949`, unhealthy, and not reachable by TCP or ping from
+`HUGH_SECOND`.
+
+Boundary implications:
+
+- this is not a reason to move execution into MUSU.PRO;
+- this is not a reason to require the localhost web dashboard for packaged
+  desktop operation;
+- this is not successful multi-device proof;
+- this is not release-grade P2P proof because the candidate is manual
+  `lan`/HTTP bearer with `none_http_bearer` and
+  `peer_identity_verified=false`;
+- MUSU.PRO may still be the remote input, project room, rendezvous,
+  path-selection, relay-fallback, and evidence control plane;
+- the next release step is current MUSU Desktop running on a reachable second
+  Windows PC, followed by successful route/CPU/matrix evidence and hosted
+  MUSU.PRO route/relay proof.
+

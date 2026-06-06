@@ -1,0 +1,114 @@
+{
+  "schema": "musu.route_reachability_diagnostic.v1",
+  "version": "1.15.0-rc.1",
+  "recorded_at_utc": "2026-06-06T16:17:50.6619458Z",
+  "recorded_at_kst": "2026-06-07T01:17:50+09:00",
+  "git_commit": "df00ac05ec05c7ec26a7a42f790aa7832b82fa7b",
+  "git_dirty": false,
+  "operator_machine": "HUGH_SECOND",
+  "status": {
+    "schema": "musu.fleet_status_cli.v1",
+    "ok": true,
+    "bridge_url": "http://127.0.0.1:1158",
+    "this_node": {
+      "name": "hugh_second",
+      "addr": "127.0.0.1:1158",
+      "healthy": true,
+      "is_self": true,
+      "version": "1.15.0-rc.1"
+    },
+    "peer": {
+      "name": "HUGH-MAIN",
+      "addr": "192.168.1.192:8949",
+      "healthy": false,
+      "is_self": false,
+      "version": "unknown"
+    },
+    "total_nodes": 2,
+    "online_nodes": 1
+  },
+  "route_explain": {
+    "schema": "musu.route_explain.v1",
+    "requested_target": "HUGH-MAIN",
+    "submission_endpoint": "http://192.168.1.192:8949/api/tasks/delegate",
+    "candidate_count": 1,
+    "selected_candidate": {
+      "name": "HUGH-MAIN",
+      "addr": "192.168.1.192:8949",
+      "source": "manual",
+      "route_kind": "lan",
+      "transport_scheme": "http",
+      "peer_identity_verified": false,
+      "peer_identity_method": null,
+      "peer_public_key_present": false,
+      "https_fingerprint_pin_available": false,
+      "encryption": "none_http_bearer",
+      "payload_transited_musu_infra": false
+    },
+    "current_transport": "http_bearer",
+    "bridge_path_selection_wired": true,
+    "rendezvous_session_wired": true,
+    "https_fingerprint_pinning_wired": true,
+    "release_grade_transport_required": "quic_tls_1_3",
+    "route_evidence_ready": false,
+    "release_blockers": [
+      "peer_identity_verified=false for current manual/local HTTP route",
+      "bridge HTTPS fingerprint pinning is not release-grade QUIC/TLS route proof",
+      "route evidence is not release-grade until the runtime route attempt records quic_tls_1_3",
+      "rendezvous target-candidate-assisted routing still needs real second-PC evidence",
+      "relay/tunnel fallback transport is not wired"
+    ],
+    "path_priority": [
+      "lan",
+      "tailscale",
+      "direct_quic",
+      "relay"
+    ],
+    "relay_policy": "relay is Connect/Pro fallback only; it must not become the default data path"
+  },
+  "network_probe": {
+    "target": "192.168.1.192",
+    "port": 8949,
+    "tcp_test_succeeded": false,
+    "ping_succeeded": false,
+    "source_ipv4": "192.168.1.154",
+    "source_prefix_length": 24,
+    "interface_index": 12,
+    "neighbor_entry_present": true,
+    "neighbor_link_layer_address": "A8-5E-45-15-38-C3",
+    "neighbor_state_raw": 5,
+    "neighbor_entry_is_not_route_success_proof": true
+  },
+  "route_attempt": {
+    "schema": "musu.route_evidence.v1",
+    "source_node_id": "hugh_second",
+    "target_node_id": "HUGH-MAIN",
+    "route_kind": "lan",
+    "candidate_addr": "192.168.1.192:8949",
+    "result": "failed",
+    "failure_class": "submit_http_error",
+    "handshake_ms": 10006,
+    "total_attempt_ms": 10006,
+    "peer_identity_verified": false,
+    "encryption": "none_http_bearer",
+    "payload_transited_musu_infra": false
+  },
+  "conclusion": {
+    "local_musu_desktop_runtime_healthy": true,
+    "target_peer_registered": true,
+    "target_peer_healthy": false,
+    "target_tcp_port_reachable": false,
+    "manual_lan_candidate_is_release_grade": false,
+    "musu_pro_relay_route_used": false,
+    "successful_multi_device_route_proof": false,
+    "release_interpretation": "The local MUSU Desktop runtime is healthy. HUGH-MAIN is registered as a manual LAN peer but is unhealthy and not reachable on 192.168.1.192:8949. The selected route is HTTP bearer LAN with no verified peer identity, so even a successful connection would not be release-grade P2P proof until quic_tls_1_3 identity/encryption evidence is recorded."
+  },
+  "next_required_actions": [
+    "Install or start the current MUSU Desktop build on HUGH-MAIN.",
+    "Confirm HUGH-MAIN reports itself healthy through its local packaged MUSU status.",
+    "Confirm the reachable address and port for HUGH-MAIN and allow the port through the local firewall.",
+    "Rerun TCP reachability from HUGH_SECOND to the selected HUGH-MAIN endpoint.",
+    "Capture successful two-machine route evidence and runtime CPU matrix.",
+    "Then capture MUSU.PRO owner-scoped rendezvous, route metadata, relay transport proof, and payload delivery proof for hosted P2P release gates."
+  ]
+}

@@ -5999,4 +5999,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_second_pc_route_attempt_verified=true`, and `owned WebView2 max
   0.03`.
 
+- 2026-06-07 HUGH-MAIN route reachability diagnostic:
+  `RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+  (wiki/903) records that packaged MUSU Desktop is healthy on `HUGH_SECOND`
+  while `HUGH-MAIN` is registered but unhealthy and unreachable at
+  `192.168.1.192:8949`. Search terms should include `GOAL v728`,
+  `wiki/903`, `127.0.0.1:1158`, `192.168.1.192:8949`,
+  `submit_http_error`, `none_http_bearer`, `peer_identity_verified=false`,
+  `quic_tls_1_3`, `tcp_test_succeeded=false`, and `MUSU Desktop local
+  executor`.
+
+- 2026-06-07 HUGH-MAIN route reachability index refresh:
+  wiki/904 records the MUSU local index refresh after wiki/903 and GOAL v728.
+  Search terms should include `GOAL v729`, `wiki/904`, `2775 files`,
+  `2776 symbols`, `23081 ms`, `HUGH-MAIN route reachability index refresh`,
+  `127.0.0.1:1158`, `192.168.1.192:8949`, `submit_http_error`,
+  `none_http_bearer`, `peer_identity_verified=false`, and `MUSU Desktop local
+  executor`.
+
 **End of WIKI_INDEX.md.**

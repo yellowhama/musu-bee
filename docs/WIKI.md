@@ -12854,3 +12854,77 @@ route attempt index refresh`, `2770 files`, `2776 symbols`, `21681 ms`,
 `20260607-003914`, `20260607-005241`, `raw_exit_code`,
 `runtime_cpu_second_pc_route_attempt_verified=true`, and `owned WebView2 max
 0.03`.
+
+## 2026-06-07 HUGH-MAIN Route Reachability Diagnostic (wiki/903)
+
+Current packaged MUSU Desktop status on `HUGH_SECOND` confirms the local
+runtime is healthy and the current blocker is the `HUGH-MAIN` peer endpoint.
+
+Evidence:
+
+- route attempt:
+  `docs\evidence\route-diagnostics\1.15.0-rc.1\20260607-011317-HUGH_SECOND-HUGH_MAIN.route-attempt.json`
+- reachability diagnostic:
+  `docs\evidence\route-diagnostics\1.15.0-rc.1\20260607-011750-HUGH_SECOND-HUGH_MAIN.route-reachability-diagnostic.json`
+- canonical report:
+  `docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+- next-step plan:
+  `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+- CoS memory:
+  `docs\memory\chief_of_staff\2026-06-07_hugh_main_route_reachability_diagnostic.md`
+
+Findings:
+
+- local bridge: `http://127.0.0.1:1158`, healthy
+- peer: `HUGH-MAIN`, `192.168.1.192:8949`, `healthy=false`,
+  `version=unknown`
+- selected candidate: manual `lan` HTTP route
+- current transport: `http_bearer`
+- encryption: `none_http_bearer`
+- peer identity: `peer_identity_verified=false`
+- release transport requirement: `quic_tls_1_3`
+- TCP probe to `192.168.1.192:8949`: `false`
+- ping probe to `192.168.1.192`: `false`
+- neighbor entry: present, but not route success proof
+
+Interpretation:
+
+- MUSU Desktop is the correct local executor and is running on this machine.
+- `localhost:3001` is not the packaged desktop runtime contract.
+- The current route failure is that `HUGH-MAIN` is not accepting or reachable
+  at the registered LAN endpoint.
+- A manual HTTP bearer candidate is diagnostic only and remains non-release
+  grade even if it starts responding.
+- MUSU.PRO remains remote input, project/company room, rendezvous,
+  path-selection, relay-fallback, and evidence control plane. It does not
+  become the executor or default payload path.
+
+Qualitative audit found no high/medium code issue. The release gate is failing
+closed on unhealthy peer state, unverified identity, non-release transport,
+missing relay tunnel runtime, and missing hosted P2P evidence.
+
+Search terms should include `GOAL v728`, `wiki/903`, `HUGH-MAIN route
+reachability diagnostic`, `127.0.0.1:1158`, `192.168.1.192:8949`,
+`submit_http_error`, `none_http_bearer`, `peer_identity_verified=false`,
+`quic_tls_1_3`, `tcp_test_succeeded=false`, and `MUSU Desktop local executor`.
+
+## 2026-06-07 HUGH-MAIN Route Reachability Index Refresh (wiki/904)
+
+MUSU local indexer was refreshed after wiki/903 and GOAL v728.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2775 files`
+- `2776 symbols`
+- `23081 ms`
+
+Indexed context includes route diagnostic evidence `20260607-011317` and
+`20260607-011750`, canonical report, next-step plan, beta checklist, P2P
+control-plane spec, MUSU.PRO P2P control-plane spec, runtime stabilization
+spec, network boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v729`, `wiki/904`, `HUGH-MAIN route
+reachability index refresh`, `2775 files`, `2776 symbols`, `23081 ms`,
+`127.0.0.1:1158`, `192.168.1.192:8949`, `submit_http_error`,
+`none_http_bearer`, `peer_identity_verified=false`, and `MUSU Desktop local
+executor`.

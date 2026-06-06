@@ -140,6 +140,15 @@ Already applied:
 - `measure-musu-runtime-cpu-scenarios.ps1` now records failed route diagnostics
   with a non-zero effective `exit_code` when the expected token is absent while
   preserving the raw CLI exit code as `raw_exit_code`.
+- HUGH-MAIN reachability diagnostic
+  `20260607-011750-HUGH_SECOND-HUGH_MAIN.route-reachability-diagnostic.json`
+  confirmed the current packaged MUSU Desktop runtime is healthy on
+  `HUGH_SECOND` at `http://127.0.0.1:1158`, while the registered
+  `HUGH-MAIN` endpoint `192.168.1.192:8949` is unhealthy, TCP `false`, ping
+  `false`, and still a manual `lan`/`http_bearer` candidate with
+  `peer_identity_verified=false`. Runtime stabilization next step is
+  second-machine setup and route reachability, not another primary-machine
+  `localhost:3001` dashboard test.
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing

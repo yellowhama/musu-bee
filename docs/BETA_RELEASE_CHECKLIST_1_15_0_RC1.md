@@ -8871,3 +8871,49 @@ Index refresh:
 - `2776 symbols`
 - `21681 ms`
 - wiki: `wiki/902`
+
+## 2026-06-07 01:18 KST HUGH-MAIN Route Reachability Diagnostic
+
+Packaged MUSU Desktop is healthy on `HUGH_SECOND`; the active second-PC route
+blocker is `HUGH-MAIN` peer reachability.
+
+Evidence:
+
+- route attempt:
+  `docs\evidence\route-diagnostics\1.15.0-rc.1\20260607-011317-HUGH_SECOND-HUGH_MAIN.route-attempt.json`
+- reachability diagnostic:
+  `docs\evidence\route-diagnostics\1.15.0-rc.1\20260607-011750-HUGH_SECOND-HUGH_MAIN.route-reachability-diagnostic.json`
+- report:
+  `docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+- next-step plan:
+  `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+
+Result:
+
+- local bridge: `http://127.0.0.1:1158`, healthy
+- peer: `HUGH-MAIN`, `192.168.1.192:8949`, unhealthy
+- route kind: manual `lan`
+- current transport: `http_bearer`
+- encryption: `none_http_bearer`
+- peer identity: unverified
+- TCP `192.168.1.192:8949`: `false`
+- ping `192.168.1.192`: `false`
+
+Release interpretation:
+
+- This is not a local MUSU Desktop failure on `HUGH_SECOND`.
+- This is not successful two-machine route proof.
+- This is not release-grade P2P proof.
+- `localhost:3001` is not the packaged desktop runtime contract.
+- Public release remains No-Go until a real second-machine route, CPU matrix,
+  hosted MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof are
+  captured.
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2775 files`
+- `2776 symbols`
+- `23081 ms`
+- wiki: `wiki/904`
