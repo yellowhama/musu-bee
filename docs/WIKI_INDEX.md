@@ -5981,4 +5981,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
   `new_desktop_shell=0`, and `repeated_spawn_count=0`.
 
+- 2026-06-07 current-HEAD idle CPU and route attempt:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_IDLE_CPU_AND_ROUTE_ATTEMPT_2026_06_07.md`
+  (wiki/901) records current packaged desktop-open CPU evidence, route probe
+  exit normalization, and targeted `HUGH-MAIN` route-attempt CPU diagnostic.
+  Search terms should include `GOAL v726`, `wiki/901`, `20260607-003914`,
+  `20260607-005241`, `raw_exit_code`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `desktop-open idle CPU`, and
+  `owned WebView2 max 0.03`.
+
+- 2026-06-07 current-HEAD idle CPU and route attempt index refresh:
+  wiki/902 records the MUSU local index refresh after wiki/901 and GOAL v726.
+  Search terms should include `GOAL v727`, `wiki/902`, `2770 files`,
+  `2776 symbols`, `21681 ms`, `current-head idle CPU route attempt index
+  refresh`, `20260607-003914`, `20260607-005241`, `raw_exit_code`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, and `owned WebView2 max
+  0.03`.
+
 **End of WIKI_INDEX.md.**

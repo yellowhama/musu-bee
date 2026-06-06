@@ -8816,3 +8816,58 @@ Index refresh:
 - `2776 symbols`
 - `16196 ms`
 - wiki: `wiki/900`
+
+## 2026-06-07 01:00 KST Current-HEAD Idle CPU And Route Attempt
+
+Current packaged `desktop-open` idle CPU evidence passed on `HUGH_SECOND`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-003914-HUGH_SECOND.desktop-open.evidence.json`
+- `ok=true`
+- `git_dirty=false`
+- `sample_seconds=60.031`
+- max one-core CPU:
+  - MUSU `0`
+  - Node `0`
+  - owned WebView2 `0.03`
+- process counts: bridge/runtime `1`, desktop shell `1`, owned WebView2 `6`
+- working set: `358.08MB`
+
+Route-attempt matrix:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` now records non-zero effective
+  `exit_code` for failed route probes that miss the expected token while
+  preserving `raw_exit_code`.
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-005241-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passed CPU budgets across startup-open, runtime-started, dashboard-open,
+  desktop-open, and post-route.
+- route target: `HUGH-MAIN`
+- route result: timeout to `192.168.1.192:8949`
+- effective `exit_code=1`
+- `raw_exit_code=0`
+- target route-attempt verifier: `ok=true`, `fail_count=0`
+- full matrix verifier: `ok=false`, `fail_count=1`, because the expected route
+  token was not returned
+
+Dirty-tree go/no-go reports `runtime_cpu_second_pc_route_attempt_verified=true`
+and blocker count `7`, including the temporary `git` blocker. Public release
+remains No-Go on multi-device, two-machine idle CPU, full runtime CPU matrix,
+hosted MUSU.PRO P2P/relay proof, support mailbox, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_IDLE_CPU_AND_ROUTE_ATTEMPT_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_IDLE_CPU_AND_ROUTE_ATTEMPT_2026_06_07.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2770 files`
+- `2776 symbols`
+- `21681 ms`
+- wiki: `wiki/902`

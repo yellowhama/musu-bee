@@ -12764,3 +12764,93 @@ single-instance evidence index refresh`, `2763 files`, `2776 symbols`,
 `16196 ms`, `20260607-002403`, `20260607-002452`,
 `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
 `new_desktop_shell=0`, and `repeated_spawn_count=0`.
+
+## 2026-06-07 Current-HEAD Idle CPU And Route Attempt (wiki/901)
+
+Current packaged MUSU Desktop does not reproduce the reported 20% busy-loop on
+`HUGH_SECOND`.
+
+Updated:
+
+- `measure-musu-runtime-cpu-scenarios.ps1`
+  - preserves route command `raw_exit_code`
+  - records non-zero effective `exit_code` when the route output lacks the
+    expected token
+- `test-release-evidence-verifiers.ps1`
+  - source-contract needles require failed route probe exit normalization
+
+Evidence:
+
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-003914-HUGH_SECOND.desktop-open.evidence.json`
+  - `ok=true`
+  - `sample_seconds=60.031`
+  - MUSU `0`
+  - Node `0`
+  - owned WebView2 max `0.03`
+  - bridge/runtime `1`, desktop shell `1`, owned WebView2 helpers `6`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-005241-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  - CPU budget `ok=true` across all five scenarios
+  - max WebView2 `0.1`
+  - MUSU/Node/bridge/desktop max `0`
+  - route target `HUGH-MAIN`
+  - route timed out to `192.168.1.192:8949`
+  - effective route `exit_code=1`
+  - raw route CLI `raw_exit_code=0`
+
+Verification:
+
+- release verifier: `ok=true`, `case_count=86`, `failed_case_count=0`
+- target route-attempt verifier: `ok=true`, `fail_count=0`
+- full matrix verifier: `ok=false`, `fail_count=1`, because no route token was
+  returned
+- dirty-tree go/no-go:
+  - `runtime_cpu_second_pc_route_attempt_verified=true`
+  - runtime idle valid machines `1`
+  - runtime matrix valid machines `1`
+  - blocker count `7` including temporary `git`
+
+Qualitative audit found no high/medium issue. This removes the targeted
+route-attempt CPU blocker, but public release remains No-Go on second-PC CPU
+counts, successful route matrix, hosted MUSU.PRO P2P/relay proof, support, and
+Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_IDLE_CPU_AND_ROUTE_ATTEMPT_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_IDLE_CPU_AND_ROUTE_ATTEMPT_2026_06_07.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-07_current_head_idle_cpu_and_route_attempt.md`
+
+Search terms should include `GOAL v726`, `wiki/901`, `20260607-003914`,
+`20260607-005241`, `raw_exit_code`, `runtime_cpu_second_pc_route_attempt_verified=true`,
+`HUGH-MAIN`, `192.168.1.192:8949`, `desktop-open idle CPU`, and
+`owned WebView2 max 0.03`.
+
+## 2026-06-07 Current-HEAD Idle CPU And Route Attempt Index Refresh (wiki/902)
+
+MUSU local indexer was refreshed after wiki/901 and GOAL v726.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2770 files`
+- `2776 symbols`
+- `21681 ms`
+
+Indexed context includes desktop-open idle CPU evidence `20260607-003914`,
+runtime CPU matrix `20260607-005241`, target-route and full-matrix verification
+JSON, route probe exit normalization code, release verifier source-contract
+update, canonical report, next-step plan, BETA checklist, runtime
+stabilization spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v727`, `wiki/902`, `current-head idle CPU
+route attempt index refresh`, `2770 files`, `2776 symbols`, `21681 ms`,
+`20260607-003914`, `20260607-005241`, `raw_exit_code`,
+`runtime_cpu_second_pc_route_attempt_verified=true`, and `owned WebView2 max
+0.03`.

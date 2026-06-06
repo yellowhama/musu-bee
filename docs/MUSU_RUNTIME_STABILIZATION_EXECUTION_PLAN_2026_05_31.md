@@ -125,6 +125,21 @@ Already applied:
   `20260607-002452-HUGH_SECOND.startup-single-instance.json` passed with
   runtime count `1 -> 1`, observed bridge PID count `1`, repeated spawn `0`,
   failed invocation count `0`, and nested process ownership passing.
+- current packaged `desktop-open` idle CPU evidence
+  `20260607-003914-HUGH_SECOND.desktop-open.evidence.json` passed with a
+  60.031s sample, MUSU `0`, Node `0`, owned WebView2 max `0.03`, bridge/runtime
+  `1`, desktop shell `1`, owned WebView2 helpers `6`, and working set
+  `358.08MB`.
+- runtime CPU matrix evidence
+  `20260607-005241-HUGH_SECOND.runtime-cpu-scenario-matrix.json` passed CPU
+  budgets across startup-open/runtime-started/dashboard-open/desktop-open/
+  post-route with owned WebView2 max `0.1`; the targeted `HUGH-MAIN` route
+  attempt timed out to `192.168.1.192:8949`, so this closes targeted
+  route-attempt CPU diagnostic evidence but not successful two-machine route
+  proof.
+- `measure-musu-runtime-cpu-scenarios.ps1` now records failed route diagnostics
+  with a non-zero effective `exit_code` when the expected token is absent while
+  preserving the raw CLI exit code as `raw_exit_code`.
 - current local startup audit on `HUGH_SECOND` passed with three repeated calls
   reusing bridge PID 31208, `after_musu_runtime=1`, `repeated_spawn_count=0`,
   and nested process ownership passing
