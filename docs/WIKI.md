@@ -11431,3 +11431,76 @@ gate recheck index refresh`, `2699 files`, `2776 symbols`, `21591 ms`,
 `tcp_connect_timeout`, `p2p_runtime_not_logged_in`,
 `runtime idle CPU 1/2`, `runtime CPU matrix 1/2`, `MUSU Desktop local
 executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current HEAD Qualitative Code Audit and Next Steps (wiki/865)
+
+Current HEAD `52d325d43b691c6e1b56404e34cfd2ba85257311` was audited after the
+current external gate recheck.
+
+Validation:
+
+- `npm run typecheck`: pass
+- `npm run test:p2p`: `111/111`
+- local API auth contract: `ok=true`, `fail_count=0`
+- operator API security contract: `ok=true`, `fail_count=0`
+- secret storage contract: `ok=true`, `fail_count=0`
+- frontend polling contract: `ok=true`, `fail_count=0`, 29 low-duty
+  call-site files, no direct interval or visibility listener hits outside the
+  shared pollers
+- Rust background-loop contract: `ok=true`, `fail_count=0`, no unaudited
+  loops/spawns/network watcher primitives
+- P2P store-forward relay contract: `ok=true`, `fail_count=0`
+- process ownership: `ok=true`, packaged runtime 1, desktop shell 1, owned
+  Node helpers 0, owned WebView2 helpers 6, bridge HTTP 200 at
+  `127.0.0.1:4751`
+- release evidence verifier regression: `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+
+Go/no-go at `2026-06-06T18:13:07+09:00` remains
+`ready_for_public_desktop_release=false` with local artifacts, single-machine,
+public metadata, and MSIX install verified; `multi_device_verified=false`.
+
+P2P env status remains fail-closed with
+`source_release_relay_payload_endpoint_not_implemented`,
+`source_release_relay_tunnel_runtime_not_implemented`,
+`source_preview_store_forward_payload_queue_non_release_grade`,
+`source_relay_transport_kind_not_release_grade`,
+`live_evidence_p2p_runtime_not_logged_in`,
+`live_evidence_relay_route_transport_proof_missing`, and
+`live_evidence_relay_payload_delivery_proof_missing`.
+
+Qualitative audit found no high/medium code issue in the audited surfaces.
+Local packaged MUSU Desktop is healthy on `HUGH_SECOND`; public release remains
+blocked by second-PC route/CPU/matrix proof, live MUSU.PRO login/storage and
+relay proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_QUAL_CODE_AUDIT_2026_06_06.md`
+
+## 2026-06-06 Current HEAD Qualitative Code Audit Index Refresh (wiki/866)
+
+MUSU local indexer was refreshed after wiki/865 and GOAL v690.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2702 files`
+- `2776 symbols`
+- `11885 ms`
+
+Indexed context includes current HEAD
+`52d325d43b691c6e1b56404e34cfd2ba85257311`, current qualitative code audit
+report, next-step plan, BETA checklist, MUSU.PRO P2P control-plane spec,
+network boundary spec, WIKI/WIKI_INDEX, GOAL v690, and CoS memory.
+
+Search terms should include `GOAL v691`, `wiki/866`, `current HEAD qualitative
+code audit index refresh`, `2702 files`, `2776 symbols`, `11885 ms`,
+`52d325d43b691c6e1b56404e34cfd2ba85257311`, `P2P tests 111/111`,
+`release verifier 66/66`, `127.0.0.1:4751`,
+`source_release_relay_tunnel_runtime_not_implemented`,
+`live_evidence_p2p_runtime_not_logged_in`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

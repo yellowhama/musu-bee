@@ -946,3 +946,26 @@ Release readiness still requires successful two-machine route evidence,
 second-machine CPU/matrix evidence, live owner-scoped MUSU.PRO P2P proof,
 support mailbox proof, and Store/Partner Center proof.
 
+## 2026-06-06 current HEAD qualitative audit network boundary
+
+Current HEAD `52d325d43b691c6e1b56404e34cfd2ba85257311` reaffirms the network
+boundary after fresh security, polling, process ownership, relay, and
+go/no-go audits:
+
+- local MUSU Desktop owns execution, files, shell/app/browser automation,
+  local bridge behavior, CPU, and memory
+- MUSU.PRO owns remote input, project/company room state, AI meeting-room
+  coordination state, presence, rendezvous, path selection, relay fallback
+  coordination, and evidence/control-plane APIs
+- the packaged local bridge is healthy on `127.0.0.1:4751`
+- `localhost:3001` is not a packaged runtime requirement
+- path priority remains `lan -> tailscale -> direct_quic -> relay`
+- hosted relay remains fallback-only and non-default
+- preview store-forward payload queues remain non-release-grade
+- release relay requires real `quic_relay_tunnel` payload movement,
+  `quic_tls_1_3` proof, owner-scoped route proof, and payload delivery proof
+
+Current No-Go blockers are external/evidence blockers: second-PC route/CPU
+matrix evidence, live MUSU.PRO login/storage and relay proof, support mailbox
+proof, and Store/Partner Center proof.
+

@@ -1744,3 +1744,35 @@ Current implementation status:
 - release relay tunnel runtime: not implemented
 - live P2P evidence: not verified
 - current public release state: No-Go
+
+## 2026-06-06 current HEAD qualitative audit boundary
+
+Current HEAD `52d325d43b691c6e1b56404e34cfd2ba85257311` keeps the same
+control-plane boundary after fresh code audit and release-gate checks.
+
+Normative status:
+
+- MUSU Desktop is the local executor and resource owner.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback coordination, and
+  evidence/control plane.
+- MUSU.PRO may bootstrap P2P discovery and make remote work submission easier,
+  but it does not execute local work and does not become the default data path.
+- Path priority remains `lan -> tailscale -> direct_quic -> relay`.
+- Hosted relay remains fallback-only and non-default.
+- `localhost:3001` is optional developer/operator dashboard behavior, not the
+  packaged desktop runtime contract.
+
+Current audited implementation status:
+
+- local packaged bridge is healthy on `127.0.0.1:4751`
+- store-forward queue fallback is implemented and audited
+- release relay connect preflight is implemented and fail-closed
+- release relay payload preflight is implemented and fail-closed
+- release relay payload endpoint is not implemented
+- local release `quic_relay_tunnel` runtime is not implemented
+- production KV/Upstash storage is missing
+- live P2P evidence is not logged in and not verified
+- relay route transport proof count is `0`
+- relay payload delivery proof count is `0`
+- current public release state is No-Go

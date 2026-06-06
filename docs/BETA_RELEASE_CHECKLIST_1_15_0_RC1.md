@@ -8269,3 +8269,52 @@ Result:
 This confirms the current blocker split: local packaged desktop evidence remains
 good on `HUGH_SECOND`; second-PC proof, live MUSU.PRO P2P proof, release relay
 tunnel proof, support mailbox proof, and Store proof remain open.
+
+## 2026-06-06 current HEAD qualitative code audit
+
+Current HEAD `52d325d43b691c6e1b56404e34cfd2ba85257311` was re-audited after
+the current external gate recheck.
+
+Validation passed:
+
+- `npm run typecheck`
+- `npm run test:p2p`: `111/111`
+- local API auth, operator API security, secret storage, frontend polling,
+  Rust background-loop, P2P store-forward relay, and process ownership audits
+  all report `ok=true`, `fail_count=0`
+- release evidence verifier regression reports `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+
+Current go/no-go at `2026-06-06T18:13:07+09:00` still reports
+`ready_for_public_desktop_release=false`, with local artifacts, single-machine,
+public metadata, and MSIX install verified, while `multi_device_verified=false`.
+
+Current process ownership confirms packaged local desktop runtime health:
+
+- packaged runtime count: `1`
+- desktop shell count: `1`
+- owned Node helpers: `0`
+- owned WebView2 helpers: `6`
+- packaged bridge health: HTTP `200` at `127.0.0.1:4751`
+
+Current P2P env status remains intentionally fail-closed:
+
+- `source_release_relay_payload_endpoint_not_implemented`
+- `source_release_relay_tunnel_runtime_not_implemented`
+- `source_preview_store_forward_payload_queue_non_release_grade`
+- `source_relay_transport_kind_not_release_grade`
+- `missing_kv_rest_api_url_or_upstash_redis_rest_url`
+- `missing_kv_rest_api_token_or_upstash_redis_rest_token`
+- `live_evidence_p2p_runtime_not_logged_in`
+- `live_evidence_relay_route_transport_proof_missing`
+- `live_evidence_relay_payload_delivery_proof_missing`
+
+Qualitative release assessment: no high/medium code issue was found in the
+audited surfaces. Local packaged MUSU Desktop evidence is good on `HUGH_SECOND`;
+public release remains blocked by second-PC proof, live MUSU.PRO login/storage
+and relay proof, support mailbox proof, and Store/Partner Center evidence.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor;
+MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+rendezvous, path selection, relay-fallback coordination, and evidence/control
+plane. `localhost:3001` is not the packaged desktop runtime contract.

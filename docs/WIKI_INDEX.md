@@ -5653,4 +5653,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   1/2`, `MUSU Desktop local executor`, and `MUSU.PRO remote input control
   plane`.
 
+- 2026-06-06 current HEAD qualitative code audit and next steps:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/865) records the current HEAD audit after external gate recheck.
+  Search terms should include `GOAL v690`, `wiki/865`,
+  `52d325d43b691c6e1b56404e34cfd2ba85257311`, `P2P tests 111/111`,
+  `release verifier 66/66`, `local API auth contract`, `operator API security`,
+  `secret storage`, `frontend polling contract`, `Rust background-loop`,
+  `process ownership`, `127.0.0.1:4751`, `source_release_relay_payload_endpoint_not_implemented`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `live_evidence_p2p_runtime_not_logged_in`, `MUSU Desktop local executor`,
+  `MUSU.PRO remote input control plane`, and `localhost:3001 is not the
+  packaged desktop runtime contract`.
+
+- 2026-06-06 current HEAD qualitative code audit index refresh:
+  wiki/866 records the MUSU local index refresh after wiki/865 and GOAL v690.
+  Search terms should include `GOAL v691`, `wiki/866`, `2702 files`,
+  `2776 symbols`, `11885 ms`, `current HEAD qualitative code audit index
+  refresh`, `52d325d43b691c6e1b56404e34cfd2ba85257311`, `P2P tests 111/111`,
+  `release verifier 66/66`, `127.0.0.1:4751`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `live_evidence_p2p_runtime_not_logged_in`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
