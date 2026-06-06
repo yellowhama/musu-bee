@@ -359,7 +359,11 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
     $requiredNeedles = @(
         '$idleBusyLoopCandidateStatuses = @(',
         'idle_busy_loop_candidate_contract_verified',
+        'idle_busy_loop_candidate_count',
+        'idle_busy_loop_candidate_verified_count',
+        'idle_busy_loop_candidate_unverified_count',
         'idle_busy_loop_candidate_status',
+        'idle_busy_loop_candidate_verified_count:',
         'idle-busy-loop-candidates',
         '-Candidate "clipboard polling"',
         '-Candidate "mDNS discovery"',

@@ -5826,4 +5826,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   attempt with nonnumeric exit code`, `runtime matrix rejects successful route
   probe without token output`, and `case_count=77`.
 
+- 2026-06-06 idle busy-loop candidate count gate:
+  `RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_COUNT_GATE_2026_06_06.md`
+  (wiki/883) records go/no-go output hardening for top-level idle busy-loop
+  candidate counts. Search terms should include `GOAL v708`, `wiki/883`,
+  `idle_busy_loop_candidate_count`,
+  `idle_busy_loop_candidate_verified_count`,
+  `idle_busy_loop_candidate_unverified_count`, `candidate count 8`, `verified
+  8`, `unverified 0`, and `case_count=77`.
+
+- 2026-06-06 idle busy-loop candidate count gate index refresh:
+  wiki/884 records the MUSU local index refresh after wiki/883 and GOAL v708.
+  Search terms should include `GOAL v709`, `wiki/884`, `2736 files`,
+  `2776 symbols`, `14211 ms`,
+  `idle_busy_loop_candidate_verified_count`, and `case_count=77`.
+
 **End of WIKI_INDEX.md.**

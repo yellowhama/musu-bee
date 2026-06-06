@@ -130,7 +130,11 @@ Current go/no-go output reliability gate:
 - latest-output smoke confirmed stdout and file `generated_at` match
 - dirty-tree validation reported single-machine true, runtime idle CPU valid
   machines `1`, runtime matrix valid machines `0`, idle busy-loop candidate
-  contract true, candidate count `8`, and manifest dirty true before commit
+  contract true, top-level candidate count fields
+  `idle_busy_loop_candidate_count=8`,
+  `idle_busy_loop_candidate_verified_count=8`,
+  `idle_busy_loop_candidate_unverified_count=0`, and manifest dirty true
+  before commit
 
 CPU evidence now requires process subrole attribution. The current HUGH_SECOND
 idle and matrix evidence separates `bridge_runtime=1`, `desktop_shell=1`, and

@@ -12076,3 +12076,61 @@ binding gate index refresh`, `2734 files`, `2776 symbols`, `26395 ms`,
 allowed failed route attempt with zero exit code`, `runtime matrix rejects
 allowed failed route attempt with nonnumeric exit code`, `runtime matrix rejects
 successful route probe without token output`, and `case_count=77`.
+
+## 2026-06-06 Idle Busy-Loop Candidate Count Gate (wiki/883)
+
+`write-release-go-no-go.ps1` now reports explicit top-level idle busy-loop
+candidate counts:
+
+- `idle_busy_loop_candidate_count`
+- `idle_busy_loop_candidate_verified_count`
+- `idle_busy_loop_candidate_unverified_count`
+
+The text output also prints `idle_busy_loop_candidate_verified_count: X/Y`.
+This makes the existing candidate matrix easier to audit without digging into
+the full `idle_busy_loop_candidate_status` array.
+
+The current matrix is still the same eight release candidates: clipboard
+polling, mDNS discovery, health check retry loop, bridge readiness wait loop,
+frontend interval/refetch, relay payload target poller, cloud heartbeat, and
+log/telemetry flush loop.
+
+Validation:
+
+- parser checks passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=77`, `failed_case_count=0`
+- dirty-tree go/no-go showed candidate count `8`, verified `8`, unverified `0`
+
+This is evidence visibility hardening only. It does not replace the required
+second-PC 60s CPU/matrix/route evidence or live MUSU.PRO P2P control-plane
+proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_COUNT_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v708`, `wiki/883`, `idle busy-loop candidate
+count gate`, `idle_busy_loop_candidate_count`,
+`idle_busy_loop_candidate_verified_count`,
+`idle_busy_loop_candidate_unverified_count`, `candidate count 8`, `verified
+8`, `unverified 0`, and `case_count=77`.
+
+## 2026-06-06 Idle Busy-Loop Candidate Count Gate Index Refresh (wiki/884)
+
+MUSU local indexer was refreshed after wiki/883 and GOAL v708.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2736 files`
+- `2776 symbols`
+- `14211 ms`
+
+Indexed context includes `write-release-go-no-go.ps1` top-level idle busy-loop
+candidate count fields, `test-release-evidence-verifiers.ps1` source-contract
+needles for those fields, canonical report, BETA checklist, GOAL,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v709`, `wiki/884`, `idle busy-loop candidate
+count gate index refresh`, `2736 files`, `2776 symbols`, `14211 ms`,
+`idle_busy_loop_candidate_verified_count`, and `case_count=77`.

@@ -1897,6 +1897,9 @@ $result = [pscustomobject]@{
         }
     }
     idle_busy_loop_candidate_contract_verified = [bool]$idleBusyLoopCandidateContractVerified
+    idle_busy_loop_candidate_count = @($idleBusyLoopCandidateStatuses).Count
+    idle_busy_loop_candidate_verified_count = @($idleBusyLoopCandidateStatuses | Where-Object { [bool]$_.verified }).Count
+    idle_busy_loop_candidate_unverified_count = @($idleBusyLoopCandidateStatuses | Where-Object { -not [bool]$_.verified }).Count
     idle_busy_loop_candidate_status = @($idleBusyLoopCandidateStatuses)
     local_api_auth_contract_verified = [bool]$localApiAuthContractVerified
     local_api_auth_contract_audit = if ($localApiAuthAuditResult.json) {
@@ -2034,6 +2037,7 @@ else {
     "frontend_polling_contract_verified: $($result.frontend_polling_contract_verified)"
     "rust_background_loop_contract_verified: $($result.rust_background_loop_contract_verified)"
     "idle_busy_loop_candidate_contract_verified: $($result.idle_busy_loop_candidate_contract_verified)"
+    "idle_busy_loop_candidate_verified_count: $($result.idle_busy_loop_candidate_verified_count)/$($result.idle_busy_loop_candidate_count)"
     "local_api_auth_contract_verified: $($result.local_api_auth_contract_verified)"
     "operator_api_security_contract_verified: $($result.operator_api_security_contract_verified)"
     "degraded_mode_contract_verified: $($result.degraded_mode_contract_verified)"
