@@ -7596,3 +7596,46 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2624 files`, `2754 symbols`, `18024 ms`
+
+## 2026-06-06 Relay Transport Proof Peer Identity Binding
+
+Release relay transport proof now carries peer identity binding fields:
+
+- `peer_identity_verified`
+- `peer_identity_method`
+- `peer_public_key`
+
+The proof is release-grade only when identity is verified, method is
+`quic_tls_cert_fingerprint`, public key starts with `sha256:`, and the proof
+identity matches route evidence identity for the same session/lease/source/
+target/tunnel chain.
+
+Validation:
+
+- P2P targeted tests: `105/105`
+- `npm run typecheck`: pass
+- `cargo check --lib`: pass
+- `cargo fmt --check`: pass
+- `cargo test --lib route_evidence`: `14 passed`
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=63`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is proof-contract
+hardening; it does not implement release relay tunnel payload transport and
+does not close second-PC, hosted P2P, support mailbox, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_IDENTITY_BINDING_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_TRANSPORT_PROOF_PEER_IDENTITY_BINDING_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2627 files`, `2754 symbols`, `55082 ms`

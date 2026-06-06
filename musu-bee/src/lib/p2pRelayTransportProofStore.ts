@@ -22,6 +22,9 @@ export type StoredP2pRelayTransportProof = {
   handshake_ms: number;
   payload_bytes_transited: number;
   payload_transited_musu_infra: boolean;
+  peer_identity_verified: boolean;
+  peer_identity_method: string;
+  peer_public_key: string;
   encryption: string;
   transport_verified_by: string;
   release_grade: boolean;
@@ -56,6 +59,7 @@ const KV_KEY = "musu:p2p:relay-transport-proofs:v1";
 const DEFAULT_MAX_PROOFS = 1000;
 const DEFAULT_TTL_SECONDS = 300;
 const RELEASE_GRADE_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -165,6 +169,9 @@ function isStoredRelayTransportProof(value: unknown): value is StoredP2pRelayTra
     typeof proof.handshake_ms === "number" &&
     typeof proof.payload_bytes_transited === "number" &&
     typeof proof.payload_transited_musu_infra === "boolean" &&
+    typeof proof.peer_identity_verified === "boolean" &&
+    typeof proof.peer_identity_method === "string" &&
+    typeof proof.peer_public_key === "string" &&
     typeof proof.encryption === "string" &&
     typeof proof.transport_verified_by === "string" &&
     typeof proof.release_grade === "boolean" &&
@@ -234,6 +241,9 @@ function isReleaseGradeTransportProof(input: {
   transport_kind: string;
   payload_bytes_transited: number;
   payload_transited_musu_infra: boolean;
+  peer_identity_verified: boolean;
+  peer_identity_method: string;
+  peer_public_key: string;
   encryption: string;
   transport_verified_by: string;
   opened_at: string;
@@ -247,6 +257,9 @@ function isReleaseGradeTransportProof(input: {
     Number.isInteger(input.payload_bytes_transited) &&
     input.payload_bytes_transited > 0 &&
     input.payload_transited_musu_infra === true &&
+    input.peer_identity_verified === true &&
+    RELEASE_GRADE_PEER_IDENTITY_METHODS.has(input.peer_identity_method.trim()) &&
+    input.peer_public_key.trim().startsWith("sha256:") &&
     input.encryption.trim().toLowerCase() === "quic_tls_1_3" &&
     input.transport_verified_by.trim() === "musu_quic_tls_transport" &&
     openedAt !== null &&
@@ -267,6 +280,9 @@ export function createRelayTransportProof(input: {
   handshake_ms: number;
   payload_bytes_transited: number;
   payload_transited_musu_infra: boolean;
+  peer_identity_verified: boolean;
+  peer_identity_method: string;
+  peer_public_key: string;
   encryption: string;
   transport_verified_by: string;
   opened_at: string;
@@ -286,6 +302,9 @@ export function createRelayTransportProof(input: {
     handshake_ms: input.handshake_ms,
     payload_bytes_transited: input.payload_bytes_transited,
     payload_transited_musu_infra: input.payload_transited_musu_infra,
+    peer_identity_verified: input.peer_identity_verified,
+    peer_identity_method: input.peer_identity_method,
+    peer_public_key: input.peer_public_key,
     encryption: input.encryption,
     transport_verified_by: input.transport_verified_by,
     release_grade: isReleaseGradeTransportProof(input),

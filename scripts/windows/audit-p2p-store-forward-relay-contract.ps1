@@ -444,6 +444,10 @@ Add-Check `
             "FORBIDDEN_RELAY_TRANSPORT_PROOF_BYTE_FIELDS",
             "relay_transport_proof_payload_bytes_not_accepted",
             "payload_bytes_transited",
+            "peer_identity_verified",
+            "peer_identity_method",
+            "peer_public_key",
+            "relay_transport_proof_peer_identity_method_not_release_grade",
             "musu_quic_tls_transport",
             "quic_tls_1_3"
         )) -and
@@ -480,12 +484,16 @@ Add-Check `
             "relayLeaseId &&",
             "evidenceSessionId &&",
             "proof.lease_id.trim() === relayLeaseId",
-            "proof.session_id.trim() === evidenceSessionId"
+            "proof.session_id.trim() === evidenceSessionId",
+            "proof.peer_identity_method",
+            "proof.peer_public_key",
+            "RELEASE_GRADE_PEER_IDENTITY_METHODS"
         )) -and
         (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
             "stale-relay-transport-lease-mismatch-release-grade",
             "stale-relay-transport-session-mismatch-release-grade",
-            "stale-relay-missing-session-release-grade"
+            "stale-relay-missing-session-release-grade",
+            "relay_route_transport_proof_peer_identity_method_mismatch"
         ))
     ) `
     -Path $routeEvidenceStorePath `
@@ -556,6 +564,9 @@ Add-Check `
             "fn cloud_relay_transport_proof",
             "musu.relay_transport_proof.v1",
             "quic_relay_tunnel",
+            "peer_identity_verified",
+            "peer_identity_method",
+            "peer_public_key",
             "cloud transport proof"
         )
     ) `
@@ -712,7 +723,8 @@ Add-Check `
             "relay_transport_proof_payload_bytes_not_accepted",
             "rejects unknown relay transport proof fields",
             "unexpected_release_field",
-            "stores lease-bound relay transport proof owner-scoped"
+            "stores lease-bound relay transport proof owner-scoped",
+            "relay_transport_proof_peer_identity_unverified"
         ))
     ) `
     -Path $transportProofRouteTestPath `

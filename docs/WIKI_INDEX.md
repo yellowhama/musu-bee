@@ -5320,4 +5320,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release verifier 62/62`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 relay transport proof peer identity binding:
+  `RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_IDENTITY_BINDING_2026_06_06.md`
+  (wiki/833) records proof-contract hardening that adds
+  `peer_identity_verified`, `peer_identity_method`, and `peer_public_key` to
+  `musu.relay_transport_proof.v1`. Search terms should include `GOAL v658`,
+  `wiki/833`, `relay transport proof peer identity binding`,
+  `quic_tls_cert_fingerprint`, `sha256:`, `release verifier 63/63`,
+  `cargo test --lib route_evidence 14 passed`, `P2P targeted tests 105/105`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 relay transport proof peer identity binding index refresh:
+  wiki/834 records the MUSU local index refresh after wiki/833 and GOAL v658.
+  Search terms should include `GOAL v659`, `wiki/834`, `2627 files`,
+  `2754 symbols`, `55082 ms`,
+  `relay transport proof peer identity binding index refresh`,
+  `peer_identity_verified`, `peer_identity_method`, `peer_public_key`,
+  `quic_tls_cert_fingerprint`, `release verifier 63/63`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

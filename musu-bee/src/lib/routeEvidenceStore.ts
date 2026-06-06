@@ -52,6 +52,9 @@ export type RouteEvidencePayload = {
     handshake_ms: number;
     payload_bytes_transited: number;
     payload_transited_musu_infra: boolean;
+    peer_identity_verified: boolean;
+    peer_identity_method: string;
+    peer_public_key: string;
     encryption: string;
     transport_verified_by: string;
     opened_at: string;
@@ -99,6 +102,7 @@ export type RouteEvidenceQuery = {
 const KV_KEY = "musu:p2p:route-evidence:v1";
 const DEFAULT_MAX_RECORDS = 1000;
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
@@ -193,6 +197,11 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
       Number.isInteger(proof.payload_bytes_transited) &&
       proof.payload_bytes_transited > 0 &&
       proof.payload_transited_musu_infra === true &&
+      proof.peer_identity_verified === true &&
+      proof.peer_identity_method?.trim() === (evidence.peer_identity_method?.trim() ?? "") &&
+      RELEASE_GRADE_PEER_IDENTITY_METHODS.has(proof.peer_identity_method.trim()) &&
+      proof.peer_public_key?.trim() === (evidence.peer_public_key?.trim() ?? "") &&
+      proof.peer_public_key.trim().startsWith("sha256:") &&
       proof.encryption.trim().toLowerCase() === "quic_tls_1_3" &&
       proof.transport_verified_by.trim() === "musu_quic_tls_transport"
   );

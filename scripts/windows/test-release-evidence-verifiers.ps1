@@ -788,6 +788,9 @@ $validP2p = [pscustomobject]@{
                         handshake_ms = 42
                         payload_bytes_transited = 128
                         payload_transited_musu_infra = $true
+                        peer_identity_verified = $true
+                        peer_identity_method = "quic_tls_cert_fingerprint"
+                        peer_public_key = "sha256:test"
                         encryption = "quic_tls_1_3"
                         transport_verified_by = "musu_quic_tls_transport"
                         opened_at = $now.AddSeconds(-2).ToString("o")
@@ -1543,6 +1546,13 @@ $badP2pRelayRouteTransportProofRecord.evidence.relay_transport_proof = $null
 $fixture = Write-Fixture -Name "p2p-bad-relay-route-transport-proof" -Object $badP2pRelayRouteTransportProof
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence without route transport proof" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteTransportProofIdentity = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteTransportProofIdentityRecord = @($badP2pRelayRouteTransportProofIdentity.relay_route_evidence.records)[0]
+$badP2pRelayRouteTransportProofIdentityRecord.evidence.relay_transport_proof.peer_identity_method = "advertised_tls_cert_fingerprint_unverified"
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-transport-proof-identity" -Object $badP2pRelayRouteTransportProofIdentity
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence with transport proof identity mismatch" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayPayloadProof = Copy-JsonObject -Object $validP2p
 $badP2pRelayPayloadProofRecord = @($badP2pRelayPayloadProof.relay_route_evidence.records)[0]

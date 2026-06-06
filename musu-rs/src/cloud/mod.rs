@@ -457,6 +457,9 @@ pub struct RouteRelayTransportProof {
     pub handshake_ms: u64,
     pub payload_bytes_transited: u64,
     pub payload_transited_musu_infra: bool,
+    pub peer_identity_verified: bool,
+    pub peer_identity_method: String,
+    pub peer_public_key: String,
     pub encryption: String,
     pub transport_verified_by: String,
     pub opened_at: String,
@@ -493,6 +496,9 @@ pub struct P2pRelayTransportProofRequest {
     pub handshake_ms: u64,
     pub payload_bytes_transited: u64,
     pub payload_transited_musu_infra: bool,
+    pub peer_identity_verified: bool,
+    pub peer_identity_method: String,
+    pub peer_public_key: String,
     pub encryption: String,
     pub transport_verified_by: String,
     pub opened_at: String,
@@ -514,6 +520,9 @@ pub struct P2pRelayTransportProofStoredRecord {
     pub handshake_ms: u64,
     pub payload_bytes_transited: u64,
     pub payload_transited_musu_infra: bool,
+    pub peer_identity_verified: bool,
+    pub peer_identity_method: String,
+    pub peer_public_key: String,
     pub encryption: String,
     pub transport_verified_by: String,
     pub release_grade: bool,
@@ -1663,6 +1672,9 @@ mod tests {
                 handshake_ms: 23,
                 payload_bytes_transited: 128,
                 payload_transited_musu_infra: true,
+                peer_identity_verified: true,
+                peer_identity_method: "quic_tls_cert_fingerprint".into(),
+                peer_public_key: "sha256:test".into(),
                 encryption: "quic_tls_1_3".into(),
                 transport_verified_by: "musu_quic_tls_transport".into(),
                 opened_at: "2026-06-04T00:00:01Z".into(),
@@ -1686,6 +1698,14 @@ mod tests {
         assert_eq!(
             value["relay_transport_proof"]["transport_verified_by"],
             "musu_quic_tls_transport"
+        );
+        assert_eq!(
+            value["relay_transport_proof"]["peer_identity_method"],
+            "quic_tls_cert_fingerprint"
+        );
+        assert_eq!(
+            value["relay_transport_proof"]["peer_public_key"],
+            "sha256:test"
         );
     }
 
@@ -1727,6 +1747,9 @@ mod tests {
             handshake_ms: 23,
             payload_bytes_transited: 128,
             payload_transited_musu_infra: true,
+            peer_identity_verified: true,
+            peer_identity_method: "quic_tls_cert_fingerprint".into(),
+            peer_public_key: "sha256:test".into(),
             encryption: "quic_tls_1_3".into(),
             transport_verified_by: "musu_quic_tls_transport".into(),
             opened_at: "2026-06-01T01:00:01Z".into(),
@@ -1740,6 +1763,9 @@ mod tests {
         assert_eq!(value["transport_kind"], "quic_relay_tunnel");
         assert_eq!(value["payload_bytes_transited"], 128);
         assert_eq!(value["payload_transited_musu_infra"], true);
+        assert_eq!(value["peer_identity_verified"], true);
+        assert_eq!(value["peer_identity_method"], "quic_tls_cert_fingerprint");
+        assert_eq!(value["peer_public_key"], "sha256:test");
         assert_eq!(value["encryption"], "quic_tls_1_3");
         assert_eq!(value["transport_verified_by"], "musu_quic_tls_transport");
     }

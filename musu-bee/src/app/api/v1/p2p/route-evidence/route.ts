@@ -62,6 +62,9 @@ const RelayTransportProofSchema = z.object({
   handshake_ms: z.number().int().nonnegative(),
   payload_bytes_transited: z.number().int().positive(),
   payload_transited_musu_infra: z.boolean(),
+  peer_identity_verified: z.boolean(),
+  peer_identity_method: z.string().min(1),
+  peer_public_key: z.string().min(1),
   encryption: z.string().min(1),
   transport_verified_by: z.string().min(1),
   opened_at: z.string().min(1),
@@ -119,6 +122,7 @@ const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unkn
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
 const DIRECT_ROUTE_KIND_INDEX = new Map(DIRECT_PATH_SELECTION_ORDER.map((kind, index) => [kind, index]));
 
@@ -377,6 +381,21 @@ function relayTransportProofBlockers(evidence: RouteEvidence): string[] {
   if (!proof.payload_transited_musu_infra) {
     blockers.push("relay_route_transport_proof_no_infra_transit");
   }
+  if (!proof.peer_identity_verified) {
+    blockers.push("relay_route_transport_proof_peer_identity_unverified");
+  }
+  if (proof.peer_identity_method.trim() !== (evidence.peer_identity_method?.trim() ?? "")) {
+    blockers.push("relay_route_transport_proof_peer_identity_method_mismatch");
+  }
+  if (proof.peer_public_key.trim() !== (evidence.peer_public_key?.trim() ?? "")) {
+    blockers.push("relay_route_transport_proof_peer_public_key_mismatch");
+  }
+  if (!RELEASE_GRADE_PEER_IDENTITY_METHODS.has(proof.peer_identity_method.trim())) {
+    blockers.push("relay_route_transport_proof_peer_identity_method_not_release_grade");
+  }
+  if (!proof.peer_public_key.trim().startsWith("sha256:")) {
+    blockers.push("relay_route_transport_proof_peer_public_key_not_fingerprint");
+  }
   if (proof.encryption.trim().toLowerCase() !== "quic_tls_1_3") {
     blockers.push("relay_route_transport_proof_not_quic_tls");
   }
@@ -431,6 +450,9 @@ async function relayTransportProofStoreBlockers(
       candidate.transport_kind.trim() === proof.transport_kind.trim() &&
       candidate.payload_bytes_transited === proof.payload_bytes_transited &&
       candidate.payload_transited_musu_infra === proof.payload_transited_musu_infra &&
+      candidate.peer_identity_verified === proof.peer_identity_verified &&
+      candidate.peer_identity_method.trim() === proof.peer_identity_method.trim() &&
+      candidate.peer_public_key.trim() === proof.peer_public_key.trim() &&
       candidate.encryption.trim().toLowerCase() === proof.encryption.trim().toLowerCase() &&
       candidate.transport_verified_by.trim() === proof.transport_verified_by.trim()
     ));

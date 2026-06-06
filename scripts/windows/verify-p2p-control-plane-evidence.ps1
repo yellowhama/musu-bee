@@ -275,6 +275,8 @@ foreach ($record in $routeEvidenceRecords) {
     $recordSessionId = Get-StringProperty -Object $recordEvidence -Name "session_id"
     $recordSourceNodeId = Get-StringProperty -Object $recordEvidence -Name "source_node_id"
     $recordTargetNodeId = Get-StringProperty -Object $recordEvidence -Name "target_node_id"
+    $recordPeerIdentityMethod = Get-StringProperty -Object $recordEvidence -Name "peer_identity_method"
+    $recordPeerPublicKey = Get-StringProperty -Object $recordEvidence -Name "peer_public_key"
     $transportProof = if ($recordEvidence.PSObject.Properties["relay_transport_proof"]) { $recordEvidence.relay_transport_proof } else { $null }
     $transportOpenedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $transportProof -Name "opened_at")
     $transportClosedAtText = Get-StringProperty -Object $transportProof -Name "closed_at"
@@ -303,6 +305,11 @@ foreach ($record in $routeEvidenceRecords) {
         $null -ne $transportPayloadBytes -and
         $transportPayloadBytes -gt 0 -and
         (Get-BoolProperty -Object $transportProof -Name "payload_transited_musu_infra") -and
+        (Get-BoolProperty -Object $transportProof -Name "peer_identity_verified") -and
+        (Get-StringProperty -Object $transportProof -Name "peer_identity_method") -eq $recordPeerIdentityMethod -and
+        $recordPeerIdentityMethod -eq "quic_tls_cert_fingerprint" -and
+        (Get-StringProperty -Object $transportProof -Name "peer_public_key") -eq $recordPeerPublicKey -and
+        $recordPeerPublicKey.StartsWith("sha256:") -and
         (Get-StringProperty -Object $transportProof -Name "encryption") -eq "quic_tls_1_3" -and
         (Get-StringProperty -Object $transportProof -Name "transport_verified_by") -eq "musu_quic_tls_transport" -and
         $null -ne $transportOpenedAt -and

@@ -93,6 +93,9 @@ function relayTransportProof(
     handshake_ms: 23,
     payload_bytes_transited: 128,
     payload_transited_musu_infra: true,
+    peer_identity_verified: hardenedEvidence.peer_identity_verified,
+    peer_identity_method: hardenedEvidence.peer_identity_method,
+    peer_public_key: hardenedEvidence.peer_public_key,
     encryption: "quic_tls_1_3",
     transport_verified_by: "musu_quic_tls_transport",
     opened_at: "2026-06-01T01:00:01Z",
@@ -187,6 +190,9 @@ async function seedRelayTransportProofForEvidence(lease: StoredP2pRelayLease): P
     handshake_ms: 23,
     payload_bytes_transited: 128,
     payload_transited_musu_infra: true,
+    peer_identity_verified: hardenedEvidence.peer_identity_verified,
+    peer_identity_method: hardenedEvidence.peer_identity_method,
+    peer_public_key: hardenedEvidence.peer_public_key,
     encryption: "quic_tls_1_3",
     transport_verified_by: "musu_quic_tls_transport",
     opened_at: "2026-06-01T01:00:01Z",
@@ -755,6 +761,8 @@ test("keeps relay transport proof non release grade when peer binding does not m
       relay_transport_proof: relayTransportProof(lease.lease_id, {
         source_node_id: "other-source",
         target_node_id: "other-target",
+        peer_identity_method: "advertised_tls_cert_fingerprint_unverified",
+        peer_public_key: "sha256:other",
       }),
     }));
     assert.equal(res.status, 202);
@@ -764,6 +772,9 @@ test("keeps relay transport proof non release grade when peer binding does not m
     assert.equal(body.release_grade, false);
     assert.match(blockers, /relay_route_transport_proof_source_mismatch/);
     assert.match(blockers, /relay_route_transport_proof_target_mismatch/);
+    assert.match(blockers, /relay_route_transport_proof_peer_identity_method_mismatch/);
+    assert.match(blockers, /relay_route_transport_proof_peer_identity_method_not_release_grade/);
+    assert.match(blockers, /relay_route_transport_proof_peer_public_key_mismatch/);
   });
 });
 

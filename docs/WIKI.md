@@ -10468,3 +10468,60 @@ Search terms should include `GOAL v657`, `wiki/832`,
 `source_preview_store_forward_payload_queue_non_release_grade`,
 `release verifier 62/62`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Relay Transport Proof Peer Identity Binding (wiki/833)
+
+`musu.relay_transport_proof.v1` now carries peer identity binding fields:
+
+- `peer_identity_verified`
+- `peer_identity_method`
+- `peer_public_key`
+
+Release proof now requires the proof identity to match the route evidence
+identity and to use `quic_tls_cert_fingerprint` with a `sha256:` fingerprint.
+The proof is still also bound to session, lease, source, target, tunnel,
+transport kind, relay URL, payload transit, encryption, verifier, and
+timestamps.
+
+Validation passed P2P targeted tests `105/105`, `npm run typecheck`,
+`cargo check --lib`, `cargo fmt --check`, `cargo test --lib route_evidence`
+with `14 passed`, P2P store-forward relay audit `ok=true`/`fail_count=0`,
+release evidence verifier regressions `ok=true`/`case_count=63`/
+`failed_case_count=0`, and `git diff --check`.
+
+Qualitative audit found no high/medium issue. This is proof-integrity
+hardening, not release relay tunnel implementation. MUSU Desktop remains the
+local executor; MUSU.PRO remains remote input, project/company room,
+rendezvous, path-selection, relay-fallback policy, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TRANSPORT_PROOF_PEER_IDENTITY_BINDING_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_TRANSPORT_PROOF_PEER_IDENTITY_BINDING_2026_06_06.md`
+
+## 2026-06-06 Relay Transport Proof Peer Identity Binding Index Refresh (wiki/834)
+
+MUSU local indexer was refreshed after wiki/833 and GOAL v658.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2627 files`
+- `2754 symbols`
+- `55082 ms`
+
+Indexed context includes relay transport proof peer identity binding code,
+release verifier case `p2p rejects relay route evidence with transport proof
+identity mismatch`, P2P relay contract audit source-contract update, Rust route
+evidence/cloud DTO carry-path updates, canonical report, next-step plan, BETA
+checklist, MUSU.PRO P2P control-plane spec, network boundary spec, GOAL v658,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v659`, `wiki/834`,
+`relay transport proof peer identity binding index refresh`, `2627 files`,
+`2754 symbols`, `55082 ms`, `peer_identity_verified`,
+`peer_identity_method`, `peer_public_key`, `quic_tls_cert_fingerprint`,
+`sha256:`, `release verifier 63/63`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

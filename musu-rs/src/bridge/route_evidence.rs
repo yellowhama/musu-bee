@@ -93,6 +93,9 @@ pub struct RouteRelayTransportProof {
     pub handshake_ms: u64,
     pub payload_bytes_transited: u64,
     pub payload_transited_musu_infra: bool,
+    pub peer_identity_verified: bool,
+    pub peer_identity_method: String,
+    pub peer_public_key: String,
     pub encryption: String,
     pub transport_verified_by: String,
     pub opened_at: String,
@@ -254,6 +257,9 @@ fn cloud_relay_transport_proof(
         handshake_ms: evidence.handshake_ms,
         payload_bytes_transited: evidence.payload_bytes_transited,
         payload_transited_musu_infra: evidence.payload_transited_musu_infra,
+        peer_identity_verified: evidence.peer_identity_verified,
+        peer_identity_method: evidence.peer_identity_method.clone(),
+        peer_public_key: evidence.peer_public_key.clone(),
         encryption: evidence.encryption.clone(),
         transport_verified_by: evidence.transport_verified_by.clone(),
         opened_at: evidence.opened_at.clone(),
@@ -863,6 +869,9 @@ mod tests {
                 handshake_ms: 23,
                 payload_bytes_transited: 128,
                 payload_transited_musu_infra: true,
+                peer_identity_verified: true,
+                peer_identity_method: "quic_tls_cert_fingerprint".to_string(),
+                peer_public_key: "sha256:test".to_string(),
                 encryption: "quic_tls_1_3".to_string(),
                 transport_verified_by: QUIC_TLS_TRANSPORT_VERIFIER.to_string(),
                 opened_at: "2026-06-04T00:00:01Z".to_string(),
@@ -909,6 +918,12 @@ mod tests {
         assert_eq!(transport_proof.transport_kind, "quic_relay_tunnel");
         assert_eq!(transport_proof.payload_bytes_transited, 128);
         assert!(transport_proof.payload_transited_musu_infra);
+        assert!(transport_proof.peer_identity_verified);
+        assert_eq!(
+            transport_proof.peer_identity_method,
+            "quic_tls_cert_fingerprint"
+        );
+        assert_eq!(transport_proof.peer_public_key, "sha256:test");
         assert_eq!(transport_proof.encryption, "quic_tls_1_3");
         assert_eq!(
             transport_proof.transport_verified_by,

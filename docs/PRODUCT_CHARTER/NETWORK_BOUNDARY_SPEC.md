@@ -119,6 +119,20 @@ This reinforces the boundary: MUSU.PRO may coordinate and relay only when
 properly proven, but local MUSU Desktop remains the executor and the preview
 queue cannot be marketed or treated as release-grade remote transport.
 
+## 2026-06-06 Relay Proof Identity Boundary Update
+
+Hosted relay proof must bind peer identity to the relay transport proof itself,
+not only to a surrounding route evidence record.
+
+- release relay proof requires `peer_identity_verified=true`
+- current release method is `quic_tls_cert_fingerprint`
+- peer identity material must be a `sha256:` fingerprint
+- the proof identity must match route evidence identity for the same
+  session/lease/source/target/tunnel
+
+This keeps Connect/Pro relay claims tied to verifiable peer identity while
+MUSU Desktop continues to execute work locally.
+
 ## 2026-06-02 deployment boundary update
 
 The public `musu.pro` website and the `musu.pro` P2P control plane are

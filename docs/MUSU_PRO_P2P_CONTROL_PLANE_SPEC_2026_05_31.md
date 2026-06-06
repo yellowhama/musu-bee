@@ -82,6 +82,17 @@ state. Current status correctly stays No-Go until a distinct release tunnel
 payload endpoint, `quic_relay_tunnel` transport kind, `quic_tls_1_3` proof,
 live route transport proof, and relay payload delivery proof exist.
 
+**2026-06-06 relay transport proof peer identity binding update**:
+`musu.relay_transport_proof.v1` now carries peer identity binding fields:
+`peer_identity_verified`, `peer_identity_method`, and `peer_public_key`. The
+release verifier, route-evidence API, stored proof filter, and Rust cloud DTOs
+now require the relay transport proof identity to match the route evidence
+identity. Current release-grade identity method is
+`quic_tls_cert_fingerprint`, and the public key/fingerprint value must be
+`sha256:`-prefixed. Relay proof is therefore bound to the same session, lease,
+source, target, tunnel, transport kind, encryption proof, and peer identity
+claim before it can help satisfy hosted P2P release evidence.
+
 **2026-06-06 relay transport kind/encryption split update**:
 Relay tunnel kind and encryption/proof are now separate source and evidence
 fields. API preflight/status responses expose

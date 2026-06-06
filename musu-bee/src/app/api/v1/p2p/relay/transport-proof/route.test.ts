@@ -45,6 +45,9 @@ const proofFixture = {
   handshake_ms: 23,
   payload_bytes_transited: 128,
   payload_transited_musu_infra: true,
+  peer_identity_verified: true,
+  peer_identity_method: "quic_tls_cert_fingerprint",
+  peer_public_key: "sha256:test",
   encryption: "quic_tls_1_3",
   transport_verified_by: "musu_quic_tls_transport",
   opened_at: "2026-06-01T01:00:01Z",
@@ -227,6 +230,9 @@ test("stores lease-bound relay transport proof owner-scoped", async () => {
         proof_id: string;
         owner_key?: string;
         lease_id: string;
+        peer_identity_verified: boolean;
+        peer_identity_method: string;
+        peer_public_key: string;
         release_grade: boolean;
       };
     };
@@ -237,6 +243,9 @@ test("stores lease-bound relay transport proof owner-scoped", async () => {
     assert.equal(body.proof.release_grade, true);
     assert.equal(body.proof.owner_key, undefined);
     assert.equal(body.proof.lease_id, lease.lease_id);
+    assert.equal(body.proof.peer_identity_verified, true);
+    assert.equal(body.proof.peer_identity_method, "quic_tls_cert_fingerprint");
+    assert.equal(body.proof.peer_public_key, "sha256:test");
     assert.match(
       body.blockers.join(","),
       /relay_transport_proof_store_backend_not_release_grade/
@@ -249,7 +258,13 @@ test("stores lease-bound relay transport proof owner-scoped", async () => {
       owner_scoped: boolean;
       count: number;
       relay_transport_proof_store_backend: string;
-      proofs: Array<{ owner_key?: string; lease_id: string; tunnel_id: string }>;
+      proofs: Array<{
+        owner_key?: string;
+        lease_id: string;
+        tunnel_id: string;
+        peer_identity_method: string;
+        peer_public_key: string;
+      }>;
     };
     assert.equal(getBody.schema, "musu.p2p_relay_transport_proofs.v1");
     assert.equal(getBody.owner_scoped, true);
@@ -258,6 +273,8 @@ test("stores lease-bound relay transport proof owner-scoped", async () => {
     assert.equal(getBody.proofs[0]?.owner_key, undefined);
     assert.equal(getBody.proofs[0]?.lease_id, lease.lease_id);
     assert.equal(getBody.proofs[0]?.tunnel_id, proofFixture.tunnel_id);
+    assert.equal(getBody.proofs[0]?.peer_identity_method, "quic_tls_cert_fingerprint");
+    assert.equal(getBody.proofs[0]?.peer_public_key, "sha256:test");
   });
 });
 
@@ -271,6 +288,9 @@ test("stores invalid proof as non release grade when lease binding exists", asyn
       lease_id: lease.lease_id,
       transport_kind: "websocket_tunnel",
       payload_transited_musu_infra: false,
+      peer_identity_verified: false,
+      peer_identity_method: "advertised_tls_cert_fingerprint_unverified",
+      peer_public_key: "not-a-fingerprint",
       opened_at: "2026-06-01T01:00:02Z",
       closed_at: "2026-06-01T01:00:01Z",
     }));
@@ -288,6 +308,9 @@ test("stores invalid proof as non release grade when lease binding exists", asyn
     assert.equal(body.proof.release_grade, false);
     assert.match(body.blockers.join(","), /relay_transport_proof_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_transport_proof_no_infra_transit/);
+    assert.match(body.blockers.join(","), /relay_transport_proof_peer_identity_unverified/);
+    assert.match(body.blockers.join(","), /relay_transport_proof_peer_identity_method_not_release_grade/);
+    assert.match(body.blockers.join(","), /relay_transport_proof_peer_public_key_not_fingerprint/);
     assert.match(body.blockers.join(","), /relay_transport_proof_timestamp_order_invalid/);
   });
 });
