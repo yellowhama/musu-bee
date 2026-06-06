@@ -491,3 +491,19 @@ Validation and indexing:
 - dirty go/no-go smoke confirmed the env surface stays fail-closed with
   `p2p_control_plane_env_ready=false` and `12` concrete P2P blockers
 - MUSU local indexer refreshed `2799 files`, `2776 symbols`, in `18256 ms`
+
+## 2026-06-07 relay tunnel marker conflict gate
+
+P2P env status now checks for marker-only release relay tunnel flips.
+
+Runtime stabilization impact:
+
+- `/api/v1/relay/payload` being preflight-only is now explicit in source status
+- missing Rust release tunnel hooks are listed before marker flips are allowed
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true` cannot hide a preflight-only route
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` cannot hide missing local runtime
+  submit/accept/proof hooks
+
+Validation passed with release verifier `case_count=97` and
+`failed_case_count=0`. This is not relay tunnel implementation; it protects the
+release gate before the actual runtime work starts.

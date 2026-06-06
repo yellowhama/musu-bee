@@ -158,7 +158,12 @@ function Get-SourceRelayMarker {
         release_payload_preflight_endpoint_implemented = $false
         relay_payload_queue_endpoint_implemented = $false
         release_relay_tunnel_runtime_implemented = $false
+        release_relay_tunnel_runtime_source_contract_ready = $false
+        release_relay_tunnel_runtime_missing_source_hooks = @()
         release_tunnel_payload_endpoint_missing = $false
+        release_payload_preflight_only = $false
+        release_payload_endpoint_marker_conflicts_with_preflight_only = $false
+        release_relay_tunnel_runtime_marker_conflicts_with_source_contract = $false
         release_connect_fail_closed_placeholder_active = $false
         preview_store_forward_payload_queue_non_release_grade = $false
         release_payload_endpoint_queue_only = $false
@@ -198,6 +203,13 @@ function Get-SourceRelayMarker {
             [regex]::IsMatch($releasePayloadRouteText, 'relay_payload_endpoint_not_wired') -and
             -not [regex]::IsMatch($releasePayloadRouteText, 'appendRelayPayload')
         )
+        $summary.release_payload_preflight_only = (
+            [bool]$summary.release_payload_preflight_endpoint_implemented -and
+            [regex]::IsMatch($releasePayloadRouteText, 'release_payload_accepted:\s*false') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'payload_transported:\s*false') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'releasePayloadBlocked') -and
+            -not [regex]::IsMatch($releasePayloadRouteText, 'markRelayPayloadDelivered')
+        )
         $summary.relay_payload_queue_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.release_connect_fail_closed_placeholder_active = (
             [regex]::IsMatch($connectRouteText, 'relay_payload_transport_not_implemented') -and
@@ -213,6 +225,33 @@ function Get-SourceRelayMarker {
         # Backward-compatible alias for older evidence/readers. The value describes
         # the preview store-forward queue, not the release /api/v1/relay/payload preflight endpoint.
         $summary.release_payload_endpoint_queue_only = $summary.preview_store_forward_payload_queue_non_release_grade
+        $requiredReleaseTunnelHooks = [ordered]@{
+            rust_source_submit_release_relay_tunnel_payload = [regex]::IsMatch($rustRendezvousText, 'submit_release_relay_tunnel_payload')
+            rust_target_accept_release_relay_tunnel_payload = [regex]::IsMatch($rustRelayPayloadDrainText, 'accept_release_relay_tunnel_payload')
+            rust_transport_emits_quic_relay_tunnel_proof = (
+                [regex]::IsMatch($rustRendezvousText, 'quic_relay_tunnel') -and
+                [regex]::IsMatch($rustRendezvousText, 'musu_quic_tls_transport')
+            )
+            rust_delivery_records_release_relay_tunnel_payload = (
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'quic_relay_tunnel') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'release_grade:\s*true')
+            )
+        }
+        $missingReleaseTunnelHooks = @(
+            $requiredReleaseTunnelHooks.Keys |
+                Where-Object { -not [bool]$requiredReleaseTunnelHooks[$_] } |
+                ForEach-Object { [string]$_ }
+        )
+        $summary.release_relay_tunnel_runtime_missing_source_hooks = @($missingReleaseTunnelHooks)
+        $summary.release_relay_tunnel_runtime_source_contract_ready = ($missingReleaseTunnelHooks.Count -eq 0)
+        $summary.release_payload_endpoint_marker_conflicts_with_preflight_only = (
+            [bool]$summary.relay_payload_endpoint_implemented -and
+            [bool]$summary.release_payload_preflight_only
+        )
+        $summary.release_relay_tunnel_runtime_marker_conflicts_with_source_contract = (
+            [bool]$summary.release_relay_tunnel_runtime_implemented -and
+            -not [bool]$summary.release_relay_tunnel_runtime_source_contract_ready
+        )
         $queueFallbackComponents = [pscustomobject]@{
             policy_marker = [bool]$summary.relay_payload_queue_endpoint_implemented
             web_queue_store_claim_deliver = (
@@ -496,6 +535,12 @@ else {
     if ($sourceSummary.relay_payload_endpoint_implemented -and $sourceSummary.preview_store_forward_payload_queue_non_release_grade) {
         $blockers.Add("source_release_relay_payload_marker_conflicts_with_preview_queue_only") | Out-Null
     }
+    if ($sourceSummary.release_payload_endpoint_marker_conflicts_with_preflight_only) {
+        $blockers.Add("source_release_relay_payload_marker_conflicts_with_preflight_only") | Out-Null
+    }
+    if ($sourceSummary.release_relay_tunnel_runtime_marker_conflicts_with_source_contract) {
+        $blockers.Add("source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract") | Out-Null
+    }
     if ($sourceSummary.release_grade_transport_required -ne "quic_tls_1_3") {
         $blockers.Add("source_release_transport_requirement_not_quic_tls") | Out-Null
     }
@@ -574,6 +619,12 @@ if ($blockers -contains "source_release_relay_tunnel_runtime_not_implemented") {
     $nextSteps.Add("Implement the local release relay tunnel runtime before setting RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true; DTO/proof recorders and preview queues are not enough.") | Out-Null
     $nextSteps.Add("The runtime implementation must move payload bytes through an actual quic_relay_tunnel path and emit MUSU-bound quic_tls_1_3 transport proof before relay_transport_wired can pass.") | Out-Null
 }
+if ($blockers -contains "source_release_relay_payload_marker_conflicts_with_preflight_only") {
+    $nextSteps.Add("Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only release_payload_accepted=false and payload_transported=false responses.") | Out-Null
+}
+if ($blockers -contains "source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract") {
+    $nextSteps.Add("Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks and quic_relay_tunnel quic_tls_1_3 payload proof emission.") | Out-Null
+}
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
     $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release relay tunnel kind quic_relay_tunnel; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
 }
@@ -648,7 +699,12 @@ else {
     "source release relay payload endpoint implemented: $($result.source.relay_payload_endpoint_implemented)"
     "source release tunnel payload endpoint missing: $($result.source.release_tunnel_payload_endpoint_missing)"
     "source release relay tunnel runtime implemented: $($result.source.release_relay_tunnel_runtime_implemented)"
+    "source release relay tunnel runtime source contract ready: $($result.source.release_relay_tunnel_runtime_source_contract_ready)"
+    "source release relay tunnel runtime missing source hooks: $((@($result.source.release_relay_tunnel_runtime_missing_source_hooks) -join ', '))"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
+    "source release payload preflight only: $($result.source.release_payload_preflight_only)"
+    "source release payload marker conflicts with preflight only: $($result.source.release_payload_endpoint_marker_conflicts_with_preflight_only)"
+    "source release relay tunnel runtime marker conflicts with source contract: $($result.source.release_relay_tunnel_runtime_marker_conflicts_with_source_contract)"
     "source preview store-forward payload queue non-release-grade: $($result.source.preview_store_forward_payload_queue_non_release_grade)"
     "source relay transport kind: $($result.source.relay_transport_kind)"
     "source release relay transport kind required: $($result.source.release_grade_relay_transport_kind)"

@@ -1139,3 +1139,17 @@ This keeps the product split intact: MUSU Desktop does the work locally, and
 MUSU.PRO coordinates input, rooms, rendezvous, path selection, relay fallback,
 and evidence.
 
+## 2026-06-07 release relay tunnel marker boundary
+
+Release relay readiness cannot be declared by policy markers alone.
+
+Boundary implications:
+
+- preflight-only `/api/v1/relay/payload` remains control-plane metadata, not a
+  payload tunnel;
+- preview store-forward queues remain non-release-grade;
+- Rust must implement release tunnel submit/accept and emit
+  `quic_relay_tunnel` plus `quic_tls_1_3` payload proof before the release
+  markers can become true;
+- marker-only flips must produce source conflict blockers in P2P env status.
+

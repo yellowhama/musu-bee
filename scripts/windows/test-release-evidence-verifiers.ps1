@@ -916,6 +916,34 @@ function Test-P2pEnvStatusReleasePayloadTerminologyContract {
     return $true
 }
 
+function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'release_relay_tunnel_runtime_source_contract_ready',
+        'release_relay_tunnel_runtime_missing_source_hooks',
+        'release_payload_preflight_only',
+        'release_payload_endpoint_marker_conflicts_with_preflight_only',
+        'release_relay_tunnel_runtime_marker_conflicts_with_source_contract',
+        'rust_source_submit_release_relay_tunnel_payload',
+        'rust_target_accept_release_relay_tunnel_payload',
+        'rust_transport_emits_quic_relay_tunnel_proof',
+        'rust_delivery_records_release_relay_tunnel_payload',
+        'source_release_relay_payload_marker_conflicts_with_preflight_only',
+        'source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract',
+        'Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only',
+        'Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-GoNoGoP2pEnvStatusSurfaceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2247,6 +2275,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "P2P env status separates release payload terminology" `
+    -Verifier "P2P env status source contract" `
+    -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$p2pEnvStatusReleaseTunnelMarkerConflictContractOk = Test-P2pEnvStatusReleaseTunnelMarkerConflictContract -ScriptPath $p2pEnvStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pEnvStatusReleaseTunnelMarkerConflictContractOk `
+    -Message "P2P env status must reject marker-only release relay tunnel flips when release payload is still preflight-only or Rust tunnel hooks are missing"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P env status rejects marker-only relay tunnel flips" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
     -ShouldPass $true `

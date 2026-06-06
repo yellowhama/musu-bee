@@ -541,3 +541,20 @@ Current blocker split:
 
 This keeps the gate fail-closed and makes the next implementation work visible
 without changing the local-executor / MUSU.PRO control-plane boundary.
+
+## 2026-06-07 release tunnel marker conflict rule
+
+P2P env status now rejects marker-only release relay tunnel flips.
+
+The release tunnel is not considered source-ready unless these source hooks are
+present:
+
+- `rust_source_submit_release_relay_tunnel_payload`
+- `rust_target_accept_release_relay_tunnel_payload`
+- `rust_transport_emits_quic_relay_tunnel_proof`
+- `rust_delivery_records_release_relay_tunnel_payload`
+
+If release markers claim readiness while `/api/v1/relay/payload` is still
+preflight-only or those hooks are missing, env status emits source conflict
+blockers. This prevents the preview store-forward queue and proof DTOs from
+being mistaken for a real `quic_relay_tunnel` payload path.

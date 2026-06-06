@@ -9129,6 +9129,15 @@ Index refresh:
 
 - command:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2802 files`
+- `2776 symbols`
+- `15049 ms`
+- wiki: `wiki/918`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2796 files`
 - `2776 symbols`
 - `15618 ms`
@@ -9180,3 +9189,44 @@ Validation and index refresh:
 - MUSU indexer:
   `2799 files`, `2776 symbols`, `18256 ms`
 - wiki: `wiki/916`
+
+## 2026-06-07 03:51 KST Relay Tunnel Marker Conflict Gate
+
+P2P env status now rejects marker-only release relay tunnel flips.
+
+Changed:
+
+- `show-musu-pro-p2p-env-status.ps1` emits
+  `release_relay_tunnel_runtime_source_contract_ready`
+- it emits `release_relay_tunnel_runtime_missing_source_hooks`
+- it emits `release_payload_preflight_only`
+- it emits `release_payload_endpoint_marker_conflicts_with_preflight_only`
+- it emits `release_relay_tunnel_runtime_marker_conflicts_with_source_contract`
+- release verifier regression added
+  `P2P env status rejects marker-only relay tunnel flips`
+
+Current source status:
+
+- release relay tunnel source contract is not ready
+- missing hooks:
+  `rust_source_submit_release_relay_tunnel_payload`,
+  `rust_target_accept_release_relay_tunnel_payload`,
+  `rust_transport_emits_quic_relay_tunnel_proof`,
+  `rust_delivery_records_release_relay_tunnel_payload`
+- `/api/v1/relay/payload` is still preflight-only
+- marker conflict blockers are false because release markers are still false
+
+Validation:
+
+- parser checks: pass
+- P2P env status smoke: expected No-Go, `12` blockers
+- release evidence verifier regression: `ok=true`, `case_count=97`,
+  `failed_case_count=0`
+
+Release interpretation:
+
+- this does not implement release relay tunnel payload transport
+- it prevents preflight-only endpoints and preview queues from being marked
+  release-grade by marker flips alone
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof

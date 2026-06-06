@@ -13326,3 +13326,76 @@ go/no-go index refresh`, `2799 files`, `2776 symbols`, `18256 ms`,
 `p2p_control_plane_env_status`, `case_count=96`,
 `source_release_relay_tunnel_runtime_not_implemented`, and
 `source_release_relay_payload_endpoint_not_implemented`.
+
+## 2026-06-07 Relay Tunnel Marker Conflict Gate (wiki/917)
+
+`show-musu-pro-p2p-env-status.ps1` now detects marker-only release relay
+tunnel flips.
+
+Changed:
+
+- source status emits `release_relay_tunnel_runtime_source_contract_ready`
+- source status emits `release_relay_tunnel_runtime_missing_source_hooks`
+- source status emits `release_payload_preflight_only`
+- source status emits
+  `release_payload_endpoint_marker_conflicts_with_preflight_only`
+- source status emits
+  `release_relay_tunnel_runtime_marker_conflicts_with_source_contract`
+- env status adds conflict blockers if release markers are true while source
+  is still preflight-only or missing release tunnel hooks
+- release verifier regression adds
+  `P2P env status rejects marker-only relay tunnel flips`
+
+Current smoke:
+
+- blocker count remains `12`
+- `release_relay_tunnel_runtime_source_contract_ready=false`
+- missing hooks:
+  `rust_source_submit_release_relay_tunnel_payload`,
+  `rust_target_accept_release_relay_tunnel_payload`,
+  `rust_transport_emits_quic_relay_tunnel_proof`,
+  `rust_delivery_records_release_relay_tunnel_payload`
+- `release_payload_preflight_only=true`
+- marker conflict blockers are false because the release markers are still
+  correctly false
+
+Validation:
+
+- parser checks passed
+- P2P env status smoke preserved existing blocker count
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=97`, and `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This is source gate hardening,
+not release tunnel implementation. It prevents preflight-only endpoints,
+preview queues, DTOs, or proof recorders from being treated as the real
+`quic_relay_tunnel` payload path.
+
+Search terms should include `GOAL v742`, `wiki/917`,
+`release_relay_tunnel_runtime_source_contract_ready`,
+`release_relay_tunnel_runtime_missing_source_hooks`,
+`release_payload_preflight_only`,
+`source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract`,
+`source_release_relay_payload_marker_conflicts_with_preflight_only`, and
+`case_count=97`.
+
+## 2026-06-07 Relay Tunnel Marker Conflict Gate Index Refresh (wiki/918)
+
+MUSU local indexer was refreshed after wiki/917 and GOAL v742.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2802 files`
+- `2776 symbols`
+- `15049 ms`
+
+Indexed context includes `show-musu-pro-p2p-env-status.ps1` marker conflict
+fields, release verifier regression `case_count=97`, canonical report,
+next-step plan, BETA checklist, MUSU.PRO P2P control-plane spec, P2P
+control-plane notes, runtime stabilization spec, network boundary spec, GOAL,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v743`, `wiki/918`, `relay tunnel marker
+conflict gate index refresh`, `2802 files`, `2776 symbols`, `15049 ms`,
+`release_relay_tunnel_runtime_source_contract_ready`,
+`release_payload_preflight_only`, and `case_count=97`.

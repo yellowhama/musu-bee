@@ -2014,3 +2014,28 @@ Current release interpretation:
 This status surface is not a relay implementation. MUSU.PRO remains remote
 input, room, rendezvous, path-selection, relay fallback, and evidence/control
 plane. MUSU Desktop remains the local executor.
+
+## 2026-06-07 release relay tunnel marker conflict rule
+
+Release source markers are not sufficient proof.
+
+Normative behavior:
+
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true` is invalid while
+  `/api/v1/relay/payload` is still preflight-only and returns
+  `release_payload_accepted=false` or `payload_transported=false`.
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` is invalid while Rust source is
+  missing release tunnel submit/accept hooks and `quic_relay_tunnel`
+  `quic_tls_1_3` payload proof emission.
+- P2P env status must surface missing source hooks and add source conflict
+  blockers when markers claim release readiness too early.
+
+Current required hooks before release tunnel runtime can be marked ready:
+
+- `rust_source_submit_release_relay_tunnel_payload`
+- `rust_target_accept_release_relay_tunnel_payload`
+- `rust_transport_emits_quic_relay_tunnel_proof`
+- `rust_delivery_records_release_relay_tunnel_payload`
+
+This keeps MUSU.PRO on the control-plane path and prevents the preview
+store-forward queue from being treated as the release relay tunnel.

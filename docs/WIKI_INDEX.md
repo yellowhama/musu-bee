@@ -6124,4 +6124,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_tunnel_runtime_not_implemented`, and
   `source_release_relay_payload_endpoint_not_implemented`.
 
+- 2026-06-07 relay tunnel marker conflict gate:
+  `RELEASE_1_15_0_RC1_RELAY_TUNNEL_MARKER_CONFLICT_GATE_2026_06_07.md`
+  (wiki/917) records P2P env status hardening that rejects marker-only release
+  relay tunnel flips while `/api/v1/relay/payload` is still preflight-only or
+  Rust release tunnel hooks are missing. Search terms should include
+  `GOAL v742`, `wiki/917`,
+  `release_relay_tunnel_runtime_source_contract_ready`,
+  `release_relay_tunnel_runtime_missing_source_hooks`,
+  `release_payload_preflight_only`,
+  `source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract`,
+  `source_release_relay_payload_marker_conflicts_with_preflight_only`, and
+  `case_count=97`.
+
+- 2026-06-07 relay tunnel marker conflict gate index refresh:
+  wiki/918 records the MUSU local index refresh after wiki/917 and GOAL v742.
+  Search terms should include `GOAL v743`, `wiki/918`, `2802 files`,
+  `2776 symbols`, `15049 ms`, `relay tunnel marker conflict gate index
+  refresh`, `release_relay_tunnel_runtime_source_contract_ready`,
+  `release_payload_preflight_only`, and `case_count=97`.
+
 **End of WIKI_INDEX.md.**
