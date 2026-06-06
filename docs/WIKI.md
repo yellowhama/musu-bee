@@ -11309,3 +11309,67 @@ route-attempt CPU index refresh`, `2691 files`, `2776 symbols`, `56299 ms`,
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`, `failure_allowed=true`,
 `WebView2 0.03`, `hot process count 0`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current Code Audit, Product Spec, and Next Steps (wiki/861)
+
+Current clean HEAD `c879a849f403aadefdd071a012aaa4cd304cbf24` was audited
+after targeted HUGH-MAIN route-attempt CPU evidence.
+
+Validation:
+
+- `npm run test:p2p`: `111/111`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- Rust background-loop contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+- clean go/no-go at `2026-06-06T17:48:59+09:00`: public metadata, local
+  artifacts, MSIX install, and single-machine evidence pass; public release
+  remains No-Go
+
+Qualitative audit found no high/medium code issue in the audited source
+surfaces.
+
+Current product spec:
+
+- MUSU Desktop is the local executor on each device.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- `localhost:3001` is not the packaged desktop runtime contract.
+- hosted relay is fallback-only and non-default until real `quic_relay_tunnel`
+  and `quic_tls_1_3` proof exist.
+
+Remaining release blockers are second-PC route/CPU/matrix evidence, live
+MUSU.PRO P2P proof, production runtime login, KV/Upstash relay lease storage,
+release relay tunnel runtime, release payload endpoint, relay route transport
+proof, relay payload delivery proof, support mailbox evidence, and
+Store/Partner Center evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_AUDIT_AND_INDEX_2026_06_06.md`
+
+## 2026-06-06 Current Code Audit Product Spec Index Refresh (wiki/862)
+
+MUSU local indexer was refreshed after wiki/861 and GOAL v686.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2694 files`
+- `2776 symbols`
+- `12906 ms`
+
+Indexed context includes current code audit report, current next-step plan,
+BETA checklist update, MUSU.PRO P2P control-plane spec update, network boundary
+spec update, WIKI/WIKI_INDEX, GOAL v686, and CoS memory.
+
+Search terms should include `GOAL v687`, `wiki/862`, `current code audit
+product spec index refresh`, `2694 files`, `2776 symbols`, `12906 ms`,
+`c879a849f403aadefdd071a012aaa4cd304cbf24`, `P2P tests 111/111`,
+`release verifier 66/66`, `MUSU Desktop local executor`, `MUSU.PRO remote input
+control plane`, and `localhost:3001 is not the packaged desktop runtime
+contract`.

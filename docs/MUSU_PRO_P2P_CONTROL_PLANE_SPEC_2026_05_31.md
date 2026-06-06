@@ -1716,3 +1716,31 @@ Release interpretation:
 - store-forward relay payloads remain preview/non-release transport;
 - `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` still blocks release relay transport;
 - fresh packaged evidence is required because runtime source changed.
+
+## 2026-06-06 current audit boundary
+
+Current HEAD `c879a849f403aadefdd071a012aaa4cd304cbf24` keeps the MUSU.PRO
+control-plane boundary unchanged.
+
+Normative spec state:
+
+- MUSU Desktop executes local work on each device.
+- MUSU.PRO may accept remote user input, host project/company rooms, host AI
+  meeting-room coordination state, exchange presence, coordinate rendezvous,
+  help with path selection, coordinate relay fallback, and store evidence.
+- MUSU.PRO must not become the default executor.
+- MUSU.PRO relay must not become the default data path.
+- `localhost:3001` is not a packaged desktop runtime dependency.
+- Release relay proof requires a real local `quic_relay_tunnel` runtime,
+  `quic_tls_1_3` transport proof, owner-scoped route evidence, and payload
+  delivery proof.
+
+Current implementation status:
+
+- store-forward queue fallback: implemented and audited
+- release relay connect preflight: implemented and fail-closed
+- release relay payload preflight: implemented and fail-closed
+- release relay payload endpoint: not implemented
+- release relay tunnel runtime: not implemented
+- live P2P evidence: not verified
+- current public release state: No-Go

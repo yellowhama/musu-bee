@@ -5608,4 +5608,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `WebView2 0.03`, `hot process count 0`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current code audit, product spec, and next steps:
+  `RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+  (wiki/861) records the current qualitative code audit and product boundary
+  after targeted HUGH-MAIN route-attempt CPU evidence. Search terms should
+  include `GOAL v686`, `wiki/861`,
+  `c879a849f403aadefdd071a012aaa4cd304cbf24`, `P2P tests 111/111`,
+  `release verifier 66/66`, `p2p env status ok=false`,
+  `source_release_relay_payload_endpoint_not_implemented`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `p2p_runtime_not_logged_in`, `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`,
+  `MUSU Desktop local executor`, `MUSU.PRO remote input control plane`, and
+  `localhost:3001 is not the packaged desktop runtime contract`.
+
+- 2026-06-06 current code audit product spec index refresh:
+  wiki/862 records the MUSU local index refresh after wiki/861 and GOAL v686.
+  Search terms should include `GOAL v687`, `wiki/862`, `2694 files`,
+  `2776 symbols`, `12906 ms`, `current code audit product spec index refresh`,
+  `c879a849f403aadefdd071a012aaa4cd304cbf24`, `P2P tests 111/111`,
+  `release verifier 66/66`, `MUSU Desktop local executor`, `MUSU.PRO remote
+  input control plane`, and `localhost:3001 is not the packaged desktop runtime
+  contract`.
+
 **End of WIKI_INDEX.md.**

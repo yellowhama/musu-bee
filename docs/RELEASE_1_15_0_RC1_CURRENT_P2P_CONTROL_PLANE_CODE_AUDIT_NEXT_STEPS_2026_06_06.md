@@ -1,150 +1,178 @@
-# MUSU 1.15.0-rc.1 Current P2P Control-Plane Code Audit and Next Steps
+# MUSU 1.15.0-rc.1 Current Code Audit, Product Spec, and Next Steps
 
-Generated: 2026-06-06 05:00 KST
+Generated: 2026-06-06 17:50 KST
 
-## Executive Assessment
+HEAD: `c879a849f403aadefdd071a012aaa4cd304cbf24`
 
-Current local desktop/runtime evidence is healthy for one machine, but public
-desktop release is still No-Go.
+## Findings
 
-The product boundary is correct and should stay explicit:
+No high or medium code defect was found in the audited source surfaces.
 
-- MUSU Desktop is the local executor on each device.
-- MUSU.PRO is remote input, project/company room coordination, rendezvous,
-  path selection, relay-fallback policy, and evidence/control coordination.
-- MUSU.PRO should help devices find each other and coordinate ownership; after
-  that, work should execute locally and prefer direct P2P mesh paths.
-- Hosted relay remains fallback-only and non-default until release-grade relay
-  tunnel payload transport and proof are implemented.
+The current public desktop release is still No-Go. The blocker is not the
+local packaged desktop runtime, and it is not `localhost:3001`. The remaining
+release failures are external proof gaps and one intentionally missing
+release-grade relay implementation:
 
-Qualitatively, the architecture is now safer than the earlier localhost
-dashboard assumption: the local program no longer depends on a repo dashboard at
-`127.0.0.1:3001`, and packaged bridge-only runtime evidence is accepted only
-when it proves installed WindowsApps identity. The weak point is not local CPU
-or local desktop startup on HUGH_SECOND. The weak point is missing real
-multi-device evidence and missing live `musu.pro` owner-scoped relay proof.
+- no successful current two-machine multi-device route evidence
+- runtime idle CPU evidence is valid on `1/2` required machines
+- runtime CPU scenario matrix evidence is valid on `1/2` required machines
+- live `https://musu.pro` P2P control-plane evidence is not verified
+- production runtime is not logged in for the latest hosted P2P evidence
+- production KV/Upstash relay lease storage env is missing
+- release relay payload endpoint remains `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- local release relay tunnel runtime remains `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- relay transport kind remains preview/non-release `websocket_tunnel`, not `quic_relay_tunnel`
+- no live owner-scoped relay route transport proof
+- no live relay payload delivery proof
+- support mailbox and Store/Partner Center evidence are not complete
 
-## Current Gate Snapshot
+## Product Spec State
 
-Clean go/no-go on `eb8484ff4ab29a8db6c7f5b5f6841f7e246dd438` with public
-metadata skipped reported:
+The product boundary is now explicit and should remain the release contract:
+
+1. MUSU Desktop is the local executor on each device.
+2. MUSU.PRO is remote input, project/company room coordination, AI meeting
+   room state, presence, rendezvous, path selection, relay fallback policy,
+   and evidence/control plane.
+3. A user may submit work from another place through MUSU.PRO, but actual
+   execution remains on the owner-scoped local MUSU runtime.
+4. MUSU.PRO may bootstrap device discovery and make peer connection easier,
+   then devices should prefer direct P2P mesh paths.
+5. Path priority remains `lan -> tailscale -> direct_quic -> relay`.
+6. Hosted relay is fallback-only and non-default. It cannot be considered
+   release-grade until a real `quic_relay_tunnel` moves payload bytes and emits
+   `quic_tls_1_3` relay transport proof plus payload delivery proof.
+7. Preview store-forward queue behavior is useful for diagnostics and fallback
+   experiments, but it must stay non-release-grade.
+
+## Current Evidence Snapshot
+
+Clean go/no-go at `2026-06-06T17:48:59+09:00` reported:
 
 - `ready_for_public_desktop_release=false`
 - `local_artifacts_ready=true`
 - `single_machine_verified=true`
-- `runtime_idle_cpu_valid_machine_count=1`
-- `runtime_cpu_scenario_matrix_valid_machine_count=1`
-- `runtime_cpu_second_pc_route_attempt_verified=true`
-- `p2p_control_plane_verified=false`
+- `msix_install_verified=true`
+- `public_metadata_checked=true`
+- `public_metadata_ok=true`
+- `multi_device_verified=false`
+- `manifest_git.commit=c879a849f403aadefdd071a012aaa4cd304cbf24`
 - `manifest_git.dirty=false`
 
-Open public-release blockers:
+Latest local packaged evidence remains valid:
 
-- real second-PC multi-device evidence has not been recorded
-- runtime idle CPU evidence must pass on at least 2 machines
-- runtime CPU scenario matrix evidence must pass on at least 2 machines
-- public privacy/support metadata verification was skipped in this recheck
-- `musu@musu.pro` delivery is not operator-verified
-- Microsoft Store/Partner Center release evidence is not recorded
-- live `https://musu.pro` P2P control-plane evidence does not yet prove
-  owner-scoped release-grade relay storage, transport, route evidence, and
-  delivery proof
+- MSIX install:
+  `docs\evidence\msix-install\1.15.0-rc.1\20260606-171011-HUGH_SECOND.evidence.json`
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260606-170759-HUGH_SECOND.evidence.json`
+- desktop-open CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260606-171154-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-171403-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted failed HUGH-MAIN route-attempt CPU diagnostic:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-173706-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 
-## P2P/MUSU.PRO Status
+The targeted HUGH-MAIN diagnostic is useful but not a successful two-machine
+proof. It shows the current packaged desktop remains under resource budget
+after a failed route attempt to `http://192.168.1.192:8949/api/tasks/delegate`.
 
-`show-musu-pro-p2p-env-status.ps1 -Json` currently reports `ok=false`.
+## P2P Control-Plane Status
 
-Source/runtime interpretation:
+`show-musu-pro-p2p-env-status.ps1 -Json` at `2026-06-06T17:47:17+09:00`
+reported `ok=false`.
 
-- store-forward queue fallback is implemented and audited
-- release payload preflight is implemented and fail-closed
-- real release relay payload endpoint remains intentionally not implemented
-- current relay transport kind is still not release-grade
-- live KV/Upstash relay lease storage env is missing
-- live relay route proof is missing
-- live relay payload delivery proof is missing
+Important status fields:
 
-This is the correct release posture. It prevents the preview queue or a
-websocket descriptor from being mislabeled as release-grade relay transport.
+- source relay connect endpoint implemented: `true`
+- release payload preflight endpoint implemented: `true`
+- store-forward queue endpoint implemented: `true`
+- release relay payload endpoint implemented: `false`
+- release relay tunnel runtime implemented: `false`
+- relay payload queue fallback implemented: `true`
+- relay transport kind: `websocket_tunnel`
+- required release relay transport kind: `quic_relay_tunnel`
+- required transport proof: `quic_tls_1_3`
+- GitHub/Vercel storage env missing:
+  `KV_REST_API_URL_OR_UPSTASH_REDIS_REST_URL`,
+  `KV_REST_API_TOKEN_OR_UPSTASH_REDIS_REST_TOKEN`
+- latest live P2P evidence error class: `p2p_runtime_not_logged_in`
+- relay route evidence count: `0`
+- relay route transport proof valid count: `0`
+- relay payload delivery proof valid count: `0`
 
-## Code Audit
+This is a correct fail-closed state. It prevents env flags, a websocket
+descriptor, or the preview queue from masquerading as release relay transport.
 
-No high or medium issue was found in the audited surfaces.
-
-Audited high-risk surfaces:
-
-- owner-scoped P2P auth and room/rendezvous state
-- relay lease fallback policy
-- non-release store-forward payload queue
-- release `/api/v1/relay/payload` preflight
-- route evidence release-grade filtering
-- relay payload target drain and delivery proof recording
-- Rust background loop, watcher, and poller contracts
-- release evidence verifiers and go/no-go output
+## Validation
 
 Validation passed:
 
-- `npm run test:p2p`: `90/90`
+- `npm run test:p2p`: `111/111`
 - `npm run typecheck`
 - `scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -Json`:
   `ok=true`, `fail_count=0`
 - `scripts\windows\audit-rust-background-loop-contract.ps1 -Json`:
-  `ok=true`, `fail_count=0`, unaudited loop/spawn/network watcher hits `0`
+  `ok=true`, `fail_count=0`
+- Rust background-loop audit unaudited loop/spawn/network watcher hits: `0`
 - `scripts\windows\test-release-evidence-verifiers.ps1 -Json`:
-  `ok=true`, `case_count=51`, `failed_case_count=0`
-- `cargo test --lib relay_payload`: `24/24`
-- `cargo check --bin musu`
-- `git diff --check`
+  `ok=true`, `case_count=66`, `failed_case_count=0`
+- `scripts\windows\write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json`
+  completed and confirmed clean git, public metadata pass, local artifact pass,
+  single-machine pass, and public release No-Go
 
-Residual risks are evidence and deployment gaps, not newly found code defects:
+## Qualitative Evaluation
 
-- no successful current-build second-PC route evidence
-- no second machine idle CPU/matrix evidence
-- no production KV/Upstash relay lease proof
-- no release-grade relay tunnel payload transport
-- no live relay payload delivery proof
-- no support mailbox or Store release evidence
+The current system is in a better shape than the earlier localhost-dashboard
+mental model. Packaged MUSU Desktop is validated as a local program with
+bridge-only local evidence and WindowsApps identity, and the web dashboard is
+not a hidden runtime dependency.
 
-## Product Spec Update
+The codebase is deliberately conservative around hosted P2P. That is the
+right release posture: the preview store-forward queue can prove metadata flow
+and fallback mechanics, but it cannot close the release relay tunnel gate. The
+remaining risky area is not a hidden busy loop or local startup defect on
+`HUGH_SECOND`; it is the absence of real second-PC proof and the absence of
+production release-grade relay tunnel proof.
 
-The current product spec should be read as:
+Qualitative readiness:
 
-1. Local program first: each device must run MUSU Desktop/bridge locally and
-   execute local work locally.
-2. Web input/control plane: MUSU.PRO can accept remote user input and route it
-   to the correct owner-scoped local runtime.
-3. Meeting room/project room: MUSU.PRO may host project/company room state so
-   the AIs attached to the same project can coordinate.
-4. Web-assisted P2P bootstrap: MUSU.PRO can exchange presence, NAT/candidate
-   metadata, relay fallback descriptors, and route evidence so devices can
-   connect more easily.
-5. P2P preferred path: after rendezvous/path selection, direct P2P mesh should
-   be preferred for actual device-to-device work.
-6. Relay fallback: hosted relay is fallback-only, non-default, owner-scoped, and
-   release-blocked until release-grade relay tunnel transport and proof exist.
-7. Truthful degraded state: web/API surfaces must label missing or stale local
-   runtime state as degraded/offline/fallback instead of presenting fake health.
+- local single-machine desktop/runtime: strong for `HUGH_SECOND`
+- idle CPU and runtime matrix: promising, but not release-complete until a
+  second machine supplies matching evidence
+- MUSU.PRO control-plane direction: correct
+- MUSU.PRO release proof: incomplete
+- release relay implementation: intentionally not complete
+- public desktop release: No-Go
 
 ## Next Steps
 
-1. Install this current build on a real second Windows PC.
-2. Run the current second-PC release kit and import it with the strict runtime
-   CPU subrole contract.
-3. Capture successful multi-device direct-route evidence, not only a failed
-   HUGH-MAIN route CPU diagnostic.
-4. Configure production `musu.pro` P2P control auth plus KV/Upstash relay lease
-   storage, deploy/reload, and rerun live P2P control-plane evidence.
-5. Decide the release relay tunnel implementation path:
-   `quic_relay_tunnel` with `quic_tls_1_3` proof, separate from the preview
-   websocket/store-forward queue.
-6. Record live owner-scoped relay route evidence with relay payload transport
-   proof and per-record `relay_payload_delivery_proof`.
-7. Verify `musu@musu.pro`, complete Store/Partner Center evidence, rerun full
-   go/no-go without skipping public metadata, and prepare final operator packet.
+1. Install the current build on a real second Windows PC and import the return
+   archive with strict runtime CPU subrole contracts.
+2. Capture successful current-build multi-device route evidence, including
+   route explain/path-selection evidence and release-grade transport proof.
+3. Capture second-machine `desktop-open` idle CPU and five-scenario runtime CPU
+   matrix evidence.
+4. Log in the packaged runtime against `https://musu.pro` and rerun hosted P2P
+   evidence.
+5. Provision KV/Upstash relay lease storage in production and redeploy/reload
+   MUSU.PRO.
+6. Implement the real `quic_relay_tunnel` runtime and keep
+   `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until payload bytes actually move
+   over that tunnel.
+7. Implement the distinct release relay payload endpoint and keep
+   `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` until it emits release proof.
+8. Record owner-scoped relay route evidence with nonzero
+   `relay_route_transport_proof_valid_count` and
+   `relay_payload_delivery_proof_valid_count`.
+9. Verify `musu@musu.pro` mailbox delivery and complete Store/Partner Center
+   evidence.
+10. Rerun full go/no-go and final operator packet generation only after those
+    external gates are complete.
 
 ## Canonical References
 
-- `docs\RELEASE_1_15_0_RC1_POST_DEGRADED_GATE_PRIMARY_EVIDENCE_REFRESH_2026_06_06.md`
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\PRODUCT_CHARTER\NETWORK_BOUNDARY_SPEC.md`
 - `docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`
+- `docs\RELEASE_1_15_0_RC1_CURRENT_DESKTOP_CLEAN_START_EVIDENCE_AUDIT_NEXT_STEPS_2026_06_06.md`
+- `docs\RELEASE_1_15_0_RC1_CURRENT_TARGETED_SECOND_PC_ROUTE_ATTEMPT_CPU_2026_06_06.md`

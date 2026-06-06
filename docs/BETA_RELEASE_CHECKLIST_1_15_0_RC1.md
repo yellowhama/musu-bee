@@ -8181,3 +8181,59 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2691 files`, `2776 symbols`, `56299 ms`
+
+## 2026-06-06 current code audit, product spec, and next steps
+
+Current clean HEAD `c879a849f403aadefdd071a012aaa4cd304cbf24` was audited
+after the targeted HUGH-MAIN route-attempt CPU evidence.
+
+Validation:
+
+- `npm run test:p2p`: `111/111`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- Rust background-loop contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+- clean go/no-go at `2026-06-06T17:48:59+09:00` confirmed public metadata,
+  local artifacts, MSIX install, and single-machine evidence pass, while
+  public release remains No-Go
+
+Qualitative audit found no high/medium code issue in the audited source
+surfaces. Remaining release blockers are evidence and external implementation
+gates:
+
+- real second-PC multi-device route proof
+- second-machine idle CPU evidence
+- second-machine runtime CPU scenario matrix evidence
+- live MUSU.PRO P2P control-plane proof
+- production runtime login and KV/Upstash relay lease storage
+- release `quic_relay_tunnel` runtime
+- distinct release relay payload endpoint
+- relay route transport proof and relay payload delivery proof
+- support mailbox evidence
+- Store/Partner Center evidence
+
+Product boundary remains:
+
+- MUSU Desktop is the local executor on each device.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- `localhost:3001` is optional developer/operator dashboard behavior, not the
+  packaged desktop runtime contract.
+- Hosted relay is fallback-only and non-default until real release tunnel proof
+  exists.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_AUDIT_AND_INDEX_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2694 files`, `2776 symbols`, `12906 ms`

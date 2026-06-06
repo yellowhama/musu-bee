@@ -924,3 +924,25 @@ MUSU Desktop remains the local executor. MUSU.PRO remains remote input,
 project/company room, rendezvous, path-selection, relay-fallback policy, and
 evidence/control plane.
 
+## 2026-06-06 current audit network boundary
+
+The current code audit at
+`c879a849f403aadefdd071a012aaa4cd304cbf24` reaffirms the same boundary:
+
+- local MUSU Desktop owns execution, files, shell/app/browser automation,
+  local bridge behavior, and local CPU/memory budget
+- MUSU.PRO owns remote input, project/company room state, AI meeting-room
+  coordination state, presence, rendezvous, path selection, relay fallback
+  coordination, and evidence/control-plane APIs
+- path priority remains `lan -> tailscale -> direct_quic -> relay`
+- hosted relay remains fallback-only and non-default
+- preview store-forward payload queues remain non-release-grade
+- release relay requires actual `quic_relay_tunnel` payload movement and
+  `quic_tls_1_3` proof
+- `localhost:3001` is optional developer/operator dashboard behavior, not a
+  packaged local runtime requirement
+
+Release readiness still requires successful two-machine route evidence,
+second-machine CPU/matrix evidence, live owner-scoped MUSU.PRO P2P proof,
+support mailbox proof, and Store/Partner Center proof.
+
