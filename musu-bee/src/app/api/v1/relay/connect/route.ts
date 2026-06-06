@@ -133,7 +133,17 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    return NextResponse.json(
+      {
+        ...relayConnectStatus(req.method),
+        ok: false,
+        relay_connect_accepted: false,
+        payload_transported: false,
+        lease_verified: false,
+        error: "invalid_json",
+      },
+      { status: 400 }
+    );
   }
 
   const forbiddenFields = forbiddenRelayConnectByteFields(json);
@@ -145,7 +155,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       {
+        ...relayConnectStatus(req.method),
         ok: false,
+        relay_connect_accepted: false,
+        payload_transported: false,
+        lease_verified: false,
         error: "invalid_relay_connect_request",
         issues: parsed.error.issues.map((issue) => ({
           path: issue.path.join("."),
@@ -172,6 +186,7 @@ export async function POST(req: NextRequest) {
         ...relayConnectStatus(req.method),
         ok: false,
         relay_connect_accepted: false,
+        payload_transported: false,
         lease_verified: false,
         error: "relay_connect_store_failed",
         store_error: error instanceof Error ? error.message : "unknown",
@@ -186,6 +201,7 @@ export async function POST(req: NextRequest) {
         ...relayConnectStatus(req.method),
         ok: false,
         relay_connect_accepted: false,
+        payload_transported: false,
         lease_verified: false,
         error: "relay_lease_not_found",
       },

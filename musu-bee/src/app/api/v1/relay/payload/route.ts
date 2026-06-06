@@ -137,7 +137,18 @@ export async function POST(req: NextRequest) {
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    return NextResponse.json(
+      {
+        ...releasePayloadPreflightStatus(req.method),
+        ok: false,
+        release_payload_accepted: false,
+        payload_stored: false,
+        payload_transported: false,
+        lease_verified: false,
+        error: "invalid_json",
+      },
+      { status: 400 }
+    );
   }
 
   const forbiddenFields = forbiddenPayloadByteFields(json);
@@ -149,7 +160,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       {
+        ...releasePayloadPreflightStatus(req.method),
         ok: false,
+        release_payload_accepted: false,
+        payload_stored: false,
+        payload_transported: false,
+        lease_verified: false,
         error: "invalid_relay_payload_preflight_request",
         issues: parsed.error.issues.map((issue) => ({
           path: issue.path.join("."),

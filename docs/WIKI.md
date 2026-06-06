@@ -10754,3 +10754,51 @@ selection index refresh`, `2649 files`, `2755 symbols`, `12489 ms`,
 `latest-per-machine-up-to-6`, `warn-explicit-windowsapps`,
 `release verifier 66/66`, `msix_install_verified=true`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Relay Preflight Failure Evidence Hardening (wiki/843)
+
+Relay connect and release payload preflight invalid JSON/metadata responses now
+return structured release status fields instead of terse error-only JSON.
+`musu.relay_connect.v1` failure responses include
+`relay_connect_accepted=false`, `payload_transported=false`, and
+`lease_verified=false`; `musu.relay_payload_preflight.v1` failure responses
+include `release_payload_accepted=false`, `payload_stored=false`,
+`payload_transported=false`, and `lease_verified=false`.
+
+The P2P relay contract audit now requires regression coverage for these
+failure-status paths. Validation passed P2P tests `107/107`, `npm run
+typecheck`, P2P relay contract audit `ok=true`/`fail_count=0`, release verifier
+`ok=true`/`case_count=66`/`failed_case_count=0`, and `git diff --check`.
+
+Qualitative audit found no high/medium issue. This is failure-handling and
+release-evidence hardening only; release relay tunnel payload transport remains
+unimplemented and the preview queue remains non-release-grade. Canonical
+report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PREFLIGHT_FAILURE_EVIDENCE_HARDENING_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_PREFLIGHT_FAILURE_EVIDENCE_HARDENING_2026_06_06.md`
+
+## 2026-06-06 Relay Preflight Failure Evidence Index Refresh (wiki/844)
+
+MUSU local indexer was refreshed after wiki/843 and GOAL v668.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2652 files`
+- `2757 symbols`
+- `12802 ms`
+
+Indexed context includes relay preflight failure evidence hardening,
+structured invalid JSON/metadata failure responses, P2P relay contract audit
+updates, canonical report, next-step plan, P2P control-plane spec addendum,
+BETA checklist, GOAL v668, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v669`, `wiki/844`, `relay preflight failure
+evidence index refresh`, `2652 files`, `2757 symbols`, `12802 ms`,
+`invalid_json`, `relay_connect_accepted=false`,
+`release_payload_accepted=false`, `payload_transported=false`,
+`lease_verified=false`, `MUSU Desktop local executor`, and `MUSU.PRO remote
+input control plane`.

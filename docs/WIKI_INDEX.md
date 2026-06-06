@@ -5425,4 +5425,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release verifier 66/66`, `msix_install_verified=true`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 relay preflight failure evidence hardening:
+  `RELEASE_1_15_0_RC1_RELAY_PREFLIGHT_FAILURE_EVIDENCE_HARDENING_2026_06_06.md`
+  (wiki/843) records structured failure responses for relay connect and
+  release payload preflight invalid JSON/metadata paths. Search terms should
+  include `GOAL v668`, `wiki/843`, `relay preflight failure evidence`,
+  `invalid_json`, `relay_connect_accepted=false`,
+  `release_payload_accepted=false`, `payload_transported=false`,
+  `lease_verified=false`, `P2P tests 107/107`, `release verifier 66/66`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 relay preflight failure evidence index refresh:
+  wiki/844 records the MUSU local index refresh after wiki/843 and GOAL v668.
+  Search terms should include `GOAL v669`, `wiki/844`, `2652 files`,
+  `2757 symbols`, `12802 ms`,
+  `relay preflight failure evidence index refresh`, `invalid_json`,
+  `relay_connect_accepted=false`, `release_payload_accepted=false`,
+  `payload_transported=false`, `lease_verified=false`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

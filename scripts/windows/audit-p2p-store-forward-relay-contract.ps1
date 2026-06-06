@@ -702,10 +702,13 @@ Add-Check `
             "requires P2P control auth before reporting relay connect preflight status",
             "reports relay connect preflight without claiming payload transport",
             "verifies relay lease but rejects payload transit while payload endpoint is unwired",
+            "returns relay connect status fields for invalid JSON",
             "rejects relay connect payload bytes before lease lookup",
             "relay_connect_payload_bytes_not_accepted",
             "rejects unknown relay connect preflight fields",
-            "unexpected_release_field"
+            "unexpected_release_field",
+            "lease_verified",
+            "payload_transported"
         ))
     ) `
     -Path $releaseConnectPreflightRouteTestPath `
@@ -719,11 +722,14 @@ Add-Check `
         (Test-ContainsAll -Text $releasePayloadPreflightRouteTest -Needles @(
             "requires P2P control auth before reporting release relay payload preflight",
             "reports release payload preflight without treating the queue as release transport",
+            "returns release payload preflight status fields for invalid JSON",
             "rejects release payload bytes before lease lookup while endpoint is preflight-only",
             "release_payload_bytes_not_accepted",
             "rejects unknown release payload preflight fields",
             "unexpected_release_field",
             "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
+            "lease_verified",
+            "release_payload_accepted",
             "payload_stored",
             "payload_transported"
         ))

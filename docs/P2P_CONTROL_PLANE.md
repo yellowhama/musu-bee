@@ -73,6 +73,14 @@ machine so developer warning-mode alias-shadow evidence cannot mask clean
 strict install proof. This is release-gate hardening only; it does not move
 execution into MUSU.PRO and does not complete hosted release relay transport.
 
+2026-06-06 relay preflight failure evidence addendum: release relay connect and
+release payload preflight invalid JSON/metadata responses now include the same
+structured release status fields as normal preflight responses, with
+accepted/transit booleans explicitly false. This improves operator diagnostics
+and release evidence quality without accepting payload bytes, using the preview
+queue as release transport, or emitting release relay proof before the actual
+`quic_relay_tunnel` payload path exists.
+
 As of the 2026-06-06 current HEAD runtime CPU matrix refresh, the product
 direction above is still unchanged: MUSU Desktop is the local executor, while
 `musu.pro` is remote input, project/company room, presence, rendezvous,

@@ -82,6 +82,20 @@ function connectReq(
   });
 }
 
+function rawConnectReq(method: "POST", token: string | null, body: string): NextRequest {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return new NextRequest("http://localhost/api/v1/relay/connect", {
+    method,
+    headers,
+    body,
+  });
+}
+
 async function seedLease(token = "test-token") {
   const lease = createRelayLease({
     owner_key: p2pControlOwnerKey(token),
@@ -213,6 +227,42 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
   });
 });
 
+test("returns relay connect status fields for invalid JSON", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const { POST } = await loadModule("post-invalid-json");
+    const res = await POST(rawConnectReq("POST", "test-token", "{not-json"));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      schema: string;
+      ok: boolean;
+      method: string;
+      error: string;
+      relay_connect_accepted: boolean;
+      payload_transported: boolean;
+      lease_verified: boolean;
+      relay_connect_endpoint_wired: boolean;
+      relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
+      relay_transport_wired: boolean;
+      blockers: string[];
+    };
+
+    assert.equal(body.schema, "musu.relay_connect.v1");
+    assert.equal(body.ok, false);
+    assert.equal(body.method, "POST");
+    assert.equal(body.error, "invalid_json");
+    assert.equal(body.relay_connect_accepted, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.lease_verified, false);
+    assert.equal(body.relay_connect_endpoint_wired, true);
+    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
+    assert.equal(body.relay_transport_wired, false);
+    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+  });
+});
+
 test("rejects relay connect payload bytes before lease lookup", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
@@ -262,13 +312,25 @@ test("rejects unknown relay connect preflight fields", async () => {
     }));
     assert.equal(res.status, 400);
     const body = (await res.json()) as {
+      schema: string;
       ok: boolean;
       error: string;
+      relay_connect_accepted: boolean;
+      payload_transported: boolean;
+      lease_verified: boolean;
+      relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
       issues: Array<{ path: string; message: string }>;
     };
 
+    assert.equal(body.schema, "musu.relay_connect.v1");
     assert.equal(body.ok, false);
     assert.equal(body.error, "invalid_relay_connect_request");
+    assert.equal(body.relay_connect_accepted, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.lease_verified, false);
+    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.match(JSON.stringify(body.issues), /unexpected_release_field/);
   });
 });
