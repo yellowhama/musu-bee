@@ -172,6 +172,21 @@ presence, rendezvous, path selection, relay fallback, and evidence/control
 plane. Public release remains blocked until a second Windows PC, live hosted
 MUSU.PRO P2P/relay proof, support mailbox, and Store evidence are recorded.
 
+**2026-06-06 crash-recovery contract update**:
+The local runtime startup contract now includes stale bridge registry cleanup.
+If `~/.musu/services/bridge.json` points to a dead bridge PID, `musu up`
+removes the stale record before probing bridge health and before starting a new
+bridge. `musu up --json` reports `stale_bridge_registry_removed` and
+`stale_bridge_registry_pid` for operator evidence. This is enforced by
+`audit-musu-crash-recovery-contract.ps1` and final go/no-go reports
+`crash_recovery_contract_verified`.
+
+This update is local runtime hardening only. It does not move execution into
+MUSU.PRO, and it does not make `localhost:3001` a packaged runtime dependency.
+MUSU Desktop remains the local executor; MUSU.PRO remains remote input,
+project/company room, AI meeting room, presence, rendezvous, path selection,
+relay fallback coordination, and evidence/control plane.
+
 ## Product Decision
 
 `musu.pro` must not replace P2P as the default data path. It must make P2P

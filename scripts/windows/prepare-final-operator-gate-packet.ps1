@@ -125,6 +125,7 @@ $scriptsToCopy = @(
     "audit-local-api-auth-contract.ps1",
     "audit-operator-api-security-contract.ps1",
     "audit-degraded-mode-contract.ps1",
+    "audit-musu-crash-recovery-contract.ps1",
     "audit-secret-storage-contract.ps1",
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
@@ -437,7 +438,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-degrad
 Expected schema: `musu.degraded_mode_contract.v1`.
 Expected result: `degraded_mode_contract_verified=true`.
 
-## Gate D4 - Secret storage contract audit
+## Gate D4 - Crash-recovery contract audit
+
+Before final handoff, verify that crash or forced-stop residue does not leave
+the local bridge stuck behind stale service registry data. `musu up` must clear
+dead bridge registry PIDs before startup probing, `musu down` must remove dead
+registered bridge records, repeated startup must remain single-instance, and
+process ownership must reject dead or non-MUSU bridge registry PIDs.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-crash-recovery-contract.ps1 -FailOnProblem -Json
+```
+
+Expected schema: `musu.crash_recovery_contract.v1`.
+Expected result: `crash_recovery_contract_verified=true`.
+
+## Gate D5 - Secret storage contract audit
 
 Before final handoff, verify that bridge/account tokens are written only under
 the operator MUSU home, token files are permission-restricted, P2P setup helpers
@@ -452,7 +468,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-secret
 Expected schema: `musu.secret_storage_contract.v1`.
 Expected result: `secret_storage_contract_verified=true`.
 
-## Gate D5 - Frontend polling contract audit
+## Gate D6 - Frontend polling contract audit
 
 Before final handoff, verify that dashboard, node-panel, onboarding, workflow,
 screen, relay, and SSE refresh paths still use the shared cancellable low-duty
@@ -465,7 +481,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-fronte
 Expected schema: `musu.frontend_polling_contract.v1`.
 Expected result: `frontend_polling_contract_verified=true`.
 
-## Gate D6 - Rust background loop contract audit
+## Gate D7 - Rust background loop contract audit
 
 Before final handoff, verify that bridge/runtime background loops still keep the
 default desktop path low-duty: planner, clipboard, and mDNS are opt-in; cloud
@@ -654,6 +670,7 @@ The release can proceed only when:
 - `msix_install_verified=true`
 - `msix_desktop_entrypoint_verified=true`
 - `runtime_idle_cpu_verified=true`
+- `crash_recovery_contract_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`
 - `desktop_single_instance_verified=true`

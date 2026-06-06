@@ -3312,6 +3312,8 @@ struct DoctorBackgroundFeature {
 struct UpReport {
     ok: bool,
     token_created: bool,
+    stale_bridge_registry_removed: bool,
+    stale_bridge_registry_pid: Option<u32>,
     bridge_started: bool,
     bridge_pid: Option<u32>,
     terminated_unhealthy_bridge_pid: Option<u32>,
@@ -3515,6 +3517,23 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
     let _token = crate::install::token::ensure_bridge_token(&home)?;
     let token_created = !had_token;
 
+    let registry = crate::bridge::services::ServiceRegistry::with_dir(home.join("services"));
+    let stale_bridge_registry_pid = registry
+        .discover("bridge")
+        .and_then(|record| record.pid)
+        .filter(|pid| {
+            let alive = crate::bridge::services::is_pid_alive(*pid);
+            if !alive {
+                tracing::warn!(pid, "removing stale bridge registry before startup");
+            }
+            !alive
+        });
+    if stale_bridge_registry_pid.is_some() {
+        registry.cleanup_stale();
+    }
+    let stale_bridge_registry_removed =
+        stale_bridge_registry_pid.is_some() && registry.discover("bridge").is_none();
+
     let mut bridge = check_bridge(&home).await;
     let bridge_log_path = home.join("logs").join("bridge.log");
     let mut bridge_started = false;
@@ -3602,6 +3621,8 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
     let report = UpReport {
         ok,
         token_created,
+        stale_bridge_registry_removed,
+        stale_bridge_registry_pid,
         bridge_started,
         bridge_pid,
         terminated_unhealthy_bridge_pid,
@@ -4524,6 +4545,15 @@ fn print_up_report(report: &UpReport) {
         );
     } else {
         println!("bridge was already running or still unreachable");
+    }
+    if report.stale_bridge_registry_removed {
+        println!(
+            "removed stale bridge registry pid: {}",
+            report
+                .stale_bridge_registry_pid
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "unknown".into())
+        );
     }
     println!("bridge log: {}", report.bridge_log_path);
     println!("dashboard: {}", report.dashboard.status.label());

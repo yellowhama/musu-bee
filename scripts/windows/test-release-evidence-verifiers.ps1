@@ -486,6 +486,64 @@ function Test-DegradedModeFreshnessStatusOnlyContract {
     return $true
 }
 
+function Test-CrashRecoveryAuditSourceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'musu.crash_recovery_contract.v1',
+        'stale_bridge_registry_removed',
+        'stale_bridge_registry_pid',
+        'registry.cleanup_stale();',
+        'registry.discover("bridge").is_none()',
+        'Removed stale bridge registry record.',
+        'cleanup_stale_removes_dead_pids',
+        'audit-musu-startup-single-instance.ps1',
+        'audit-musu-process-ownership.ps1'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-CrashRecoveryGoNoGoContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'audit-musu-crash-recovery-contract.ps1',
+        '$crashRecoveryContractVerified',
+        'crash_recovery_contract_verified',
+        'crash_recovery_contract_audit',
+        'crash-recovery',
+        'musu.crash_recovery_contract.v1',
+        'stale bridge registry'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-CrashRecoveryFreshnessStatusOnlyContract {
+    param([Parameter(Mandatory = $true)][string[]]$ScriptPaths)
+
+    foreach ($scriptPath in $ScriptPaths) {
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        if (-not $source.Contains('"scripts/windows/audit-musu-crash-recovery-contract.ps1"')) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-ExternalGateRecheckActionableContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1437,6 +1495,46 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "freshness classifiers allow degraded mode audit script as status-only" `
+    -Verifier "release freshness classifier contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$crashRecoveryAuditSourceContractOk = Test-CrashRecoveryAuditSourceContract -ScriptPath (Join-Path $scriptDir "audit-musu-crash-recovery-contract.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $crashRecoveryAuditSourceContractOk `
+    -Message "crash-recovery audit must verify stale bridge registry cleanup across `musu up`, `musu down`, ServiceRegistry, startup single-instance, and process ownership"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "crash recovery audit covers stale bridge registry cleanup" `
+    -Verifier "crash recovery source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-musu-crash-recovery-contract.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$crashRecoveryGoNoGoContractOk = Test-CrashRecoveryGoNoGoContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $crashRecoveryGoNoGoContractOk `
+    -Message "go/no-go must block on the crash-recovery contract audit and expose crash_recovery_contract_verified"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go blocks on crash recovery contract" `
+    -Verifier "crash recovery source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$crashRecoveryStatusOnlyContractOk = Test-CrashRecoveryFreshnessStatusOnlyContract -ScriptPaths @(
+    $singleMachineVerifier,
+    $runtimeCpuScenarioMatrixVerifier,
+    $releaseGoNoGoWriter
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $crashRecoveryStatusOnlyContractOk `
+    -Message "release freshness classifiers must treat the crash-recovery audit script as status-only"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "freshness classifiers allow crash recovery audit script as status-only" `
     -Verifier "release freshness classifier contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `

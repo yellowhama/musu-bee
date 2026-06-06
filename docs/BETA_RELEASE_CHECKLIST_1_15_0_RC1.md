@@ -8318,3 +8318,39 @@ Product boundary remains unchanged: MUSU Desktop is the local executor;
 MUSU.PRO is remote input, project/company room, AI meeting room, presence,
 rendezvous, path selection, relay-fallback coordination, and evidence/control
 plane. `localhost:3001` is not the packaged desktop runtime contract.
+
+## 2026-06-06 Crash-Recovery Contract Gate
+
+Local packaged runtime startup now has an explicit stale bridge registry
+contract:
+
+- `musu up` removes a dead `services\bridge.json` PID before bridge health
+  probing.
+- `musu up --json` reports `stale_bridge_registry_removed` and
+  `stale_bridge_registry_pid`.
+- Existing `musu down` stale registry removal remains required.
+- `ServiceRegistry::cleanup_stale` remains covered by the Rust unit test
+  `cleanup_stale_removes_dead_pids`.
+- New audit: `scripts\windows\audit-musu-crash-recovery-contract.ps1`
+  (`musu.crash_recovery_contract.v1`).
+- Final go/no-go exposes and blocks on `crash_recovery_contract_verified`.
+- Final handoff status and final operator packet Gate D4 now include the
+  crash-recovery audit.
+
+Validation:
+
+- PowerShell parser: pass
+- `cargo fmt --check`: pass
+- `cargo check --bin musu`: pass
+- `cargo test --lib cleanup_stale_removes_dead_pids`: pass
+- crash-recovery audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=69`, `failed_case_count=0`
+- desktop release readiness: local artifacts, desktop shell, MSIX desktop
+  entrypoint, and single-machine evidence pass; public readiness remains false
+  on multi-device evidence
+- `git diff --check`: pass
+
+Release interpretation: this closes a local runtime crash-recovery contract
+gap. Public release remains No-Go until second-PC route/CPU/matrix evidence,
+live MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
+proof exist.

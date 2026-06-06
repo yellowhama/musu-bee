@@ -133,6 +133,21 @@ not only to a surrounding route evidence record.
 This keeps Connect/Pro relay claims tied to verifiable peer identity while
 MUSU Desktop continues to execute work locally.
 
+## 2026-06-06 Local Crash-Recovery Boundary Update
+
+Local startup recovery is part of the MUSU Desktop/Core runtime boundary.
+
+- `musu up` now removes stale bridge registry records whose PID is dead before
+  probing or restarting the bridge.
+- `musu up --json` exposes `stale_bridge_registry_removed` and
+  `stale_bridge_registry_pid` for operator evidence.
+- Final go/no-go reports `crash_recovery_contract_verified`.
+- This does not create a hosted execution path. MUSU.PRO may coordinate remote
+  input, rooms, rendezvous, path selection, relay fallback, and evidence, but
+  local MUSU Desktop/bridge remains the executor and resource owner.
+- `localhost:3001` remains optional developer/operator dashboard behavior, not
+  required packaged MUSU Desktop behavior.
+
 ## 2026-06-06 Relay Delivery Proof Boundary Update
 
 Hosted relay payload delivery proof must identify whether it came from the

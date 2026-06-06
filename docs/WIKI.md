@@ -11504,3 +11504,76 @@ code audit index refresh`, `2702 files`, `2776 symbols`, `11885 ms`,
 `source_release_relay_tunnel_runtime_not_implemented`,
 `live_evidence_p2p_runtime_not_logged_in`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Crash-Recovery Contract Gate (wiki/867)
+
+`musu up` now removes a dead bridge service registry record before probing
+bridge health. The Rust `UpReport` exposes `stale_bridge_registry_removed` and
+`stale_bridge_registry_pid`, and text output prints the removed stale PID when
+cleanup happened.
+
+New release audit:
+
+- `scripts\windows\audit-musu-crash-recovery-contract.ps1`
+- schema: `musu.crash_recovery_contract.v1`
+- latest result: `ok=true`, `fail_count=0`
+
+Release gate wiring:
+
+- `write-release-go-no-go.ps1` reports
+  `crash_recovery_contract_verified` and `crash_recovery_contract_audit`, and
+  blocks on `crash-recovery`
+- `show-final-release-handoff-status.ps1` reports the rerun step
+- final operator packet generation and verification include the audit as Gate
+  D4
+- release verifier regressions cover the audit, go/no-go wiring, and freshness
+  classifiers
+- desktop readiness inventory includes the audit script
+
+Validation:
+
+- PowerShell parser: pass
+- `cargo fmt --check`: pass
+- `cargo check --bin musu`: pass
+- `cargo test --lib cleanup_stale_removes_dead_pids`: `1/1`
+- release verifier: `ok=true`, `case_count=69`, `failed_case_count=0`
+- desktop release readiness: local artifacts, MSIX desktop entrypoint, desktop
+  shell, and single-machine evidence pass; public readiness remains false on
+  multi-device evidence
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This closes a local packaged
+runtime crash-recovery contract gap only; public release remains blocked by
+second-PC route/CPU/matrix proof, live MUSU.PRO P2P/relay proof, support
+mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CRASH_RECOVERY_CONTRACT_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CRASH_RECOVERY_CONTRACT_2026_06_06.md`
+
+## 2026-06-06 Crash-Recovery Contract Index Refresh (wiki/868)
+
+MUSU local indexer was refreshed after wiki/867 and GOAL v692.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2707 files`
+- `2776 symbols`
+- `14571 ms`
+
+Indexed context includes the Rust `musu up` stale bridge registry cleanup,
+`audit-musu-crash-recovery-contract.ps1`, go/no-go/handoff/operator-packet
+wiring, release verifier coverage, canonical report, next-step plan, BETA
+checklist, MUSU.PRO P2P control-plane spec, network boundary spec,
+WIKI/WIKI_INDEX, GOAL v692, and CoS memory.
+
+Search terms should include `GOAL v693`, `wiki/868`, `crash-recovery contract
+index refresh`, `2707 files`, `2776 symbols`, `14571 ms`,
+`stale_bridge_registry_removed`, `stale_bridge_registry_pid`,
+`musu.crash_recovery_contract.v1`, `crash_recovery_contract_verified`,
+`release verifier 69/69`, `cargo check --bin musu`, `MUSU Desktop local
+executor`, and `MUSU.PRO remote input control plane`.

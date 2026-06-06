@@ -288,6 +288,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-local-api-auth-contract.ps1",
         "scripts/windows/audit-operator-api-security-contract.ps1",
         "scripts/windows/audit-degraded-mode-contract.ps1",
+        "scripts/windows/audit-musu-crash-recovery-contract.ps1",
         "scripts/windows/audit-musu-process-ownership.ps1",
         "scripts/windows/audit-musu-startup-single-instance.ps1",
         "scripts/windows/audit-p2p-store-forward-relay-contract.ps1",
@@ -929,6 +930,7 @@ $rustBackgroundLoopAuditScript = Join-Path $scriptDir "audit-rust-background-loo
 $localApiAuthAuditScript = Join-Path $scriptDir "audit-local-api-auth-contract.ps1"
 $operatorApiSecurityAuditScript = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $degradedModeAuditScript = Join-Path $scriptDir "audit-degraded-mode-contract.ps1"
+$crashRecoveryAuditScript = Join-Path $scriptDir "audit-musu-crash-recovery-contract.ps1"
 $p2pStoreForwardRelayAuditScript = Join-Path $scriptDir "audit-p2p-store-forward-relay-contract.ps1"
 $secretStorageAuditScript = Join-Path $scriptDir "audit-secret-storage-contract.ps1"
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
@@ -954,6 +956,8 @@ $operatorApiSecurityAuditResult = Invoke-JsonScript -FilePath $operatorApiSecuri
 $operatorApiSecurityContractVerified = ($operatorApiSecurityAuditResult.json -and [bool]$operatorApiSecurityAuditResult.json.ok)
 $degradedModeAuditResult = Invoke-JsonScript -FilePath $degradedModeAuditScript -Arguments @("-Json") -AllowFailure
 $degradedModeContractVerified = ($degradedModeAuditResult.json -and [bool]$degradedModeAuditResult.json.ok)
+$crashRecoveryAuditResult = Invoke-JsonScript -FilePath $crashRecoveryAuditScript -Arguments @("-Json") -AllowFailure
+$crashRecoveryContractVerified = ($crashRecoveryAuditResult.json -and [bool]$crashRecoveryAuditResult.json.ok)
 $p2pStoreForwardRelayAuditResult = Invoke-JsonScript -FilePath $p2pStoreForwardRelayAuditScript -Arguments @("-Json") -AllowFailure
 $p2pStoreForwardRelayContractVerified = ($p2pStoreForwardRelayAuditResult.json -and [bool]$p2pStoreForwardRelayAuditResult.json.ok)
 $secretStorageAuditResult = Invoke-JsonScript -FilePath $secretStorageAuditScript -Arguments @("-Json") -AllowFailure
@@ -1723,6 +1727,9 @@ if (-not $operatorApiSecurityContractVerified) {
 if (-not $degradedModeContractVerified) {
     Add-Blocker -List $blockers -Area "degraded-mode" -Message "Degraded mode contract audit (musu.degraded_mode_contract.v1) failed; agents, device-status, nodes mesh, and COS synthesis surfaces are not proven to expose unavailable/stale/fallback state instead of presenting fabricated healthy state."
 }
+if (-not $crashRecoveryContractVerified) {
+    Add-Blocker -List $blockers -Area "crash-recovery" -Message "Crash-recovery contract audit (musu.crash_recovery_contract.v1) failed; `musu up`, `musu down`, service registry cleanup, startup single-instance, and process ownership are not proven to recover from stale bridge registry records."
+}
 if (-not $p2pStoreForwardRelayContractVerified) {
     Add-Blocker -List $blockers -Area "p2p-store-forward-relay" -Message "P2P store-forward relay contract audit (musu.p2p_store_forward_relay_contract.v1) failed; queue fallback is not proven owner-scoped, lease-bound, non-default, non-release-grade, and separated from release tunnel transport."
 }
@@ -1781,6 +1788,7 @@ $manualInternalGates = @(
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "Degraded mode contract audit for explicit unavailable/stale/fallback state on agents, device-status, nodes mesh, and COS synthesis surfaces",
+    "Crash-recovery contract audit for stale bridge registry cleanup and single-instance recovery",
     "P2P store-forward relay contract audit for lease-bound non-default queue fallback and release tunnel separation",
     "Secret storage contract audit for token-file ACLs, raw-token redaction, and secret-safe operator docs",
     "Process ownership audit on primary Windows PC",
@@ -1909,6 +1917,18 @@ $result = [pscustomobject]@{
             raw = $degradedModeAuditResult.raw
         }
     }
+    crash_recovery_contract_verified = [bool]$crashRecoveryContractVerified
+    crash_recovery_contract_audit = if ($crashRecoveryAuditResult.json) {
+        $crashRecoveryAuditResult.json
+    }
+    else {
+        [pscustomobject]@{
+            ok = $false
+            exit_code = $crashRecoveryAuditResult.exit_code
+            timed_out = $crashRecoveryAuditResult.timed_out
+            raw = $crashRecoveryAuditResult.raw
+        }
+    }
     p2p_store_forward_relay_contract_verified = [bool]$p2pStoreForwardRelayContractVerified
     p2p_store_forward_relay_contract_audit = if ($p2pStoreForwardRelayAuditResult.json) {
         $p2pStoreForwardRelayAuditResult.json
@@ -1989,6 +2009,7 @@ else {
     "local_api_auth_contract_verified: $($result.local_api_auth_contract_verified)"
     "operator_api_security_contract_verified: $($result.operator_api_security_contract_verified)"
     "degraded_mode_contract_verified: $($result.degraded_mode_contract_verified)"
+    "crash_recovery_contract_verified: $($result.crash_recovery_contract_verified)"
     "p2p_store_forward_relay_contract_verified: $($result.p2p_store_forward_relay_contract_verified)"
     "secret_storage_contract_verified: $($result.secret_storage_contract_verified)"
     "process_ownership_verified: $($result.process_ownership_verified)"

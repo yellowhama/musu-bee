@@ -5676,4 +5676,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `live_evidence_p2p_runtime_not_logged_in`, `MUSU Desktop local executor`,
   and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 crash-recovery contract gate:
+  `RELEASE_1_15_0_RC1_CRASH_RECOVERY_CONTRACT_GATE_2026_06_06.md`
+  (wiki/867) records the local runtime stale bridge registry cleanup gate.
+  Search terms should include `GOAL v692`, `wiki/867`,
+  `musu.crash_recovery_contract.v1`, `stale_bridge_registry_removed`,
+  `stale_bridge_registry_pid`, `audit-musu-crash-recovery-contract.ps1`,
+  `crash_recovery_contract_verified`, `cleanup_stale_removes_dead_pids`,
+  `release verifier 69/69`, `cargo check --bin musu`, `musu up`, `musu down`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 crash-recovery contract index refresh:
+  wiki/868 records the MUSU local index refresh after wiki/867 and GOAL v692.
+  Search terms should include `GOAL v693`, `wiki/868`, `2707 files`,
+  `2776 symbols`, `14571 ms`, `crash-recovery contract index refresh`,
+  `stale_bridge_registry_removed`, `stale_bridge_registry_pid`,
+  `musu.crash_recovery_contract.v1`, `crash_recovery_contract_verified`,
+  `release verifier 69/69`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
