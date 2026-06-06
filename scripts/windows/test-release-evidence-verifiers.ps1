@@ -270,6 +270,26 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
     return $true
 }
 
+function Test-MsixInstallGoNoGoSelectionContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$msixInstallEvidenceCandidates += @(Get-ChildItem',
+        'Select-LatestEvidenceCandidatesByMachine -Candidates $msixInstallEvidenceCandidates -MaxPerMachine 6 -MaxUnknown 6',
+        'foreach ($candidate in @($msixInstallSelectedCandidates | Sort-Object LastWriteTime -Descending))',
+        '-Arguments @("-EvidencePath", $candidate.FullName, "-ExpectedVersion", $version, "-Json")',
+        'candidate_selection = "latest-per-machine-up-to-6"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1303,6 +1323,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go separates full runtime matrix and targeted route attempt selection" `
     -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$msixInstallGoNoGoSelectionOk = Test-MsixInstallGoNoGoSelectionContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $msixInstallGoNoGoSelectionOk `
+    -Message "go/no-go must scan recent MSIX install candidates so developer warning evidence cannot mask clean strict evidence"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go MSIX install selection scans recent candidates" `
+    -Verifier "MSIX install source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

@@ -10705,3 +10705,52 @@ Search terms should include `GOAL v665`, `wiki/840`, `2647 files`,
 refresh`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_140335`,
 `runtime idle CPU 1/2`, `runtime matrix 1/2`, `targeted second-PC route CPU
 1/1`, `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 MSIX Install Candidate Selection Hardening (wiki/841)
+
+Code audit after wiki/839 found that `write-release-go-no-go.ps1` selected only
+the newest MSIX install evidence candidate. A developer warning-mode evidence
+file with `AliasShadowingMode=warn-explicit-windowsapps` could therefore mask
+older clean strict MSIX install evidence and create a false `msix-install`
+blocker.
+
+The go/no-go writer now gathers recent MSIX install evidence candidates from
+docs and local build roots, applies latest-per-machine selection up to six
+candidates per machine, and accepts the first candidate that passes the default
+strict `verify-msix-install-evidence.ps1` invocation. Warning-mode evidence
+remains diagnostic only unless the verifier is explicitly run with
+`-AliasShadowingMode warn-explicit-windowsapps`.
+
+Validation passed `git diff --check` and release evidence verifier regressions
+with `ok=true`, `case_count=66`, `failed_case_count=0`, including source
+contract `go-no-go MSIX install selection scans recent candidates`. Dirty-tree
+go/no-go after the patch reports `msix_install_verified=true`,
+`single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`, runtime
+matrix `1/2 [HUGH_SECOND]`, and targeted second-PC route CPU `1/1`.
+
+Qualitative audit found no high/medium issue. Product boundary remains
+unchanged: MUSU Desktop is local executor; MUSU.PRO is remote input,
+project/company room, rendezvous, path-selection, relay fallback policy, and
+evidence/control plane.
+
+## 2026-06-06 MSIX Install Candidate Selection Index Refresh (wiki/842)
+
+MUSU local indexer was refreshed after wiki/841 and GOAL v666.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2649 files`
+- `2755 symbols`
+- `12489 ms`
+
+Indexed context includes MSIX install candidate selection hardening,
+`write-release-go-no-go.ps1`, release verifier source contract
+`go-no-go MSIX install selection scans recent candidates`, current packaged
+local evidence, P2P control-plane product split/spec addendum, BETA checklist,
+GOAL v666, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v667`, `wiki/842`, `MSIX install candidate
+selection index refresh`, `2649 files`, `2755 symbols`, `12489 ms`,
+`latest-per-machine-up-to-6`, `warn-explicit-windowsapps`,
+`release verifier 66/66`, `msix_install_verified=true`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

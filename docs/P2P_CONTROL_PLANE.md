@@ -61,6 +61,18 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
+2026-06-06 addendum after relay proof hardening and MSIX candidate selection:
+the product split is unchanged. MUSU Desktop is still the local executor and
+resource owner. `musu.pro` is remote input, project/company room, presence,
+rendezvous, path-selection, relay fallback policy, and evidence/control plane.
+The latest packaged local refresh on `HUGH_SECOND` restores one-machine local
+evidence: single-machine smoke true, desktop-open idle CPU `1/2`, full runtime
+matrix `1/2`, and targeted HUGH-MAIN failed-route CPU diagnostic `1/1`. The
+MSIX install go/no-go gate now scans recent install evidence candidates by
+machine so developer warning-mode alias-shadow evidence cannot mask clean
+strict install proof. This is release-gate hardening only; it does not move
+execution into MUSU.PRO and does not complete hosted release relay transport.
+
 As of the 2026-06-06 current HEAD runtime CPU matrix refresh, the product
 direction above is still unchanged: MUSU Desktop is the local executor, while
 `musu.pro` is remote input, project/company room, presence, rendezvous,

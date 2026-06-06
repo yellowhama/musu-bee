@@ -112,6 +112,31 @@ Expected pre-commit blocker:
 
 - `git`: evidence/docs are uncommitted until this report is committed
 
+## MSIX Candidate Selection Addendum
+
+While checking the post-evidence go/no-go, the latest developer warning-mode
+MSIX install evidence (`AliasShadowingMode=warn-explicit-windowsapps`) masked
+older clean strict MSIX install evidence because `write-release-go-no-go.ps1`
+selected only the newest MSIX candidate.
+
+The release gate now scans recent MSIX install evidence candidates by machine,
+up to six per machine, and accepts the first candidate that passes the default
+strict verifier. Warning-mode developer evidence remains useful diagnostic
+context, but it can no longer by itself satisfy or hide the strict public
+release install gate.
+
+Validation after the patch:
+
+- `git diff --check`: pass
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+- dirty-tree go/no-go with the source patch:
+  - `msix_install_verified=true`
+  - `single_machine_verified=true`
+  - `runtime_idle_cpu_valid_machine_count=1`
+  - `runtime_cpu_scenario_matrix_valid_machine_count=1`
+  - `runtime_cpu_second_pc_route_attempt_verified=true`
+
 Remaining release blockers:
 
 - `multi-device`: real second-PC multi-device evidence has not been recorded

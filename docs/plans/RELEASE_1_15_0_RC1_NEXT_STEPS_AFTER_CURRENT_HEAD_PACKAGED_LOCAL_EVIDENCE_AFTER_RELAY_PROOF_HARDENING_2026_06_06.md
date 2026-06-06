@@ -12,6 +12,10 @@ Current HEAD has fresh packaged local evidence on `HUGH_SECOND`:
 This restores primary-machine evidence to `1/2`. It does not close the real
 second-PC, hosted P2P, support mailbox, or Store gates.
 
+The MSIX install release gate now scans recent install evidence candidates by
+machine before deciding failure. This prevents developer warning-mode alias
+shadowing evidence from masking older clean strict install evidence.
+
 ## Next Actions
 
 1. Run the current second-PC transfer kit on a separate Windows machine with
@@ -36,3 +40,6 @@ second-PC, hosted P2P, support mailbox, or Store gates.
 - Do not count preview store-forward queue payload proof as release relay
   tunnel proof.
 - Do not move local task execution into MUSU.PRO.
+- Do not count `warn-explicit-windowsapps` MSIX evidence as public release
+  install proof unless the verifier is explicitly run in warning mode for
+  developer diagnostics.

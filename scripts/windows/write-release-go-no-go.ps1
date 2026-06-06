@@ -1048,7 +1048,8 @@ if (-not $supportMailboxVerified) {
 
 $msixInstallVerified = $false
 $msixInstallEvidence = $null
-$msixInstallEvidenceCandidate = $null
+$msixInstallEvidenceCandidates = @()
+$msixInstallEvidenceResults = @()
 $msixInstallEvidenceRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\msix-install\{0}" -f $version))
@@ -1062,30 +1063,50 @@ $msixInstallEvidenceRoots = @(
 
 foreach ($root in $msixInstallEvidenceRoots) {
     if (Test-Path -LiteralPath $root.path) {
-        $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-        if ($candidate) {
-            $msixInstallEvidenceCandidate = $candidate
-            break
-        }
+        $msixInstallEvidenceCandidates += @(Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue)
     }
 }
 
-if ($msixInstallEvidenceCandidate) {
+$msixInstallSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $msixInstallEvidenceCandidates -MaxPerMachine 6 -MaxUnknown 6
+foreach ($candidate in @($msixInstallSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $msixInstallEvidenceResult = Invoke-JsonScript `
         -FilePath $msixInstallVerifierScript `
-        -Arguments @("-EvidencePath", $msixInstallEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-Json") `
+        -Arguments @("-EvidencePath", $candidate.FullName, "-ExpectedVersion", $version, "-Json") `
         -AllowFailure
+    if ($msixInstallEvidenceResult.json) {
+        $msixInstallEvidenceResults += $msixInstallEvidenceResult.json
+    }
+    else {
+        $msixInstallEvidenceResults += [pscustomobject]@{
+            ok = $false
+            evidence_path = $candidate.FullName
+            raw = $msixInstallEvidenceResult.raw
+        }
+    }
     if ($msixInstallEvidenceResult.json -and [bool]$msixInstallEvidenceResult.json.ok) {
         $msixInstallVerified = $true
         $msixInstallEvidence = $msixInstallEvidenceResult.json
+        break
     }
-    else {
+}
+
+if (-not $msixInstallVerified) {
+    if ($msixInstallEvidenceResults.Count -gt 0) {
         $msixInstallEvidence = [pscustomobject]@{
             ok = $false
-            evidence_path = $msixInstallEvidenceCandidate.FullName
-            raw = $msixInstallEvidenceResult.raw
+            candidate_count = $msixInstallEvidenceResults.Count
+            available_candidate_count = @($msixInstallEvidenceCandidates).Count
+            candidate_selection = "latest-per-machine-up-to-6"
+            candidates = $msixInstallEvidenceResults
+        }
+    }
+    elseif (@($msixInstallEvidenceCandidates).Count -gt 0) {
+        $msixInstallEvidence = [pscustomobject]@{
+            ok = $false
+            candidate_count = 0
+            available_candidate_count = @($msixInstallEvidenceCandidates).Count
+            candidate_selection = "latest-per-machine-up-to-6"
+            candidates = @()
         }
     }
 }

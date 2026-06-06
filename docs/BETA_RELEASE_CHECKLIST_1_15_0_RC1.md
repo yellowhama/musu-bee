@@ -7788,3 +7788,37 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2647 files`, `2755 symbols`, `13328 ms`
+
+## 2026-06-06 MSIX Install Candidate Selection Hardening
+
+Code audit found a release-gate selection issue after the current packaged
+local evidence refresh: the go/no-go script selected only the newest MSIX
+install evidence file, so developer warning-mode evidence could mask older
+clean strict install evidence.
+
+Fix:
+
+- `write-release-go-no-go.ps1` now scans recent MSIX install candidates by
+  machine, up to six per machine, and accepts the first candidate that passes
+  the default strict verifier.
+- `test-release-evidence-verifiers.ps1` now has source-contract case
+  `go-no-go MSIX install selection scans recent candidates`.
+
+Validation:
+
+- `git diff --check`: pass
+- release evidence verifier regressions: `ok=true`, `case_count=66`,
+  `failed_case_count=0`
+- dirty-tree go/no-go after the patch reports `msix_install_verified=true`,
+  `single_machine_verified=true`, runtime idle CPU `1/2 [HUGH_SECOND]`,
+  runtime matrix `1/2 [HUGH_SECOND]`, targeted second-PC route CPU `1/1`,
+  and only the expected dirty git local blocker plus external release blockers.
+
+Qualitative audit found no high/medium issue. This is release-gate hardening,
+not runtime behavior change.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2649 files`, `2755 symbols`, `12489 ms`

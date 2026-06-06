@@ -5406,4 +5406,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime matrix 1/2`, `targeted second-PC route CPU 1/1`,
   `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 MSIX install candidate selection hardening:
+  wiki/841 records go/no-go release-gate hardening after code audit found the
+  newest warning-mode MSIX install evidence could mask older clean strict
+  evidence. Search terms should include `GOAL v666`, `wiki/841`,
+  `MSIX install candidate selection`, `latest-per-machine-up-to-6`,
+  `go-no-go MSIX install selection scans recent candidates`,
+  `warn-explicit-windowsapps`, `msix_install_verified=true`,
+  `release verifier 66/66`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 MSIX install candidate selection index refresh:
+  wiki/842 records the MUSU local index refresh after wiki/841 and GOAL v666.
+  Search terms should include `GOAL v667`, `wiki/842`, `2649 files`,
+  `2755 symbols`, `12489 ms`,
+  `MSIX install candidate selection index refresh`,
+  `latest-per-machine-up-to-6`, `warn-explicit-windowsapps`,
+  `release verifier 66/66`, `msix_install_verified=true`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
