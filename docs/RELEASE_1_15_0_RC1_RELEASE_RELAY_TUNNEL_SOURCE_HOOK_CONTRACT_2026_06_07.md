@@ -81,3 +81,25 @@ Public release remains No-Go on:
 - release relay payload delivery proof
 - support mailbox proof
 - Store/Partner Center proof
+
+## Post-Commit Clean Go/No-Go
+
+After commit `402a5f332808152a3c039438b1aa92411d1a9fbb`, clean go/no-go was
+rerun.
+
+Result:
+
+- `ready_for_public_desktop_release=false`
+- `manifest_git.dirty=false`
+- `local_artifacts_ready=true`
+- `public_metadata_ok=true`
+- `msix_install_verified=true`
+- `single_machine_verified=false`
+- `multi_device_verified=false`
+- `p2p_control_plane_env_ready=false`
+- P2P env blocker count: `12`
+
+This is expected. The Rust source hook contract changes local runtime source,
+so previous single-machine/process/single-instance/CPU evidence is no longer
+fresh for current HEAD. The next evidence step is to refresh current-HEAD local
+runtime evidence before treating local gates as passing again.

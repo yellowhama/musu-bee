@@ -13627,3 +13627,56 @@ source hook contract index refresh`, `2812 files`, `2788 symbols`, `15395 ms`,
 `accept_release_relay_tunnel_payload`,
 `release_relay_tunnel_runtime_source_contract_ready=true`, and
 `case_count=104`.
+
+## 2026-06-07 Release Relay Tunnel Source Hook Clean Go/No-Go (wiki/925)
+
+Clean go/no-go was rerun after commit
+`402a5f332808152a3c039438b1aa92411d1a9fbb`.
+
+Result:
+
+- `ready_for_public_desktop_release=false`
+- `manifest_git.dirty=false`
+- `local_artifacts_ready=true`
+- `public_metadata_ok=true`
+- `msix_install_verified=true`
+- `single_machine_verified=false`
+- `multi_device_verified=false`
+- `p2p_control_plane_env_ready=false`
+- P2P env blocker count: `12`
+
+Interpretation:
+
+- the Rust release relay tunnel source hook contract changed runtime source;
+- previous local runtime evidence is therefore stale for current HEAD;
+- this is expected gate behavior, not a new code failure;
+- fresh single-machine, process ownership, startup/desktop single-instance,
+  runtime idle CPU, and runtime CPU matrix evidence are needed on current HEAD;
+- P2P env source hook status remains improved
+  (`release_relay_tunnel_runtime_source_contract_ready=true`, missing hooks
+  `0`), but release runtime/proof blockers remain.
+
+Search terms should include `GOAL v750`, `wiki/925`, `clean go/no-go`,
+`402a5f332808152a3c039438b1aa92411d1a9fbb`,
+`single_machine_verified=false`,
+`p2p_control_plane_env_ready=false`, and `P2P env blocker count 12`.
+
+## 2026-06-07 Release Relay Tunnel Source Hook Clean Go/No-Go Index Refresh (wiki/926)
+
+MUSU local indexer was refreshed after wiki/925 and GOAL v750.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2814 files`
+- `2788 symbols`
+- `16331 ms`
+
+Indexed context includes clean go/no-go after commit
+`402a5f332808152a3c039438b1aa92411d1a9fbb`, current-HEAD local evidence
+freshness status, P2P env blocker count `12`, release relay tunnel source hook
+contract docs, next-step plan, GOAL, WIKI/WIKI_INDEX, BETA checklist, and CoS
+memory.
+
+Search terms should include `GOAL v751`, `wiki/926`, `release relay tunnel
+source hook clean go/no-go index refresh`, `2814 files`, `2788 symbols`,
+`16331 ms`, `single_machine_verified=false`, and `P2P env blocker count 12`.

@@ -6204,4 +6204,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_source_contract_ready=true`, and
   `case_count=104`.
 
+- 2026-06-07 release relay tunnel source hook clean go/no-go:
+  wiki/925 records the clean post-commit go/no-go recheck after
+  `402a5f332808152a3c039438b1aa92411d1a9fbb`. Search terms should include
+  `GOAL v750`, `wiki/925`, `clean go/no-go`,
+  `single_machine_verified=false`, `p2p_control_plane_env_ready=false`,
+  and `P2P env blocker count 12`.
+
+- 2026-06-07 release relay tunnel source hook clean go/no-go index refresh:
+  wiki/926 records the MUSU local index refresh after wiki/925 and GOAL v750.
+  Search terms should include `GOAL v751`, `wiki/926`, `2814 files`,
+  `2788 symbols`, `16331 ms`,
+  `release relay tunnel source hook clean go/no-go index refresh`,
+  `single_machine_verified=false`, and `P2P env blocker count 12`.
+
 **End of WIKI_INDEX.md.**

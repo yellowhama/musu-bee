@@ -9359,3 +9359,19 @@ Release interpretation:
 - keep `RELAY_TRANSPORT_KIND=websocket_tunnel`
 - public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
   P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+Clean post-commit go/no-go after commit
+`402a5f332808152a3c039438b1aa92411d1a9fbb`:
+
+- `manifest_git.dirty=false`
+- `local_artifacts_ready=true`
+- `public_metadata_ok=true`
+- `msix_install_verified=true`
+- `single_machine_verified=false`
+- `multi_device_verified=false`
+- `p2p_control_plane_env_ready=false`
+- P2P env blockers: `12`
+
+This is expected because the Rust runtime source changed. Refresh current-HEAD
+local evidence before treating single-machine/process/single-instance/CPU gates
+as passing again.

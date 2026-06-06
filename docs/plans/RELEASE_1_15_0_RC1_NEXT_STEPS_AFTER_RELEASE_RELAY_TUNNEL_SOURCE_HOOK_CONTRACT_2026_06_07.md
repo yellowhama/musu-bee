@@ -15,6 +15,14 @@ Current state:
 
 ## Next Implementation Steps
 
+0. Refresh current-HEAD local evidence after the Rust runtime source change.
+   - Single-machine smoke.
+   - Process ownership.
+   - Startup single-instance.
+   - Desktop single-instance.
+   - Runtime idle CPU.
+   - Runtime CPU scenario matrix.
+
 1. Implement the real local `quic_relay_tunnel` runtime path.
    - Move payload bytes through the tunnel.
    - Emit `musu.relay_transport_proof.v1`.
