@@ -1403,3 +1403,26 @@ Spec interpretation is unchanged:
 - Direct P2P mesh remains preferred after bootstrap.
 - Hosted relay remains fallback-only and still needs release tunnel payload
   proof.
+
+## 2026-06-06 Room Work-Order Rejected Audit Gate
+
+MUSU.PRO room work-order rejected-input audit logging is now release-gated:
+
+- invalid JSON after P2P control auth is rejected and command-audit logged
+- missing instruction after P2P control auth is rejected and command-audit
+  logged
+- rejected work orders must not call the local bridge
+- audit events record owner/room/status/reason metadata
+- audit events must not store the user instruction body as `text` or
+  `instruction`
+
+Validation:
+
+- `npm run test:routes`: `30/30`
+- `npm run typecheck`: pass
+- operator API security audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `58/58`
+
+This is a P2P command-audit hardening gate. It does not move execution into
+MUSU.PRO. The website remains the remote input and coordination plane; the
+local MUSU Desktop/bridge remains the executor.

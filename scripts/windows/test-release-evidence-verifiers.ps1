@@ -29,6 +29,7 @@ $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
+$operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -495,6 +496,33 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
         'Log in the packaged MUSU runtime with the WindowsApps alias',
         'Do not use the localhost developer dashboard to satisfy this gate',
         'logged_in=true'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-OperatorApiSecurityRoomWorkOrderRejectedAuditContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'room work order rejected input audit logging',
+        'reason: "invalid_json"',
+        'reason: "instruction required"',
+        'POST audit-logs invalid JSON after P2P auth without forwarding to bridge',
+        'POST requires a non-empty instruction',
+        'bridge should not be called for invalid JSON',
+        'bridge should not be called for rejected work orders',
+        'assert.equal(audit.result, "rejected")',
+        'assert.equal(audit.reason, "invalid_json")',
+        'assert.equal(audit.reason, "instruction required")',
+        'hasOwnProperty.call(audit, "text")',
+        'hasOwnProperty.call(audit, "instruction")'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1236,6 +1264,18 @@ Add-CaseResult `
     -Name "freshness classifiers allow degraded mode audit script as status-only" `
     -Verifier "release freshness classifier contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$operatorApiRoomWorkOrderRejectedAuditContractOk = Test-OperatorApiSecurityRoomWorkOrderRejectedAuditContract -ScriptPath $operatorApiSecurityAuditor
+$invocation = New-StaticVerifierInvocation `
+    -Ok $operatorApiRoomWorkOrderRejectedAuditContractOk `
+    -Message "operator API security audit must gate rejected room work-order command audit logging after P2P auth"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "operator API security gates rejected room work-order audit logging" `
+    -Verifier "operator API security source contract" `
+    -FixturePath $operatorApiSecurityAuditor `
     -ShouldPass $true `
     -Invocation $invocation
 

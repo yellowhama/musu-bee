@@ -106,6 +106,10 @@ Passing local state:
   transport remains unwired
 - `POST /api/rooms/[roomId]/work-orders` is P2P-control-auth gated before
   MUSU.PRO room input can reach the local bridge
+- room work-order accepted, bridge-error, invalid-JSON, and
+  missing-instruction paths are covered by command audit regressions; rejected
+  paths must not call the bridge and must not write prompt text to
+  command-center audit JSONL
 - `audit-p2p-store-forward-relay-contract.ps1` passes with `ok=true`,
   proving the preview store-forward queue fallback is owner/lease scoped,
   non-default, non-release-grade, and separated from release tunnel transport

@@ -50,6 +50,18 @@ function req(body: unknown, token: string | null = "room-control-token") {
   });
 }
 
+function rawReq(body: string, token: string | null = "room-control-token") {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  return new NextRequest("https://musu.pro/api/rooms/release-room/work-orders", {
+    method: "POST",
+    headers,
+    body,
+  });
+}
+
 function withFetchMock(
   mockFn: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   fn: () => Promise<void>,
@@ -80,11 +92,59 @@ test("POST requires a room id", async () => {
 });
 
 test("POST requires a non-empty instruction", async () => {
-  const res = await POST(req({ instruction: "   " }), {
-    params: Promise.resolve({ roomId: "release-room" }),
-  });
-  assert.equal(res.status, 400);
-  assert.equal(((await res.json()) as { error: string }).error, "instruction required");
+  await withFetchMock(
+    async () => {
+      throw new Error("bridge should not be called for rejected work orders");
+    },
+    async () => {
+      const res = await POST(req({ instruction: "   " }), {
+        params: Promise.resolve({ roomId: "release-room" }),
+      });
+      assert.equal(res.status, 400);
+      assert.equal(((await res.json()) as { error: string }).error, "instruction required");
+
+      const auditEvents = await readAuditEvents();
+      const audit = auditEvents.at(-1);
+      assert.ok(audit);
+      assert.equal(audit.event, "rooms.work_orders");
+      assert.equal(audit.result, "rejected");
+      assert.equal(audit.http_status, 400);
+      assert.equal(audit.origin, "musu.pro");
+      assert.equal(audit.room_id, "release-room");
+      assert.equal(audit.reason, "instruction required");
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
+    },
+  );
+});
+
+test("POST audit-logs invalid JSON after P2P auth without forwarding to bridge", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("bridge should not be called for invalid JSON");
+    },
+    async () => {
+      const res = await POST(rawReq("{"), {
+        params: Promise.resolve({ roomId: "release-room" }),
+      });
+      assert.equal(res.status, 400);
+      assert.equal(((await res.json()) as { error: string }).error, "invalid_json");
+
+      const auditEvents = await readAuditEvents();
+      const audit = auditEvents.at(-1);
+      assert.ok(audit);
+      assert.equal(audit.event, "rooms.work_orders");
+      assert.equal(audit.actor_id, audit.owner_key);
+      assert.match(String(audit.actor_id), /^token-sha256:[a-f0-9]{64}$/);
+      assert.equal(audit.result, "rejected");
+      assert.equal(audit.http_status, 400);
+      assert.equal(audit.origin, "musu.pro");
+      assert.equal(audit.room_id, "release-room");
+      assert.equal(audit.reason, "invalid_json");
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
+    },
+  );
 });
 
 test("POST requires P2P control auth before forwarding a room work order", async () => {

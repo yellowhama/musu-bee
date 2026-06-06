@@ -796,3 +796,23 @@ Boundary interpretation:
   relay-fallback, and evidence control plane
 - local MUSU programs remain the execution and resource owners
 
+## 2026-06-06 room work-order rejected audit boundary
+
+MUSU.PRO room work-order rejected-input audit logging is now a release-gated
+security contract.
+
+Boundary interpretation:
+
+- P2P control auth is required before room work-order input can reach the local
+  bridge.
+- Accepted, bridge-error, invalid-JSON, and missing-instruction paths leave
+  command audit metadata.
+- Rejected invalid-JSON and missing-instruction paths do not call the bridge.
+- Command audit metadata records owner/room/status/reason fields.
+- Command audit metadata must not store prompt text as `text` or
+  `instruction`.
+
+This keeps MUSU.PRO as a remote input and control-plane surface. It does not
+make MUSU.PRO the executor, and it does not make command audit logs a content
+store.
+

@@ -192,6 +192,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-local-
 
 Expected: schema `musu.local_api_auth_contract.v1`, `ok=true`, `fail_count=0`.
 
+Current P2P room work-order command audit contract:
+
+- room work-order input requires P2P control auth before local bridge access
+- accepted room work orders write `rooms.work_orders` command audit metadata
+- bridge-unavailable failures write command audit metadata
+- invalid JSON after P2P auth writes rejected command audit metadata without
+  calling the bridge
+- missing instruction after P2P auth writes rejected command audit metadata
+  without calling the bridge
+- command audit JSONL must not store the instruction body as `text` or
+  `instruction`
+
+Repeatable audit:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operator-api-security-contract.ps1 -FailOnProblem -Json
+```
+
+Current expected result after the rejected audit gate: schema
+`musu.operator_api_security_contract.v1`, `ok=true`, `fail_count=0`.
+
 ## Current Verified Result
 
 Verified locally against dashboards on `3001` and `3000`, and bridge on dynamic port `11041`:

@@ -142,6 +142,11 @@ Add-Check -Scope "tests" -Name "room work order auth regression test" `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
     -Message "Route tests cover room work-order auth and privacy-preserving command audit logging before web input can reach the local bridge."
 
+Add-Check -Scope "tests" -Name "room work order rejected input audit logging" `
+    -Passed ($roomWorkOrders.Contains('reason: "invalid_json"') -and $roomWorkOrders.Contains('reason: "instruction required"') -and $roomWorkOrdersTest.Contains("POST audit-logs invalid JSON after P2P auth without forwarding to bridge") -and $roomWorkOrdersTest.Contains("POST requires a non-empty instruction") -and $roomWorkOrdersTest.Contains("bridge should not be called for invalid JSON") -and $roomWorkOrdersTest.Contains("bridge should not be called for rejected work orders") -and $roomWorkOrdersTest.Contains('assert.equal(audit.result, "rejected")') -and $roomWorkOrdersTest.Contains('assert.equal(audit.reason, "invalid_json")') -and $roomWorkOrdersTest.Contains('assert.equal(audit.reason, "instruction required")') -and $roomWorkOrdersTest.Contains('hasOwnProperty.call(audit, "text")') -and $roomWorkOrdersTest.Contains('hasOwnProperty.call(audit, "instruction")')) `
+    -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
+    -Message "Route tests prove rejected room work-order inputs after P2P auth are audit-logged without forwarding to the bridge or storing prompt text."
+
 Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
     -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `

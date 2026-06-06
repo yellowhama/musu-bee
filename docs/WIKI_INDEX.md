@@ -5161,4 +5161,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `192.168.1.192:8949`, `WebView2 0.16`, `WebView2 0.13`, and
   `MUSU Desktop local executor`.
 
+- 2026-06-06 room work-order rejected audit gate:
+  `RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_REJECTED_AUDIT_GATE_2026_06_06.md`
+  (wiki/817) records route regression and release verifier coverage for
+  rejected room work-order command audit logging after P2P auth. Search terms
+  should include `GOAL v642`, `wiki/817`,
+  `operator API security gates rejected room work-order audit logging`,
+  `room work order rejected input audit logging`, `invalid_json`,
+  `instruction required`, `does not call the bridge`, `command-center.jsonl`,
+  `npm run test:routes 30/30`, `release verifier 58/58`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 room work-order rejected audit index refresh:
+  wiki/818 records the MUSU local index refresh after wiki/817 and GOAL v642.
+  Search terms should include `GOAL v643`, `wiki/818`, `2593 files`,
+  `2752 symbols`, `16401 ms`, `room work-order rejected audit index refresh`,
+  `operator API security gates rejected room work-order audit logging`,
+  `invalid_json`, `instruction required`, `command-center.jsonl`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

@@ -9918,3 +9918,61 @@ matrix index refresh`, `2590 files`, `2751 symbols`, `56258 ms`,
 `20260606-094149-HUGH_SECOND`, `20260606-095252-HUGH_SECOND`, `HUGH-MAIN`,
 `192.168.1.192:8949`, `WebView2 0.16`, `WebView2 0.13`, and `MUSU Desktop
 local executor`.
+
+## 2026-06-06 Room Work-Order Rejected Audit Gate (wiki/817)
+
+Room work-order rejected-input audit logging is now locked by route regression
+tests, the operator API security audit, and release verifier source-contract
+coverage.
+
+Changed:
+
+- `musu-bee/src/app/api/rooms/[roomId]/work-orders/route.test.ts`
+  - invalid JSON after P2P auth is rejected, audit-logged, and does not call
+    the bridge
+  - missing instruction after P2P auth is rejected, audit-logged, and does not
+    call the bridge
+  - rejected audit events omit `text` and `instruction`
+- `scripts/windows/audit-operator-api-security-contract.ps1`
+  - adds `room work order rejected input audit logging`
+- `scripts/windows/test-release-evidence-verifiers.ps1`
+  - adds `operator API security gates rejected room work-order audit logging`
+
+Validation:
+
+- parser check: pass
+- `npm run test:routes`: `30/30`
+- `npm run typecheck`: pass
+- operator API security audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `58/58`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. No runtime route behavior changed;
+the existing rejected-input audit path is now release-gated. MUSU.PRO remains
+remote input/control plane, and local MUSU Desktop/bridge remains the executor.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_REJECTED_AUDIT_GATE_2026_06_06.md`
+
+## 2026-06-06 Room Work-Order Rejected Audit Index Refresh (wiki/818)
+
+MUSU local indexer was refreshed after wiki/817 and GOAL v642.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2593 files`
+- `2752 symbols`
+- `16401 ms`
+
+Indexed context includes route regression updates for rejected room work-order
+audit logging, the operator API security audit update, the release evidence
+verifier source-contract update, the room work-order rejected audit report,
+BETA checklist, P2P control-plane spec, MUSU.PRO P2P control-plane spec,
+network boundary spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v643`, `wiki/818`, `room work-order rejected
+audit index refresh`, `2593 files`, `2752 symbols`, `16401 ms`,
+`operator API security gates rejected room work-order audit logging`,
+`invalid_json`, `instruction required`, `command-center.jsonl`, and
+`MUSU.PRO remote input control plane`.
