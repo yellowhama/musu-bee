@@ -9713,3 +9713,64 @@ Search terms should include `GOAL v635`, `wiki/810`,
 `p2p_relay_lease_store_not_release_grade`,
 `p2p_relay_payload_endpoint_not_wired`, `release verifier 55/55`, and
 `MUSU Desktop local executor`.
+
+## 2026-06-06 P2P Env Runtime Login Remediation (wiki/811)
+
+`show-musu-pro-p2p-env-status.ps1` now classifies latest hosted P2P evidence
+`not_logged_in` as `live_evidence_p2p_runtime_not_logged_in` instead of
+`live_evidence_unknown`.
+
+Changed:
+
+- evidence summary exposes `relay_status_logged_in`,
+  `relay_transport_logged_in`, `relay_leases_logged_in`, and
+  `relay_route_evidence_logged_in`
+- evidence summary exposes relay lease store configured/backend/release-grade
+  state
+- evidence summary exposes relay transport descriptor/connect/payload endpoint
+  wiring
+- next steps explicitly require packaged WindowsApps runtime login:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" login`
+- next steps explicitly reject the localhost developer dashboard as a way to
+  satisfy the hosted P2P gate
+
+Current env status:
+
+- `ok=false`
+- evidence `20260606-090333-musu.pro`
+- `error_class=p2p_runtime_not_logged_in`
+- blocker `live_evidence_p2p_runtime_not_logged_in`
+- all four logged-in checks `False`
+
+Validation:
+
+- parser check: pass
+- env status JSON: pass
+- release evidence verifier regression: `56/56`
+- `git diff --check`: pass
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ENV_RUNTIME_LOGIN_REMEDIATION_2026_06_06.md`
+
+## 2026-06-06 P2P Env Runtime Login Index Refresh (wiki/812)
+
+MUSU local indexer was refreshed after wiki/811 and GOAL v636.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2580 files`
+- `2751 symbols`
+- `12902 ms`
+
+Indexed context includes `show-musu-pro-p2p-env-status.ps1` runtime login
+remediation, the new P2P env status source contract, the canonical report,
+BETA checklist, CONFIG, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v637`, `wiki/812`,
+`P2P env runtime login index refresh`, `2580 files`, `2751 symbols`,
+`12902 ms`, `live_evidence_p2p_runtime_not_logged_in`,
+`relay_status_logged_in`, `relay_transport_logged_in`,
+`relay_leases_logged_in`, `relay_route_evidence_logged_in`, `WindowsApps
+alias`, `musu.exe login`, `localhost developer dashboard`, and
+`20260606-090333-musu.pro`.

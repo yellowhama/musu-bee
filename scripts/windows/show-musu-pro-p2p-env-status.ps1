@@ -108,6 +108,9 @@ function Get-EvidenceErrorClass {
     if ($Text -like "*p2p_control_auth_not_configured*") {
         return "p2p_control_auth_not_configured"
     }
+    if ($Text -like "*not_logged_in*") {
+        return "p2p_runtime_not_logged_in"
+    }
     if ($Text -like "*unauthorized*" -or $Text -like "*HTTP 401*") {
         return "p2p_control_unauthorized"
     }
@@ -321,6 +324,10 @@ $evidenceSummary = [pscustomobject]@{
     path = $null
     ok = $false
     recorded_at = $null
+    relay_status_logged_in = $false
+    relay_transport_logged_in = $false
+    relay_leases_logged_in = $false
+    relay_route_evidence_logged_in = $false
     relay_leases_ok = $false
     owner_scope_verified = $false
     owner_scoped = $false
@@ -333,6 +340,12 @@ $evidenceSummary = [pscustomobject]@{
     relay_payload_delivery_proof_required_count = 0
     relay_payload_delivery_proof_invalid_count = 0
     relay_transport_wired = $false
+    relay_transport_descriptor_wired = $false
+    relay_connect_endpoint_wired = $false
+    relay_payload_endpoint_wired = $false
+    relay_lease_store_configured = $false
+    relay_lease_store_backend = ""
+    relay_lease_store_release_grade = $false
     relay_default_data_path = $null
     error = $null
     error_class = $null
@@ -343,10 +356,50 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
     $verification = Get-P2pEvidenceVerification -EvidenceFilePath $EvidencePath
     $relayLeases = if ($evidence.PSObject.Properties["relay_leases"]) { $evidence.relay_leases } else { $null }
     $relayStatus = if ($evidence.PSObject.Properties["relay_status"]) { $evidence.relay_status } else { $null }
+    $relayTransport = if ($evidence.PSObject.Properties["relay_transport"]) { $evidence.relay_transport } else { $null }
     $relayRouteEvidence = if ($evidence.PSObject.Properties["relay_route_evidence"]) { $evidence.relay_route_evidence } else { $null }
     $relayError = Get-StringProperty -Object $relayLeases -Name "error"
+    if ([string]::IsNullOrWhiteSpace($relayError)) {
+        $relayError = Get-StringProperty -Object $relayStatus -Name "error"
+    }
+    if ([string]::IsNullOrWhiteSpace($relayError)) {
+        $relayError = Get-StringProperty -Object $relayTransport -Name "error"
+    }
+    if ([string]::IsNullOrWhiteSpace($relayError)) {
+        $relayError = Get-StringProperty -Object $relayRouteEvidence -Name "error"
+    }
     $relayStatusTransportWired = Get-BoolProperty -Object $relayStatus -Name "relay_transport_wired"
     $relayLeasesTransportWired = Get-BoolProperty -Object $relayLeases -Name "relay_transport_wired"
+    $relayTransportTransportWired = Get-BoolProperty -Object $relayTransport -Name "relay_transport_wired"
+    $relayTransportDescriptorWired = (
+        (Get-BoolProperty -Object $relayStatus -Name "relay_transport_descriptor_wired") -or
+        (Get-BoolProperty -Object $relayTransport -Name "relay_transport_descriptor_wired")
+    )
+    $relayConnectEndpointWired = (
+        (Get-BoolProperty -Object $relayStatus -Name "relay_connect_endpoint_wired") -or
+        (Get-BoolProperty -Object $relayTransport -Name "relay_connect_endpoint_wired")
+    )
+    $relayPayloadEndpointWired = (
+        (Get-BoolProperty -Object $relayStatus -Name "relay_payload_endpoint_wired") -or
+        (Get-BoolProperty -Object $relayTransport -Name "relay_payload_endpoint_wired")
+    )
+    $relayLeaseStoreConfigured = (
+        (Get-BoolProperty -Object $relayStatus -Name "relay_lease_store_configured") -or
+        (Get-BoolProperty -Object $relayTransport -Name "relay_lease_store_configured") -or
+        (Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_configured")
+    )
+    $relayLeaseStoreBackend = Get-StringProperty -Object $relayLeases -Name "relay_lease_store_backend"
+    if ([string]::IsNullOrWhiteSpace($relayLeaseStoreBackend)) {
+        $relayLeaseStoreBackend = Get-StringProperty -Object $relayTransport -Name "relay_lease_store_backend"
+    }
+    if ([string]::IsNullOrWhiteSpace($relayLeaseStoreBackend)) {
+        $relayLeaseStoreBackend = Get-StringProperty -Object $relayStatus -Name "relay_lease_store_backend"
+    }
+    $relayLeaseStoreReleaseGrade = (
+        (Get-BoolProperty -Object $relayStatus -Name "relay_lease_store_release_grade") -or
+        (Get-BoolProperty -Object $relayTransport -Name "relay_lease_store_release_grade") -or
+        (Get-BoolProperty -Object $relayLeases -Name "relay_lease_store_release_grade")
+    )
     $relayPayloadTransportProven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
     $relayRouteEvidenceCount = if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["count"]) { [int]$relayRouteEvidence.count } else { -1 }
     $relayPayloadDeliveryProofValidCount = if ($verification -and $verification.PSObject.Properties["relay_payload_delivery_proof_valid_count"]) { [int]$verification.relay_payload_delivery_proof_valid_count } else { 0 }
@@ -357,6 +410,10 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
         path = (Resolve-Path -LiteralPath $EvidencePath).Path
         ok = Get-BoolProperty -Object $evidence -Name "ok"
         recorded_at = Get-StringProperty -Object $evidence -Name "recorded_at"
+        relay_status_logged_in = Get-BoolProperty -Object $relayStatus -Name "logged_in"
+        relay_transport_logged_in = Get-BoolProperty -Object $relayTransport -Name "logged_in"
+        relay_leases_logged_in = Get-BoolProperty -Object $relayLeases -Name "logged_in"
+        relay_route_evidence_logged_in = Get-BoolProperty -Object $relayRouteEvidence -Name "logged_in"
         relay_leases_ok = Get-BoolProperty -Object $relayLeases -Name "ok"
         owner_scope_verified = Get-BoolProperty -Object $relayLeases -Name "owner_scope_verified"
         owner_scoped = Get-BoolProperty -Object $relayLeases -Name "owner_scoped"
@@ -368,7 +425,13 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
         relay_payload_delivery_proof_valid_count = $relayPayloadDeliveryProofValidCount
         relay_payload_delivery_proof_required_count = $relayPayloadDeliveryProofRequiredCount
         relay_payload_delivery_proof_invalid_count = $relayPayloadDeliveryProofInvalidCount
-        relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired -and $relayPayloadTransportProven)
+        relay_transport_wired = ($relayStatusTransportWired -and $relayLeasesTransportWired -and $relayTransportTransportWired -and $relayPayloadTransportProven)
+        relay_transport_descriptor_wired = $relayTransportDescriptorWired
+        relay_connect_endpoint_wired = $relayConnectEndpointWired
+        relay_payload_endpoint_wired = $relayPayloadEndpointWired
+        relay_lease_store_configured = $relayLeaseStoreConfigured
+        relay_lease_store_backend = $relayLeaseStoreBackend
+        relay_lease_store_release_grade = $relayLeaseStoreReleaseGrade
         relay_default_data_path = if ($relayLeases) { Get-BoolProperty -Object $relayLeases -Name "relay_default_data_path" } elseif ($relayStatus) { Get-BoolProperty -Object $relayStatus -Name "relay_default_data_path" } else { $null }
         error = $relayError
         error_class = Get-EvidenceErrorClass -Text $relayError
@@ -447,6 +510,11 @@ if ($blockers -contains "missing_kv_rest_api_url_or_upstash_redis_rest_url" -or 
 }
 if ($blockers -contains "missing_musu_p2p_control_token_sha256s" -or $blockers -contains "live_evidence_p2p_control_auth_not_configured") {
     $nextSteps.Add("Set MUSU_P2P_CONTROL_TOKEN_SHA256S from scripts\windows\show-p2p-control-token-hash.ps1 -Json, then redeploy.") | Out-Null
+}
+if ($blockers -contains "live_evidence_p2p_runtime_not_logged_in") {
+    $nextSteps.Add("Log in the packaged MUSU runtime with the WindowsApps alias, then rerun hosted P2P evidence: & `"`$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe`" login") | Out-Null
+    $nextSteps.Add("Do not use the localhost developer dashboard to satisfy this gate; the required proof is a production runtime token accepted by https://musu.pro P2P control-plane endpoints.") | Out-Null
+    $nextSteps.Add("After login, rerun scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json and confirm relay status, transport, leases, and route evidence all report logged_in=true.") | Out-Null
 }
 if ($blockers -contains "live_evidence_relay_transport_not_wired") {
     $nextSteps.Add("Implement and prove the relay payload transport before setting MUSU_P2P_RELAY_TRANSPORT_WIRED=1; the lease control-plane alone is not enough for public P2P release.") | Out-Null

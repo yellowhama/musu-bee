@@ -7216,3 +7216,40 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2577 files`, `2751 symbols`, `12476 ms`
+
+## 2026-06-06 09:12 KST P2P Env Runtime Login Remediation
+
+`show-musu-pro-p2p-env-status.ps1` now classifies hosted P2P evidence
+`not_logged_in` as `live_evidence_p2p_runtime_not_logged_in` instead of
+`live_evidence_unknown`.
+
+Changed:
+
+- env status evidence summary reports:
+  `relay_status_logged_in`, `relay_transport_logged_in`,
+  `relay_leases_logged_in`, and `relay_route_evidence_logged_in`
+- env status reports relay lease store configured/backend/release-grade fields
+- env status reports relay transport descriptor/connect/payload endpoint wiring
+- next steps now explicitly say to log in with the packaged WindowsApps alias:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" login`
+- next steps explicitly say not to use the localhost developer dashboard to
+  satisfy this gate
+
+Validation:
+
+- PowerShell parser check: pass
+- current env status JSON: `ok=false` with
+  `live_evidence_p2p_runtime_not_logged_in`
+- release evidence verifier regression: `ok=true`, `case_count=56`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ENV_RUNTIME_LOGIN_REMEDIATION_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2580 files`, `2751 symbols`, `12902 ms`

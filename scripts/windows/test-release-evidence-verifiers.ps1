@@ -28,6 +28,7 @@ $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-sce
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
+$p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -422,6 +423,36 @@ function Test-ExternalGateRecheckActionableContract {
         'p2p_relay_lease_store_not_release_grade',
         'p2p_relay_transport_not_wired',
         'p2p_relay_payload_endpoint_not_wired'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-P2pEnvStatusRuntimeLoginActionContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'p2p_runtime_not_logged_in',
+        'live_evidence_p2p_runtime_not_logged_in',
+        'relay_status_logged_in',
+        'relay_transport_logged_in',
+        'relay_leases_logged_in',
+        'relay_route_evidence_logged_in',
+        'relay_lease_store_configured',
+        'relay_lease_store_backend',
+        'relay_lease_store_release_grade',
+        'relay_transport_descriptor_wired',
+        'relay_connect_endpoint_wired',
+        'relay_payload_endpoint_wired',
+        'Log in the packaged MUSU runtime with the WindowsApps alias',
+        'Do not use the localhost developer dashboard to satisfy this gate',
+        'logged_in=true'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1163,6 +1194,18 @@ Add-CaseResult `
     -Name "external gate recheck exposes actionable root-cause fields" `
     -Verifier "external gate recheck source contract" `
     -FixturePath $externalGateRecheckRecorder `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$p2pEnvStatusRuntimeLoginActionContractOk = Test-P2pEnvStatusRuntimeLoginActionContract -ScriptPath $p2pEnvStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pEnvStatusRuntimeLoginActionContractOk `
+    -Message "P2P env status must expose runtime logged-in state and packaged-login remediation"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P env status exposes runtime login remediation" `
+    -Verifier "P2P env status source contract" `
+    -FixturePath $p2pEnvStatusReporter `
     -ShouldPass $true `
     -Invocation $invocation
 

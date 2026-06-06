@@ -5099,4 +5099,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_payload_endpoint_not_wired`, and
   `MUSU Desktop local executor`.
 
+- 2026-06-06 P2P env runtime login remediation:
+  `RELEASE_1_15_0_RC1_P2P_ENV_RUNTIME_LOGIN_REMEDIATION_2026_06_06.md`
+  (wiki/811) records `show-musu-pro-p2p-env-status.ps1` classifying
+  `not_logged_in` as `live_evidence_p2p_runtime_not_logged_in`. Search terms
+  should include `GOAL v636`, `wiki/811`,
+  `P2P env status exposes runtime login remediation`,
+  `relay_status_logged_in`, `relay_transport_logged_in`,
+  `relay_leases_logged_in`, `relay_route_evidence_logged_in`,
+  `WindowsApps alias`, `musu.exe login`, `localhost developer dashboard`,
+  `release verifier 56/56`, and `20260606-090333-musu.pro`.
+
+- 2026-06-06 P2P env runtime login index refresh:
+  wiki/812 records the MUSU local index refresh after wiki/811 and GOAL v636.
+  Search terms should include `GOAL v637`, `wiki/812`, `2580 files`,
+  `2751 symbols`, `12902 ms`, `P2P env runtime login index refresh`,
+  `live_evidence_p2p_runtime_not_logged_in`, `relay_status_logged_in`,
+  `relay_transport_logged_in`, `relay_leases_logged_in`,
+  `relay_route_evidence_logged_in`, `WindowsApps alias`, `musu.exe login`,
+  `localhost developer dashboard`, and `20260606-090333-musu.pro`.
+
 **End of WIKI_INDEX.md.**
