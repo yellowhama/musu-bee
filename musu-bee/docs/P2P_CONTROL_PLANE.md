@@ -110,3 +110,11 @@ Current validation can progress on one machine for local runtime, dashboard URL
 discovery, idle CPU, and control-plane contract checks. Multi-device route proof
 cannot be completed until the same current MUSU build is installed and run on a
 second Windows PC.
+
+2026-06-06 current external gate snapshot: clean HEAD
+`0ba26d6d27a23a213240962517079d5fd817c7e8` verifies public metadata on
+`https://musu.pro`, but hosted P2P evidence `20260606-151527-musu.pro` remains
+`ok=false` with `fail_count=42`, logged-in runtime evidence false, owner scope
+false, relay route evidence count `0`, relay route transport proof valid count
+`0`, and relay payload delivery proof valid count `0`. This is still external
+machine/account/infrastructure work; execution remains local in MUSU Desktop.

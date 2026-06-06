@@ -10848,3 +10848,82 @@ identity gate index refresh`, `2655 files`, `2758 symbols`, `11366 ms`,
 `peer_identity_method_not_release_grade`, `peer_public_key_not_fingerprint`,
 `hasCurrentPeerIdentityProof`, `quic_tls_cert_fingerprint`, `sha256:`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Current External Gate Snapshot (wiki/847)
+
+Current clean HEAD `0ba26d6d27a23a213240962517079d5fd817c7e8` was rechecked
+without `-SkipPublicMetadata`.
+
+Evidence:
+
+- external gate:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-151336-HUGH_SECOND.external-gates.evidence.json`
+- hosted P2P:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-151527-musu.pro.evidence.json`
+- hosted P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-151527-musu.pro.verification.json`
+
+Current result:
+
+- public metadata checked/ok `true`/`true`
+- local artifacts ready `true`
+- single-machine verified `true`
+- MSIX install verified `true`
+- runtime idle CPU valid machine count `1/2`
+- runtime CPU scenario matrix valid machine count `1/2`
+- targeted failed-route CPU diagnostic `1/1`
+- second PC `192.168.1.192:8949` TCP error `tcp_connect_timeout`
+- hosted P2P verification `ok=false`, `fail_count=42`
+- relay route evidence count `0`
+- relay route transport proof valid count `0`
+- relay payload delivery proof valid count `0`
+
+Validation/code audit:
+
+- changed code files in this snapshot: none
+- `git diff --check`: pass
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release verifier: `ok=true`, `case_count=66`, `failed_case_count=0`
+
+Remaining go/no-go blockers are `multi-device`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
+`p2p-control-plane`.
+
+Qualitative audit found no high/medium issue. This is external
+machine/account/infrastructure evidence work; it is not a localhost dashboard
+problem and it does not change the product boundary. MUSU Desktop remains the
+local executor, while MUSU.PRO remains remote input, project/company room,
+rendezvous, path selection, relay fallback, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_EXTERNAL_GATE_SNAPSHOT_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_EXTERNAL_GATE_SNAPSHOT_2026_06_06.md`
+
+## 2026-06-06 Current External Gate Snapshot Index Refresh (wiki/848)
+
+MUSU local indexer was refreshed after wiki/847 and GOAL v672.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2662 files`
+- `2758 symbols`
+- `11836 ms`
+
+Indexed context includes current external gate evidence
+`20260606-151336-HUGH_SECOND.external-gates`, hosted P2P evidence
+`20260606-151527-musu.pro`, public metadata pass, second-PC
+`tcp_connect_timeout`, hosted P2P verifier `fail_count=42`, current external
+gate snapshot report, next-step plan, BETA checklist, P2P control-plane specs,
+GOAL v672, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v673`, `wiki/848`, `current external gate
+snapshot index refresh`, `2662 files`, `2758 symbols`, `11836 ms`,
+`public_metadata_ok=true`, `P2P fail_count=42`,
+`relay_route_transport_proof_valid_count=0`,
+`relay_payload_delivery_proof_valid_count=0`, `MUSU Desktop local executor`,
+and `MUSU.PRO remote input control plane`.

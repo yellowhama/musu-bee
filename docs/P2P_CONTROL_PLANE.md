@@ -258,3 +258,26 @@ evidence can carry the proof to MUSU.PRO instead of converting it to `None`.
 
 This still does not implement release tunnel transport. It only ensures the
 local executor can preserve proof once runtime transport code produces it.
+
+## 2026-06-06 current external gate snapshot
+
+Current clean HEAD `0ba26d6d27a23a213240962517079d5fd817c7e8` confirms the
+current product split and remaining P2P release blockers:
+
+- MUSU Desktop remains the local executor and resource owner.
+- MUSU.PRO remains remote input, project/company room, presence, rendezvous,
+  path selection, relay fallback policy, and evidence/control plane.
+- Public metadata is checked and ok on `https://musu.pro`.
+- Hosted P2P evidence `20260606-151527-musu.pro` verifies `ok=false` with
+  `fail_count=42`.
+- The packaged runtime is not logged in for hosted relay status, transport,
+  leases, or route-evidence queries.
+- Owner scope is not verified.
+- Production relay lease storage is not configured/release-grade.
+- Release relay transport/connect/payload endpoints are not wired.
+- Relay route evidence count, route transport proof valid count, and payload
+  delivery proof valid count are all `0`.
+
+Release implication: this is still external machine/account/infrastructure
+work. It is not a reason to use the localhost developer dashboard as the
+product surface, and it is not a reason to move execution into MUSU.PRO.

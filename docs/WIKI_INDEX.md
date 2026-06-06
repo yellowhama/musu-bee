@@ -5464,4 +5464,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `quic_tls_cert_fingerprint`, `sha256:`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current external gate snapshot:
+  `RELEASE_1_15_0_RC1_CURRENT_EXTERNAL_GATE_SNAPSHOT_2026_06_06.md`
+  (wiki/847) records current clean HEAD external go/no-go with public metadata
+  enabled. Search terms should include `GOAL v672`, `wiki/847`,
+  `0ba26d6d27a23a213240962517079d5fd817c7e8`,
+  `20260606-151336-HUGH_SECOND.external-gates`,
+  `20260606-151527-musu.pro`, `public_metadata_ok=true`,
+  `tcp_connect_timeout`, `P2P fail_count=42`,
+  `relay_route_transport_proof_valid_count=0`,
+  `relay_payload_delivery_proof_valid_count=0`, `multi-device`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `support-mailbox`,
+  `store-release`, `p2p-control-plane`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current external gate snapshot index refresh:
+  wiki/848 records the MUSU local index refresh after wiki/847 and GOAL v672.
+  Search terms should include `GOAL v673`, `wiki/848`, `2662 files`,
+  `2758 symbols`, `11836 ms`, `current external gate snapshot index refresh`,
+  `20260606-151336-HUGH_SECOND.external-gates`,
+  `20260606-151527-musu.pro`, `public_metadata_ok=true`,
+  `P2P fail_count=42`, `relay_route_transport_proof_valid_count=0`,
+  `relay_payload_delivery_proof_valid_count=0`, `MUSU Desktop local executor`,
+  and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

@@ -1605,3 +1605,34 @@ This does not change the P2P product split. MUSU.PRO may receive remote input,
 host project/company rooms, coordinate rendezvous/path selection/relay
 fallback, and store evidence. MUSU Desktop remains the executor and local
 resource owner on each device.
+
+## 2026-06-06 Current external gate snapshot
+
+Current clean HEAD `0ba26d6d27a23a213240962517079d5fd817c7e8` was rechecked
+against `https://musu.pro` without skipping public metadata.
+
+Spec state:
+
+- MUSU Desktop remains the local executor on each device.
+- MUSU.PRO remains remote input, rooms, presence, rendezvous, path selection,
+  relay fallback, and evidence/control plane.
+- Direct P2P mesh remains preferred after web-assisted bootstrap.
+- Hosted relay remains fallback-only and cannot satisfy release without actual
+  `quic_relay_tunnel` transport and payload delivery proof.
+
+Current release evidence:
+
+- external gate:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-151336-HUGH_SECOND.external-gates.evidence.json`
+- hosted P2P evidence:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-151527-musu.pro.evidence.json`
+- public metadata checked/ok: `true`/`true`
+- second PC `192.168.1.192:8949`: TCP `false`, `tcp_connect_timeout`
+- hosted P2P verification: `ok=false`, `fail_count=42`
+- relay route evidence count: `0`
+- relay route transport proof valid count: `0`
+- relay payload delivery proof valid count: `0`
+
+Current blockers are second-PC route/CPU/matrix evidence, production runtime
+login, owner-scoped release-grade storage, release relay tunnel transport,
+payload endpoint wiring, support mailbox proof, and Store/Partner Center proof.
