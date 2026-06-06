@@ -1271,3 +1271,27 @@ mDNS remains local-only and opt-in:
 MUSU.PRO may help devices find each other through registry/rendezvous/path
 selection, but local LAN discovery still runs on the local device and cannot be
 used as hosted execution proof.
+
+## 2026-06-07 Current Target-Route CPU Audit Boundary
+
+Current target-route CPU evidence proves resource behavior on the local
+executor after an explicit non-local route attempt. It does not move execution
+to MUSU.PRO and does not prove a successful P2P route.
+
+Boundary implications:
+
+- `HUGH_SECOND` attempted `musu route --target HUGH-MAIN --wait`.
+- The target resolved to `http://192.168.1.192:8949/api/tasks/delegate` and
+  timed out.
+- The failed route attempt is allowed only as a CPU diagnostic when the
+  verifier sees the expected target, per-attempt metadata, nonzero normalized
+  exit code, and no self/local target.
+- `runtime_cpu_second_pc_route_attempt_verified=true` means the local executor
+  stayed within CPU/resource budget after the failed non-local route attempt.
+- It does not mean `HUGH-MAIN` successfully ran work.
+- It does not satisfy the second-PC CPU/matrix, live MUSU.PRO P2P, relay proof,
+  support mailbox, or Store gates.
+
+The product boundary remains: MUSU Desktop executes local work and joins the
+mesh; MUSU.PRO receives user input, coordinates project rooms and rendezvous,
+helps devices discover each other, and records evidence.

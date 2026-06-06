@@ -171,6 +171,29 @@ Passing local state:
 - `show-musu-pro-p2p-env-status.ps1` reports
   `source.relay_payload_queue_fallback_implemented=true`
 
+## 2026-06-07 Current-HEAD target-route CPU audit addendum
+
+Current HEAD `6cbeb3b34dad0c01c4a539f170435759095efc59` now has fresh
+targeted HUGH-MAIN route-attempt CPU evidence on `HUGH_SECOND`:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-072059-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-072059-HUGH_SECOND.target-route.verification.json`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+
+The target route attempt still timed out against
+`http://192.168.1.192:8949/api/tasks/delegate`, so this is CPU/resource
+diagnostic evidence only. It is not route success proof, not second-PC CPU
+evidence, and not hosted P2P release proof.
+
+The product split is unchanged. MUSU Desktop is the local executor. MUSU.PRO is
+the remote input, project room, presence, rendezvous, path-selection, relay
+fallback, and evidence/control plane. `localhost:3001` remains a local
+developer/diagnostic dashboard surface and must not be treated as the packaged
+desktop runtime contract.
+
 2026-06-06 current HEAD MSIX reinstall and crash-recovery evidence addendum:
 the source crash-recovery contract is now proven in the installed package, not
 only in source tests. HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was

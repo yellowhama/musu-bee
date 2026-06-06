@@ -13835,3 +13835,85 @@ Search terms should include `GOAL v755`, `wiki/930`, `clipboard poller
 cancellation hardening index refresh`, `2830 files`, `2788 symbols`,
 `14867 ms`, `worker_token.is_cancelled`, `write-release-go-no-go.ps1`, and
 `case_count=104`.
+
+## 2026-06-07 Current-HEAD Target Route CPU Audit and Spec Refresh (wiki/935)
+
+Current HEAD `6cbeb3b34dad0c01c4a539f170435759095efc59` has fresh targeted
+HUGH-MAIN route-attempt CPU evidence on `HUGH_SECOND`.
+
+Evidence:
+
+- `20260607-072059-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `20260607-072059-HUGH_SECOND.target-route.verification.json`
+
+Route attempt:
+
+- target `HUGH-MAIN`
+- token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`
+- timeout to `http://192.168.1.192:8949/api/tasks/delegate`
+- `failure_allowed=true`
+- `attempt_count=1`
+- normalized exit code `1`
+
+CPU result:
+
+- all five scenarios passed
+- hot process count `0`
+- MUSU CPU `0`
+- Node CPU `0`
+- max WebView2 CPU `0.13`
+- max working set `362.50MB`
+
+Gate result:
+
+- `single_machine_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `p2p_control_plane_env_ready=false`
+- `ready_for_public_desktop_release=false`
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo check --lib`
+- `cargo test --lib mdns` passed `3/3`
+- Rust background-loop audit `ok=true`, `fail_count=0`, unaudited
+  loops/spawns `0`
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Product interpretation: MUSU Desktop remains the local executor. MUSU.PRO is
+remote input, project room, presence, rendezvous, path-selection, relay
+fallback, and evidence/control plane. `localhost:3001` is not the packaged
+desktop contract. This evidence is a CPU diagnostic for a failed non-local
+target route attempt; it is not successful second-PC route proof.
+
+Search terms should include `GOAL v760`, `wiki/935`,
+`20260607-072059-HUGH_SECOND`, `HUGH-MAIN`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`,
+`runtime_cpu_second_pc_route_attempt_verified=true`, `release verifier 104/104`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Current-HEAD Target Route CPU Audit Spec Refresh Index Refresh (wiki/936)
+
+MUSU local indexer was refreshed after wiki/935 and GOAL v760.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2849 files`
+- `2788 symbols`
+- `13902 ms`
+
+Indexed context includes targeted HUGH-MAIN route-attempt CPU evidence
+`20260607-072059-HUGH_SECOND`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`, code audit results, product
+boundary/spec refresh, canonical report, next-step plan, BETA checklist, P2P
+control-plane spec, runtime stabilization spec, network boundary spec, GOAL,
+WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v761`, `wiki/936`, `2849 files`,
+`2788 symbols`, `13902 ms`,
+`current-head target-route CPU audit spec refresh index refresh`,
+`20260607-072059-HUGH_SECOND`, `HUGH-MAIN`,
+`runtime_cpu_second_pc_route_attempt_verified=true`, and
+`MUSU.PRO remote input control plane`.

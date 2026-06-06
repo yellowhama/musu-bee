@@ -6293,4 +6293,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `31a7ad5a-d5fa-4731-b896-c490e6f5deb1`, `127.0.0.1:9020`, and
   `WebView2 0.23`.
 
+- 2026-06-07 current-head target-route CPU audit and spec refresh:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_AUDIT_SPEC_REFRESH_2026_06_07.md`
+  (wiki/935) records fresh current-HEAD targeted `HUGH-MAIN` route-attempt CPU
+  evidence, code audit, product boundary/spec refresh, and next-step handoff.
+  Search terms should include `GOAL v760`, `wiki/935`,
+  `20260607-072059-HUGH_SECOND`, `HUGH-MAIN`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`,
+  `192.168.1.192:8949`, `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`,
+  `release verifier 104/104`, `max WebView2 0.13`, `max working set 362.50MB`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-07 current-head target-route CPU audit spec refresh index refresh:
+  wiki/936 records the MUSU local index refresh after wiki/935 and GOAL v760.
+  Search terms should include `GOAL v761`, `wiki/936`, `2849 files`,
+  `2788 symbols`, `13902 ms`,
+  `current-head target-route CPU audit spec refresh index refresh`,
+  `20260607-072059-HUGH_SECOND`, `HUGH-MAIN`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `release verifier 104/104`, and `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

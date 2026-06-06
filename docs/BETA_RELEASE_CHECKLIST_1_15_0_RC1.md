@@ -9592,3 +9592,54 @@ mailbox proof, and Store proof.
 Canonical report:
 `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_MDNS_CANCELLATION_2026_06_07.md`
 (wiki/933).
+
+## 2026-06-07 Current-HEAD Target Route CPU Audit and Spec Refresh
+
+Fresh targeted HUGH-MAIN route-attempt CPU evidence was captured on
+`HUGH_SECOND` for current HEAD `6cbeb3b34dad0c01c4a539f170435759095efc59`.
+
+Evidence promoted:
+
+- targeted route CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-072059-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- targeted route verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-072059-HUGH_SECOND.target-route.verification.json`
+
+Result:
+
+- route target `HUGH-MAIN`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_072059`
+- route attempt timed out against
+  `http://192.168.1.192:8949/api/tasks/delegate`
+- `failure_allowed=true`
+- target-route verifier `ok=true`, `fail_count=0`
+- five-state matrix hot process count `0` in every scenario
+- max WebView2 one-core CPU `0.13`
+- max working set `362.50MB`
+- clean go/no-go now reports
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1` and
+  `runtime_cpu_second_pc_route_attempt_verified=true`
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo check --lib`
+- `cargo test --lib mdns` passed `3/3`
+- Rust background-loop audit `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Qualitative assessment: no high or medium issue found. This restores the
+current-HEAD targeted failed-route CPU diagnostic gate only. It does not prove
+successful second-PC routing and does not close the second-PC idle CPU/matrix,
+hosted MUSU.PRO P2P/relay, support mailbox, or Store gates.
+
+Product boundary remains: MUSU Desktop is the local executor, while MUSU.PRO is
+remote input, project/company room, presence, rendezvous, path-selection, relay
+fallback, and evidence/control plane. `localhost:3001` is optional
+developer/local dashboard surface, not the packaged desktop contract.
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_AUDIT_SPEC_REFRESH_2026_06_07.md`
+(wiki/935).

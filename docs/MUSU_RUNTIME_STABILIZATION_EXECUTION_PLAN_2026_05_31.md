@@ -627,6 +627,30 @@ Release contract:
 - after this runtime source change lands, packaged local evidence must be
   refreshed before public release can reuse the local desktop pass
 
+## 2026-06-07 Current-HEAD Target Route CPU Audit
+
+Current HEAD `6cbeb3b34dad0c01c4a539f170435759095efc59` now has fresh
+targeted HUGH-MAIN route-attempt CPU evidence after the mDNS cancellation
+runtime source hardening and packaged local evidence refresh.
+
+Stabilization result:
+
+- targeted matrix `20260607-072059-HUGH_SECOND` verifies with `ok=true` and
+  `fail_count=0`
+- all five scenarios stayed under budget
+- hot process count stayed `0`
+- MUSU CPU stayed `0`
+- Node CPU stayed `0`
+- max WebView2 one-core CPU was `0.13`
+- max working set was `362.50MB`
+- clean go/no-go restored
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`
+
+This closes the current-HEAD targeted failed-route CPU diagnostic gap only. The
+real stabilization blockers remain second-PC desktop-open CPU, second-PC
+five-state matrix, actual second-PC route proof, live MUSU.PRO P2P/relay proof,
+support mailbox evidence, and Store evidence.
+
 ## 2026-06-07 mDNS Cancellation Contract
 
 The mDNS idle candidate now has an explicit cancellation contract when the

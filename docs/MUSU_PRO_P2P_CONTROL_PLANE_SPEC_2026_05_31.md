@@ -4,6 +4,22 @@
 **Date**: 2026-05-31
 **Status**: Current implementation spec. Server-side rendezvous, route-evidence, and relay fallback lease APIs exist. Rust bridge runtime route attempts now create short-lived rendezvous sessions, seed sessions from recent node candidate cache, can use returned target candidates before legacy direct forwarding, exchange advertised TLS certificate fingerprints as peer identity material, verify HTTPS peer certificate fingerprints during bridge forwarding when a target candidate supplies a `sha256:<hex>` fingerprint, request a fail-closed relay lease after terminal direct-route failure when a rendezvous session and account token exist, persist the relay fallback evaluation inside failed route evidence, expose `musu relay transport --json`, `musu relay leases --json`, and `musu relay route-evidence --json` for owner-scoped audit queries, accept either a raw static control token or SHA-256 runtime-token allowlist for P2P control auth, write target-side audit rows when `/api/tasks/forward` accepts cross-machine work, and accept either `KV_REST_API_*` or `UPSTASH_REDIS_REST_*` storage env names for hosted P2P storage. Relay route evidence now also requires `musu.relay_transport_proof.v1` before `route_kind=relay` can become release-grade, and that proof must be bound to the same source/target peer pair as the route evidence record. This is still not final release-grade transport because the accepted release proof remains QUIC/TLS evidence, not bridge HTTP multipart over TLS, relay/tunnel data transport is still not wired, and live `https://musu.pro` still needs actual production KV/Upstash storage credentials plus release-grade relay route evidence before the hosted P2P gate can pass. The 2026-06-03 09:36 KST live evidence now fails the stricter verifier with `fail_count=31` because relay transport descriptor evidence is absent, relay lease storage is unconfigured, and owner-scoped relay route evidence count is `0`.
 
+**2026-06-07 current target-route CPU audit update**: Current HEAD
+`6cbeb3b34dad0c01c4a539f170435759095efc59` has fresh HUGH_SECOND evidence for
+a targeted failed `HUGH-MAIN` route-attempt CPU diagnostic:
+`20260607-072059-HUGH_SECOND.runtime-cpu-scenario-matrix.json` plus
+`20260607-072059-HUGH_SECOND.target-route.verification.json`. This restores
+`runtime_cpu_second_pc_route_attempt_verified=true` and
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1`, while
+`ready_for_public_desktop_release=false` and
+`p2p_control_plane_env_ready=false`. The attempt timed out at
+`http://192.168.1.192:8949/api/tasks/delegate`; it is not successful route
+proof and does not close second-PC route/CPU/matrix or hosted relay gates. The
+architecture remains local executor plus web control plane: MUSU Desktop does
+local execution, while MUSU.PRO accepts remote input, hosts project rooms,
+coordinates rendezvous/path selection, issues fallback relay only after direct
+path failure, and records evidence.
+
 **2026-06-03 gate update**: Hosted P2P release evidence now requires relay
 payload transport proof separately from relay lease control-plane proof.
 `verify-p2p-control-plane-evidence.ps1` fails unless
