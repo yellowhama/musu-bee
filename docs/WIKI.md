@@ -10183,3 +10183,84 @@ Search terms should include `GOAL v649`, `wiki/824`,
 `2754 symbols`, `33284 ms`, `RouteRelayTransportProof`,
 `route evidence carries relay transport proof to cloud`, `cloud_route_evidence`,
 and `MUSU Desktop local executor`.
+
+## 2026-06-06 Current MSIX Alias Shadow Live Gate (wiki/825)
+
+`write-release-go-no-go.ps1` now performs a live current-machine MSIX legacy
+conflict check by running `check-msix-legacy-conflicts.ps1 -Json`.
+
+Changed:
+
+- `write-release-go-no-go.ps1`
+  - exposes `msix_current_legacy_conflicts_ok`
+  - exposes `msix_current_legacy_conflicts`
+  - blocks with `msix-current-legacy-conflicts` when active startup helpers,
+    scheduled tasks, legacy bins, or PATH alias shadowing exist
+  - includes the live conflict check in manual internal gates
+- `test-release-evidence-verifiers.ps1`
+  - adds source-contract case
+    `go-no-go blocks on current MSIX legacy conflicts`
+
+Current `HUGH_SECOND` live state:
+
+- `where.exe musu` resolves `C:\Users\empty\.cargo\bin\musu.exe` before
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- terminal `musu --version` returns `musu 1.15.0-dev`
+- explicit WindowsApps alias returns `musu 1.15.0-rc.1`
+- live MUSU Desktop and bridge processes are packaged WindowsApps processes
+
+Current diagnostic CPU result:
+
+- `.local-build\runtime-idle-cpu\musu-idle-cpu-20260606-112220.json`
+- `ok=true`, `60.057s`
+- MUSU `0.03`, Node `0.0`, WebView2 `0.08`
+- `bridge_runtime=1`, `desktop_shell=1`, `webview2_helper=6`
+
+This diagnostic did not reproduce the 20% busy-loop, but it was captured while
+the release-gate scripts were dirty and does not replace clean release
+evidence.
+
+Validation:
+
+- parser check: pass
+- release evidence verifier regression: `60/60`
+- frontend polling contract audit: `ok=true`, `fail_count=0`
+- Rust background-loop contract audit: `ok=true`, `fail_count=0`
+- dirty-tree go/no-go exposes `msix_current_legacy_conflicts_ok=false`
+
+Qualitative audit found no high/medium issue. The product split remains:
+MUSU Desktop is the local executor, the packaged WindowsApps alias is the
+release CLI/runtime identity, developer `musu 1.15.0-dev` is diagnostic only,
+and MUSU.PRO is remote input/control-plane/rendezvous/relay evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_MSIX_ALIAS_SHADOW_LIVE_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_MSIX_ALIAS_SHADOW_LIVE_GATE_2026_06_06.md`
+
+## 2026-06-06 Current MSIX Alias Shadow Live Gate Index Refresh (wiki/826)
+
+MUSU local indexer was refreshed after wiki/825 and GOAL v650.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2601 files`
+- `2754 symbols`
+- `13353 ms`
+
+The explicit WindowsApps alias was used because current PATH resolves terminal
+`musu` to the developer binary first.
+
+Indexed context includes the go/no-go live MSIX alias-shadow gate,
+`test-release-evidence-verifiers.ps1` source-contract update, the canonical
+wiki/825 report, next-step plan, BETA checklist, WIKI/WIKI_INDEX, and CoS
+memory.
+
+Search terms should include `GOAL v651`, `wiki/826`,
+`current MSIX alias shadow live gate index refresh`, `2601 files`,
+`2754 symbols`, `13353 ms`, `msix_current_legacy_conflicts_ok`,
+`msix-current-legacy-conflicts`, `musu 1.15.0-dev`, `musu 1.15.0-rc.1`, and
+`MUSU Desktop local executor`.

@@ -513,6 +513,31 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
     return $true
 }
 
+function Test-GoNoGoCurrentMsixLegacyConflictContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'check-msix-legacy-conflicts.ps1',
+        '$msixLegacyConflictsResult = Invoke-JsonScript',
+        '$msixCurrentLegacyConflictsOk',
+        'msix-current-legacy-conflicts',
+        'Current Windows install state has legacy startup, bin, scheduled-task, or PATH alias conflicts.',
+        'alias_shadowing',
+        'alias_remediation',
+        'msix_current_legacy_conflicts_ok',
+        'msix_current_legacy_conflicts',
+        'Current MSIX legacy conflict live check for startup helpers, scheduled tasks, legacy bins, and PATH alias shadowing'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-OperatorApiSecurityRoomWorkOrderRejectedAuditContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1324,6 +1349,18 @@ Add-CaseResult `
     -Name "P2P env status exposes runtime login remediation" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoCurrentMsixLegacyConflictContractOk = Test-GoNoGoCurrentMsixLegacyConflictContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoCurrentMsixLegacyConflictContractOk `
+    -Message "go/no-go must include a current live MSIX legacy-conflict check so stale install evidence cannot hide PATH alias shadowing"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go blocks on current MSIX legacy conflicts" `
+    -Verifier "go-no-go MSIX legacy conflict source contract" `
+    -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
 

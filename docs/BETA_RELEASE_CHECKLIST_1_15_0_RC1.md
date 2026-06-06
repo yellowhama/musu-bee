@@ -136,7 +136,30 @@ Expected:
 - bridge token present from `~\.musu\bridge.env`
 - bridge `/health` returns `status=ok`
 - `dashboard.required=false` is acceptable for packaged local runtime evidence
-- Windows alias shadowing is reported as a warning, not hidden
+- Windows alias shadowing is not hidden. Current go/no-go runs
+  `scripts\windows\check-msix-legacy-conflicts.ps1 -Json` live and blocks
+  public release with `msix-current-legacy-conflicts` if terminal `musu`
+  resolves to a developer binary before the WindowsApps packaged alias.
+
+Current observed alias-shadow blocker on `HUGH_SECOND`:
+
+- `where.exe musu` resolves `C:\Users\empty\.cargo\bin\musu.exe` before
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- `musu --version` returns `musu 1.15.0-dev`
+- explicit WindowsApps alias returns `musu 1.15.0-rc.1`
+- Start Menu / MUSU Desktop runtime processes are packaged, but terminal
+  commands are ambiguous until PATH is fixed or explicit WindowsApps invocation
+  is used
+
+Latest dirty-tree desktop-open CPU diagnostic after detecting the alias issue:
+
+- `.local-build\runtime-idle-cpu\musu-idle-cpu-20260606-112220.json`
+- `ok=true`, `60.057s`
+- max one-core CPU: MUSU `0.03`, Node `0.0`, WebView2 `0.08`
+- process/subrole attribution: `bridge_runtime=1`, `desktop_shell=1`,
+  `webview2_helper=6`, owned Node `0`
+- this diagnostic does not replace clean release evidence because it was
+  captured while release-gate scripts were dirty
 
 Optional same-machine dashboard API smoke:
 

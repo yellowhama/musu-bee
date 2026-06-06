@@ -936,6 +936,7 @@ $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $msixDesktopEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
+$msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
@@ -965,6 +966,11 @@ $msixLocalDesktopEntrypointInstalledAuditResult = Invoke-JsonScript `
     -FilePath $msixDesktopEntrypointAuditScript `
     -Arguments @("-StartupContract", "local-sideload-manual", "-ExpectedApplicationExecutable", "musu-desktop.exe", "-RequireInstalledPackage", "-Json") `
     -AllowFailure
+$msixLegacyConflictsResult = Invoke-JsonScript `
+    -FilePath $msixLegacyConflictsScript `
+    -Arguments @("-Json") `
+    -AllowFailure
+$msixCurrentLegacyConflictsOk = ($msixLegacyConflictsResult.json -and [bool]$msixLegacyConflictsResult.json.ok)
 $msixDesktopEntrypointVerified = (
     $msixStoreDesktopEntrypointArtifactAuditResult.json -and
     [bool]$msixStoreDesktopEntrypointArtifactAuditResult.json.ok -and
@@ -1651,6 +1657,21 @@ if (-not [bool]$audit.single_machine_verified) {
 if (-not $msixInstallVerified) {
     Add-Blocker -List $blockers -Area "msix-install" -Message "Clean/current Windows MSIX install evidence has not been recorded."
 }
+if (-not $msixCurrentLegacyConflictsOk) {
+    $aliasShadowedBy = if ($msixLegacyConflictsResult.json -and $msixLegacyConflictsResult.json.PSObject.Properties["alias_shadowing"]) {
+        (@($msixLegacyConflictsResult.json.alias_shadowing) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) -join "; "
+    }
+    else {
+        ""
+    }
+    $aliasRemediation = if ($msixLegacyConflictsResult.json -and $msixLegacyConflictsResult.json.PSObject.Properties["alias_remediation"]) {
+        [string]$msixLegacyConflictsResult.json.alias_remediation
+    }
+    else {
+        "Run scripts/windows/check-msix-legacy-conflicts.ps1 and clear active startup helpers, scheduled tasks, legacy bins, or PATH alias shadowing before release."
+    }
+    Add-Blocker -List $blockers -Area "msix-current-legacy-conflicts" -Message "Current Windows install state has legacy startup, bin, scheduled-task, or PATH alias conflicts. Shadowing: '$aliasShadowedBy'. $aliasRemediation"
+}
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
@@ -1732,6 +1753,7 @@ $manualInternalGates = @(
     "Runtime idle CPU verification on primary Windows PC",
     "Runtime idle CPU verification on second Windows PC",
     "Runtime CPU scenario matrix verification for startup-open/runtime-started/dashboard-open/desktop-open/post-route on primary and second Windows PC",
+    "Current MSIX legacy conflict live check for startup helpers, scheduled tasks, legacy bins, and PATH alias shadowing",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
     "Idle busy-loop candidate summary for clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
@@ -1776,6 +1798,13 @@ $result = [pscustomobject]@{
         else {
             [pscustomobject]@{ ok = $false; raw = $msixLocalDesktopEntrypointInstalledAuditResult.raw }
         }
+    }
+    msix_current_legacy_conflicts_ok = [bool]$msixCurrentLegacyConflictsOk
+    msix_current_legacy_conflicts = if ($msixLegacyConflictsResult.json) {
+        $msixLegacyConflictsResult.json
+    }
+    else {
+        [pscustomobject]@{ ok = $false; raw = $msixLegacyConflictsResult.raw }
     }
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario

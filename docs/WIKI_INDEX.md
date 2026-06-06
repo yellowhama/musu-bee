@@ -5241,4 +5241,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route evidence carries relay transport proof to cloud`,
   `cloud_route_evidence`, and `MUSU Desktop local executor`.
 
+- 2026-06-06 current MSIX alias shadow live gate:
+  `RELEASE_1_15_0_RC1_CURRENT_MSIX_ALIAS_SHADOW_LIVE_GATE_2026_06_06.md`
+  (wiki/825) records the live go/no-go blocker for current WindowsApps alias
+  shadowing. Search terms should include `GOAL v650`, `wiki/825`,
+  `msix_current_legacy_conflicts_ok`, `msix-current-legacy-conflicts`,
+  `check-msix-legacy-conflicts.ps1`, `C:\Users\empty\.cargo\bin\musu.exe`,
+  `musu 1.15.0-dev`, `musu 1.15.0-rc.1`, `musu-idle-cpu-20260606-112220`,
+  `WebView2 0.08`, and `MUSU Desktop local executor`.
+
+- 2026-06-06 current MSIX alias shadow live gate index refresh:
+  wiki/826 records the MUSU local index refresh after wiki/825 and GOAL v650.
+  Search terms should include `GOAL v651`, `wiki/826`, `2601 files`,
+  `2754 symbols`, `13353 ms`,
+  `current MSIX alias shadow live gate index refresh`,
+  `msix_current_legacy_conflicts_ok`, `msix-current-legacy-conflicts`,
+  `musu 1.15.0-dev`, `musu 1.15.0-rc.1`, and
+  `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**
