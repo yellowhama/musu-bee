@@ -175,12 +175,14 @@ function hasCurrentRelayTransportProof(evidence: RouteEvidencePayload): boolean 
   const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
   const evidenceSessionId = evidence.session_id?.trim() ?? "";
   return Boolean(
-    proof &&
+      proof &&
       proof.schema === "musu.relay_transport_proof.v1" &&
       proof.lease_id?.trim() &&
-      (!relayLeaseId || proof.lease_id.trim() === relayLeaseId) &&
+      relayLeaseId &&
+      proof.lease_id.trim() === relayLeaseId &&
       proof.session_id?.trim() &&
-      (!evidenceSessionId || proof.session_id.trim() === evidenceSessionId) &&
+      evidenceSessionId &&
+      proof.session_id.trim() === evidenceSessionId &&
       proof.source_node_id?.trim() === evidence.source_node_id.trim() &&
       proof.target_node_id?.trim() === evidence.target_node_id.trim() &&
       proof.tunnel_id?.trim() &&
@@ -202,6 +204,7 @@ function hasCurrentRelayFallbackProof(evidence: RouteEvidencePayload): boolean {
   }
   const relay = evidence.relay_fallback;
   return Boolean(
+    evidence.session_id?.trim() &&
     relay &&
       relay.direct_path_failed === true &&
       relay.lease_requested === true &&
@@ -222,18 +225,22 @@ function hasCurrentRelayPayloadDeliveryProof(evidence: RouteEvidencePayload): bo
   const proof = evidence.relay_payload_delivery_proof;
   const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
   const transportTunnelId = evidence.relay_transport_proof?.tunnel_id.trim() ?? "";
+  const evidenceSessionId = evidence.session_id?.trim() ?? "";
   return Boolean(
     proof &&
       proof.schema === "musu.relay_payload_delivery_proof.v1" &&
       proof.payload_id?.trim() &&
       proof.session_id?.trim() &&
-      (!evidence.session_id?.trim() || proof.session_id.trim() === evidence.session_id.trim()) &&
+      evidenceSessionId &&
+      proof.session_id.trim() === evidenceSessionId &&
       proof.lease_id?.trim() &&
-      (!relayLeaseId || proof.lease_id.trim() === relayLeaseId) &&
+      relayLeaseId &&
+      proof.lease_id.trim() === relayLeaseId &&
       proof.source_node_id.trim() === evidence.source_node_id.trim() &&
       proof.target_node_id.trim() === evidence.target_node_id.trim() &&
       proof.tunnel_id?.trim() &&
-      (!transportTunnelId || proof.tunnel_id.trim() === transportTunnelId) &&
+      transportTunnelId &&
+      proof.tunnel_id.trim() === transportTunnelId &&
       proof.payload_sha256?.trim() &&
       Number.isInteger(proof.payload_bytes) &&
       proof.payload_bytes > 0 &&

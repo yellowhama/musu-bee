@@ -1150,6 +1150,52 @@ test("excludes stale relay records without current transport proof from release-
       },
     });
     await appendRouteEvidenceRecord({
+      id: "stale-relay-payload-only-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:04Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...staleRelayEvidence,
+        relay_payload_delivery_proof: {
+          schema: "musu.relay_payload_delivery_proof.v1",
+          payload_id: "stale-relay-payload-only",
+          session_id: staleRelayEvidence.session_id ?? "",
+          lease_id: "stale-relay-lease",
+          source_node_id: staleRelayEvidence.source_node_id,
+          target_node_id: staleRelayEvidence.target_node_id,
+          tunnel_id: "relay-tunnel-test",
+          payload_sha256: "sha256:payload-only",
+          payload_bytes: 128,
+          delivered_at: "2026-06-01T01:00:04Z",
+        },
+      },
+    });
+    await appendRouteEvidenceRecord({
+      id: "stale-relay-missing-session-release-grade",
+      owner_key: p2pControlOwnerKey("test-token"),
+      received_at: "2026-06-01T01:00:04Z",
+      release_grade: true,
+      blockers: [],
+      evidence: {
+        ...staleRelayEvidence,
+        session_id: null,
+        relay_transport_proof: relayTransportProof("stale-relay-lease"),
+        relay_payload_delivery_proof: {
+          schema: "musu.relay_payload_delivery_proof.v1",
+          payload_id: "stale-relay-payload-missing-session",
+          session_id: staleRelayEvidence.session_id ?? "",
+          lease_id: "stale-relay-lease",
+          source_node_id: staleRelayEvidence.source_node_id,
+          target_node_id: staleRelayEvidence.target_node_id,
+          tunnel_id: "relay-tunnel-test",
+          payload_sha256: "sha256:missing-session",
+          payload_bytes: 128,
+          delivered_at: "2026-06-01T01:00:04Z",
+        },
+      },
+    });
+    await appendRouteEvidenceRecord({
       id: "stale-relay-transport-lease-mismatch-release-grade",
       owner_key: p2pControlOwnerKey("test-token"),
       received_at: "2026-06-01T01:00:05Z",
@@ -1237,6 +1283,14 @@ test("excludes stale relay records without current transport proof from release-
     );
     assert.equal(
       filteredBody.records.some((record) => record.id === "stale-relay-transport-only-release-grade"),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-relay-payload-only-release-grade"),
+      false
+    );
+    assert.equal(
+      filteredBody.records.some((record) => record.id === "stale-relay-missing-session-release-grade"),
       false
     );
     assert.equal(

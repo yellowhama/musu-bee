@@ -172,3 +172,27 @@ The release gate is not satisfied by a web dashboard that can call a local bridg
 - fall back to relay only after direct failure,
 - record release-grade route evidence, and
 - remain inside the idle CPU/resource budget while waiting for work.
+
+## 2026-06-06 relay route transport proof verifier gate
+
+Hosted P2P release evidence now requires each returned release-grade relay
+route record to include a valid `relay_transport_proof`, not only a relay lease
+or payload delivery proof.
+
+Required binding chain:
+
+- route record has `session_id`, `source_node_id`, and `target_node_id`
+- relay fallback has an issued `lease_id`
+- `relay_transport_proof` matches the same session, lease, source, and target
+- `relay_transport_proof.transport_kind=quic_relay_tunnel`
+- `relay_transport_proof.relay_url` uses `wss://`
+- `relay_transport_proof.encryption=quic_tls_1_3`
+- `relay_transport_proof.transport_verified_by=musu_quic_tls_transport`
+- `relay_payload_delivery_proof` matches the same session, lease, source,
+  target, and tunnel
+
+`queryRouteEvidenceRecords({ release_grade: true })` also revalidates this
+chain before returning stale/manual records whose stored `release_grade` flag
+is true. The release verifier exposes
+`relay_route_transport_proof_valid_count` so hosted evidence cannot pass with a
+lease-only or queue-only relay proof.

@@ -5180,4 +5180,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `invalid_json`, `instruction required`, `command-center.jsonl`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 P2P relay route transport proof verifier gate:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`
+  (wiki/819) records hosted P2P evidence verification hardening for bound
+  relay route `relay_transport_proof`. Search terms should include
+  `GOAL v644`, `wiki/819`,
+  `p2p rejects relay route evidence without route transport proof`,
+  `relay_route_transport_proof_valid_count`,
+  `relay_route_transport_proof_invalid_count`, `quic_relay_tunnel`,
+  `musu_quic_tls_transport`, `stale-relay-payload-only-release-grade`,
+  `stale-relay-missing-session-release-grade`, `release verifier 59/59`,
+  and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 P2P relay route transport proof index refresh:
+  wiki/820 records the MUSU local index refresh after wiki/819 and GOAL v644.
+  Search terms should include `GOAL v645`, `wiki/820`, `2596 files`,
+  `2752 symbols`, `9181 ms`,
+  `p2p relay route transport proof index refresh`,
+  `relay_route_transport_proof_valid_count`,
+  `p2p rejects relay route evidence without route transport proof`,
+  `stale-relay-missing-session-release-grade`, and `quic_relay_tunnel`.
+
 **End of WIKI_INDEX.md.**

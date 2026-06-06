@@ -695,6 +695,23 @@ $validP2p = [pscustomobject]@{
                         blockers = @()
                         lease_id = "relay-lease-test"
                     }
+                    relay_transport_proof = [pscustomobject]@{
+                        schema = "musu.relay_transport_proof.v1"
+                        session_id = "rv_test"
+                        lease_id = "relay-lease-test"
+                        source_node_id = "pc-a"
+                        target_node_id = "pc-b"
+                        transport_kind = "quic_relay_tunnel"
+                        relay_url = "wss://relay.musu.pro/api/v1/relay/connect"
+                        tunnel_id = "relay-tunnel-test"
+                        handshake_ms = 42
+                        payload_bytes_transited = 128
+                        payload_transited_musu_infra = $true
+                        encryption = "quic_tls_1_3"
+                        transport_verified_by = "musu_quic_tls_transport"
+                        opened_at = $now.AddSeconds(-2).ToString("o")
+                        closed_at = $now.ToString("o")
+                    }
                     relay_payload_delivery_proof = [pscustomobject]@{
                         schema = "musu.relay_payload_delivery_proof.v1"
                         payload_id = "relay-payload-test"
@@ -1402,6 +1419,13 @@ $badP2pRelayConnectEndpoint.relay_transport.relay_connect_endpoint_wired = $fals
 $fixture = Write-Fixture -Name "p2p-bad-relay-connect-endpoint" -Object $badP2pRelayConnectEndpoint
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects relay transport without connect endpoint" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteTransportProof = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteTransportProofRecord = @($badP2pRelayRouteTransportProof.relay_route_evidence.records)[0]
+$badP2pRelayRouteTransportProofRecord.evidence.relay_transport_proof = $null
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-transport-proof" -Object $badP2pRelayRouteTransportProof
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence without route transport proof" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayPayloadProof = Copy-JsonObject -Object $validP2p
 $badP2pRelayPayloadProofRecord = @($badP2pRelayPayloadProof.relay_route_evidence.records)[0]

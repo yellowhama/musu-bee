@@ -475,12 +475,15 @@ Add-Check `
         (Test-ContainsAll -Text $routeEvidenceStore -Needles @(
             'const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";',
             'const evidenceSessionId = evidence.session_id?.trim() ?? "";',
-            '(!relayLeaseId || proof.lease_id.trim() === relayLeaseId)',
-            '(!evidenceSessionId || proof.session_id.trim() === evidenceSessionId)'
+            "relayLeaseId &&",
+            "evidenceSessionId &&",
+            "proof.lease_id.trim() === relayLeaseId",
+            "proof.session_id.trim() === evidenceSessionId"
         )) -and
         (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
             "stale-relay-transport-lease-mismatch-release-grade",
-            "stale-relay-transport-session-mismatch-release-grade"
+            "stale-relay-transport-session-mismatch-release-grade",
+            "stale-relay-missing-session-release-grade"
         ))
     ) `
     -Path $routeEvidenceStorePath `

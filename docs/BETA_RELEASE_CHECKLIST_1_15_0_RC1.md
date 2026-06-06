@@ -7344,3 +7344,44 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2583 files`, `2751 symbols`, `24515 ms`
+
+## 2026-06-06 10:31 KST P2P Relay Route Transport Proof Verifier Gate
+
+Hosted P2P release evidence now requires each returned release-grade relay
+route record to include a bound `relay_transport_proof`.
+
+The verifier now rejects relay route evidence that has a relay lease or payload
+delivery proof but no route-level release tunnel proof. The required chain is:
+
+- route record `session_id`, `source_node_id`, and `target_node_id`
+- issued fallback `lease_id`
+- `relay_transport_proof` matching that session/lease/source/target
+- `relay_transport_proof.transport_kind=quic_relay_tunnel`
+- `relay_transport_proof.encryption=quic_tls_1_3`
+- `relay_transport_proof.transport_verified_by=musu_quic_tls_transport`
+- `relay_payload_delivery_proof` matching the same session/lease/source/target
+  and tunnel
+
+Validation:
+
+- PowerShell parser check: pass
+- `npm run test:p2p -- --test-name-pattern "route evidence|P2P route evidence"`:
+  `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=59`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is evidence and release
+gate hardening only. Public release remains No-Go on second-PC route/CPU/matrix
+evidence, hosted MUSU.PRO login/control-plane/release relay proof, support
+mailbox evidence, and Store evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`

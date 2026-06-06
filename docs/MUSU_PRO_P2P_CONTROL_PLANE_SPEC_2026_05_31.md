@@ -1426,3 +1426,36 @@ Validation:
 This is a P2P command-audit hardening gate. It does not move execution into
 MUSU.PRO. The website remains the remote input and coordination plane; the
 local MUSU Desktop/bridge remains the executor.
+
+## 2026-06-06 Relay Route Transport Proof Verifier Gate
+
+`verify-p2p-control-plane-evidence.ps1` now requires hosted release-grade relay
+route evidence to contain a valid route-level `relay_transport_proof`.
+
+Passing hosted P2P evidence must include:
+
+- `relay_route_evidence.count > 0`
+- returned relay route records for `route_kind=relay`, `result=success`, and
+  `release_grade=true`
+- route record `session_id`, `source_node_id`, and `target_node_id`
+- issued `relay_fallback.lease_id`
+- `relay_transport_proof.schema=musu.relay_transport_proof.v1`
+- `relay_transport_proof.session_id`, `lease_id`, `source_node_id`, and
+  `target_node_id` matching the route/fallback values
+- `relay_transport_proof.transport_kind=quic_relay_tunnel`
+- `relay_transport_proof.relay_url` over `wss://`
+- `relay_transport_proof.payload_bytes_transited > 0`
+- `relay_transport_proof.payload_transited_musu_infra=true`
+- `relay_transport_proof.encryption=quic_tls_1_3`
+- `relay_transport_proof.transport_verified_by=musu_quic_tls_transport`
+- `relay_payload_delivery_proof` bound to the same session, lease, source,
+  target, and tunnel
+
+The verifier now reports `relay_route_transport_proof_required_count`,
+`relay_route_transport_proof_valid_count`, and
+`relay_route_transport_proof_invalid_count`.
+
+Server-side `queryRouteEvidenceRecords({ release_grade: true })` also
+revalidates fallback, transport proof, and delivery proof before returning
+stored records. This prevents stale/manual `release_grade=true` records from
+passing the hosted P2P gate when they lack the actual relay tunnel proof chain.

@@ -816,3 +816,25 @@ This keeps MUSU.PRO as a remote input and control-plane surface. It does not
 make MUSU.PRO the executor, and it does not make command audit logs a content
 store.
 
+## 2026-06-06 relay route transport proof verifier boundary
+
+Hosted P2P release evidence now fails unless each release-grade relay route
+record proves the route's own relay transport path.
+
+Boundary interpretation:
+
+- MUSU.PRO may store and return route evidence.
+- MUSU.PRO does not become the executor merely because it stores relay route
+  evidence.
+- Release-grade relay evidence must bind route `session_id`, source node,
+  target node, fallback `lease_id`, `relay_transport_proof`, and
+  `relay_payload_delivery_proof` into one coherent proof chain.
+- Store-forward queue delivery proof alone is not release relay tunnel proof.
+- The release relay transport kind remains `quic_relay_tunnel`; preview or
+  queue descriptors such as `websocket_tunnel` stay non-release-grade.
+
+This strengthens evidence verification without closing the external hosted P2P
+gate. The production runtime still needs real owner-scoped MUSU.PRO login,
+release relay tunnel transport, nonzero relay route evidence, and second-PC
+route/CPU/matrix evidence.
+

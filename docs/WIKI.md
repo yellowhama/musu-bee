@@ -9976,3 +9976,76 @@ audit index refresh`, `2593 files`, `2752 symbols`, `16401 ms`,
 `operator API security gates rejected room work-order audit logging`,
 `invalid_json`, `instruction required`, `command-center.jsonl`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 P2P Relay Route Transport Proof Verifier Gate (wiki/819)
+
+Hosted P2P release evidence now requires bound relay route transport proof in
+each returned release-grade relay route record.
+
+Changed:
+
+- `scripts/windows/verify-p2p-control-plane-evidence.ps1`
+  - validates returned relay route records independently
+  - requires `relay_transport_proof` with session/lease/source/target binding
+  - requires release relay kind `quic_relay_tunnel`, `wss://` relay URL,
+    `quic_tls_1_3`, and `musu_quic_tls_transport`
+  - exposes `relay_route_transport_proof_required_count`,
+    `relay_route_transport_proof_valid_count`, and
+    `relay_route_transport_proof_invalid_count`
+- `musu-bee/src/lib/routeEvidenceStore.ts`
+  - release-grade relay queries filter stale/manual records unless fallback,
+    transport proof, and payload delivery proof are all currently bound
+- `musu-bee/src/app/api/v1/p2p/route-evidence/route.test.ts`
+  - adds stale payload-only and missing-session release-grade query regressions
+- `scripts/windows/test-release-evidence-verifiers.ps1`
+  - adds negative case
+    `p2p rejects relay route evidence without route transport proof`
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1`
+  - updates the release-grade query source contract for required lease/session
+    binding
+
+Validation:
+
+- parser check: pass
+- `npm run test:p2p -- --test-name-pattern "route evidence|P2P route evidence"`:
+  `105/105`
+- `npm run typecheck`: pass
+- P2P store-forward relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `59/59`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This prevents hosted P2P
+evidence from passing with lease-only, queue-only, or stale/manual
+`release_grade=true` relay records. It does not implement release relay tunnel
+transport and does not move execution into MUSU.PRO.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_RELAY_ROUTE_TRANSPORT_PROOF_VERIFIER_GATE_2026_06_06.md`
+
+## 2026-06-06 P2P Relay Route Transport Proof Index Refresh (wiki/820)
+
+MUSU local indexer was refreshed after wiki/819 and GOAL v644.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2596 files`
+- `2752 symbols`
+- `9181 ms`
+
+Indexed context includes the relay route transport proof verifier gate,
+`verify-p2p-control-plane-evidence.ps1`, `routeEvidenceStore.ts`, route
+evidence stale-record regressions, P2P relay contract audit update, release
+verifier fixture update, canonical report, next-step plan, BETA checklist,
+P2P control-plane spec, MUSU.PRO P2P spec, network boundary spec,
+WIKI/WIKI_INDEX, GOAL v644, and CoS memory update.
+
+Search terms should include `GOAL v645`, `wiki/820`,
+`p2p relay route transport proof index refresh`, `2596 files`,
+`2752 symbols`, `9181 ms`, `relay_route_transport_proof_valid_count`,
+`p2p rejects relay route evidence without route transport proof`,
+`stale-relay-missing-session-release-grade`, and `quic_relay_tunnel`.
