@@ -12366,3 +12366,77 @@ status surface index refresh`, `2745 files`, `2776 symbols`, `15800 ms`,
 `p2p_relay_route_metadata_valid_count`,
 `live_evidence_relay_route_metadata_missing`,
 `p2p_relay_route_metadata_missing`, and `case_count=83`.
+
+## 2026-06-06 P2P Route Metadata Count Completeness (wiki/891)
+
+P2P route metadata status propagation now carries required, valid, and invalid
+counts through all external handoff reports.
+
+Updated:
+
+- `record-p2p-control-plane-evidence.ps1`
+  - prints and returns `relay_route_metadata_required_count`
+  - prints and returns `relay_route_metadata_valid_count`
+  - prints and returns `relay_route_metadata_invalid_count`
+- `record-external-release-gate-recheck.ps1`
+  - flattens `p2p_relay_route_metadata_required_count`
+  - flattens `p2p_relay_route_metadata_valid_count`
+  - flattens `p2p_relay_route_metadata_invalid_count`
+  - includes the full triplet in JSON, summary markdown, and final JSON
+- `show-final-release-handoff-status.ps1`
+  - forwards the full go/no-go metadata count triplet
+- `test-release-evidence-verifiers.ps1`
+  - strengthens the status source contract for recorder, external recheck, and
+    final handoff
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=83`, `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This is diagnostic hardening
+only. It lets handoff reports distinguish no route metadata from invalid route
+metadata, but it does not implement second-PC proof or release relay runtime.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_COUNT_COMPLETENESS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_METADATA_COUNT_COMPLETENESS_2026_06_06.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-06_p2p_route_metadata_count_completeness.md`
+
+Search terms should include `GOAL v716`, `wiki/891`,
+`p2p_relay_route_metadata_required_count`,
+`p2p_relay_route_metadata_valid_count`,
+`p2p_relay_route_metadata_invalid_count`,
+`relay_route_metadata_invalid_count`, and `case_count=83`.
+
+## 2026-06-06 P2P Route Metadata Count Completeness Index Refresh (wiki/892)
+
+MUSU local indexer was refreshed after wiki/891 and GOAL v716.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2748 files`
+- `2776 symbols`
+- `15440 ms`
+
+Indexed context includes route metadata required/valid/invalid count
+propagation in `record-p2p-control-plane-evidence.ps1`,
+`record-external-release-gate-recheck.ps1`,
+`show-final-release-handoff-status.ps1`, release verifier source contract
+hardening, canonical report, next-step plan, BETA checklist, P2P control-plane
+specs, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v717`, `wiki/892`, `P2P route metadata
+count completeness index refresh`, `2748 files`, `2776 symbols`, `15440 ms`,
+`p2p_relay_route_metadata_required_count`,
+`p2p_relay_route_metadata_valid_count`,
+`p2p_relay_route_metadata_invalid_count`, and `case_count=83`.

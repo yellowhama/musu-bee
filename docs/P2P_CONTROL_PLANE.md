@@ -386,6 +386,17 @@ Status surfaces must carry:
 - `relay_route_metadata_invalid_count`
 - `p2p_relay_route_metadata_valid_count` in release handoff summaries
 
+The external release handoff path must preserve the full count triplet:
+
+- recorder result JSON and summary:
+  `relay_route_metadata_required_count`,
+  `relay_route_metadata_valid_count`, and
+  `relay_route_metadata_invalid_count`
+- external recheck/final handoff:
+  `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`, and
+  `p2p_relay_route_metadata_invalid_count`
+
 Release interpretation:
 
 - hosted P2P No-Go diagnostics must name missing route metadata separately

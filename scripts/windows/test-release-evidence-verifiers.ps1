@@ -626,7 +626,9 @@ function Test-ExternalGateRecheckActionableContract {
         'p2p_relay_transport_wired',
         'p2p_relay_connect_endpoint_wired',
         'p2p_relay_payload_endpoint_wired',
+        'p2p_relay_route_metadata_required_count',
         'p2p_relay_route_metadata_valid_count',
+        'p2p_relay_route_metadata_invalid_count',
         'p2p_relay_route_transport_proof_valid_count',
         'p2p_runtime_not_logged_in',
         'p2p_relay_lease_store_not_release_grade',
@@ -746,8 +748,12 @@ function Test-P2pRouteMetadataStatusSurfaceContract {
         [pscustomobject]@{
             path = $RecorderScriptPath
             needles = @(
+                'relay_route_metadata_required_count',
                 'relay_route_metadata_valid_count',
-                'Relay route metadata valid count'
+                'relay_route_metadata_invalid_count',
+                'Relay route metadata required count',
+                'Relay route metadata valid count',
+                'Relay route metadata invalid count'
             )
         },
         [pscustomobject]@{
@@ -763,9 +769,13 @@ function Test-P2pRouteMetadataStatusSurfaceContract {
         [pscustomobject]@{
             path = $ExternalScriptPath
             needles = @(
+                'p2p_relay_route_metadata_required_count',
                 'p2p_relay_route_metadata_valid_count',
+                'p2p_relay_route_metadata_invalid_count',
                 'p2p_relay_route_metadata_missing',
-                'relay_route_metadata_valid_count'
+                'relay_route_metadata_required_count',
+                'relay_route_metadata_valid_count',
+                'relay_route_metadata_invalid_count'
             )
         },
         [pscustomobject]@{
@@ -781,7 +791,9 @@ function Test-P2pRouteMetadataStatusSurfaceContract {
         [pscustomobject]@{
             path = $FinalStatusScriptPath
             needles = @(
-                'p2p_relay_route_metadata_valid_count'
+                'p2p_relay_route_metadata_required_count',
+                'p2p_relay_route_metadata_valid_count',
+                'p2p_relay_route_metadata_invalid_count'
             )
         }
     )

@@ -5891,4 +5891,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `live_evidence_relay_route_metadata_missing`,
   `p2p_relay_route_metadata_missing`, and `case_count=83`.
 
+- 2026-06-06 P2P route metadata count completeness:
+  `RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_COUNT_COMPLETENESS_2026_06_06.md`
+  (wiki/891) records full route metadata required/valid/invalid count
+  propagation through recorder, external recheck, and final handoff. Search
+  terms should include `GOAL v716`, `wiki/891`,
+  `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`,
+  `p2p_relay_route_metadata_invalid_count`,
+  `relay_route_metadata_invalid_count`, and `case_count=83`.
+
+- 2026-06-06 P2P route metadata count completeness index refresh:
+  wiki/892 records the MUSU local index refresh after wiki/891 and GOAL v716.
+  Search terms should include `GOAL v717`, `wiki/892`, `2748 files`,
+  `2776 symbols`, `15440 ms`, `P2P route metadata count completeness index
+  refresh`, `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`,
+  `p2p_relay_route_metadata_invalid_count`, and `case_count=83`.
+
 **End of WIKI_INDEX.md.**

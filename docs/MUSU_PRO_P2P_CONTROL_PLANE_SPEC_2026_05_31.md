@@ -1648,6 +1648,13 @@ must also carry the count so operators can diagnose the exact P2P blocker:
   `p2p_relay_route_metadata_missing`
 - final handoff: `p2p_relay_route_metadata_valid_count`
 
+External release handoff reports must preserve the full triplet, not only the
+valid count:
+
+- `p2p_relay_route_metadata_required_count`
+- `p2p_relay_route_metadata_valid_count`
+- `p2p_relay_route_metadata_invalid_count`
+
 This does not change the local-first product boundary. MUSU Desktop executes
 locally; MUSU.PRO coordinates remote input, rooms, rendezvous, path selection,
 relay fallback, and release evidence.

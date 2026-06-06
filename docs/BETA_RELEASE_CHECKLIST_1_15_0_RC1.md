@@ -8558,3 +8558,50 @@ Index refresh:
 - `2776 symbols`
 - `15800 ms`
 - wiki: `wiki/890`
+
+## 2026-06-06 23:09 KST P2P Route Metadata Count Completeness
+
+P2P route metadata status propagation now carries required, valid, and invalid
+counts through recorder, external gate recheck, and final handoff.
+
+Changed:
+
+- `record-p2p-control-plane-evidence.ps1` prints and returns
+  `relay_route_metadata_required_count`, `relay_route_metadata_valid_count`,
+  and `relay_route_metadata_invalid_count`.
+- `record-external-release-gate-recheck.ps1` flattens
+  `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`, and
+  `p2p_relay_route_metadata_invalid_count` in JSON, summary markdown, and
+  final JSON.
+- `show-final-release-handoff-status.ps1` forwards the same go/no-go triplet.
+- `test-release-evidence-verifiers.ps1` now requires the full count triplet in
+  recorder, external recheck, and final handoff source contracts.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=83`,
+  `failed_case_count=0`
+
+Qualitative audit found no high/medium issue. This is diagnostic hardening
+only; it does not close second-PC route/CPU/matrix, live MUSU.PRO relay proof,
+support mailbox, or Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_COUNT_COMPLETENESS_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_METADATA_COUNT_COMPLETENESS_2026_06_06.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2748 files`
+- `2776 symbols`
+- `15440 ms`
+- wiki: `wiki/892`
