@@ -1709,14 +1709,18 @@ $idleBusyLoopCandidateStatuses = @(
         -Audit $rustBackgroundLoopAuditResult.json `
         -RequiredChecks @(
             [pscustomobject]@{ scope = "mdns"; name = "mDNS opt-in env gate" },
+            [pscustomobject]@{ scope = "mdns"; name = "mDNS auto-register cancellation token" },
             [pscustomobject]@{ scope = "mdns"; name = "IPv6 separate opt-in" },
             [pscustomobject]@{ scope = "mdns"; name = "Tailscale separate opt-in" },
             [pscustomobject]@{ scope = "mdns"; name = "virtual interfaces separate opt-in" },
             [pscustomobject]@{ scope = "mdns"; name = "browse bounded by deadline" },
+            [pscustomobject]@{ scope = "mdns"; name = "browse cancellation token" },
+            [pscustomobject]@{ scope = "mdns"; name = "browse cancellation select" },
+            [pscustomobject]@{ scope = "mdns"; name = "auto-register cancellation wrapper" },
             [pscustomobject]@{ scope = "mdns"; name = "recv timeout bounded" },
             [pscustomobject]@{ scope = "mdns"; name = "disconnect breaks browse" }
         ) `
-        -Evidence "mDNS is opt-in, noisy interface classes are separately gated, and explicit discovery is bounded."
+        -Evidence "mDNS is opt-in, noisy interface classes are separately gated, explicit discovery is bounded, and bridge auto-registration exits on the cloud loop cancellation token."
     New-IdleBusyLoopCandidateStatus `
         -Candidate "health check retry loop" `
         -AuditName "rust-background-loop" `

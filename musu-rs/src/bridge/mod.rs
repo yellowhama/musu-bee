@@ -354,13 +354,17 @@ pub async fn run() -> Result<()> {
 
                 if mdns_enabled {
                     // Discover LAN peers via mDNS first.
-                    crate::peer::mdns::auto_register_peers(
+                    crate::peer::mdns::auto_register_peers_with_cancellation(
                         &musu_home_clone,
                         &my_name_clone,
                         &token_clone,
                         std::time::Duration::from_secs(5),
+                        cloud_registration_cancel.clone(),
                     )
                     .await;
+                    if cloud_registration_cancel.is_cancelled() {
+                        break;
+                    }
                 }
 
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();

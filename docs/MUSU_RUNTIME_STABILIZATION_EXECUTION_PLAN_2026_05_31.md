@@ -626,3 +626,34 @@ Release contract:
 - this hardening does not replace 60s CPU evidence
 - after this runtime source change lands, packaged local evidence must be
   refreshed before public release can reuse the local desktop pass
+
+## 2026-06-07 mDNS Cancellation Contract
+
+The mDNS idle candidate now has an explicit cancellation contract when the
+operator opts in with `MUSU_ENABLE_MDNS=1` and the bridge cloud registration
+loop performs local LAN discovery before MUSU.PRO registration.
+
+Runtime contract:
+
+- mDNS discovery remains default-off
+- IPv6, Tailscale, and common VPN/virtual adapter use remains separately
+  opt-in
+- CLI discovery keeps the existing bounded `discover_peers(...)` API
+- bridge background use calls `auto_register_peers_with_cancellation(...)`
+- the mDNS receive wait selects between bounded receive and
+  `CancellationToken::cancelled()`
+- after cancellation, bridge exits the loop before later cloud network work
+
+Release contract:
+
+- `audit-rust-background-loop-contract.ps1` must fail if bridge mDNS
+  auto-registration loses `cloud_registration_cancel`
+- the audit must fail if mDNS browse loses `CancellationToken` support or the
+  cancellation-aware `tokio::select!`
+- `write-release-go-no-go.ps1` must require those checks in the
+  `mDNS discovery` idle busy-loop candidate
+- `test-release-evidence-verifiers.ps1` must fail if that go/no-go mapping
+  regresses
+- this hardening does not replace 60s CPU evidence
+- after this runtime source change lands, packaged local evidence must be
+  refreshed before public release can reuse the local desktop pass

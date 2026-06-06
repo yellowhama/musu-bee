@@ -1251,3 +1251,23 @@ Clipboard polling remains local-only and opt-in:
 
 MUSU.PRO may receive user input and coordinate devices, but it does not read a
 device clipboard or execute clipboard work on behalf of the local runtime.
+
+## 2026-06-07 Local mDNS Discovery Boundary
+
+Optional mDNS discovery is part of the MUSU Desktop local executor boundary, not
+MUSU.PRO hosted execution.
+
+mDNS remains local-only and opt-in:
+
+- default packaged behavior keeps `MUSU_ENABLE_MDNS` off;
+- IPv6, Tailscale, and common VPN/virtual mDNS adapters remain separately
+  gated;
+- when enabled from the bridge cloud registration loop, mDNS auto-registration
+  now receives the cloud loop cancellation token;
+- mDNS browse remains bounded by caller duration and 1s receive timeout;
+- cancellation exits the receive wait before the bridge continues to later
+  cloud control-plane calls.
+
+MUSU.PRO may help devices find each other through registry/rendezvous/path
+selection, but local LAN discovery still runs on the local device and cannot be
+used as hosted execution proof.

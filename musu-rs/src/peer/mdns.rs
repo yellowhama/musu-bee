@@ -15,6 +15,7 @@ use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
 use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
+use tokio_util::sync::CancellationToken;
 
 use crate::peer::discovery::{validate_peer_addr, ManualPeerList};
 
@@ -202,7 +203,21 @@ pub struct DiscoveredPeer {
 ///
 /// Runs for `duration` and returns all discovered peers.
 pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
+    discover_peers_with_cancellation(duration, None).await
+}
+
+/// Browse for musu peers on the local network until duration elapses or cancelled.
+pub async fn discover_peers_with_cancellation(
+    duration: Duration,
+    cancellation_token: Option<CancellationToken>,
+) -> Vec<DiscoveredPeer> {
     let mut peers = Vec::new();
+    if cancellation_token
+        .as_ref()
+        .map_or(false, |token| token.is_cancelled())
+    {
+        return peers;
+    }
 
     let mdns = match new_musu_mdns_daemon() {
         Ok(d) => d,
@@ -228,15 +243,26 @@ pub async fn discover_peers(duration: Duration) -> Vec<DiscoveredPeer> {
             break;
         }
 
-        match tokio::time::timeout(
+        let receive = tokio::time::timeout(
             remaining,
             tokio::task::spawn_blocking({
                 let receiver = receiver.clone();
                 move || receiver.recv_timeout(Duration::from_secs(1))
             }),
-        )
-        .await
-        {
+        );
+        let receive_result = if let Some(cancellation_token) = cancellation_token.as_ref() {
+            tokio::select! {
+                _ = cancellation_token.cancelled() => {
+                    tracing::debug!("mDNS browse cancelled; ending discovery window early");
+                    break;
+                }
+                result = receive => result,
+            }
+        } else {
+            receive.await
+        };
+
+        match receive_result {
             Ok(Ok(Ok(ServiceEvent::ServiceResolved(info)))) => {
                 let name = info
                     .get_property_val_str("node_name")
@@ -299,8 +325,43 @@ pub async fn auto_register_peers(
     my_token: &str,
     duration: Duration,
 ) -> usize {
+    auto_register_peers_with_optional_cancellation(
+        musu_home,
+        my_node_name,
+        my_token,
+        duration,
+        None,
+    )
+    .await
+}
+
+/// Auto-register discovered peers until duration elapses or cancelled.
+pub async fn auto_register_peers_with_cancellation(
+    musu_home: &std::path::Path,
+    my_node_name: &str,
+    my_token: &str,
+    duration: Duration,
+    cancellation_token: CancellationToken,
+) -> usize {
+    auto_register_peers_with_optional_cancellation(
+        musu_home,
+        my_node_name,
+        my_token,
+        duration,
+        Some(cancellation_token),
+    )
+    .await
+}
+
+async fn auto_register_peers_with_optional_cancellation(
+    musu_home: &std::path::Path,
+    my_node_name: &str,
+    my_token: &str,
+    duration: Duration,
+    cancellation_token: Option<CancellationToken>,
+) -> usize {
     let my_hash = token_hash(my_token);
-    let discovered = discover_peers(duration).await;
+    let discovered = discover_peers_with_cancellation(duration, cancellation_token).await;
     let mut added = 0;
 
     let mut list = ManualPeerList::load(musu_home);

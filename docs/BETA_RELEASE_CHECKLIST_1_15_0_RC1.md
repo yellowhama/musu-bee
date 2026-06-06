@@ -9479,3 +9479,49 @@ treated as current for release.
 Canonical report:
 `docs\RELEASE_1_15_0_RC1_CLIPBOARD_POLLER_CANCELLATION_HARDENING_2026_06_07.md`
 (wiki/929).
+
+## 2026-06-07 mDNS Cancellation Hardening
+
+The opt-in mDNS discovery candidate now has a cancellation contract when called
+from the low-duty MUSU.PRO cloud registration loop.
+
+Runtime contract:
+
+- mDNS remains default-off unless `MUSU_ENABLE_MDNS=1`.
+- IPv6, Tailscale, and common VPN/virtual mDNS interfaces remain separate
+  opt-ins.
+- bridge cloud registration passes `cloud_registration_cancel` into mDNS
+  auto-registration.
+- mDNS browse still has a caller-supplied deadline and 1s blocking receive
+  timeout.
+- mDNS browse now exits its receive wait on cancellation before the bridge loop
+  continues to later cloud network calls.
+
+Release contract:
+
+- `audit-rust-background-loop-contract.ps1` must fail if mDNS loses the bridge
+  cancellation token, cancellation-aware browse, cancellation select, or
+  auto-register wrapper.
+- `write-release-go-no-go.ps1` must require those checks in the
+  `mDNS discovery` idle busy-loop candidate.
+- `test-release-evidence-verifiers.ps1` must fail if that go/no-go mapping
+  regresses.
+- This hardening does not replace 60s packaged CPU evidence.
+- After this runtime source change lands, packaged local evidence must be
+  refreshed before public release can reuse the local desktop pass.
+
+Validation:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml --check`
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --lib`
+- `cargo test --manifest-path .\musu-rs\Cargo.toml --lib mdns`
+  - `3` passed
+  - `335` filtered
+- Rust background-loop audit: `ok=true`, `fail_count=0`,
+  `unaudited_loop_hit_count=0`, `unaudited_spawn_hit_count=0`
+- release verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_MDNS_CANCELLATION_HARDENING_2026_06_07.md`
+(wiki/931).

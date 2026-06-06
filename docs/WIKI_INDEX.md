@@ -6255,4 +6255,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `worker_token.is_cancelled`, `write-release-go-no-go.ps1`, and
   `case_count=104`.
 
+- 2026-06-07 mDNS cancellation hardening:
+  `RELEASE_1_15_0_RC1_MDNS_CANCELLATION_HARDENING_2026_06_07.md`
+  (wiki/931) records the opt-in mDNS bridge auto-registration cancellation
+  contract. Search terms should include `GOAL v756`, `wiki/931`,
+  `mDNS cancellation hardening`, `discover_peers_with_cancellation`,
+  `auto_register_peers_with_cancellation`, `MUSU_ENABLE_MDNS`,
+  `cloud_registration_cancel`, `browse cancellation select`,
+  `mDNS auto-register cancellation token`, `unaudited_spawn_hit_count=0`,
+  `cargo test --lib mdns`, and `case_count=104`.
+
+- 2026-06-07 mDNS cancellation hardening index refresh:
+  wiki/932 records the MUSU local index refresh after wiki/931 and GOAL v756.
+  Search terms should include `GOAL v757`, `wiki/932`, `2833 files`,
+  `2788 symbols`, `19358 ms`, `mDNS cancellation hardening index refresh`,
+  `discover_peers_with_cancellation`, `auto_register_peers_with_cancellation`,
+  `cloud_registration_cancel`, and `case_count=104`.
+
 **End of WIKI_INDEX.md.**

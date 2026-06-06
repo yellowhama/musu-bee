@@ -2041,6 +2041,23 @@ contract, but it tightens the local executor side of the boundary.
   owner-scoped relay storage, relay route metadata, transport proof, and payload
   delivery proof.
 
+## 2026-06-07 runtime hardening note: opt-in local mDNS
+
+The mDNS cancellation hardening does not change the hosted P2P control-plane
+contract. It tightens the local LAN discovery helper that can run before the
+cloud registration heartbeat when explicitly enabled.
+
+- MUSU.PRO must not execute local mDNS discovery work.
+- mDNS remains a local-only helper behind `MUSU_ENABLE_MDNS`.
+- IPv6, Tailscale, and common VPN/virtual mDNS adapters remain separate opt-ins.
+- The bridge now passes the cloud registration cancellation token into mDNS
+  auto-registration.
+- If cancellation fires during mDNS browse, the local receive wait exits before
+  the bridge continues to later cloud registration calls.
+- Hosted P2P release proof remains focused on rendezvous, path selection,
+  owner-scoped relay storage, relay route metadata, transport proof, and payload
+  delivery proof.
+
 ## 2026-06-07 release relay tunnel marker conflict rule
 
 Release source markers are not sufficient proof.
