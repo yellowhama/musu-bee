@@ -640,13 +640,16 @@ if ($matrix) {
         if ($routeProbePresent) {
             $routeProbeOk = ($routeProbe.PSObject.Properties["ok"] -and [bool]$routeProbe.ok)
             $routeProbeHasExitCode = ($routeProbe.PSObject.Properties["exit_code"] -and $null -ne $routeProbe.exit_code)
+            [int]$routeProbeExitCode = 0
+            $routeProbeHasNumericExitCode = if ($routeProbeHasExitCode) { [int]::TryParse(([string]$routeProbe.exit_code), [ref]$routeProbeExitCode) } else { $false }
+            $routeProbeHasNonZeroExitCode = ($routeProbeHasNumericExitCode -and $routeProbeExitCode -ne 0)
             $routeProbeFailureAllowed = ($routeProbe.PSObject.Properties["failure_allowed"] -and [bool]$routeProbe.failure_allowed)
             $routeExpectedToken = Get-JsonPropertyString -Object $routeProbe -Name "expected_token"
             $routeCommand = Get-JsonPropertyString -Object $routeProbe -Name "command"
             $routeArguments = Get-JsonPropertyValue -Object $routeProbe -Name "arguments"
             $routeOutput = Get-JsonPropertyString -Object $routeProbe -Name "output"
             $routeProbeAccepted = if ($AllowFailedPostRouteProbe) {
-                ($routeProbeOk -or ($routeProbeHasExitCode -and $routeProbeFailureAllowed))
+                ($routeProbeOk -or ($routeProbeHasNonZeroExitCode -and $routeProbeFailureAllowed))
             }
             else {
                 $routeProbeOk
@@ -656,6 +659,14 @@ if ($matrix) {
                 $routeProbeAccepted `
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt" } else { "post-route matrix includes a successful route probe" })) `
                 ($(if ($AllowFailedPostRouteProbe) { "post-route matrix lacks a successful route probe or explicitly allowed failed route attempt" } else { "post-route matrix lacks a successful route probe" }))
+
+            if ($AllowFailedPostRouteProbe -and $routeProbeFailureAllowed -and -not $routeProbeOk) {
+                Add-CheckFromCondition `
+                    "post-route failed route probe exit code" `
+                    $routeProbeHasNonZeroExitCode `
+                    "post-route failed route probe records a numeric non-zero exit code" `
+                    "post-route failed route probe must record a numeric non-zero exit code"
+            }
 
             Add-CheckFromCondition `
                 "post-route expected token present" `

@@ -12007,24 +12007,39 @@ the recorded wait prompt and expected token.
 `verify-runtime-cpu-scenario-matrix.ps1` now checks route probes for non-empty
 `expected_token`, command text containing `--wait` and the expected token,
 arguments containing `--wait <prompt-with-token>` or
-`--wait=<prompt-with-token>`, and successful output containing the expected
-token. Failed-route diagnostics remain allowed only when explicitly enabled,
-but they must still prove which wait prompt and token were attempted.
+`--wait=<prompt-with-token>`, successful output containing the expected token,
+and numeric non-zero exit code for explicitly allowed failed diagnostics.
+Failed-route diagnostics remain allowed only when explicitly enabled, but they
+must still prove which wait prompt and token were attempted.
 
 Validation:
 
 - parser checks passed
 - `git diff --check` passed
 - release evidence verifier regression passed with `ok=true`,
-  `case_count=75`, `failed_case_count=0`
+  `case_count=77`, `failed_case_count=0`
 - new negative cases:
+  - `runtime matrix rejects allowed failed route attempt with zero exit code`
+  - `runtime matrix rejects allowed failed route attempt with nonnumeric exit code`
   - `runtime matrix rejects route wait prompt without expected token`
   - `runtime matrix rejects successful route probe without token output`
+- direct nonnumeric fixture check returned structured verifier failure JSON:
+  `exit_code=1`, `ok=false`, `fail_count=2`
+
+Code audit found no high/medium issue in this scoped verifier change after
+safe numeric parsing was used for failed diagnostic `exit_code` values. The
+zero-exit and nonnumeric-exit regression cases require parsed JSON output from
+the verifier.
 
 Release interpretation: this is evidence hardening, not second-PC proof. Public
 release remains No-Go until real second-PC route/CPU/matrix evidence, live
 MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center proof
 are recorded.
+
+Next steps are to capture real second-PC runtime CPU matrix and targeted
+route-attempt CPU evidence under this stricter post-route contract, then record
+live MUSU.PRO control-plane P2P/relay proof, support mailbox proof, and
+Store/Partner Center proof before changing public release status.
 
 Canonical report:
 
@@ -12032,8 +12047,10 @@ Canonical report:
 
 Search terms should include `GOAL v706`, `wiki/881`, `post-route wait token
 binding gate`, `expected_token`, `--wait <prompt-with-token>`, `runtime matrix
+rejects allowed failed route attempt with zero exit code`, `runtime matrix
+rejects allowed failed route attempt with nonnumeric exit code`, `runtime matrix
 rejects route wait prompt without expected token`, `runtime matrix rejects
-successful route probe without token output`, and `case_count=75`.
+successful route probe without token output`, and `case_count=77`.
 
 ## 2026-06-06 Post-Route Wait Token Binding Gate Index Refresh (wiki/882)
 
@@ -12041,17 +12058,21 @@ MUSU local indexer was refreshed after wiki/881 and GOAL v706.
 
 - command:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-- `2733 files`
+- `2734 files`
 - `2776 symbols`
-- `11708 ms`
+- `26395 ms`
 
 Indexed context includes `verify-runtime-cpu-scenario-matrix.ps1` wait-token
-binding checks, release verifier negative cases `runtime matrix rejects route
-wait prompt without expected token` and `runtime matrix rejects successful
-route probe without token output`, canonical report, BETA checklist, GOAL,
-WIKI/WIKI_INDEX, and CoS memory.
+binding and failed-diagnostic exit-code checks, release verifier negative cases
+`runtime matrix rejects allowed failed route attempt with zero exit code`,
+`runtime matrix rejects allowed failed route attempt with nonnumeric exit code`,
+`runtime matrix rejects route wait prompt without expected token`, and
+`runtime matrix rejects successful route probe without token output`, canonical
+report, BETA checklist, GOAL, WIKI/WIKI_INDEX, and CoS memory.
 
 Search terms should include `GOAL v707`, `wiki/882`, `post-route wait token
-binding gate index refresh`, `2733 files`, `2776 symbols`, `11708 ms`,
+binding gate index refresh`, `2734 files`, `2776 symbols`, `26395 ms`,
 `expected_token`, `--wait <prompt-with-token>`, `runtime matrix rejects
-successful route probe without token output`, and `case_count=75`.
+allowed failed route attempt with zero exit code`, `runtime matrix rejects
+allowed failed route attempt with nonnumeric exit code`, `runtime matrix rejects
+successful route probe without token output`, and `case_count=77`.

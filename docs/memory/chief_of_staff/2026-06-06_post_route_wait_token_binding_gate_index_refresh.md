@@ -10,14 +10,16 @@ Command:
 
 Result:
 
-- `2733 files`
+- `2734 files`
 - `2776 symbols`
-- `11708 ms`
+- `26395 ms`
 
 Indexed context includes:
 
 - `verify-runtime-cpu-scenario-matrix.ps1` wait-token binding checks
 - `test-release-evidence-verifiers.ps1` negative cases:
+  - `runtime matrix rejects allowed failed route attempt with zero exit code`
+  - `runtime matrix rejects allowed failed route attempt with nonnumeric exit code`
   - `runtime matrix rejects route wait prompt without expected token`
   - `runtime matrix rejects successful route probe without token output`
 - canonical report
@@ -32,6 +34,7 @@ Search terms:
 - `post-route wait token binding gate index refresh`
 - `expected_token`
 - `--wait <prompt-with-token>`
+- `runtime matrix rejects allowed failed route attempt with zero exit code`
+- `runtime matrix rejects allowed failed route attempt with nonnumeric exit code`
 - `runtime matrix rejects successful route probe without token output`
-- `case_count=75`
-
+- `case_count=77`

@@ -5811,15 +5811,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   (wiki/881) records runtime CPU `post-route` wait prompt/token evidence
   hardening. Search terms should include `GOAL v706`, `wiki/881`,
   `post-route wait token binding gate`, `expected_token`,
-  `--wait <prompt-with-token>`, `runtime matrix rejects route wait prompt
+  `--wait <prompt-with-token>`, `runtime matrix rejects allowed failed route
+  attempt with zero exit code`, `runtime matrix rejects allowed failed route
+  attempt with nonnumeric exit code`, `runtime matrix rejects route wait prompt
   without expected token`, `runtime matrix rejects successful route probe
-  without token output`, and `case_count=75`.
+  without token output`, and `case_count=77`.
 
 - 2026-06-06 post-route wait token binding gate index refresh:
   wiki/882 records the MUSU local index refresh after wiki/881 and GOAL v706.
-  Search terms should include `GOAL v707`, `wiki/882`, `2733 files`,
-  `2776 symbols`, `11708 ms`, `expected_token`,
-  `--wait <prompt-with-token>`, `runtime matrix rejects successful route probe
-  without token output`, and `case_count=75`.
+  Search terms should include `GOAL v707`, `wiki/882`, `2734 files`,
+  `2776 symbols`, `26395 ms`, `expected_token`,
+  `--wait <prompt-with-token>`, `runtime matrix rejects allowed failed route
+  attempt with zero exit code`, `runtime matrix rejects allowed failed route
+  attempt with nonnumeric exit code`, `runtime matrix rejects successful route
+  probe without token output`, and `case_count=77`.
 
 **End of WIKI_INDEX.md.**

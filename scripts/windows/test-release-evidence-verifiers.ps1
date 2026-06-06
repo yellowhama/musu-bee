@@ -104,10 +104,12 @@ function Add-CaseResult {
         [Parameter(Mandatory = $true)][string]$Verifier,
         [Parameter(Mandatory = $true)][string]$FixturePath,
         [Parameter(Mandatory = $true)][bool]$ShouldPass,
-        [Parameter(Mandatory = $true)]$Invocation
+        [Parameter(Mandatory = $true)]$Invocation,
+        [switch]$RequireParsed
     )
 
     $parsedOk = $false
+    $parsedPresent = ($null -ne $Invocation.parsed)
     $failCount = $null
     if ($Invocation.parsed) {
         if ($Invocation.parsed.PSObject.Properties["ok"]) {
@@ -122,7 +124,7 @@ function Add-CaseResult {
         ($Invocation.exit_code -eq 0 -and $parsedOk)
     }
     else {
-        ($Invocation.exit_code -ne 0 -and -not $parsedOk)
+        ($Invocation.exit_code -ne 0 -and -not $parsedOk -and (-not $RequireParsed -or $parsedPresent))
     }
 
     $Cases.Add([pscustomobject]@{
@@ -131,6 +133,7 @@ function Add-CaseResult {
         fixture_path = (Resolve-Path -LiteralPath $FixturePath).Path
         should_pass = $ShouldPass
         exit_code = [int]$Invocation.exit_code
+        parsed_json = [bool]$parsedPresent
         parsed_ok = [bool]$parsedOk
         fail_count = $failCount
         passed_expectation = [bool]$passedExpectation
@@ -219,6 +222,9 @@ function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
         'post-route route command binds wait token',
         'post-route route arguments bind wait token',
         'post-route successful output contains expected token',
+        'post-route failed route probe exit code',
+        '$routeProbeHasNumericExitCode',
+        '$routeProbeHasNonZeroExitCode',
         'post-route route command binds target',
         'post-route route arguments bind target',
         '$routeCommand.Contains("--target")',
@@ -1918,6 +1924,20 @@ $allowedFailedRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $allowe
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-allowed" -Object $allowedFailedRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts explicitly allowed failed target route attempt" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$zeroExitFailedRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$zeroExitFailedRuntimeRouteAttempt.route_probe.exit_code = 0
+$zeroExitFailedRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $zeroExitFailedRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-zero-exit" -Object $zeroExitFailedRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt with zero exit code" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$nonnumericExitFailedRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
+$nonnumericExitFailedRuntimeRouteAttempt.route_probe.exit_code = "route-timeout"
+$nonnumericExitFailedRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $nonnumericExitFailedRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-nonnumeric-exit" -Object $nonnumericExitFailedRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-ExpectedPostRouteTarget", "PRIMARY-PC", "-AllowFailedPostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects allowed failed route attempt with nonnumeric exit code" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $targetMismatchRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
 $fixture = Write-Fixture -Name "runtime-matrix-failed-target-route-attempt-target-mismatch" -Object $targetMismatchRuntimeRouteAttempt

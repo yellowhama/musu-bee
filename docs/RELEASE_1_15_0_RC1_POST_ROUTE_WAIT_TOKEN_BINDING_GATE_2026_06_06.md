@@ -23,20 +23,37 @@ for:
 - arguments containing `--wait <prompt-with-token>` or
   `--wait=<prompt-with-token>`
 - successful route probe output containing the expected token
+- failed route diagnostics using a numeric non-zero exit code
 
 Failed-route diagnostics remain allowed only when the caller explicitly enables
 the failed-probe path, but the failed probe must still prove which wait prompt
-and token were used.
+and token were used. A zero-exit command or nonnumeric diagnostic value that
+merely lacks the expected token is no longer accepted as a failed route attempt.
 
 ## Validation
 
 - parser checks: pass
 - `git diff --check`: pass
 - `test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
-  `case_count=75`, `failed_case_count=0`
+  `case_count=77`, `failed_case_count=0`
 - new negative cases:
+  - `runtime matrix rejects allowed failed route attempt with zero exit code`
+  - `runtime matrix rejects allowed failed route attempt with nonnumeric exit code`
   - `runtime matrix rejects route wait prompt without expected token`
   - `runtime matrix rejects successful route probe without token output`
+- direct nonnumeric fixture check: `exit_code=1`, `ok=false`,
+  `fail_count=2`; failed checks include `post-route failed route probe exit
+  code`
+
+## Code Audit
+
+No high or medium issue found in this scoped verifier change.
+
+The initial exit-code hardening was tightened during audit so malformed
+`route_probe.exit_code` values are parsed safely. A bad value now produces
+structured verifier failure JSON instead of relying on a PowerShell cast
+exception. The zero-exit and nonnumeric-exit regression cases require parsed
+JSON output from the verifier.
 
 ## Release Interpretation
 
@@ -50,8 +67,18 @@ the sample to be bound to:
 - the wait prompt
 - the per-run expected token
 - the successful output token, when the probe claims success
+- a numeric non-zero exit code, when the probe claims an explicitly allowed failure
 
 Public release remains No-Go until real second-PC route/CPU/matrix evidence,
 live MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
 proof are recorded.
 
+## Next Steps
+
+1. Capture real second-PC runtime CPU matrix and targeted route-attempt CPU
+   evidence with the stricter post-route contract.
+2. Record live MUSU.PRO control-plane P2P/relay evidence proving remote input,
+   rendezvous/path selection, and relay fallback without making MUSU.PRO the
+   executor/default payload path.
+3. Finish support mailbox and Store/Partner Center evidence before changing
+   public release status.
