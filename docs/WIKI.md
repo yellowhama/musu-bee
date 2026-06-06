@@ -11752,3 +11752,67 @@ reinstall crash-recovery index refresh`, `2716 files`, `2776 symbols`,
 `127.0.0.1:3678`, `20260606-195631-HUGH_SECOND`,
 `20260606-200405-HUGH_SECOND.desktop-open`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Go/No-Go Latest Output Gate (wiki/873)
+
+`write-release-go-no-go.ps1` now writes the current result to
+`.local-build\go-no-go\latest.json` by default and exposes
+`go_no_go_output_path`.
+
+This closes a release-evidence reliability gap where the local `latest.json`
+snapshot could remain stale while a fresh go/no-go result was only printed to
+stdout.
+
+Validation:
+
+- parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`
+- `git diff --check` passed
+- release verifier passed with `ok=true`, `case_count=70`,
+  `failed_case_count=0`
+- new source-contract case:
+  `go-no-go writes current latest output evidence`
+- Rust background-loop audit passed with unaudited loop/spawn/network watcher
+  and telemetry flush primitive counts `0`
+- frontend polling audit passed with low-duty call sites `29`, direct intervals
+  `0`, direct visibility listeners `0`
+- actual go/no-go latest write smoke wrote
+  `F:\workspace\musu-bee\.local-build\go-no-go\latest.json`
+- stdout/file `generated_at` matched
+- dirty-tree go/no-go still reports public release No-Go, single-machine true,
+  runtime idle CPU valid machines `1`, runtime matrix valid machines `0`, idle
+  busy-loop candidate contract true, candidate count `8`, and manifest dirty
+  true before commit
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_GO_NO_GO_LATEST_OUTPUT_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v698`, `wiki/873`, `go-no-go latest output
+gate`, `.local-build\go-no-go\latest.json`, `go_no_go_output_path`,
+`case_count=70`, `go-no-go writes current latest output evidence`,
+`idle_busy_loop_candidate_contract_verified`, `candidate count 8`,
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0`, `MUSU Desktop local
+executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Go/No-Go Latest Output Index Refresh (wiki/874)
+
+MUSU local indexer was refreshed after wiki/873 and GOAL v698.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2719 files`
+- `2776 symbols`
+- `18409 ms`
+
+Indexed context includes `write-release-go-no-go.ps1` `-OutputPath`,
+`.local-build\go-no-go\latest.json`, `go_no_go_output_path`, source-contract
+case `go-no-go writes current latest output evidence`, release verifier
+`70/70`, go/no-go latest output report, BETA checklist, WIKI/WIKI_INDEX, GOAL
+v698, and CoS memory.
+
+Search terms should include `GOAL v699`, `wiki/874`, `go-no-go latest output
+index refresh`, `2719 files`, `2776 symbols`, `18409 ms`,
+`.local-build\go-no-go\latest.json`, `go_no_go_output_path`,
+`go-no-go writes current latest output evidence`, and `release verifier 70/70`.

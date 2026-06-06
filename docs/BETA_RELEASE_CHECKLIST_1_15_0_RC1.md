@@ -107,6 +107,20 @@ runtime matrix `1/2 [HUGH_SECOND]`, targeted second-PC route CPU diagnostic,
 public metadata, idle busy-loop candidate source contract, and the P2P
 store-forward relay contract are current and passing.
 
+Current go/no-go output reliability gate:
+
+- `write-release-go-no-go.ps1` writes the current result to
+  `.local-build\go-no-go\latest.json` by default
+- `-OutputPath` can redirect the snapshot when needed
+- JSON and text output expose `go_no_go_output_path`
+- release verifier source contract
+  `go-no-go writes current latest output evidence` prevents this behavior from
+  regressing
+- latest-output smoke confirmed stdout and file `generated_at` match
+- dirty-tree validation reported single-machine true, runtime idle CPU valid
+  machines `1`, runtime matrix valid machines `0`, idle busy-loop candidate
+  contract true, candidate count `8`, and manifest dirty true before commit
+
 CPU evidence now requires process subrole attribution. The current HUGH_SECOND
 idle and matrix evidence separates `bridge_runtime=1`, `desktop_shell=1`, and
 `webview2_helper=6`; older CPU evidence without those subrole fields is not

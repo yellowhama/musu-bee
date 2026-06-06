@@ -5736,4 +5736,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260606-200405-HUGH_SECOND.desktop-open`, `MUSU Desktop local executor`,
   and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 go/no-go latest output gate:
+  `RELEASE_1_15_0_RC1_GO_NO_GO_LATEST_OUTPUT_GATE_2026_06_06.md`
+  (wiki/873) records the release-gate output snapshot hardening for
+  `.local-build\go-no-go\latest.json`. Search terms should include
+  `GOAL v698`, `wiki/873`, `go-no-go latest output gate`,
+  `go_no_go_output_path`, `case_count=70`,
+  `go-no-go writes current latest output evidence`,
+  `idle_busy_loop_candidate_contract_verified`, `candidate count 8`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`,
+  `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 go/no-go latest output index refresh:
+  wiki/874 records the MUSU local index refresh after wiki/873 and GOAL v698.
+  Search terms should include `GOAL v699`, `wiki/874`, `2719 files`,
+  `2776 symbols`, `18409 ms`, `go-no-go latest output index refresh`,
+  `.local-build\go-no-go\latest.json`, `go_no_go_output_path`,
+  `go-no-go writes current latest output evidence`, and
+  `release verifier 70/70`.
+
 **End of WIKI_INDEX.md.**

@@ -357,6 +357,29 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
     return $true
 }
 
+function Test-GoNoGoLatestOutputContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[string]$OutputPath',
+        '.local-build\go-no-go\latest.json',
+        'Resolve-GoNoGoOutputPath',
+        'go_no_go_output_path',
+        '$resultJson = $result | ConvertTo-Json -Depth 8',
+        'Set-Content -LiteralPath $tempPath -Encoding UTF8',
+        'Move-Item -LiteralPath $tempPath -Destination $goNoGoOutputPath -Force',
+        'go_no_go_output_path: $($result.go_no_go_output_path)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RustBackgroundFilesystemWatcherScopeContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1420,6 +1443,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go exposes all idle busy-loop candidate statuses" `
     -Verifier "idle busy-loop source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoLatestOutputContractOk = Test-GoNoGoLatestOutputContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoLatestOutputContractOk `
+    -Message "go/no-go must write the current result to a default latest JSON file and expose the output path"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go writes current latest output evidence" `
+    -Verifier "go-no-go output source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

@@ -14,6 +14,7 @@ param(
     [int]$ScriptTimeoutSeconds = 120,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
+    [string]$OutputPath,
     [switch]$Json
 )
 
@@ -26,6 +27,21 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = ".local-build\go-no-go\latest.json"
+}
+
+function Resolve-GoNoGoOutputPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
+
+$goNoGoOutputPath = Resolve-GoNoGoOutputPath -Path $OutputPath
 
 if ($ScriptTimeoutSeconds -lt 1) {
     throw "ScriptTimeoutSeconds must be at least 1."
@@ -1985,13 +2001,24 @@ $result = [pscustomobject]@{
     public_metadata = if ($publicMetadataResult) { $publicMetadataResult.json } else { $null }
     manifest_path = if ($manifest) { (Resolve-Path -LiteralPath $manifestPath).Path } else { $null }
     manifest_git = if ($manifest) { $manifest.git } else { $null }
+    go_no_go_output_path = $goNoGoOutputPath
 }
 
+$resultJson = $result | ConvertTo-Json -Depth 8
+$outputParent = Split-Path -Parent $goNoGoOutputPath
+if (-not [string]::IsNullOrWhiteSpace($outputParent)) {
+    New-Item -ItemType Directory -Force -Path $outputParent | Out-Null
+}
+$tempPath = "$goNoGoOutputPath.tmp"
+$resultJson | Set-Content -LiteralPath $tempPath -Encoding UTF8
+Move-Item -LiteralPath $tempPath -Destination $goNoGoOutputPath -Force
+
 if ($Json) {
-    $result | ConvertTo-Json -Depth 8
+    $resultJson
 }
 else {
     "MUSU release go/no-go"
+    "go_no_go_output_path: $($result.go_no_go_output_path)"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
