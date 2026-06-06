@@ -78,7 +78,11 @@ const RelayPayloadDeliveryProofSchema = z.object({
   lease_id: z.string().min(1),
   source_node_id: z.string().min(1),
   target_node_id: z.string().min(1),
+  relay_url: z.string().min(1),
   tunnel_id: z.string().min(1),
+  transport_kind: z.string().min(1),
+  relay_default_data_path: z.boolean(),
+  release_grade: z.boolean(),
   payload_sha256: z.string().min(1),
   payload_bytes: z.number().int().positive(),
   delivered_at: z.string().min(1),
@@ -122,6 +126,7 @@ const LEGACY_ENCRYPTION = new Set(["", "none", "http", "none_http_bearer", "unkn
 const RELEASE_GRADE_ENCRYPTION = new Set(["quic_tls_1_3"]);
 const RELEASE_GRADE_TRANSPORT_VERIFIERS = new Set(["musu_quic_tls_transport"]);
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 const DIRECT_PATH_SELECTION_ORDER = ["lan", "tailscale", "direct_quic"] as const;
 const DIRECT_ROUTE_KIND_INDEX = new Map(DIRECT_PATH_SELECTION_ORDER.map((kind, index) => [kind, index]));
@@ -522,9 +527,25 @@ async function relayPayloadDeliveryProofBlockers(
   if (proof.target_node_id.trim() !== evidence.target_node_id.trim()) {
     blockers.push("relay_fallback_payload_delivery_proof_target_mismatch");
   }
+  const transportRelayUrl = evidence.relay_transport_proof?.relay_url.trim();
+  if (!proof.relay_url.trim().startsWith("wss://")) {
+    blockers.push("relay_fallback_payload_delivery_proof_relay_url_not_wss");
+  }
+  if (transportRelayUrl && proof.relay_url.trim() !== transportRelayUrl) {
+    blockers.push("relay_fallback_payload_delivery_proof_relay_url_mismatch");
+  }
   const transportTunnelId = evidence.relay_transport_proof?.tunnel_id.trim();
   if (transportTunnelId && proof.tunnel_id.trim() !== transportTunnelId) {
     blockers.push("relay_fallback_payload_delivery_proof_tunnel_mismatch");
+  }
+  if (!RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS.has(proof.transport_kind.trim())) {
+    blockers.push("relay_fallback_payload_delivery_proof_transport_kind_not_release_grade");
+  }
+  if (proof.relay_default_data_path !== false) {
+    blockers.push("relay_fallback_payload_delivery_proof_default_data_path");
+  }
+  if (proof.release_grade !== true) {
+    blockers.push("relay_fallback_payload_delivery_proof_not_release_grade");
   }
   if (parseIsoTimestamp(proof.delivered_at) === null) {
     blockers.push("relay_fallback_payload_delivery_proof_delivered_at_invalid");
@@ -556,6 +577,21 @@ async function relayPayloadDeliveryProofBlockers(
     }
     if (storedPayload.payload_bytes !== proof.payload_bytes) {
       blockers.push("relay_fallback_payload_delivery_proof_bytes_mismatch");
+    }
+    if (storedPayload.relay_url.trim() !== proof.relay_url.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_relay_url_mismatch");
+    }
+    if (storedPayload.transport_kind.trim() !== proof.transport_kind.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_transport_kind_mismatch");
+    }
+    if (!RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS.has(storedPayload.transport_kind.trim())) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_transport_kind_not_release_grade");
+    }
+    if (storedPayload.relay_default_data_path !== false) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_default_data_path");
+    }
+    if (storedPayload.release_grade !== true) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_not_release_grade");
     }
     if (!storedPayload.delivered_at?.trim()) {
       blockers.push("relay_fallback_payload_delivery_proof_stored_delivery_missing");

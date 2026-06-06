@@ -243,7 +243,11 @@ fn delivery_proof_from_delivered_payload(
             lease_id: payload.lease_id.clone(),
             source_node_id: payload.source_node_id.clone(),
             target_node_id: payload.target_node_id.clone(),
+            relay_url: payload.relay_url.clone(),
             tunnel_id: payload.tunnel_id.clone(),
+            transport_kind: payload.transport_kind.clone(),
+            relay_default_data_path: payload.relay_default_data_path,
+            release_grade: payload.release_grade,
             payload_sha256: payload.payload_sha256.clone(),
             payload_bytes: payload.payload_bytes,
             delivered_at: delivered_at.to_string(),
@@ -261,7 +265,11 @@ fn delivery_proof_from_cloud_proof(
         lease_id: proof.lease_id.clone(),
         source_node_id: proof.source_node_id.clone(),
         target_node_id: proof.target_node_id.clone(),
+        relay_url: proof.relay_url.clone(),
         tunnel_id: proof.tunnel_id.clone(),
+        transport_kind: proof.transport_kind.clone(),
+        relay_default_data_path: proof.relay_default_data_path,
+        release_grade: proof.release_grade,
         payload_sha256: proof.payload_sha256.clone(),
         payload_bytes: proof.payload_bytes,
         delivered_at: proof.delivered_at.clone(),
@@ -658,7 +666,7 @@ mod tests {
             status: "delivered".to_string(),
             relay_default_data_path: false,
             release_grade: false,
-            transport_kind: "relay_payload_queue_preview".to_string(),
+            transport_kind: "http_store_forward_preview".to_string(),
             created_at: "2026-06-04T00:00:00Z".to_string(),
             expires_at: "2026-06-04T00:05:00Z".to_string(),
             claimed_by: Some("target-node".to_string()),
@@ -679,7 +687,11 @@ mod tests {
         assert_eq!(proof.lease_id, "lease-1");
         assert_eq!(proof.source_node_id, "source-node");
         assert_eq!(proof.target_node_id, "target-node");
+        assert_eq!(proof.relay_url, "wss://relay.musu.pro/connect");
         assert_eq!(proof.tunnel_id, "relay-tunnel-1");
+        assert_eq!(proof.transport_kind, "http_store_forward_preview");
+        assert!(!proof.relay_default_data_path);
+        assert!(!proof.release_grade);
         assert_eq!(proof.payload_sha256, "abc123");
         assert_eq!(proof.payload_bytes, 128);
         assert_eq!(proof.delivered_at, "2026-06-04T00:00:02Z");

@@ -417,6 +417,22 @@ Add-Check `
 
 Add-Check `
     -Scope "route-evidence" `
+    -Name "relay payload delivery proof rejects preview transport" `
+    -Passed (
+        Test-ContainsAll -Text $routeEvidence -Needles @(
+            "RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS",
+            "relay_fallback_payload_delivery_proof_transport_kind_not_release_grade",
+            "relay_fallback_payload_delivery_proof_not_release_grade",
+            "relay_fallback_payload_delivery_proof_stored_transport_kind_not_release_grade",
+            "relay_fallback_payload_delivery_proof_stored_not_release_grade",
+            "relay_fallback_payload_delivery_proof_relay_url_mismatch"
+        )
+    ) `
+    -Path $routeEvidencePath `
+    -Message "Route evidence requires relay payload delivery proof to be release-grade tunnel metadata, not preview store-forward queue metadata."
+
+Add-Check `
+    -Scope "route-evidence" `
     -Name "route evidence request is strict metadata only" `
     -Passed (
         (Test-ContainsAll -Text $routeEvidence -Needles @(
@@ -627,9 +643,11 @@ Add-Check `
             "P2pRelayPayloadResponse",
             "P2pRelayPayloadClaimResponse",
             "P2pRelayPayloadDeliveryResponse",
+            "RouteRelayPayloadDeliveryProof",
             "relay_payload_queue_endpoint_wired",
             "pub relay_default_data_path: bool",
             "pub release_grade: bool",
+            "pub transport_kind: String",
             "pub relay_payload_store_release_grade: bool"
         )
     ) `
@@ -736,6 +754,9 @@ Add-Check `
     -Passed (
         Test-ContainsAll -Text $routeEvidenceTest -Needles @(
             "accepts stored delivered relay payload proof while keeping file-store proof non release grade",
+            "relay_fallback_payload_delivery_proof_transport_kind_not_release_grade",
+            "relay_fallback_payload_delivery_proof_stored_transport_kind_not_release_grade",
+            "relay_fallback_payload_delivery_proof_stored_not_release_grade",
             "transport_not_release_grade_quic_tls",
             "missing_release_grade_transport_proof",
             "relay_route_transport_proof_kind_not_release_grade"

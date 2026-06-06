@@ -74,7 +74,11 @@ pub struct RouteRelayPayloadDeliveryProof {
     pub lease_id: String,
     pub source_node_id: String,
     pub target_node_id: String,
+    pub relay_url: String,
     pub tunnel_id: String,
+    pub transport_kind: String,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
     pub payload_sha256: String,
     pub payload_bytes: u64,
     pub delivered_at: String,
@@ -235,7 +239,11 @@ fn cloud_relay_payload_delivery_proof(
         lease_id: evidence.lease_id.clone(),
         source_node_id: evidence.source_node_id.clone(),
         target_node_id: evidence.target_node_id.clone(),
+        relay_url: evidence.relay_url.clone(),
         tunnel_id: evidence.tunnel_id.clone(),
+        transport_kind: evidence.transport_kind.clone(),
+        relay_default_data_path: evidence.relay_default_data_path,
+        release_grade: evidence.release_grade,
         payload_sha256: evidence.payload_sha256.clone(),
         payload_bytes: evidence.payload_bytes,
         delivered_at: evidence.delivered_at.clone(),
@@ -884,7 +892,11 @@ mod tests {
                 lease_id: "lease-1".to_string(),
                 source_node_id: "source-node".to_string(),
                 target_node_id: "target-node".to_string(),
+                relay_url: "wss://relay.musu.pro/connect".to_string(),
                 tunnel_id: "relay-tunnel-1".to_string(),
+                transport_kind: "quic_relay_tunnel".to_string(),
+                relay_default_data_path: false,
+                release_grade: true,
                 payload_sha256: "abc123".to_string(),
                 payload_bytes: 128,
                 delivered_at: "2026-06-04T00:00:02Z".to_string(),
@@ -908,6 +920,11 @@ mod tests {
             value["relay_transport_proof"]["transport_kind"],
             "quic_relay_tunnel"
         );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["transport_kind"],
+            "quic_relay_tunnel"
+        );
+        assert_eq!(value["relay_payload_delivery_proof"]["release_grade"], true);
 
         let cloud = cloud_route_evidence(&evidence);
         let transport_proof = cloud.relay_transport_proof.expect("cloud transport proof");
@@ -934,6 +951,8 @@ mod tests {
             .expect("cloud delivery proof");
         assert_eq!(proof.schema, "musu.relay_payload_delivery_proof.v1");
         assert_eq!(proof.payload_id, "payload-1");
+        assert_eq!(proof.transport_kind, "quic_relay_tunnel");
+        assert!(proof.release_grade);
         assert_eq!(proof.payload_bytes, 128);
         assert_eq!(proof.delivered_at, "2026-06-04T00:00:02Z");
     }
@@ -957,7 +976,7 @@ mod tests {
             status: "delivered".to_string(),
             relay_default_data_path: false,
             release_grade: false,
-            transport_kind: "relay_payload_queue_preview".to_string(),
+            transport_kind: "http_store_forward_preview".to_string(),
             created_at: "2026-06-04T00:00:00Z".to_string(),
             expires_at: "2026-06-04T00:05:00Z".to_string(),
             claimed_by: Some("target-node".to_string()),
@@ -972,7 +991,11 @@ mod tests {
             lease_id: payload.lease_id.clone(),
             source_node_id: payload.source_node_id.clone(),
             target_node_id: payload.target_node_id.clone(),
+            relay_url: payload.relay_url.clone(),
             tunnel_id: payload.tunnel_id.clone(),
+            transport_kind: payload.transport_kind.clone(),
+            relay_default_data_path: payload.relay_default_data_path,
+            release_grade: payload.release_grade,
             payload_sha256: payload.payload_sha256.clone(),
             payload_bytes: payload.payload_bytes,
             delivered_at: payload.delivered_at.clone().unwrap(),
@@ -1000,6 +1023,14 @@ mod tests {
         assert_eq!(
             value["relay_payload_delivery_proof"]["schema"],
             "musu.relay_payload_delivery_proof.v1"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["transport_kind"],
+            "http_store_forward_preview"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["release_grade"],
+            false
         );
 
         let cloud = cloud_route_evidence(&record.evidence);

@@ -476,7 +476,11 @@ pub struct RouteRelayPayloadDeliveryProof {
     pub lease_id: String,
     pub source_node_id: String,
     pub target_node_id: String,
+    pub relay_url: String,
     pub tunnel_id: String,
+    pub transport_kind: String,
+    pub relay_default_data_path: bool,
+    pub release_grade: bool,
     pub payload_sha256: String,
     pub payload_bytes: u64,
     pub delivered_at: String,
@@ -1615,7 +1619,11 @@ mod tests {
                 lease_id: "lease-1".into(),
                 source_node_id: "node_src".into(),
                 target_node_id: "node_dst".into(),
+                relay_url: "wss://relay.musu.pro/connect".into(),
                 tunnel_id: "relay-tunnel-1".into(),
+                transport_kind: "quic_relay_tunnel".into(),
+                relay_default_data_path: false,
+                release_grade: true,
                 payload_sha256: "abc123".into(),
                 payload_bytes: 128,
                 delivered_at: "2026-06-04T00:00:02Z".into(),
@@ -1633,6 +1641,11 @@ mod tests {
             "payload-1"
         );
         assert_eq!(value["relay_payload_delivery_proof"]["payload_bytes"], 128);
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["transport_kind"],
+            "quic_relay_tunnel"
+        );
+        assert_eq!(value["relay_payload_delivery_proof"]["release_grade"], true);
         assert_eq!(
             value["relay_payload_delivery_proof"]["delivered_at"],
             "2026-06-04T00:00:02Z"
@@ -1974,7 +1987,11 @@ mod tests {
                 "lease_id": "relay-lease-123",
                 "source_node_id": "pc-a",
                 "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
                 "tunnel_id": "relay-tunnel-123",
+                "transport_kind": "http_store_forward_preview",
+                "relay_default_data_path": false,
+                "release_grade": false,
                 "payload_sha256": "abc123",
                 "payload_bytes": 2,
                 "delivered_at": "2026-06-04T01:00:02Z"
@@ -1991,7 +2008,14 @@ mod tests {
         assert_eq!(proof.lease_id, payload.lease_id);
         assert_eq!(proof.source_node_id, payload.source_node_id);
         assert_eq!(proof.target_node_id, payload.target_node_id);
+        assert_eq!(proof.relay_url, payload.relay_url);
         assert_eq!(proof.tunnel_id, payload.tunnel_id);
+        assert_eq!(proof.transport_kind, payload.transport_kind);
+        assert_eq!(
+            proof.relay_default_data_path,
+            payload.relay_default_data_path
+        );
+        assert_eq!(proof.release_grade, payload.release_grade);
         assert_eq!(proof.payload_sha256, payload.payload_sha256);
         assert_eq!(proof.payload_bytes, payload.payload_bytes);
         assert_eq!(proof.delivered_at, payload.delivered_at.clone().unwrap());

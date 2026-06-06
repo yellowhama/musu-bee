@@ -67,7 +67,11 @@ export type RouteEvidencePayload = {
     lease_id: string;
     source_node_id: string;
     target_node_id: string;
+    relay_url: string;
     tunnel_id: string;
+    transport_kind: string;
+    relay_default_data_path: boolean;
+    release_grade: boolean;
     payload_sha256: string;
     payload_bytes: number;
     delivered_at: string;
@@ -102,6 +106,7 @@ export type RouteEvidenceQuery = {
 const KV_KEY = "musu:p2p:route-evidence:v1";
 const DEFAULT_MAX_RECORDS = 1000;
 const RELEASE_GRADE_RELAY_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
+const RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS = new Set(["quic_relay_tunnel"]);
 const RELEASE_GRADE_PEER_IDENTITY_METHODS = new Set(["quic_tls_cert_fingerprint"]);
 
 let localLockQueue: Promise<void> = Promise.resolve();
@@ -234,6 +239,7 @@ function hasCurrentRelayPayloadDeliveryProof(evidence: RouteEvidencePayload): bo
   const proof = evidence.relay_payload_delivery_proof;
   const relayLeaseId = evidence.relay_fallback?.lease_id?.trim() ?? "";
   const transportTunnelId = evidence.relay_transport_proof?.tunnel_id.trim() ?? "";
+  const transportRelayUrl = evidence.relay_transport_proof?.relay_url.trim() ?? "";
   const evidenceSessionId = evidence.session_id?.trim() ?? "";
   return Boolean(
     proof &&
@@ -247,9 +253,15 @@ function hasCurrentRelayPayloadDeliveryProof(evidence: RouteEvidencePayload): bo
       proof.lease_id.trim() === relayLeaseId &&
       proof.source_node_id.trim() === evidence.source_node_id.trim() &&
       proof.target_node_id.trim() === evidence.target_node_id.trim() &&
+      proof.relay_url?.trim().startsWith("wss://") &&
+      transportRelayUrl &&
+      proof.relay_url.trim() === transportRelayUrl &&
       proof.tunnel_id?.trim() &&
       transportTunnelId &&
       proof.tunnel_id.trim() === transportTunnelId &&
+      RELEASE_GRADE_RELAY_PAYLOAD_TRANSPORT_KINDS.has(proof.transport_kind?.trim() ?? "") &&
+      proof.relay_default_data_path === false &&
+      proof.release_grade === true &&
       proof.payload_sha256?.trim() &&
       Number.isInteger(proof.payload_bytes) &&
       proof.payload_bytes > 0 &&

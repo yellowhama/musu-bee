@@ -10525,3 +10525,63 @@ Search terms should include `GOAL v659`, `wiki/834`,
 `peer_identity_method`, `peer_public_key`, `quic_tls_cert_fingerprint`,
 `sha256:`, `release verifier 63/63`, `MUSU Desktop local executor`, and
 `MUSU.PRO remote input control plane`.
+
+## 2026-06-06 Relay Payload Delivery Proof Release Metadata (wiki/835)
+
+`musu.relay_payload_delivery_proof.v1` now carries release transport metadata:
+
+- `relay_url`
+- `transport_kind`
+- `relay_default_data_path`
+- `release_grade`
+
+Route evidence release grading and hosted P2P verification now reject preview
+queue delivery proof as release-grade evidence. Release delivery proof must use
+`transport_kind=quic_relay_tunnel`, `release_grade=true`,
+`relay_default_data_path=false`, and a `wss://` relay URL matching route
+transport proof. Stored payload records must carry matching release metadata.
+
+Validation passed P2P targeted tests `105/105`, `npm run typecheck`,
+`cargo fmt --check`, `cargo check --lib`, `cargo test --lib route_evidence`
+with `14 passed`, `cargo test --lib relay_payload` with `24 passed`, P2P
+store-forward relay audit `ok=true`/`fail_count=0`, release evidence verifier
+regressions `ok=true`/`case_count=64`/`failed_case_count=0`, and
+`git diff --check`.
+
+Qualitative audit found no high/medium issue. This is proof-boundary
+hardening, not release relay tunnel implementation. MUSU Desktop remains the
+local executor; MUSU.PRO remains remote input, project/company room,
+rendezvous, path-selection, relay-fallback policy, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RELEASE_METADATA_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_PAYLOAD_DELIVERY_PROOF_RELEASE_METADATA_2026_06_06.md`
+
+## 2026-06-06 Relay Payload Delivery Proof Release Metadata Index Refresh (wiki/836)
+
+MUSU local indexer was refreshed after wiki/835 and GOAL v660.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2630 files`
+- `2755 symbols`
+- `20544 ms`
+
+Indexed context includes relay payload delivery proof release metadata code,
+route evidence delivery proof record-level release blockers, Rust bridge/cloud
+DTO carry-path updates, hosted P2P verifier case `p2p rejects relay route
+evidence with preview payload delivery proof transport`, P2P relay contract
+audit source-contract update, canonical report, next-step plan, BETA checklist,
+MUSU.PRO P2P control-plane spec, network boundary spec, GOAL v660,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v661`, `wiki/836`,
+`relay payload delivery proof release metadata index refresh`, `2630 files`,
+`2755 symbols`, `20544 ms`, `http_store_forward_preview`,
+`quic_relay_tunnel`, `release verifier 64/64`,
+`relay_fallback_payload_delivery_proof_stored_not_release_grade`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

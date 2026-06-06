@@ -330,7 +330,12 @@ foreach ($record in $routeEvidenceRecords) {
     $proofLeaseId = Get-StringProperty -Object $proof -Name "lease_id"
     $proofSourceNodeId = Get-StringProperty -Object $proof -Name "source_node_id"
     $proofTargetNodeId = Get-StringProperty -Object $proof -Name "target_node_id"
+    $proofRelayUrl = Get-StringProperty -Object $proof -Name "relay_url"
     $proofTunnelId = Get-StringProperty -Object $proof -Name "tunnel_id"
+    $proofTransportKind = Get-StringProperty -Object $proof -Name "transport_kind"
+    $proofRelayDefaultDataPath = Get-BoolProperty -Object $proof -Name "relay_default_data_path"
+    $proofReleaseGrade = Get-BoolProperty -Object $proof -Name "release_grade"
+    $transportRelayUrl = Get-StringProperty -Object $transportProof -Name "relay_url"
     $transportTunnelId = Get-StringProperty -Object $transportProof -Name "tunnel_id"
 
     $proofValid = (
@@ -340,7 +345,12 @@ foreach ($record in $routeEvidenceRecords) {
         -not [string]::IsNullOrWhiteSpace($proofLeaseId) -and
         -not [string]::IsNullOrWhiteSpace($proofSourceNodeId) -and
         -not [string]::IsNullOrWhiteSpace($proofTargetNodeId) -and
+        -not [string]::IsNullOrWhiteSpace($proofRelayUrl) -and
+        $proofRelayUrl.StartsWith("wss://") -and
         -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $proof -Name "tunnel_id")) -and
+        $proofTransportKind -eq "quic_relay_tunnel" -and
+        $proofRelayDefaultDataPath -eq $false -and
+        $proofReleaseGrade -eq $true -and
         -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $proof -Name "payload_sha256")) -and
         $null -ne $proofPayloadBytes -and
         $proofPayloadBytes -gt 0 -and
@@ -353,6 +363,7 @@ foreach ($record in $routeEvidenceRecords) {
         $proofSourceNodeId -eq $recordSourceNodeId -and
         $proofTargetNodeId -eq $recordTargetNodeId -and
         $proofLeaseId -eq $fallbackLeaseId -and
+        ([string]::IsNullOrWhiteSpace($transportRelayUrl) -or $proofRelayUrl -eq $transportRelayUrl) -and
         ([string]::IsNullOrWhiteSpace($transportTunnelId) -or $proofTunnelId -eq $transportTunnelId)
     )
 

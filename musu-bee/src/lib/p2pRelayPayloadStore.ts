@@ -25,9 +25,9 @@ export type StoredP2pRelayPayload = {
   payload_sha256: string;
   payload_base64: string;
   status: RelayPayloadStatus;
-  relay_default_data_path: false;
-  release_grade: false;
-  transport_kind: "http_store_forward_preview";
+  relay_default_data_path: boolean;
+  release_grade: boolean;
+  transport_kind: "http_store_forward_preview" | "quic_relay_tunnel";
   created_at: string;
   expires_at: string;
   claimed_by?: string;
@@ -42,7 +42,11 @@ export type RelayPayloadDeliveryProof = {
   lease_id: string;
   source_node_id: string;
   target_node_id: string;
+  relay_url: string;
   tunnel_id: string;
+  transport_kind: "http_store_forward_preview" | "quic_relay_tunnel";
+  relay_default_data_path: boolean;
+  release_grade: boolean;
   payload_sha256: string;
   payload_bytes: number;
   delivered_at: string;
@@ -373,9 +377,10 @@ function isStoredRelayPayload(value: unknown): value is StoredP2pRelayPayload {
     (payload.status === "queued" ||
       payload.status === "claimed" ||
       payload.status === "delivered") &&
-    payload.relay_default_data_path === false &&
-    payload.release_grade === false &&
-    payload.transport_kind === "http_store_forward_preview" &&
+    typeof payload.relay_default_data_path === "boolean" &&
+    typeof payload.release_grade === "boolean" &&
+    (payload.transport_kind === "http_store_forward_preview" ||
+      payload.transport_kind === "quic_relay_tunnel") &&
     typeof payload.created_at === "string" &&
     typeof payload.expires_at === "string" &&
     (payload.claimed_by === undefined || typeof payload.claimed_by === "string") &&
@@ -697,7 +702,11 @@ export function relayPayloadDeliveryProofFromDeliveredPayload(
     lease_id: payload.lease_id,
     source_node_id: payload.source_node_id,
     target_node_id: payload.target_node_id,
+    relay_url: payload.relay_url,
     tunnel_id: payload.tunnel_id,
+    transport_kind: payload.transport_kind,
+    relay_default_data_path: payload.relay_default_data_path,
+    release_grade: payload.release_grade,
     payload_sha256: payload.payload_sha256,
     payload_bytes: payload.payload_bytes,
     delivered_at: deliveredAt,

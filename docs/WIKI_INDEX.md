@@ -5340,4 +5340,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 relay payload delivery proof release metadata:
+  `RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RELEASE_METADATA_2026_06_06.md`
+  (wiki/835) records proof-boundary hardening that adds `relay_url`,
+  `transport_kind`, `relay_default_data_path`, and `release_grade` to
+  `musu.relay_payload_delivery_proof.v1`. Search terms should include
+  `GOAL v660`, `wiki/835`, `relay payload delivery proof release metadata`,
+  `http_store_forward_preview`, `quic_relay_tunnel`, `release verifier 64/64`,
+  `cargo test --lib relay_payload 24 passed`, and
+  `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 relay payload delivery proof release metadata index refresh:
+  wiki/836 records the MUSU local index refresh after wiki/835 and GOAL v660.
+  Search terms should include `GOAL v661`, `wiki/836`, `2630 files`,
+  `2755 symbols`, `20544 ms`,
+  `relay payload delivery proof release metadata index refresh`,
+  `http_store_forward_preview`, `quic_relay_tunnel`,
+  `release verifier 64/64`,
+  `relay_fallback_payload_delivery_proof_stored_not_release_grade`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

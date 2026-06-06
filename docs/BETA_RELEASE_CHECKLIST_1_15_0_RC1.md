@@ -7639,3 +7639,49 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2627 files`, `2754 symbols`, `55082 ms`
+
+## 2026-06-06 Relay Payload Delivery Proof Release Metadata
+
+Relay payload delivery proof now carries release transport metadata:
+
+- `relay_url`
+- `transport_kind`
+- `relay_default_data_path`
+- `release_grade`
+
+Route evidence and hosted P2P verifier now reject preview queue delivery proof
+as release-grade evidence. Release delivery proof requires
+`transport_kind=quic_relay_tunnel`, `release_grade=true`,
+`relay_default_data_path=false`, and a `wss://` relay URL matching the route
+transport proof. Stored payload records must carry matching release metadata.
+
+Validation:
+
+- P2P targeted tests: `105/105`
+- `npm run typecheck`: pass
+- `cargo fmt --check`: pass
+- `cargo check --lib`: pass
+- `cargo test --lib route_evidence`: `14 passed`
+- `cargo test --lib relay_payload`: `24 passed`
+- P2P store-forward relay audit: `ok=true`, `fail_count=0`
+- release evidence verifier regressions: `ok=true`, `case_count=64`,
+  `failed_case_count=0`
+- `git diff --check`: pass
+
+Qualitative audit found no high/medium issue. This is release proof-boundary
+hardening; it does not implement release relay tunnel payload transport and
+does not close second-PC, hosted P2P, support mailbox, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_PAYLOAD_DELIVERY_PROOF_RELEASE_METADATA_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_RELAY_PAYLOAD_DELIVERY_PROOF_RELEASE_METADATA_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2630 files`, `2755 symbols`, `20544 ms`

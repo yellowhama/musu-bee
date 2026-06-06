@@ -247,10 +247,39 @@ function relayPayloadDeliveryProof(payload: StoredP2pRelayPayload) {
     lease_id: payload.lease_id,
     source_node_id: payload.source_node_id,
     target_node_id: payload.target_node_id,
+    relay_url: payload.relay_url,
     tunnel_id: payload.tunnel_id,
+    transport_kind: payload.transport_kind,
+    relay_default_data_path: payload.relay_default_data_path,
+    release_grade: payload.release_grade,
     payload_sha256: payload.payload_sha256,
     payload_bytes: payload.payload_bytes,
     delivered_at: payload.delivered_at ?? "",
+  };
+}
+
+function staleRelayPayloadDeliveryProof(
+  payloadId: string,
+  leaseId: string,
+  payloadSha256: string,
+  overrides: Partial<NonNullable<RouteEvidencePayload["relay_payload_delivery_proof"]>> = {}
+): NonNullable<RouteEvidencePayload["relay_payload_delivery_proof"]> {
+  return {
+    schema: "musu.relay_payload_delivery_proof.v1",
+    payload_id: payloadId,
+    session_id: hardenedEvidence.session_id,
+    lease_id: leaseId,
+    source_node_id: hardenedEvidence.source_node_id,
+    target_node_id: hardenedEvidence.target_node_id,
+    relay_url: "wss://relay.musu.pro/connect",
+    tunnel_id: "relay-tunnel-test",
+    transport_kind: "quic_relay_tunnel",
+    relay_default_data_path: false,
+    release_grade: true,
+    payload_sha256: payloadSha256,
+    payload_bytes: 128,
+    delivered_at: "2026-06-01T01:00:04Z",
+    ...overrides,
   };
 }
 
@@ -602,7 +631,11 @@ test("keeps payload delivery proof non release grade unless it is backed by the 
         lease_id: lease.lease_id,
         source_node_id: hardenedEvidence.source_node_id,
         target_node_id: hardenedEvidence.target_node_id,
+        relay_url: "wss://relay.musu.pro/connect",
         tunnel_id: "relay-tunnel-test",
+        transport_kind: "quic_relay_tunnel",
+        relay_default_data_path: false,
+        release_grade: true,
         payload_sha256: "sha256:missing",
         payload_bytes: 128,
         delivered_at: "2026-06-01T01:00:02Z",
@@ -637,6 +670,13 @@ test("accepts stored delivered relay payload proof while keeping file-store proo
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_missing/);
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_not_stored/);
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_sha256_mismatch/);
+    assert.match(blockers, /relay_fallback_payload_delivery_proof_transport_kind_not_release_grade/);
+    assert.match(blockers, /relay_fallback_payload_delivery_proof_not_release_grade/);
+    assert.match(
+      blockers,
+      /relay_fallback_payload_delivery_proof_stored_transport_kind_not_release_grade/
+    );
+    assert.match(blockers, /relay_fallback_payload_delivery_proof_stored_not_release_grade/);
     assert.match(blockers, /relay_fallback_payload_store_backend_not_release_grade/);
     assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
   });
@@ -1168,18 +1208,11 @@ test("excludes stale relay records without current transport proof from release-
       blockers: [],
       evidence: {
         ...staleRelayEvidence,
-        relay_payload_delivery_proof: {
-          schema: "musu.relay_payload_delivery_proof.v1",
-          payload_id: "stale-relay-payload-only",
-          session_id: staleRelayEvidence.session_id ?? "",
-          lease_id: "stale-relay-lease",
-          source_node_id: staleRelayEvidence.source_node_id,
-          target_node_id: staleRelayEvidence.target_node_id,
-          tunnel_id: "relay-tunnel-test",
-          payload_sha256: "sha256:payload-only",
-          payload_bytes: 128,
-          delivered_at: "2026-06-01T01:00:04Z",
-        },
+        relay_payload_delivery_proof: staleRelayPayloadDeliveryProof(
+          "stale-relay-payload-only",
+          "stale-relay-lease",
+          "sha256:payload-only"
+        ),
       },
     });
     await appendRouteEvidenceRecord({
@@ -1192,18 +1225,11 @@ test("excludes stale relay records without current transport proof from release-
         ...staleRelayEvidence,
         session_id: null,
         relay_transport_proof: relayTransportProof("stale-relay-lease"),
-        relay_payload_delivery_proof: {
-          schema: "musu.relay_payload_delivery_proof.v1",
-          payload_id: "stale-relay-payload-missing-session",
-          session_id: staleRelayEvidence.session_id ?? "",
-          lease_id: "stale-relay-lease",
-          source_node_id: staleRelayEvidence.source_node_id,
-          target_node_id: staleRelayEvidence.target_node_id,
-          tunnel_id: "relay-tunnel-test",
-          payload_sha256: "sha256:missing-session",
-          payload_bytes: 128,
-          delivered_at: "2026-06-01T01:00:04Z",
-        },
+        relay_payload_delivery_proof: staleRelayPayloadDeliveryProof(
+          "stale-relay-payload-missing-session",
+          "stale-relay-lease",
+          "sha256:missing-session"
+        ),
       },
     });
     await appendRouteEvidenceRecord({
@@ -1215,18 +1241,12 @@ test("excludes stale relay records without current transport proof from release-
       evidence: {
         ...staleRelayEvidence,
         relay_transport_proof: relayTransportProof("different-relay-lease"),
-        relay_payload_delivery_proof: {
-          schema: "musu.relay_payload_delivery_proof.v1",
-          payload_id: "stale-relay-payload",
-          session_id: staleRelayEvidence.session_id ?? "",
-          lease_id: "stale-relay-lease",
-          source_node_id: staleRelayEvidence.source_node_id,
-          target_node_id: staleRelayEvidence.target_node_id,
-          tunnel_id: "relay-tunnel-test",
-          payload_sha256: "sha256:stale",
-          payload_bytes: 128,
-          delivered_at: "2026-06-01T01:00:05Z",
-        },
+        relay_payload_delivery_proof: staleRelayPayloadDeliveryProof(
+          "stale-relay-payload",
+          "stale-relay-lease",
+          "sha256:stale",
+          { delivered_at: "2026-06-01T01:00:05Z" }
+        ),
       },
     });
     await appendRouteEvidenceRecord({
@@ -1240,18 +1260,12 @@ test("excludes stale relay records without current transport proof from release-
         relay_transport_proof: relayTransportProof("stale-relay-lease", {
           session_id: "other-session",
         }),
-        relay_payload_delivery_proof: {
-          schema: "musu.relay_payload_delivery_proof.v1",
-          payload_id: "stale-relay-payload-session",
-          session_id: staleRelayEvidence.session_id ?? "",
-          lease_id: "stale-relay-lease",
-          source_node_id: staleRelayEvidence.source_node_id,
-          target_node_id: staleRelayEvidence.target_node_id,
-          tunnel_id: "relay-tunnel-test",
-          payload_sha256: "sha256:stale-session",
-          payload_bytes: 128,
-          delivered_at: "2026-06-01T01:00:06Z",
-        },
+        relay_payload_delivery_proof: staleRelayPayloadDeliveryProof(
+          "stale-relay-payload-session",
+          "stale-relay-lease",
+          "sha256:stale-session",
+          { delivered_at: "2026-06-01T01:00:06Z" }
+        ),
       },
     });
     await appendRouteEvidenceRecord({
@@ -1265,18 +1279,12 @@ test("excludes stale relay records without current transport proof from release-
         relay_transport_proof: relayTransportProof("stale-relay-lease", {
           transport_kind: "websocket_tunnel",
         }),
-        relay_payload_delivery_proof: {
-          schema: "musu.relay_payload_delivery_proof.v1",
-          payload_id: "stale-relay-payload-kind",
-          session_id: staleRelayEvidence.session_id ?? "",
-          lease_id: "stale-relay-lease",
-          source_node_id: staleRelayEvidence.source_node_id,
-          target_node_id: staleRelayEvidence.target_node_id,
-          tunnel_id: "relay-tunnel-test",
-          payload_sha256: "sha256:stale-kind",
-          payload_bytes: 128,
-          delivered_at: "2026-06-01T01:00:07Z",
-        },
+        relay_payload_delivery_proof: staleRelayPayloadDeliveryProof(
+          "stale-relay-payload-kind",
+          "stale-relay-lease",
+          "sha256:stale-kind",
+          { delivered_at: "2026-06-01T01:00:07Z" }
+        ),
       },
     });
 

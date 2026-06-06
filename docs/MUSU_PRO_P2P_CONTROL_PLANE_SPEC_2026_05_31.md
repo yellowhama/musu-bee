@@ -93,6 +93,17 @@ identity. Current release-grade identity method is
 source, target, tunnel, transport kind, encryption proof, and peer identity
 claim before it can help satisfy hosted P2P release evidence.
 
+**2026-06-06 relay payload delivery proof release metadata update**:
+`musu.relay_payload_delivery_proof.v1` now carries `relay_url`,
+`transport_kind`, `relay_default_data_path`, and `release_grade`. Release
+route evidence requires delivery proof to use `transport_kind=quic_relay_tunnel`,
+`release_grade=true`, `relay_default_data_path=false`, and a `wss://` relay URL
+matching the relay transport proof. Stored payload records must also match
+those release metadata fields. Preview queue records remain
+`transport_kind=http_store_forward_preview` and `release_grade=false`, so they
+can prove preview drain behavior but cannot satisfy hosted P2P release relay
+payload delivery proof.
+
 **2026-06-06 relay transport kind/encryption split update**:
 Relay tunnel kind and encryption/proof are now separate source and evidence
 fields. API preflight/status responses expose
@@ -1550,6 +1561,26 @@ the local-runtime evidence path:
 
 This closes the carry-path gap where Rust could serialize the cloud DTO but
 bridge route evidence submitted `relay_transport_proof=None`.
+
+## 2026-06-06 Relay Payload Delivery Proof Release Metadata
+
+Relay payload delivery proof is now explicitly tied to release tunnel metadata:
+
+- `relay_url`
+- `transport_kind`
+- `relay_default_data_path`
+- `release_grade`
+
+Release-grade hosted P2P evidence must show delivery proof with
+`transport_kind=quic_relay_tunnel`, `release_grade=true`, and
+`relay_default_data_path=false`, and the delivery proof relay URL must match the
+route transport proof relay URL. The stored payload record must carry the same
+release metadata.
+
+This keeps the preview store-forward queue out of the release tunnel gate. A
+preview queue payload can still be owner-scoped, claimed, delivered, and
+recorded for diagnostics, but it stays `transport_kind=http_store_forward_preview`
+and `release_grade=false`, which cannot close hosted P2P release proof.
 
 Spec interpretation remains unchanged: this is not the release relay tunnel.
 It is the evidence path needed once the real local runtime tunnel produces

@@ -133,6 +133,22 @@ not only to a surrounding route evidence record.
 This keeps Connect/Pro relay claims tied to verifiable peer identity while
 MUSU Desktop continues to execute work locally.
 
+## 2026-06-06 Relay Delivery Proof Boundary Update
+
+Hosted relay payload delivery proof must identify whether it came from the
+release relay tunnel or the preview store-forward queue.
+
+- release delivery proof requires `transport_kind=quic_relay_tunnel`
+- release delivery proof requires `release_grade=true`
+- release delivery proof requires `relay_default_data_path=false`
+- release delivery proof relay URL must match the route transport proof relay
+  URL
+- stored payload records must carry the same release metadata
+
+Preview queue delivery remains useful for diagnostics and fallback experiments,
+but it is not release-grade relay tunnel transport. MUSU.PRO may coordinate and
+record proof, but local MUSU Desktop runtimes still execute work.
+
 ## 2026-06-02 deployment boundary update
 
 The public `musu.pro` website and the `musu.pro` P2P control plane are
