@@ -44,6 +44,75 @@ function Add-CheckFromCondition {
     $Checks.Add((New-Check -Name $Name -Status ($(if ($Condition) { "pass" } else { "fail" })) -Message ($(if ($Condition) { $PassMessage } else { $FailMessage })))) | Out-Null
 }
 
+function Split-PathList {
+    param([AllowEmptyString()][string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return @()
+    }
+
+    @($Value -split ";" | ForEach-Object {
+        $entry = [Environment]::ExpandEnvironmentVariables(([string]$_).Trim())
+        if (-not [string]::IsNullOrWhiteSpace($entry)) {
+            $entry.TrimEnd("\")
+        }
+    } | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+}
+
+function Test-SamePath {
+    param(
+        [AllowEmptyString()][string]$Left,
+        [AllowEmptyString()][string]$Right
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Left) -or [string]::IsNullOrWhiteSpace($Right)) {
+        return $false
+    }
+
+    $leftNormalized = ([System.IO.Path]::GetFullPath($Left)).TrimEnd("\")
+    $rightNormalized = ([System.IO.Path]::GetFullPath($Right)).TrimEnd("\")
+    return [string]::Equals($leftNormalized, $rightNormalized, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-MusuAliasSourcesFromPath {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$PathEntries,
+        [Parameter(Mandatory = $true)][string]$WindowsAppsAliasPath
+    )
+
+    $sources = New-Object System.Collections.Generic.List[string]
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in @($PathEntries)) {
+        if ([string]::IsNullOrWhiteSpace([string]$entry)) {
+            continue
+        }
+        $candidate = Join-Path ([string]$entry) "musu.exe"
+        if (-not (Test-Path -LiteralPath $candidate)) {
+            continue
+        }
+        $full = [System.IO.Path]::GetFullPath($candidate)
+        if ($seen.Add($full)) {
+            $sources.Add($full) | Out-Null
+        }
+    }
+
+    $firstAliasPath = if ($sources.Count -gt 0) { $sources[0] } else { $null }
+    $alternateAliasSources = @($sources | Where-Object { -not (Test-SamePath -Left ([string]$_) -Right $WindowsAppsAliasPath) })
+    $windowsAppsAliasDiscovered = @($sources | Where-Object { Test-SamePath -Left ([string]$_) -Right $WindowsAppsAliasPath }).Count -gt 0
+    $shadowingSources = @()
+    if (-not [string]::IsNullOrWhiteSpace([string]$firstAliasPath) -and -not (Test-SamePath -Left $firstAliasPath -Right $WindowsAppsAliasPath)) {
+        $shadowingSources = @($firstAliasPath)
+    }
+
+    [pscustomobject]@{
+        AliasSources = @($sources)
+        FirstAliasPath = $firstAliasPath
+        AlternateAliasSources = @($alternateAliasSources)
+        AliasShadowing = @($shadowingSources)
+        WindowsAppsAliasDiscovered = [bool]$windowsAppsAliasDiscovered
+    }
+}
+
 Write-Step "Inspecting legacy direct-download Windows startup artifacts"
 
 $conflicts = Get-MusuLegacyWindowsConflicts
@@ -54,14 +123,21 @@ $disabledHelperCount = @($conflicts.DisabledStartupHelpers).Count
 $scheduledTaskCount = @($conflicts.ScheduledTasks).Count
 $disabledTaskCount = @($conflicts.DisabledScheduledTasks).Count
 $legacyBinCount = @($conflicts.LegacyBins).Count
-$aliasShadowingCount = @($conflicts.AliasShadowing).Count
-$alternateAliasCount = @($conflicts.AlternateAliasSources).Count
 $windowsAppsAliasPresent = if ($conflicts.PSObject.Properties["WindowsAppsAliasPresent"]) {
     [bool]$conflicts.WindowsAppsAliasPresent
 }
 else {
     -not [string]::IsNullOrWhiteSpace([string]$conflicts.WindowsAppsAlias) -and (Test-Path -LiteralPath $conflicts.WindowsAppsAlias)
 }
+$persistedPathEntries = @(
+    Split-PathList ([Environment]::GetEnvironmentVariable("Path", "Machine"))
+    Split-PathList ([Environment]::GetEnvironmentVariable("Path", "User"))
+)
+$persistedAliases = Get-MusuAliasSourcesFromPath -PathEntries $persistedPathEntries -WindowsAppsAliasPath ([string]$conflicts.WindowsAppsAlias)
+$aliasShadowingCount = @($persistedAliases.AliasShadowing).Count
+$alternateAliasCount = @($persistedAliases.AlternateAliasSources).Count
+$currentProcessAliasShadowingCount = @($conflicts.AliasShadowing).Count
+$currentProcessPathStale = ($aliasShadowingCount -eq 0 -and $currentProcessAliasShadowingCount -gt 0)
 $windowsAppsAliasInvocation = if ($windowsAppsAliasPresent) {
     "& `"$($conflicts.WindowsAppsAlias)`""
 }
@@ -80,7 +156,7 @@ Add-CheckFromCondition -Checks $checks -Name "active startup helpers" -Condition
 Add-CheckFromCondition -Checks $checks -Name "active scheduled tasks" -Condition ($scheduledTaskCount -eq 0) -PassMessage "no active legacy scheduled tasks" -FailMessage "$scheduledTaskCount active legacy scheduled task(s) found"
 Add-CheckFromCondition -Checks $checks -Name "legacy bin artifacts" -Condition ($legacyBinCount -eq 0) -PassMessage "no legacy ~/.musu/bin executables" -FailMessage "$legacyBinCount legacy ~/.musu/bin executable(s) found"
 Add-CheckFromCondition -Checks $checks -Name "WindowsApps alias path" -Condition $windowsAppsAliasPresent -PassMessage "WindowsApps alias exists" -FailMessage "WindowsApps alias is missing"
-Add-CheckFromCondition -Checks $checks -Name "PATH alias shadowing" -Condition ($aliasShadowingCount -eq 0) -PassMessage "PATH does not shadow the WindowsApps alias" -FailMessage "$aliasShadowingCount PATH entry/entries shadow the WindowsApps alias"
+Add-CheckFromCondition -Checks $checks -Name "persisted PATH alias shadowing" -Condition ($aliasShadowingCount -eq 0) -PassMessage "persisted User+Machine PATH does not shadow the WindowsApps alias" -FailMessage "$aliasShadowingCount persisted PATH entry/entries shadow the WindowsApps alias"
 
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
 $result = [pscustomobject]@{
@@ -101,13 +177,20 @@ $result = [pscustomobject]@{
     alternate_alias_count = $alternateAliasCount
     windowsapps_alias_path = $conflicts.WindowsAppsAlias
     windowsapps_alias_present = $windowsAppsAliasPresent
-    windowsapps_alias_discovered = if ($conflicts.PSObject.Properties["WindowsAppsAliasDiscovered"]) { [bool]$conflicts.WindowsAppsAliasDiscovered } else { $null }
+    windowsapps_alias_discovered = [bool]$persistedAliases.WindowsAppsAliasDiscovered
     windowsapps_alias_invocation = $windowsAppsAliasInvocation
-    first_alias_path = if ($conflicts.PSObject.Properties["FirstAliasPath"]) { $conflicts.FirstAliasPath } else { $null }
+    first_alias_path = $persistedAliases.FirstAliasPath
     alias_remediation = $aliasRemediation
-    alias_sources = @($conflicts.AliasSources)
-    alternate_alias_sources = @($conflicts.AlternateAliasSources)
-    alias_shadowing = @($conflicts.AliasShadowing)
+    alias_sources = @($persistedAliases.AliasSources)
+    alternate_alias_sources = @($persistedAliases.AlternateAliasSources)
+    alias_shadowing = @($persistedAliases.AliasShadowing)
+    alias_path_scope = "persisted_user_machine"
+    current_process_alias_sources = @($conflicts.AliasSources)
+    current_process_first_alias_path = if ($conflicts.PSObject.Properties["FirstAliasPath"]) { $conflicts.FirstAliasPath } else { $null }
+    current_process_alternate_alias_sources = @($conflicts.AlternateAliasSources)
+    current_process_alias_shadowing = @($conflicts.AliasShadowing)
+    current_process_alias_shadowing_count = $currentProcessAliasShadowingCount
+    current_process_path_stale = [bool]$currentProcessPathStale
     startup_helpers = @($conflicts.StartupHelpers | Select-Object Name, FullName)
     disabled_startup_helpers = @($conflicts.DisabledStartupHelpers | Select-Object Name, FullName)
     scheduled_tasks = @($conflicts.ScheduledTasks | Select-Object TaskName, TaskPath, State)
@@ -142,6 +225,8 @@ if ($Json) {
     DisabledTaskCount          = $disabledTaskCount
     LegacyBinCount             = $legacyBinCount
     AliasShadowingCount        = $aliasShadowingCount
+    CurrentProcessAliasShadowingCount = $currentProcessAliasShadowingCount
+    CurrentProcessPathStale    = [bool]$currentProcessPathStale
     WindowsAppsAliasPath       = $conflicts.WindowsAppsAlias
     WindowsAppsAliasPresent    = $windowsAppsAliasPresent
     ScheduledTaskProbeTimedOut = [bool]$conflicts.ScheduledTaskProbeTimedOut
@@ -184,10 +269,10 @@ if (@($conflicts.LegacyBins).Count -gt 0) {
     $conflicts.LegacyBins | ForEach-Object { Write-Host $_ }
 }
 
-if (@($conflicts.AliasShadowing).Count -gt 0) {
+if (@($persistedAliases.AliasShadowing).Count -gt 0) {
     Write-Host ""
-    Write-Host "PATH entries shadowing the WindowsApps alias:"
-    $conflicts.AliasShadowing | ForEach-Object { Write-Host $_ }
+    Write-Host "Persisted PATH entries shadowing the WindowsApps alias:"
+    $persistedAliases.AliasShadowing | ForEach-Object { Write-Host $_ }
     if (-not [string]::IsNullOrWhiteSpace([string]$aliasRemediation)) {
         Write-Host ""
         Write-Host "Alias remediation:"
@@ -195,10 +280,17 @@ if (@($conflicts.AliasShadowing).Count -gt 0) {
     }
 }
 
-if (@($conflicts.AlternateAliasSources).Count -gt 0) {
+if (@($persistedAliases.AlternateAliasSources).Count -gt 0) {
     Write-Host ""
-    Write-Host "Other musu.exe entries visible in PATH:"
-    $conflicts.AlternateAliasSources | ForEach-Object { Write-Host $_ }
+    Write-Host "Other musu.exe entries visible in persisted PATH:"
+    $persistedAliases.AlternateAliasSources | ForEach-Object { Write-Host $_ }
+}
+
+if ($currentProcessPathStale) {
+    Write-Host ""
+    Write-Host "Current process PATH is stale and still resolves a shadowing musu.exe first:"
+    $conflicts.AliasShadowing | ForEach-Object { Write-Host $_ }
+    Write-Host "Start a fresh terminal or run release commands through the explicit WindowsApps alias."
 }
 
 if ($FailOnProblem -and -not [bool]$result.ok) {

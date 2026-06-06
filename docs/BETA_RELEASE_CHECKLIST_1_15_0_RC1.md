@@ -138,18 +138,24 @@ Expected:
 - `dashboard.required=false` is acceptable for packaged local runtime evidence
 - Windows alias shadowing is not hidden. Current go/no-go runs
   `scripts\windows\check-msix-legacy-conflicts.ps1 -Json` live and blocks
-  public release with `msix-current-legacy-conflicts` if terminal `musu`
-  resolves to a developer binary before the WindowsApps packaged alias.
+  public release with `msix-current-legacy-conflicts` if the persisted
+  User+Machine PATH that a fresh terminal receives resolves `musu` to a
+  developer binary before the WindowsApps packaged alias. A stale already-open
+  shell is reported separately as `current_process_path_stale`.
 
-Current observed alias-shadow blocker on `HUGH_SECOND`:
+Current observed alias state on `HUGH_SECOND`:
 
-- `where.exe musu` resolves `C:\Users\empty\.cargo\bin\musu.exe` before
-  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
-- `musu --version` returns `musu 1.15.0-dev`
+- persisted User+Machine PATH resolves
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe` first
+- `check-msix-legacy-conflicts.ps1 -Json` reports `ok=true`,
+  `alias_shadowing_count=0`, and `alias_path_scope=persisted_user_machine`
+- the current Codex/PowerShell process remains stale:
+  `current_process_path_stale=true`,
+  `current_process_first_alias_path=C:\Users\empty\.cargo\bin\musu.exe`
 - explicit WindowsApps alias returns `musu 1.15.0-rc.1`
 - Start Menu / MUSU Desktop runtime processes are packaged, but terminal
-  commands are ambiguous until PATH is fixed or explicit WindowsApps invocation
-  is used
+  commands in already-open stale shells should use explicit WindowsApps
+  invocation or restart the shell
 
 Latest dirty-tree desktop-open CPU diagnostic after detecting the alias issue:
 

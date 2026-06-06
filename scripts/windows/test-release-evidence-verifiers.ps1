@@ -30,6 +30,7 @@ $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
+$msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -528,6 +529,31 @@ function Test-GoNoGoCurrentMsixLegacyConflictContract {
         'msix_current_legacy_conflicts_ok',
         'msix_current_legacy_conflicts',
         'Current MSIX legacy conflict live check for startup helpers, scheduled tasks, legacy bins, and PATH alias shadowing'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-MsixLegacyConflictPersistedPathContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Get-MusuAliasSourcesFromPath',
+        'Split-PathList ([Environment]::GetEnvironmentVariable("Path", "Machine"))',
+        'Split-PathList ([Environment]::GetEnvironmentVariable("Path", "User"))',
+        'alias_path_scope = "persisted_user_machine"',
+        'persisted PATH alias shadowing',
+        'current_process_alias_sources',
+        'current_process_first_alias_path',
+        'current_process_alias_shadowing_count',
+        'current_process_path_stale',
+        'Start a fresh terminal or run release commands through the explicit WindowsApps alias.'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1361,6 +1387,18 @@ Add-CaseResult `
     -Name "go-no-go blocks on current MSIX legacy conflicts" `
     -Verifier "go-no-go MSIX legacy conflict source contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$msixLegacyConflictPersistedPathContractOk = Test-MsixLegacyConflictPersistedPathContract -ScriptPath $msixLegacyConflictsChecker
+$invocation = New-StaticVerifierInvocation `
+    -Ok $msixLegacyConflictPersistedPathContractOk `
+    -Message "MSIX legacy conflict check must use persisted User+Machine PATH for release pass/fail while exposing stale current-process PATH separately"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "MSIX legacy conflict check separates persisted and current process PATH" `
+    -Verifier "MSIX legacy conflict source contract" `
+    -FixturePath $msixLegacyConflictsChecker `
     -ShouldPass $true `
     -Invocation $invocation
 

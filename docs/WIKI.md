@@ -10264,3 +10264,74 @@ Search terms should include `GOAL v651`, `wiki/826`,
 `2754 symbols`, `13353 ms`, `msix_current_legacy_conflicts_ok`,
 `msix-current-legacy-conflicts`, `musu 1.15.0-dev`, `musu 1.15.0-rc.1`, and
 `MUSU Desktop local executor`.
+
+## 2026-06-06 MSIX Alias Persisted PATH Gate (wiki/827)
+
+`check-msix-legacy-conflicts.ps1` now separates persisted User+Machine PATH
+from the current process PATH.
+
+Changed:
+
+- release pass/fail now uses persisted Machine PATH plus User PATH
+- result emits `alias_path_scope=persisted_user_machine`
+- current shell state is preserved separately:
+  `current_process_alias_sources`, `current_process_first_alias_path`,
+  `current_process_alias_shadowing_count`, and
+  `current_process_path_stale`
+- `test-release-evidence-verifiers.ps1` adds source-contract case
+  `MSIX legacy conflict check separates persisted and current process PATH`
+
+Current `HUGH_SECOND` result:
+
+- `ok=true`
+- `alias_shadowing_count=0`
+- `first_alias_path=C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- `current_process_alias_shadowing_count=1`
+- `current_process_first_alias_path=C:\Users\empty\.cargo\bin\musu.exe`
+- `current_process_path_stale=true`
+
+Dirty-tree go/no-go now reports
+`msix_current_legacy_conflicts_ok=true` and no
+`msix-current-legacy-conflicts` blocker; `git` remains a blocker until commit.
+
+Validation:
+
+- parser check: pass
+- legacy conflict JSON: pass
+- release verifier regression: `61/61`
+- dirty-tree go/no-go alias blocker removed
+
+Qualitative audit found no high/medium issue. This is release-gate accuracy
+hardening: a fresh terminal must resolve packaged WindowsApps `musu.exe` first,
+while an already-open stale automation process is reported but does not become
+a permanent machine-level release blocker.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_MSIX_ALIAS_PERSISTED_PATH_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_MSIX_ALIAS_PERSISTED_PATH_GATE_2026_06_06.md`
+
+## 2026-06-06 MSIX Alias Persisted PATH Gate Index Refresh (wiki/828)
+
+MUSU local indexer was refreshed after wiki/827 and GOAL v652.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2604 files`
+- `2754 symbols`
+- `17847 ms`
+
+The explicit WindowsApps alias was used because the current Codex process PATH
+is stale even though persisted PATH is clean.
+
+Indexed context includes the MSIX alias persisted PATH gate, release verifier
+source contract, canonical wiki/827 report, next-step plan, BETA checklist,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v653`, `wiki/828`,
+`MSIX alias persisted PATH gate index refresh`, `2604 files`, `2754 symbols`,
+`17847 ms`, `alias_path_scope=persisted_user_machine`,
+`current_process_path_stale`, and `MUSU Desktop local executor`.

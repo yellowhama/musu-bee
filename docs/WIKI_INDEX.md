@@ -5259,4 +5259,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu 1.15.0-dev`, `musu 1.15.0-rc.1`, and
   `MUSU Desktop local executor`.
 
+- 2026-06-06 MSIX alias persisted PATH gate:
+  `RELEASE_1_15_0_RC1_MSIX_ALIAS_PERSISTED_PATH_GATE_2026_06_06.md`
+  (wiki/827) records the split between persisted release PATH pass/fail and
+  stale current-process PATH diagnostics. Search terms should include
+  `GOAL v652`, `wiki/827`, `alias_path_scope=persisted_user_machine`,
+  `current_process_path_stale`, `current_process_alias_shadowing_count`,
+  `msix_current_legacy_conflicts_ok=true`,
+  `MSIX legacy conflict check separates persisted and current process PATH`,
+  `61/61`, and `MUSU Desktop local executor`.
+
+- 2026-06-06 MSIX alias persisted PATH gate index refresh:
+  wiki/828 records the MUSU local index refresh after wiki/827 and GOAL v652.
+  Search terms should include `GOAL v653`, `wiki/828`, `2604 files`,
+  `2754 symbols`, `17847 ms`,
+  `MSIX alias persisted PATH gate index refresh`,
+  `alias_path_scope=persisted_user_machine`, `current_process_path_stale`,
+  and `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**
