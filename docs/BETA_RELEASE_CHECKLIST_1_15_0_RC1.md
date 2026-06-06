@@ -7148,3 +7148,71 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2571 files`, `2751 symbols`, `12705 ms`
+
+## 2026-06-06 09:01 KST External Gate Root-Cause Recheck
+
+The external release gate recorder now flattens actionable root-cause fields
+for public metadata, second-PC reachability, and hosted P2P control-plane
+state. It also handles null child JSON property reads so failed child recorders
+can remain evidence instead of aborting the parent snapshot.
+
+Validation:
+
+- PowerShell parser check: pass
+- release evidence verifier regression: `ok=true`, `case_count=55`,
+  `failed_case_count=0`
+- new source contract:
+  `external gate recheck exposes actionable root-cause fields`
+- `git diff --check`: pass
+
+Clean HEAD evidence:
+
+- commit: `f0b09139de93cfa98ab1b5d0d8f85e0115fea6b3`
+- external:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-090152-HUGH_SECOND.external-gates.evidence.json`
+- summary:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-090152-HUGH_SECOND.external-gates.summary.md`
+- P2P:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.evidence.json`
+- P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.verification.json`
+
+Current result:
+
+- release ready `False`
+- public metadata checked/ok `True`/`True`
+- local artifacts ready `True`
+- single-machine verified `True`
+- runtime idle CPU verified `False` because only `1/2` machines are valid
+- runtime CPU scenario matrix verified `False` because only `1/2` machines are
+  valid
+- second PC ping/TCP `False`/`False`
+- second PC TCP error `tcp_connect_timeout`
+- P2P env/evidence `False`/`False`
+- P2P verification fail count `40`
+- relay status/transport/leases/route-evidence logged in `False`
+- owner scope verified `False`
+- relay lease store configured/release-grade `False`
+- relay transport descriptor/connect/payload endpoint wired `False`
+- relay route evidence count `0`
+- relay payload transport proven `False`
+- relay payload delivery proof valid count `0`
+
+Qualitative audit: no high/medium issue found. The release remains No-Go, but
+the failure is now properly classified as external machine/account/infra
+evidence, not a local MUSU Desktop runtime failure or localhost dashboard
+problem.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_EXTERNAL_GATE_ROOT_CAUSE_RECHECK_2026_06_06.md`
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2577 files`, `2751 symbols`, `12476 ms`

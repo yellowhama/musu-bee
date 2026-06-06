@@ -1316,3 +1316,41 @@ room/rendezvous/path-selection/evidence control plane and fallback coordinator.
 The release-grade hosted P2P gate requires a logged-in production runtime,
 owner-scoped P2P control auth, release-grade relay lease storage, and actual
 relay payload transport proof.
+
+## 2026-06-06 External Gate Root-Cause Evidence Update
+
+External gate evidence from clean HEAD
+`f0b09139de93cfa98ab1b5d0d8f85e0115fea6b3` confirms the current product split:
+
+- MUSU Desktop is still the local executor.
+- MUSU.PRO is still remote input, project/company room, rendezvous, path
+  selection, relay fallback, and evidence control plane.
+- Direct P2P mesh remains preferred after web-assisted bootstrap.
+- Hosted relay remains fallback-only and must not become the default payload
+  path.
+
+Current evidence:
+
+- external:
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-090152-HUGH_SECOND.external-gates.evidence.json`
+- P2P:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.evidence.json`
+- P2P verification:
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.verification.json`
+
+Flattened root-cause state:
+
+- public metadata is checked and ok
+- second PC is unreachable at `192.168.1.192:8949` with
+  `tcp_connect_timeout`
+- P2P runtime is not logged in for relay status, transport, leases, or route
+  evidence queries
+- owner scope is not verified
+- relay lease store is not configured or release-grade
+- relay transport descriptor/connect/payload endpoints are not wired
+- relay route evidence count is `0`
+- relay payload delivery proof valid count is `0`
+
+Release implication: this is external machine/account/infrastructure evidence
+work. It does not justify moving execution into MUSU.PRO or requiring the
+localhost developer dashboard for packaged MUSU Desktop.

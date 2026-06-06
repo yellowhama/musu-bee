@@ -9628,3 +9628,88 @@ Search terms should include `GOAL v633`, `wiki/808`,
 `20260606-082429-musu.pro`, `public_metadata_ok=True`,
 `store-public-metadata no longer blocker`, `tcp_connect_timeout`,
 `logged_in=false`, and `relay payload transport proven False`.
+
+## 2026-06-06 External Gate Root-Cause Recheck (wiki/809)
+
+The external release gate recorder now exposes actionable root-cause fields at
+the top level instead of requiring operators to inspect nested child JSON.
+
+Code changes:
+
+- `record-external-release-gate-recheck.ps1` flattens public metadata,
+  second-PC TCP, P2P logged-in, owner-scope, relay lease store, endpoint wiring,
+  route-evidence, and payload-proof fields.
+- helper property readers accept null child JSON so failed child recorders stay
+  evidence-friendly.
+- `test-release-evidence-verifiers.ps1` now gates the source contract
+  `external gate recheck exposes actionable root-cause fields`.
+
+Validation:
+
+- PowerShell parser check: pass
+- release evidence verifier regression: `55/55`
+- `git diff --check`: pass
+
+Clean HEAD evidence:
+
+- commit `f0b09139de93cfa98ab1b5d0d8f85e0115fea6b3`
+- external evidence
+  `docs\evidence\external-gates\1.15.0-rc.1\20260606-090152-HUGH_SECOND.external-gates.evidence.json`
+- P2P evidence
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.evidence.json`
+- P2P verification
+  `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.verification.json`
+
+Result:
+
+- public metadata checked/ok `True`/`True`
+- local artifacts ready `True`
+- single-machine verified `True`
+- second PC TCP error `tcp_connect_timeout`
+- P2P env/evidence `False`/`False`
+- P2P verification fail count `40`
+- P2P runtime logged in `False`
+- owner scope verified `False`
+- relay lease store release-grade `False`
+- relay transport/connect/payload endpoints wired `False`
+- relay route evidence count `0`
+- relay payload delivery proof valid count `0`
+
+Qualitative audit found no high/medium issue. Public release remains No-Go on
+second-PC route/CPU/matrix, hosted P2P login/auth/storage/relay proof, support
+mailbox, and Store evidence. Product boundary is unchanged: MUSU Desktop is the
+local executor, while MUSU.PRO is remote input, rooms, rendezvous, path
+selection, relay fallback, and evidence control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_EXTERNAL_GATE_ROOT_CAUSE_RECHECK_2026_06_06.md`
+
+## 2026-06-06 External Gate Root-Cause Index Refresh (wiki/810)
+
+MUSU local indexer was refreshed after wiki/809 and GOAL v634.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2577 files`
+- `2751 symbols`
+- `12476 ms`
+
+Indexed context includes clean external evidence
+`20260606-090152-HUGH_SECOND.external-gates`, hosted P2P evidence
+`20260606-090333-musu.pro`, the external gate root-cause recorder source
+contract, release verifier regression `55/55`, the external gate report,
+next-step plan, BETA checklist, MUSU.PRO P2P control-plane spec, network
+boundary spec, WIKI/WIKI_INDEX, and CoS memory updates.
+
+Search terms should include `GOAL v635`, `wiki/810`,
+`external gate root-cause index refresh`, `2577 files`, `2751 symbols`,
+`12476 ms`, `20260606-090152-HUGH_SECOND.external-gates`,
+`20260606-090333-musu.pro`, `p2p_runtime_not_logged_in`,
+`p2p_relay_lease_store_not_release_grade`,
+`p2p_relay_payload_endpoint_not_wired`, `release verifier 55/55`, and
+`MUSU Desktop local executor`.

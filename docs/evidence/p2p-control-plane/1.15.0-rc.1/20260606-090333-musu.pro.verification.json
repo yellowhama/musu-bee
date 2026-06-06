@@ -1,0 +1,429 @@
+﻿{
+    "ok":  false,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\p2p-control-plane\\1.15.0-rc.1\\20260606-090333-musu.pro.evidence.json",
+    "fail_count":  40,
+    "version":  "1.15.0-rc.1",
+    "base_url":  "https://musu.pro",
+    "recorded_at":  "2026-06-06T09:03:33.3030687+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "relay_status_logged_in":  false,
+    "relay_leases_ok":  false,
+    "relay_status_transport_wired":  false,
+    "relay_status_transport_preflight_ok":  false,
+    "relay_status_transport_descriptor_wired":  false,
+    "relay_status_connect_endpoint_wired":  false,
+    "relay_status_payload_endpoint_wired":  false,
+    "relay_transport_preflight_ok":  false,
+    "relay_transport_descriptor_wired":  false,
+    "relay_transport_connect_endpoint_wired":  false,
+    "relay_transport_descriptor_ok":  false,
+    "relay_transport_preflight_transport_wired":  false,
+    "relay_transport_payload_endpoint_wired":  false,
+    "relay_transport_kind":  "",
+    "relay_transport_url":  "",
+    "relay_leases_transport_wired":  false,
+    "relay_route_evidence_ok":  false,
+    "relay_route_evidence_count":  0,
+    "relay_payload_transport_proven":  false,
+    "relay_payload_delivery_proof_required_count":  0,
+    "relay_payload_delivery_proof_valid_count":  0,
+    "relay_payload_delivery_proof_invalid_count":  0,
+    "relay_transport_wired":  false,
+    "owner_scope_verified":  false,
+    "relay_lease_count":  0,
+    "relay_lease_store_configured":  false,
+    "relay_lease_store_backend":  "",
+    "relay_lease_store_release_grade":  false,
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "fail",
+                       "message":  "evidence does not report ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.1"
+                   },
+                   {
+                       "name":  "base url",
+                       "status":  "pass",
+                       "message":  "base_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "recorded timestamp",
+                       "status":  "pass",
+                       "message":  "recorded_at parses"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "recorded timestamp not future",
+                       "status":  "pass",
+                       "message":  "recorded_at is not in the future"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "recorded_at is within 14 days"
+                   },
+                   {
+                       "name":  "relay status exit",
+                       "status":  "pass",
+                       "message":  "relay status command exited 0"
+                   },
+                   {
+                       "name":  "relay transport exit",
+                       "status":  "pass",
+                       "message":  "relay transport command exited 0"
+                   },
+                   {
+                       "name":  "relay leases exit",
+                       "status":  "pass",
+                       "message":  "relay leases command exited 0"
+                   },
+                   {
+                       "name":  "relay route evidence exit",
+                       "status":  "pass",
+                       "message":  "relay route evidence command exited 0"
+                   },
+                   {
+                       "name":  "relay status schema",
+                       "status":  "pass",
+                       "message":  "relay status schema is valid"
+                   },
+                   {
+                       "name":  "relay status registry url",
+                       "status":  "pass",
+                       "message":  "relay status registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay status logged in",
+                       "status":  "fail",
+                       "message":  "relay status is not logged in"
+                   },
+                   {
+                       "name":  "bridge path selection wired",
+                       "status":  "pass",
+                       "message":  "bridge path selection is wired"
+                   },
+                   {
+                       "name":  "rendezvous session wired",
+                       "status":  "pass",
+                       "message":  "rendezvous session is wired"
+                   },
+                   {
+                       "name":  "route evidence client wired",
+                       "status":  "pass",
+                       "message":  "route evidence client is wired"
+                   },
+                   {
+                       "name":  "relay lease control-plane wired",
+                       "status":  "pass",
+                       "message":  "relay lease control-plane is wired"
+                   },
+                   {
+                       "name":  "relay status transport wired",
+                       "status":  "fail",
+                       "message":  "relay status reports relay transport is not wired"
+                   },
+                   {
+                       "name":  "relay status transport preflight ok",
+                       "status":  "fail",
+                       "message":  "relay status reports relay transport preflight is not ok"
+                   },
+                   {
+                       "name":  "relay status transport descriptor wired",
+                       "status":  "fail",
+                       "message":  "relay status does not report relay transport descriptor wired"
+                   },
+                   {
+                       "name":  "relay status connect endpoint wired",
+                       "status":  "fail",
+                       "message":  "relay status does not report relay connect endpoint wired"
+                   },
+                   {
+                       "name":  "relay status payload endpoint wired",
+                       "status":  "fail",
+                       "message":  "relay status does not report relay payload endpoint wired"
+                   },
+                   {
+                       "name":  "relay runtime fallback wired",
+                       "status":  "pass",
+                       "message":  "runtime relay fallback lease request is wired"
+                   },
+                   {
+                       "name":  "release transport requirement",
+                       "status":  "pass",
+                       "message":  "release transport requirement is quic_tls_1_3"
+                   },
+                   {
+                       "name":  "relay not default data path",
+                       "status":  "pass",
+                       "message":  "relay is not the default data path"
+                   },
+                   {
+                       "name":  "relay status transport blockers empty",
+                       "status":  "pass",
+                       "message":  "relay status reports no relay transport blockers"
+                   },
+                   {
+                       "name":  "relay status store configured",
+                       "status":  "fail",
+                       "message":  "relay status does not report relay lease store configured"
+                   },
+                   {
+                       "name":  "relay status store release-grade",
+                       "status":  "fail",
+                       "message":  "relay status does not report release-grade relay lease store"
+                   },
+                   {
+                       "name":  "relay transport schema",
+                       "status":  "pass",
+                       "message":  "relay transport schema is valid"
+                   },
+                   {
+                       "name":  "relay transport registry url",
+                       "status":  "pass",
+                       "message":  "relay transport registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay transport logged in",
+                       "status":  "fail",
+                       "message":  "relay transport query is not logged in"
+                   },
+                   {
+                       "name":  "relay transport ok",
+                       "status":  "fail",
+                       "message":  "relay transport preflight does not report ok=true"
+                   },
+                   {
+                       "name":  "relay transport owner scope verified",
+                       "status":  "fail",
+                       "message":  "relay transport owner scope is not verified"
+                   },
+                   {
+                       "name":  "relay transport owner scoped",
+                       "status":  "fail",
+                       "message":  "relay transport query is not owner-scoped"
+                   },
+                   {
+                       "name":  "relay transport control-plane wired",
+                       "status":  "pass",
+                       "message":  "relay transport control-plane is wired"
+                   },
+                   {
+                       "name":  "relay transport descriptor wired",
+                       "status":  "fail",
+                       "message":  "relay transport descriptor is not wired"
+                   },
+                   {
+                       "name":  "relay transport wired",
+                       "status":  "fail",
+                       "message":  "relay transport preflight reports relay transport is not wired"
+                   },
+                   {
+                       "name":  "relay transport connect endpoint wired",
+                       "status":  "fail",
+                       "message":  "relay transport preflight does not report relay connect endpoint wired"
+                   },
+                   {
+                       "name":  "relay transport not default data path",
+                       "status":  "pass",
+                       "message":  "relay transport reports relay_default_data_path=false"
+                   },
+                   {
+                       "name":  "relay transport URL",
+                       "status":  "fail",
+                       "message":  "relay transport URL is missing or not wss"
+                   },
+                   {
+                       "name":  "relay transport kind present",
+                       "status":  "fail",
+                       "message":  "relay transport kind is missing"
+                   },
+                   {
+                       "name":  "relay transport release kind",
+                       "status":  "fail",
+                       "message":  "relay transport release kind is \u0027\u0027"
+                   },
+                   {
+                       "name":  "relay transport release requirement",
+                       "status":  "pass",
+                       "message":  "relay transport release requirement is quic_tls_1_3"
+                   },
+                   {
+                       "name":  "relay transport kind is release tunnel",
+                       "status":  "fail",
+                       "message":  "relay transport kind is \u0027\u0027, expected release-grade quic_relay_tunnel"
+                   },
+                   {
+                       "name":  "relay payload requires lease",
+                       "status":  "pass",
+                       "message":  "relay payload transit requires a lease"
+                   },
+                   {
+                       "name":  "relay transport blockers empty",
+                       "status":  "pass",
+                       "message":  "relay transport preflight has no blockers"
+                   },
+                   {
+                       "name":  "relay transport store status present",
+                       "status":  "fail",
+                       "message":  "relay transport lease store backend is missing"
+                   },
+                   {
+                       "name":  "relay transport store configured",
+                       "status":  "fail",
+                       "message":  "relay transport lease store is not configured"
+                   },
+                   {
+                       "name":  "relay transport store release-grade",
+                       "status":  "fail",
+                       "message":  "relay transport lease store is not release-grade"
+                   },
+                   {
+                       "name":  "relay leases schema",
+                       "status":  "pass",
+                       "message":  "relay leases schema is valid"
+                   },
+                   {
+                       "name":  "relay leases registry url",
+                       "status":  "pass",
+                       "message":  "relay leases registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay leases logged in",
+                       "status":  "fail",
+                       "message":  "relay leases query is not logged in"
+                   },
+                   {
+                       "name":  "relay leases ok",
+                       "status":  "fail",
+                       "message":  "relay leases query does not report ok=true"
+                   },
+                   {
+                       "name":  "relay leases owner scope verified",
+                       "status":  "fail",
+                       "message":  "relay leases owner scope is not verified"
+                   },
+                   {
+                       "name":  "relay leases owner scoped",
+                       "status":  "fail",
+                       "message":  "relay leases query is not owner-scoped"
+                   },
+                   {
+                       "name":  "relay leases control-plane wired",
+                       "status":  "pass",
+                       "message":  "relay leases control-plane is wired"
+                   },
+                   {
+                       "name":  "relay leases transport wired",
+                       "status":  "fail",
+                       "message":  "relay leases report relay transport is not wired"
+                   },
+                   {
+                       "name":  "relay leases not default data path",
+                       "status":  "pass",
+                       "message":  "relay leases report relay_default_data_path=false"
+                   },
+                   {
+                       "name":  "relay lease store status present",
+                       "status":  "fail",
+                       "message":  "relay lease store backend is missing"
+                   },
+                   {
+                       "name":  "relay lease store configured",
+                       "status":  "fail",
+                       "message":  "relay lease store is not configured"
+                   },
+                   {
+                       "name":  "relay lease store release-grade",
+                       "status":  "fail",
+                       "message":  "relay lease store is not release-grade"
+                   },
+                   {
+                       "name":  "relay leases count present",
+                       "status":  "pass",
+                       "message":  "relay lease count is present"
+                   },
+                   {
+                       "name":  "relay route evidence schema",
+                       "status":  "pass",
+                       "message":  "relay route evidence schema is valid"
+                   },
+                   {
+                       "name":  "relay route evidence registry url",
+                       "status":  "pass",
+                       "message":  "relay route evidence registry_url matches https://musu.pro"
+                   },
+                   {
+                       "name":  "relay route evidence logged in",
+                       "status":  "fail",
+                       "message":  "relay route evidence query is not logged in"
+                   },
+                   {
+                       "name":  "relay route evidence ok",
+                       "status":  "fail",
+                       "message":  "relay route evidence query does not report ok=true"
+                   },
+                   {
+                       "name":  "relay route evidence owner scope verified",
+                       "status":  "fail",
+                       "message":  "relay route evidence owner scope is not verified"
+                   },
+                   {
+                       "name":  "relay route evidence owner scoped",
+                       "status":  "fail",
+                       "message":  "relay route evidence query is not owner-scoped"
+                   },
+                   {
+                       "name":  "relay route evidence filter route kind",
+                       "status":  "pass",
+                       "message":  "relay route evidence query filters route_kind=relay"
+                   },
+                   {
+                       "name":  "relay route evidence filter result",
+                       "status":  "pass",
+                       "message":  "relay route evidence query filters result=success"
+                   },
+                   {
+                       "name":  "relay route evidence filter release grade",
+                       "status":  "pass",
+                       "message":  "relay route evidence query filters release_grade=true"
+                   },
+                   {
+                       "name":  "relay route evidence count",
+                       "status":  "fail",
+                       "message":  "release-grade relay route evidence is missing"
+                   },
+                   {
+                       "name":  "relay payload transport proven",
+                       "status":  "fail",
+                       "message":  "relay payload transport is not proven by release-grade route evidence"
+                   },
+                   {
+                       "name":  "relay route evidence records present",
+                       "status":  "fail",
+                       "message":  "relay route evidence records are missing or fewer than count"
+                   },
+                   {
+                       "name":  "relay payload delivery proof present",
+                       "status":  "fail",
+                       "message":  "relay payload delivery proof is missing from release-grade relay route evidence"
+                   },
+                   {
+                       "name":  "relay payload delivery proof coverage",
+                       "status":  "fail",
+                       "message":  "one or more returned relay success route records lack valid payload delivery proof"
+                   }
+               ]
+}

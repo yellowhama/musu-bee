@@ -723,3 +723,33 @@ This spec does not define:
 
 Those belong in separate docs.
 
+## 2026-06-06 external gate root-cause boundary
+
+The current clean external-gate recheck keeps the local/web/network boundary
+unchanged.
+
+Evidence:
+
+- `docs\evidence\external-gates\1.15.0-rc.1\20260606-090152-HUGH_SECOND.external-gates.evidence.json`
+- `docs\evidence\p2p-control-plane\1.15.0-rc.1\20260606-090333-musu.pro.evidence.json`
+
+Boundary interpretation:
+
+- `public_metadata_ok=True` proves the public site metadata gate, not runtime
+  execution.
+- `tcp_connect_timeout` to `192.168.1.192:8949` proves the second-PC route is
+  unavailable from this machine state.
+- P2P `logged_in=false`, owner scope false, and release relay endpoint wiring
+  false prove production account/control-plane/relay evidence is incomplete.
+- These failures are not localhost dashboard failures and do not move local
+  execution to MUSU.PRO.
+
+Required path remains:
+
+- local MUSU programs execute work on their own devices
+- MUSU.PRO accepts remote user input and coordinates rooms, presence,
+  rendezvous, path selection, relay fallback, and evidence
+- direct P2P mesh is preferred after bootstrap
+- hosted relay is fallback-only and release-grade only after real tunnel
+  payload proof exists
+

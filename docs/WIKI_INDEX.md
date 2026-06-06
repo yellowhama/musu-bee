@@ -5075,4 +5075,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `store-public-metadata no longer blocker`, `tcp_connect_timeout`,
   `logged_in=false`, and `relay payload transport proven False`.
 
+- 2026-06-06 external gate root-cause recheck:
+  `RELEASE_1_15_0_RC1_EXTERNAL_GATE_RECHECK_2026_06_06.md` (wiki/809)
+  records the external-gate recorder root-cause flattening and clean HEAD
+  evidence. Search terms should include `GOAL v634`, `wiki/809`,
+  `f0b09139de93cfa98ab1b5d0d8f85e0115fea6b3`,
+  `20260606-090152-HUGH_SECOND.external-gates`,
+  `20260606-090333-musu.pro`, `external gate recheck exposes actionable
+  root-cause fields`, `release verifier 55/55`, `public_metadata_ok=True`,
+  `tcp_connect_timeout`, `p2p_runtime_not_logged_in`,
+  `p2p_relay_lease_store_not_release_grade`,
+  `p2p_relay_payload_endpoint_not_wired`, and
+  `MUSU Desktop local executor`.
+
+- 2026-06-06 external gate root-cause index refresh:
+  wiki/810 records the MUSU local index refresh after wiki/809 and GOAL v634.
+  Search terms should include `GOAL v635`, `wiki/810`, `2577 files`,
+  `2751 symbols`, `12476 ms`, `external gate root-cause index refresh`,
+  `20260606-090152-HUGH_SECOND.external-gates`,
+  `20260606-090333-musu.pro`, `release verifier 55/55`,
+  `p2p_runtime_not_logged_in`,
+  `p2p_relay_lease_store_not_release_grade`,
+  `p2p_relay_payload_endpoint_not_wired`, and
+  `MUSU Desktop local executor`.
+
 **End of WIKI_INDEX.md.**
