@@ -162,6 +162,11 @@ targeted form so the return zip includes route endpoint reachability diagnostics
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget PRIMARY-PC -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
 
+The route targets above must be the primary peer name registered on the second
+PC. Do not use the second PC's own machine name, `localhost`, `127.0.0.1`, or a
+local bridge address; the primary-side release verifier rejects self/local
+targeted route-attempt CPU evidence.
+
 If certificate trust fails, rerun the one-command check from elevated PowerShell with -MachineTrust:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
