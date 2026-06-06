@@ -1599,6 +1599,38 @@ Spec interpretation is unchanged:
   is installed or working; release evidence comes from the packaged local
   runtime and hosted MUSU.PRO gates.
 
+## 2026-06-06 Relay Route Record Metadata Verifier Gate
+
+Hosted P2P release evidence now requires the returned relay route record itself
+to carry release-grade metadata. A nested `relay_transport_proof` is necessary,
+but it is no longer sufficient if the enclosing `musu.route_evidence.v1` record
+omits candidate, latency, handshake, peer identity, encryption, or verifier
+metadata.
+
+For returned relay success records where `route_kind=relay`,
+`result=success`, and `payload_transited_musu_infra=true`,
+`verify-p2p-control-plane-evidence.ps1` now requires:
+
+- `schema=musu.route_evidence.v1`
+- non-empty `candidate_addr`
+- numeric `handshake_ms >= 0`
+- numeric `total_attempt_ms >= handshake_ms`
+- `peer_identity_verified=true`
+- `peer_identity_method=quic_tls_cert_fingerprint`
+- `peer_public_key` beginning with `sha256:`
+- `encryption=quic_tls_1_3`
+- `transport_verified_by=musu_quic_tls_transport`
+- valid `recorded_at`
+- `relay_transport_proof.handshake_ms` matching route record `handshake_ms`
+
+The verifier exposes `relay_route_metadata_required_count`,
+`relay_route_metadata_valid_count`, and
+`relay_route_metadata_invalid_count`. The release interpretation is unchanged:
+MUSU.PRO is still remote input, room, rendezvous, path-selection,
+relay-fallback, and evidence control plane. MUSU Desktop remains the local
+executor, and public release still requires real second-PC route/CPU/matrix
+evidence plus live owner-scoped relay proof.
+
 ## 2026-06-06 Rust Route Evidence Relay Transport Proof Carry
 
 Rust bridge route evidence now preserves relay route transport proof through

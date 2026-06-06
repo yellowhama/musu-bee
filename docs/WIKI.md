@@ -12134,3 +12134,85 @@ WIKI/WIKI_INDEX, and CoS memory.
 Search terms should include `GOAL v709`, `wiki/884`, `idle busy-loop candidate
 count gate index refresh`, `2736 files`, `2776 symbols`, `14211 ms`,
 `idle_busy_loop_candidate_verified_count`, and `case_count=77`.
+
+## 2026-06-06 P2P Route Record Metadata Gate (wiki/885)
+
+Hosted MUSU.PRO P2P release evidence now requires the returned relay route
+record itself to carry release-grade metadata around the relay proof.
+
+`verify-p2p-control-plane-evidence.ps1` now requires relay success route
+records to include:
+
+- `schema=musu.route_evidence.v1`
+- `candidate_addr`
+- `handshake_ms`
+- `total_attempt_ms >= handshake_ms`
+- `peer_identity_verified=true`
+- `peer_identity_method=quic_tls_cert_fingerprint`
+- `peer_public_key=sha256:*`
+- `encryption=quic_tls_1_3`
+- `transport_verified_by=musu_quic_tls_transport`
+- valid `recorded_at`
+- matching `relay_transport_proof.handshake_ms`
+
+The verifier now emits `relay_route_metadata_required_count`,
+`relay_route_metadata_valid_count`, and
+`relay_route_metadata_invalid_count`, and fails check
+`relay route metadata coverage` if any returned relay success record is weak.
+
+Regression coverage:
+
+- `P2P verifier requires route record metadata`
+- `p2p rejects relay route evidence without record latency metadata`
+- `p2p rejects relay route evidence with unverified record identity metadata`
+- `p2p rejects relay route evidence with transport proof handshake mismatch`
+
+Validation:
+
+- parser checks passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=81`, `failed_case_count=0`
+- direct valid P2P fixture reported metadata `1/1`
+- direct missing-latency fixture failed with metadata invalid `1`
+
+Qualitative code audit found no high/medium issue. This is hosted P2P evidence
+hardening only; it does not implement release relay runtime or close
+second-PC proof. MUSU Desktop remains the local executor, and MUSU.PRO remains
+remote input, room, rendezvous, path-selection, relay-fallback, and evidence
+control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`
+
+Search terms should include `GOAL v710`, `wiki/885`, `P2P route record
+metadata gate`, `relay_route_metadata_valid_count`, `relay route metadata
+coverage`, `p2p rejects relay route evidence without record latency metadata`,
+`p2p rejects relay route evidence with unverified record identity metadata`,
+`p2p rejects relay route evidence with transport proof handshake mismatch`, and
+`case_count=81`.
+
+## 2026-06-06 P2P Route Record Metadata Index Refresh (wiki/886)
+
+MUSU local indexer was refreshed after wiki/885 and GOAL v710.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2739 files`
+- `2776 symbols`
+- `17136 ms`
+
+Indexed context includes `verify-p2p-control-plane-evidence.ps1` route-record
+metadata checks, `test-release-evidence-verifiers.ps1` source-contract and
+negative fixtures, canonical report, next-step plan, BETA checklist, P2P
+control-plane specs, network boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS
+memory.
+
+Search terms should include `GOAL v711`, `wiki/886`, `P2P route record
+metadata index refresh`, `2739 files`, `2776 symbols`, `17136 ms`,
+`relay_route_metadata_valid_count`, `relay route metadata coverage`, and
+`case_count=81`.

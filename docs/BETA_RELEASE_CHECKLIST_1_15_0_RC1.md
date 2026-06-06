@@ -8422,3 +8422,44 @@ proof exist.
   with `fail_count=0`.
 - This is not full release CPU evidence. The default runtime CPU matrix gate
   still requires `post-route` and second-PC route proof.
+
+## 2026-06-06 22:20 KST P2P Route Record Metadata Gate
+
+Hosted MUSU.PRO P2P release evidence now requires relay route records
+themselves to carry release-grade metadata, not only nested transport proof.
+
+Changed:
+
+- `verify-p2p-control-plane-evidence.ps1` checks route record metadata for
+  relay success records.
+- Required route fields include `candidate_addr`, `handshake_ms`,
+  `total_attempt_ms`, verified QUIC/TLS peer identity, `quic_tls_1_3`, and
+  `musu_quic_tls_transport`.
+- `relay_transport_proof.handshake_ms` must match route record `handshake_ms`.
+- Verifier output now includes `relay_route_metadata_required_count`,
+  `relay_route_metadata_valid_count`, and
+  `relay_route_metadata_invalid_count`.
+- `test-release-evidence-verifiers.ps1` adds source-contract coverage plus
+  three negative fixtures for missing latency, unverified record identity, and
+  proof/record handshake mismatch.
+
+Validation:
+
+- PowerShell parser check: pass
+- release evidence verifier regression: `ok=true`, `case_count=81`,
+  `failed_case_count=0`
+- direct valid P2P fixture: metadata `1/1`
+- direct missing-latency fixture: fails with metadata invalid `1`
+
+Qualitative audit found no high/medium issue. This is hosted P2P evidence
+hardening only. Public release remains No-Go on second-PC route/CPU/matrix,
+live MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
+proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`

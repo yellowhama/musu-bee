@@ -254,6 +254,9 @@ $routeEvidenceRecordCount = [int]$routeEvidenceRecords.Length
 $relayTransportProofRequiredCount = 0
 $relayTransportProofValidCount = 0
 $relayTransportProofInvalidCount = 0
+$relayRouteMetadataRequiredCount = 0
+$relayRouteMetadataValidCount = 0
+$relayRouteMetadataInvalidCount = 0
 $relayPayloadProofRequiredCount = 0
 $relayPayloadProofValidCount = 0
 $relayPayloadProofInvalidCount = 0
@@ -272,15 +275,25 @@ foreach ($record in $routeEvidenceRecords) {
 
     $relayPayloadProofRequiredCount += 1
     $relayTransportProofRequiredCount += 1
+    $relayRouteMetadataRequiredCount += 1
+    $recordSchema = Get-StringProperty -Object $recordEvidence -Name "schema"
+    $recordCandidateAddr = Get-StringProperty -Object $recordEvidence -Name "candidate_addr"
+    $recordHandshakeMs = Get-NumberProperty -Object $recordEvidence -Name "handshake_ms"
+    $recordTotalAttemptMs = Get-NumberProperty -Object $recordEvidence -Name "total_attempt_ms"
     $recordSessionId = Get-StringProperty -Object $recordEvidence -Name "session_id"
     $recordSourceNodeId = Get-StringProperty -Object $recordEvidence -Name "source_node_id"
     $recordTargetNodeId = Get-StringProperty -Object $recordEvidence -Name "target_node_id"
+    $recordPeerIdentityVerified = Get-BoolProperty -Object $recordEvidence -Name "peer_identity_verified"
     $recordPeerIdentityMethod = Get-StringProperty -Object $recordEvidence -Name "peer_identity_method"
     $recordPeerPublicKey = Get-StringProperty -Object $recordEvidence -Name "peer_public_key"
+    $recordEncryption = Get-StringProperty -Object $recordEvidence -Name "encryption"
+    $recordTransportVerifiedBy = Get-StringProperty -Object $recordEvidence -Name "transport_verified_by"
+    $recordRecordedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $recordEvidence -Name "recorded_at")
     $transportProof = if ($recordEvidence.PSObject.Properties["relay_transport_proof"]) { $recordEvidence.relay_transport_proof } else { $null }
     $transportOpenedAt = Try-ParseDateTimeOffset -Text (Get-StringProperty -Object $transportProof -Name "opened_at")
     $transportClosedAtText = Get-StringProperty -Object $transportProof -Name "closed_at"
     $transportClosedAt = Try-ParseDateTimeOffset -Text $transportClosedAtText
+    $transportHandshakeMs = Get-NumberProperty -Object $transportProof -Name "handshake_ms"
     $transportPayloadBytes = Get-NumberProperty -Object $transportProof -Name "payload_bytes_transited"
     $transportSessionId = Get-StringProperty -Object $transportProof -Name "session_id"
     $transportLeaseId = Get-StringProperty -Object $transportProof -Name "lease_id"
@@ -288,6 +301,28 @@ foreach ($record in $routeEvidenceRecords) {
     $transportTargetNodeId = Get-StringProperty -Object $transportProof -Name "target_node_id"
     $relayFallback = if ($recordEvidence.PSObject.Properties["relay_fallback"]) { $recordEvidence.relay_fallback } else { $null }
     $fallbackLeaseId = Get-StringProperty -Object $relayFallback -Name "lease_id"
+
+    $recordMetadataValid = (
+        $recordSchema -eq "musu.route_evidence.v1" -and
+        -not [string]::IsNullOrWhiteSpace($recordCandidateAddr) -and
+        $null -ne $recordHandshakeMs -and
+        $recordHandshakeMs -ge 0 -and
+        $null -ne $recordTotalAttemptMs -and
+        $recordTotalAttemptMs -ge $recordHandshakeMs -and
+        $recordPeerIdentityVerified -and
+        $recordPeerIdentityMethod -eq "quic_tls_cert_fingerprint" -and
+        $recordPeerPublicKey.StartsWith("sha256:") -and
+        $recordEncryption -eq "quic_tls_1_3" -and
+        $recordTransportVerifiedBy -eq "musu_quic_tls_transport" -and
+        $null -ne $recordRecordedAt
+    )
+
+    if ($recordMetadataValid) {
+        $relayRouteMetadataValidCount += 1
+    }
+    else {
+        $relayRouteMetadataInvalidCount += 1
+    }
 
     $transportProofValid = (
         (Get-StringProperty -Object $transportProof -Name "schema") -eq "musu.relay_transport_proof.v1" -and
@@ -302,6 +337,10 @@ foreach ($record in $routeEvidenceRecords) {
         (Get-StringProperty -Object $transportProof -Name "transport_kind") -eq "quic_relay_tunnel" -and
         (Get-StringProperty -Object $transportProof -Name "relay_url").StartsWith("wss://") -and
         -not [string]::IsNullOrWhiteSpace((Get-StringProperty -Object $transportProof -Name "tunnel_id")) -and
+        $null -ne $transportHandshakeMs -and
+        $transportHandshakeMs -ge 0 -and
+        $null -ne $recordHandshakeMs -and
+        $transportHandshakeMs -eq $recordHandshakeMs -and
         $null -ne $transportPayloadBytes -and
         $transportPayloadBytes -gt 0 -and
         (Get-BoolProperty -Object $transportProof -Name "payload_transited_musu_infra") -and
@@ -375,6 +414,7 @@ foreach ($record in $routeEvidenceRecords) {
     }
 }
 Add-CheckFromCondition "relay route evidence records present" ($routeEvidenceRecordCount -ge $routeEvidenceCount -and $routeEvidenceCount -gt 0) "relay route evidence records are present" "relay route evidence records are missing or fewer than count"
+Add-CheckFromCondition "relay route metadata coverage" ($relayRouteMetadataRequiredCount -gt 0 -and $relayRouteMetadataInvalidCount -eq 0) "all returned relay success route records include route kind, candidate, latency, handshake, peer identity, and encryption metadata" "one or more returned relay success route records lack route kind, candidate, latency, handshake, peer identity, or encryption metadata"
 Add-CheckFromCondition "relay route transport proof present" ($relayTransportProofValidCount -gt 0) "relay route transport proof is present in release-grade relay route evidence" "relay route transport proof is missing from release-grade relay route evidence"
 Add-CheckFromCondition "relay route transport proof coverage" ($relayTransportProofRequiredCount -gt 0 -and $relayTransportProofInvalidCount -eq 0) "all returned relay success route records include valid relay transport proof" "one or more returned relay success route records lack valid relay transport proof"
 Add-CheckFromCondition "relay payload delivery proof present" ($relayPayloadProofValidCount -gt 0) "relay payload delivery proof is present in release-grade relay route evidence" "relay payload delivery proof is missing from release-grade relay route evidence"
@@ -420,6 +460,9 @@ $result = [pscustomobject]@{
     relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
     relay_route_evidence_count = $routeEvidenceCount
     relay_payload_transport_proven = $relayPayloadTransportProven
+    relay_route_metadata_required_count = $relayRouteMetadataRequiredCount
+    relay_route_metadata_valid_count = $relayRouteMetadataValidCount
+    relay_route_metadata_invalid_count = $relayRouteMetadataInvalidCount
     relay_route_transport_proof_required_count = $relayTransportProofRequiredCount
     relay_route_transport_proof_valid_count = $relayTransportProofValidCount
     relay_route_transport_proof_invalid_count = $relayTransportProofInvalidCount

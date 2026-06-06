@@ -1000,3 +1000,28 @@ Current No-Go blockers are external/evidence blockers: second-PC route/CPU
 matrix evidence, live MUSU.PRO login/storage and relay proof, support mailbox
 proof, and Store/Partner Center proof.
 
+## 2026-06-06 relay route record metadata boundary
+
+Hosted P2P release evidence now requires the route record itself to include
+release-grade metadata:
+
+- candidate address
+- route latency and handshake timing
+- verified QUIC/TLS peer identity
+- hardened encryption
+- transport verifier
+- matching relay transport proof handshake timing
+
+Boundary interpretation:
+
+- MUSU.PRO may store and return route evidence.
+- MUSU.PRO still does not execute local work.
+- A nested proof object cannot compensate for a weak route record.
+- Release relay evidence must prove both the enclosing route record and the
+  nested transport/delivery proof chain.
+- `localhost:3001` remains irrelevant to packaged desktop runtime readiness.
+
+This keeps MUSU.PRO as web input, room, rendezvous, path-selection,
+relay-fallback, and evidence control plane. MUSU Desktop remains the local
+executor and resource owner on each device.
+

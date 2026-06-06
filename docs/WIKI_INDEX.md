@@ -5841,4 +5841,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2776 symbols`, `14211 ms`,
   `idle_busy_loop_candidate_verified_count`, and `case_count=77`.
 
+- 2026-06-06 P2P route record metadata gate:
+  `RELEASE_1_15_0_RC1_P2P_ROUTE_RECORD_METADATA_GATE_2026_06_06.md`
+  (wiki/885) records hosted P2P verifier hardening for relay success route
+  record metadata. Search terms should include `GOAL v710`, `wiki/885`,
+  `relay_route_metadata_valid_count`, `relay route metadata coverage`,
+  `P2P verifier requires route record metadata`, `p2p rejects relay route
+  evidence without record latency metadata`, `p2p rejects relay route evidence
+  with unverified record identity metadata`, `p2p rejects relay route evidence
+  with transport proof handshake mismatch`, `case_count=81`, `MUSU Desktop
+  local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 P2P route record metadata index refresh:
+  wiki/886 records the MUSU local index refresh after wiki/885 and GOAL v710.
+  Search terms should include `GOAL v711`, `wiki/886`, `2739 files`,
+  `2776 symbols`, `17136 ms`, `P2P route record metadata index refresh`,
+  `relay_route_metadata_valid_count`, `relay route metadata coverage`, and
+  `case_count=81`.
+
 **End of WIKI_INDEX.md.**

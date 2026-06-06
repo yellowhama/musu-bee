@@ -700,6 +700,29 @@ function Test-P2pEnvStatusReleasePayloadTerminologyContract {
     return $true
 }
 
+function Test-P2pRouteRecordMetadataVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'relay route metadata coverage',
+        'relay_route_metadata_required_count',
+        'relay_route_metadata_valid_count',
+        'relay_route_metadata_invalid_count',
+        'candidate_addr',
+        'total_attempt_ms',
+        'peer_identity_verified',
+        '$transportHandshakeMs -eq $recordHandshakeMs'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-GoNoGoCurrentMsixLegacyConflictContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1672,6 +1695,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$p2pRouteRecordMetadataVerifierContractOk = Test-P2pRouteRecordMetadataVerifierContract -ScriptPath $p2pVerifier
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pRouteRecordMetadataVerifierContractOk `
+    -Message "P2P verifier must require route record metadata and expose route metadata counts"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P verifier requires route record metadata" `
+    -Verifier "P2P verifier source contract" `
+    -FixturePath $p2pVerifier `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $goNoGoCurrentMsixLegacyConflictContractOk = Test-GoNoGoCurrentMsixLegacyConflictContract -ScriptPath $releaseGoNoGoWriter
 $invocation = New-StaticVerifierInvocation `
     -Ok $goNoGoCurrentMsixLegacyConflictContractOk `
@@ -1809,6 +1844,27 @@ $badP2pRelayRouteTransportProofIdentityRecord.evidence.relay_transport_proof.pee
 $fixture = Write-Fixture -Name "p2p-bad-relay-route-transport-proof-identity" -Object $badP2pRelayRouteTransportProofIdentity
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence with transport proof identity mismatch" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteRecordLatency = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteRecordLatencyRecord = @($badP2pRelayRouteRecordLatency.relay_route_evidence.records)[0]
+$badP2pRelayRouteRecordLatencyRecord.evidence.handshake_ms = $null
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-record-latency" -Object $badP2pRelayRouteRecordLatency
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence without record latency metadata" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteRecordIdentity = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteRecordIdentityRecord = @($badP2pRelayRouteRecordIdentity.relay_route_evidence.records)[0]
+$badP2pRelayRouteRecordIdentityRecord.evidence.peer_identity_verified = $false
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-record-identity" -Object $badP2pRelayRouteRecordIdentity
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence with unverified record identity metadata" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badP2pRelayRouteTransportProofHandshake = Copy-JsonObject -Object $validP2p
+$badP2pRelayRouteTransportProofHandshakeRecord = @($badP2pRelayRouteTransportProofHandshake.relay_route_evidence.records)[0]
+$badP2pRelayRouteTransportProofHandshakeRecord.evidence.relay_transport_proof.handshake_ms = 99
+$fixture = Write-Fixture -Name "p2p-bad-relay-route-transport-proof-handshake" -Object $badP2pRelayRouteTransportProofHandshake
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects relay route evidence with transport proof handshake mismatch" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayPayloadProof = Copy-JsonObject -Object $validP2p
 $badP2pRelayPayloadProofRecord = @($badP2pRelayPayloadProof.relay_route_evidence.records)[0]

@@ -349,3 +349,27 @@ hosted route-evidence verifier requires.
 This is evidence carry-path hardening. It does not implement the release
 `quic_relay_tunnel` runtime and does not make the preview relay queue
 release-grade.
+
+## 2026-06-06 route record metadata verifier gate
+
+Hosted P2P release evidence now validates the route record metadata around the
+relay transport proof.
+
+For relay success records, `verify-p2p-control-plane-evidence.ps1` requires:
+
+- `candidate_addr`
+- `handshake_ms`
+- `total_attempt_ms`
+- `peer_identity_verified=true`
+- `peer_identity_method=quic_tls_cert_fingerprint`
+- `peer_public_key=sha256:*`
+- `encryption=quic_tls_1_3`
+- `transport_verified_by=musu_quic_tls_transport`
+- matching `relay_transport_proof.handshake_ms`
+
+The verifier reports `relay_route_metadata_required_count`,
+`relay_route_metadata_valid_count`, and
+`relay_route_metadata_invalid_count`.
+
+This is evidence hardening only. It does not complete release relay runtime or
+second-PC proof.
