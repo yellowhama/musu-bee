@@ -110,6 +110,7 @@ try {
         "docs\RELEASE_OPERATOR_HANDOFF_CARD_2026_05_29.md",
         "docs\STORE_SUBMISSION_METADATA_2026_05_29.md",
         "scripts\windows\release-config.ps1",
+        "scripts\windows\prepare-support-mailbox-verification-request.ps1",
         "scripts\windows\record-support-mailbox-verification.ps1",
         "scripts\windows\verify-support-mailbox-evidence.ps1",
         "scripts\windows\record-multidevice-evidence.ps1",
@@ -189,6 +190,7 @@ try {
         Add-CheckFromCondition "readme execution boundary" ($readme -like "*real MUSU release repo root*") "README states commands run from real release repo root" "README does not clearly state release repo root execution boundary"
         Add-CheckFromCondition "readme second pc copy boundary" ($readme.Contains('Copy only the zip under `kits\`')) "README states only the kit zip should be copied to second PC" "README does not clearly state only kit zip should be copied"
         Add-CheckFromCondition "readme support mailbox gate" (-not [string]::IsNullOrWhiteSpace($expectedSupportEmail) -and $readme -like "*$expectedSupportEmail*") "README names $expectedSupportEmail" "README does not name the configured support email"
+        Add-CheckFromCondition "readme support-only request packet boundary" ($readme -like "*prepare-support-mailbox-verification-request.ps1*" -and $readme -like "*does not satisfy release evidence*") "README explains support-only request packet is not evidence" "README missing support-only request packet boundary"
         Add-CheckFromCondition "readme second pc handoff helper" ($readme -like "*collect-second-pc-handoff.ps1*" -and $readme -like "*.handoff.json*") "README explains the second-PC handoff helper" "README missing second-PC handoff helper"
         Add-CheckFromCondition "readme final qual audit" ($readme -like "*RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md*") "README points to the final qualitative audit and next steps" "README missing final qualitative audit reference"
         Add-CheckFromCondition "readme current status audit" ($readme -like "*RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md*") "README points to the current status audit" "README missing current status audit reference"
@@ -491,8 +493,8 @@ try {
         $supportVerifierScript = Get-Content -LiteralPath $supportVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "support verifier version and token gate" `
-            ($supportVerifierScript -like "*ExpectedVersion*" -and $supportVerifierScript -like "*verification id shape*" -and $supportVerifierScript -like "*from address distinct*") `
-            "packet support verifier checks version, token shape, and sender distinction" `
+            ($supportVerifierScript -like "*ExpectedVersion*" -and $supportVerifierScript -like "*verification id shape*" -and $supportVerifierScript -like "*from address placeholder*" -and $supportVerifierScript -like "*from address distinct*") `
+            "packet support verifier checks version, token shape, sender placeholder, and sender distinction" `
             "packet support verifier lacks version/token/sender evidence checks"
     }
 

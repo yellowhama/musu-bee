@@ -507,3 +507,28 @@ Runtime stabilization impact:
 Validation passed with release verifier `case_count=97` and
 `failed_case_count=0`. This is not relay tunnel implementation; it protects the
 release gate before the actual runtime work starts.
+
+## 2026-06-07 support mailbox request packet
+
+Support mailbox verification now has a support-only request packet:
+
+- `prepare-support-mailbox-verification-request.ps1`
+- schema `musu.support_mailbox_verification_request.v1`
+- default output `.local-build\support-mailbox-requests`
+- generated email template plus post-delivery record command
+- `release_gate_satisfied=false`
+
+Runtime stabilization impact:
+
+- support mailbox work no longer requires regenerating the full final operator
+  packet just to get a fresh token/template
+- request packets cannot be mistaken for release evidence
+- release verifier now includes
+  `support mailbox request packet is not release evidence`
+- support mailbox request/record/verify/operator-card tooling is classified as
+  freshness status-only so operator support workflow changes do not invalidate
+  unrelated single-machine desktop/runtime evidence
+
+Validation passed with release verifier `case_count=102` and
+`failed_case_count=0`. This does not close support, second-PC, hosted P2P, or
+Store release gates.

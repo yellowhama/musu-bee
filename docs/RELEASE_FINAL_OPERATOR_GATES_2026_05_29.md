@@ -144,8 +144,8 @@ After confirming the message is visible in the actual support inbox, record evid
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 `
-  -FromAddress "<sender@example.com>" `
-  -ReceivedBy "<operator-name>" `
+  -FromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -ReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -VerificationId "musu-store-support-1.15.0-rc.1-20260529" `
   -Notes "Verified delivery in musu@musu.pro inbox"
 ```
@@ -347,8 +347,8 @@ After Gate 1, Gate 2, Gate 3, Gate 4, and Gate 5 evidence exists, the preferred 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
-  -SupportFromAddress "<sender@example.com>" `
-  -SupportReceivedBy "<operator-name>" `
+  -SupportFromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -SupportReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -SupportVerificationId "<support-verification-id>" `
   -SupportNotes "Verified delivery in musu@musu.pro inbox" `
   -StoreProductName "MUSU" `

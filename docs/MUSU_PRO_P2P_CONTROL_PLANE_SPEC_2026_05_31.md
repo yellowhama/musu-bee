@@ -153,6 +153,18 @@ input and coordinate project/company rooms, presence, rendezvous, path
 selection, relay fallback, and evidence, but local MUSU Desktop programs still
 execute the work on each device.
 
+**2026-06-07 support mailbox request packet update**:
+`prepare-support-mailbox-verification-request.ps1` now creates a support-only
+operator request packet with schema
+`musu.support_mailbox_verification_request.v1`. It outputs an email template,
+verification token, record command, checksums, and zip under ignored
+`.local-build\support-mailbox-requests`, and always reports
+`release_gate_satisfied=false`. This updates the external gate workflow only:
+support proof still requires a real delivered message recorded by
+`record-support-mailbox-verification.ps1`. Support mailbox
+request/record/verify/operator-card scripts are freshness status-only tooling
+and do not change the local-executor boundary.
+
 **2026-06-06 desktop clean-start evidence update**:
 After runtime relay candidate coverage carry, the current local-sideload MSIX
 was rebuilt, reinstalled, and revalidated on `HUGH_SECOND` as MUSU Desktop.

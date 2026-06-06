@@ -1153,3 +1153,26 @@ Boundary implications:
   markers can become true;
 - marker-only flips must produce source conflict blockers in P2P env status.
 
+## 2026-06-07 support mailbox request boundary
+
+Support mailbox request packets are operator-action templates, not release
+evidence.
+
+Boundary implications:
+
+- `prepare-support-mailbox-verification-request.ps1` writes only ignored local
+  request output under `.local-build\support-mailbox-requests`;
+- the request schema is `musu.support_mailbox_verification_request.v1`;
+- request output must report `release_gate_satisfied=false`;
+- real release evidence still requires a delivered email in the support inbox
+  and `record-support-mailbox-verification.ps1`;
+- placeholder sender addresses are rejected by the verifier, so templates must
+  be replaced with a real external sender before evidence can pass;
+- support request/record/verify/operator-card tooling is freshness status-only
+  and must not stale unrelated local desktop evidence;
+- this does not move execution or verification into MUSU.PRO.
+
+MUSU Desktop remains the local executor. MUSU.PRO remains remote input,
+project/company room, rendezvous, path selection, relay fallback coordination,
+and evidence/control plane.
+

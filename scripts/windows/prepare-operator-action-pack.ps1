@@ -326,7 +326,7 @@ $supportBody
 
 After confirming this email arrived in the $SupportEmail inbox, run from the release repo:
 
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "$SupportEmail" -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "$supportVerificationId" -Notes "Verified delivery in $SupportEmail inbox" -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "$SupportEmail" -FromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" -ReceivedBy "REPLACE_WITH_OPERATOR_NAME" -VerificationId "$supportVerificationId" -Notes "Verified delivery in $SupportEmail inbox" -Json
 "@
     $supportEmailTemplate | Set-Content -LiteralPath (Join-Path $supportDir "SUPPORT_MAILBOX_VERIFICATION_EMAIL_CURRENT.txt") -Encoding UTF8
     [pscustomobject]@{
@@ -334,7 +334,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-suppo
         subject = $supportSubject
         verification_id = $supportVerificationId
         body = $supportBody
-        record_command = 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "{0}" -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "{1}" -Notes "Verified delivery in {0} inbox" -Json' -f $SupportEmail, $supportVerificationId
+        record_command = 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "{0}" -FromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" -ReceivedBy "REPLACE_WITH_OPERATOR_NAME" -VerificationId "{1}" -Notes "Verified delivery in {0} inbox" -Json' -f $SupportEmail, $supportVerificationId
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $supportDir "support-mailbox-record-template-current.json") -Encoding UTF8
 
     $readme = @"

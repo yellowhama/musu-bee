@@ -106,6 +106,7 @@ foreach ($relative in $docsToCopy) {
 
 $scriptsToCopy = @(
     "release-config.ps1",
+    "prepare-support-mailbox-verification-request.ps1",
     "record-support-mailbox-verification.ps1",
     "verify-support-mailbox-evidence.ps1",
     "record-multidevice-evidence.ps1",
@@ -156,7 +157,7 @@ foreach ($name in $scriptsToCopy) {
 }
 
 $supportVerificationId = "musu-store-support-$safeVersion-$stamp"
-$supportCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "{0}" -FromAddress "<sender@example.com>" -ReceivedBy "<operator-name>" -VerificationId "{1}" -Notes "Verified delivery in {0} inbox"' -f $SupportEmail, $supportVerificationId
+$supportCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail "{0}" -FromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" -ReceivedBy "REPLACE_WITH_OPERATOR_NAME" -VerificationId "{1}" -Notes "Verified delivery in {0} inbox"' -f $SupportEmail, $supportVerificationId
 
 $readme = @'
 # MUSU __VERSION__ Final Operator Gate Packet
@@ -203,6 +204,17 @@ name, and recording commands, run from the real MUSU release repo root:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-operator-handoff-card.ps1
 ```
+
+If only the support mailbox action needs to be prepared before the full final
+packet/action-pack handoff, generate a support-only request packet:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-support-mailbox-verification-request.ps1 -Json
+```
+
+That support-only request packet does not satisfy release evidence. It only
+prints the email template and the `record-support-mailbox-verification.ps1`
+command to run after real inbox delivery is confirmed.
 
 After the second PC returns `.local-build\second-pc-return\*.zip`, run this
 from the real MUSU release repo root to import it, verify the MSIX install
@@ -672,8 +684,8 @@ After Gate A, Gate B, Gate C, Gate D, Gate E, Gate F, Gate G, and Gate H evidenc
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
-  -SupportFromAddress "<sender@example.com>" `
-  -SupportReceivedBy "<operator-name>" `
+  -SupportFromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -SupportReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -SupportVerificationId "__SUPPORT_VERIFICATION_ID__" `
   -SupportNotes "Verified delivery in __SUPPORT_EMAIL__ inbox" `
   -StoreProductName "MUSU" `

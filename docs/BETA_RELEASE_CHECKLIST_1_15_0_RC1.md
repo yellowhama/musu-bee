@@ -585,11 +585,14 @@ Store metadata:
 - public metadata verifier: `scripts\windows\verify-store-public-metadata.ps1`
 - support mailbox evidence verifier: `scripts\windows\verify-support-mailbox-evidence.ps1`
 - support mailbox evidence recorder: `scripts\windows\record-support-mailbox-verification.ps1`
+- support mailbox request packet preparer: `scripts\windows\prepare-support-mailbox-verification-request.ps1`
 - Store release evidence verifier: `scripts\windows\verify-store-release-evidence.ps1`
 - Store release evidence recorder: `scripts\windows\record-store-release-verification.ps1`
 - Store submission bundle verifier: `scripts\windows\verify-store-submission-bundle.ps1`
 - MSIX desktop entrypoint verifier: `scripts\windows\audit-msix-desktop-entrypoint.ps1`; regenerated Store-reviewed bundle `.local-build\msix\submission-bundles\store-reviewed-20260531-224352` passes artifact-level desktop-entrypoint verification, and `local-sideload-manual -RequireInstalledPackage` now passes on `HUGH_SECOND`. Store-reviewed `-RequireInstalledPackage` is expected to fail on local sideload installs unless the Microsoft Store-signed restricted-capability package is actually installed.
 - support mailbox DNS: `musu.pro` MX resolves to `smtp.google.com`; actual delivery still requires operator evidence
+- support mailbox request packets are operator-action templates only; they write under `.local-build\support-mailbox-requests`, report `release_gate_satisfied=false`, and do not satisfy `support_mailbox_verified=true`
+- support mailbox sender placeholders such as `<sender@example.com>` are rejected by `verify-support-mailbox-evidence.ps1`; handoff templates use `REPLACE_WITH_EXTERNAL_SENDER_EMAIL` so proof cannot pass until the real external sender is filled in
 - support mailbox evidence must match the current release version and include an explicit `musu-...` verification token; Store release evidence must include an explicit Partner Center product-name reservation timestamp
 - release go/no-go preflight: `scripts\windows\write-release-go-no-go.ps1`
 - final operator packet builder: `scripts\windows\prepare-final-operator-gate-packet.ps1`
@@ -9230,3 +9233,52 @@ Release interpretation:
   release-grade by marker flips alone
 - public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
   P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+## 2026-06-07 04:06 KST Support Mailbox Request Packet
+
+Support mailbox verification can now be prepared without generating the full
+final operator packet:
+
+- `prepare-support-mailbox-verification-request.ps1` emits
+  `musu.support_mailbox_verification_request.v1`
+- output stays under ignored `.local-build\support-mailbox-requests`
+- generated files include an email template, README, request JSON, checksums,
+  timestamped zip, and latest zip
+- the request result reports `release_gate_satisfied=false`
+- the generated record command still requires real inbox delivery before
+  `record-support-mailbox-verification.ps1` can write release evidence
+- final operator packet tooling includes this script and verifies that
+  support-only request packets do not satisfy release evidence
+- release verifier regression added
+  `support mailbox request packet is not release evidence`
+- support mailbox verifier now rejects placeholder sender addresses
+- freshness classifiers now treat support mailbox request/record/verify and
+  operator-card scripts as status-only, preventing support tooling work from
+  staling unrelated one-machine desktop evidence
+
+Validation:
+
+- parser checks: pass
+- support request smoke: `ok=true`,
+  `verification_id=musu-support-smoke-20260607-fedcba0987654321`,
+  `support_email=musu@musu.pro`, `release_gate_satisfied=false`,
+  `record_command` uses `REPLACE_WITH_EXTERNAL_SENDER_EMAIL`
+- release evidence verifier regression: `ok=true`, `case_count=102`,
+  `failed_case_count=0`
+- dirty-tree go/no-go smoke after the freshness fix restored the expected
+  local evidence state: `single_machine_verified=true`, runtime idle count `1`,
+  runtime matrix count `1`, process/startup/desktop single-instance true; the
+  temporary `git` blocker was present only because the patch was not committed
+
+Release interpretation:
+
+- this does not close the `support-mailbox` blocker
+- actual delivered email evidence must still be recorded under
+  `docs\evidence\support-mailbox\1.15.0-rc.1\`
+- public release remains No-Go on second-PC route/CPU/matrix, hosted MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store/Partner Center proof
+
+Index refresh:
+
+- MUSU local indexer: `2807 files`, `2776 symbols`, `23584 ms`
+- wiki: `wiki/920`

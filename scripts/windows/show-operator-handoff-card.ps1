@@ -67,7 +67,7 @@ try {
     $commands = [pscustomobject]@{
         show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1"
         verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
-        record_support = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail `"$supportEmail`" -FromAddress `"<sender@example.com>`" -ReceivedBy `"<operator-name>`" -VerificationId `"$supportVerificationId`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
+        record_support = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -SupportEmail `"$supportEmail`" -FromAddress `"REPLACE_WITH_EXTERNAL_SENDER_EMAIL`" -ReceivedBy `"REPLACE_WITH_OPERATOR_NAME`" -VerificationId `"$supportVerificationId`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
         import_second_pc_return = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -RecordMsixInstall -Json"
         record_msix_install = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> -Json"
         show_second_pc_return_card = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>"

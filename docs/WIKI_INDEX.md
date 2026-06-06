@@ -6144,4 +6144,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `release_relay_tunnel_runtime_source_contract_ready`,
   `release_payload_preflight_only`, and `case_count=97`.
 
+- 2026-06-07 support mailbox request packet:
+  `RELEASE_1_15_0_RC1_SUPPORT_MAILBOX_REQUEST_PACKET_2026_06_07.md`
+  (wiki/919) records support-only operator packet tooling that prepares the
+  support mailbox email/template/record command without writing release
+  evidence. Search terms should include `GOAL v744`, `wiki/919`,
+  `prepare-support-mailbox-verification-request.ps1`,
+  `musu.support_mailbox_verification_request.v1`,
+  `release_gate_satisfied=false`,
+  `support mailbox request packet is not release evidence`, and
+  `support mailbox rejects placeholder sender evidence`,
+  `freshness classifiers allow support mailbox tooling as status-only`, and
+  `case_count=102`.
+
+- 2026-06-07 support mailbox request packet index refresh:
+  wiki/920 records the MUSU local index refresh after wiki/919 and GOAL v744.
+  Search terms should include `GOAL v745`, `wiki/920`, `2807 files`,
+  `2776 symbols`, `23584 ms`, `support mailbox request packet index refresh`,
+  `REPLACE_WITH_EXTERNAL_SENDER_EMAIL`,
+  `support mailbox rejects placeholder sender evidence`,
+  `freshness classifiers allow support mailbox tooling as status-only`, and
+  `case_count=102`.
+
 **End of WIKI_INDEX.md.**

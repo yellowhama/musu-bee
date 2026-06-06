@@ -623,8 +623,8 @@ $commands = [pscustomobject]@{
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
-  -SupportFromAddress "<sender@example.com>" `
-  -SupportReceivedBy "<operator-name>" `
+  -SupportFromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -SupportReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -SupportVerificationId "<support-verification-id>" `
   -SupportNotes "Verified delivery in $supportEmail inbox" `
   -StoreProductName "MUSU" `
@@ -794,7 +794,7 @@ if (-not [bool]$goNoGo.support_mailbox_verified) {
         -List $operatorSteps `
         -Gate "support-mailbox" `
         -Summary "Send a real email to $supportEmail with a MUSU verification token, confirm inbox delivery, then record the operator evidence." `
-        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress `"<sender@example.com>`" -ReceivedBy `"<operator-name>`" -VerificationId `"musu-support-mailbox-<unique-token>`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
+        -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress `"REPLACE_WITH_EXTERNAL_SENDER_EMAIL`" -ReceivedBy `"REPLACE_WITH_OPERATOR_NAME`" -VerificationId `"musu-support-mailbox-REPLACE_WITH_UNIQUE_TOKEN`" -Notes `"Verified delivery in $supportEmail inbox`" -Json"
 }
 if (-not [bool]$goNoGo.store_release_verified) {
     Add-OperatorStep `

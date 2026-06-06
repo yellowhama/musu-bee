@@ -13399,3 +13399,88 @@ Search terms should include `GOAL v743`, `wiki/918`, `relay tunnel marker
 conflict gate index refresh`, `2802 files`, `2776 symbols`, `15049 ms`,
 `release_relay_tunnel_runtime_source_contract_ready`,
 `release_payload_preflight_only`, and `case_count=97`.
+
+## 2026-06-07 Support Mailbox Request Packet (wiki/919)
+
+Support mailbox verification now has a support-only request packet generator.
+
+Changed:
+
+- added `prepare-support-mailbox-verification-request.ps1`
+- request output defaults to `.local-build\support-mailbox-requests`
+- request schema is `musu.support_mailbox_verification_request.v1`
+- generated files include `SUPPORT_MAILBOX_VERIFICATION_EMAIL.txt`, README,
+  request JSON, `SHA256SUMS.txt`, timestamped zip, and latest zip
+- request output includes the post-delivery
+  `record-support-mailbox-verification.ps1` command
+- request output reports `release_gate_satisfied=false`
+- final operator packet tooling now carries the request script and verifies
+  that support-only request packets do not satisfy release evidence
+- release verifier regression added
+  `support mailbox request packet is not release evidence`
+- release verifier regression added support-mailbox freshness status-only
+  coverage so support request/record/verify/operator-card changes do not stale
+  unrelated local desktop evidence
+
+Smoke:
+
+- `support_email=musu@musu.pro`
+- `verification_id=musu-support-smoke-20260607-fedcba0987654321`
+- `schema=musu.support_mailbox_verification_request.v1`
+- `ok=true`
+- `release_gate_satisfied=false`
+- record command uses `REPLACE_WITH_EXTERNAL_SENDER_EMAIL`
+- no support evidence file was written
+
+Validation:
+
+- parser checks passed
+- support request smoke passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=102`, and `failed_case_count=0`
+- dirty-tree go/no-go smoke restored `single_machine_verified=true`, runtime
+  idle count `1`, runtime matrix count `1`, and process/startup/desktop
+  single-instance true; temporary `git` blocker was expected before commit
+
+Code audit found and fixed one issue before finalizing: email-shaped
+placeholders could be copied literally into support evidence. The verifier now
+rejects placeholder sender addresses, and handoff templates use
+`REPLACE_WITH_EXTERNAL_SENDER_EMAIL`.
+
+No remaining high/medium issue was found. This is operator-action tooling only.
+Public release remains No-Go until actual support inbox delivery is recorded,
+and the second-PC, hosted MUSU.PRO P2P/relay, and Store gates remain open.
+
+Search terms should include `GOAL v744`, `wiki/919`,
+`prepare-support-mailbox-verification-request.ps1`,
+`musu.support_mailbox_verification_request.v1`,
+`release_gate_satisfied=false`,
+`support mailbox request packet is not release evidence`,
+`support mailbox rejects placeholder sender evidence`,
+`freshness classifiers allow support mailbox tooling as status-only`, and
+`case_count=102`.
+
+## 2026-06-07 Support Mailbox Request Packet Index Refresh (wiki/920)
+
+MUSU local indexer was refreshed after wiki/919 and GOAL v744.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2807 files`
+- `2776 symbols`
+- `23584 ms`
+
+Indexed context includes `prepare-support-mailbox-verification-request.ps1`,
+`verify-support-mailbox-evidence.ps1` placeholder sender rejection, final
+operator packet/action-pack support placeholder updates, release verifier
+regression `case_count=102`, freshness status-only support mailbox tooling
+coverage, canonical support request packet report,
+next-step plan, BETA checklist, P2P specs, runtime stabilization spec, network
+boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v745`, `wiki/920`, `support mailbox request
+packet index refresh`, `2807 files`, `2776 symbols`, `23584 ms`,
+`REPLACE_WITH_EXTERNAL_SENDER_EMAIL`,
+`support mailbox rejects placeholder sender evidence`,
+`freshness classifiers allow support mailbox tooling as status-only`, and
+`case_count=102`.

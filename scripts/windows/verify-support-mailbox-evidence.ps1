@@ -115,6 +115,7 @@ $receivedAt = Try-ParseDateTimeOffset -Text $receivedAtText
 $recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
 $now = [datetimeoffset]::Now
 $futureTolerance = [timespan]::FromMinutes(5)
+$fromAddressIsPlaceholder = $fromAddress -match "(?i)[<>]|replace_with|placeholder|@example\."
 
 Add-CheckFromCondition "schema" ($schema -eq "musu.support_mailbox_evidence.v1") "schema is valid" "schema is not musu.support_mailbox_evidence.v1"
 Add-CheckFromCondition "evidence ok" $evidenceOk "evidence reports ok=true" "evidence does not report ok=true"
@@ -124,6 +125,7 @@ Add-CheckFromCondition "verification id" (-not [string]::IsNullOrWhiteSpace($ver
 Add-CheckFromCondition "verification id shape" ($verificationId -match "^musu-[A-Za-z0-9._-]{16,}$") "verification_id uses a MUSU verification token" "verification_id must start with musu- and be at least 16 token characters"
 Add-CheckFromCondition "from address" (-not [string]::IsNullOrWhiteSpace($fromAddress)) "from_address is present" "from_address is missing"
 Add-CheckFromCondition "from address shape" ($fromAddress -match "^[^@\s]+@[^@\s]+\.[^@\s]+$") "from_address looks like an email address" "from_address is not email-shaped"
+Add-CheckFromCondition "from address placeholder" (-not $fromAddressIsPlaceholder) "from_address is not a placeholder" "from_address must be the real external sender, not a placeholder"
 Add-CheckFromCondition "from address distinct" ($fromAddress -ine $supportEmail) "from_address is distinct from the support mailbox" "from_address must not be the support mailbox"
 Add-CheckFromCondition "received by" (-not [string]::IsNullOrWhiteSpace($receivedBy)) "received_by is present" "received_by is missing"
 Add-CheckFromCondition "sent timestamp" ($null -ne $sentAt) "sent_at parses" "sent_at is missing or invalid"

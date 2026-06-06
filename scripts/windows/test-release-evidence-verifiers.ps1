@@ -27,6 +27,7 @@ $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
+$supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
@@ -35,6 +36,7 @@ $finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-s
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
 $routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
+$supportMailboxRequestPreparer = Join-Path $scriptDir "prepare-support-mailbox-verification-request.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -389,6 +391,32 @@ function Test-SecondPcKitRouteReachabilityContract {
         }
     }
     return $true
+}
+
+function Test-SupportMailboxVerificationRequestContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'musu.support_mailbox_verification_request.v1',
+        '.local-build\support-mailbox-requests',
+        'record-support-mailbox-verification.ps1',
+        'does not satisfy release gate',
+        'release_gate_satisfied = $false',
+        'evidence_warning',
+        'SUPPORT_MAILBOX_VERIFICATION_EMAIL.txt',
+        'VerificationId must match ^musu-[A-Za-z0-9._-]{16,}$.',
+        'REPLACE_WITH_EXTERNAL_SENDER_EMAIL',
+        'git_dirty'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return -not $source.Contains('musu.support_mailbox_evidence.v1')
 }
 
 function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
@@ -797,6 +825,27 @@ function Test-CrashRecoveryFreshnessStatusOnlyContract {
         $source = Get-Content -LiteralPath $scriptPath -Raw
         if (-not $source.Contains('"scripts/windows/audit-musu-crash-recovery-contract.ps1"')) {
             return $false
+        }
+    }
+    return $true
+}
+
+function Test-SupportMailboxFreshnessStatusOnlyContract {
+    param([Parameter(Mandatory = $true)][string[]]$ScriptPaths)
+
+    $requiredNeedles = @(
+        '"scripts/windows/prepare-support-mailbox-verification-request.ps1"',
+        '"scripts/windows/record-support-mailbox-verification.ps1"',
+        '"scripts/windows/verify-support-mailbox-evidence.ps1"',
+        '"scripts/windows/show-operator-handoff-card.ps1"'
+    )
+
+    foreach ($scriptPath in $ScriptPaths) {
+        $source = Get-Content -LiteralPath $scriptPath -Raw
+        foreach ($needle in $requiredNeedles) {
+            if (-not $source.Contains($needle)) {
+                return $false
+            }
         }
     }
     return $true
@@ -1936,6 +1985,63 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$supportMailboxRequestContractOk = Test-SupportMailboxVerificationRequestContract -ScriptPath $supportMailboxRequestPreparer
+$invocation = New-StaticVerifierInvocation `
+    -Ok $supportMailboxRequestContractOk `
+    -Message "support mailbox request packet must prepare the operator email/record command without creating release evidence"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "support mailbox request packet is not release evidence" `
+    -Verifier "support mailbox request source contract" `
+    -FixturePath $supportMailboxRequestPreparer `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$supportVerifierSource = Get-Content -LiteralPath $supportVerifier -Raw
+$supportVerifierRejectsPlaceholdersOk = (
+    $supportVerifierSource -like "*from address placeholder*" -and
+    $supportVerifierSource -like "*replace_with*" -and
+    $supportVerifierSource -like "*@example\.*"
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $supportVerifierRejectsPlaceholdersOk `
+    -Message "support mailbox verifier must reject placeholder sender addresses"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "support mailbox verifier rejects placeholder sender addresses" `
+    -Verifier "support mailbox verifier source contract" `
+    -FixturePath $supportVerifier `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$supportFixtureSentAt = ([datetimeoffset]::Now.AddMinutes(-3)).ToString("o")
+$supportFixtureReceivedAt = ([datetimeoffset]::Now.AddMinutes(-2)).ToString("o")
+$supportFixtureRecordedAt = ([datetimeoffset]::Now.AddMinutes(-1)).ToString("o")
+$validSupportMailboxEvidence = [pscustomobject]@{
+    schema = "musu.support_mailbox_evidence.v1"
+    ok = $true
+    version = $ExpectedVersion
+    support_email = "musu@musu.pro"
+    verification_id = "musu-support-verifier-20260607-abcdef1234567890"
+    from_address = "operator@external.test"
+    received_by = "HUGH_SECOND"
+    sent_at = $supportFixtureSentAt
+    received_at = $supportFixtureReceivedAt
+    recorded_at = $supportFixtureRecordedAt
+    operator_machine = "VERIFIER-TEST"
+    operator_user = "verifier"
+    notes = "fixture"
+}
+$fixture = Write-Fixture -Name "support-mailbox-valid" -Object $validSupportMailboxEvidence
+$invocation = Invoke-Verifier -ScriptPath $supportVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support mailbox accepts real external sender evidence" -Verifier "verify-support-mailbox-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$placeholderSupportMailboxEvidence = Copy-JsonObject -Object $validSupportMailboxEvidence
+$placeholderSupportMailboxEvidence.from_address = "<sender@example.com>"
+$fixture = Write-Fixture -Name "support-mailbox-placeholder-sender" -Object $placeholderSupportMailboxEvidence
+$invocation = Invoke-Verifier -ScriptPath $supportVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support mailbox rejects placeholder sender evidence" -Verifier "verify-support-mailbox-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
 $targetBindingContractOk = Test-RuntimeCpuScenarioMatrixTargetBindingContract -ScriptPath $runtimeCpuScenarioMatrixVerifierScript
 $invocation = New-StaticVerifierInvocation `
     -Ok $targetBindingContractOk `
@@ -2227,6 +2333,22 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "freshness classifiers allow crash recovery audit script as status-only" `
+    -Verifier "release freshness classifier contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$supportMailboxStatusOnlyContractOk = Test-SupportMailboxFreshnessStatusOnlyContract -ScriptPaths @(
+    $singleMachineVerifier,
+    $runtimeCpuScenarioMatrixVerifier,
+    $releaseGoNoGoWriter
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $supportMailboxStatusOnlyContractOk `
+    -Message "release freshness classifiers must treat support mailbox operator/evidence tooling as status-only"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "freshness classifiers allow support mailbox tooling as status-only" `
     -Verifier "release freshness classifier contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `

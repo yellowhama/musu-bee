@@ -191,6 +191,18 @@ evidence/control plane. `localhost:3001` is not the packaged desktop runtime
 contract. Current public P2P release still needs second-PC route/CPU/matrix
 proof, a current full `post-route` matrix, live MUSU.PRO login/storage, release
 `quic_relay_tunnel` proof, support mailbox proof, and Store proof.
+
+2026-06-07 support mailbox request packet addendum: support mailbox proof is
+now easier to prepare, but not easier to fake. Operators can run
+`scripts\windows\prepare-support-mailbox-verification-request.ps1` to generate
+an email template and post-delivery record command under
+`.local-build\support-mailbox-requests`. The request schema is
+`musu.support_mailbox_verification_request.v1` and reports
+`release_gate_satisfied=false`; only real inbox delivery recorded through
+`record-support-mailbox-verification.ps1` can satisfy the support gate.
+Support mailbox request/record/verify/operator-card scripts are freshness
+status-only tooling, so support workflow changes do not invalidate unrelated
+local MUSU Desktop evidence.
 Open external gates:
 
 - second-PC current-build install, route, CPU, and matrix evidence is missing

@@ -154,8 +154,8 @@ Send a real external email to `musu@musu.pro` with a subject/body containing a `
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 `
-  -FromAddress "<sender@example.com>" `
-  -ReceivedBy "<operator-name>" `
+  -FromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -ReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -VerificationId "musu-store-support-1.15.0-rc.1-<unique-token>" `
   -Notes "Verified delivery in musu@musu.pro inbox" `
   -Json
@@ -227,8 +227,8 @@ When the desktop-entrypoint audit and all remaining external evidence files exis
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-final-operator-gates.ps1 `
   -MsixInstallEvidencePath .local-build\msix-install\<INSTALL_EVIDENCE_JSON> `
   -MultiDeviceEvidencePath .local-build\multi-device\<EVIDENCE_JSON> `
-  -SupportFromAddress "<sender@example.com>" `
-  -SupportReceivedBy "<operator-name>" `
+  -SupportFromAddress "REPLACE_WITH_EXTERNAL_SENDER_EMAIL" `
+  -SupportReceivedBy "REPLACE_WITH_OPERATOR_NAME" `
   -SupportVerificationId "<support-verification-id>" `
   -SupportNotes "Verified delivery in musu@musu.pro inbox" `
   -StoreProductName "MUSU" `
