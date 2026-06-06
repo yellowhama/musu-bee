@@ -8954,3 +8954,47 @@ Index refresh:
 - `2776 symbols`
 - `16843 ms`
 - wiki: `wiki/906`
+
+## 2026-06-07 02:08 KST Second-PC Route Reachability Handoff
+
+Route reachability diagnostics are now part of the second-PC handoff path when
+a target peer is supplied.
+
+Changed:
+
+- `run-second-pc-release-check.ps1` can write
+  `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`
+  through `-RouteReachabilityTarget` or `-RuntimeCpuRouteTarget`.
+- Returned release-check JSON exposes `route_reachability_target`,
+  `route_reachability_diagnostic_required`,
+  `route_reachability_diagnostic_path`, and
+  `route_reachability_diagnostic_verified`.
+- `import-second-pc-return.ps1` copies returned diagnostics to
+  `.local-build\route-diagnostics\` and verifies non-local targets.
+- Multi-device kit, final operator packet, operator action pack, and their
+  verifiers now include route reachability tools and instructions.
+
+Validation:
+
+- parser checks: pass
+- release verifier regression: `ok=true`, `case_count=93`,
+  `failed_case_count=0`
+
+Release interpretation:
+
+- This is still diagnostic/supporting evidence.
+- `musu.route_evidence.v1` with release-grade peer identity, encryption,
+  transport proof, and payload proof remains required for multi-device release.
+- MUSU Desktop remains the local executor; MUSU.PRO remains remote input,
+  project room, rendezvous, path-selection, relay-fallback, and evidence
+  control plane.
+- `localhost:3001` remains irrelevant to packaged desktop runtime readiness.
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2784 files`
+- `2776 symbols`
+- `15188 ms`
+- wiki: `wiki/908`

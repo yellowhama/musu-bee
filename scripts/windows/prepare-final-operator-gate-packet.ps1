@@ -84,6 +84,9 @@ $docsToCopy = @(
     "docs\RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md",
     "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
     "docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md",
+    "docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md",
+    "docs\RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md",
+    "docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_REACHABILITY_HANDOFF_2026_06_07.md",
     "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
     "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
     "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
@@ -130,6 +133,8 @@ $scriptsToCopy = @(
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
     "verify-runtime-cpu-scenario-matrix.ps1",
+    "record-route-reachability-diagnostic.ps1",
+    "verify-route-reachability-diagnostic.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "repair-packaged-local-runtime-state.ps1",
@@ -179,6 +184,9 @@ For the shortest Store/submission sequence, review:
 - `docs\RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md`
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - `docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md`
+- `docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md`
+- `docs\RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md`
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_REACHABILITY_HANDOFF_2026_06_07.md`
 - `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
 - `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
 - `docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`
@@ -307,6 +315,24 @@ If certificate trust fails, rerun from elevated PowerShell with:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
 ```
 
+If the primary PC is already registered as a peer on the second PC, pass the
+primary peer name into the wrapper so route endpoint reachability is diagnosed
+and returned with the same ZIP:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 `
+  -RouteReachabilityTarget <PRIMARY_PEER_NAME> `
+  -RuntimeCpuRouteTarget <PRIMARY_PEER_NAME> `
+  -AllowFailedRuntimeCpuRouteProbe
+```
+
+This writes `musu.route_reachability_diagnostic.v1` under
+`.local-build\route-diagnostics\`. The importer verifies the target is
+non-local when the release-check JSON says route reachability was required.
+This diagnostic explains endpoint state and failed/successful route attempts; it
+does not replace Gate C's release-grade `musu.route_evidence.v1` two-machine
+proof.
+
 Manual fallback after `install-and-verify-msix.ps1` succeeds:
 
 ```powershell
@@ -328,6 +354,7 @@ If you need the raw files, the wrapper also writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
+`.local-build\route-diagnostics\*.route-reachability-diagnostic.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
 `.local-build\second-pc-release-check\*.release-check.json`. Record install
 evidence from the release repo root:

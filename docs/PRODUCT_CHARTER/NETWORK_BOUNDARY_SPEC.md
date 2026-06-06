@@ -1082,3 +1082,21 @@ Boundary implications:
   consistent;
 - neighbor/ARP presence remains explicitly marked as not route success proof.
 
+## 2026-06-07 second-PC route reachability handoff boundary
+
+Route reachability diagnostics are now included in the second-PC handoff path
+when a target peer is supplied.
+
+Boundary implications:
+
+- The diagnostic can travel through a second-PC return zip and be imported into
+  the primary repo's `.local-build\route-diagnostics\` evidence root.
+- The primary importer verifies non-local target shape before accepting a
+  required diagnostic.
+- MUSU.PRO may be used to make remote input and device connection easier, but
+  the local MUSU Desktop program remains the process that records endpoint and
+  route-attempt evidence.
+- This does not change the release proof boundary: successful multi-device
+  proof still requires release-grade `musu.route_evidence.v1`, verified peer
+  identity, hardened transport, and payload transit truth.
+

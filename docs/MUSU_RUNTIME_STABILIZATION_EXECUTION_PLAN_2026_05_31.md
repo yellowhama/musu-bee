@@ -369,3 +369,23 @@ true and the worktree/manifest are clean.
 3. We make the release tooling fail closed. A demo that happens to work once is
    not accepted unless process ownership, CPU, identity, encryption, and route
    evidence are all present.
+
+## 2026-06-07 second-PC route reachability handoff
+
+The route reachability recorder/verifier is now wired into the second-PC
+release wrapper and operator packets.
+
+Runtime stabilization impact:
+
+- Targeted second-PC runs can return endpoint reachability alongside CPU and
+  process-attribution evidence.
+- The diagnostic is conditional: default one-machine install/handoff smoke does
+  not require a target peer.
+- If a target is supplied, the return import requires the diagnostic to verify
+  before treating the returned release-check as complete.
+- The diagnostic does not replace runtime idle CPU, runtime CPU scenario matrix,
+  process ownership, or successful multi-device route evidence.
+
+This keeps the debugging order concrete: first prove the peer endpoint is
+registered and non-local, then prove CPU stays low around route attempts, then
+record successful release-grade route proof.

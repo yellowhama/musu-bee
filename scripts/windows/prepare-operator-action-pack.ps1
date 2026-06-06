@@ -157,6 +157,11 @@ On the second PC:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
 
+If the primary PC is already registered as a peer on this second PC, use the
+targeted form so the return zip includes route endpoint reachability diagnostics:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget PRIMARY-PC -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
+
 If certificate trust fails, rerun the one-command check from elevated PowerShell with -MachineTrust:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
@@ -177,6 +182,7 @@ Return these files/folders to the primary repo:
 - .local-build\msix-install\*.evidence.json
 - .local-build\runtime-idle-cpu\*.evidence.json
 - .local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json
+- .local-build\route-diagnostics\*.route-reachability-diagnostic.json
 - .local-build\process-attribution\*.process-attribution-summary.json
 - .local-build\runtime-cleanup\*.runtime-cleanup.json
 - .local-build\second-pc-handoff\*.handoff.json
@@ -190,6 +196,16 @@ Release CPU evidence must include subrole attribution:
 
 Older second-PC return zips that lack these fields are diagnostic only and
 cannot satisfy -RequireReleaseGateEvidence.
+
+If route reachability was targeted, the release-check JSON must also report:
+- route_reachability_diagnostic_required=true
+- route_reachability_diagnostic_verified=true
+- route_reachability_target set to the primary peer name
+
+The returned `musu.route_reachability_diagnostic.v1` explains whether the peer
+endpoint is registered, non-local, TCP reachable, and backed by a raw route
+attempt. It is not a replacement for the final release-grade multi-device route
+proof.
 
 After the return zip is copied back, run this on the primary PC from the real release repo:
 
@@ -337,6 +353,7 @@ This pack groups the remaining external release actions.
 - Return to repo after second-PC run:
   - `.local-build\second-pc-return\*.zip`
   - `.local-build\msix-install\*.evidence.json`
+  - `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`
   - `.local-build\second-pc-handoff\*.handoff.json`
 
 2. Support mailbox proof

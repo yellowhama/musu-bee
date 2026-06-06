@@ -57,6 +57,8 @@ $scriptFiles = @(
     "measure-musu-idle-cpu.ps1",
     "measure-musu-runtime-cpu-scenarios.ps1",
     "verify-runtime-cpu-scenario-matrix.ps1",
+    "record-route-reachability-diagnostic.ps1",
+    "verify-route-reachability-diagnostic.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "collect-second-pc-handoff.ps1",
@@ -120,6 +122,7 @@ The wrapper runs the same steps below, writes
 `.local-build\msix-install\*.evidence.json`,
 `.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
+`.local-build\route-diagnostics\*.route-reachability-diagnostic.json`,
 `.local-build\process-attribution\*.process-attribution-summary.json`,
 `.local-build\runtime-cleanup\*.runtime-cleanup.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
@@ -159,6 +162,20 @@ The wrapper exposes the same diagnostic path:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
 ```
+
+If the primary PC is already registered as a peer on this second PC, also pass
+`-RouteReachabilityTarget PRIMARY-PC`. The wrapper then records
+`musu.route_reachability_diagnostic.v1`, verifies that the selected route target
+is non-local, and includes the diagnostic in the second-PC return zip:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget PRIMARY-PC -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
+```
+
+This diagnostic is not release-grade multi-device proof by itself. It is the
+operator-facing preflight for explaining whether a peer endpoint is registered,
+reachable over TCP, selected by route explain, and backed by raw route-attempt
+evidence before the primary PC records the real two-machine smoke.
 
 Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
 diagnose CPU after a failed remote route attempt. The normal release matrix
@@ -212,6 +229,8 @@ Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-route-reachability-diagnostic.ps1 -Target PRIMARY-PC -EvidenceDir .local-build\route-diagnostics -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-route-reachability-diagnostic.ps1 -EvidencePath .local-build\route-diagnostics\<DIAGNOSTIC_JSON> -ExpectedTarget PRIMARY-PC -RequireNonLocalTarget -AllowSuccessfulReachability -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-process-attribution.ps1
 musu down --json
 musu up --json
@@ -228,6 +247,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix
 The install evidence command writes `.local-build\msix-install\*.evidence.json`.
 The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
 The scenario matrix command writes `.local-build\runtime-cpu-scenarios\*.json`.
+The route reachability command writes
+`.local-build\route-diagnostics\*.route-reachability-diagnostic.json`.
 The wrapper cleanup command writes `.local-build\runtime-cleanup\*.json`.
 The process-attribution command writes
 `.local-build\process-ownership\*.json` unless an explicit output path is used.

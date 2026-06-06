@@ -6035,4 +6035,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `verify-route-reachability-diagnostic.ps1`, `RequireNonLocalTarget`,
   `case_count=90`, and `submit_http_error`.
 
+- 2026-06-07 second-PC route reachability handoff:
+  `RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_REACHABILITY_HANDOFF_2026_06_07.md`
+  (wiki/907) records route reachability diagnostic integration into
+  `run-second-pc-release-check.ps1`, second-PC return zips,
+  `import-second-pc-return.ps1`, the multi-device kit, final operator packet,
+  and operator action pack. Search terms should include `GOAL v732`,
+  `wiki/907`, `RouteReachabilityTarget`,
+  `route_reachability_diagnostic_verified`,
+  `musu.route_reachability_diagnostic.v1`, `.local-build\route-diagnostics`,
+  `case_count=93`, `MUSU Desktop local executor`, and `MUSU.PRO control
+  plane`.
+
+- 2026-06-07 second-PC route reachability handoff index refresh:
+  wiki/908 records the MUSU local index refresh after wiki/907 and GOAL v732.
+  Search terms should include `GOAL v733`, `wiki/908`, `2784 files`,
+  `2776 symbols`, `15188 ms`, `second-PC route reachability handoff index
+  refresh`, `RouteReachabilityTarget`,
+  `route_reachability_diagnostic_verified`,
+  `musu.route_reachability_diagnostic.v1`, and `case_count=93`.
+
 **End of WIKI_INDEX.md.**

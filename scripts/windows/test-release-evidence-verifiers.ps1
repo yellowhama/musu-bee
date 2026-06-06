@@ -265,6 +265,33 @@ function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     return $true
 }
 
+function Test-SecondPcRouteReachabilityHandoffContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[string]$RouteReachabilityTarget',
+        '[switch]$SkipRouteReachabilityDiagnostic',
+        '[switch]$FailOnRouteReachabilityDiagnostic',
+        '.local-build\route-diagnostics',
+        '"record-route-reachability-diagnostic.ps1"',
+        '"verify-route-reachability-diagnostic.ps1"',
+        'AllowSuccessfulReachability',
+        'route_reachability_diagnostic_required',
+        'route_reachability_diagnostic_path',
+        'route_reachability_diagnostic_verified',
+        'route_reachability_tcp_test_succeeded',
+        'route_reachability_successful_multi_device_route_proof'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcImportRuntimeCpuSubroleContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -280,6 +307,56 @@ function Test-SecondPcImportRuntimeCpuSubroleContract {
         'release_check_runtime_cpu_subrole_contract_ok_missing',
         'runtime_idle_cpu_subrole_contract_failed',
         'runtime_cpu_scenario_subrole_contract_failed'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportRouteReachabilityContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'musu.route_reachability_diagnostic.v1',
+        '.local-build\route-diagnostics',
+        'verify-route-reachability-diagnostic.ps1',
+        'RequireNonLocalTarget',
+        'AllowSuccessfulReachability',
+        'route_reachability_diagnostic_path',
+        'route_reachability_target',
+        'route_reachability_diagnostic_required',
+        'route_reachability_diagnostic_verified',
+        'release_check_route_reachability_diagnostic_verified_missing',
+        'release_check_route_reachability_diagnostic_not_verified',
+        'missing_route_reachability_diagnostic',
+        'route_reachability_diagnostic_not_verified'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitRouteReachabilityContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"record-route-reachability-diagnostic.ps1"',
+        '"verify-route-reachability-diagnostic.ps1"',
+        'RouteReachabilityTarget',
+        'musu.route_reachability_diagnostic.v1',
+        '.local-build\route-diagnostics\*.route-reachability-diagnostic.json',
+        'not release-grade multi-device proof',
+        'verify-route-reachability-diagnostic.ps1 -EvidencePath'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1772,6 +1849,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcRouteReachabilityHandoffOk = Test-SecondPcRouteReachabilityHandoffContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRouteReachabilityHandoffOk `
+    -Message "second-PC release check must return route reachability diagnostics when a non-local target is supplied"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check returns route reachability diagnostics" `
+    -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcImportSubroleContractOk = Test-SecondPcImportRuntimeCpuSubroleContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportSubroleContractOk `
@@ -1781,6 +1870,30 @@ Add-CaseResult `
     -Name "second-PC return import requires runtime CPU subrole contract" `
     -Verifier "second-PC import source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportRouteReachabilityOk = Test-SecondPcImportRouteReachabilityContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportRouteReachabilityOk `
+    -Message "second-PC return import must copy and verify route reachability diagnostics when the release-check required them"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import verifies route reachability diagnostics" `
+    -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitRouteReachabilityOk = Test-SecondPcKitRouteReachabilityContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitRouteReachabilityOk `
+    -Message "second-PC transfer kit must include route reachability tools and README guidance"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes route reachability diagnostic handoff" `
+    -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

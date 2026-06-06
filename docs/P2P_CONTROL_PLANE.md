@@ -472,3 +472,24 @@ The diagnostic schema records:
 The verifier requires non-local target proof when `-RequireNonLocalTarget` is
 used and rejects fake successful route proof. This makes reachability failure
 useful for recovery without allowing it to satisfy release-grade route proof.
+
+## 2026-06-07 second-PC route reachability handoff
+
+Route reachability diagnostics are now carried by the operator handoff path.
+
+When `run-second-pc-release-check.ps1` receives `-RouteReachabilityTarget` or
+falls back to `-RuntimeCpuRouteTarget`, it writes
+`musu.route_reachability_diagnostic.v1` under
+`.local-build\route-diagnostics\` and includes the file in the second-PC return
+zip. The primary-side `import-second-pc-return.ps1` copies it into the same
+canonical evidence root and verifies that the route target is non-local.
+
+Control-plane interpretation:
+
+- MUSU.PRO may help devices find each other, exchange peer/project room state,
+  and coordinate relay fallback.
+- MUSU.PRO does not execute local work.
+- The local MUSU Desktop runtime still records the route attempt and endpoint
+  diagnostic.
+- Route reachability diagnostics explain endpoint state; they do not replace
+  release-grade `musu.route_evidence.v1` proof.

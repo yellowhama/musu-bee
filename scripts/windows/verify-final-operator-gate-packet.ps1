@@ -98,6 +98,8 @@ try {
         "docs\RUNTIME_RELAY_FALLBACK_NEXT_STEPS_2026_06_01.md",
         "docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md",
         "docs\RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md",
+        "docs\RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md",
+        "docs\RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md",
         "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
         "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
         "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
@@ -135,6 +137,8 @@ try {
         "scripts\windows\measure-musu-idle-cpu.ps1",
         "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
         "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1",
+        "scripts\windows\record-route-reachability-diagnostic.ps1",
+        "scripts\windows\verify-route-reachability-diagnostic.ps1",
         "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\show-musu-process-attribution.ps1",
         "scripts\windows\repair-packaged-local-runtime-state.ps1",
@@ -191,6 +195,7 @@ try {
         Add-CheckFromCondition "readme runtime hardening roadmap" ($readme -like "*RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md*" -and $readme -like "*runtime_idle_cpu_verified=true*") "README points to runtime hardening and idle CPU gate" "README missing runtime hardening or idle CPU gate reference"
         Add-CheckFromCondition "readme p2p control plane spec" ($readme -like "*MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md*") "README points to P2P control-plane spec" "README missing P2P control-plane spec reference"
         Add-CheckFromCondition "readme current p2p audit report" ($readme -like "*RELEASE_1_15_0_RC1_CURRENT_P2P_CONTROL_PLANE_CODE_AUDIT_NEXT_STEPS_2026_06_06.md*") "README points to current P2P audit report" "README missing current P2P audit report reference"
+        Add-CheckFromCondition "readme route reachability diagnostic reports" ($readme -like "*RELEASE_1_15_0_RC1_HUGH_MAIN_ROUTE_REACHABILITY_DIAGNOSTIC_2026_06_07.md*" -and $readme -like "*RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md*") "README points to route reachability diagnostic reports" "README missing route reachability diagnostic report references"
         Add-CheckFromCondition "readme stabilization execution plan" ($readme -like "*MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md*") "README points to stabilization execution plan" "README missing stabilization execution plan reference"
         Add-CheckFromCondition "readme msix desktop entrypoint audit doc" ($readme -like "*MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md*") "README points to MSIX desktop entrypoint audit" "README missing MSIX desktop entrypoint audit reference"
         Add-CheckFromCondition "readme desktop single-instance gate doc" ($readme -like "*DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md*") "README points to desktop single-instance gate" "README missing desktop single-instance gate reference"
@@ -211,6 +216,7 @@ try {
         Add-CheckFromCondition "readme msix desktop entrypoint audit" ($readme -like "*audit-msix-desktop-entrypoint.ps1*" -and $readme -like "*musu-desktop.exe*" -and $readme -like "*msix_desktop_entrypoint_verified=true*") "README includes MSIX desktop entrypoint gate" "README missing MSIX desktop entrypoint gate"
         Add-CheckFromCondition "readme runtime cpu measurement" ($readme -like "*measure-musu-idle-cpu.ps1*" -and $readme -like "*SampleSeconds 60*" -and $readme -like "*Scenario desktop-open*" -and $readme -like "*RequireOwnedWebView2*" -and $readme -like "*MaxOneCorePercent 5*" -and $readme -like "*MaxOwnedProcessCount 16*" -and $readme -like "*MaxOwnedWebView2ProcessCount 8*" -and $readme -like "*MaxTotalWorkingSetMb 1024*" -and $readme -like "*IncludeNode*" -and $readme -like "*IncludeWebView2*") "README includes runtime idle CPU/resource measurement command" "README missing runtime idle CPU/resource measurement command"
         Add-CheckFromCondition "readme runtime cpu scenario matrix" ($readme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $readme -like "*startup-open*" -and $readme -like "*runtime-started*" -and $readme -like "*dashboard-open*" -and $readme -like "*desktop-open*" -and $readme -like "*post-route*" -and $readme -like "*RunRouteProbe*" -and $readme -like "*.local-build\runtime-cpu-scenarios\*" -and $readme -like "*cpu_attribution*" -and $readme -like "*top_processes*" -and $readme -like "*process_counts_by_subrole*" -and $readme -like "*runtime_cpu_subrole_contract_ok*" -and $readme -like "*bridge_runtime*" -and $readme -like "*desktop_shell*") "README includes runtime CPU scenario matrix command and PID/role/subrole attribution contract" "README missing runtime CPU scenario matrix command or CPU subrole attribution contract"
+        Add-CheckFromCondition "readme route reachability diagnostic" ($readme -like "*RouteReachabilityTarget*" -and $readme -like "*musu.route_reachability_diagnostic.v1*" -and $readme -like "*.local-build\route-diagnostics\*" -and $readme -like "*does not replace Gate C*") "README includes second-PC route reachability diagnostic boundary" "README missing route reachability diagnostic boundary"
         Add-CheckFromCondition "readme process ownership audit" ($readme -like "*audit-musu-process-ownership.ps1*" -and $readme -like "*process_ownership_verified=true*" -and $readme -like "*bridge registry PID*") "README includes process ownership audit gate" "README missing process ownership audit gate"
         Add-CheckFromCondition "readme packaged runtime repair" ($readme -like "*repair-packaged-local-runtime-state.ps1*" -and $readme -like "*musu.packaged_local_runtime_repair.v1*" -and $readme -like "*StopRepoOrphanHelpers*") "README includes packaged local runtime repair command" "README missing packaged local runtime repair command"
         Add-CheckFromCondition "readme process attribution summary" ($readme -like "*show-musu-process-attribution.ps1*" -and $readme -like "*machine-wide*" -and $readme -like "*MUSU-owned*") "README explains Node/WebView2 process attribution summary" "README missing process attribution summary"
@@ -305,9 +311,9 @@ try {
         $returnImporterScript = Get-Content -LiteralPath $returnImporterScriptPath -Raw
         Add-CheckFromCondition `
             "second pc return importer safety" `
-            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*" -and $returnImporterScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $returnImporterScript -like "*runtime_cpu_subrole_contract_ok*" -and $returnImporterScript -like "*process_counts_by_subrole*" -and $returnImporterScript -like "*bridge_runtime*" -and $returnImporterScript -like "*desktop_shell*") `
-            "packet second-PC return importer verifies MSIX evidence, CPU subrole evidence, and produces primary commands" `
-            "packet second-PC return importer lacks verification, CPU subrole, command, or recording support"
+            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*verify-route-reachability-diagnostic.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*" -and $returnImporterScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $returnImporterScript -like "*musu.route_reachability_diagnostic.v1*" -and $returnImporterScript -like "*route_reachability_diagnostic_verified*" -and $returnImporterScript -like "*RequireNonLocalTarget*" -and $returnImporterScript -like "*runtime_cpu_subrole_contract_ok*" -and $returnImporterScript -like "*process_counts_by_subrole*" -and $returnImporterScript -like "*bridge_runtime*" -and $returnImporterScript -like "*desktop_shell*") `
+            "packet second-PC return importer verifies MSIX evidence, route reachability diagnostics, CPU subrole evidence, and produces primary commands" `
+            "packet second-PC return importer lacks route reachability, verification, CPU subrole, command, or recording support"
     }
 
     $runtimeMatrixVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1"
@@ -535,8 +541,8 @@ try {
         $packetVerifierScript = Get-Content -LiteralPath $packetVerifierScriptPath -Raw
         Add-CheckFromCondition `
             "packet verifier release safety checks" `
-            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*readme p2p env configuration*" -and $packetVerifierScript -like "*readme external release gate recheck*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*") `
-            "packet verifier checks dirty git, process ownership, startup single-instance, MSIX, multi-device, support, and Store evidence rules" `
+            ($packetVerifierScript -like "*go no-go dirty git blocker*" -and $packetVerifierScript -like "*go no-go process ownership gate*" -and $packetVerifierScript -like "*readme process attribution summary*" -and $packetVerifierScript -like "*readme p2p env configuration*" -and $packetVerifierScript -like "*readme external release gate recheck*" -and $packetVerifierScript -like "*go no-go startup single-instance gate*" -and $packetVerifierScript -like "*multi-device verifier schema gate*" -and $packetVerifierScript -like "*msix verifier version and capture gate*" -and $packetVerifierScript -like "*support verifier version and token gate*" -and $packetVerifierScript -like "*store recorder explicit reservation timestamp*" -and $packetVerifierScript -like "*operator handoff return archive*" -and $packetVerifierScript -like "*second pc return importer safety*" -and $packetVerifierScript -like "*runtime CPU scenario matrix*" -and $packetVerifierScript -like "*route reachability diagnostic*") `
+            "packet verifier checks dirty git, process ownership, startup single-instance, route reachability diagnostics, MSIX, multi-device, support, and Store evidence rules" `
             "packet verifier does not check all release evidence rules"
     }
 
@@ -577,6 +583,8 @@ try {
                     "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
                     "scripts\windows\collect-second-pc-handoff.ps1",
                     "scripts\windows\run-second-pc-release-check.ps1",
+                    "scripts\windows\record-route-reachability-diagnostic.ps1",
+                    "scripts\windows\verify-route-reachability-diagnostic.ps1",
                     "scripts\windows\smoke-multidevice-beta.ps1",
                     "scripts\windows\verify-msix-install-evidence.ps1",
                     "scripts\windows\record-msix-install-evidence.ps1",
@@ -596,11 +604,16 @@ try {
                     ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
                     "kit contains collect-second-pc-handoff.ps1" `
                     "kit is missing collect-second-pc-handoff.ps1"
-                Add-CheckFromCondition `
-                    "kit second-PC wrapper: $($kitZip.Name)" `
-                    ($entries -contains "scripts\windows\run-second-pc-release-check.ps1") `
-                    "kit contains run-second-pc-release-check.ps1" `
-                    "kit is missing run-second-pc-release-check.ps1"
+                    Add-CheckFromCondition `
+                        "kit second-PC wrapper: $($kitZip.Name)" `
+                        ($entries -contains "scripts\windows\run-second-pc-release-check.ps1") `
+                        "kit contains run-second-pc-release-check.ps1" `
+                        "kit is missing run-second-pc-release-check.ps1"
+                    Add-CheckFromCondition `
+                        "kit route reachability tools: $($kitZip.Name)" `
+                        ($entries -contains "scripts\windows\record-route-reachability-diagnostic.ps1" -and $entries -contains "scripts\windows\verify-route-reachability-diagnostic.ps1") `
+                        "kit contains route reachability recorder/verifier" `
+                        "kit is missing route reachability recorder/verifier"
 
                 $readmeEntry = $archive.Entries | Where-Object { $_.FullName -eq "README_MULTI_DEVICE_TEST_KIT.md" } | Select-Object -First 1
                 if ($readmeEntry) {
@@ -631,6 +644,11 @@ try {
                         ($kitReadme -like "*measure-musu-runtime-cpu-scenarios.ps1*" -and $kitReadme -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $kitReadme -like "*startup-open*" -and $kitReadme -like "*runtime-started*" -and $kitReadme -like "*dashboard-open*" -and $kitReadme -like "*desktop-open*" -and $kitReadme -like "*post-route*" -and $kitReadme -like "*RunRouteProbe*" -and $kitReadme -like "*.local-build\runtime-cpu-scenarios\*" -and $kitReadme -like "*cpu_attribution*" -and $kitReadme -like "*top_processes*" -and $kitReadme -like "*process_counts_by_subrole*" -and $kitReadme -like "*runtime_cpu_subrole_contract_ok*" -and $kitReadme -like "*bridge_runtime*" -and $kitReadme -like "*desktop_shell*" -and $kitReadme -like "*webview2_helper*") `
                         "kit README explains runtime CPU scenario matrix diagnostics and PID/role/subrole attribution" `
                         "kit README does not explain runtime CPU scenario matrix diagnostics or CPU subrole attribution"
+                    Add-CheckFromCondition `
+                        "kit readme route reachability diagnostic: $($kitZip.Name)" `
+                        ($kitReadme -like "*record-route-reachability-diagnostic.ps1*" -and $kitReadme -like "*verify-route-reachability-diagnostic.ps1*" -and $kitReadme -like "*musu.route_reachability_diagnostic.v1*" -and $kitReadme -like "*.local-build\route-diagnostics\*.route-reachability-diagnostic.json*" -and $kitReadme -like "*not release-grade multi-device proof*") `
+                        "kit README explains route reachability diagnostics and non-proof boundary" `
+                        "kit README does not explain route reachability diagnostics or non-proof boundary"
                     Add-CheckFromCondition `
                         "kit readme multi-device evidence: $($kitZip.Name)" `
                         ($kitReadme -like "*smoke-multidevice-beta.ps1*" -and $kitReadme -like "*record-multidevice-evidence.ps1*" -and $kitReadme -like "*.local-build\multi-device\*.evidence.json*" -and $kitReadme -like "*musu.route_evidence.v1*" -and $kitReadme -like "*peer identity verification*") `

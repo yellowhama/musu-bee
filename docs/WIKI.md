@@ -12991,3 +12991,74 @@ diagnostic tooling index refresh`, `2780 files`, `2776 symbols`, `16843 ms`,
 `record-route-reachability-diagnostic.ps1`,
 `verify-route-reachability-diagnostic.ps1`, `RequireNonLocalTarget`,
 `case_count=90`, and `submit_http_error`.
+
+## 2026-06-07 Second-PC Route Reachability Handoff (wiki/907)
+
+Route reachability diagnostics are now wired into the second-PC operator
+handoff path.
+
+Implementation:
+
+- `run-second-pc-release-check.ps1` records
+  `musu.route_reachability_diagnostic.v1` when `-RouteReachabilityTarget` or
+  `-RuntimeCpuRouteTarget` is supplied.
+- Second-PC return zips can include
+  `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`.
+- `import-second-pc-return.ps1` copies diagnostics into the primary repo's
+  `.local-build\route-diagnostics\` evidence root.
+- Returned diagnostics are verified with
+  `verify-route-reachability-diagnostic.ps1 -RequireNonLocalTarget
+  -AllowSuccessfulReachability`.
+- Multi-device kit, final operator packet, operator action pack, and their
+  verifiers now include route reachability scripts and README/runbook checks.
+
+Product boundary:
+
+- MUSU Desktop is the local executor on each device.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback coordination, and evidence/control
+  plane.
+- MUSU.PRO does not execute local work and does not become the default payload
+  path.
+- `localhost:3001` remains optional developer/operator dashboard behavior, not
+  the packaged desktop runtime contract.
+
+Validation:
+
+- parser checks: pass
+- release verifier regression: `ok=true`, `case_count=93`,
+  `failed_case_count=0`
+
+New regression cases:
+
+- `second-PC release check returns route reachability diagnostics`
+- `second-PC return import verifies route reachability diagnostics`
+- `second-PC kit includes route reachability diagnostic handoff`
+
+Search terms should include `GOAL v732`, `wiki/907`, `second-PC route
+reachability handoff`, `RouteReachabilityTarget`,
+`route_reachability_diagnostic_verified`,
+`musu.route_reachability_diagnostic.v1`, `.local-build\route-diagnostics`,
+`case_count=93`, `MUSU Desktop local executor`, and `MUSU.PRO control plane`.
+
+## 2026-06-07 Second-PC Route Reachability Handoff Index Refresh (wiki/908)
+
+MUSU local indexer was refreshed after wiki/907 and GOAL v732.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2784 files`
+- `2776 symbols`
+- `15188 ms`
+
+Indexed context includes `run-second-pc-release-check.ps1`,
+`import-second-pc-return.ps1`, multi-device kit/operator packet/action-pack
+handoff updates, route reachability source-contract regression
+`case_count=93`, canonical report, next-step plan, beta checklist, P2P
+control-plane docs, MUSU.PRO P2P spec, runtime stabilization spec, network
+boundary spec, GOAL, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v733`, `wiki/908`, `second-PC route
+reachability handoff index refresh`, `2784 files`, `2776 symbols`, `15188 ms`,
+`RouteReachabilityTarget`, `route_reachability_diagnostic_verified`,
+`musu.route_reachability_diagnostic.v1`, and `case_count=93`.

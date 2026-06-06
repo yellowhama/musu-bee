@@ -5,6 +5,7 @@ param(
     [string]$ExpectedTarget,
     [int]$MaxAgeDays = 30,
     [bool]$RequireFailedReachability = $true,
+    [switch]$AllowSuccessfulReachability,
     [switch]$RequireNonLocalTarget,
     [switch]$Json
 )
@@ -203,6 +204,10 @@ $recordedAt = Try-ParseDateTimeOffset -Text $recordedAtText
 $now = [datetimeoffset]::Now
 $futureTolerance = [timespan]::FromMinutes(5)
 $operatorMachine = Get-StringProperty -Object $evidence -Name "operator_machine"
+$requireFailedReachabilityEffective = [bool]$RequireFailedReachability
+if ($AllowSuccessfulReachability) {
+    $requireFailedReachabilityEffective = $false
+}
 
 $status = if ($evidence.PSObject.Properties["status"]) { $evidence.status } else { $null }
 $routeExplain = if ($evidence.PSObject.Properties["route_explain"]) { $evidence.route_explain } else { $null }
@@ -260,7 +265,7 @@ Add-CheckFromCondition "route attempt schema" ((Get-StringProperty -Object $rout
 Add-CheckFromCondition "route attempt target" ((Get-StringProperty -Object $routeAttempt -Name "target_node_id") -eq $requestedTarget -or [string]::IsNullOrWhiteSpace($requestedTarget)) "route attempt target matches route explain" "route attempt target does not match route explain"
 Add-CheckFromCondition "route attempt candidate address" ($routeAttemptCandidateAddr -eq $selectedAddr -or [string]::IsNullOrWhiteSpace($selectedAddr)) "route attempt candidate address matches selected candidate" "route attempt candidate address '$routeAttemptCandidateAddr' does not match selected candidate '$selectedAddr'"
 
-if ($RequireFailedReachability) {
+if ($requireFailedReachabilityEffective) {
     $routeAttemptFailed = ((Get-StringProperty -Object $routeAttempt -Name "result") -eq "failed")
     $failureClass = Get-StringProperty -Object $routeAttempt -Name "failure_class"
     $tcpFailed = -not (Get-BoolProperty -Object $networkProbe -Name "tcp_test_succeeded")
@@ -284,7 +289,8 @@ $result = [pscustomobject]@{
     evidence_path = (Resolve-Path -LiteralPath $EvidencePath).Path
     expected_version = $ExpectedVersion
     expected_target = $ExpectedTarget
-    require_failed_reachability = [bool]$RequireFailedReachability
+    require_failed_reachability = [bool]$requireFailedReachabilityEffective
+    allow_successful_reachability = [bool]$AllowSuccessfulReachability
     require_non_local_target = [bool]$RequireNonLocalTarget
     fail_count = [int]$failedChecks.Count
     checks = $checks.ToArray()

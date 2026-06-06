@@ -17,6 +17,12 @@ param(
     [string]$RuntimeCpuRoutePrompt,
     [int]$RuntimeCpuRouteWaitTimeoutSec = 180,
     [switch]$AllowFailedRuntimeCpuRouteProbe,
+    [string]$RouteReachabilityTarget,
+    [string]$RouteReachabilityPrompt,
+    [int]$RouteReachabilityTcpTimeoutMs = 3000,
+    [switch]$SkipRouteReachabilityDiagnostic,
+    [switch]$SkipRouteReachabilityRouteAttempt,
+    [switch]$FailOnRouteReachabilityDiagnostic,
     [switch]$SkipRuntimeCpuScenarioMatrix,
     [switch]$FailOnRuntimeCpuScenarioMatrix,
     [switch]$NoReturnZip,
@@ -45,12 +51,28 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "machine" } else { $env:COMPUTERNAME }
 $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
+$routeReachabilityTargetEffective = if (-not [string]::IsNullOrWhiteSpace($RouteReachabilityTarget)) {
+    $RouteReachabilityTarget
+}
+elseif (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) {
+    $RuntimeCpuRouteTarget
+}
+else {
+    $null
+}
+$safeRouteReachabilityTarget = if ([string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) {
+    "target"
+}
+else {
+    $routeReachabilityTargetEffective -replace "[^A-Za-z0-9._-]", "_"
+}
 $summaryPath = Join-Path $OutputRoot "$stamp-$safeMachine.release-check.json"
 $msixEvidencePath = Join-Path $repoRoot ".local-build\msix-install\$stamp-$safeMachine.evidence.json"
 $handoffPath = Join-Path $repoRoot ".local-build\second-pc-handoff\$stamp-$safeMachine.handoff.json"
 $msixLegacyConflictsPath = Join-Path $repoRoot ".local-build\msix-legacy-conflicts\$stamp-$safeMachine.msix-legacy-conflicts.json"
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
+$routeReachabilityDiagnosticPath = Join-Path $repoRoot ".local-build\route-diagnostics\$stamp-$safeMachine-$safeRouteReachabilityTarget.route-reachability-diagnostic.json"
 $processAttributionSummaryPath = Join-Path $repoRoot ".local-build\process-attribution\$stamp-$safeMachine.process-attribution-summary.json"
 $runtimeCleanupReportPath = Join-Path $repoRoot ".local-build\runtime-cleanup\$stamp-$safeMachine.runtime-cleanup.json"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
@@ -66,6 +88,9 @@ $runtimeCpuScenarioMatrix = $null
 $runtimeCpuScenarioMatrixPath = $null
 $runtimeCpuScenarioMatrixError = $null
 $runtimeCpuScenarioMatrixVerification = $null
+$routeReachabilityDiagnostic = $null
+$routeReachabilityDiagnosticError = $null
+$routeReachabilityDiagnosticVerification = $null
 $processAttributionSummary = $null
 $processAttributionError = $null
 $runtimeCleanup = $null
@@ -395,6 +420,80 @@ try {
         -Arguments @("-OutputPath", $handoffPath, "-CommandTimeoutSec", ([string]$CommandTimeoutSec), "-Json") `
         -ParseJson
 
+    if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) {
+        try {
+            $routeReachabilityArgs = @(
+                "-Target", $routeReachabilityTargetEffective,
+                "-OutputPath", $routeReachabilityDiagnosticPath,
+                "-TcpTimeoutMs", ([string]$RouteReachabilityTcpTimeoutMs),
+                "-Json"
+            )
+            if (-not [string]::IsNullOrWhiteSpace($RouteReachabilityPrompt)) {
+                $routeReachabilityArgs += @("-RoutePrompt", $RouteReachabilityPrompt)
+            }
+            if ($SkipRouteReachabilityRouteAttempt) {
+                $routeReachabilityArgs += "-SkipRouteAttempt"
+            }
+
+            $routeReachabilityDiagnostic = Invoke-ReleaseStep `
+                -Name "record route reachability diagnostic" `
+                -ScriptName "record-route-reachability-diagnostic.ps1" `
+                -Arguments $routeReachabilityArgs `
+                -ParseJson
+
+            $verifyRouteReachabilityScript = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
+            if (Test-Path -LiteralPath $verifyRouteReachabilityScript) {
+                $startedAt = Get-Date
+                $verifyRouteReachabilityOutput = & powershell `
+                    -NoProfile `
+                    -ExecutionPolicy Bypass `
+                    -File $verifyRouteReachabilityScript `
+                    -EvidencePath $routeReachabilityDiagnosticPath `
+                    -ExpectedVersion $version `
+                    -ExpectedTarget $routeReachabilityTargetEffective `
+                    -RequireNonLocalTarget `
+                    -AllowSuccessfulReachability `
+                    -Json 2>&1
+                $verifyRouteReachabilityExitCode = $LASTEXITCODE
+                $verifyRouteReachabilityRaw = ($verifyRouteReachabilityOutput | Out-String).Trim()
+                $verifyRouteReachabilityParsed = $null
+                if (-not [string]::IsNullOrWhiteSpace($verifyRouteReachabilityRaw)) {
+                    try {
+                        $verifyRouteReachabilityParsed = $verifyRouteReachabilityRaw | ConvertFrom-Json
+                    }
+                    catch {
+                        $verifyRouteReachabilityParsed = [pscustomobject]@{
+                            ok = $false
+                            parse_error = $_.Exception.Message
+                            raw = $verifyRouteReachabilityRaw
+                        }
+                    }
+                }
+                $steps.Add([pscustomobject]@{
+                    name = "verify route reachability diagnostic"
+                    script = "verify-route-reachability-diagnostic.ps1"
+                    exit_code = $verifyRouteReachabilityExitCode
+                    started_at = $startedAt.ToString("o")
+                    completed_at = (Get-Date).ToString("o")
+                    output = $verifyRouteReachabilityRaw
+                }) | Out-Null
+                $routeReachabilityDiagnosticVerification = $verifyRouteReachabilityParsed
+                if ($FailOnRouteReachabilityDiagnostic -and $verifyRouteReachabilityExitCode -ne 0) {
+                    throw "Route reachability diagnostic verification failed with exit code ${verifyRouteReachabilityExitCode}.`n$verifyRouteReachabilityRaw"
+                }
+            }
+            elseif ($FailOnRouteReachabilityDiagnostic) {
+                throw "Route reachability diagnostic verifier is missing: $verifyRouteReachabilityScript"
+            }
+        }
+        catch {
+            $routeReachabilityDiagnosticError = $_.Exception.Message
+            if ($FailOnRouteReachabilityDiagnostic) {
+                throw
+            }
+        }
+    }
+
     if (-not $SkipRuntimeIdleCpu) {
         Start-MusuDesktopApp
         $runtimeIdleCpu = Invoke-ReleaseStep `
@@ -573,6 +672,7 @@ $returnFiles = @(
     $msixLegacyConflictsPath,
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $runtimeCpuScenarioFiles,
+    $(if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath }),
     $processAttributionSummaryPath,
     $runtimeCleanupReportPath,
     $summaryPath
@@ -629,6 +729,16 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_verified = if ($SkipRuntimeCpuScenarioMatrix) { $null } elseif ($runtimeCpuScenarioMatrixVerification) { [bool]$runtimeCpuScenarioMatrixVerification.ok } else { $false }
     runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
     runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
+    route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $null } else { $routeReachabilityTargetEffective }
+    route_reachability_diagnostic_required = [bool](-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective))
+    route_reachability_diagnostic_path = if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath } else { $null }
+    route_reachability_diagnostic_ok = if ($routeReachabilityDiagnostic) { [bool]$routeReachabilityDiagnostic.conclusion.local_musu_desktop_runtime_healthy } else { $null }
+    route_reachability_diagnostic_verified = if ($SkipRouteReachabilityDiagnostic -or [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $null } elseif ($routeReachabilityDiagnosticVerification) { [bool]$routeReachabilityDiagnosticVerification.ok } else { $false }
+    route_reachability_diagnostic_verification = $routeReachabilityDiagnosticVerification
+    route_reachability_diagnostic_error = $routeReachabilityDiagnosticError
+    route_reachability_tcp_test_succeeded = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["network_probe"]) { $routeReachabilityDiagnostic.network_probe.tcp_test_succeeded } else { $null }
+    route_reachability_route_attempt_result = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["route_attempt"] -and $routeReachabilityDiagnostic.route_attempt) { [string]$routeReachabilityDiagnostic.route_attempt.result } else { $null }
+    route_reachability_successful_multi_device_route_proof = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["conclusion"]) { [bool]$routeReachabilityDiagnostic.conclusion.successful_multi_device_route_proof } else { $null }
     runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
@@ -658,7 +768,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $processAttributionSummaryPath, $runtimeCleanupReportPath, $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $(if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath }), $processAttributionSummaryPath, $runtimeCleanupReportPath, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -686,6 +796,8 @@ else {
     "msix_legacy_conflicts_path: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not captured>' })"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
+    "route_reachability_diagnostic_path: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } elseif ($SkipRouteReachabilityDiagnostic -or [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { '<skipped>' } else { '<not captured>' })"
+    "route_reachability_diagnostic_verified: $(if ($null -ne $result.route_reachability_diagnostic_verified) { $result.route_reachability_diagnostic_verified } else { '<skipped>' })"
     "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
     if ($result.runtime_idle_cpu_subrole_summary) {
         $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole
@@ -722,6 +834,10 @@ else {
     if ($result.runtime_cleanup_error) {
         ""
         "runtime_cleanup_error: $($result.runtime_cleanup_error)"
+    }
+    if ($result.route_reachability_diagnostic_error) {
+        ""
+        "route_reachability_diagnostic_error: $($result.route_reachability_diagnostic_error)"
     }
     if ($result.msix_legacy_conflicts_error) {
         ""

@@ -271,6 +271,7 @@ $sourceHandoff = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" 
 $sourceMsixLegacyConflicts = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.msix_legacy_conflicts.v1" -Label "MSIX legacy conflict summary" -Optional
 $sourceRuntimeIdleCpuEvidence = Resolve-LatestRuntimeIdleReleaseEvidence -Root $extractRoot -Optional
 $sourceRuntimeCpuScenarioMatrix = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_cpu_scenario_matrix.v1" -Label "runtime CPU scenario matrix" -Optional
+$sourceRouteReachabilityDiagnostic = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.route_reachability_diagnostic.v1" -Label "route reachability diagnostic" -Optional
 $sourceProcessAttributionSummary = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.process_attribution_summary.v1" -Label "process attribution summary" -Optional
 $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release-check.json" -File -Recurse -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending |
@@ -292,6 +293,12 @@ else {
 }
 $canonicalRuntimeCpuScenarioMatrix = if ($sourceRuntimeCpuScenarioMatrix) {
     Copy-IntoRoot -SourcePath $sourceRuntimeCpuScenarioMatrix -TargetRoot (Join-Path $repoRoot ".local-build\runtime-cpu-scenarios")
+}
+else {
+    $null
+}
+$canonicalRouteReachabilityDiagnostic = if ($sourceRouteReachabilityDiagnostic) {
+    Copy-IntoRoot -SourcePath $sourceRouteReachabilityDiagnostic -TargetRoot (Join-Path $repoRoot ".local-build\route-diagnostics")
 }
 else {
     $null
@@ -320,6 +327,7 @@ if (-not [bool]$handoff.ok) {
     throw "Handoff file reports ok=false: $canonicalHandoff"
 }
 
+$releaseCheck = $null
 if ($canonicalReleaseCheck) {
     $releaseCheck = Get-Content -LiteralPath $canonicalReleaseCheck -Raw | ConvertFrom-Json
     if ((Get-JsonPropertyString -Object $releaseCheck -Name "schema") -ne "musu.second_pc_release_check.v1") {
@@ -348,6 +356,44 @@ if ($LASTEXITCODE -ne 0) {
 }
 $returnCard = $returnCardText | ConvertFrom-Json
 
+$routeReachabilityDiagnosticVerification = $null
+$routeReachabilityDiagnosticVerificationError = $null
+$routeReachabilityTarget = $null
+$routeReachabilityDiagnosticVerified = $false
+if ($canonicalRouteReachabilityDiagnostic) {
+    try {
+        $routeReachabilityDiagnosticJson = Get-Content -LiteralPath $canonicalRouteReachabilityDiagnostic -Raw | ConvertFrom-Json
+        if ($routeReachabilityDiagnosticJson.PSObject.Properties["route_explain"]) {
+            $routeReachabilityTarget = Get-JsonPropertyString -Object $routeReachabilityDiagnosticJson.route_explain -Name "requested_target"
+        }
+        $routeReachabilityVerifyArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"),
+            "-EvidencePath", $canonicalRouteReachabilityDiagnostic,
+            "-ExpectedVersion", $ExpectedVersion,
+            "-RequireNonLocalTarget",
+            "-AllowSuccessfulReachability",
+            "-Json"
+        )
+        if (-not [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) {
+            $routeReachabilityVerifyArgs += @("-ExpectedTarget", $routeReachabilityTarget)
+        }
+        $routeReachabilityVerifyOutput = & powershell @routeReachabilityVerifyArgs 2>&1
+        $routeReachabilityVerifyText = ($routeReachabilityVerifyOutput | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            $routeReachabilityDiagnosticVerificationError = "Route reachability diagnostic did not verify.`n$routeReachabilityVerifyText"
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($routeReachabilityVerifyText)) {
+            $routeReachabilityDiagnosticVerification = $routeReachabilityVerifyText | ConvertFrom-Json
+            $routeReachabilityDiagnosticVerified = [bool]$routeReachabilityDiagnosticVerification.ok
+        }
+    }
+    catch {
+        $routeReachabilityDiagnosticVerificationError = $_.Exception.Message
+    }
+}
+
 $recordMsixResult = $null
 if ($RecordMsixInstall) {
     $recordText = (& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "record-msix-install-evidence.ps1") -EvidencePath $canonicalMsixEvidence -Version $ExpectedVersion -Json 2>&1 | Out-String).Trim()
@@ -361,6 +407,7 @@ $releaseGateEvidenceIssues = New-Object System.Collections.Generic.List[string]
 $runtimeIdleCpuSubroleSummary = $null
 $runtimeCpuScenarioSubroleSummary = @()
 $runtimeCpuSubroleContractOk = $false
+$routeReachabilityDiagnosticRequired = $false
 if (-not $canonicalRuntimeIdleCpuEvidence) {
     $releaseGateEvidenceIssues.Add("missing_runtime_idle_cpu_evidence") | Out-Null
 }
@@ -442,6 +489,26 @@ else {
     elseif (-not [bool]$releaseCheck.return_zip_ok) {
         $releaseGateEvidenceIssues.Add("release_check_return_zip_not_ok") | Out-Null
     }
+    if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"] -and [bool]$releaseCheck.route_reachability_diagnostic_required) {
+        $routeReachabilityDiagnosticRequired = $true
+        if (-not $releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"]) {
+            $releaseGateEvidenceIssues.Add("release_check_route_reachability_diagnostic_verified_missing") | Out-Null
+        }
+        elseif (-not [bool]$releaseCheck.route_reachability_diagnostic_verified) {
+            $releaseGateEvidenceIssues.Add("release_check_route_reachability_diagnostic_not_verified") | Out-Null
+        }
+    }
+}
+if ($routeReachabilityDiagnosticRequired) {
+    if (-not $canonicalRouteReachabilityDiagnostic) {
+        $releaseGateEvidenceIssues.Add("missing_route_reachability_diagnostic") | Out-Null
+    }
+    elseif (-not $routeReachabilityDiagnosticVerified) {
+        $releaseGateEvidenceIssues.Add("route_reachability_diagnostic_not_verified") | Out-Null
+    }
+    if ($routeReachabilityDiagnosticVerificationError) {
+        $releaseGateEvidenceIssues.Add("route_reachability_diagnostic_verification_error:$routeReachabilityDiagnosticVerificationError") | Out-Null
+    }
 }
 $runtimeCpuSubroleContractOk = (
     ($runtimeIdleCpuSubroleSummary -and [bool]$runtimeIdleCpuSubroleSummary.ok) -and
@@ -464,6 +531,12 @@ $result = [pscustomobject]@{
     runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
+    route_reachability_diagnostic_path = $canonicalRouteReachabilityDiagnostic
+    route_reachability_target = $routeReachabilityTarget
+    route_reachability_diagnostic_required = [bool]$routeReachabilityDiagnosticRequired
+    route_reachability_diagnostic_verified = [bool]$routeReachabilityDiagnosticVerified
+    route_reachability_diagnostic_verification = $routeReachabilityDiagnosticVerification
+    route_reachability_diagnostic_verification_error = $routeReachabilityDiagnosticVerificationError
     process_attribution_summary_path = $canonicalProcessAttributionSummary
     release_check_path = $canonicalReleaseCheck
     remote_name = [string]$returnCard.remote_name
@@ -491,6 +564,8 @@ else {
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
     "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
+    "route_reachability_diagnostic: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } else { '<not present>' })"
+    "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"
     if ($result.runtime_idle_cpu_subrole_summary) {
         $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole
         "runtime_idle_cpu_subroles: bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"

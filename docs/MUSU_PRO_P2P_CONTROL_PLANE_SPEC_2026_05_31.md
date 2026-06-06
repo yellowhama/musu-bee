@@ -1930,3 +1930,31 @@ The verifier rejects:
 
 This keeps MUSU.PRO as the control plane and keeps failed manual LAN/HTTP
 evidence out of the successful P2P release path.
+
+## 2026-06-07 second-PC route reachability handoff contract
+
+Second-PC operator handoff now carries route reachability diagnostics when the
+operator supplies a target peer.
+
+Normative behavior:
+
+- `run-second-pc-release-check.ps1 -RouteReachabilityTarget <peer>` records
+  `musu.route_reachability_diagnostic.v1`.
+- If `-RouteReachabilityTarget` is omitted, the wrapper may use
+  `-RuntimeCpuRouteTarget`; if neither exists, route reachability is skipped so
+  one-machine install/handoff smoke remains usable.
+- Returned zips may include
+  `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`.
+- `import-second-pc-return.ps1` must verify returned diagnostics with
+  `-RequireNonLocalTarget` when the release-check JSON marks them required.
+
+Product boundary:
+
+- MUSU Desktop is the local executor on each device.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback coordination, and evidence/control
+  plane.
+- MUSU.PRO does not become the default payload path and does not execute local
+  work.
+- Successful release still requires release-grade route evidence after the
+  reachability diagnostic is healthy.
