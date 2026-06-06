@@ -11254,3 +11254,58 @@ clean-start evidence index refresh`, `2686 files`, `2776 symbols`, `67224 ms`,
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_171403`, `localhost:3001 is not the
 packaged desktop contract`, `MUSU Desktop local executor`, and `MUSU.PRO remote
 input control plane`.
+
+## 2026-06-06 Current Targeted Second-PC Route-Attempt CPU Evidence (wiki/859)
+
+Current HEAD `0fb31ddff5fef4704104ca364fff92632627e4e3` now has fresh targeted
+`HUGH-MAIN` route-attempt CPU evidence.
+
+Evidence:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-173706-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-173706-HUGH_SECOND.target-route.verification.json`
+
+Result:
+
+- verifier `ok=true`, `fail_count=0`
+- scenario: `post-route`
+- target: `HUGH-MAIN`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`
+- route result: `ok=false`, `failure_allowed=true`
+- failure: request to `http://192.168.1.192:8949/api/tasks/delegate` timed out
+- post-route CPU: MUSU `0.03`, Node `0`, WebView2 `0.03`
+- working set: `356.6MB`
+- hot process count: `0`
+
+This is not successful two-machine route proof. It proves the current packaged
+desktop remains CPU-budget-safe after a targeted failed route attempt to the
+known second-PC peer. Real second-PC multi-device, second-PC CPU/matrix, hosted
+P2P relay proof, support mailbox, and Store gates remain open.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_TARGETED_SECOND_PC_ROUTE_ATTEMPT_CPU_2026_06_06.md`
+
+## 2026-06-06 Current Targeted Second-PC Route-Attempt CPU Index Refresh (wiki/860)
+
+MUSU local indexer was refreshed after wiki/859 and GOAL v684.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2691 files`
+- `2776 symbols`
+- `56299 ms`
+
+Indexed context includes targeted `HUGH-MAIN` route-attempt CPU evidence
+`20260606-173706-HUGH_SECOND`, route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`, canonical report, BETA
+checklist, WIKI/WIKI_INDEX, GOAL v684, and CoS memory.
+
+Search terms should include `GOAL v685`, `wiki/860`, `targeted second-PC
+route-attempt CPU index refresh`, `2691 files`, `2776 symbols`, `56299 ms`,
+`20260606-173706-HUGH_SECOND`, `HUGH-MAIN`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`, `failure_allowed=true`,
+`WebView2 0.03`, `hot process count 0`, `MUSU Desktop local executor`, and
+`MUSU.PRO remote input control plane`.

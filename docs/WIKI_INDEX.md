@@ -5589,4 +5589,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `localhost:3001 is not the packaged desktop contract`, `MUSU Desktop local
   executor`, and `MUSU.PRO remote input control plane`.
 
+- 2026-06-06 current targeted second-PC route-attempt CPU evidence:
+  `RELEASE_1_15_0_RC1_CURRENT_TARGETED_SECOND_PC_ROUTE_ATTEMPT_CPU_2026_06_06.md`
+  (wiki/859) records fresh current-HEAD targeted `HUGH-MAIN` route-attempt CPU
+  evidence. Search terms should include `GOAL v684`, `wiki/859`,
+  `20260606-173706-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`, `HUGH-MAIN`,
+  `192.168.1.192:8949`, `failure_allowed=true`, `route_ok=false`,
+  `post-route CPU`, `WebView2 0.03`, `hot process count 0`, `MUSU Desktop
+  local executor`, and `MUSU.PRO remote input control plane`.
+
+- 2026-06-06 current targeted second-PC route-attempt CPU index refresh:
+  wiki/860 records the MUSU local index refresh after wiki/859 and GOAL v684.
+  Search terms should include `GOAL v685`, `wiki/860`, `2691 files`,
+  `2776 symbols`, `56299 ms`, `targeted second-PC route-attempt CPU index
+  refresh`, `20260606-173706-HUGH_SECOND`, `HUGH-MAIN`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`, `failure_allowed=true`,
+  `WebView2 0.03`, `hot process count 0`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

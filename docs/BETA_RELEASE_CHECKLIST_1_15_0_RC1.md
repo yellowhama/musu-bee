@@ -8156,3 +8156,28 @@ Index refresh:
 - MUSU local indexer:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2686 files`, `2776 symbols`, `67224 ms`
+
+## 2026-06-06 current targeted second-PC route-attempt CPU evidence
+
+Current HEAD now has fresh targeted route-attempt CPU evidence for `HUGH-MAIN`:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-173706-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260606-173706-HUGH_SECOND.target-route.verification.json`
+- verifier: `ok=true`, `fail_count=0`
+- route token: `MUSU_CPU_SCENARIO_ROUTE_OK_20260606_173706`
+- route result: `ok=false`, `failure_allowed=true`
+- failure: timeout to `http://192.168.1.192:8949/api/tasks/delegate`
+- post-route CPU: MUSU `0.03`, Node `0`, WebView2 `0.03`
+- working set: `356.6MB`
+- hot process count: `0`
+
+This is not successful two-machine proof. It only proves current HUGH_SECOND
+stays resource-budget-safe after a targeted failed second-PC route attempt.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2691 files`, `2776 symbols`, `56299 ms`
