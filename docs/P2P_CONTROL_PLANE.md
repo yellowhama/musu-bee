@@ -373,3 +373,27 @@ The verifier reports `relay_route_metadata_required_count`,
 
 This is evidence hardening only. It does not complete release relay runtime or
 second-PC proof.
+
+## 2026-06-06 route metadata status surface
+
+Route metadata counts are now part of the release status contract, not only the
+hosted verifier contract.
+
+Status surfaces must carry:
+
+- `relay_route_metadata_required_count`
+- `relay_route_metadata_valid_count`
+- `relay_route_metadata_invalid_count`
+- `p2p_relay_route_metadata_valid_count` in release handoff summaries
+
+Release interpretation:
+
+- hosted P2P No-Go diagnostics must name missing route metadata separately
+  from missing route transport proof or payload delivery proof;
+- go/no-go must require `relay_route_metadata_valid_count > 0` alongside route
+  evidence count, route transport proof count, and payload delivery proof
+  count;
+- MUSU.PRO still does not execute local work and must not become the default
+  payload path;
+- the local MUSU runtime must still produce the route attempt, route metadata,
+  `quic_relay_tunnel` transport proof, and payload delivery proof.

@@ -5874,4 +5874,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   refresh`, `RejectLocalPostRouteTarget`,
   `runtime_cpu_second_pc_route_attempt`, and `case_count=82`.
 
+- 2026-06-06 P2P route metadata status surface:
+  `RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_STATUS_SURFACE_2026_06_06.md`
+  (wiki/889) records release status propagation for hosted route metadata
+  counts. Search terms should include `GOAL v714`, `wiki/889`,
+  `p2p_relay_route_metadata_valid_count`,
+  `live_evidence_relay_route_metadata_missing`,
+  `p2p_relay_route_metadata_missing`,
+  `relay_route_metadata_valid_count > 0`, and `case_count=83`.
+
+- 2026-06-06 P2P route metadata status surface index refresh:
+  wiki/890 records the MUSU local index refresh after wiki/889 and GOAL v714.
+  Search terms should include `GOAL v715`, `wiki/890`, `2745 files`,
+  `2776 symbols`, `15800 ms`, `P2P route metadata status surface index
+  refresh`, `p2p_relay_route_metadata_valid_count`,
+  `live_evidence_relay_route_metadata_missing`,
+  `p2p_relay_route_metadata_missing`, and `case_count=83`.
+
 **End of WIKI_INDEX.md.**

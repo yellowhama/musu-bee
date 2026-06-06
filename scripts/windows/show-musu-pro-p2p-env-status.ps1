@@ -343,6 +343,9 @@ $evidenceSummary = [pscustomobject]@{
     relay_leases_transport_wired = $false
     relay_route_evidence_ok = $false
     relay_route_evidence_count = -1
+    relay_route_metadata_valid_count = 0
+    relay_route_metadata_required_count = 0
+    relay_route_metadata_invalid_count = 0
     relay_route_transport_proof_valid_count = 0
     relay_route_transport_proof_required_count = 0
     relay_route_transport_proof_invalid_count = 0
@@ -413,6 +416,9 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
     )
     $relayPayloadTransportProven = Get-BoolProperty -Object $relayRouteEvidence -Name "relay_transport_proven"
     $relayRouteEvidenceCount = if ($relayRouteEvidence -and $relayRouteEvidence.PSObject.Properties["count"]) { [int]$relayRouteEvidence.count } else { -1 }
+    $relayRouteMetadataValidCount = if ($verification -and $verification.PSObject.Properties["relay_route_metadata_valid_count"]) { [int]$verification.relay_route_metadata_valid_count } else { 0 }
+    $relayRouteMetadataRequiredCount = if ($verification -and $verification.PSObject.Properties["relay_route_metadata_required_count"]) { [int]$verification.relay_route_metadata_required_count } else { 0 }
+    $relayRouteMetadataInvalidCount = if ($verification -and $verification.PSObject.Properties["relay_route_metadata_invalid_count"]) { [int]$verification.relay_route_metadata_invalid_count } else { 0 }
     $relayRouteTransportProofValidCount = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_valid_count"]) { [int]$verification.relay_route_transport_proof_valid_count } else { 0 }
     $relayRouteTransportProofRequiredCount = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_required_count"]) { [int]$verification.relay_route_transport_proof_required_count } else { 0 }
     $relayRouteTransportProofInvalidCount = if ($verification -and $verification.PSObject.Properties["relay_route_transport_proof_invalid_count"]) { [int]$verification.relay_route_transport_proof_invalid_count } else { 0 }
@@ -435,6 +441,9 @@ if (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and (Test-Path -LiteralPat
         relay_leases_transport_wired = $relayLeasesTransportWired
         relay_route_evidence_ok = Get-BoolProperty -Object $relayRouteEvidence -Name "ok"
         relay_route_evidence_count = $relayRouteEvidenceCount
+        relay_route_metadata_valid_count = $relayRouteMetadataValidCount
+        relay_route_metadata_required_count = $relayRouteMetadataRequiredCount
+        relay_route_metadata_invalid_count = $relayRouteMetadataInvalidCount
         relay_route_transport_proof_valid_count = $relayRouteTransportProofValidCount
         relay_route_transport_proof_required_count = $relayRouteTransportProofRequiredCount
         relay_route_transport_proof_invalid_count = $relayRouteTransportProofInvalidCount
@@ -517,6 +526,9 @@ if ($evidenceSummary.checked -and -not $evidenceSummary.relay_transport_wired) {
 if ($evidenceSummary.checked -and -not $evidenceSummary.relay_payload_transport_proven) {
     $blockers.Add("live_evidence_relay_route_not_proven") | Out-Null
 }
+if ($evidenceSummary.checked -and $evidenceSummary.relay_route_metadata_valid_count -le 0) {
+    $blockers.Add("live_evidence_relay_route_metadata_missing") | Out-Null
+}
 if ($evidenceSummary.checked -and $evidenceSummary.relay_route_transport_proof_valid_count -le 0) {
     $blockers.Add("live_evidence_relay_route_transport_proof_missing") | Out-Null
 }
@@ -581,6 +593,10 @@ if ($blockers -contains "live_evidence_relay_route_not_proven") {
     $nextSteps.Add("Record owner-scoped release-grade relay route evidence with route_kind=relay, result=success, payload_transited_musu_infra=true, and release_grade=true; env flags and relay leases alone are not sufficient.") | Out-Null
     $nextSteps.Add("Rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_route_evidence.relay_transport_proven=true with count > 0.") | Out-Null
 }
+if ($blockers -contains "live_evidence_relay_route_metadata_missing") {
+    $nextSteps.Add("Attach and verify per-record route metadata in returned owner-scoped relay route evidence; each release route record must include candidate_addr, handshake_ms, total_attempt_ms, verified peer identity, quic_tls_1_3 encryption, and transport_verified_by=musu_quic_tls_transport.") | Out-Null
+    $nextSteps.Add("Rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_route_metadata_valid_count > 0.") | Out-Null
+}
 if ($blockers -contains "live_evidence_relay_route_transport_proof_missing") {
     $nextSteps.Add("Attach and verify per-record relay_transport_proof in returned owner-scoped relay route evidence; the proof must bind session_id, lease_id, source_node_id, target_node_id, tunnel_id, quic_relay_tunnel, and quic_tls_1_3.") | Out-Null
     $nextSteps.Add("Rerun scripts\windows\record-p2p-control-plane-evidence.ps1 and verify relay_route_transport_proof_valid_count > 0.") | Out-Null
@@ -641,6 +657,7 @@ else {
     "source release relay connect placeholder active: $($result.source.release_connect_fail_closed_placeholder_active)"
     "source release payload endpoint queue-only legacy alias: $($result.source.release_payload_endpoint_queue_only)"
     "evidence: $($result.evidence.path)"
+    "evidence relay route metadata valid count: $($result.evidence.relay_route_metadata_valid_count)"
     "evidence relay route transport proof valid count: $($result.evidence.relay_route_transport_proof_valid_count)"
     "evidence relay payload delivery proof valid count: $($result.evidence.relay_payload_delivery_proof_valid_count)"
     "blockers: $(@($result.blockers) -join ', ')"

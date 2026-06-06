@@ -529,6 +529,8 @@ $p2pRelayPayloadEndpointWired = (
 $p2pRouteEvidenceCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_evidence_count" -Default 0
 $p2pRouteEvidenceCountFromDocument = Get-IntProperty -Object $p2pRelayRouteEvidence -Name "count" -Default 0
 $p2pRelayRouteEvidenceCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_evidence_count" -Default ([Math]::Max($p2pRouteEvidenceCountFromVerification, $p2pRouteEvidenceCountFromDocument))
+$p2pRouteMetadataValidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_metadata_valid_count" -Default 0
+$p2pRelayRouteMetadataValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_metadata_valid_count" -Default $p2pRouteMetadataValidCountFromVerification
 $p2pRouteTransportProofValidCountFromVerification = Get-IntProperty -Object $p2pVerificationDocument -Name "relay_route_transport_proof_valid_count" -Default 0
 $p2pRelayRouteTransportProofValidCount = Get-IntProperty -Object $p2pEvidence.json -Name "relay_route_transport_proof_valid_count" -Default $p2pRouteTransportProofValidCountFromVerification
 $p2pRelayPayloadTransportProven = (
@@ -585,6 +587,9 @@ if ($p2pEvidence.json -and -not $p2pRelayPayloadEndpointWired) {
 }
 if ($p2pEvidence.json -and -not $p2pRelayPayloadTransportProven) {
     [void]$blockers.Add("p2p_relay_payload_transport_not_proven")
+}
+if ($p2pEvidence.json -and $p2pRelayRouteMetadataValidCount -le 0) {
+    [void]$blockers.Add("p2p_relay_route_metadata_missing")
 }
 if ($p2pEvidence.json -and $p2pRelayRouteTransportProofValidCount -le 0) {
     [void]$blockers.Add("p2p_relay_route_transport_proof_missing")
@@ -645,6 +650,7 @@ $result = [pscustomobject]@{
     p2p_relay_connect_endpoint_wired = [bool]$p2pRelayConnectEndpointWired
     p2p_relay_payload_endpoint_wired = [bool]$p2pRelayPayloadEndpointWired
     p2p_relay_route_evidence_count = [int]$p2pRelayRouteEvidenceCount
+    p2p_relay_route_metadata_valid_count = [int]$p2pRelayRouteMetadataValidCount
     p2p_relay_route_transport_proof_valid_count = [int]$p2pRelayRouteTransportProofValidCount
     p2p_relay_payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
     p2p_relay_payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
@@ -699,6 +705,7 @@ $summary = @"
 - P2P relay connect endpoint wired: $($result.p2p_relay_connect_endpoint_wired)
 - P2P relay payload endpoint wired: $($result.p2p_relay_payload_endpoint_wired)
 - P2P relay route evidence count: $($result.p2p_relay_route_evidence_count)
+- P2P relay route metadata valid count: $($result.p2p_relay_route_metadata_valid_count)
 - P2P relay route transport proof valid count: $($result.p2p_relay_route_transport_proof_valid_count)
 - P2P relay payload transport proven: $($result.p2p_relay_payload_transport_proven)
 - P2P relay payload delivery proof valid count: $($result.p2p_relay_payload_delivery_proof_valid_count)
@@ -747,6 +754,7 @@ $final = [pscustomobject]@{
     p2p_relay_connect_endpoint_wired = [bool]$result.p2p_relay_connect_endpoint_wired
     p2p_relay_payload_endpoint_wired = [bool]$result.p2p_relay_payload_endpoint_wired
     p2p_relay_route_evidence_count = [int]$result.p2p_relay_route_evidence_count
+    p2p_relay_route_metadata_valid_count = [int]$result.p2p_relay_route_metadata_valid_count
     p2p_relay_route_transport_proof_valid_count = [int]$result.p2p_relay_route_transport_proof_valid_count
     p2p_relay_payload_transport_proven = [bool]$result.p2p_relay_payload_transport_proven
     p2p_relay_payload_delivery_proof_valid_count = [int]$result.p2p_relay_payload_delivery_proof_valid_count

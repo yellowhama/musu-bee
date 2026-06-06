@@ -12284,3 +12284,85 @@ Search terms should include `GOAL v713`, `wiki/888`, `second-PC
 route-attempt local target index refresh`, `2742 files`, `2776 symbols`,
 `14224 ms`, `RejectLocalPostRouteTarget`,
 `runtime_cpu_second_pc_route_attempt`, and `case_count=82`.
+
+## 2026-06-06 P2P Route Metadata Status Surface (wiki/889)
+
+P2P route metadata counts now surface through the release handoff status chain.
+
+Updated:
+
+- `record-p2p-control-plane-evidence.ps1`
+  - records `relay_route_metadata_valid_count`
+- `write-release-go-no-go.ps1`
+  - exposes `p2p_relay_route_metadata_required_count`
+  - exposes `p2p_relay_route_metadata_valid_count`
+  - exposes `p2p_relay_route_metadata_invalid_count`
+  - requires `relay_route_metadata_valid_count > 0` in the P2P blocker
+- `show-musu-pro-p2p-env-status.ps1`
+  - exposes route metadata valid/required/invalid counts
+  - emits `live_evidence_relay_route_metadata_missing`
+- `record-external-release-gate-recheck.ps1`
+  - flattens `p2p_relay_route_metadata_valid_count`
+  - emits `p2p_relay_route_metadata_missing`
+- `show-final-release-handoff-status.ps1`
+  - forwards `p2p_relay_route_metadata_valid_count`
+- `test-release-evidence-verifiers.ps1`
+  - adds source-contract coverage for route metadata status propagation
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=83`, `failed_case_count=0`
+- dirty-tree go/no-go status smoke surfaced metadata required/valid/invalid
+  counts `0/0/0`
+- MUSU.PRO P2P env status smoke emitted
+  `live_evidence_relay_route_metadata_missing` with metadata counts `0/0/0`
+
+Qualitative audit found no high/medium issue. This is an operator visibility
+fix only: the verifier already rejected incomplete route metadata, and now the
+handoff reports show that count directly.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_METADATA_STATUS_SURFACE_2026_06_06.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-06_p2p_route_metadata_status_surface.md`
+
+Search terms should include `GOAL v714`, `wiki/889`,
+`p2p_relay_route_metadata_valid_count`,
+`live_evidence_relay_route_metadata_missing`,
+`p2p_relay_route_metadata_missing`, `relay_route_metadata_valid_count > 0`,
+and `case_count=83`.
+
+## 2026-06-06 P2P Route Metadata Status Surface Index Refresh (wiki/890)
+
+MUSU local indexer was refreshed after wiki/889 and GOAL v714.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2745 files`
+- `2776 symbols`
+- `15800 ms`
+
+Indexed context includes the route metadata status fields in
+`record-p2p-control-plane-evidence.ps1`, `write-release-go-no-go.ps1`,
+`show-musu-pro-p2p-env-status.ps1`,
+`record-external-release-gate-recheck.ps1`,
+`show-final-release-handoff-status.ps1`, release verifier source contract
+`P2P route metadata counts surface through release status reports`, canonical
+report, next-step plan, BETA checklist, P2P control-plane specs, GOAL,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v715`, `wiki/890`, `P2P route metadata
+status surface index refresh`, `2745 files`, `2776 symbols`, `15800 ms`,
+`p2p_relay_route_metadata_valid_count`,
+`live_evidence_relay_route_metadata_missing`,
+`p2p_relay_route_metadata_missing`, and `case_count=83`.

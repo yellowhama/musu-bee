@@ -1631,6 +1631,27 @@ relay-fallback, and evidence control plane. MUSU Desktop remains the local
 executor, and public release still requires real second-PC route/CPU/matrix
 evidence plus live owner-scoped relay proof.
 
+## 2026-06-06 route metadata status surface
+
+Route metadata counts are now required release status data.
+
+The hosted verifier still owns the release-grade check. The handoff surfaces
+must also carry the count so operators can diagnose the exact P2P blocker:
+
+- P2P evidence recorder: `relay_route_metadata_valid_count`
+- go/no-go: `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`, and
+  `p2p_relay_route_metadata_invalid_count`
+- MUSU.PRO P2P env status:
+  `live_evidence_relay_route_metadata_missing` when the valid count is `0`
+- external gate recheck: `p2p_relay_route_metadata_valid_count` and
+  `p2p_relay_route_metadata_missing`
+- final handoff: `p2p_relay_route_metadata_valid_count`
+
+This does not change the local-first product boundary. MUSU Desktop executes
+locally; MUSU.PRO coordinates remote input, rooms, rendezvous, path selection,
+relay fallback, and release evidence.
+
 ## 2026-06-06 Rust Route Evidence Relay Transport Proof Carry
 
 Rust bridge route evidence now preserves relay route transport proof through

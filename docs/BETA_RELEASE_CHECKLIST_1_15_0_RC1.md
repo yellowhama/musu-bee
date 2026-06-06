@@ -8499,3 +8499,62 @@ Canonical report:
 Next-step plan:
 
 - `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_SECOND_PC_ROUTE_ATTEMPT_LOCAL_TARGET_GATE_2026_06_06.md`
+
+## 2026-06-06 22:53 KST P2P Route Metadata Status Surface
+
+Hosted P2P route metadata counts are now visible in the release status chain,
+not only in the verifier output.
+
+Changed:
+
+- `record-p2p-control-plane-evidence.ps1` records
+  `relay_route_metadata_valid_count`.
+- `write-release-go-no-go.ps1` exposes
+  `p2p_relay_route_metadata_required_count`,
+  `p2p_relay_route_metadata_valid_count`, and
+  `p2p_relay_route_metadata_invalid_count`.
+- The go/no-go `p2p-control-plane` blocker now explicitly requires
+  `relay_route_metadata_valid_count > 0`.
+- `show-musu-pro-p2p-env-status.ps1` exposes route metadata
+  valid/required/invalid counts and emits
+  `live_evidence_relay_route_metadata_missing`.
+- `record-external-release-gate-recheck.ps1` flattens
+  `p2p_relay_route_metadata_valid_count` and emits
+  `p2p_relay_route_metadata_missing`.
+- `show-final-release-handoff-status.ps1` forwards
+  `p2p_relay_route_metadata_valid_count`.
+- `test-release-evidence-verifiers.ps1` adds source-contract coverage for the
+  propagation path.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=83`,
+  `failed_case_count=0`
+- dirty-tree go/no-go status smoke: route metadata required/valid/invalid
+  counts `0/0/0`
+- MUSU.PRO P2P env status smoke: blocker
+  `live_evidence_relay_route_metadata_missing`, metadata counts `0/0/0`
+
+Qualitative audit found no high/medium issue. This is evidence visibility
+hardening only. Public release remains No-Go on second-PC route/CPU/matrix,
+live MUSU.PRO P2P/relay proof, support mailbox proof, and Store/Partner Center
+proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_ROUTE_METADATA_STATUS_SURFACE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_P2P_ROUTE_METADATA_STATUS_SURFACE_2026_06_06.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2745 files`
+- `2776 symbols`
+- `15800 ms`
+- wiki: `wiki/890`

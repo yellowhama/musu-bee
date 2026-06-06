@@ -27,8 +27,10 @@ $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
+$p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
+$finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
 
@@ -624,11 +626,13 @@ function Test-ExternalGateRecheckActionableContract {
         'p2p_relay_transport_wired',
         'p2p_relay_connect_endpoint_wired',
         'p2p_relay_payload_endpoint_wired',
+        'p2p_relay_route_metadata_valid_count',
         'p2p_relay_route_transport_proof_valid_count',
         'p2p_runtime_not_logged_in',
         'p2p_relay_lease_store_not_release_grade',
         'p2p_relay_transport_not_wired',
         'p2p_relay_payload_endpoint_not_wired',
+        'p2p_relay_route_metadata_missing',
         'p2p_relay_route_transport_proof_missing'
     )
 
@@ -657,13 +661,18 @@ function Test-P2pEnvStatusRuntimeLoginActionContract {
         'relay_transport_descriptor_wired',
         'relay_connect_endpoint_wired',
         'relay_payload_endpoint_wired',
+        'relay_route_metadata_valid_count',
+        'relay_route_metadata_required_count',
+        'relay_route_metadata_invalid_count',
         'relay_route_transport_proof_valid_count',
         'relay_route_transport_proof_required_count',
         'relay_route_transport_proof_invalid_count',
+        'live_evidence_relay_route_metadata_missing',
         'live_evidence_relay_route_transport_proof_missing',
         'Log in the packaged MUSU runtime with the WindowsApps alias',
         'Do not use the localhost developer dashboard to satisfy this gate',
         'logged_in=true',
+        'relay_route_metadata_valid_count > 0',
         'relay_route_transport_proof_valid_count > 0'
     )
 
@@ -719,6 +728,70 @@ function Test-P2pRouteRecordMetadataVerifierContract {
     foreach ($needle in $requiredNeedles) {
         if (-not $source.Contains($needle)) {
             return $false
+        }
+    }
+    return $true
+}
+
+function Test-P2pRouteMetadataStatusSurfaceContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$RecorderScriptPath,
+        [Parameter(Mandatory = $true)][string]$GoNoGoScriptPath,
+        [Parameter(Mandatory = $true)][string]$ExternalScriptPath,
+        [Parameter(Mandatory = $true)][string]$EnvStatusScriptPath,
+        [Parameter(Mandatory = $true)][string]$FinalStatusScriptPath
+    )
+
+    $contracts = @(
+        [pscustomobject]@{
+            path = $RecorderScriptPath
+            needles = @(
+                'relay_route_metadata_valid_count',
+                'Relay route metadata valid count'
+            )
+        },
+        [pscustomobject]@{
+            path = $GoNoGoScriptPath
+            needles = @(
+                'p2p_relay_route_metadata_required_count',
+                'p2p_relay_route_metadata_valid_count',
+                'p2p_relay_route_metadata_invalid_count',
+                'relay_route_metadata_valid_count > 0',
+                'p2p_relay_route_metadata_valid_count:'
+            )
+        },
+        [pscustomobject]@{
+            path = $ExternalScriptPath
+            needles = @(
+                'p2p_relay_route_metadata_valid_count',
+                'p2p_relay_route_metadata_missing',
+                'relay_route_metadata_valid_count'
+            )
+        },
+        [pscustomobject]@{
+            path = $EnvStatusScriptPath
+            needles = @(
+                'relay_route_metadata_valid_count',
+                'relay_route_metadata_required_count',
+                'relay_route_metadata_invalid_count',
+                'live_evidence_relay_route_metadata_missing',
+                'relay_route_metadata_valid_count > 0'
+            )
+        },
+        [pscustomobject]@{
+            path = $FinalStatusScriptPath
+            needles = @(
+                'p2p_relay_route_metadata_valid_count'
+            )
+        }
+    )
+
+    foreach ($contract in $contracts) {
+        $source = Get-Content -LiteralPath $contract.path -Raw
+        foreach ($needle in $contract.needles) {
+            if (-not $source.Contains($needle)) {
+                return $false
+            }
         }
     }
     return $true
@@ -1705,6 +1778,23 @@ Add-CaseResult `
     -Name "P2P verifier requires route record metadata" `
     -Verifier "P2P verifier source contract" `
     -FixturePath $p2pVerifier `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$p2pRouteMetadataStatusSurfaceContractOk = Test-P2pRouteMetadataStatusSurfaceContract `
+    -RecorderScriptPath $p2pControlPlaneEvidenceRecorder `
+    -GoNoGoScriptPath $releaseGoNoGoWriter `
+    -ExternalScriptPath $externalGateRecheckRecorder `
+    -EnvStatusScriptPath $p2pEnvStatusReporter `
+    -FinalStatusScriptPath $finalHandoffStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pRouteMetadataStatusSurfaceContractOk `
+    -Message "P2P route metadata counts must surface through recorder, go/no-go, external recheck, env status, and final handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P route metadata counts surface through release status reports" `
+    -Verifier "P2P route metadata status source contract" `
+    -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
 
