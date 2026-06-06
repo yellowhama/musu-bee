@@ -12520,3 +12520,77 @@ status surface index refresh`, `2751 files`, `2776 symbols`, `15134 ms`,
 `p2p_relay_route_transport_proof_invalid_count`,
 `p2p_relay_payload_delivery_proof_required_count`,
 `p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.
+
+## 2026-06-06 Process Ownership Freshness Gate (wiki/895)
+
+Process ownership release evidence is now freshness-gated like runtime CPU
+evidence.
+
+Updated:
+
+- `write-release-go-no-go.ps1`
+  - passes current HEAD into `Test-ProcessOwnershipEvidence`
+  - requires process ownership evidence to record a valid `git_commit`
+  - allows stale ownership evidence only when the delta to current HEAD is
+    documentation/evidence/status/tooling-only
+- `test-release-evidence-verifiers.ps1`
+  - adds source-contract case
+    `go-no-go process ownership requires current freshness`
+- `MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
+  - records the product/spec rule that runtime-affecting changes after process
+    ownership capture require fresh process ownership proof
+
+Validation:
+
+- parser checks passed
+- `git diff --check` passed
+- release evidence verifier regression passed with `ok=true`,
+  `case_count=85`, `failed_case_count=0`
+- dirty-tree go/no-go smoke reported `process_ownership_verified=true`, valid
+  machines `1`, first process ownership candidate commit
+  `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2`, and `expected git commit`
+  check `pass` because the delta to current HEAD was
+  docs/evidence/status/tooling-only
+
+Qualitative audit found no high/medium issue. This prevents stale process
+ownership proof from surviving runtime-affecting changes, but it does not
+replace real second-PC CPU/matrix or multi-device route evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PROCESS_OWNERSHIP_FRESHNESS_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_PROCESS_OWNERSHIP_FRESHNESS_GATE_2026_06_06.md`
+
+CoS memory:
+
+- `docs\memory\chief_of_staff\2026-06-06_process_ownership_freshness_gate.md`
+
+Search terms should include `GOAL v720`, `wiki/895`,
+`process_ownership_verified`, `process ownership freshness`,
+`Test-ProcessOwnershipEvidence`, `ExpectedGitCommit`,
+`Test-DocumentationOrStatusOnlyGitDelta`, and `case_count=85`.
+
+## 2026-06-06 Process Ownership Freshness Gate Index Refresh (wiki/896)
+
+MUSU local indexer was refreshed after wiki/895 and GOAL v720.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2754 files`
+- `2776 symbols`
+- `26216 ms`
+
+Indexed context includes process ownership freshness hardening in
+`write-release-go-no-go.ps1`, release verifier source contract
+`go-no-go process ownership requires current freshness`, runtime stabilization
+spec update, canonical report, next-step plan, BETA checklist, GOAL,
+WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v721`, `wiki/896`, `process ownership
+freshness gate index refresh`, `2754 files`, `2776 symbols`, `26216 ms`,
+`process_ownership_verified`, `ExpectedGitCommit`,
+`Test-ProcessOwnershipEvidence`, `Test-DocumentationOrStatusOnlyGitDelta`,
+and `case_count=85`.

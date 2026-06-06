@@ -350,6 +350,28 @@ function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
     return $true
 }
 
+function Test-ProcessOwnershipGoNoGoFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Test-ProcessOwnershipEvidence',
+        '[Parameter(Mandatory = $true)][string]$ExpectedGitCommit',
+        'git commit present',
+        'expected git commit',
+        'Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit',
+        'no runtime-affecting changes after the process ownership evidence commit',
+        '-ExpectedGitCommit $currentGitCommit'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1642,6 +1664,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go runtime idle CPU requires full role attribution" `
     -Verifier "runtime idle CPU source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$processOwnershipGoNoGoFreshnessOk = Test-ProcessOwnershipGoNoGoFreshnessContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $processOwnershipGoNoGoFreshnessOk `
+    -Message "go/no-go process ownership evidence must be current HEAD or differ only by documentation/evidence/status/tooling-only commits"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go process ownership requires current freshness" `
+    -Verifier "process ownership source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

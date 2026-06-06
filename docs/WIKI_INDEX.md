@@ -5928,4 +5928,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_relay_payload_delivery_proof_required_count`,
   `p2p_relay_payload_delivery_proof_invalid_count`, and `case_count=84`.
 
+- 2026-06-06 process ownership freshness gate:
+  `RELEASE_1_15_0_RC1_PROCESS_OWNERSHIP_FRESHNESS_GATE_2026_06_06.md`
+  (wiki/895) records go/no-go hardening that requires process ownership
+  evidence to match current HEAD or differ only by
+  docs/evidence/status/tooling-only commits. Search terms should include
+  `GOAL v720`, `wiki/895`, `process_ownership_verified`,
+  `Test-ProcessOwnershipEvidence`, `ExpectedGitCommit`,
+  `Test-DocumentationOrStatusOnlyGitDelta`, and `case_count=85`.
+
+- 2026-06-06 process ownership freshness gate index refresh:
+  wiki/896 records the MUSU local index refresh after wiki/895 and GOAL v720.
+  Search terms should include `GOAL v721`, `wiki/896`, `2754 files`,
+  `2776 symbols`, `26216 ms`, `process ownership freshness gate index
+  refresh`, `process_ownership_verified`, `ExpectedGitCommit`,
+  `Test-ProcessOwnershipEvidence`, `Test-DocumentationOrStatusOnlyGitDelta`,
+  and `case_count=85`.
+
 **End of WIKI_INDEX.md.**

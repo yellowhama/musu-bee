@@ -8656,3 +8656,53 @@ Index refresh:
 - `2776 symbols`
 - `15134 ms`
 - wiki: `wiki/894`
+
+## 2026-06-06 23:45 KST Process Ownership Freshness Gate
+
+Process ownership evidence now follows the same current/freshness rule as
+runtime CPU evidence.
+
+Changed:
+
+- `write-release-go-no-go.ps1` passes current HEAD into
+  `Test-ProcessOwnershipEvidence`.
+- Process ownership evidence must record a valid `git_commit`.
+- The recorded commit must match current HEAD, or differ only by
+  documentation/evidence/status/tooling-only commits.
+- Runtime-affecting changes after process ownership capture require fresh
+  process ownership evidence.
+- `test-release-evidence-verifiers.ps1` adds source-contract case
+  `go-no-go process ownership requires current freshness`.
+
+Validation:
+
+- PowerShell parser check: pass
+- `git diff --check`: pass
+- release evidence verifier regression: `ok=true`, `case_count=85`,
+  `failed_case_count=0`
+- dirty-tree go/no-go smoke: `process_ownership_verified=true`,
+  valid machines `1`, first process ownership candidate commit
+  `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2`, and `expected git commit`
+  check `pass` because the delta to current HEAD was
+  docs/evidence/status/tooling-only
+
+Qualitative audit found no high/medium issue. This hardens stale process
+ownership proof handling; it does not close second-PC CPU/matrix, real route,
+hosted MUSU.PRO relay proof, support mailbox, or Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PROCESS_OWNERSHIP_FRESHNESS_GATE_2026_06_06.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_PROCESS_OWNERSHIP_FRESHNESS_GATE_2026_06_06.md`
+
+Index refresh:
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2754 files`
+- `2776 symbols`
+- `26216 ms`
+- wiki: `wiki/896`

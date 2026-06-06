@@ -708,7 +708,8 @@ function Test-RuntimeIdleCpuEvidence {
 function Test-ProcessOwnershipEvidence {
     param(
         [Parameter(Mandatory = $true)][string]$EvidencePath,
-        [Parameter(Mandatory = $true)][string]$ExpectedVersion
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitCommit
     )
 
     $checks = New-Object System.Collections.Generic.List[object]
@@ -727,6 +728,17 @@ function Test-ProcessOwnershipEvidence {
 
         $versionValue = [string]$evidence.version
         $checks.Add((New-Check -Name "version" -Status ($(if ($versionValue -eq $ExpectedVersion) { "pass" } else { "fail" })) -Message ($(if ($versionValue -eq $ExpectedVersion) { "version matches $ExpectedVersion" } else { "version is '$versionValue'" })))) | Out-Null
+
+        $gitCommit = if ($evidence.PSObject.Properties["git_commit"]) { [string]$evidence.git_commit } else { "" }
+        $gitCommitValid = ($gitCommit -match "^[0-9a-f]{40}$")
+        $checks.Add((New-Check -Name "git commit present" -Status ($(if ($gitCommitValid) { "pass" } else { "fail" })) -Message ($(if ($gitCommitValid) { "git commit is recorded" } else { "git commit is missing or invalid" })))) | Out-Null
+
+        $gitCommitMatchesExpected = ($gitCommit -eq $ExpectedGitCommit)
+        $documentationOrStatusOnlyGitDelta = $false
+        if (-not $gitCommitMatchesExpected -and $gitCommitValid -and $ExpectedGitCommit -match "^[0-9a-f]{40}$") {
+            $documentationOrStatusOnlyGitDelta = Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
+        }
+        $checks.Add((New-Check -Name "expected git commit" -Status ($(if ($gitCommitMatchesExpected -or $documentationOrStatusOnlyGitDelta) { "pass" } else { "fail" })) -Message ($(if ($gitCommitMatchesExpected) { "git commit matches current HEAD $ExpectedGitCommit" } elseif ($documentationOrStatusOnlyGitDelta) { "git commit differs from current HEAD $ExpectedGitCommit only by documentation/evidence/status/tooling-only commits" } else { "git commit is '$gitCommit', expected current HEAD '$ExpectedGitCommit' with no runtime-affecting changes after the process ownership evidence commit" })))) | Out-Null
 
         $okValue = [bool]$evidence.ok
         $checks.Add((New-Check -Name "evidence ok" -Status ($(if ($okValue) { "pass" } else { "fail" })) -Message ($(if ($okValue) { "evidence reports ok=true" } else { "evidence reports ok=false" })))) | Out-Null
@@ -785,6 +797,7 @@ function Test-ProcessOwnershipEvidence {
         ok = ($failCount -eq 0)
         evidence_path = $EvidencePath
         fail_count = $failCount
+        git_commit = if ($evidence -and $evidence.PSObject.Properties["git_commit"]) { [string]$evidence.git_commit } else { $null }
         operator_machine = if ($evidence -and $evidence.PSObject.Properties["operator_machine"]) { [string]$evidence.operator_machine } else { $null }
         checks = $checks.ToArray()
     }
@@ -1332,7 +1345,8 @@ $processOwnershipSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -
 foreach ($candidate in @($processOwnershipSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-ProcessOwnershipEvidence `
         -EvidencePath $candidate.FullName `
-        -ExpectedVersion $version
+        -ExpectedVersion $version `
+        -ExpectedGitCommit $currentGitCommit
     $processOwnershipEvidenceResults += $verification
     if ([bool]$verification.ok -and -not [string]::IsNullOrWhiteSpace([string]$verification.operator_machine)) {
         [void]$processOwnershipMachines.Add([string]$verification.operator_machine)

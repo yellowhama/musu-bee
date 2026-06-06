@@ -98,6 +98,10 @@ Already applied:
   Node/WebView2 helpers from unrelated machine-wide processes
 - release go/no-go now reports `process_ownership_verified` and blocks if the
   process ownership audit is missing or failing
+- release go/no-go now treats process ownership evidence as freshness-gated:
+  the recorded `git_commit` must match current HEAD, or differ only by
+  documentation, evidence, status, or tooling-only commits. Runtime-affecting
+  changes after process ownership capture require fresh ownership evidence.
 - current local process ownership audit on `HUGH_SECOND` passed with
   `musu_runtime=1`, `desktop_shell=1`, `owned_node=0`, `owned_webview2=6`,
   `orphan_repo_helpers=0`, bridge registry PID alive, and bridge `/health`
