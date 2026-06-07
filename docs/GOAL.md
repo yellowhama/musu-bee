@@ -152,6 +152,23 @@ promoted `20260607-165333-HUGH_SECOND` CPU matrix evidence, verifier output,
 canonical CPU matrix report, BETA checklist, WIKI/WIKI_INDEX, GOAL, and CoS
 memory.
 
+**Latest second-PC route preflight update (2026-06-07 v827 / wiki/1002)**:
+Added `scripts\windows\test-second-pc-route-preflight.ps1` so primary-side
+operators can consume a second-PC return zip or handoff JSON, resolve
+`suggested_remote_addrs`, run `musu peer add`, confirm `musu peer list`, run
+`musu route --explain --target <SECOND_PC_NAME>`, reject self/local targets,
+write `musu.second_pc_route_preflight.v1` evidence, and print the exact
+targeted CPU matrix and multi-device smoke commands before spending a 60s
+post-route CPU sample. This catches `peer not found`; it is not successful
+multi-device proof. Canonical report:
+`docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v828 / wiki/1003)**:
+MUSU local indexer synced `3018 files`, `2794 symbols`, `36479 ms` after the
+second-PC route preflight helper, packet/kit/action-pack updates,
+verifier/audit updates, canonical route preflight report, BETA checklist,
+WIKI/WIKI_INDEX, GOAL, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
@@ -1276,3 +1293,5 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 | 2026-06-07 v824 | Code, docs, specs, wiki, and CoS memory were indexed after the P2P env root readiness summary. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3004 files`, `2794 symbols`, and `16440 ms` after GOAL v823/wiki/998, `show-musu-pro-p2p-env-status.ps1`, `test-release-evidence-verifiers.ps1`, the canonical P2P env root readiness report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v824`, `wiki/999`, `P2P env root readiness summary index refresh`, `3004 files`, `2794 symbols`, `16440 ms`, `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and `case_count=105`. |
 | 2026-06-07 v825 | Current-head CPU matrix after the P2P env root readiness update stayed under budget. | Clean HUGH_SECOND packaged runtime CPU matrix evidence `20260607-165333-HUGH_SECOND` from commit `eb7f58231547d73d8f011a3fbbebca90d585f1e9` passed matrix and verifier with `ok=true`, `fail_count=0`, `git_dirty=false`, token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`, hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`, owned process count `8`, owned WebView2 helper count `6`, and max working set `370.51MB`. The `PRIMARY-PC` route probe failed with `peer 'PRIMARY-PC' not found` and was explicitly allowed for target-route CPU diagnostics, so this is not successful multi-device route proof. Canonical report: `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md` (wiki/1000). |
 | 2026-06-07 v826 | Code, docs, evidence, wiki, and CoS memory were indexed after the current-head CPU matrix after P2P env root readiness. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3014 files`, `2794 symbols`, and `18870 ms` after GOAL v825/wiki/1000, promoted `20260607-165333-HUGH_SECOND` CPU matrix evidence, verifier output, canonical CPU matrix report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v826`, `wiki/1001`, `current-head CPU matrix after P2P env root readiness index refresh`, `3014 files`, `2794 symbols`, `18870 ms`, `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`. |
+| 2026-06-07 v827 | Primary-side second-PC route preflight now catches missing peer registration before targeted CPU/multi-device smoke. | Added `scripts\windows\test-second-pc-route-preflight.ps1` with schema `musu.second_pc_route_preflight.v1`; it consumes a second-PC return zip or handoff JSON, resolves `suggested_remote_addrs`, runs `musu peer add`, confirms `musu peer list`, runs `musu route --explain --target <SECOND_PC_NAME>`, rejects self/local targets, writes `.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`, and prints exact targeted CPU matrix / multi-device smoke commands. Updated multi-device kit, final packet, operator action pack, packet/action-pack verifiers, release verifier regression, readiness audit inventory, and freshness allowlists. Synthetic fake-target smoke wrote structured `ok=false` evidence with `target peer listed=fail`. This is not successful multi-device proof. Canonical report: `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md` (wiki/1002). |
+| 2026-06-07 v828 | Code, docs, specs, wiki, and CoS memory were indexed after the second-PC route preflight helper. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3018 files`, `2794 symbols`, and `36479 ms` after GOAL v827/wiki/1002, `test-second-pc-route-preflight.ps1`, packet/kit/action-pack updates, verifier/audit updates, canonical route preflight report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v828`, `wiki/1003`, `second-PC route preflight index refresh`, `3018 files`, `2794 symbols`, `36479 ms`, and `musu.second_pc_route_preflight.v1`. |

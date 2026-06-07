@@ -6915,4 +6915,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `current-head CPU matrix after P2P env root readiness index refresh`,
   `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`.
 
+- 2026-06-07 second-PC route preflight:
+  `RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md`
+  (wiki/1002) records the primary-side
+  `test-second-pc-route-preflight.ps1` helper. Search terms should include
+  `GOAL v827`, `wiki/1002`, `musu.second_pc_route_preflight.v1`,
+  `second-pc-route-preflight`, `musu peer add`, `route --explain`, and
+  `peer not found`.
+
+- 2026-06-07 second-PC route preflight index refresh:
+  wiki/1003 records the MUSU local index refresh after wiki/1002 and GOAL
+  v827. Search terms should include `GOAL v828`, `wiki/1003`, `3018 files`,
+  `2794 symbols`, `36479 ms`, `second-PC route preflight index refresh`,
+  `musu.second_pc_route_preflight.v1`, and
+  `test-second-pc-route-preflight.ps1`.
+
 **End of WIKI_INDEX.md.**

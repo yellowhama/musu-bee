@@ -380,9 +380,14 @@ function Test-SecondPcKitRouteReachabilityContract {
     $requiredNeedles = @(
         '"record-route-reachability-diagnostic.ps1"',
         '"verify-route-reachability-diagnostic.ps1"',
+        '"test-second-pc-route-preflight.ps1"',
         'RouteReachabilityTarget',
         'musu.route_reachability_diagnostic.v1',
         '.local-build\route-diagnostics\*.route-reachability-diagnostic.json',
+        '.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json',
+        'musu peer add',
+        'musu route --explain --target <SECOND_PC_NAME>',
+        'peer not found',
         'not release-grade multi-device proof',
         'verify-route-reachability-diagnostic.ps1 -EvidencePath'
     )

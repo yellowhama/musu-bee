@@ -117,6 +117,7 @@ try {
         "scripts\windows\verify-multidevice-evidence.ps1",
         "scripts\windows\capture-msix-install-evidence.ps1",
         "scripts\windows\collect-second-pc-handoff.ps1",
+        "scripts\windows\test-second-pc-route-preflight.ps1",
         "scripts\windows\record-msix-install-evidence.ps1",
         "scripts\windows\verify-msix-install-evidence.ps1",
         "scripts\windows\record-store-release-verification.ps1",
@@ -192,6 +193,7 @@ try {
         Add-CheckFromCondition "readme support mailbox gate" (-not [string]::IsNullOrWhiteSpace($expectedSupportEmail) -and $readme -like "*$expectedSupportEmail*") "README names $expectedSupportEmail" "README does not name the configured support email"
         Add-CheckFromCondition "readme support-only request packet boundary" ($readme -like "*prepare-support-mailbox-verification-request.ps1*" -and $readme -like "*does not satisfy release evidence*") "README explains support-only request packet is not evidence" "README missing support-only request packet boundary"
         Add-CheckFromCondition "readme second pc handoff helper" ($readme -like "*collect-second-pc-handoff.ps1*" -and $readme -like "*.handoff.json*") "README explains the second-PC handoff helper" "README missing second-PC handoff helper"
+        Add-CheckFromCondition "readme second pc route preflight" ($readme -like "*test-second-pc-route-preflight.ps1*" -and $readme -like "*second-pc-route-preflight*" -and $readme -like "*musu peer add*" -and $readme -like "*route --explain*") "README includes second-PC route preflight command" "README missing second-PC route preflight command"
         Add-CheckFromCondition "readme final qual audit" ($readme -like "*RELEASE_1_15_0_RC1_FINAL_QUAL_AUDIT_NEXT_STEPS_2026_05_29.md*") "README points to the final qualitative audit and next steps" "README missing final qualitative audit reference"
         Add-CheckFromCondition "readme current status audit" ($readme -like "*RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md*") "README points to the current status audit" "README missing current status audit reference"
         Add-CheckFromCondition "readme runtime hardening roadmap" ($readme -like "*RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md*" -and $readme -like "*runtime_idle_cpu_verified=true*") "README points to runtime hardening and idle CPU gate" "README missing runtime hardening or idle CPU gate reference"
@@ -584,6 +586,7 @@ try {
                     "scripts\windows\measure-musu-idle-cpu.ps1",
                     "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1",
                     "scripts\windows\collect-second-pc-handoff.ps1",
+                    "scripts\windows\test-second-pc-route-preflight.ps1",
                     "scripts\windows\run-second-pc-release-check.ps1",
                     "scripts\windows\record-route-reachability-diagnostic.ps1",
                     "scripts\windows\verify-route-reachability-diagnostic.ps1",
@@ -601,11 +604,16 @@ try {
                         "kit is missing $requiredKitEntry"
                 }
 
-                Add-CheckFromCondition `
-                    "kit handoff helper: $($kitZip.Name)" `
-                    ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
-                    "kit contains collect-second-pc-handoff.ps1" `
-                    "kit is missing collect-second-pc-handoff.ps1"
+                    Add-CheckFromCondition `
+                        "kit handoff helper: $($kitZip.Name)" `
+                        ($entries -contains "scripts\windows\collect-second-pc-handoff.ps1") `
+                        "kit contains collect-second-pc-handoff.ps1" `
+                        "kit is missing collect-second-pc-handoff.ps1"
+                    Add-CheckFromCondition `
+                        "kit route preflight helper: $($kitZip.Name)" `
+                        ($entries -contains "scripts\windows\test-second-pc-route-preflight.ps1") `
+                        "kit contains test-second-pc-route-preflight.ps1" `
+                        "kit is missing test-second-pc-route-preflight.ps1"
                     Add-CheckFromCondition `
                         "kit second-PC wrapper: $($kitZip.Name)" `
                         ($entries -contains "scripts\windows\run-second-pc-release-check.ps1") `
@@ -631,6 +639,11 @@ try {
                         ($kitReadme -like "*collect-second-pc-handoff.ps1*" -and $kitReadme -like "*suggested_remote_addrs*") `
                         "kit README explains suggested_remote_addrs handoff" `
                         "kit README does not explain second-PC handoff helper"
+                    Add-CheckFromCondition `
+                        "kit readme route preflight helper: $($kitZip.Name)" `
+                        ($kitReadme -like "*test-second-pc-route-preflight.ps1*" -and $kitReadme -like "*second-pc-route-preflight*" -and $kitReadme -like "*musu peer add*") `
+                        "kit README explains primary-side second-PC route preflight" `
+                        "kit README does not explain second-PC route preflight helper"
                     Add-CheckFromCondition `
                         "kit readme install evidence: $($kitZip.Name)" `
                         ($kitReadme -like "*install-and-verify-msix.ps1*" -and $kitReadme -like "*capture-msix-install-evidence.ps1*" -and $kitReadme -like "*run-second-pc-release-check.ps1*" -and $kitReadme -like "*.local-build\msix-install\*.evidence.json*" -and $kitReadme -like "*.local-build\second-pc-return\*.zip*") `

@@ -219,6 +219,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-secon
 If you only need to preview the primary-side multi-device commands without recording install evidence:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-pc-return-card.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP>
+
+Before running targeted CPU matrix or the final smoke, verify that the returned
+second-PC target is registered locally:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test-second-pc-route-preflight.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+
+The preflight writes .local-build\second-pc-route-preflight\*.second-pc-route-preflight.json,
+runs musu peer add, confirms musu peer list, runs route explain for the second
+PC target, and prints the exact measure-musu-runtime-cpu-scenarios.ps1
+-RouteTarget and smoke-multidevice-beta.ps1 commands to run next. If this
+fails, fix the peer registration or returned suggested_remote_addrs before
+spending a 60s post-route CPU sample.
 "@
     $quickstartPath = Join-Path $secondPcDir "SECOND_PC_QUICKSTART_CURRENT.txt"
     $quickstart | Set-Content -LiteralPath $quickstartPath -Encoding UTF8

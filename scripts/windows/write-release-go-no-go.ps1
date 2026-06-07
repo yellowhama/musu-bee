@@ -329,6 +329,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
         "scripts/windows/run-second-pc-release-check.ps1",
+        "scripts/windows/test-second-pc-route-preflight.ps1",
         "scripts/windows/smoke-multidevice-beta.ps1",
         "scripts/windows/smoke-single-machine-beta.ps1",
         "scripts/windows/verify-installed-msix-package.ps1",

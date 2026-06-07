@@ -16011,3 +16011,71 @@ Search terms should include `GOAL v826`, `wiki/1001`, `3014 files`,
 `2794 symbols`, `18870 ms`,
 `current-head CPU matrix after P2P env root readiness index refresh`,
 `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`.
+
+## 2026-06-07 Second-PC Route Preflight (wiki/1002)
+
+Added a primary-side route preflight helper:
+
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md`
+
+The helper consumes a second-PC return zip or handoff JSON, resolves
+`suggested_remote_addrs`, runs `musu up`, `musu doctor`, `musu peer add`,
+confirms `musu peer list`, runs
+`musu route --explain --target <SECOND_PC_NAME>`, rejects self/local targets,
+writes `.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`
+with schema `musu.second_pc_route_preflight.v1`, and prints exact next
+commands for targeted CPU matrix, multi-device smoke, and route reachability.
+
+Updated:
+
+- multi-device kit packaging and README
+- final operator packet packaging and README
+- operator action pack quickstart
+- final packet verifier
+- operator action pack verifier
+- release verifier regression
+- desktop release readiness script inventory
+- go/no-go / single-machine / runtime matrix freshness allowlists
+
+Synthetic smoke:
+
+- fake handoff: `203.0.113.2:8949`, `SECOND-PC`
+- flags: `-SkipPeerAdd -SkipRouteExplain`
+- result: exit code `1`, schema `musu.second_pc_route_preflight.v1`,
+  `ok=false`, evidence written, `target peer listed=fail`
+
+Release meaning:
+
+- catches `peer not found` before a 60s post-route CPU sample;
+- improves operator handoff for second-machine route evidence;
+- does not close multi-device proof, second-machine CPU/matrix, hosted
+  MUSU.PRO relay, support mailbox, or Store gates.
+
+Search terms should include `GOAL v827`, `wiki/1002`,
+`test-second-pc-route-preflight.ps1`,
+`musu.second_pc_route_preflight.v1`, `second-pc-route-preflight`,
+`musu peer add`, `route --explain`, and `peer not found`.
+
+## 2026-06-07 Second-PC Route Preflight Index Refresh (wiki/1003)
+
+MUSU local indexer was refreshed after wiki/1002 and GOAL v827.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3018 files`
+- `2794 symbols`
+- `36479 ms`
+
+Indexed context includes `scripts\windows\test-second-pc-route-preflight.ps1`,
+the route preflight report, multi-device kit/final packet/operator action pack
+updates, verifier/audit updates, BETA checklist, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v828`, `wiki/1003`, `3018 files`,
+`2794 symbols`, `36479 ms`, `second-PC route preflight index refresh`,
+`musu.second_pc_route_preflight.v1`, and
+`test-second-pc-route-preflight.ps1`.

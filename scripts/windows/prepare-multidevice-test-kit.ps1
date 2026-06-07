@@ -62,6 +62,7 @@ $scriptFiles = @(
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "collect-second-pc-handoff.ps1",
+    "test-second-pc-route-preflight.ps1",
     "run-second-pc-release-check.ps1",
     "verify-msix-install-evidence.ps1",
     "record-msix-install-evidence.ps1",
@@ -176,6 +177,20 @@ This diagnostic is not release-grade multi-device proof by itself. It is the
 operator-facing preflight for explaining whether a peer endpoint is registered,
 reachable over TCP, selected by route explain, and backed by raw route-attempt
 evidence before the primary PC records the real two-machine smoke.
+
+On the primary PC, after receiving the second-PC return zip or handoff JSON,
+run the route preflight before targeted CPU or multi-device smoke commands:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\test-second-pc-route-preflight.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+It resolves `suggested_remote_addrs`, runs `musu peer add`, confirms
+`musu peer list`, runs `musu route --explain --target <SECOND_PC_NAME>`, writes
+`.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`, and
+prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
+`smoke-multidevice-beta.ps1` commands to use next. This catches the
+`peer not found` state before wasting a 60s post-route CPU matrix.
 
 Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
 diagnose CPU after a failed remote route attempt. The normal release matrix

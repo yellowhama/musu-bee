@@ -154,6 +154,29 @@ process count `8`, owned WebView2 helper count `6`, and max working set
 found`; failure was explicitly allowed for this target-route CPU diagnostic, so
 this is not successful multi-device route proof.
 
+Current second-PC route preflight:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md`
+- primary-side helper:
+  `scripts\windows\test-second-pc-route-preflight.ps1`
+- output schema:
+  `musu.second_pc_route_preflight.v1`
+- output path:
+  `.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`
+
+After a second-PC return zip or handoff JSON is available, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test-second-pc-route-preflight.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+The helper resolves `suggested_remote_addrs`, runs `musu peer add`, confirms
+`musu peer list`, runs `musu route --explain --target <SECOND_PC_NAME>`,
+rejects self/local targets, and prints the exact targeted CPU matrix and
+multi-device smoke commands to run next. This catches `peer not found` before
+spending a 60s post-route CPU sample. It does not close the multi-device gate.
+
 ## Current P2P Candidate Publish Contract
 
 `musu.pro` is the meeting room and rendezvous surface. Each installed local

@@ -115,6 +115,7 @@ $scriptsToCopy = @(
     "verify-multidevice-evidence.ps1",
     "capture-msix-install-evidence.ps1",
     "collect-second-pc-handoff.ps1",
+    "test-second-pc-route-preflight.ps1",
     "record-msix-install-evidence.ps1",
     "verify-msix-install-evidence.ps1",
     "record-store-release-verification.ps1",
@@ -235,6 +236,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-second-
 
 The fallback prints the returned `suggested_remote_addrs` candidates without
 copying evidence into the canonical release roots.
+
+Before running targeted CPU matrix or real multi-device smoke commands, run the
+primary-side route preflight so a missing local peer registration is caught
+before the route attempt:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test-second-pc-route-preflight.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+The preflight writes
+`.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`,
+runs `musu peer add`, confirms `musu peer list`, runs
+`musu route --explain --target <SECOND_PC_NAME>`, rejects self/local targets,
+and prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...`
+and `smoke-multidevice-beta.ps1` commands to use next.
 
 Remaining blockers:
 
