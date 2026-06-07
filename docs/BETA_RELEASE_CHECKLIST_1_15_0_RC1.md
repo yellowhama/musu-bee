@@ -121,6 +121,21 @@ process count `8`, owned WebView2 helper count `6`, and max working set
 `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_161441`. Dirty-tree go/no-go after
 promotion reported `runtime_cpu_scenario_matrix_valid_machine_count=1`.
 
+Current P2P env root readiness summary:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_P2P_ENV_ROOT_READINESS_SUMMARY_2026_06_07.md`
+- `show-musu-pro-p2p-env-status.ps1 -Json` now exposes release relay readiness
+  fields at the root level as well as under `source`.
+- Current source still reports `release_relay_payload_endpoint_implemented=false`,
+  `release_payload_preflight_endpoint_implemented=true`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `release_relay_tunnel_runtime_source_contract_ready=true`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+  `preview_store_forward_payload_queue_non_release_grade=true`.
+- This does not change release status; it makes the remaining relay blockers
+  more directly machine-readable.
+
 ## Current P2P Candidate Publish Contract
 
 `musu.pro` is the meeting room and rendezvous surface. Each installed local

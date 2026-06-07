@@ -6879,4 +6879,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-161441-HUGH_SECOND`, `WebView2 max 0.08`, and
   `runtime_cpu_scenario_matrix_valid_machine_count=1`.
 
+- 2026-06-07 P2P env root readiness summary:
+  `RELEASE_1_15_0_RC1_P2P_ENV_ROOT_READINESS_SUMMARY_2026_06_07.md`
+  (wiki/998) records root-level JSON summary fields for release relay source
+  and runtime readiness in `show-musu-pro-p2p-env-status.ps1 -Json`. Search
+  terms should include `GOAL v823`, `wiki/998`,
+  `P2P env root readiness summary`,
+  `release_relay_tunnel_runtime_source_contract_ready=true`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`,
+  `release_relay_payload_endpoint_implemented=false`,
+  `preview_store_forward_payload_queue_non_release_grade=true`, and
+  `case_count=105`.
+
+- 2026-06-07 P2P env root readiness summary index refresh:
+  wiki/999 records the MUSU local index refresh after wiki/998 and GOAL v823.
+  Search terms should include `GOAL v824`, `wiki/999`, `3004 files`,
+  `2794 symbols`, `16440 ms`,
+  `P2P env root readiness summary index refresh`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+  `case_count=105`.
+
 **End of WIKI_INDEX.md.**
