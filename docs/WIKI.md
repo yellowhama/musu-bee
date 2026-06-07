@@ -18857,7 +18857,7 @@ Verification:
   - `case_count=127`
   - `failed_case_count=0`
   - output root:
-    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-064828`
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-065314`
 
 Search terms should include `GOAL v905`, `wiki/1080`,
 `repo_related_unowned`, `matching process inventory repo-related node helpers`,

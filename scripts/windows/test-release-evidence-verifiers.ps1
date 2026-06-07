@@ -3456,7 +3456,7 @@ Add-CaseResult `
 $idleBusyLoopCandidateStatusContractOk = Test-IdleBusyLoopGoNoGoCandidateStatusContract -ScriptPath $releaseGoNoGoWriter
 $invocation = New-StaticVerifierInvocation `
     -Ok $idleBusyLoopCandidateStatusContractOk `
-    -Message "go/no-go must expose all eight idle busy-loop candidate statuses and block if any candidate is not proven"
+    -Message "go/no-go must expose all ten idle busy-loop candidate statuses and block if any candidate is not proven"
 Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go exposes all idle busy-loop candidate statuses" `
