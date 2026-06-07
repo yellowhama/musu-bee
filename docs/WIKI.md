@@ -16712,3 +16712,43 @@ Search terms should include `GOAL v845`, `wiki/1020`, `3085 files`,
 `public_metadata_ok=true`, `blocker count 6`,
 `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
 `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`.
+
+## 2026-06-07 One-Machine MUSU.PRO Functional Roadmap (wiki/1021)
+
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_CONNECTION_FUNCTIONAL_ROADMAP_2026_06_07.md`
+narrows the next milestone back to one Windows machine before continuing
+second-PC/P2P release work.
+
+Current one-machine facts remain: local artifacts are ready,
+single-machine packaged Desktop evidence passes, public metadata passes, and
+primary idle CPU / runtime CPU matrix evidence each pass on one machine.
+Public release still remains No-Go because second-PC evidence, live P2P/relay
+proof, support mailbox proof, and Store evidence are missing.
+
+The new functional gate is authenticated MUSU.PRO work input, local MUSU
+Desktop pickup/execution on this PC, result/status return to MUSU.PRO, and
+post-run idle/resource evidence. `localhost:3001` is explicitly not the success
+criterion; the packaged runtime must discover its actual local bridge URL.
+
+Search terms should include `GOAL v846`, `wiki/1021`,
+`one-machine MUSU.PRO functional roadmap`,
+`musu.one_machine_musu_pro_work_order.v1`, `remote work-order pickup`,
+`MUSU Desktop local executor`, and `localhost:3001`.
+
+## 2026-06-07 One-Machine MUSU.PRO Functional Roadmap Index Refresh (wiki/1022)
+
+MUSU local indexer was refreshed after wiki/1021 and GOAL v846.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3088 files`
+- `2808 symbols`
+- `11642 ms`
+
+Indexed context includes the one-machine MUSU.PRO functional roadmap, local
+program/web input roadmap update, AG UI/UX one-machine Command Center rule,
+BETA checklist scope reset, WIKI/WIKI_INDEX/GOAL, and CoS memory.
+
+Search terms should include `GOAL v847`, `wiki/1022`, `3088 files`,
+`2808 symbols`, `11642 ms`, `one-machine MUSU.PRO functional roadmap`,
+`musu.one_machine_musu_pro_work_order.v1`, and `remote work-order pickup`.

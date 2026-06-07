@@ -35,6 +35,15 @@ Current one-machine validation can continue without the second PC. Successful
 multi-device proof and second-PC CPU/resource evidence require installing the
 same current MUSU build on the second Windows machine.
 
+Current operator scope reset on 2026-06-07: finish the one-machine MUSU
+Desktop plus MUSU.PRO functional path before returning to second-PC evidence.
+The canonical roadmap is
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_CONNECTION_FUNCTIONAL_ROADMAP_2026_06_07.md`.
+The one-machine milestone is not `localhost:3001`; it is authenticated
+MUSU.PRO work input, local Desktop pickup/execution on this PC, result/status
+return to MUSU.PRO, and post-run idle/resource evidence. Two-machine install,
+P2P mesh proof, and relay byte-path work resume only after that gate is proven.
+
 Comparable SaaS research was updated on 2026-06-07 in
 `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`. The closest
 validated market pattern is remote browser/mobile input controlling a local

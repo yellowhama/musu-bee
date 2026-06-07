@@ -172,6 +172,15 @@ Persistent surfaces:
 
 The first screen after login should be Command Center, not a marketing page.
 
+2026-06-07 one-machine milestone: the first usable Command Center path is a
+single installed MUSU Desktop connected to MUSU.PRO. The default composer must
+target the current local executor, show the actual device and execution locus,
+and avoid any `localhost:3001` assumption. A work order is acceptable only when
+MUSU.PRO can show order creation, local Desktop pickup, policy/audit result,
+local execution, returned status/result, and evidence attachment for that one
+device. Multi-device routing controls can remain visible as disabled or
+evidence-missing states until the same build is installed on the second PC.
+
 ## Core Objects
 
 | Object | User-facing meaning | Required visible fields |

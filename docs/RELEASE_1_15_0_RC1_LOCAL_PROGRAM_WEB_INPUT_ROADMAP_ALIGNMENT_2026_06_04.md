@@ -135,3 +135,32 @@ Current HUGH_SECOND evidence:
 The remaining release work is not to make MUSU.PRO execute local work. It is to
 install the current desktop on another Windows PC, prove real P2P/multi-device
 execution, and make hosted MUSU.PRO release relay proof pass.
+
+## 2026-06-07 One-Machine MUSU.PRO Functional Roadmap
+
+The next operator milestone is narrowed back to one Windows machine before
+resuming second-PC work. The canonical plan is
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_CONNECTION_FUNCTIONAL_ROADMAP_2026_06_07.md`.
+
+Current status:
+
+- local artifacts are ready;
+- single-machine packaged Desktop evidence passes;
+- desktop-open idle CPU and full runtime CPU matrix each pass on one machine;
+- busy-loop source contracts pass;
+- public MUSU.PRO privacy/support metadata passes;
+- public release remains No-Go because two-machine, live P2P/relay, support
+  mailbox, and Store evidence are still missing.
+
+One-machine completion now means:
+
+1. packaged MUSU Desktop starts and discovers its actual local bridge URL;
+2. MUSU Desktop is logged in or otherwise owner-scoped to MUSU.PRO;
+3. MUSU.PRO shows this device as an online local executor;
+4. a MUSU.PRO work order targets this device;
+5. this local Desktop picks up and executes the bounded work order;
+6. MUSU.PRO receives status/result/evidence without implying cloud execution;
+7. post-run idle CPU stays under budget and process roles remain attributable.
+
+Second-PC testing should start only after that one-machine remote-input path is
+proven on the current build.

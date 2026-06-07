@@ -7093,4 +7093,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
   `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`.
 
+- 2026-06-07 one-machine MUSU.PRO functional roadmap:
+  `RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_CONNECTION_FUNCTIONAL_ROADMAP_2026_06_07.md`
+  (wiki/1021) narrows the next milestone to authenticated MUSU.PRO work input,
+  local MUSU Desktop pickup/execution on this PC, result/status return to
+  MUSU.PRO, and post-run idle/resource evidence before second-PC testing
+  resumes. Search terms should include `GOAL v846`, `wiki/1021`,
+  `one-machine MUSU.PRO functional roadmap`,
+  `musu.one_machine_musu_pro_work_order.v1`, `remote work-order pickup`,
+  `MUSU Desktop local executor`, and `localhost:3001`.
+
+- 2026-06-07 one-machine MUSU.PRO functional roadmap index refresh:
+  wiki/1022 records the MUSU local index refresh after wiki/1021 and GOAL
+  v846. Search terms should include `GOAL v847`, `wiki/1022`, `3088 files`,
+  `2808 symbols`, `11642 ms`,
+  `one-machine MUSU.PRO functional roadmap`,
+  `musu.one_machine_musu_pro_work_order.v1`, and `remote work-order pickup`.
+
 **End of WIKI_INDEX.md.**
