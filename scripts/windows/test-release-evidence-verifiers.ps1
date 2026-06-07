@@ -975,7 +975,7 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
 
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $candidateCount = [regex]::Matches($source, '(?m)^\s*-Candidate\s+"').Count
-    if ($candidateCount -ne 8) {
+    if ($candidateCount -ne 10) {
         return $false
     }
 
@@ -994,7 +994,9 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
         '-Candidate "bridge readiness wait loop"',
         '-Candidate "frontend interval/refetch"',
         '-Candidate "relay payload target poller"',
+        '-Candidate "autonomous planner loop"',
         '-Candidate "cloud heartbeat"',
+        '-Candidate "auto-update supervisor loop"',
         '-Candidate "log/telemetry flush loop"',
         'clipboard opt-in env gate',
         'clipboard monitor cancellation token',
@@ -1011,9 +1013,12 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
         'no direct setInterval in non-test frontend source',
         'low-duty polling call-site inventory',
         'poller cancellation-aware sleep',
+        'planner default low duty interval',
+        'planner cancellation-aware sleep',
         'failure backoff sleep',
+        'first tick skipped',
         'no background telemetry flush worker primitives',
-        'clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops'
+        'clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, planner, cloud heartbeat, auto-update supervisor, and log/telemetry flush loops'
     )
 
     foreach ($needle in $requiredNeedles) {

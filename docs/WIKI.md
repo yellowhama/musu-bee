@@ -18575,3 +18575,79 @@ entries.
 Search terms should include `GOAL v898`, `wiki/1073`, `3103 files`,
 `2890 symbols`, `14915 ms`, `second-PC route preflight freshness index`,
 `126/126`, and `route_preflight_ready`.
+
+## 2026-06-08 Idle Busy-Loop Candidate Coverage Expanded (wiki/1074)
+
+The release gate's idle busy-loop candidate summary now matches the actual Rust
+background-loop audit surface instead of silently omitting planner and
+auto-update supervision.
+
+Key changes:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+  now expands `idle_busy_loop_candidate_status` from 8 to 10 candidates.
+- Added candidate:
+  - `autonomous planner loop`
+  requiring:
+  - planner opt-in env gate
+  - planner cancellation token
+  - planner Ctrl-C cancellation
+  - planner default/min interval
+  - planner command timeout cap
+  - planner cancellation-aware sleep
+  - planner exits after cancellation
+- Added candidate:
+  - `auto-update supervisor loop`
+  requiring:
+  - minimum allowed interval
+  - skipped first tick
+  - bounded health-poll initial backoff
+  - bounded health-poll max backoff
+  - explicit sleep between retries
+- The idle-busy-loop blocker text and manual internal gate text now name:
+  - planner
+  - auto-update supervisor
+
+Why this matters:
+
+- Before this change, the Rust background-loop audit and doctor snapshot already
+  tracked planner and auto-update cadence, but the human-facing idle busy-loop
+  candidate summary did not.
+- That mismatch made the release gate weaker than the actual objective, which
+  says to force sleep/backoff/cancellation across all background tasks.
+
+Regression:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=126`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-062246`
+- source-contract impact:
+  - `go-no-go idle busy-loop candidate status` now expects 10 candidates and
+    the planner/auto-update strings
+
+Search terms should include `GOAL v899`, `wiki/1074`,
+`autonomous planner loop`, `auto-update supervisor loop`, and
+`idle busy-loop candidate status`.
+
+## 2026-06-08 Idle Busy-Loop Candidate Coverage Index (wiki/1075)
+
+MUSU local indexer was refreshed after wiki/1074 and GOAL v899.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `16681 ms`
+
+Indexed context includes the planner/auto-update candidate additions, the
+unchanged green `126/126` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v900`, `wiki/1075`, `3103 files`,
+`2890 symbols`, `16681 ms`, `idle busy-loop candidate coverage index`,
+`autonomous planner loop`, and `auto-update supervisor loop`.

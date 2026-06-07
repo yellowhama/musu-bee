@@ -1994,6 +1994,21 @@ $idleBusyLoopCandidateStatuses = @(
         ) `
         -Evidence "Target-side relay polling is opt-in and uses bounded interval/backoff/cancellation."
     New-IdleBusyLoopCandidateStatus `
+        -Candidate "autonomous planner loop" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "planner"; name = "planner opt-in env gate" },
+            [pscustomobject]@{ scope = "planner"; name = "planner cancellation token" },
+            [pscustomobject]@{ scope = "planner"; name = "planner ctrl-c cancellation" },
+            [pscustomobject]@{ scope = "planner"; name = "planner default low duty interval" },
+            [pscustomobject]@{ scope = "planner"; name = "planner minimum interval" },
+            [pscustomobject]@{ scope = "planner"; name = "planner command timeout cap" },
+            [pscustomobject]@{ scope = "planner"; name = "planner cancellation-aware sleep" },
+            [pscustomobject]@{ scope = "planner"; name = "planner exits after cancellation" }
+        ) `
+        -Evidence "Autonomous planner work is opt-in, low-duty, timeout-bound, and exits through an explicit cancellation path."
+    New-IdleBusyLoopCandidateStatus `
         -Candidate "cloud heartbeat" `
         -AuditName "rust-background-loop" `
         -Audit $rustBackgroundLoopAuditResult.json `
@@ -2004,6 +2019,18 @@ $idleBusyLoopCandidateStatuses = @(
             [pscustomobject]@{ scope = "cloud-heartbeat"; name = "failure backoff sleep" }
         ) `
         -Evidence "Cloud heartbeat defaults to low-duty cadence and sleeps with failure backoff."
+    New-IdleBusyLoopCandidateStatus `
+        -Candidate "auto-update supervisor loop" `
+        -AuditName "rust-background-loop" `
+        -Audit $rustBackgroundLoopAuditResult.json `
+        -RequiredChecks @(
+            [pscustomobject]@{ scope = "auto-update"; name = "config minimum interval" },
+            [pscustomobject]@{ scope = "auto-update"; name = "first tick skipped" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll initial backoff" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll max backoff" },
+            [pscustomobject]@{ scope = "auto-update"; name = "health poll sleep" }
+        ) `
+        -Evidence "Auto-update supervision refuses tight cadences, skips an immediate boot-time tick, and health polling uses bounded sleep/backoff."
     New-IdleBusyLoopCandidateStatus `
         -Candidate "log/telemetry flush loop" `
         -AuditName "rust-background-loop" `
@@ -2069,7 +2096,7 @@ if (-not $rustBackgroundLoopContractVerified) {
     Add-Blocker -List $blockers -Area "rust-background-loops" -Message "Rust background loop contract audit (musu.rust_background_loop_contract.v1) failed; bridge/planner/mDNS/clipboard/sync/auto-update loops are not proven to be opt-in, low-duty, timeout-bound, or allowlisted."
 }
 if (-not $idleBusyLoopCandidateContractVerified) {
-    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops are not all proven gated, low-duty, bounded, cancellable, or absent."
+    Add-Blocker -List $blockers -Area "idle-busy-loop-candidates" -Message "Idle busy-loop candidate contract summary failed; clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, planner, cloud heartbeat, auto-update supervisor, and log/telemetry flush loops are not all proven gated, low-duty, bounded, cancellable, or absent."
 }
 if (-not $localApiAuthContractVerified) {
     Add-Blocker -List $blockers -Area "local-api-auth" -Message "Local API auth contract audit (musu.local_api_auth_contract.v1) failed; localhost bridge requests are not proven to require bearer auth by default with only an explicit trusted local bypass."
@@ -2143,7 +2170,7 @@ $manualInternalGates = @(
     "Current MSIX legacy conflict live check for startup helpers, scheduled tasks, legacy bins, and PATH alias shadowing",
     "Frontend polling contract audit for cancellable low-duty dashboard/refetch/SSE loops",
     "Rust background loop contract audit for opt-in mDNS/clipboard/planner and bounded bridge/sync/update loops",
-    "Idle busy-loop candidate summary for clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, cloud heartbeat, and log/telemetry flush loops",
+    "Idle busy-loop candidate summary for clipboard, mDNS, health check retry, bridge readiness wait, frontend polling, relay target polling, planner, cloud heartbeat, auto-update supervisor, and log/telemetry flush loops",
     "Local API auth contract audit for default bearer-token enforcement on localhost bridge requests",
     "Operator API security contract audit for authenticated, allowlisted, audit-logged web-driven local control routes",
     "Degraded mode contract audit for explicit unavailable/stale/fallback state on agents, device-status, nodes mesh, and COS synthesis surfaces",

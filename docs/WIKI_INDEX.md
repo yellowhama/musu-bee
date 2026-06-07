@@ -7602,4 +7602,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `14915 ms`, `second-PC route preflight freshness index`,
   `126/126`, and `route_preflight_ready`.
 
+- 2026-06-08 idle busy-loop candidate coverage expanded:
+  wiki/1074 records that `write-release-go-no-go.ps1` now includes planner and
+  auto-update supervisor in the idle busy-loop candidate summary, aligning the
+  human-facing release gate with the Rust background-loop audit surface.
+  Regression stayed green at `126/126` in
+  `.local-build\release-evidence-verifier-tests\20260608-062246`. Search terms
+  should include `GOAL v899`, `wiki/1074`, `autonomous planner loop`,
+  `auto-update supervisor loop`, and `idle busy-loop candidate status`.
+
+- 2026-06-08 idle busy-loop candidate coverage index:
+  wiki/1075 records the MUSU local index refresh after wiki/1074 and GOAL
+  v899. Search terms should include `GOAL v900`, `wiki/1075`, `3103 files`,
+  `2890 symbols`, `16681 ms`, `idle busy-loop candidate coverage index`,
+  `autonomous planner loop`, and `auto-update supervisor loop`.
+
 **End of WIKI_INDEX.md.**
