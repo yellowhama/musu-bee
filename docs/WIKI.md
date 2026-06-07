@@ -18174,3 +18174,89 @@ verifier replay, and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v888`, `wiki/1063`, `3103 files`,
 `2890 symbols`, `16032 ms`, `clean 5-scenario matrix index`,
 `20260608-051840-HUGH_SECOND`, and `runtime CPU matrix current-head clean`.
+
+## 2026-06-08 Runtime Idle Matching Inventory Compatibility and Fresh Clean Idle Proof (wiki/1064)
+
+Runtime-idle release evidence now accepts both historical nested
+`matching_process_inventory.counts_by_bucket` payloads and the newer flattened
+role buckets, and current HEAD has fresh clean standalone idle proof again.
+
+- fix commit:
+  `e6b7285dc5785a1c4f1bf3d65b3b9de26f973333`
+- changed files:
+  - `scripts\windows\measure-musu-idle-cpu.ps1`
+  - `scripts\windows\write-release-go-no-go.ps1`
+  - `scripts\windows\test-release-evidence-verifiers.ps1`
+- regression:
+  - command:
+    `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - result:
+    - `ok=true`
+    - `case_count=116`
+    - `failed_case_count=0`
+    - output root:
+      `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-053407`
+  - new coverage:
+    `runtime idle CPU direct verifier accepts nested matching process inventory buckets`
+
+Fresh current-HEAD clean idle proof:
+
+- clean worktree:
+  `F:\workspace\musu-bee-clean-head-e6b7285d`
+- measure command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-head-e6b7285d\scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -IncludeNode -IncludeWebView2 -Json`
+- evidence:
+  `F:\workspace\musu-bee-clean-head-e6b7285d\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-053645.json`
+- direct gate:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-head-e6b7285d\scripts\windows\write-release-go-no-go.ps1 -VerifyRuntimeIdleCpuEvidencePath F:\workspace\musu-bee-clean-head-e6b7285d\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-053645.json -Json`
+- direct gate result:
+  - `ok=true`
+  - `fail_count=0`
+
+Key facts:
+
+- `git_commit=e6b7285dc5785a1c4f1bf3d65b3b9de26f973333`
+- `git_dirty=false`
+- `sample_seconds=60.079`
+- `hot_process_count=0`
+- owned process count `8`
+- owned WebView2 `6`
+- total working set `90.95MB`
+- max one-core CPU `0.05`
+
+Meaning:
+
+- the one-machine clean standalone idle blocker is now closed on current HEAD
+- release evidence can consume both nested and flattened matching-process
+  inventory layouts, which protects older artifacts while keeping new artifacts
+  explicit
+- the evidence still captures unrelated machine-wide helper noise outside MUSU's
+  process tree, which is important because local `musu-pro`/tooling `node`
+  processes and unrelated WebView2 hosts exist on this machine
+- remaining blockers are now cross-machine and server-side:
+  - real second-PC `post-route` CPU matrix
+  - real two-machine route proof
+  - live `musu.pro` login/control-plane cleanup
+
+Search terms should include `GOAL v889`, `wiki/1064`, `e6b7285d`,
+`20260608-053645`, `116/116`, `nested matching process inventory buckets`, and
+`clean standalone idle proof`.
+
+## 2026-06-08 Runtime Idle Compatibility Index (wiki/1065)
+
+MUSU local indexer was refreshed after wiki/1064 and GOAL v889.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `16660 ms`
+
+Indexed context includes the compatibility fix commit `e6b7285d`, the green
+`116/116` verifier sweep, the fresh clean standalone idle proof
+`musu-idle-cpu-20260608-053645.json`, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v890`, `wiki/1065`, `3103 files`,
+`2890 symbols`, `16660 ms`, `runtime idle compatibility index`, `e6b7285d`,
+`20260608-053645`, and `clean standalone idle proof index`.

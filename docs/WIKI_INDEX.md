@@ -7513,4 +7513,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `16032 ms`, `clean 5-scenario matrix index`,
   `20260608-051840-HUGH_SECOND`, and `runtime CPU matrix current-head clean`.
 
+- 2026-06-08 runtime idle matching inventory compatibility and fresh clean idle proof:
+  wiki/1064 records fix commit `e6b7285d`, the compatibility change that lets
+  the direct idle gate accept both nested
+  `matching_process_inventory.counts_by_bucket` payloads and flattened role
+  buckets, the green `116/116` verifier sweep at
+  `.local-build\release-evidence-verifier-tests\20260608-053407`, and fresh
+  clean standalone idle evidence
+  `F:\workspace\musu-bee-clean-head-e6b7285d\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-053645.json`
+  with direct gate replay `ok=true` / `fail_count=0`. Search terms should
+  include `GOAL v889`, `wiki/1064`, `e6b7285d`, `20260608-053645`, `116/116`,
+  `nested matching process inventory buckets`, and `clean standalone idle proof`.
+
+- 2026-06-08 runtime idle compatibility index:
+  wiki/1065 records the MUSU local index refresh after wiki/1064 and GOAL
+  v889. Search terms should include `GOAL v890`, `wiki/1065`, `3103 files`,
+  `2890 symbols`, `16660 ms`, `runtime idle compatibility index`,
+  `e6b7285d`, `20260608-053645`, and `clean standalone idle proof index`.
+
 **End of WIKI_INDEX.md.**
