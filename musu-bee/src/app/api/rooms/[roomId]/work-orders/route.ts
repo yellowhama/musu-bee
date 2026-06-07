@@ -9,6 +9,7 @@ import {
   ROOM_WORK_ORDER_STATUSES,
   claimRoomWorkOrders,
   createRoomWorkOrder,
+  markRoomWorkOrderDelivery,
   publicRoomWorkOrder,
   queryRoomWorkOrders,
   type RoomWorkOrderStatus,
@@ -329,6 +330,13 @@ function parseBoolean(value: string | null): boolean | undefined {
   return undefined;
 }
 
+function parseDeliveryStatus(value: unknown): "queued" | "accepted" | "failed" | undefined {
+  if (value === "queued" || value === "accepted" || value === "failed") {
+    return value;
+  }
+  return undefined;
+}
+
 export async function GET(req: NextRequest, context: RouteContext) {
   const { roomId } = await context.params;
   const room_id = normalizePathContextValue(roomId);
@@ -407,9 +415,86 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
+  if (body.schema === "musu.room_work_order_delivery.v1") {
+    const target_node = normalizeContextValue(body.target_node_id) ?? normalizeContextValue(body.target_node);
+    const work_order_id = normalizeContextValue(body.work_order_id);
+    const status = parseDeliveryStatus((body as { status?: unknown }).status);
+    if (!target_node) {
+      return NextResponse.json({ ok: false, error: "target_node_id required" }, { status: 400 });
+    }
+    if (!work_order_id) {
+      return NextResponse.json({ ok: false, error: "work_order_id required" }, { status: 400 });
+    }
+    if (!status) {
+      return NextResponse.json({ ok: false, error: "invalid_room_work_order_delivery_status" }, { status: 400 });
+    }
+
+    try {
+      const order = await markRoomWorkOrderDelivery({
+        owner_key: principal.owner_key,
+        room_id,
+        target_node,
+        work_order_id,
+        status,
+        bridge_task_id: normalizeContextValue((body as { bridge_task_id?: unknown }).bridge_task_id),
+        bridge_status: normalizeContextValue((body as { bridge_status?: unknown }).bridge_status),
+        error: normalizeContextValue((body as { error?: unknown }).error),
+      });
+      if (!order) {
+        return NextResponse.json(
+          { ok: false, error: "room_work_order_not_found", owner_scoped: true },
+          { status: 404 }
+        );
+      }
+      await appendControlAudit({
+        event: "rooms.work_orders",
+        actor_id: principal.owner_key,
+        actor_email: null,
+        owner_key: principal.owner_key,
+        node: target_node,
+        command: "room.work_order.delivery",
+        result: status === "queued" ? "requeued" : status,
+        http_status: 202,
+        trace_id: traceId,
+        created_at: new Date().toISOString(),
+        origin: "musu.pro",
+        room_id,
+        work_order_id,
+        target_node,
+        reason: normalizeContextValue((body as { error?: unknown }).error),
+      });
+      return NextResponse.json(
+        {
+          schema: "musu.room_work_order_delivery.v1",
+          ok: true,
+          room_id,
+          owner_scoped: true,
+          accepted: status === "accepted",
+          requeued: status === "queued",
+          failed: status === "failed",
+          work_order: publicRoomWorkOrder(order),
+        },
+        { status: 202 }
+      );
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "unknown";
+      return NextResponse.json(
+        {
+          ok: false,
+          error: detail === "room_work_order_delivery_requires_claim"
+            ? detail
+            : "room_work_order_delivery_failed",
+          detail,
+          owner_scoped: true,
+        },
+        { status: detail === "room_work_order_delivery_requires_claim" ? 409 : 503 }
+      );
+    }
+  }
+
   if (body.schema !== "musu.room_work_order_claim.v1") {
     return NextResponse.json(
-      { ok: false, error: "invalid_room_work_order_claim_schema" },
+      { ok: false, error: "invalid_room_work_order_patch_schema" },
       { status: 400 }
     );
   }

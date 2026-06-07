@@ -200,6 +200,25 @@ function Resolve-P2pControlToken {
             return [pscustomobject]@{ present = $true; source = "env:$name"; token = $value }
         }
     }
+    $homeCandidates = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:MUSU_HOME)) {
+        $homeCandidates += [string]$env:MUSU_HOME
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+        $homeCandidates += (Join-Path $env:USERPROFILE ".musu")
+    }
+    if (-not [string]::IsNullOrWhiteSpace($HOME)) {
+        $homeCandidates += (Join-Path $HOME ".musu")
+    }
+    foreach ($musuHomeCandidate in ($homeCandidates | Select-Object -Unique)) {
+        $tokenPath = Join-Path $musuHomeCandidate "token"
+        if (Test-Path -LiteralPath $tokenPath) {
+            $value = (Get-Content -LiteralPath $tokenPath -Raw -ErrorAction SilentlyContinue).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                return [pscustomobject]@{ present = $true; source = "file:$tokenPath"; token = $value }
+            }
+        }
+    }
     return [pscustomobject]@{ present = $false; source = ""; token = "" }
 }
 
@@ -299,8 +318,11 @@ $presenceListCapture = $null
 $presenceList = $null
 $workOrderPost = $null
 $workOrderClaim = $null
+$workOrderDrainCapture = $null
+$workOrderDrain = $null
 $postRunIdleCpu = $null
 $bridgeUrl = ""
+$claimTargetNode = $TargetNode
 $accountLoggedIn = $false
 $tokenResolution = Resolve-P2pControlToken
 
@@ -361,6 +383,7 @@ try {
         Add-Check "room presence publish" $presencePublishOk "room presence publish succeeded for $RoomId" "room presence publish did not prove this local executor is online"
 
         $localNodeId = [string](Get-PropertyValue -Object $presencePublish -Name "local_node_id")
+        $claimTargetNode = if (-not [string]::IsNullOrWhiteSpace($localNodeId)) { $localNodeId } else { $TargetNode }
         $presenceListArgs = @("room", "presence", "list", $RoomId, "--json", "--limit", "20")
         if (-not [string]::IsNullOrWhiteSpace($localNodeId)) {
             $presenceListArgs += @("--node-id", $localNodeId)
@@ -392,7 +415,7 @@ try {
         $body = @{
             instruction = $Instruction
             sender_id = "one-machine-smoke"
-            target_node = $TargetNode
+            target_node = $claimTargetNode
             adapter_type = "claude"
             workspace_uri = $WorkspaceUri
             company_id = $CompanyId
@@ -419,27 +442,59 @@ try {
         Add-Check "work-order queued for outbound pickup" ($responseDeliveryMode -eq "desktop_outbound_pickup" -and $responseRequiresPickup) "work order was queued for Desktop outbound pickup" "work order was not queued for Desktop outbound pickup"
 
         if ([bool]$workOrderPost.ok) {
-            $claimBody = @{
-                schema = "musu.room_work_order_claim.v1"
-                target_node_id = $TargetNode
-                claimant_node_id = $TargetNode
-                work_order_id = $WorkOrderId
-                limit = 1
+            $drainArgs = @(
+                "room", "work-orders", "drain", $RoomId,
+                "--json",
+                "--target-node-id", $claimTargetNode,
+                "--work-order-id", $WorkOrderId,
+                "--company-id", $CompanyId,
+                "--project-id", $ProjectId,
+                "--limit", "1"
+            )
+            if (-not [string]::IsNullOrWhiteSpace($bridgeUrl)) {
+                $drainArgs += @("--bridge-url", $bridgeUrl)
             }
-            $workOrderClaim = Invoke-HttpJson -Uri $uri -Method "Patch" -Headers $headers -Body $claimBody
-            $claimCount = 0
-            if ($workOrderClaim.json) {
-                $claimCountValue = Get-PropertyValue -Object $workOrderClaim.json -Name "count"
-                if ($null -ne $claimCountValue) {
-                    $claimCount = [int]$claimCountValue
+
+            $oldDrainCloudBaseUrl = $env:MUSU_CLOUD_BASE_URL
+            try {
+                $env:MUSU_CLOUD_BASE_URL = $BaseUrl
+                $workOrderDrainCapture = Invoke-ProcessCapture -FilePath $MusuExe -Arguments $drainArgs
+            }
+            finally {
+                $env:MUSU_CLOUD_BASE_URL = $oldDrainCloudBaseUrl
+            }
+            $workOrderDrain = Convert-JsonOutput -Capture $workOrderDrainCapture
+            $workOrderClaim = $workOrderDrain
+            $drainCount = 0
+            $handoffCount = 0
+            $acceptedCount = 0
+            $serverAckCount = 0
+            if ($workOrderDrain) {
+                $drainCountValue = Get-PropertyValue -Object $workOrderDrain -Name "count"
+                if ($null -ne $drainCountValue) {
+                    $drainCount = [int]$drainCountValue
+                }
+                $handoffCountValue = Get-PropertyValue -Object $workOrderDrain -Name "handoff_count"
+                if ($null -ne $handoffCountValue) {
+                    $handoffCount = [int]$handoffCountValue
+                }
+                $acceptedCountValue = Get-PropertyValue -Object $workOrderDrain -Name "accepted_count"
+                if ($null -ne $acceptedCountValue) {
+                    $acceptedCount = [int]$acceptedCountValue
+                }
+                $serverAckCountValue = Get-PropertyValue -Object $workOrderDrain -Name "server_ack_count"
+                if ($null -ne $serverAckCountValue) {
+                    $serverAckCount = [int]$serverAckCountValue
                 }
             }
-            Add-Check "MUSU.PRO work-order claim" ([bool]$workOrderClaim.ok -and $claimCount -ge 1) "local Desktop claimant can claim the queued work order" "local Desktop claimant could not claim the queued work order"
+            $drainOk = ($workOrderDrainCapture.exit_code -eq 0 -and $workOrderDrain -and [bool](Get-PropertyValue -Object $workOrderDrain -Name "ok") -and $drainCount -ge 1)
+            Add-Check "MUSU.PRO work-order claim" $drainOk "local MUSU program claimed the queued work order through the room work-orders drain command" "local MUSU program could not drain the queued work order"
+            Add-Check "local bridge task response" ($drainOk -and $handoffCount -ge 1 -and $acceptedCount -ge 1 -and $serverAckCount -ge 1) "drained work order was handed to the local bridge, returned a task id, and acked MUSU.PRO" "drained work order did not return a local bridge task id and server ack"
         }
         else {
             Add-Check "MUSU.PRO work-order claim" $false "local Desktop claimant can claim the queued work order" "skipped because work-order POST did not succeed"
+            Add-Check "local bridge task response" $false "claimed work order executed through local bridge" "skipped because work-order POST did not succeed"
         }
-        Add-Check "local bridge task response" $false "claimed work order executed through local bridge" "Desktop outbound pickup to local bridge execution is not implemented in this smoke yet"
     }
     else {
         Add-Check "MUSU.PRO work-order POST" $false "MUSU.PRO accepted the work order POST" "skipped because no P2P control token was available"
@@ -500,7 +555,7 @@ $evidence = [pscustomobject]@{
     operator_user = $env:USERNAME
     musu_exe = if ($musuExeResolution) { [string]$musuExeResolution.path } else { $MusuExe }
     musu_exe_source = if ($musuExeResolution) { [string]$musuExeResolution.source } else { $null }
-    target_node = $TargetNode
+    target_node = $claimTargetNode
     bridge_url = $bridgeUrl
     account_logged_in = [bool]$accountLoggedIn
     p2p_control_token_present = [bool]$tokenResolution.present
@@ -531,15 +586,23 @@ $evidence = [pscustomobject]@{
         }
     } else { $null }
     work_order_claim = if ($workOrderClaim) {
-        [pscustomobject]@{
-            uri = $workOrderClaim.uri
-            status_code = $workOrderClaim.status_code
-            ok = $workOrderClaim.ok
-            json = $workOrderClaim.json
-            raw = $workOrderClaim.raw
-            error = $workOrderClaim.error
+        if ($workOrderClaim.PSObject.Properties.Name -contains "uri") {
+            [pscustomobject]@{
+                uri = $workOrderClaim.uri
+                status_code = $workOrderClaim.status_code
+                ok = $workOrderClaim.ok
+                json = $workOrderClaim.json
+                raw = $workOrderClaim.raw
+                error = $workOrderClaim.error
+            }
+        }
+        else {
+            $workOrderClaim
         }
     } else { $null }
+    work_order_drain_exit_code = if ($workOrderDrainCapture) { $workOrderDrainCapture.exit_code } else { $null }
+    work_order_drain = $workOrderDrain
+    work_order_drain_raw = if ($workOrderDrain) { $null } else { if ($workOrderDrainCapture) { (($workOrderDrainCapture.stdout + "`n" + $workOrderDrainCapture.stderr).Trim()) } else { $null } }
     post_run_idle_cpu_evidence_path = $PostRunIdleCpuEvidencePath
     post_run_idle_cpu_evidence = $postRunIdleCpu
     checks = $checks.ToArray()

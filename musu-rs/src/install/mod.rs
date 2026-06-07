@@ -24,6 +24,7 @@ pub mod distribution;
 pub mod dry_run;
 pub mod package_status;
 pub mod platform;
+pub mod room_work_orders;
 pub mod runner;
 pub mod schema_gate;
 pub mod staged_swap;

@@ -398,4 +398,22 @@ mod tests {
             _ => panic!("expected room command"),
         }
     }
+
+    #[test]
+    fn room_work_orders_drain_cli_accepts_local_target_json_flags() {
+        let cli = Cli::try_parse_from([
+            "musu",
+            "room",
+            "work-orders",
+            "drain",
+            "project-room",
+            "--local-target",
+            "--json",
+        ])
+        .unwrap();
+        match cli.command {
+            Cmd::Room { .. } => {}
+            _ => panic!("expected room command"),
+        }
+    }
 }

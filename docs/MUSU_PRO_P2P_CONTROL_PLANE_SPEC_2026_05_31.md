@@ -190,6 +190,21 @@ input and coordinate project/company rooms, presence, rendezvous, path
 selection, relay fallback, and evidence, but local MUSU Desktop programs still
 execute the work on each device.
 
+**2026-06-08 room work-order drain delivery ack update**:
+The hosted-safe room work-order flow now has an explicit server delivery ack
+protocol. Local Desktop/CLI drains claim owner-scoped queued work, hand it to
+the local bridge, then `PATCH /api/rooms/[roomId]/work-orders` with schema
+`musu.room_work_order_delivery.v1`. MUSU.PRO records `accepted` when the bridge
+returns a task id, `queued` when local handoff failed and the work should be
+retried, and `failed` for terminal failure. The Rust drain client now requires
+the server ack outcome to match the requested delivery status; `ack.ok` alone
+does not prove state alignment.
+
+This preserves the boundary: MUSU.PRO receives remote input, stores the inbox,
+and records claim/delivery state, while the installed local MUSU program owns
+bridge handoff and local execution. Current diagnostic smoke remains No-Go
+because this machine lacks MUSU.PRO login and an owner-scoped P2P control token.
+
 **2026-06-07 support mailbox request packet update**:
 `prepare-support-mailbox-verification-request.ps1` now creates a support-only
 operator request packet with schema

@@ -7146,4 +7146,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.room_work_order_claim.v1`, `roomWorkOrderStore`, and
   `20260607-215300-HUGH_SECOND`.
 
+- 2026-06-08 room work-order drain delivery ack:
+  `RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_DRAIN_DELIVERY_ACK_2026_06_08.md`
+  (wiki/1027) records `musu.room_work_order_delivery.v1` server delivery ack,
+  local drain server ack/requeue, `server_ack_count`, and the new
+  `musu-rs\src\install\room_work_orders.rs` extraction. Search terms should
+  include `GOAL v852`, `wiki/1027`, `room work-order drain delivery ack`,
+  `musu.room_work_order_delivery.v1`, `server_ack_count`,
+  `room_work_orders.rs`, `permission_envelope`,
+  `20260608-002507-HUGH_SECOND`, `not_logged_in`, `P2P control token`, and
+  `127.0.0.1:9741`.
+
+- 2026-06-08 room work-order drain delivery ack index refresh:
+  wiki/1028 records the MUSU local index refresh after wiki/1027 and GOAL
+  v852. Search terms should include `GOAL v853`, `wiki/1028`, `3103 files`,
+  `2878 symbols`, `72601 ms`,
+  `room work-order drain delivery ack index refresh`,
+  `musu.room_work_order_delivery.v1`, `server_ack_count`, and
+  `room_work_orders.rs`.
+
 **End of WIKI_INDEX.md.**

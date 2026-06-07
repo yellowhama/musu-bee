@@ -62,6 +62,10 @@ pub struct DelegateRequest {
     /// V27-F4: preferred OS.
     #[serde(default)]
     pub prefer_os: Option<String>,
+    /// Remote control-plane permission envelope. Accepted for audit/enforcement
+    /// wiring; unsupported keys remain advisory until the allowlist lands.
+    #[serde(default)]
+    pub permission_envelope: Option<serde_json::Value>,
 }
 
 fn default_qa_loop_max() -> u32 {
@@ -399,6 +403,7 @@ mod tests {
             target_node: Some("local".to_string()),
             needs_gpu: false,
             prefer_os: None,
+            permission_envelope: None,
         };
 
         let note = delegate_task_audit_note("task-1", &req);

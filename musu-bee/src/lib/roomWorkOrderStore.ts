@@ -53,6 +53,7 @@ export type StoredRoomWorkOrder = {
   bridge_task_id?: string;
   bridge_status?: string;
   terminal_at?: string;
+  last_error?: string;
 };
 
 export type RoomWorkOrderQuery = {
@@ -72,6 +73,17 @@ export type RoomWorkOrderClaimInput = RoomWorkOrderQuery & {
   room_id: string;
   target_node: string;
   claimant_node_id?: string;
+};
+
+export type RoomWorkOrderDeliveryInput = {
+  owner_key: string;
+  room_id: string;
+  work_order_id: string;
+  target_node: string;
+  status: "queued" | "accepted" | "failed";
+  bridge_task_id?: string;
+  bridge_status?: string;
+  error?: string;
 };
 
 type RoomWorkOrderStoreState = {
@@ -228,7 +240,11 @@ function isStoredRoomWorkOrder(value: unknown): value is StoredRoomWorkOrder {
     typeof order.created_at === "string" &&
     typeof order.expires_at === "string" &&
     (order.claimed_by === undefined || typeof order.claimed_by === "string") &&
-    (order.claimed_at === undefined || typeof order.claimed_at === "string")
+    (order.claimed_at === undefined || typeof order.claimed_at === "string") &&
+    (order.bridge_task_id === undefined || typeof order.bridge_task_id === "string") &&
+    (order.bridge_status === undefined || typeof order.bridge_status === "string") &&
+    (order.terminal_at === undefined || typeof order.terminal_at === "string") &&
+    (order.last_error === undefined || typeof order.last_error === "string")
   );
 }
 
@@ -500,4 +516,84 @@ export async function claimRoomWorkOrders(
     });
     return claimed;
   });
+}
+
+export async function markRoomWorkOrderDelivery(
+  input: RoomWorkOrderDeliveryInput
+): Promise<StoredRoomWorkOrder | null> {
+  assertStoreConfigured();
+  const deliveredAt = new Date().toISOString();
+
+  if (shouldUseKv()) {
+    const { kv } = await import("@vercel/kv");
+    const current = ((await kv.get<StoredRoomWorkOrder[]>(roomKey(input.room_id))) ?? [])
+      .filter(isStoredRoomWorkOrder)
+      .filter(workOrderFresh);
+    const next = applyRoomWorkOrderDeliveryToList(current, input, deliveredAt);
+    await kv.set(roomKey(input.room_id), next.work_orders.slice(0, maxWorkOrdersPerRoom()), {
+      ex: Math.max(roomWorkOrderTtlSeconds() * 4, 300),
+    });
+    return next.delivered;
+  }
+
+  return withLocalLock(async () => {
+    const state = fileGet();
+    const current = (state.work_orders_by_room[input.room_id] ?? []).filter(workOrderFresh);
+    const next = applyRoomWorkOrderDeliveryToList(current, input, deliveredAt);
+    fileSet({
+      schema: "musu.room_work_order_store.v1",
+      work_orders_by_room: {
+        ...state.work_orders_by_room,
+        [input.room_id]: next.work_orders.slice(0, maxWorkOrdersPerRoom()),
+      },
+    });
+    return next.delivered;
+  });
+}
+
+function applyRoomWorkOrderDeliveryToList(
+  workOrders: StoredRoomWorkOrder[],
+  input: RoomWorkOrderDeliveryInput,
+  deliveredAt: string
+): { work_orders: StoredRoomWorkOrder[]; delivered: StoredRoomWorkOrder | null } {
+  let delivered: StoredRoomWorkOrder | null = null;
+  const work_orders = workOrders.map((order) => {
+    if (
+      order.owner_key !== input.owner_key ||
+      order.room_id !== input.room_id ||
+      order.work_order_id !== input.work_order_id ||
+      order.target_node !== input.target_node
+    ) {
+      return order;
+    }
+    if (order.status !== "claimed") {
+      throw new Error("room_work_order_delivery_requires_claim");
+    }
+
+    const base: StoredRoomWorkOrder = {
+      ...order,
+      bridge_task_id: normalizeContextValue(input.bridge_task_id) ?? undefined,
+      bridge_status: normalizeContextValue(input.bridge_status) ?? undefined,
+      last_error: normalizeContextValue(input.error) ?? undefined,
+    };
+
+    if (input.status === "queued") {
+      delivered = {
+        ...base,
+        status: "queued",
+        claimed_by: undefined,
+        claimed_at: undefined,
+      };
+      return delivered;
+    }
+
+    delivered = {
+      ...base,
+      status: input.status,
+      terminal_at: deliveredAt,
+    };
+    return delivered;
+  });
+
+  return { work_orders, delivered };
 }

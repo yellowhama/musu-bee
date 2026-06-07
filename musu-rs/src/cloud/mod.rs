@@ -253,6 +253,113 @@ pub struct RoomPresenceQueryResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // Room work-order inbox record DTO.
+pub struct RoomWorkOrderRecord {
+    pub schema: String,
+    pub work_order_id: String,
+    pub room_id: String,
+    #[serde(default)]
+    pub company_id: Option<String>,
+    #[serde(default)]
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub target_node: Option<String>,
+    #[serde(default)]
+    pub source_agent_id: Option<String>,
+    pub sender_id: String,
+    pub channel: String,
+    #[serde(default)]
+    pub adapter_type: Option<String>,
+    #[serde(default)]
+    pub workspace_uri: Option<String>,
+    #[serde(default)]
+    pub cwd: Option<String>,
+    pub instruction: String,
+    #[serde(default)]
+    pub permission_envelope: Option<serde_json::Value>,
+    #[serde(default)]
+    pub trace_id: Option<String>,
+    pub origin: String,
+    pub delivery_mode: String,
+    pub status: String,
+    pub created_at: String,
+    pub expires_at: String,
+    #[serde(default)]
+    pub claimed_by: Option<String>,
+    #[serde(default)]
+    pub claimed_at: Option<String>,
+    #[serde(default)]
+    pub bridge_task_id: Option<String>,
+    #[serde(default)]
+    pub bridge_status: Option<String>,
+    #[serde(default)]
+    pub terminal_at: Option<String>,
+    #[serde(default)]
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for local Desktop claiming owner-scoped room work orders.
+pub struct RoomWorkOrderClaimRequest {
+    pub schema: String,
+    pub target_node_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claimant_node_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub company_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_agent_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_order_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for room work-order claim responses.
+pub struct RoomWorkOrderClaimResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub room_id: String,
+    pub owner_scoped: bool,
+    pub claimed: bool,
+    pub count: usize,
+    pub target_node: String,
+    #[serde(default)]
+    pub work_orders: Vec<RoomWorkOrderRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for local Desktop reporting room work-order handoff state.
+pub struct RoomWorkOrderDeliveryRequest {
+    pub schema: String,
+    pub work_order_id: String,
+    pub target_node_id: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bridge_task_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bridge_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)] // DTO for room work-order delivery acknowledgements.
+pub struct RoomWorkOrderDeliveryResponse {
+    pub schema: String,
+    pub ok: bool,
+    pub room_id: String,
+    pub owner_scoped: bool,
+    pub accepted: bool,
+    pub requeued: bool,
+    pub failed: bool,
+    pub work_order: RoomWorkOrderRecord,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 pub struct P2pRendezvousRequest {
     pub source_node_id: String,
@@ -904,6 +1011,14 @@ impl MusuCloud {
         Ok(url)
     }
 
+    fn room_work_orders_url(&self, room_id: &str) -> Result<reqwest::Url> {
+        let mut url = reqwest::Url::parse(&self.base_url)?;
+        url.path_segments_mut()
+            .map_err(|_| anyhow!("invalid cloud base URL"))?
+            .extend(["api", "rooms", room_id, "work-orders"]);
+        Ok(url)
+    }
+
     /// POST /api/rooms/:roomId/presence to publish current local executor presence.
     pub async fn publish_room_presence(
         &self,
@@ -973,6 +1088,62 @@ impl MusuCloud {
         if !resp.status().is_success() {
             let err = resp.text().await.unwrap_or_default();
             return Err(anyhow!("Failed to query room presence: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// PATCH /api/rooms/:roomId/work-orders to claim queued owner-scoped work.
+    pub async fn claim_room_work_orders(
+        &self,
+        room_id: &str,
+        claim: &RoomWorkOrderClaimRequest,
+    ) -> Result<RoomWorkOrderClaimResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = self.room_work_orders_url(room_id)?;
+
+        let resp = self
+            .client
+            .patch(url)
+            .bearer_auth(token)
+            .json(claim)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to claim room work orders: {err}"));
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// PATCH /api/rooms/:roomId/work-orders to ack or requeue claimed work.
+    pub async fn submit_room_work_order_delivery(
+        &self,
+        room_id: &str,
+        delivery: &RoomWorkOrderDeliveryRequest,
+    ) -> Result<RoomWorkOrderDeliveryResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = self.room_work_orders_url(room_id)?;
+
+        let resp = self
+            .client
+            .patch(url)
+            .bearer_auth(token)
+            .json(delivery)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let err = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to submit room work-order delivery: {err}"));
         }
 
         Ok(resp.json().await?)
@@ -1565,6 +1736,101 @@ mod tests {
             response.presence[0].candidate_endpoints[0].kind,
             RouteKind::Lan
         );
+    }
+
+    #[test]
+    fn room_work_order_claim_request_serializes_target_claim_fields() {
+        let claim = RoomWorkOrderClaimRequest {
+            schema: "musu.room_work_order_claim.v1".into(),
+            target_node_id: "pc-a".into(),
+            claimant_node_id: Some("pc-a".into()),
+            company_id: Some("company-a".into()),
+            project_id: Some("project-a".into()),
+            source_agent_id: Some("agent-a".into()),
+            work_order_id: Some("wo-1".into()),
+            limit: Some(1),
+        };
+
+        let value = serde_json::to_value(claim).unwrap();
+
+        assert_eq!(value["schema"], "musu.room_work_order_claim.v1");
+        assert_eq!(value["target_node_id"], "pc-a");
+        assert_eq!(value["claimant_node_id"], "pc-a");
+        assert_eq!(value["company_id"], "company-a");
+        assert_eq!(value["project_id"], "project-a");
+        assert_eq!(value["source_agent_id"], "agent-a");
+        assert_eq!(value["work_order_id"], "wo-1");
+        assert_eq!(value["limit"], 1);
+    }
+
+    #[test]
+    fn room_work_order_delivery_request_serializes_handoff_ack_fields() {
+        let delivery = RoomWorkOrderDeliveryRequest {
+            schema: "musu.room_work_order_delivery.v1".into(),
+            work_order_id: "wo-1".into(),
+            target_node_id: "pc-a".into(),
+            status: "accepted".into(),
+            bridge_task_id: Some("task-1".into()),
+            bridge_status: Some("202".into()),
+            error: None,
+        };
+
+        let value = serde_json::to_value(delivery).unwrap();
+
+        assert_eq!(value["schema"], "musu.room_work_order_delivery.v1");
+        assert_eq!(value["work_order_id"], "wo-1");
+        assert_eq!(value["target_node_id"], "pc-a");
+        assert_eq!(value["status"], "accepted");
+        assert_eq!(value["bridge_task_id"], "task-1");
+        assert_eq!(value["bridge_status"], "202");
+        assert_eq!(value.get("error"), None);
+    }
+
+    #[test]
+    fn room_work_order_claim_response_parses_public_work_orders() {
+        let response: RoomWorkOrderClaimResponse = serde_json::from_value(serde_json::json!({
+            "schema": "musu.room_work_order_claim.v1",
+            "ok": true,
+            "room_id": "project-room",
+            "owner_scoped": true,
+            "claimed": true,
+            "count": 1,
+            "target_node": "pc-a",
+            "work_orders": [{
+                "schema": "musu.room_work_order.v1",
+                "work_order_id": "wo-1",
+                "room_id": "project-room",
+                "company_id": "company-a",
+                "project_id": "project-a",
+                "target_node": "pc-a",
+                "source_agent_id": "agent-a",
+                "sender_id": "musu.pro-room",
+                "channel": "company-room",
+                "adapter_type": "claude",
+                "workspace_uri": "file:///F:/workspace/musu-bee",
+                "cwd": "F:\\workspace\\musu-bee",
+                "instruction": "Summarize status",
+                "permission_envelope": {"allow": ["read"]},
+                "trace_id": "trace-1",
+                "origin": "musu.pro",
+                "delivery_mode": "desktop_outbound_pickup",
+                "status": "claimed",
+                "created_at": "2026-06-07T10:00:00Z",
+                "expires_at": "2026-06-07T10:15:00Z",
+                "claimed_by": "pc-a",
+                "claimed_at": "2026-06-07T10:01:00Z"
+            }]
+        }))
+        .unwrap();
+
+        assert!(response.ok);
+        assert!(response.owner_scoped);
+        assert!(response.claimed);
+        assert_eq!(response.target_node, "pc-a");
+        assert_eq!(response.work_orders[0].work_order_id, "wo-1");
+        assert_eq!(response.work_orders[0].instruction, "Summarize status");
+        assert_eq!(response.work_orders[0].status, "claimed");
+        assert_eq!(response.work_orders[0].claimed_by.as_deref(), Some("pc-a"));
     }
 
     #[test]

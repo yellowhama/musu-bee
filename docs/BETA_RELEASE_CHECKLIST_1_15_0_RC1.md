@@ -52,8 +52,10 @@ One-machine work-order smoke gate added on 2026-06-07:
   `docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
 - server inbox/claim report:
   `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_OUTBOUND_PICKUP_INBOX_2026_06_07.md`
+- drain delivery ack report:
+  `docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_DRAIN_DELIVERY_ACK_2026_06_08.md`
 - diagnostic evidence:
-  `docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-215300-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+  `docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260608-002507-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
 
 Current result is intentionally No-Go: local Desktop starts, `musu up` passes,
 doctor is not failed, and the actual bridge URL is `http://127.0.0.1:9741`;
@@ -62,9 +64,11 @@ publish/list return `not_logged_in`, no P2P control token is present, work-order
 POST and claim are skipped, Desktop local execution is not proven, and post-run
 CPU evidence is missing. The MUSU.PRO server now has a durable owner-scoped
 work-order inbox and claim API for explicit
-`delivery_mode: "desktop_outbound_pickup"`. The next release work is
-login/presence, owner-scoped credential, packaged Desktop outbound claim
-client, local execution/result return, then post-run CPU evidence.
+`delivery_mode: "desktop_outbound_pickup"`, and the local drain path now has a
+server delivery ack/requeue API for `accepted`, `queued`, and `failed` handoff
+outcomes. The next release work is login/presence, owner-scoped credential,
+packaging the current drain changes into the installed alias, local execution
+result/status return, then post-run CPU evidence.
 
 Comparable SaaS research was updated on 2026-06-07 in
 `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`. The closest

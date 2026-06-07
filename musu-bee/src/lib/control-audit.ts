@@ -14,6 +14,8 @@ export interface ControlAuditEvent {
     | "queued"
     | "claimed"
     | "claim_empty"
+    | "requeued"
+    | "failed"
     | "bridge_error"
     | "store_error";
   http_status: number;

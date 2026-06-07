@@ -482,6 +482,130 @@ test("PATCH claims queued room work orders for the target Desktop", async () => 
   assert.equal(typeof body.work_orders[0]?.claimed_at, "string");
 });
 
+test("PATCH marks claimed room work orders accepted after local bridge handoff", async () => {
+  const res = await PATCH(
+    patchReq({
+      schema: "musu.room_work_order_delivery.v1",
+      target_node_id: "HUGH_SECOND",
+      work_order_id: "wo-outbound-1",
+      status: "accepted",
+      bridge_task_id: "bridge-task-1",
+      bridge_status: "202",
+    }),
+    { params: Promise.resolve({ roomId: "release-room" }) },
+  );
+  assert.equal(res.status, 202);
+  const body = (await res.json()) as {
+    schema: string;
+    ok: boolean;
+    accepted: boolean;
+    requeued: boolean;
+    failed: boolean;
+    work_order: {
+      owner_key?: string;
+      work_order_id: string;
+      status: string;
+      bridge_task_id: string;
+      bridge_status: string;
+      terminal_at: string;
+    };
+  };
+  assert.equal(body.schema, "musu.room_work_order_delivery.v1");
+  assert.equal(body.ok, true);
+  assert.equal(body.accepted, true);
+  assert.equal(body.requeued, false);
+  assert.equal(body.failed, false);
+  assert.equal(body.work_order.owner_key, undefined);
+  assert.equal(body.work_order.work_order_id, "wo-outbound-1");
+  assert.equal(body.work_order.status, "accepted");
+  assert.equal(body.work_order.bridge_task_id, "bridge-task-1");
+  assert.equal(body.work_order.bridge_status, "202");
+  assert.equal(typeof body.work_order.terminal_at, "string");
+
+  const auditEvents = await readAuditEvents();
+  const audit = auditEvents.at(-1);
+  assert.ok(audit);
+  assert.equal(audit.event, "rooms.work_orders");
+  assert.equal(audit.command, "room.work_order.delivery");
+  assert.equal(audit.result, "accepted");
+  assert.equal(audit.work_order_id, "wo-outbound-1");
+  assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
+});
+
+test("PATCH can requeue a claimed room work order after local bridge handoff failure", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("hosted MUSU.PRO must not call a local bridge for outbound pickup orders");
+    },
+    async () => {
+      const queued = await POST(
+        req({
+          instruction: "Requeue me after bridge failure",
+          target_node: "HUGH_SECOND",
+          work_order_id: "wo-requeue-1",
+          delivery_mode: "desktop_outbound_pickup",
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(queued.status, 202);
+
+      const claimed = await PATCH(
+        patchReq({
+          schema: "musu.room_work_order_claim.v1",
+          target_node_id: "HUGH_SECOND",
+          claimant_node_id: "hugh_second",
+          work_order_id: "wo-requeue-1",
+          limit: 1,
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(claimed.status, 202);
+
+      const delivered = await PATCH(
+        patchReq({
+          schema: "musu.room_work_order_delivery.v1",
+          target_node_id: "HUGH_SECOND",
+          work_order_id: "wo-requeue-1",
+          status: "queued",
+          bridge_status: "0",
+          error: "bridge_unavailable:test",
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(delivered.status, 202);
+      const body = (await delivered.json()) as {
+        ok: boolean;
+        requeued: boolean;
+        work_order: {
+          owner_key?: string;
+          work_order_id: string;
+          status: string;
+          claimed_by?: string;
+          last_error: string;
+        };
+      };
+      assert.equal(body.ok, true);
+      assert.equal(body.requeued, true);
+      assert.equal(body.work_order.owner_key, undefined);
+      assert.equal(body.work_order.work_order_id, "wo-requeue-1");
+      assert.equal(body.work_order.status, "queued");
+      assert.equal(body.work_order.claimed_by, undefined);
+      assert.equal(body.work_order.last_error, "bridge_unavailable:test");
+
+      const listed = await GET(
+        getReq("https://musu.pro/api/rooms/release-room/work-orders?status=queued&target_node=HUGH_SECOND&work_order_id=wo-requeue-1"),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(listed.status, 200);
+      const listedBody = (await listed.json()) as { count: number; work_orders: Array<{ work_order_id: string; status: string }> };
+      assert.equal(listedBody.count, 1);
+      assert.equal(listedBody.work_orders[0]?.work_order_id, "wo-requeue-1");
+      assert.equal(listedBody.work_orders[0]?.status, "queued");
+    },
+  );
+});
+
 test("PATCH does not expose another authorized owner work-order claims", async () => {
   await withFetchMock(
     async () => {

@@ -1390,8 +1390,11 @@ function Test-OneMachineMusuProWorkOrderSmokeContract {
         '/work-orders',
         'requires_desktop_outbound_pickup',
         'desktop_outbound_pickup',
-        'musu.room_work_order_claim.v1',
+        '"room", "work-orders", "drain"',
+        'server_ack_count',
         'work_order_claim',
+        'work_order_drain',
+        'local bridge task response',
         'permission_envelope',
         'P2P control token',
         'owner_scoped',
@@ -1411,6 +1414,7 @@ function Test-OneMachineMusuProWorkOrderSmokeContract {
     return (
         $source -like '*MUSU_P2P_CONTROL_TOKEN*' -and
         $source -like '*MUSU_ROUTE_EVIDENCE_TOKEN*' -and
+        $source -like '*Join-Path $musuHomeCandidate "token"*' -and
         $source -like '*MUSU_CLOUD_BASE_URL*' -and
         $source -like '*measure-musu-idle-cpu.ps1*' -and
         $source -like '*-not $ok -and -not $AllowUnverified*'

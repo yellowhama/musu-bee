@@ -16862,3 +16862,64 @@ Search terms should include `GOAL v851`, `wiki/1026`, `3098 files`,
 `2843 symbols`, `11321 ms`, `desktop_outbound_pickup`,
 `musu.room_work_order_claim.v1`, `roomWorkOrderStore`, and
 `20260607-215300-HUGH_SECOND`.
+
+## 2026-06-08 Room Work-Order Drain Delivery Ack (wiki/1027)
+
+`docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_DRAIN_DELIVERY_ACK_2026_06_08.md`
+records the next one-machine MUSU.PRO functional-path step. The server room
+work-order route now accepts `musu.room_work_order_delivery.v1` PATCH requests
+after local Desktop drain handoff. Claimed work can transition to `accepted`
+with bridge task metadata, back to `queued` with `last_error` after local
+bridge handoff failure, or to terminal `failed`.
+
+Rust local program support now lives in
+`musu-rs\src\install\room_work_orders.rs` instead of adding more claim/drain
+orchestration to the already-large `cli_commands.rs`. The drain path resolves
+control tokens from `MUSU_P2P_CONTROL_TOKEN`, `MUSU_ROUTE_EVIDENCE_TOKEN`,
+`MUSU_TOKEN`, or `~/.musu\token`, preserves advisory `permission_envelope` in
+the local bridge delegate body, submits server delivery ack after each bridge
+handoff, and counts `server_ack_ok` only when the server response outcome
+matches the requested delivery status.
+
+Latest diagnostic smoke evidence is
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260608-002507-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+with `ok=false`/`fail_count=11`: packaged MUSU starts from the WindowsApps
+alias, `musu up` is `ok=true`, doctor is `warn`, bridge discovery is
+`http://127.0.0.1:9741`, fixed `localhost:3001` assumption is `false`, room
+presence returns `not_logged_in`, and work-order POST/drain are skipped because
+no owner-scoped P2P control token is present. Linked runtime-started CPU
+diagnostic evidence is `ok=true`, but it is dirty diagnostic evidence only.
+
+Validation passed `cargo fmt`, `cargo check --bin musu`, TS route test `13/13`,
+`npx tsc --noEmit --pretty false`, release evidence verifier regression
+`ok=true`/`case_count=106`/`failed_case_count=0`, and `git diff --check`.
+Filtered `cargo test --bin musu room_work_order -- --nocapture` was stopped
+during the long test-profile Rust compile, so Rust unit-test proof is still
+missing for this pass.
+
+Search terms should include `GOAL v852`, `wiki/1027`,
+`room work-order drain delivery ack`, `musu.room_work_order_delivery.v1`,
+`server_ack_count`, `room_work_orders.rs`, `permission_envelope`,
+`20260608-002507-HUGH_SECOND`, `not_logged_in`, `P2P control token`, and
+`127.0.0.1:9741`.
+
+## 2026-06-08 Room Work-Order Drain Delivery Ack Index Refresh (wiki/1028)
+
+MUSU local indexer was refreshed after wiki/1027 and GOAL v852.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2878 symbols`
+- `72601 ms`
+
+Indexed context includes `musu-rs\src\install\room_work_orders.rs`, room
+work-order delivery ack server route/store/tests, cloud DTOs, smoke/verifier
+token fallback fix, latest diagnostic smoke evidence
+`20260608-002507-HUGH_SECOND`, canonical drain delivery ack report, BETA
+checklist, MUSU.PRO P2P control-plane spec, WIKI/WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v853`, `wiki/1028`, `3103 files`,
+`2878 symbols`, `72601 ms`, `room work-order drain delivery ack index refresh`,
+`musu.room_work_order_delivery.v1`, `server_ack_count`, and
+`room_work_orders.rs`.

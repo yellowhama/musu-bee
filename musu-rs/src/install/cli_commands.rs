@@ -105,6 +105,11 @@ pub enum RoomAction {
         #[command(subcommand)]
         action: RoomPresenceAction,
     },
+    /// Claim/drain owner-scoped MUSU.PRO room work orders for this local program.
+    WorkOrders {
+        #[command(subcommand)]
+        action: RoomWorkOrdersAction,
+    },
 }
 
 /// Subcommands for `musu room presence`.
@@ -114,6 +119,15 @@ pub enum RoomPresenceAction {
     Publish(RoomPresencePublishOpts),
     /// List current owner-scoped room presence records.
     List(RoomPresenceListOpts),
+}
+
+/// Subcommands for `musu room work-orders`.
+#[derive(Subcommand, Debug)]
+pub enum RoomWorkOrdersAction {
+    /// Claim queued owner-scoped MUSU.PRO work orders without executing them.
+    Claim(RoomWorkOrdersClaimOpts),
+    /// Claim queued MUSU.PRO work orders and hand them to the local bridge.
+    Drain(RoomWorkOrdersDrainOpts),
 }
 
 /// Options for `musu relay status`.
@@ -339,6 +353,71 @@ pub struct RoomPresenceListOpts {
     /// Include expired presence records.
     #[arg(long)]
     pub include_expired: bool,
+}
+
+/// Options for `musu room work-orders claim <room-id>`.
+#[derive(Args, Debug)]
+pub struct RoomWorkOrdersClaimOpts {
+    /// Room id on musu.pro.
+    pub room_id: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum queued work orders to claim.
+    #[arg(long, default_value_t = 1)]
+    pub limit: u32,
+    /// Claim work orders targeted to this node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
+    /// Claim work orders targeted to the current local node id.
+    #[arg(long)]
+    pub local_target: bool,
+    /// Company id filter.
+    #[arg(long)]
+    pub company_id: Option<String>,
+    /// Project id filter.
+    #[arg(long)]
+    pub project_id: Option<String>,
+    /// Source agent id filter.
+    #[arg(long)]
+    pub source_agent_id: Option<String>,
+    /// Specific work order id to claim.
+    #[arg(long)]
+    pub work_order_id: Option<String>,
+}
+
+/// Options for `musu room work-orders drain <room-id>`.
+#[derive(Args, Debug)]
+pub struct RoomWorkOrdersDrainOpts {
+    /// Room id on musu.pro.
+    pub room_id: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Maximum queued work orders to claim and hand to the local bridge.
+    #[arg(long, default_value_t = 1)]
+    pub limit: u32,
+    /// Claim work orders targeted to this node id.
+    #[arg(long)]
+    pub target_node_id: Option<String>,
+    /// Claim work orders targeted to the current local node id.
+    #[arg(long)]
+    pub local_target: bool,
+    /// Company id filter.
+    #[arg(long)]
+    pub company_id: Option<String>,
+    /// Project id filter.
+    #[arg(long)]
+    pub project_id: Option<String>,
+    /// Source agent id filter.
+    #[arg(long)]
+    pub source_agent_id: Option<String>,
+    /// Specific work order id to claim.
+    #[arg(long)]
+    pub work_order_id: Option<String>,
+    /// Override local bridge base URL.
+    #[arg(long)]
+    pub bridge_url: Option<String>,
 }
 
 /// Options for `musu ls peer-name:/path`.
@@ -1052,6 +1131,10 @@ pub async fn run_room(action: RoomAction) -> Result<()> {
         RoomAction::Presence { action } => match action {
             RoomPresenceAction::Publish(opts) => run_room_presence_publish(opts).await,
             RoomPresenceAction::List(opts) => run_room_presence_list(opts).await,
+        },
+        RoomAction::WorkOrders { action } => match action {
+            RoomWorkOrdersAction::Claim(opts) => super::room_work_orders::run_claim(opts).await,
+            RoomWorkOrdersAction::Drain(opts) => super::room_work_orders::run_drain(opts).await,
         },
     }
 }
