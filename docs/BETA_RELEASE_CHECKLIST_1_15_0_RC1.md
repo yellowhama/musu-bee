@@ -63,6 +63,16 @@ Supplemental infrastructure research also validates three release requirements:
   rendezvous; relay fallback must emit route metadata, transport proof, and
   payload delivery proof before it can close release gates
 
+Final same-day source recheck was added in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md`. It rechecked
+Claude Code Remote Control, OpenAI Codex, GitHub Copilot cloud/third-party
+agents, Cursor Background/Web/Mobile Agents, Jules, Devin, Replit, and
+Tailscale. The release-product boundary is unchanged: MUSU.PRO is the
+control-plane and meeting-room surface, MUSU Desktop is the executor, P2P
+direct paths are preferred after bootstrap, and hosted relay is explicit
+fallback only after policy, lease readiness, route metadata, transport proof,
+and payload delivery proof.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

@@ -15673,3 +15673,71 @@ Search terms should include `GOAL v816`, `wiki/991`, `2985 files`,
 `release relay lease readiness gate index refresh`,
 `p2pReleaseRelayLeaseValidation`,
 `release_relay_lease_relay_url_mismatch`, and `test:p2p 114/114`.
+
+## 2026-06-07 Agent Control SaaS Final Source Recheck (wiki/992)
+
+Final same-day source recheck was added after the release relay lease readiness
+gate.
+
+Canonical report:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md`
+
+Sources rechecked:
+
+- Claude Code Remote Control
+- OpenAI Codex product page, app announcement, and GitHub repository
+- GitHub Copilot cloud agent and third-party coding agents
+- Cursor Background Agents and Web/Mobile Agents
+- Google Jules
+- Devin
+- Replit Agent
+- Tailscale control/data-plane and DERP references
+
+Decision unchanged:
+
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, evidence, notifications, and
+  team-policy control plane.
+- MUSU Desktop is the local filesystem/process/tool/adapter executor and local
+  permission boundary.
+- P2P direct paths remain preferred after MUSU.PRO bootstrap.
+- Hosted relay remains explicit fallback and must prove policy allow, lease
+  readiness, route metadata, transport proof, and payload delivery proof before
+  release.
+- `localhost` remains a local diagnostic detail, not the normal release URL.
+
+AG UI/UX requirement:
+
+- The order composer must show `Input`, `Executing on`, `Route`, and
+  `Evidence` before submission.
+- No eligible online MUSU Desktop runtime means no immediate submit; the only
+  valid remote behavior is explicit queueing with pickup timeout and visible
+  offline/sleep/policy state.
+
+Search terms should include `GOAL v817`, `wiki/992`,
+`agent control SaaS final source recheck`, `GitHub third-party coding agents`,
+`Codex command center`, `Cursor Web and Mobile Agents`,
+`Tailscale control data plane`, `MUSU Desktop local executor`, and
+`execution-locus strip`.
+
+## 2026-06-07 Agent Control SaaS Final Source Recheck Index Refresh (wiki/993)
+
+MUSU local indexer was refreshed after wiki/992 and GOAL v817.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2988 files`
+- `2794 symbols`
+- `18593 ms`
+
+Indexed context includes the final agent-control SaaS source recheck, AG UI/UX
+final design recheck, BETA checklist product split update, WIKI_INDEX, GOAL,
+and CoS memory.
+
+Search terms should include `GOAL v818`, `wiki/993`, `2988 files`,
+`2794 symbols`, `18593 ms`,
+`agent control SaaS final source recheck index refresh`,
+`GitHub third-party coding agents`, `Codex command center`,
+`Cursor Web and Mobile Agents`, `Tailscale control data plane`, and
+`execution-locus strip`.

@@ -681,3 +681,29 @@ MVP addition:
   order is explicitly queued with a pickup timeout.
 - Show `localhost` only as a technical bridge detail inside Desktop Mini
   Console diagnostics, not as the normal product entry point.
+
+## 2026-06-07 15:50 KST Final Design Recheck
+
+The final same-day SaaS source recheck is documented in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md`
+
+Design decision unchanged:
+
+- AG UI is an operator cockpit for local AI workers, not a hosted-agent landing
+  page.
+- The first viewport after login should be Command Center.
+- The order composer must show `Input`, `Executing on`, `Route`, and
+  `Evidence` before submission.
+- Project Rooms are the AI company meeting room: humans and attached local
+  agents coordinate plans, decisions, artifacts, blockers, and evidence.
+- Device Mesh is the place to inspect local runtime liveness, route candidates,
+  direct attempts, relay fallback, and revoke/pause controls.
+- Evidence Center is the release/no-go truth surface, with raw JSON kept behind
+  a detail drawer.
+
+MVP rule:
+
+- No online eligible MUSU Desktop runtime means no immediate submit. The only
+  valid remote path is explicit queueing with pickup timeout and visible
+  offline/sleep/policy state.

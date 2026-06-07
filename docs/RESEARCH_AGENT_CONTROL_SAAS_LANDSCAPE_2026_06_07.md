@@ -453,3 +453,34 @@ Reconfirmed product implication:
 - Release UX must show an execution-locus banner before order submission:
   `Input from MUSU.PRO`, `Executing on <device>`,
   `Route <direct|relay|cloud>`, and `Evidence <ok|missing|failed>`.
+
+## 2026-06-07 15:50 KST Final Source Recheck
+
+Additional same-day official-source recheck is recorded in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md`
+
+New emphasis from this pass:
+
+- GitHub's current agent surface now makes third-party coding agents a normal
+  GitHub workflow object across Agents tab, issues, pull requests, GitHub
+  Mobile, and VS Code. MUSU should borrow multi-surface assignment and review,
+  but keep execution owned by the selected MUSU Desktop runtime.
+- OpenAI Codex reinforces the command-center pattern for parallel agent work,
+  while Codex CLI remains an explicit local agent reference. MUSU should adopt
+  command-center supervision without blurring local and cloud execution.
+- Cursor Web/Mobile Agents reinforce remote input, status, follow-up, team
+  links, and desktop handoff. MUSU's handoff target is the local MUSU Desktop
+  device, not a vendor VM.
+- Tailscale remains the best network analogy: MUSU.PRO coordinates identity,
+  policy, presence, route metadata, and relay selection; devices own the
+  data/work path.
+
+Final decision unchanged:
+
+- MUSU.PRO is control plane and room.
+- MUSU Desktop is executor.
+- P2P direct remains preferred after web bootstrap.
+- Relay fallback remains explicit, owner-scoped, expiring, revocable, and
+  proof-gated.
+- `localhost` stays a diagnostic detail, not the normal release URL.

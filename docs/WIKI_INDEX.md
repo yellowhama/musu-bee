@@ -6821,4 +6821,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2pReleaseRelayLeaseValidation`,
   `release_relay_lease_relay_url_mismatch`, and `test:p2p 114/114`.
 
+- 2026-06-07 agent control SaaS final source recheck:
+  `RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md` (wiki/992)
+  records a final same-day official-source recheck across Claude Code Remote
+  Control, OpenAI Codex product/app/repo sources, GitHub Copilot cloud and
+  third-party coding agents, Cursor Background/Web/Mobile Agents, Jules, Devin,
+  Replit, and Tailscale. Search terms should include `GOAL v817`, `wiki/992`,
+  `agent control SaaS final source recheck`, `GitHub third-party coding
+  agents`, `Codex command center`, `Cursor Web and Mobile Agents`,
+  `Tailscale control data plane`, and `execution-locus strip`.
+
+- 2026-06-07 agent control SaaS final source recheck index refresh:
+  wiki/993 records the MUSU local index refresh after wiki/992 and GOAL v817.
+  Search terms should include `GOAL v818`, `wiki/993`, `2988 files`,
+  `2794 symbols`, `18593 ms`,
+  `agent control SaaS final source recheck index refresh`,
+  `GitHub third-party coding agents`, `Codex command center`,
+  `Cursor Web and Mobile Agents`, `Tailscale control data plane`, and
+  `execution-locus strip`.
+
 **End of WIKI_INDEX.md.**
