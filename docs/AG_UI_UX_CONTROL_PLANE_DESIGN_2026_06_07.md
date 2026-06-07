@@ -259,6 +259,24 @@ Agent cards should be compact and operational:
 - permission tier
 - last evidence timestamp
 
+## 2026-06-07 19:47 Local-Fleet Research Addendum
+
+The latest comparable SaaS addendum is:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`
+
+AG UI lock from that pass:
+
+- first-screen UX remains Command Center, not a landing page;
+- the order composer must display `Input`, `Executing on`, `Route`, and
+  `Evidence` before submit;
+- local devices are shown as workers with liveness, route candidates,
+  permission tier, and evidence freshness;
+- self-hosted/local-worker control planes are a stronger pattern match than
+  cloud-only coding agents;
+- `Remote control`, `Local runtime online`, `Queued for pickup`,
+  `Direct route`, `Relay fallback`, and `Evidence missing` are separate labels.
+
 ### 4. Device Mesh
 
 Purpose: make local execution and P2P route state understandable.

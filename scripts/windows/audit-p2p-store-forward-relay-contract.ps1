@@ -741,11 +741,15 @@ Add-Check `
             "forwarded_task_from_relay_payload",
             "mark_relay_payload_delivered",
             "record_relay_payload_delivery_route_evidence",
+            "relay_transport_proof_from_cloud_proof",
+            "delivery_response.relay_transport_proof.as_ref()",
+            "record_release_relay_payload_delivery_route_evidence",
+            "release_relay_transport_proof_missing",
             "route_evidence_submitted"
         )
     ) `
     -Path $relayPayloadDrainPath `
-    -Message "Target-side drain claims queued payloads, accepts local work, marks delivery, and records/submits delivery proof route evidence."
+    -Message "Target-side drain claims queued payloads, accepts local work, marks delivery, records preview delivery proof, and uses attached release transport proof before recording release-grade route evidence."
 
 Add-Check `
     -Scope "rust-target" `

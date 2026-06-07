@@ -329,6 +329,75 @@ fn delivery_proof_from_cloud_proof(
     }
 }
 
+fn relay_transport_proof_from_cloud_proof(
+    proof: &crate::cloud::RouteRelayTransportProof,
+) -> crate::bridge::route_evidence::RouteRelayTransportProof {
+    crate::bridge::route_evidence::RouteRelayTransportProof {
+        schema: proof.schema.clone(),
+        session_id: proof.session_id.clone(),
+        lease_id: proof.lease_id.clone(),
+        source_node_id: proof.source_node_id.clone(),
+        target_node_id: proof.target_node_id.clone(),
+        transport_kind: proof.transport_kind.clone(),
+        relay_url: proof.relay_url.clone(),
+        tunnel_id: proof.tunnel_id.clone(),
+        handshake_ms: proof.handshake_ms,
+        payload_bytes_transited: proof.payload_bytes_transited,
+        payload_transited_musu_infra: proof.payload_transited_musu_infra,
+        peer_identity_verified: proof.peer_identity_verified,
+        peer_identity_method: proof.peer_identity_method.clone(),
+        peer_public_key: proof.peer_public_key.clone(),
+        encryption: proof.encryption.clone(),
+        transport_verified_by: proof.transport_verified_by.clone(),
+        opened_at: proof.opened_at.clone(),
+        closed_at: proof.closed_at.clone(),
+    }
+}
+
+fn release_relay_transport_proof_required(
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    proof: &crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof,
+) -> bool {
+    payload.release_grade
+        || proof.release_grade
+        || payload.transport_kind == RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        || proof.transport_kind == RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+}
+
+fn record_target_relay_payload_delivery_route_evidence(
+    musu_home: &Path,
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    delivery_proof: crate::bridge::route_evidence::RouteRelayPayloadDeliveryProof,
+    relay_transport_proof: Option<&crate::cloud::RouteRelayTransportProof>,
+    total_attempt_ms: u64,
+) -> std::result::Result<crate::bridge::route_evidence::RouteEvidenceRecord, String> {
+    if let Some(relay_transport_proof) = relay_transport_proof {
+        let accepted_delivery_proof = accept_release_relay_tunnel_payload(payload, &delivery_proof)
+            .map_err(str::to_string)?;
+        let relay_transport_proof = relay_transport_proof_from_cloud_proof(relay_transport_proof);
+        return crate::bridge::route_evidence::record_release_relay_payload_delivery_route_evidence(
+            musu_home,
+            payload,
+            relay_transport_proof,
+            accepted_delivery_proof,
+            total_attempt_ms,
+        )
+        .map_err(|err| err.to_string());
+    }
+
+    if release_relay_transport_proof_required(payload, &delivery_proof) {
+        return Err("release_relay_transport_proof_missing".to_string());
+    }
+
+    crate::bridge::route_evidence::record_relay_payload_delivery_route_evidence(
+        musu_home,
+        payload,
+        delivery_proof,
+        total_attempt_ms,
+    )
+    .map_err(|err| err.to_string())
+}
+
 pub fn start_relay_payload_poller_if_enabled(state: AppState) {
     if !relay_payload_poller_enabled() {
         tracing::info!(
@@ -545,10 +614,11 @@ pub async fn drain_relay_payloads_for_local_target(
                                 });
                             if let Some(proof) = proof {
                                 let route_record =
-                                    crate::bridge::route_evidence::record_relay_payload_delivery_route_evidence(
+                                    record_target_relay_payload_delivery_route_evidence(
                                         musu_home_from_state(state),
                                         &payload,
                                         proof.clone(),
+                                        delivery_response.relay_transport_proof.as_ref(),
                                         crate::bridge::route_evidence::elapsed_ms(
                                             payload_started.elapsed(),
                                         ),
@@ -588,9 +658,8 @@ pub async fn drain_relay_payloads_for_local_target(
                                             }
                                         }
                                     }
-                                    Err(_) => {
-                                        item.route_evidence_failure_class =
-                                            Some("relay_route_evidence_record_failed".to_string());
+                                    Err(failure_class) => {
+                                        item.route_evidence_failure_class = Some(failure_class);
                                     }
                                 }
                                 item.delivery_proof = Some(proof);
@@ -741,6 +810,31 @@ mod tests {
         payload
     }
 
+    fn release_relay_tunnel_transport_proof(
+        payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    ) -> crate::cloud::RouteRelayTransportProof {
+        crate::cloud::RouteRelayTransportProof {
+            schema: "musu.relay_transport_proof.v1".to_string(),
+            session_id: payload.session_id.clone(),
+            lease_id: payload.lease_id.clone(),
+            source_node_id: payload.source_node_id.clone(),
+            target_node_id: payload.target_node_id.clone(),
+            transport_kind: "quic_relay_tunnel".to_string(),
+            relay_url: payload.relay_url.clone(),
+            tunnel_id: payload.tunnel_id.clone(),
+            handshake_ms: 23,
+            payload_bytes_transited: payload.payload_bytes,
+            payload_transited_musu_infra: true,
+            peer_identity_verified: true,
+            peer_identity_method: "quic_tls_cert_fingerprint".to_string(),
+            peer_public_key: "sha256:release-peer".to_string(),
+            encryption: "quic_tls_1_3".to_string(),
+            transport_verified_by: "musu_quic_tls_transport".to_string(),
+            opened_at: "2026-06-04T00:00:01Z".to_string(),
+            closed_at: Some("2026-06-04T00:00:02Z".to_string()),
+        }
+    }
+
     #[test]
     fn delivered_payload_record_builds_delivery_proof() {
         let proof =
@@ -774,6 +868,98 @@ mod tests {
         let accepted = accept_release_relay_tunnel_payload(&payload, &proof).expect("accepted");
         assert_eq!(accepted.transport_kind, "quic_relay_tunnel");
         assert!(accepted.release_grade);
+    }
+
+    #[test]
+    fn relay_transport_proof_from_cloud_proof_preserves_release_binding() {
+        let payload = release_relay_tunnel_payload_record();
+        let cloud_proof = release_relay_tunnel_transport_proof(&payload);
+        let proof = relay_transport_proof_from_cloud_proof(&cloud_proof);
+
+        assert_eq!(proof.schema, "musu.relay_transport_proof.v1");
+        assert_eq!(proof.session_id, payload.session_id);
+        assert_eq!(proof.lease_id, payload.lease_id);
+        assert_eq!(proof.source_node_id, payload.source_node_id);
+        assert_eq!(proof.target_node_id, payload.target_node_id);
+        assert_eq!(proof.relay_url, payload.relay_url);
+        assert_eq!(proof.tunnel_id, payload.tunnel_id);
+        assert_eq!(proof.transport_kind, "quic_relay_tunnel");
+        assert_eq!(proof.encryption, "quic_tls_1_3");
+        assert_eq!(proof.transport_verified_by, "musu_quic_tls_transport");
+        assert_eq!(proof.payload_bytes_transited, payload.payload_bytes);
+        assert!(proof.peer_identity_verified);
+    }
+
+    #[test]
+    fn target_delivery_records_release_route_evidence_when_transport_proof_attached() {
+        let dir = std::env::temp_dir().join(format!(
+            "musu-relay-payload-target-evidence-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let payload = release_relay_tunnel_payload_record();
+        let delivery_proof = delivery_proof_from_delivered_payload(&payload).expect("proof");
+        let transport_proof = release_relay_tunnel_transport_proof(&payload);
+
+        let record = record_target_relay_payload_delivery_route_evidence(
+            &dir,
+            &payload,
+            delivery_proof,
+            Some(&transport_proof),
+            31,
+        )
+        .expect("release route evidence");
+        let value = serde_json::to_value(&record.evidence).unwrap();
+
+        assert!(record
+            .path
+            .ends_with("route-evidence/release-relay-payload-payload-1.route-evidence.json"));
+        assert_eq!(value["route_kind"], "relay");
+        assert_eq!(value["handshake_ms"], 23);
+        assert_eq!(value["encryption"], "quic_tls_1_3");
+        assert_eq!(value["transport_verified_by"], "musu_quic_tls_transport");
+        assert_eq!(
+            value["relay_transport_proof"]["schema"],
+            "musu.relay_transport_proof.v1"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["schema"],
+            "musu.relay_payload_delivery_proof.v1"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["transport_kind"],
+            "quic_relay_tunnel"
+        );
+        assert_eq!(value["relay_payload_delivery_proof"]["release_grade"], true);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn target_delivery_rejects_release_payload_without_transport_proof() {
+        let dir = std::env::temp_dir().join(format!(
+            "musu-relay-payload-target-evidence-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let payload = release_relay_tunnel_payload_record();
+        let delivery_proof = delivery_proof_from_delivered_payload(&payload).expect("proof");
+
+        let result = record_target_relay_payload_delivery_route_evidence(
+            &dir,
+            &payload,
+            delivery_proof,
+            None,
+            31,
+        );
+        let error = match result {
+            Ok(_) => panic!("expected missing transport proof failure"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error, "release_relay_transport_proof_missing");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

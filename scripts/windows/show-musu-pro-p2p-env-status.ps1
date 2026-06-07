@@ -238,6 +238,10 @@ function Get-SourceRelayMarker {
             rust_delivery_records_release_relay_tunnel_payload = (
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'quic_relay_tunnel') -and
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'release_grade:\s*true') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'relay_transport_proof_from_cloud_proof') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'delivery_response\.relay_transport_proof\.as_ref\(\)') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'record_release_relay_payload_delivery_route_evidence') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'release_relay_transport_proof_missing') -and
                 [regex]::IsMatch($rustRouteEvidenceText, 'record_release_relay_payload_delivery_route_evidence') -and
                 [regex]::IsMatch($rustRouteEvidenceText, 'relay_transport_proof:\s*Some\(transport_proof\)') -and
                 [regex]::IsMatch($rustRouteEvidenceText, 'RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE')
@@ -280,7 +284,8 @@ function Get-SourceRelayMarker {
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'drain_relay_payloads_for_local_target') -and
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'forwarded_task_from_relay_payload') -and
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'mark_relay_payload_delivered') -and
-                [regex]::IsMatch($rustRelayPayloadDrainText, 'record_relay_payload_delivery_route_evidence')
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'record_relay_payload_delivery_route_evidence') -and
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'record_target_relay_payload_delivery_route_evidence')
             )
         }
         $summary.relay_payload_queue_fallback_components = $queueFallbackComponents

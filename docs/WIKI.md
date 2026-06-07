@@ -16404,3 +16404,86 @@ Search terms should include `GOAL v837`, `wiki/1012`, `3055 files`,
 `20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`,
 `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
 and `PRIMARY-PC peer not found`.
+
+## 2026-06-07 Target Drain Release Relay Proof Wiring And Local-Fleet SaaS Addendum (wiki/1013)
+
+Rust target-side relay payload drain now consumes optional
+`relay_transport_proof` from `P2pRelayPayloadDeliveryResponse`.
+
+Changed source:
+
+- `musu-rs/src/cloud/mod.rs`
+- `musu-rs/src/bridge/handlers/relay_payload.rs`
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1`
+- `scripts/windows/show-musu-pro-p2p-env-status.ps1`
+
+Behavior:
+
+- attached `musu.relay_transport_proof.v1` plus delivery proof routes to
+  `record_release_relay_payload_delivery_route_evidence(...)`;
+- release-grade payload/delivery proof without transport proof fails as
+  `release_relay_transport_proof_missing`;
+- preview store-forward delivery still writes non-release-grade preview
+  evidence;
+- release payload endpoint and release tunnel runtime markers remain false.
+
+Validation:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_payload --lib`:
+  `32 passed`
+- `cargo test --manifest-path musu-rs\Cargo.toml cloud::tests::relay_payload_delivery_response --lib`:
+  `2 passed`
+- `cargo test --manifest-path musu-rs\Cargo.toml route_evidence --lib`:
+  `17 passed`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false`,
+  `release_relay_tunnel_runtime_source_contract_ready=true`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`
+- `cargo fmt --check`
+- `git diff --check`
+
+Comparable SaaS addendum:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`
+
+The addendum separates cloud coding-agent command centers from the closer
+local/self-hosted worker control-plane lane. Product lock remains:
+MUSU.PRO is command room/control plane; MUSU Desktop is executor; each run must
+show input surface, executing runtime, route, and evidence state.
+
+Release meaning:
+
+- this is proof-chain wiring and product-spec documentation only;
+- public release remains No-Go on second-PC route/CPU/matrix, live MUSU.PRO
+  P2P/relay proof, release relay byte path, support mailbox, and Store proof.
+
+Search terms should include `GOAL v838`, `wiki/1013`,
+`target drain release relay proof wiring`,
+`relay_transport_proof_from_cloud_proof`,
+`release_relay_transport_proof_missing`,
+`record_target_relay_payload_delivery_route_evidence`,
+`P2pRelayPayloadDeliveryResponse`, `local fleet control plane addendum`, and
+`MUSU Desktop executor`.
+
+## 2026-06-07 Target Drain Release Relay Proof Wiring Index Refresh (wiki/1014)
+
+MUSU local indexer was refreshed after wiki/1013 and GOAL v838.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3059 files`
+- `2808 symbols`
+- `19670 ms`
+
+Indexed context includes target-drain release relay proof wiring, optional
+`P2pRelayPayloadDeliveryResponse.relay_transport_proof`,
+`relay_transport_proof_from_cloud_proof`,
+`record_target_relay_payload_delivery_route_evidence`,
+`release_relay_transport_proof_missing`, the local-fleet control-plane SaaS
+addendum, updated AG UI/P2P/BETA docs, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v839`, `wiki/1014`, `3059 files`,
+`2808 symbols`, `19670 ms`,
+`target drain release relay proof wiring index refresh`,
+`relay_transport_proof_from_cloud_proof`, and
+`local fleet control plane addendum`.

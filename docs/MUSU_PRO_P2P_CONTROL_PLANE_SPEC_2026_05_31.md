@@ -2478,3 +2478,28 @@ Spec interpretation stays fixed:
   `quic_tls_1_3` transport proof, and payload delivery proof before release.
 - The current local evidence does not close second-PC, live MUSU.PRO P2P,
   support mailbox, or Store release gates.
+
+## 2026-06-07 Target Drain Release Relay Proof Wiring
+
+The target-side local runtime can now consume an attached delivery-response
+`musu.relay_transport_proof.v1` and call
+`record_release_relay_payload_delivery_route_evidence(...)`.
+
+Spec meaning:
+
+- delivery response DTOs may carry `relay_transport_proof`;
+- target drain must use that proof plus `musu.relay_payload_delivery_proof.v1`
+  before writing release-grade relay route evidence;
+- release-grade payload/delivery metadata without transport proof fails as
+  `release_relay_transport_proof_missing`;
+- preview store-forward delivery still writes non-release-grade preview
+  evidence;
+- release payload endpoint and release relay tunnel runtime markers remain
+  false until the real byte path is implemented and proven.
+
+The local-fleet SaaS research addendum strengthens the same split:
+
+- MUSU.PRO is the control plane and command room;
+- MUSU Desktop remains the executor and evidence recorder;
+- every work order/run must show input surface, executing runtime, route, and
+  evidence status.

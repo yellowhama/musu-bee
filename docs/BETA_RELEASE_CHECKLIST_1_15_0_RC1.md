@@ -10894,3 +10894,57 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_ROUTE_EVIDENCE_RECORDER_2026_06_07.md`
   (wiki/1009)
+
+## 2026-06-07 Target Drain Release Relay Proof Wiring
+
+Target-side Rust relay payload drain now has the delivery-response proof wiring
+needed by the future release tunnel runtime:
+
+- `P2pRelayPayloadDeliveryResponse` accepts optional
+  `relay_transport_proof`;
+- target drain converts cloud transport proof into bridge route evidence proof;
+- attached transport proof routes to
+  `record_release_relay_payload_delivery_route_evidence(...)`;
+- release-grade delivery without transport proof fails as
+  `release_relay_transport_proof_missing`;
+- preview store-forward queue evidence remains non-release-grade.
+
+Validation:
+
+- `relay_payload` Rust tests: `32/32`
+- relay payload delivery response Rust tests: `2/2`
+- route evidence Rust tests: `17/17`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false`
+- `cargo fmt --check`
+- `git diff --check`
+
+Release status remains No-Go:
+
+- release payload endpoint marker is still false;
+- release tunnel runtime marker is still false;
+- live MUSU.PRO relay route/transport/payload proof is missing;
+- second-PC route/CPU/matrix, support mailbox, and Store proof remain required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_TARGET_DRAIN_RELEASE_RELAY_PROOF_WIRING_2026_06_07.md`
+
+## 2026-06-07 Local-Fleet Control-Plane SaaS Addendum
+
+Comparable SaaS research now separates:
+
+- cloud coding-agent command centers;
+- remote control of local execution;
+- self-hosted/local-worker agent control planes.
+
+MUSU release UX must continue to state:
+
+- input surface;
+- executing runtime;
+- route path;
+- evidence status.
+
+Canonical report:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`

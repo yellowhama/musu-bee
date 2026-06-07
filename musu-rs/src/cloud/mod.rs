@@ -728,6 +728,8 @@ pub struct P2pRelayPayloadDeliveryResponse {
     #[serde(default)]
     pub payload: Option<P2pRelayPayloadStoredRecord>,
     #[serde(default)]
+    pub relay_transport_proof: Option<RouteRelayTransportProof>,
+    #[serde(default)]
     pub delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
 }
 
@@ -2041,5 +2043,99 @@ mod tests {
             Some("2026-06-04T01:00:02Z")
         );
         assert_eq!(payload.payload_base64, None);
+    }
+
+    #[test]
+    fn relay_payload_delivery_response_accepts_bound_transport_proof() {
+        let response: P2pRelayPayloadDeliveryResponse = serde_json::from_value(serde_json::json!({
+            "schema": "musu.p2p_relay_payload_delivery.v1",
+            "ok": true,
+            "owner_scoped": true,
+            "accepted": true,
+            "delivered": true,
+            "relay_default_data_path": false,
+            "release_grade": true,
+            "relay_payload_store_configured": true,
+            "relay_payload_store_backend": "upstash_redis",
+            "relay_payload_store_release_grade": true,
+            "payload": {
+                "payload_id": "payload-release-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
+                "payload_bytes": 256,
+                "payload_sha256": "def456",
+                "status": "delivered",
+                "relay_default_data_path": false,
+                "release_grade": true,
+                "transport_kind": "quic_relay_tunnel",
+                "created_at": "2026-06-04T01:00:00Z",
+                "expires_at": "2026-06-04T01:05:00Z",
+                "claimed_by": "pc-b",
+                "claimed_at": "2026-06-04T01:00:01Z",
+                "delivered_at": "2026-06-04T01:00:03Z"
+            },
+            "relay_transport_proof": {
+                "schema": "musu.relay_transport_proof.v1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "transport_kind": "quic_relay_tunnel",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "handshake_ms": 23,
+                "payload_bytes_transited": 256,
+                "payload_transited_musu_infra": true,
+                "peer_identity_verified": true,
+                "peer_identity_method": "quic_tls_cert_fingerprint",
+                "peer_public_key": "sha256:release-peer",
+                "encryption": "quic_tls_1_3",
+                "transport_verified_by": "musu_quic_tls_transport",
+                "opened_at": "2026-06-04T01:00:01Z",
+                "closed_at": "2026-06-04T01:00:03Z"
+            },
+            "delivery_proof": {
+                "schema": "musu.relay_payload_delivery_proof.v1",
+                "payload_id": "payload-release-1",
+                "session_id": "rv_123",
+                "lease_id": "relay-lease-123",
+                "source_node_id": "pc-a",
+                "target_node_id": "pc-b",
+                "relay_url": "wss://relay.musu.pro/connect",
+                "tunnel_id": "relay-tunnel-123",
+                "transport_kind": "quic_relay_tunnel",
+                "relay_default_data_path": false,
+                "release_grade": true,
+                "payload_sha256": "def456",
+                "payload_bytes": 256,
+                "delivered_at": "2026-06-04T01:00:03Z"
+            }
+        }))
+        .expect("release relay payload delivery response");
+
+        let payload = response.payload.expect("payload");
+        let transport = response.relay_transport_proof.expect("transport proof");
+        let delivery = response.delivery_proof.expect("delivery proof");
+        assert!(response.release_grade);
+        assert_eq!(payload.transport_kind, "quic_relay_tunnel");
+        assert_eq!(transport.schema, "musu.relay_transport_proof.v1");
+        assert_eq!(transport.session_id, payload.session_id);
+        assert_eq!(transport.lease_id, payload.lease_id);
+        assert_eq!(transport.source_node_id, payload.source_node_id);
+        assert_eq!(transport.target_node_id, payload.target_node_id);
+        assert_eq!(transport.tunnel_id, payload.tunnel_id);
+        assert_eq!(transport.relay_url, payload.relay_url);
+        assert_eq!(transport.transport_kind, payload.transport_kind);
+        assert_eq!(transport.encryption, "quic_tls_1_3");
+        assert_eq!(transport.transport_verified_by, "musu_quic_tls_transport");
+        assert_eq!(transport.payload_bytes_transited, payload.payload_bytes);
+        assert_eq!(delivery.payload_id, payload.payload_id);
+        assert_eq!(delivery.transport_kind, payload.transport_kind);
+        assert!(delivery.release_grade);
     }
 }

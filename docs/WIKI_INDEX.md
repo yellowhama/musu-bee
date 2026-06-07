@@ -7011,4 +7011,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
   and `PRIMARY-PC peer not found`.
 
+- 2026-06-07 target drain release relay proof wiring and local-fleet SaaS
+  addendum:
+  `RELEASE_1_15_0_RC1_TARGET_DRAIN_RELEASE_RELAY_PROOF_WIRING_2026_06_07.md`
+  and
+  `RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`
+  (wiki/1013) record the Rust target-drain release transport-proof wiring and
+  the comparable SaaS local-fleet control-plane addendum. Search terms should
+  include `GOAL v838`, `wiki/1013`,
+  `target drain release relay proof wiring`,
+  `relay_transport_proof_from_cloud_proof`,
+  `release_relay_transport_proof_missing`,
+  `record_target_relay_payload_delivery_route_evidence`,
+  `P2pRelayPayloadDeliveryResponse`, and
+  `local fleet control plane addendum`.
+
+- 2026-06-07 target drain release relay proof wiring index refresh:
+  wiki/1014 records the MUSU local index refresh after wiki/1013 and GOAL
+  v838. Search terms should include `GOAL v839`, `wiki/1014`, `3059 files`,
+  `2808 symbols`, `19670 ms`,
+  `target drain release relay proof wiring index refresh`,
+  `relay_transport_proof_from_cloud_proof`, and
+  `local fleet control plane addendum`.
+
 **End of WIKI_INDEX.md.**

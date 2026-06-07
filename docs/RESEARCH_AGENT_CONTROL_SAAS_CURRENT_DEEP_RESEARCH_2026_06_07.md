@@ -213,3 +213,28 @@ status before accepting remote work.
 AG-UI continues to validate the event model, not a dependency decision. MUSU
 should implement room/order/run state as typed streamable events and keep local
 command execution behind Desktop policy.
+
+## 2026-06-07 19:47 KST Local-Fleet Control Plane Addendum
+
+Additional operator-requested deep research is recorded in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`
+
+New source emphasis:
+
+- OpenAI Codex agent loop and Codex repo separate local CLI execution from
+  cloud Codex Web.
+- GitHub Copilot cloud agent, Cursor Cloud Agents, Claude Code on the web,
+  Jules, and Replit validate command-center and hosted async-agent UX.
+- Xians ACP, ZyAgents, Pilox, and OpenHands validate the closer MUSU lane:
+  customer-owned local/self-hosted workers with a hub/control plane for rooms,
+  queues, policy, observability, and audit.
+
+Product conclusion is unchanged but sharper:
+
+- MUSU.PRO is a local-fleet command center and control plane.
+- MUSU Desktop is the executor and local permission boundary.
+- every work order must show input surface, target runtime, route policy, and
+  evidence requirement before execution;
+- `remote control`, `local runtime online`, `P2P route selected`,
+  `relay fallback`, and `proof missing` remain separate states.
