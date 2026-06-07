@@ -19282,3 +19282,106 @@ scenario verifier pass, and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v914`, `wiki/1089`, `3104 files`,
 `2891 symbols`, `83466 ms`, `local-sideload refresh index`, and
 `20260608-080400-HUGH_SECOND`.
+
+## 2026-06-08 Clean One-Machine Dashboard-Open Matrix (wiki/1090)
+
+One-machine packaged CPU evidence now includes the `dashboard-open` scenario on
+current HEAD, and it shows that packaged local runtime currently has no
+dashboard URL to open.
+
+Artifact:
+
+- matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-081507-HUGH_SECOND\20260608-081507-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- git:
+  - `git_commit=fad51e5e127cdfc79de8d3b0052f7916438152d2`
+  - `git_dirty=false`
+- required scenarios:
+  - `startup-open`
+  - `runtime-started`
+  - `dashboard-open`
+  - `desktop-open`
+
+Matrix result:
+
+- `ok=true`
+- `doctor_schema_complete=true`
+- `background_field_fallback_used=false`
+- `runtime_loop_candidate_fallback_used=false`
+- `hot_process_count=0` across all four scenarios
+
+Per-scenario summary:
+
+- `startup-open`
+  - `sample_seconds=60.056`
+  - MUSU max `0`
+  - WebView2 max `0.05`
+  - owned process count `8`
+  - owned WebView2 helper count `6`
+  - working set `377.72MB`
+- `runtime-started`
+  - `sample_seconds=60.058`
+  - MUSU max `0`
+  - WebView2 max `0.10`
+  - owned process count `8`
+  - owned WebView2 helper count `6`
+  - working set `377.68MB`
+- `dashboard-open`
+  - `sample_seconds=60.062`
+  - MUSU max `0`
+  - WebView2 max `0.05`
+  - owned process count `8`
+  - owned WebView2 helper count `6`
+  - working set `377.68MB`
+  - `dashboard_url=""`
+- `desktop-open`
+  - `sample_seconds=60.057`
+  - MUSU max `0`
+  - WebView2 max `0.08`
+  - owned process count `8`
+  - owned WebView2 helper count `6`
+  - working set `377.65MB`
+
+Targeted verifier:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-081507-HUGH_SECOND\20260608-081507-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open -MinSampleSeconds 60 -MaxOneCorePercent 5 -Json`
+- result:
+  - `ok=true`
+  - `fail_count=0`
+  - `present_required_scenarios=startup-open,runtime-started,dashboard-open,desktop-open`
+
+Interpretation:
+
+- CPU/process ownership/resource-budget evidence remains green after adding the
+  fourth local scenario
+- the important product gap is not CPU here; it is that packaged local runtime
+  does not currently provide a dashboard URL
+- `dashboard-open` therefore measured the runtime after attempting discovery,
+  not a real opened dashboard surface
+- this matches the current product direction where local packaged MUSU is the
+  executor and the real user-facing web surface should come from MUSU.PRO or
+  another connected operator surface
+
+Search terms should include `GOAL v915`, `wiki/1090`, `dashboard-open`,
+`20260608-081507-HUGH_SECOND`, `dashboard_url=""`, and
+`verify-runtime-cpu-scenario-matrix.ps1`.
+
+## 2026-06-08 Clean One-Machine Dashboard-Open Matrix Index (wiki/1091)
+
+MUSU local indexer was refreshed after wiki/1090 and GOAL v915.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `15398 ms`
+
+Indexed context includes the clean `20260608-081507-HUGH_SECOND` four-scenario
+matrix, the green targeted verifier replay, the explicit
+`dashboard_url=""` packaged-runtime discovery result, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v916`, `wiki/1091`, `3104 files`,
+`2891 symbols`, `15398 ms`, `four-scenario one-machine rerun`, and
+`dashboard_url=""`.

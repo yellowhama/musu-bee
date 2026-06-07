@@ -7746,4 +7746,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `83466 ms`, `local-sideload refresh index`, and
   `20260608-080400-HUGH_SECOND`.
 
+- 2026-06-08 clean one-machine dashboard-open matrix:
+  wiki/1090 records the fresh clean four-scenario packaged matrix
+  `20260608-081507-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with required
+  scenarios `startup-open`, `runtime-started`, `dashboard-open`, and
+  `desktop-open`. It records that all four scenarios stayed at
+  `hot_process_count=0`, owned Node `0`, owned WebView2 helpers `6`, and
+  WebView2 max `0.05/0.10/0.05/0.08`, and that the targeted verifier replay
+  passed with `ok=true` and `fail_count=0`. It also records the important
+  packaged-runtime fact that `dashboard-open` did not discover a dashboard URL
+  (`dashboard_url=""`), so the scenario currently measures runtime state after
+  discovery rather than a real opened dashboard surface. Search terms should
+  include `GOAL v915`, `wiki/1090`, `dashboard-open`,
+  `20260608-081507-HUGH_SECOND`, `dashboard_url=""`, and
+  `verify-runtime-cpu-scenario-matrix.ps1`.
+
+- 2026-06-08 clean one-machine dashboard-open matrix index:
+  wiki/1091 records the MUSU local index refresh after wiki/1090 and GOAL
+  v915. Search terms should include `GOAL v916`, `wiki/1091`, `3104 files`,
+  `2891 symbols`, `15398 ms`, `four-scenario one-machine rerun`, and
+  `dashboard_url=""`.
+
 **End of WIKI_INDEX.md.**
