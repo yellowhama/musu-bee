@@ -14478,3 +14478,66 @@ Search terms should include `GOAL v777`, `wiki/952`,
 `current operator handoff index refresh`, `2887 files`, `2790 symbols`,
 `30952 ms`, `e53810cf`, `20260607-101224`, `20260607-101255`, and
 `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`.
+
+## 2026-06-07 Current-Head Desktop-Open CPU Recheck After Operator Handoff (wiki/953)
+
+A fresh 60s desktop-open idle CPU sample was captured on `HUGH_SECOND` from
+clean source commit `059b947437231f0f1319e16f4d728115b402d020`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-102745-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- sample duration `60.039s`
+- process roles: MUSU `2`, Node `0`, owned WebView2 `6`, other `0`
+- process subroles: bridge runtime `1`, desktop shell `1`, WebView2 helper `6`
+- hot processes `0`
+- resource budget violations `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.08`
+- total working set `363.16MB`
+
+Code audit found no high or medium issue because this step adds evidence and
+documentation only; no runtime source, polling surface, local API surface, P2P
+transport, or trust boundary changed. The final operator packet and action pack
+should be regenerated again after the documentation/evidence commit so their
+metadata points at the final repository HEAD.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor;
+MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+rendezvous, path selection, relay fallback, and evidence/control plane.
+`localhost:3001` is not the packaged desktop release contract.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_RECHECK_AFTER_OPERATOR_HANDOFF_2026_06_07.md`
+
+Search terms should include `GOAL v778`, `wiki/953`,
+`current-head desktop-open CPU recheck after operator handoff`,
+`20260607-102745-HUGH_SECOND.desktop-open`, `059b9474`,
+`WebView2 0.08`, `hot process count 0`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Current-Head Desktop-Open CPU Recheck Index Refresh (wiki/954)
+
+MUSU local indexer was refreshed after wiki/953 and GOAL v778.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2891 files`
+- `2790 symbols`
+- `15617 ms`
+
+Indexed context includes the `20260607-102745-HUGH_SECOND.desktop-open`
+evidence JSON, current-head desktop-open CPU recheck report, BETA checklist,
+next-step plan, runtime stabilization plan, MUSU.PRO P2P control-plane spec,
+network boundary spec, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v779`, `wiki/954`,
+`current-head desktop-open CPU recheck index refresh`, `2891 files`,
+`2790 symbols`, `15617 ms`, `20260607-102745-HUGH_SECOND.desktop-open`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

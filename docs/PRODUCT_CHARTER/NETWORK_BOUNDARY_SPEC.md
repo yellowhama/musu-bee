@@ -1361,3 +1361,20 @@ Boundary implications:
   CPU samples or second-machine proof;
 - MUSU.PRO remains remote input, meeting room, rendezvous, path selection,
   relay fallback, and evidence/control plane.
+
+## 2026-06-07 Current Desktop CPU Recheck Boundary
+
+Fresh desktop-open CPU evidence `20260607-102745-HUGH_SECOND.desktop-open`
+confirms the packaged local MUSU Desktop runtime can be healthy without any
+developer dashboard on `localhost:3001`.
+
+Boundary implications:
+
+- the release runtime contract is the installed local MUSU program and its
+  bridge, here `127.0.0.1:14361`;
+- MUSU Desktop remains the local executor and owns local work/resources;
+- MUSU.PRO may accept remote user input, coordinate rooms, help rendezvous and
+  path selection, issue relay fallback, and record evidence;
+- MUSU.PRO must not become the default runtime or the default payload path;
+- this one-machine CPU pass does not close second-PC evidence, hosted P2P
+  route/relay proof, support mailbox proof, or Store proof.

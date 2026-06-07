@@ -2215,3 +2215,19 @@ spec.
   release payload endpoint, release tunnel runtime, release transport kind,
   KV/Upstash storage, runtime login, route proof, route metadata, transport
   proof, and payload delivery proof.
+
+## 2026-06-07 Current Desktop CPU Recheck Control-Plane Note
+
+The current desktop-open CPU recheck does not change the MUSU.PRO P2P
+control-plane spec.
+
+- Evidence `20260607-102745-HUGH_SECOND.desktop-open` proves the packaged local
+  MUSU Desktop runtime stayed idle-safe on `HUGH_SECOND`.
+- The bridge used `127.0.0.1:14361`; this is the packaged local runtime bridge,
+  not a `localhost:3001` developer dashboard contract.
+- MUSU.PRO remains remote input, project/company room, AI meeting room,
+  presence, rendezvous, path selection, relay fallback, and evidence/control
+  plane.
+- Local MUSU Desktop programs still execute work and own local resources.
+- Public P2P release proof still requires a real second machine and live
+  hosted owner-scoped route, transport, and payload delivery proof.

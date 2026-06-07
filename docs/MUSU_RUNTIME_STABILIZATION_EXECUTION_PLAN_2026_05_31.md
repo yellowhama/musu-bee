@@ -807,3 +807,29 @@ Stabilization interpretation:
 Validation passed frontend polling audit `29/29`, runtime polling tests
 `17/17`, P2P tests `112/112`, typecheck, release evidence verifier regression
 `ok=True`, expected P2P env No-Go with 12 blockers, and `git diff --check`.
+
+## 2026-06-07 Current-Head Desktop-Open CPU Recheck After Operator Handoff
+
+After the operator handoff refresh, the current packaged desktop runtime was
+sampled again for 60s desktop-open idle CPU on `HUGH_SECOND`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-102745-HUGH_SECOND.desktop-open.evidence.json`
+- source commit `059b947437231f0f1319e16f4d728115b402d020`
+- `ok=true`, `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- MUSU `0`, Node `0`, WebView2 max one-core CPU `0.08`
+- owned WebView2 helpers `6`
+- hot process count `0`
+- total working set `363.16MB`
+
+Stabilization interpretation:
+
+- local packaged desktop CPU is still quiet on the primary machine;
+- no source changed in this step, so this is evidence refresh rather than a new
+  runtime gate;
+- public release still needs the second-machine desktop-open CPU and
+  five-state runtime matrix evidence;
+- hosted MUSU.PRO P2P/relay proof remains a control-plane/transport proof
+  problem, not a localhost dashboard problem.

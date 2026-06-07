@@ -10001,3 +10001,47 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2887 files`, `2790 symbols`, `30952 ms`
 - wiki: `wiki/952`
+
+## 2026-06-07 Current-Head Desktop-Open CPU Recheck After Operator Handoff
+
+Fresh packaged desktop-open idle CPU evidence was captured from clean source
+commit `059b947437231f0f1319e16f4d728115b402d020`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-102745-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample duration `60.039s`
+- bridge `http://127.0.0.1:14361`, PID `34860`
+- process roles: MUSU `2`, Node `0`, owned WebView2 `6`
+- hot processes `0`
+- resource budget violations `0`
+- max WebView2 one-core CPU `0.08`
+- total working set `363.16MB`
+
+Code audit found no high or medium issue. This was evidence/documentation only;
+no runtime source or hosted P2P code changed.
+
+Release meaning:
+
+- one-machine local packaged desktop CPU remains healthy on `HUGH_SECOND`
+- public release remains No-Go until second-PC CPU/matrix/route, hosted
+  MUSU.PRO P2P/relay, support mailbox, and Store evidence are captured
+- final operator packet and action pack should be regenerated again after this
+  documentation/evidence commit so their metadata points at the final HEAD
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_RECHECK_AFTER_OPERATOR_HANDOFF_2026_06_07.md`
+  (wiki/953)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2891 files`, `2790 symbols`, `15617 ms`
+- wiki: `wiki/954`

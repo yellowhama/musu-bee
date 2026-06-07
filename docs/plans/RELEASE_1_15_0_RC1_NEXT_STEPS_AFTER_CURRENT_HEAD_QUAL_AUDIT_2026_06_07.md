@@ -66,6 +66,18 @@ Canonical report:
 
    - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_AFTER_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
 
+   Follow-up: after the current desktop-open CPU recheck evidence is committed,
+   regenerate the final operator packet and action pack once more from the final
+   committed HEAD so local artifact metadata matches the repository tip.
+
+   Current recheck evidence:
+
+   - `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-102745-HUGH_SECOND.desktop-open.evidence.json`
+
+   Canonical recheck record:
+
+   - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_RECHECK_AFTER_OPERATOR_HANDOFF_2026_06_07.md`
+
 2. Install the current MSIX on the second machine.
 
    Required package:

@@ -6466,4 +6466,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `e53810cf`, `20260607-101224`, `20260607-101255`, and
   `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`.
 
+- 2026-06-07 current-head desktop-open CPU recheck after operator handoff:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_RECHECK_AFTER_OPERATOR_HANDOFF_2026_06_07.md`
+  (wiki/953) records fresh 60s packaged desktop-open idle CPU evidence from
+  clean source commit `059b9474`. Search terms should include `GOAL v778`,
+  `wiki/953`, `20260607-102745-HUGH_SECOND.desktop-open`, `WebView2 0.08`,
+  `hot process count 0`, `MUSU Desktop local executor`,
+  `MUSU.PRO remote input control plane`, and `localhost:3001 is not the packaged
+  desktop release contract`.
+
+- 2026-06-07 current-head desktop-open CPU recheck index refresh:
+  wiki/954 records the MUSU local index refresh after wiki/953 and GOAL v778.
+  Search terms should include `GOAL v779`, `wiki/954`, `2891 files`,
+  `2790 symbols`, `15617 ms`,
+  `current-head desktop-open CPU recheck index refresh`,
+  `20260607-102745-HUGH_SECOND.desktop-open`,
+  `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**
