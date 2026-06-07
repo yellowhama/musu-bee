@@ -7055,4 +7055,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `localhost 3001`, `127.0.0.1:9741`, and
   `20260607-202317-HUGH_SECOND.current-head-after-target-proof`.
 
+- 2026-06-07 idle busy-loop candidate audit:
+  `RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_AUDIT_2026_06_07.md`
+  (wiki/1017) records the Rust background-loop audit, frontend polling audit,
+  current one-machine CPU evidence, and go/no-go busy-loop candidate summary.
+  Search terms should include `GOAL v842`, `wiki/1017`,
+  `idle busy-loop candidate audit`, `idle_busy_loop_candidate_verified_count=8`,
+  `rust_background_loop_contract_verified=true`,
+  `frontend_polling_contract_verified=true`, `direct_interval_hit_count=0`,
+  `20260607-204601-HUGH_SECOND`, and `20% idle CPU`.
+
+- 2026-06-07 idle busy-loop candidate audit index refresh:
+  wiki/1018 records the MUSU local index refresh after wiki/1017 and GOAL
+  v842. Search terms should include `GOAL v843`, `wiki/1018`, `3082 files`,
+  `2808 symbols`, `12708 ms`,
+  `idle busy-loop candidate audit index refresh`,
+  `20260607-204601-HUGH_SECOND`, `localhost 3001`, `127.0.0.1:9741`, and
+  `release CPU gate still requires second Windows PC evidence`.
+
 **End of WIKI_INDEX.md.**

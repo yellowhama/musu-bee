@@ -189,6 +189,25 @@ MUSU Desktop runtime in this evidence set. The packaged local bridge was alive
 at `http://127.0.0.1:9741`; connection refusal on port `3001` means the
 separate dashboard/dev surface for that port is not running.
 
+Idle busy-loop candidate audit after current local Desktop evidence:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_IDLE_BUSY_LOOP_CANDIDATE_AUDIT_2026_06_07.md`
+- Rust background-loop audit:
+  `docs\evidence\idle-busy-loop-candidates\1.15.0-rc.1\20260607-204601-HUGH_SECOND.rust-background-loop-contract.json`
+- frontend polling audit:
+  `docs\evidence\idle-busy-loop-candidates\1.15.0-rc.1\20260607-204601-HUGH_SECOND.frontend-polling-contract.json`
+
+Both source-contract audits passed: Rust background loops `ok=true`,
+`fail_count=0`, unaudited loop hits `0`; frontend polling `ok=true`,
+`fail_count=0`, low-duty polling call sites `29`, direct interval hits `0`.
+Clean go/no-go reports idle busy-loop candidates `8/8`, unverified `0`,
+`rust_background_loop_contract_verified=true`, and
+`frontend_polling_contract_verified=true`. The reported 20% idle CPU issue is
+not reproduced by current one-machine packaged evidence, but the release CPU
+gate remains open until a second Windows PC also passes the 60s idle CPU and
+five-state matrix gates.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

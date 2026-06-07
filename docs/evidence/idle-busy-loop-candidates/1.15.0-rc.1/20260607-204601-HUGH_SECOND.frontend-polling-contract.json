@@ -1,0 +1,1199 @@
+{
+    "schema":  "musu.frontend_polling_contract.v1",
+    "ok":  true,
+    "generated_at":  "2026-06-07T20:46:05.7550105+09:00",
+    "fail_count":  0,
+    "low_duty_polling_call_site_count":  29,
+    "expected_low_duty_polling_call_site_count":  29,
+    "low_duty_polling_call_sites":  [
+                                        {
+                                            "path":  "musu-bee\\src\\app\\app\\screen\\page.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\app\\c\\[id]\\page.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\app\\dashboard\\fleet\\page.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\app\\fleet\\page.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\app\\m\\[id]\\page.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\ApprovalsPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\AppShell.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\CostsPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\DoctorStatusCard.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\GoalsPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\IssuesPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\NodesPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\ProjectsPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\TasksPanel.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\canvas\\useCompaniesCanvasData.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\canvas\\useCompanyMessageFlow.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useDeviceDiscovery.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useInbox.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useNodes.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useProcesses.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\src\\lib\\useServiceHealth.ts",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        },
+                                        {
+                                            "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                                            "call_count":  1,
+                                            "signal_aware":  true
+                                        }
+                                    ],
+    "missing_low_duty_polling_call_site_count":  0,
+    "missing_low_duty_polling_call_sites":  [
+
+                                            ],
+    "unexpected_low_duty_polling_call_site_count":  0,
+    "unexpected_low_duty_polling_call_sites":  [
+
+                                               ],
+    "low_duty_polling_signal_gap_count":  0,
+    "low_duty_polling_signal_gaps":  [
+
+                                     ],
+    "direct_interval_hit_count":  0,
+    "direct_interval_hits":  [
+
+                             ],
+    "direct_visibility_listener_hit_count":  0,
+    "direct_visibility_listener_hits":  [
+
+                                        ],
+    "checks":  [
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "musu-bee\\src\\lib\\useLowDutyPolling.ts exists."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "task timeout option",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller exposes a task timeout option."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "default task timeout",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller defaults each task to a 10s timeout."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "minimum interval clamp",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller clamps accidental tight intervals at 5s."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "hidden-tab backoff",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller backs off hidden tabs."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "timeout abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller creates a timeout abort signal."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "combined abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller combines cleanup and timeout abort signals."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "no overlapping tasks",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller tracks in-flight work to avoid overlapping refreshes."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "cleanup aborts task",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller aborts an active task during cleanup."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "single visibility listener owner",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller owns the visibilitychange listener."
+                   },
+                   {
+                       "scope":  "poller",
+                       "name":  "no interval timer in shared poller",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useLowDutyPolling.ts",
+                       "message":  "Shared poller uses one-shot timers, not setInterval."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "musu-bee\\views\\shared\\useLowDutyPolling.ts exists."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views task timeout option",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller exposes a task timeout option."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views default task timeout",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller defaults each task to a 10s timeout."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views minimum interval clamp",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller clamps accidental tight intervals at 5s."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views hidden-tab backoff",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller backs off hidden tabs."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views timeout abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller creates a timeout abort signal."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views combined abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller combines cleanup and timeout abort signals."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views no overlapping tasks",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller tracks in-flight work to avoid overlapping refreshes."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views cleanup aborts task",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller aborts an active task during cleanup."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views single visibility listener owner",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller owns the visibilitychange listener."
+                   },
+                   {
+                       "scope":  "views-poller",
+                       "name":  "views no interval timer in shared poller",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\useLowDutyPolling.ts",
+                       "message":  "MCP app views poller uses one-shot timers, not setInterval."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                       "message":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "workflow run panel polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                       "message":  "workflow run panel polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "workflow run panel polling: required intervalMs:\\s*5_000",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                       "message":  "workflow run panel polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "workflow run panel polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\c\\[id]\\workflows\\[wfId]\\edit\\RunPanel.tsx",
+                       "message":  "workflow run panel polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\app\\app\\screen\\page.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\app\\screen\\page.tsx",
+                       "message":  "musu-bee\\src\\app\\app\\screen\\page.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "remote screen device polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\app\\screen\\page.tsx",
+                       "message":  "remote screen device polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "remote screen device polling: required maxBackoffMs:\\s*120_000",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\app\\screen\\page.tsx",
+                       "message":  "remote screen device polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "remote screen device polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\app\\screen\\page.tsx",
+                       "message":  "remote screen device polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "message":  "musu-bee\\src\\lib\\useAgentsSurface.ts exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "agents surface polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "message":  "agents surface polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "agents surface polling: required AGENTS_SURFACE_REFRESH_HIDDEN_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "message":  "agents surface polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "agents surface polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "message":  "agents surface polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "agents surface polling: disallowed document\\.addEventListener\\(\"visibilitychange\"",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useAgentsSurface.ts",
+                       "message":  "agents surface polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                       "message":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "onboarding research polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                       "message":  "onboarding research polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "onboarding research polling: required pollResearchTask",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                       "message":  "onboarding research polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "onboarding research polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\onboarding\\useOnboardingFlow.ts",
+                       "message":  "onboarding research polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: required intervalMs:\\s*DASHBOARD_REFRESH_VISIBLE_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: required maxBackoffMs:\\s*DASHBOARD_REFRESH_HIDDEN_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: required taskTimeoutMs:\\s*DASHBOARD_REFRESH_TIMEOUT_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "dashboard aggregate polling: disallowed document\\.addEventListener\\(\"visibilitychange\"",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "dashboard aggregate polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\components\\NodePanel.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "musu-bee\\src\\components\\NodePanel.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "node panel polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "node panel polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "node panel polling: required intervalMs:\\s*NODE_PANEL_REFRESH_VISIBLE_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "node panel polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "node panel polling: required maxBackoffMs:\\s*NODE_PANEL_REFRESH_HIDDEN_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "node panel polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "node panel polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "node panel polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "node panel polling: disallowed document\\.addEventListener\\(\"visibilitychange\"",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\NodePanel.tsx",
+                       "message":  "node panel polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\views\\nodes\\NodesView.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "musu-bee\\views\\nodes\\NodesView.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: required intervalMs:\\s*POLL_INTERVAL_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: required taskTimeoutMs:\\s*10_000",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: required useLowDutyPolling\\(\\(signal\\)\\s*=\u003e\\s*pollNodes\\(signal\\)",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: required callServerTool\\([\\s\\S]*name:\\s*\"poll_agents\"[\\s\\S]*signal\\s*\\?\\s*\\{\\s*signal\\s*\\}\\s*:\\s*undefined",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP nodes view polling: disallowed document\\.addEventListener\\(\"visibilitychange\"",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\nodes\\NodesView.tsx",
+                       "message":  "MCP nodes view polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\views\\tasks\\TasksView.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "musu-bee\\views\\tasks\\TasksView.tsx exists."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: required useLowDutyPolling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: required intervalMs:\\s*POLL_INTERVAL_MS",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: required taskTimeoutMs:\\s*10_000",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: required useLowDutyPolling\\(\\(signal\\)\\s*=\u003e\\s*pollTasks\\(null,\\s*signal\\)",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: required callServerTool\\([\\s\\S]*name:\\s*\"poll_tasks\"[\\s\\S]*signal\\s*\\?\\s*\\{\\s*signal\\s*\\}\\s*:\\s*undefined",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling keeps the required low-duty polling marker."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: disallowed setInterval\\s*\\(",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "surface",
+                       "name":  "MCP tasks view polling: disallowed document\\.addEventListener\\(\"visibilitychange\"",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\tasks\\TasksView.tsx",
+                       "message":  "MCP tasks view polling does not own tight interval or visibility polling directly."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\views\\shared\\api.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\api.ts",
+                       "message":  "musu-bee\\views\\shared\\api.ts exists."
+                   },
+                   {
+                       "scope":  "views-api",
+                       "name":  "task fetch wrapper accepts abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\api.ts",
+                       "message":  "MCP app task fetch wrapper accepts poller abort signals."
+                   },
+                   {
+                       "scope":  "views-api",
+                       "name":  "task fetch wrapper passes abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\api.ts",
+                       "message":  "MCP app task fetch wrapper passes abort signals to fetch."
+                   },
+                   {
+                       "scope":  "views-api",
+                       "name":  "task cancel wrapper accepts abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\api.ts",
+                       "message":  "MCP app task cancel wrapper accepts abort signals."
+                   },
+                   {
+                       "scope":  "views-api",
+                       "name":  "task cancel wrapper passes abort signal",
+                       "status":  "pass",
+                       "path":  "musu-bee\\views\\shared\\api.ts",
+                       "message":  "MCP app task cancel wrapper passes abort signals to fetch."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx exists."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay connect is on demand",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Dashboard relay connection is user/action driven."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay token is fetched only by connect path",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Dashboard has an explicit relay-token fetch helper."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "no mount-time relay autoconnect wording",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Dashboard does not keep the old mount-time relay autoconnect path."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "no direct relay autoconnect call",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Dashboard does not call connectRelay from a relayInfo effect."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay initial reconnect cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect starts at 5s."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay max reconnect cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect caps at 60s."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay multiplier",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect uses bounded exponential backoff."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay retry count cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect attempts are capped."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "relay retry cleanup",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect timers have a cleanup path."
+                   },
+                   {
+                       "scope":  "relay",
+                       "name":  "no legacy fixed retry delay",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dashboard\\DashboardClient.tsx",
+                       "message":  "Relay reconnect does not use an uncapped fixed retry loop."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\lib\\useChat.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "musu-bee\\src\\lib\\useChat.ts exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE initial reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE reconnect starts at 1s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE max reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE reconnect caps at 10s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE multiplier",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE reconnect has exponential backoff."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE retry cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE reconnect attempts are capped."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE retry cap guard",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE stops reconnecting after the retry cap."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE stale generation guard",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE ignores stale reconnect generations."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE clears timer",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE reconnect timers are cleared."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE resets reconnect state",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE resets reconnect counters on successful connect or lifecycle reset."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "chat SSE connecting state guarded",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useChat.ts",
+                       "message":  "Chat SSE avoids duplicate reconnects while EventSource is connecting."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\store\\useFleetStore.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "musu-bee\\src\\store\\useFleetStore.ts exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE initial reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE reconnect starts at 1s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE max reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE reconnect caps at 10s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE retry cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE reconnect attempts are capped."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE stale generation guard",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE ignores stale reconnect generations."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE clears timer",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE reconnect timers are cleared."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE close helper",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE exposes explicit close/cleanup."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet SSE no interval",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\store\\useFleetStore.ts",
+                       "message":  "Fleet SSE does not use setInterval."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\app\\dashboard\\fleet\\page.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\dashboard\\fleet\\page.tsx",
+                       "message":  "musu-bee\\src\\app\\dashboard\\fleet\\page.tsx exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "fleet page closes SSE on unmount",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\dashboard\\fleet\\page.tsx",
+                       "message":  "Fleet dashboard closes SSE on unmount."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\app\\dashboard\\agent\\[id]\\page.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\dashboard\\agent\\[id]\\page.tsx",
+                       "message":  "musu-bee\\src\\app\\dashboard\\agent\\[id]\\page.tsx exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "agent page closes SSE on unmount",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\dashboard\\agent\\[id]\\page.tsx",
+                       "message":  "Agent dashboard closes SSE on unmount."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "musu-bee\\src\\lib\\useBoundedEventSource.ts exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE initial reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource reconnect starts at 1s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE max reconnect",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource reconnect caps at 10s."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE retry cap",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource reconnect attempts are capped."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE visibility reconnect poller",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource uses low-duty visibility reconnect checks."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE closes failed stream",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource closes failed streams and respects retry cap."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "bounded SSE no visibility listener",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\lib\\useBoundedEventSource.ts",
+                       "message":  "Shared bounded EventSource delegates visibility cadence to the low-duty poller."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx exists."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch streams tracked",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch run streams are tracked for cleanup."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch close helper",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch run streams have an explicit close helper."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch stream registered",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch registers each EventSource by run id."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch stream removed",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch removes EventSources when closing them."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch unmount cleanup",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch closes active run streams on unmount."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch error closes stream",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch closes run streams on SSE errors."
+                   },
+                   {
+                       "scope":  "sse",
+                       "name":  "CEO dispatch no interval",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\components\\dispatch\\CeoChatClient.tsx",
+                       "message":  "CEO dispatch does not use interval polling."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts exists."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: dashboard refresh loop stays on shared low-duty polling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027dashboard refresh loop stays on shared low-duty polling\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: dashboard relay reconnect stays bounded with capped backoff",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027dashboard relay reconnect stays bounded with capped backoff\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: chat SSE reconnect is capped and ignores stale generations",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027chat SSE reconnect is capped and ignores stale generations\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: fleet store SSE reconnect is bounded and explicitly closed",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027fleet store SSE reconnect is bounded and explicitly closed\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: shared bounded EventSource closes failed streams and caps reconnects",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027shared bounded EventSource closes failed streams and caps reconnects\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: dashboard axis pages use bounded EventSource instead of browser auto-retry",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027dashboard axis pages use bounded EventSource instead of browser auto-retry\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: CEO dispatch run streams are explicitly closed",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027CEO dispatch run streams are explicitly closed\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: node panel refresh loop stays on shared low-duty polling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027node panel refresh loop stays on shared low-duty polling\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: MCP app views use cancellable low-duty polling instead of setInterval",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027MCP app views use cancellable low-duty polling instead of setInterval\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: shared low-duty polling supports bounded task timeout cancellation",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027shared low-duty polling supports bounded task timeout cancellation\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: shared low-duty polling clamps accidental tight intervals",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027shared low-duty polling clamps accidental tight intervals\u0027."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "runtime polling test marker: frontend polling audit inventories all low-duty call sites",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src\\app\\runtime-polling-contract.test.ts",
+                       "message":  "Runtime polling contract test includes \u0027frontend polling audit inventories all low-duty call sites\u0027."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\package.json",
+                       "status":  "pass",
+                       "path":  "musu-bee\\package.json",
+                       "message":  "musu-bee\\package.json exists."
+                   },
+                   {
+                       "scope":  "test",
+                       "name":  "package script test:runtime-polling",
+                       "status":  "pass",
+                       "path":  "musu-bee\\package.json",
+                       "message":  "Frontend package exposes the runtime polling contract test script."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: .github\\workflows\\test.yml",
+                       "status":  "pass",
+                       "path":  ".github\\workflows\\test.yml",
+                       "message":  ".github\\workflows\\test.yml exists."
+                   },
+                   {
+                       "scope":  "ci",
+                       "name":  "CI runtime polling test step",
+                       "status":  "pass",
+                       "path":  ".github\\workflows\\test.yml",
+                       "message":  "CI runs the runtime polling contract tests."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-bee\\src-tauri-shell\\main.js",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src-tauri-shell\\main.js",
+                       "message":  "musu-bee\\src-tauri-shell\\main.js exists."
+                   },
+                   {
+                       "scope":  "desktop-shell",
+                       "name":  "Tauri shell no interval loop",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src-tauri-shell\\main.js",
+                       "message":  "Tauri shell does not own an interval polling loop."
+                   },
+                   {
+                       "scope":  "desktop-shell",
+                       "name":  "Tauri shell no timeout loop",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src-tauri-shell\\main.js",
+                       "message":  "Tauri shell does not own a retry or refresh timeout loop."
+                   },
+                   {
+                       "scope":  "desktop-shell",
+                       "name":  "Tauri shell no animation loop",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src-tauri-shell\\main.js",
+                       "message":  "Tauri shell does not own an animation loop."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "no direct setInterval in non-test frontend source",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src, musu-bee\\views",
+                       "message":  "No direct setInterval calls found in non-test frontend source or MCP app views."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "visibilitychange owned only by shared poller",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src, musu-bee\\views",
+                       "message":  "No direct visibilitychange listeners found outside shared pollers."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "low-duty polling call-site inventory",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src, musu-bee\\views",
+                       "message":  "Found exact expected 29 non-test low-duty polling call-site file(s)."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "low-duty polling callbacks expose abort signals",
+                       "status":  "pass",
+                       "path":  "musu-bee\\src, musu-bee\\views",
+                       "message":  "All inventoried low-duty polling call sites expose AbortSignal-aware callbacks."
+                   }
+               ]
+}

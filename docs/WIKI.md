@@ -16568,3 +16568,65 @@ Search terms should include `GOAL v841`, `wiki/1016`, `3077 files`,
 `current-head local desktop evidence index refresh after target-drain proof wiring`,
 `localhost 3001`, `127.0.0.1:9741`, and
 `20260607-202317-HUGH_SECOND.current-head-after-target-proof`.
+
+## 2026-06-07 Idle Busy-Loop Candidate Audit (wiki/1017)
+
+Current source-contract and runtime evidence does not reproduce the reported
+20% idle CPU issue on HUGH_SECOND.
+
+Evidence:
+
+- Rust background loop audit:
+  `20260607-204601-HUGH_SECOND.rust-background-loop-contract`
+- frontend polling audit:
+  `20260607-204601-HUGH_SECOND.frontend-polling-contract`
+- desktop-open idle CPU:
+  `20260607-202202-HUGH_SECOND.current-head-after-target-proof`
+- five-state runtime CPU matrix:
+  `20260607-202317-HUGH_SECOND.current-head-after-target-proof`
+- target-route diagnostic:
+  `20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof`
+
+Results:
+
+- Rust background loop audit: `ok=true`, `fail_count=0`,
+  unaudited loop hits `0`
+- frontend polling audit: `ok=true`, `fail_count=0`,
+  low-duty polling call sites `29`, direct interval hits `0`
+- go/no-go idle busy-loop candidates: `8/8`, unverified `0`
+- desktop-open idle CPU: MUSU `0`, Node `0`, WebView2 max `0.08`, hot `0`
+- full five-state matrix: `ok=true`, `fail_count=0`, WebView2 max `0.16`
+
+Release meaning:
+
+- source and one-machine runtime evidence are good;
+- release CPU gate still requires second Windows PC evidence;
+- next evidence step is second-PC install plus desktop-open CPU, five-state
+  matrix, and real second-PC route proof.
+
+Search terms should include `GOAL v842`, `wiki/1017`,
+`idle busy-loop candidate audit`, `idle_busy_loop_candidate_verified_count=8`,
+`rust_background_loop_contract_verified=true`,
+`frontend_polling_contract_verified=true`, `direct_interval_hit_count=0`,
+`20260607-204601-HUGH_SECOND`, and `20% idle CPU`.
+
+## 2026-06-07 Idle Busy-Loop Candidate Audit Index Refresh (wiki/1018)
+
+MUSU local indexer was refreshed after wiki/1017 and GOAL v842.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3082 files`
+- `2808 symbols`
+- `12708 ms`
+
+Indexed context includes the idle busy-loop candidate audit report, the Rust
+background-loop audit evidence, the frontend polling audit evidence, current
+one-machine packaged CPU evidence, the localhost `3001` versus packaged bridge
+`9741` diagnosis, BETA checklist update, WIKI/WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v843`, `wiki/1018`, `3082 files`,
+`2808 symbols`, `12708 ms`, `idle busy-loop candidate audit index refresh`,
+`20260607-204601-HUGH_SECOND`, `localhost 3001`, `127.0.0.1:9741`, and
+`release CPU gate still requires second Windows PC evidence`.

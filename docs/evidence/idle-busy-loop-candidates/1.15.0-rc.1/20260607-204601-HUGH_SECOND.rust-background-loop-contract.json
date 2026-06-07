@@ -1,0 +1,1558 @@
+{
+    "schema":  "musu.rust_background_loop_contract.v1",
+    "ok":  true,
+    "generated_at":  "2026-06-07T20:46:03.3131240+09:00",
+    "fail_count":  0,
+    "unaudited_loop_hit_count":  0,
+    "unaudited_loop_hits":  [
+
+                            ],
+    "unaudited_spawn_hit_count":  0,
+    "unaudited_spawn_hits":  [
+
+                             ],
+    "telemetry_flush_primitive_hit_count":  0,
+    "telemetry_flush_primitive_hits":  [
+
+                                       ],
+    "allowed_telemetry_flush_primitive_hit_count":  1,
+    "allowed_telemetry_flush_primitive_hits":  [
+                                                   {
+                                                       "path":  "musu-rs\\src\\install\\uninstall.rs",
+                                                       "count":  1
+                                                   }
+                                               ],
+    "filesystem_watcher_primitive_hit_count":  0,
+    "filesystem_watcher_primitive_hits":  [
+
+                                          ],
+    "file_sync_watcher_start_hit_count":  0,
+    "file_sync_watcher_start_hits":  [
+
+                                     ],
+    "network_watcher_primitive_hit_count":  0,
+    "network_watcher_primitive_hits":  [
+
+                                       ],
+    "checks":  [
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\mod.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "musu-rs\\src\\bridge\\mod.rs exists."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner opt-in env gate",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Planner loop only starts behind MUSU_ENABLE_PLANNER."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Planner loop owns an explicit cancellation token."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner ctrl-c cancellation",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Planner loop cancellation token is cancelled on Ctrl-C."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard opt-in env gate",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Clipboard polling only starts behind MUSU_ENABLE_CLIPBOARD_SYNC."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "relay payload poller opt-in env gate",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Relay payload polling only starts behind MUSU_ENABLE_RELAY_PAYLOAD_POLLER."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "mDNS opt-in env gate",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "mDNS discovery only starts behind MUSU_ENABLE_MDNS."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "mDNS auto-register cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Bridge mDNS auto-registration receives the cloud loop cancellation token."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "heartbeat interval env",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration heartbeat interval is explicit."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "heartbeat default",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration heartbeat defaults to 300s."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "heartbeat minimum floor",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration heartbeat clamps to at least 60s."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "failure backoff exponent",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration loop tracks consecutive failures."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "failure backoff sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration loop sleeps with failure backoff."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration loop owns an explicit cancellation token."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "cancellation-aware sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud registration loop sleep exits on cancellation."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner ctrl-c watcher spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Planner Ctrl-C watcher is spawned only with the planner\u0027s cancellation token."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner loop spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Planner background task starts only from the explicit MUSU_ENABLE_PLANNER gate."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "heartbeat ctrl-c watcher spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud heartbeat Ctrl-C watcher is paired with the cloud registration cancellation token."
+                   },
+                   {
+                       "scope":  "cloud-heartbeat",
+                       "name":  "heartbeat loop spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Cloud heartbeat background loop is the low-duty registration loop covered by heartbeat checks."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "sync loop spawn configured roots only",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "File sync loop is spawned only when file serve roots are configured."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\control\\mod.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\mod.rs",
+                       "message":  "musu-rs\\src\\control\\mod.rs exists."
+                   },
+                   {
+                       "scope":  "control-mcp",
+                       "name":  "ctrl-c watcher spawn cancels service token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\mod.rs",
+                       "message":  "Control MCP Ctrl-C watcher only cancels the rmcp service token."
+                   },
+                   {
+                       "scope":  "control-mcp",
+                       "name":  "serve with cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\mod.rs",
+                       "message":  "Control MCP server is served with the same cancellation token."
+                   },
+                   {
+                       "scope":  "control-mcp",
+                       "name":  "waits on transport close",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\mod.rs",
+                       "message":  "Control MCP command exits when the rmcp transport closes."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\cloud\\mod.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\cloud\\mod.rs",
+                       "message":  "musu-rs\\src\\cloud\\mod.rs exists."
+                   },
+                   {
+                       "scope":  "cloud-client",
+                       "name":  "default cloud client timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\cloud\\mod.rs",
+                       "message":  "Fire-and-forget cloud submissions use the default 10s cloud client timeout unless wrapped tighter."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\brain\\planner.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "musu-rs\\src\\brain\\planner.rs exists."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner default low duty interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner defaults to a 300s cadence."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner minimum interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner interval clamps to at least 60s."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner command timeout cap",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner command timeout is capped."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner cancellation-aware sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner loop sleeps every cycle under a cancellation-aware select."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner exits after cancellation",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner loop exits promptly after cancellation."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner child kill on drop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner child process is killed when dropped."
+                   },
+                   {
+                       "scope":  "planner",
+                       "name":  "planner timeout wrapper",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\brain\\planner.rs",
+                       "message":  "Planner child execution is timeout-bound."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\adapter\\claude.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "musu-rs\\src\\adapter\\claude.rs exists."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim per-iteration timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim has a bounded no-deadline read timeout."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim monotonic deadline",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim converts task timeouts into monotonic deadlines."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim preempt deadline",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim honors caller preempt deadlines."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim cancellation-aware read",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim read loop selects between cancel and bounded stdout read."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim bounded read without cancel",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim still bounds reads when no cancel token is supplied."
+                   },
+                   {
+                       "scope":  "adapter-claude",
+                       "name":  "shim shared kill path",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\adapter\\claude.rs",
+                       "message":  "Claude adapter shim reuses the task runner kill path on cancel/timeout/error."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\io\\clipboard.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "musu-rs\\src\\io\\clipboard.rs exists."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard monitor cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "Clipboard monitor owns an explicit cancellation token."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard monitor ctrl-c cancellation",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "Clipboard monitor cancellation token is cancelled on Ctrl-C."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard monitor spawn blocking",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "Clipboard monitor is the known blocking background poller covered by the clipboard opt-in gate and cancellation token."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard monitor sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "Clipboard monitor sleeps between polls."
+                   },
+                   {
+                       "scope":  "clipboard",
+                       "name":  "clipboard monitor exits after cancellation",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\clipboard.rs",
+                       "message":  "Clipboard monitor exits the blocking loop after cancellation."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\audit.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\audit.rs",
+                       "message":  "musu-rs\\src\\bridge\\audit.rs exists."
+                   },
+                   {
+                       "scope":  "audit-failure-window",
+                       "name":  "audit failure pruning finite deque loop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\audit.rs",
+                       "message":  "Audit failure-window pruning only walks and drains a finite VecDeque."
+                   },
+                   {
+                       "scope":  "audit-failure-window",
+                       "name":  "audit failure window bounded duration",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\audit.rs",
+                       "message":  "Audit failure-window pruning is bounded by a fixed retention window."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\rate_limit.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rate_limit.rs",
+                       "message":  "musu-rs\\src\\bridge\\rate_limit.rs exists."
+                   },
+                   {
+                       "scope":  "rate-limit-window",
+                       "name":  "rate limit pruning finite deque loop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rate_limit.rs",
+                       "message":  "Rate-limit window pruning only walks and drains a finite VecDeque."
+                   },
+                   {
+                       "scope":  "rate-limit-window",
+                       "name":  "rate limit fixed window",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rate_limit.rs",
+                       "message":  "Rate-limit pruning is bounded by a fixed 60s window."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs exists."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller ctrl-c watcher spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller Ctrl-C watcher cancels the poller token."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller task spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller spawn targets the cancellation-aware low-duty poller."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller default low duty interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller defaults to a 60s cadence."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller minimum interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller interval clamps to at least 30s."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller empty backoff cap",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller empty/failure backoff defaults to a 300s cap."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller hard backoff ceiling",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller backoff has a hard ceiling."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller bounded drain limit",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller shares the manual drain limit clamp."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller cancellation-aware sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller sleeps under a cancellation-aware select."
+                   },
+                   {
+                       "scope":  "relay-payload-poller",
+                       "name":  "poller calls shared drain primitive",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\relay_payload.rs",
+                       "message":  "Relay payload poller reuses the request-driven drain primitive instead of duplicating transport logic."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\peer\\mdns.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "musu-rs\\src\\peer\\mdns.rs exists."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "IPv6 separate opt-in",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS IPv6 has its own opt-in gate."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "Tailscale separate opt-in",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS Tailscale interfaces have their own opt-in gate."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "virtual interfaces separate opt-in",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS virtual/VPN interfaces have their own opt-in gate."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "browse bounded by deadline",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS browse loop is bounded by a caller-supplied duration."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "browse cancellation token",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS browse accepts an explicit cancellation token for background callers."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "browse cancellation select",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS browse can exit the receive wait when cancellation fires."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "auto-register cancellation wrapper",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS auto-registration has a cancellation-aware wrapper for bridge background use."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "browse blocking receive under timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS blocking receive is wrapped by the browse deadline and its own recv timeout."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "recv timeout bounded",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS blocking receive uses a 1s timeout."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "disconnect breaks browse",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\mdns.rs",
+                       "message":  "mDNS browse exits early when the receiver disconnects."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\install\\sync.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "musu-rs\\src\\install\\sync.rs exists."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "bounded event queue",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync watcher queue is bounded."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "bounded batch size",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync batches are capped."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "bounded debounce window",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync batching has a bounded max window."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "try_send drops overflow",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync watcher does not block indefinitely on queue overflow."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "recv await blocks when idle",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync loop waits on receiver when idle."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "batch cap cooldown",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync loop yields after batch-cap churn."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "batch debounce receive timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync batching waits for additional events with a bounded timeout."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "batch cap cooldown sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync loop sleeps after batch-cap churn."
+                   },
+                   {
+                       "scope":  "file-sync",
+                       "name":  "peer write timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\sync.rs",
+                       "message":  "File sync peer write requests are timeout-bound."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\indexer\\watch.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "musu-rs\\src\\indexer\\watch.rs exists."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch loop event driven",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "Indexer watch loop blocks on notify when idle."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch debounce sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "Indexer watch loop debounces file events with a 2s sleep."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch dirty flag",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "Indexer watch loop only re-syncs after a dirty file event."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch db sidecar filter",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "Indexer watch loop filters sqlite sidecar writes to avoid feedback loops."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch sync primitive",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\watch.rs",
+                       "message":  "Indexer watch loop uses the shared sync primitive after debounce."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\indexer\\mod.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\mod.rs",
+                       "message":  "musu-rs\\src\\indexer\\mod.rs exists."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "watch command scoped dispatch",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\mod.rs",
+                       "message":  "Indexer watch starts only from the explicit musu indexer watch subcommand dispatch."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\main.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\main.rs",
+                       "message":  "musu-rs\\src\\main.rs exists."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "indexer command dispatch only",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\main.rs",
+                       "message":  "Indexer actions are reached through the CLI Indexer command dispatcher."
+                   },
+                   {
+                       "scope":  "indexer-watch",
+                       "name":  "bridge does not start indexer watch",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\mod.rs",
+                       "message":  "Default bridge/runtime path does not call the indexer watcher."
+                   },
+                   {
+                       "scope":  "mdns",
+                       "name":  "discover command scoped dispatch",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\main.rs",
+                       "message":  "mDNS active discovery is scoped to the explicit musu discover command dispatch."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\install\\auto_update.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "musu-rs\\src\\install\\auto_update.rs exists."
+                   },
+                   {
+                       "scope":  "auto-update",
+                       "name":  "config minimum interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "Auto-update supervise interval refuses values below 5 minutes."
+                   },
+                   {
+                       "scope":  "auto-update",
+                       "name":  "first tick skipped",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "Auto-update supervise loop skips immediate boot-time update and then waits on interval ticks."
+                   },
+                   {
+                       "scope":  "auto-update",
+                       "name":  "health poll initial backoff",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "Auto-update health poll starts with a bounded delay."
+                   },
+                   {
+                       "scope":  "auto-update",
+                       "name":  "health poll max backoff",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "Auto-update health poll delay is capped."
+                   },
+                   {
+                       "scope":  "auto-update",
+                       "name":  "health poll sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\auto_update.rs",
+                       "message":  "Auto-update health polling sleeps between attempts."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\install\\cli_commands.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "musu-rs\\src\\install\\cli_commands.rs exists."
+                   },
+                   {
+                       "scope":  "cli-bridge-health",
+                       "name":  "bridge health poll initial backoff",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI bridge readiness starts with a bounded health-poll delay."
+                   },
+                   {
+                       "scope":  "cli-bridge-health",
+                       "name":  "bridge health poll max backoff",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI bridge readiness health-poll delay is capped."
+                   },
+                   {
+                       "scope":  "cli-bridge-health",
+                       "name":  "bridge readiness deadline",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI bridge readiness wait is bounded by the caller timeout."
+                   },
+                   {
+                       "scope":  "cli-bridge-health",
+                       "name":  "bridge readiness backoff sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI bridge readiness sleeps with bounded backoff between health checks."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait default timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait has a default timeout."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait maximum timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait timeout has a hard ceiling."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait option",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route exposes an explicit --wait-timeout-sec option."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait deadline",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait computes a bounded wait deadline."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait request timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait status requests are timeout-bound."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait sleeps between status polls."
+                   },
+                   {
+                       "scope":  "cli-route-wait",
+                       "name":  "route wait timeout evidence class",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI route --wait records timeout as a failed wait class instead of spinning forever."
+                   },
+                   {
+                       "scope":  "cli-login",
+                       "name":  "login device flow expiry",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI login device-code polling uses the server-provided expiry as a deadline."
+                   },
+                   {
+                       "scope":  "cli-login",
+                       "name":  "login timeout break",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI login exits when the device-code flow expires."
+                   },
+                   {
+                       "scope":  "cli-login",
+                       "name":  "login polling sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI login sleeps 5s between device-token polls."
+                   },
+                   {
+                       "scope":  "cli-login",
+                       "name":  "login poll primitive",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\install\\cli_commands.rs",
+                       "message":  "CLI login polling is limited to the explicit device-code login command."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\control\\http_server.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\http_server.rs",
+                       "message":  "musu-rs\\src\\control\\http_server.rs exists."
+                   },
+                   {
+                       "scope":  "control-sse",
+                       "name":  "control SSE heartbeat interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\http_server.rs",
+                       "message":  "Control-plane SSE heartbeat uses a bounded 30s interval."
+                   },
+                   {
+                       "scope":  "control-sse",
+                       "name":  "control SSE heartbeat event",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\http_server.rs",
+                       "message":  "Control-plane SSE stream emits heartbeat events instead of spinning on an empty stream."
+                   },
+                   {
+                       "scope":  "control-sse",
+                       "name":  "control SSE interval stream mapping",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\control\\http_server.rs",
+                       "message":  "Control-plane SSE maps interval ticks to heartbeat events."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\workflow\\executor.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "musu-rs\\src\\workflow\\executor.rs exists."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "task completion poll sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor task-completion polling sleeps between DB checks."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "task completion max wait",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor task-completion polling has a 1h cap."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "task completion deadline break",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor exits the poll loop when the max wait is reached."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "task completion terminal states",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor exits the poll loop on terminal task states."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "topological sort finite queue loop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor topological sort drains a finite dependency queue."
+                   },
+                   {
+                       "scope":  "workflow-executor",
+                       "name":  "topological sort cycle rejection",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\executor.rs",
+                       "message":  "Workflow executor topological sort rejects cycles instead of looping indefinitely."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\workflow\\workflow_spec.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\workflow_spec.rs",
+                       "message":  "musu-rs\\src\\workflow\\workflow_spec.rs exists."
+                   },
+                   {
+                       "scope":  "workflow-spec",
+                       "name":  "cycle detection finite queue loop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\workflow_spec.rs",
+                       "message":  "Workflow spec cycle detection drains a finite Kahn queue."
+                   },
+                   {
+                       "scope":  "workflow-spec",
+                       "name":  "cycle detection mismatch rejection",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\workflow_spec.rs",
+                       "message":  "Workflow spec rejects cycles when the finite queue cannot visit all agents."
+                   },
+                   {
+                       "scope":  "workflow-spec",
+                       "name":  "topological order finite queue loop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\workflow\\workflow_spec.rs",
+                       "message":  "Workflow spec topological order drains a finite queue."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\indexer\\sync.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\sync.rs",
+                       "message":  "musu-rs\\src\\indexer\\sync.rs exists."
+                   },
+                   {
+                       "scope":  "indexer-sync",
+                       "name":  "scan spawn_blocking awaited",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\sync.rs",
+                       "message":  "Indexer scan uses spawn_blocking but awaits the bounded scan result before continuing."
+                   },
+                   {
+                       "scope":  "indexer-sync",
+                       "name":  "empty or missing workspace returns",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\indexer\\sync.rs",
+                       "message":  "Post-create index sync exits early for empty or missing workspaces."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\peer\\hardware.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\hardware.rs",
+                       "message":  "musu-rs\\src\\peer\\hardware.rs exists."
+                   },
+                   {
+                       "scope":  "hardware-probe",
+                       "name":  "probe wait step",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\hardware.rs",
+                       "message":  "Hardware child probes sleep between try_wait checks."
+                   },
+                   {
+                       "scope":  "hardware-probe",
+                       "name":  "probe nonblocking wait",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\hardware.rs",
+                       "message":  "Hardware child probe loop uses nonblocking try_wait."
+                   },
+                   {
+                       "scope":  "hardware-probe",
+                       "name":  "probe timeout kill",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\hardware.rs",
+                       "message":  "Hardware child probe loop kills commands that exceed their timeout."
+                   },
+                   {
+                       "scope":  "hardware-probe",
+                       "name":  "probe sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\peer\\hardware.rs",
+                       "message":  "Hardware child probe loop sleeps when the child is still running."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\pty.rs exists."
+                   },
+                   {
+                       "scope":  "pty",
+                       "name":  "pty reader blocks on read",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "PTY reader loop is a request-scoped blocking read loop."
+                   },
+                   {
+                       "scope":  "pty",
+                       "name":  "pty reader exits on send failure",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "PTY reader loop exits when the websocket channel closes."
+                   },
+                   {
+                       "scope":  "pty",
+                       "name":  "pty websocket select",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "PTY websocket loop waits on PTY output or websocket input."
+                   },
+                   {
+                       "scope":  "pty",
+                       "name":  "pty websocket close break",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "PTY websocket loop exits on close or disconnected socket."
+                   },
+                   {
+                       "scope":  "pty",
+                       "name":  "pty write spawn_blocking request scoped",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\pty.rs",
+                       "message":  "PTY websocket writes use request-scoped spawn_blocking calls with no polling loop."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs exists."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "websocket proxy request upgrade",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy loops are tied to explicit request upgrades."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "client side awaits inbound websocket",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy client-to-upstream loop waits on inbound client frames instead of polling."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "upstream side awaits inbound websocket",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy upstream-to-client loop waits on inbound upstream frames instead of polling."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "client side exits on upstream send failure",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy client side exits when upstream sending fails."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "upstream side exits on client send failure",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy upstream side exits when client sending fails."
+                   },
+                   {
+                       "scope":  "ws-proxy",
+                       "name":  "bidirectional proxy closes on either side",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\ws_proxy.rs",
+                       "message":  "WebSocket proxy drops the opposite half when either direction closes."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\files.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\files.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\files.rs exists."
+                   },
+                   {
+                       "scope":  "files-api",
+                       "name":  "directory listing awaits next entry",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\files.rs",
+                       "message":  "File API directory listing waits on async directory entries instead of polling."
+                   },
+                   {
+                       "scope":  "files-api",
+                       "name":  "directory listing request scoped",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\files.rs",
+                       "message":  "File API directory listing loop is scoped to one list_dir request."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\forward.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\forward.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\forward.rs exists."
+                   },
+                   {
+                       "scope":  "forward-multipart",
+                       "name":  "multipart loop awaits next field",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\forward.rs",
+                       "message":  "Forwarded task multipart loop waits on request fields instead of polling."
+                   },
+                   {
+                       "scope":  "forward-multipart",
+                       "name":  "multipart loop request scoped",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\forward.rs",
+                       "message":  "Forwarded task multipart loop is scoped to one receive request."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\webdav.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\webdav.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\webdav.rs exists."
+                   },
+                   {
+                       "scope":  "webdav-propfind",
+                       "name":  "propfind loop awaits directory entry",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\webdav.rs",
+                       "message":  "WebDAV PROPFIND waits on async directory entries instead of polling."
+                   },
+                   {
+                       "scope":  "webdav-propfind",
+                       "name":  "propfind loop request scoped",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\webdav.rs",
+                       "message":  "WebDAV PROPFIND directory loop is scoped to one request."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\io\\webrtc.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "musu-rs\\src\\io\\webrtc.rs exists."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "screen share ffmpeg request path",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC screen-share loop is tied to an explicit ffmpeg capture request."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "data channel pong one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC data-channel heartbeat spawn sends one pong and returns."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "rtcp reader request-scoped spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC RTCP reader loop is spawned only inside the explicit screen-share request path."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "rtcp reader awaits inbound packets",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC RTCP reader waits on inbound RTCP reads instead of polling."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "rtcp reader exits on read failure",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC RTCP reader exits when the RTCP read stream closes or errors."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "screen share capture task spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC screen-share capture task is spawned only for the explicit screen-share request."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "screen share stdout read awaits",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC screen-share loop awaits ffmpeg stdout reads."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "NAL splitter drains finite buffer",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC NAL splitter drains the finite buffered stdout chunk."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "screen share kills child on failure",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC screen-share loop kills ffmpeg if sample writes fail."
+                   },
+                   {
+                       "scope":  "webrtc-screen-share",
+                       "name":  "screen share kills child on exit",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\io\\webrtc.rs",
+                       "message":  "WebRTC screen-share loop kills ffmpeg when the capture loop exits."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\services.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\services.rs",
+                       "message":  "musu-rs\\src\\bridge\\services.rs exists."
+                   },
+                   {
+                       "scope":  "process-enumeration",
+                       "name":  "windows snapshot enumeration",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\services.rs",
+                       "message":  "Windows process enumeration is a finite snapshot walk."
+                   },
+                   {
+                       "scope":  "process-enumeration",
+                       "name":  "windows snapshot break",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\services.rs",
+                       "message":  "Windows process enumeration exits when the snapshot is exhausted."
+                   },
+                   {
+                       "scope":  "process-enumeration",
+                       "name":  "windows snapshot close",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\services.rs",
+                       "message":  "Windows process enumeration closes the snapshot handle."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\writer\\runner.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "musu-rs\\src\\writer\\runner.rs exists."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "task spawn registered handle",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Writer tasks are spawned and immediately registered for cancellation/reconciliation."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "registry guard removes task",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Writer task join handles are removed from the registry on task exit."
+                   },
+                   {
+                       "scope":  "task-callback",
+                       "name":  "callback bounded retry spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task callbacks run in a spawned one-shot with bounded retry count and per-request timeout."
+                   },
+                   {
+                       "scope":  "task-callback",
+                       "name":  "callback retry backoff sleep",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task callback retries sleep between attempts instead of spinning."
+                   },
+                   {
+                       "scope":  "wiki-index",
+                       "name":  "musu-crawl fire-and-forget thread",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Semantic SSOT markdown indexing runs as a one-shot thread after a task markdown write."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "admission safety recheck interval",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task admission loop has a slow safety recheck interval."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "admission notify or sleep or cancel",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task admission loop waits on notify, bounded sleep, or cancel."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "stream no-deadline per-iter timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task stdout stream loop bounds no-deadline reads to 500ms per iteration."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "stream cancel and timeout select",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task stdout stream loop selects between cancel and bounded read."
+                   },
+                   {
+                       "scope":  "task-runner",
+                       "name":  "stream deadline timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\runner.rs",
+                       "message":  "Task stdout stream loop exits when its deadline is reached."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\writer\\claude.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\claude.rs",
+                       "message":  "musu-rs\\src\\writer\\claude.rs exists."
+                   },
+                   {
+                       "scope":  "writer-claude",
+                       "name":  "stdin write one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\claude.rs",
+                       "message":  "Claude stdin writer spawn writes the prompt once, shuts stdin down, and exits."
+                   },
+                   {
+                       "scope":  "writer-claude",
+                       "name":  "claude child kill on drop",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\writer\\claude.rs",
+                       "message":  "Claude child process is killed if the async command handle is dropped."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\companies.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\companies.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\companies.rs exists."
+                   },
+                   {
+                       "scope":  "companies-index-sync",
+                       "name":  "post-create sync fire-and-forget spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\companies.rs",
+                       "message":  "Company creation starts a fire-and-forget index sync so HTTP 201 is not blocked by disk scan."
+                   },
+                   {
+                       "scope":  "companies-index-sync",
+                       "name":  "post-create sync nonfatal warn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\companies.rs",
+                       "message":  "Post-create index sync failure is logged as non-fatal and does not retry-spin."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\nodes.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\nodes.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\nodes.rs exists."
+                   },
+                   {
+                       "scope":  "nodes-health",
+                       "name":  "peer health spawned per finite entry",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\nodes.rs",
+                       "message":  "Node listing spawns one bounded health check per finite peer entry."
+                   },
+                   {
+                       "scope":  "nodes-health",
+                       "name":  "peer health join awaited",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\nodes.rs",
+                       "message":  "Node listing awaits every spawned peer health check before returning."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\route_evidence.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\route_evidence.rs",
+                       "message":  "musu-rs\\src\\bridge\\route_evidence.rs exists."
+                   },
+                   {
+                       "scope":  "route-evidence-submit",
+                       "name":  "route evidence one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\route_evidence.rs",
+                       "message":  "Route evidence cloud submission is a one-shot spawned task with no polling loop."
+                   },
+                   {
+                       "scope":  "route-evidence-submit",
+                       "name":  "route evidence no-token skip",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\route_evidence.rs",
+                       "message":  "Route evidence cloud submission exits early when no account token is configured."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\rendezvous.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "musu-rs\\src\\bridge\\rendezvous.rs exists."
+                   },
+                   {
+                       "scope":  "rendezvous",
+                       "name":  "rendezvous timeout clamp",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "Rendezvous cloud calls have a clamped timeout budget."
+                   },
+                   {
+                       "scope":  "rendezvous",
+                       "name":  "publish candidates one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "Publishing local candidates is a one-shot spawned cloud task."
+                   },
+                   {
+                       "scope":  "rendezvous",
+                       "name":  "publish candidates timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "Publishing local candidates is wrapped by the rendezvous timeout."
+                   },
+                   {
+                       "scope":  "rendezvous",
+                       "name":  "close session one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "Closing a rendezvous session is a one-shot spawned cloud task."
+                   },
+                   {
+                       "scope":  "rendezvous",
+                       "name":  "close session timeout",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\rendezvous.rs",
+                       "message":  "Closing rendezvous sessions is wrapped by the rendezvous timeout."
+                   },
+                   {
+                       "scope":  "file",
+                       "name":  "exists: musu-rs\\src\\bridge\\handlers\\workflow.rs",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\workflow.rs",
+                       "message":  "musu-rs\\src\\bridge\\handlers\\workflow.rs exists."
+                   },
+                   {
+                       "scope":  "workflow-handler",
+                       "name":  "execute workflow one-shot spawn",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\workflow.rs",
+                       "message":  "Workflow HTTP execution starts one spawned executor task and returns immediately."
+                   },
+                   {
+                       "scope":  "workflow-handler",
+                       "name":  "execute workflow failure logged",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src\\bridge\\handlers\\workflow.rs",
+                       "message":  "Workflow executor spawn logs failure instead of retry-spinning."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "new rust loops must be audited",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "No unaudited Rust loop constructs found outside the allowlist."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "new rust spawns must be audited",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "No unaudited Rust spawn constructs found outside the allowlist."
+                   },
+                   {
+                       "scope":  "logging-telemetry",
+                       "name":  "one-shot log flush primitives stay allowlisted",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "Allowed one-shot log flush primitives: musu-rs\\src\\install\\uninstall.rs (1)."
+                   },
+                   {
+                       "scope":  "logging-telemetry",
+                       "name":  "no background telemetry flush worker primitives",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "No Rust background telemetry/log flush worker primitives found."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "filesystem watcher primitives stay allowlisted",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "Filesystem watcher primitives are limited to indexer watch and file sync implementations."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "file sync watcher starts only from bridge config or sync CLI",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "File-sync watcher start calls are limited to the configured bridge path and explicit musu sync CLI."
+                   },
+                   {
+                       "scope":  "source",
+                       "name":  "network watcher primitives stay allowlisted",
+                       "status":  "pass",
+                       "path":  "musu-rs\\src",
+                       "message":  "Network watcher/poller primitives are limited to explicit CLI, opt-in mDNS/relay-poller, low-duty cloud heartbeat, auto-update, control SSE, and relay payload handler/client surfaces."
+                   }
+               ]
+}
