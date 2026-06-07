@@ -417,3 +417,39 @@ it is cloud coordination for local work.
 6. Add Evidence Center views backed only by existing verifier outputs.
 7. Keep public release No-Go until second-machine route/CPU/matrix, live
    MUSU.PRO relay proof, support mailbox, and Store evidence pass.
+
+## 2026-06-07 15:00 KST Source Recheck
+
+The later local gate recheck used current official sources again and did not
+change the competitive read.
+
+Sources refreshed:
+
+- Claude Code Remote Control:
+  `https://code.claude.com/docs/en/remote-control`
+- GitHub Copilot CLI Remote Control:
+  `https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-remote-control`
+- OpenAI Codex product page:
+  `https://openai.com/codex/`
+- OpenAI Codex GitHub repository:
+  `https://github.com/openai/codex`
+- OpenAI Codex mobile/remote work update:
+  `https://openai.com/index/work-with-codex-from-anywhere/`
+- Tailscale control/data planes:
+  `https://tailscale.com/docs/concepts/control-data-planes`
+- Tailscale connection types:
+  `https://tailscale.com/docs/reference/connection-types`
+
+Reconfirmed product implication:
+
+- The closest direct comparator remains remote control of local execution, not
+  default cloud execution.
+- The web/mobile surface may submit prompts, answer questions, approve or deny
+  plans and permissions, cancel runs, and inspect status/evidence.
+- Filesystem access, shell commands, tools, adapters, process ownership, and
+  runtime CPU evidence stay on the selected MUSU Desktop device.
+- MUSU.PRO should expose the same control-plane/data-plane split that Tailscale
+  makes explicit: controller, room, rendezvous, and relay are not the executor.
+- Release UX must show an execution-locus banner before order submission:
+  `Input from MUSU.PRO`, `Executing on <device>`,
+  `Route <direct|relay|cloud>`, and `Evidence <ok|missing|failed>`.

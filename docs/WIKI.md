@@ -15475,3 +15475,75 @@ Search terms should include `GOAL v810`, `wiki/985`, `2974 files`,
 `current-head CPU matrix goal continuation index refresh`,
 `20260607-143513-HUGH_SECOND`, `SaaS continuation source check`, and
 `AG MVP screen contracts`.
+
+## 2026-06-07 Current-HEAD Desktop-Open CPU And Research Gate Recheck (wiki/986)
+
+Current HEAD `41ce3d71e14138cf44d6d9d4879bf1c939508deb` has fresh
+HUGH_SECOND packaged desktop-open idle CPU evidence after the SaaS/AG UI/UX
+research and CPU matrix continuation work.
+
+Promoted evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-150047-HUGH_SECOND.desktop-open.evidence.json`
+
+Results:
+
+- `ok=true`
+- `git_dirty=false`
+- `sample_seconds=60.048`
+- MUSU CPU `0`
+- Node CPU `0`
+- owned WebView2 max `0.13`
+- owned WebView2 helpers `6`
+- hot process count `0`
+- working set `370.64MB`
+
+Dirty-tree go/no-go after promotion reported:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`
+
+The matrix count remains `0` because current target-route CPU evidence is a
+failed allowed route diagnostic against `HUGH-MAIN`, not successful release
+post-route proof.
+
+The 15:00 KST SaaS source recheck reconfirmed that Claude Code Remote Control,
+GitHub Copilot CLI Remote Control, OpenAI Codex, and Tailscale-style
+control/data-plane designs all point to the same MUSU boundary: MUSU.PRO is
+remote input, rooms, rendezvous, path selection, relay fallback, and evidence;
+MUSU Desktop is the local executor.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_AND_RESEARCH_GATE_RECHECK_2026_06_07.md`
+
+Search terms should include `GOAL v811`, `wiki/986`,
+`20260607-150047-HUGH_SECOND.desktop-open`, `41ce3d71`, `WebView2 max 0.13`,
+`runtime_idle_cpu_valid_machine_count=1`, `runtime_cpu_scenario_matrix_valid_machine_count=0`,
+and `remote control local execution`.
+
+## 2026-06-07 Current-HEAD Desktop-Open CPU And Research Gate Index Refresh (wiki/987)
+
+MUSU local indexer was refreshed after wiki/986 and GOAL v811.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2978 files`
+- `2790 symbols`
+- `31771 ms`
+
+Indexed context includes the fresh
+`20260607-150047-HUGH_SECOND.desktop-open` idle CPU evidence, current-head CPU
+and research gate recheck report, 15:00 KST SaaS source recheck, AG UI/UX
+design recheck, BETA checklist update, runtime stabilization plan,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v812`, `wiki/987`, `2978 files`,
+`2790 symbols`, `31771 ms`,
+`current-head desktop-open CPU research gate index refresh`,
+`20260607-150047-HUGH_SECOND.desktop-open`, `WebView2 max 0.13`, and
+`runtime_idle_cpu_valid_machine_count=1`.

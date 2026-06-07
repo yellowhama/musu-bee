@@ -654,3 +654,30 @@ The installed desktop program needs a local control strip:
 
 The mini console can link to MUSU.PRO for remote input, but should not ask
 normal users to operate `localhost:3001` as the product surface.
+
+## 2026-06-07 15:00 KST Design Recheck
+
+The latest official source recheck keeps the AG UI/UX direction unchanged.
+
+Design lock:
+
+- The primary MUSU.PRO experience is a command-room/control-plane surface.
+- The installed MUSU Desktop program is the execution runtime and local
+  permission boundary.
+- Remote web/mobile control is a limited surface for input, prompts,
+  approvals, cancellations, status, and evidence inspection.
+- Local-only operations must stay visibly unavailable from remote sessions
+  unless the desktop policy explicitly allows them.
+- Device Mesh and Evidence Center must show whether a run is local direct,
+  P2P direct, relay fallback, or future hosted execution.
+- Any future hosted worker mode needs a different badge, policy, billing, and
+  evidence surface from local remote control.
+
+MVP addition:
+
+- Add a small execution-locus strip above the order composer:
+  `Input`, `Execution device`, `Route policy`, `Evidence required`.
+- Disable submit when no selected MUSU Desktop runtime is online unless the
+  order is explicitly queued with a pickup timeout.
+- Show `localhost` only as a technical bridge detail inside Desktop Mini
+  Console diagnostics, not as the normal product entry point.

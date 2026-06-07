@@ -10566,3 +10566,45 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_EVIDENCE_AFTER_RELAY_CANDIDATE_PROTOCOL_2026_06_07.md`
   (wiki/979)
+
+## 2026-06-07 Current-HEAD Desktop-Open CPU Gate Recheck
+
+Fresh current-HEAD desktop-open idle CPU evidence was captured on
+`HUGH_SECOND` after the SaaS research and AG UI/UX documentation updates:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-150047-HUGH_SECOND.desktop-open.evidence.json`
+
+Result:
+
+- commit `41ce3d71e14138cf44d6d9d4879bf1c939508deb`
+- `git_dirty=false`
+- `ok=true`
+- `60.048s`
+- MUSU CPU `0`
+- Node CPU `0`
+- owned WebView2 max `0.13`
+- owned WebView2 helpers `6`
+- hot process count `0`
+- working set `370.64MB`
+
+Dirty-tree go/no-go after evidence promotion restored
+`runtime_idle_cpu_valid_machine_count=1`, kept
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1`, and correctly kept
+`runtime_cpu_scenario_matrix_valid_machine_count=0` because the current
+post-route evidence is a failed allowed target-route diagnostic, not a
+successful release-grade route probe.
+
+Public release remains No-Go on:
+
+- multi-device evidence
+- second-machine desktop-open idle CPU count `2/2`
+- successful five-state runtime CPU matrix count `2/2`
+- live `musu.pro` P2P control-plane and relay proof
+- support mailbox proof
+- Store/Partner Center proof
+- temporary dirty worktree until this evidence and documentation are committed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_AND_RESEARCH_GATE_RECHECK_2026_06_07.md`
+  (wiki/986)

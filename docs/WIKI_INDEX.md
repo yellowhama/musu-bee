@@ -6759,4 +6759,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-143513-HUGH_SECOND`, `SaaS continuation source check`, and
   `AG MVP screen contracts`.
 
+- 2026-06-07 current-head desktop-open CPU and research gate recheck:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_AND_RESEARCH_GATE_RECHECK_2026_06_07.md`
+  (wiki/986) records fresh HUGH_SECOND desktop-open idle CPU evidence
+  `20260607-150047-HUGH_SECOND.desktop-open.evidence.json` from commit
+  `41ce3d71`, with `git_dirty=false`, `ok=true`, `60.048s`, MUSU `0`, Node
+  `0`, owned WebView2 max `0.13`, owned WebView2 helpers `6`, and dirty-tree
+  go/no-go restored `runtime_idle_cpu_valid_machine_count=1` while keeping
+  `runtime_cpu_scenario_matrix_valid_machine_count=0` because the current
+  matrix is failed-route diagnostic evidence, not successful post-route proof.
+  Search terms should include `GOAL v811`, `wiki/986`,
+  `20260607-150047-HUGH_SECOND.desktop-open`, `WebView2 max 0.13`,
+  `runtime_idle_cpu_valid_machine_count=1`, and
+  `remote control local execution`.
+
+- 2026-06-07 current-head desktop-open CPU and research gate index refresh:
+  wiki/987 records the MUSU local index refresh after wiki/986 and GOAL v811.
+  Search terms should include `GOAL v812`, `wiki/987`, `2978 files`,
+  `2790 symbols`, `31771 ms`,
+  `current-head desktop-open CPU research gate index refresh`,
+  `20260607-150047-HUGH_SECOND.desktop-open`, `WebView2 max 0.13`, and
+  `runtime_idle_cpu_valid_machine_count=1`.
+
 **End of WIKI_INDEX.md.**

@@ -1154,3 +1154,29 @@ Stabilization interpretation:
 - release relay tunnel markers must remain blocked until the actual
   `quic_relay_tunnel` byte path and release payload endpoint exist and emit
   route metadata, transport proof, and payload delivery proof.
+
+## 2026-06-07 Current-HEAD Desktop-Open CPU Gate Recheck
+
+Current HEAD `41ce3d71e14138cf44d6d9d4879bf1c939508deb` has fresh packaged
+desktop-open idle CPU evidence on `HUGH_SECOND`:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-150047-HUGH_SECOND.desktop-open.evidence.json`
+
+The 60s sample passed with MUSU `0`, Node `0`, owned WebView2 max `0.13`, hot
+process count `0`, bridge runtime `1`, desktop shell `1`, owned WebView2 `6`,
+and working set `370.64MB`.
+
+Gate interpretation:
+
+- primary-machine idle busy-loop is not reproduced on the packaged desktop;
+- `runtime_idle_cpu_valid_machine_count` is back to `1/2`;
+- `runtime_cpu_scenario_matrix_valid_machine_count` remains `0/2` because the
+  current target-route matrix intentionally records a failed allowed
+  `HUGH-MAIN` route diagnostic, not a successful post-route probe;
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count` remains `1/1`;
+- the next runtime proof must come from a real second PC with current MUSU
+  Desktop installed, running, reachable, and returning successful route plus
+  CPU/matrix evidence.
+
+This confirms the remaining CPU blocker is proof scope and route success, not a
+new local busy-loop on `HUGH_SECOND`.
