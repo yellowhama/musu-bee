@@ -183,6 +183,33 @@ MUSU local indexer synced `3021 files`, `2794 symbols`, `16427 ms` after the
 late SaaS/AG-UI source recheck, AG UI/UX design update, P2P control-plane spec
 note, BETA checklist update, WIKI/WIKI_INDEX, GOAL, and CoS memory.
 
+**Latest comparable SaaS deep research (2026-06-07 v831 / wiki/1006)**:
+Current primary-source research rechecked Claude Code Remote Control, GitHub
+Copilot CLI Remote Control, OpenAI Codex/Codex Windows remote control, Cursor,
+Jules, Devin, AG-UI, and Tailscale. The roadmap remains MUSU.PRO as the
+command-room/control-plane SaaS and MUSU Desktop as local executor. AG UI must
+show room, target, execution locus, route policy, permission envelope, queue
+timeout, and evidence requirement before remote work is accepted. Canonical
+report:
+`docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`.
+
+**Latest CPU matrix refresh (2026-06-07 v832 / wiki/1007)**:
+Clean HUGH_SECOND packaged runtime CPU matrix evidence
+`20260607-174550-HUGH_SECOND` from commit `26ae15a8` passed verifier with
+`ok=true`, `fail_count=0`, `git_dirty=false`, hot process count `0`, MUSU CPU
+`0`, Node CPU `0`, owned WebView2 max `0.10`, owned process count `8`, owned
+WebView2 helper count `6`, and max working set `370.46MB`. The `PRIMARY-PC`
+route probe failed with `peer 'PRIMARY-PC' not found` and was explicitly
+allowed for CPU diagnostics, so this remains one-machine/failed-route
+diagnostic evidence, not successful multi-device proof. Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_ROUTE_PREFLIGHT_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v833 / wiki/1008)**:
+MUSU local indexer synced `3028 files`, `2794 symbols`, `18261 ms` after the
+current deep research recheck, current-head CPU matrix after route preflight,
+promoted `20260607-174550-HUGH_SECOND` evidence, AG UI/P2P/BETA docs, WIKI,
+WIKI_INDEX, GOAL, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
@@ -1309,3 +1336,8 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 | 2026-06-07 v826 | Code, docs, evidence, wiki, and CoS memory were indexed after the current-head CPU matrix after P2P env root readiness. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3014 files`, `2794 symbols`, and `18870 ms` after GOAL v825/wiki/1000, promoted `20260607-165333-HUGH_SECOND` CPU matrix evidence, verifier output, canonical CPU matrix report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v826`, `wiki/1001`, `current-head CPU matrix after P2P env root readiness index refresh`, `3014 files`, `2794 symbols`, `18870 ms`, `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`. |
 | 2026-06-07 v827 | Primary-side second-PC route preflight now catches missing peer registration before targeted CPU/multi-device smoke. | Added `scripts\windows\test-second-pc-route-preflight.ps1` with schema `musu.second_pc_route_preflight.v1`; it consumes a second-PC return zip or handoff JSON, resolves `suggested_remote_addrs`, runs `musu peer add`, confirms `musu peer list`, runs `musu route --explain --target <SECOND_PC_NAME>`, rejects self/local targets, writes `.local-build\second-pc-route-preflight\*.second-pc-route-preflight.json`, and prints exact targeted CPU matrix / multi-device smoke commands. Updated multi-device kit, final packet, operator action pack, packet/action-pack verifiers, release verifier regression, readiness audit inventory, and freshness allowlists. Synthetic fake-target smoke wrote structured `ok=false` evidence with `target peer listed=fail`. This is not successful multi-device proof. Canonical report: `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_PREFLIGHT_2026_06_07.md` (wiki/1002). |
 | 2026-06-07 v828 | Code, docs, specs, wiki, and CoS memory were indexed after the second-PC route preflight helper. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3018 files`, `2794 symbols`, and `36479 ms` after GOAL v827/wiki/1002, `test-second-pc-route-preflight.ps1`, packet/kit/action-pack updates, verifier/audit updates, canonical route preflight report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v828`, `wiki/1003`, `second-PC route preflight index refresh`, `3018 files`, `2794 symbols`, `36479 ms`, and `musu.second_pc_route_preflight.v1`. |
+| 2026-06-07 v829 | Agent-control SaaS late source recheck was documented. | `docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md` rechecked OpenAI Codex product/app/upgrades/repo sources, GitHub Copilot cloud-agent session docs, Cursor, Jules, Devin, Replit, AG-UI, and Tailscale. The product boundary remains MUSU.PRO as remote input/room/presence/rendezvous/path-selection/relay/evidence control plane and MUSU Desktop as local executor. Canonical wiki entry: wiki/1004. |
+| 2026-06-07 v830 | Code, docs, specs, wiki, and CoS memory were indexed after the late SaaS/AG-UI source recheck. | MUSU local indexer succeeded with `3021 files`, `2794 symbols`, and `16427 ms` after GOAL v829/wiki/1004, the late SaaS/AG-UI source recheck, AG UI/UX design update, P2P control-plane spec note, BETA checklist update, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v830`, `wiki/1005`, `agent control SaaS late source recheck index refresh`, `AG-UI`, and `MUSU.PRO control plane`. |
+| 2026-06-07 v831 | Agent-control SaaS current deep research recheck was documented. | `docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md` rechecked current primary sources for Claude Code Remote Control, GitHub Copilot CLI Remote Control, OpenAI Codex/Codex Windows remote control, Cursor, Jules, Devin, AG-UI, and Tailscale. The closest lane remains remote control over local execution; hosted async agents stay UX references, not MUSU default execution. AG UI now locks the first composer fields: room, target device/group, execution locus, route policy, permission envelope, queue timeout, and evidence requirement. Canonical wiki entry: wiki/1006. |
+| 2026-06-07 v832 | Current-head CPU matrix after the route preflight helper stayed under budget. | Clean HUGH_SECOND packaged runtime CPU matrix evidence `20260607-174550-HUGH_SECOND` from commit `26ae15a853837cfbbbf19d6e72eb0bf9facaa1fc` passed verifier with `ok=true`, `fail_count=0`, `git_dirty=false`, hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`, owned process count `8`, owned WebView2 helper count `6`, and max working set `370.46MB`. The `PRIMARY-PC` route probe failed with `peer 'PRIMARY-PC' not found` and failure was explicitly allowed, so this is not successful multi-device proof. Canonical report: `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_ROUTE_PREFLIGHT_2026_06_07.md` (wiki/1007). |
+| 2026-06-07 v833 | Code, docs, evidence, wiki, and CoS memory were indexed after the current deep research and CPU matrix refresh. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3028 files`, `2794 symbols`, and `18261 ms` after GOAL v831-v832/wiki/1006-wiki/1007, current comparable SaaS deep research, promoted `20260607-174550-HUGH_SECOND` CPU matrix evidence, AG UI/P2P/BETA docs, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v833`, `wiki/1008`, `current deep research CPU matrix index refresh`, `3028 files`, `2794 symbols`, `18261 ms`, `Codex Windows remote control`, and `PRIMARY-PC peer not found`. |

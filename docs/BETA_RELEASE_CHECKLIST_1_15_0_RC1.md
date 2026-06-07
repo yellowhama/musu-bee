@@ -94,6 +94,34 @@ proof, evidence attachment, and terminal state must be separate events. This
 supports AG UI without changing the runtime boundary: web/mobile input can
 stream control metadata, but MUSU Desktop policy owns local execution.
 
+Current operator-requested deep research recheck is recorded in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`. It
+uses the current Claude Code Remote Control, GitHub Copilot CLI Remote Control,
+OpenAI Codex/Codex Windows remote-control, Cursor, Jules, Devin, AG-UI, and
+Tailscale sources to keep the roadmap honest. The closest product lane is
+remote control over local execution; hosted async agents remain UX references.
+Command Center must therefore expose room, target device/group, execution
+locus, route policy, permission envelope, queue timeout, and evidence
+requirement before accepting remote work.
+
+Current-head CPU matrix after the route preflight helper:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_ROUTE_PREFLIGHT_2026_06_07.md`
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-174550-HUGH_SECOND.current-head-after-route-preflight.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-174550-HUGH_SECOND.current-head-after-route-preflight.runtime-cpu-scenario-matrix.verification.json`
+
+This matrix was captured from clean commit
+`26ae15a853837cfbbbf19d6e72eb0bf9facaa1fc` with `git_dirty=false` and
+`musu_exe_release_identity=true`. All five scenarios passed with hot process
+count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`, owned
+process count `8`, owned WebView2 helper count `6`, and max working set
+`370.46MB`. The `PRIMARY-PC` route probe failed with `peer 'PRIMARY-PC' not
+found`; failure was explicitly allowed for this target-route CPU diagnostic.
+This is not successful multi-device route proof.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

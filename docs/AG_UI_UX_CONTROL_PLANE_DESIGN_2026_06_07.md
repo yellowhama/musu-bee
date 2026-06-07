@@ -762,3 +762,50 @@ Additional UI contract:
   lease, transport proof, payload proof, and evidence attachment;
 - remote web/mobile control may stream status and approvals, but local Desktop
   policy owns whether execution is allowed.
+
+## 2026-06-07 17:56 KST Current Deep Research Design Lock
+
+Current deeper research is documented in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`
+
+The UI lock is now specific enough for implementation planning:
+
+- Command Center is the first screen after login.
+- The composer defaults execution locus to `Local MUSU Desktop`.
+- `Hosted worker` is hidden or disabled until it is a separate product mode.
+- Submit is disabled unless a selected/eligible local runtime is online, or the
+  user explicitly queues the order with a pickup timeout.
+- The first-row execution strip is always visible:
+  `Input`, `Executing on`, `Route`, `Evidence`, `Remote control`.
+- Device Mesh owns route candidates, direct attempt state, relay fallback
+  reason, local pause/revoke, and keep-awake guidance.
+- Evidence Center owns release truth, including when a route sample is only
+  failed-route-allowed CPU diagnostic evidence.
+
+Minimum event taxonomy:
+
+- `order.created`
+- `order.queued`
+- `runtime.heartbeat`
+- `work_order.delivered`
+- `work_order.accepted`
+- `work_order.rejected`
+- `approval.requested`
+- `approval.granted`
+- `approval.denied`
+- `route.candidates_published`
+- `route.rendezvous_created`
+- `route.direct_attempted`
+- `route.relay_lease_requested`
+- `route.transport_proven`
+- `route.payload_delivery_proven`
+- `evidence.attached`
+- `run.completed`
+- `run.failed`
+- `run.timed_out`
+- `run.canceled`
+
+The UI must never infer execution from control-plane events alone. Execution
+starts only when the selected MUSU Desktop runtime accepts the authenticated
+work-order envelope under local policy.

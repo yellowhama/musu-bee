@@ -2380,3 +2380,33 @@ and async-agent UX. Tailscale validates direct-first mesh UX with explicit
 relay fallback. MUSU keeps the stricter release requirement: second-machine
 evidence, owner-scoped live P2P metadata, relay transport proof, and relay
 payload delivery proof are still required before public release.
+
+## 2026-06-07 Current Deep Research Control-Plane Note
+
+The operator-requested current deep research recheck is recorded in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`.
+
+Spec interpretation stays fixed:
+
+- MUSU.PRO can receive remote prompts, approvals, cancellations, room messages,
+  and route/evidence metadata.
+- MUSU.PRO can coordinate rendezvous, path selection, relay leases,
+  notification, and team policy.
+- MUSU.PRO cannot be treated as the default executor for local files, shell,
+  app adapters, or tools.
+- A remote order becomes execution only after the selected MUSU Desktop runtime
+  accepts an authenticated work-order envelope under local policy.
+- Control-plane events are not payload proof.
+- Relay lease readiness is not relay byte transit proof.
+- Failed-route-allowed CPU diagnostics are not successful multi-device proof.
+
+The next implementation slice should therefore bind room/order/run events to
+device and route state without weakening the evidence gates:
+
+1. room order created on MUSU.PRO;
+2. owner/org policy authorizes the target device or group;
+3. selected Desktop runtime heartbeats and accepts the envelope;
+4. direct P2P route is attempted after rendezvous;
+5. relay fallback is requested only after direct-route failure and policy allow;
+6. route metadata, transport proof, payload delivery proof, and CPU evidence
+   are attached separately.

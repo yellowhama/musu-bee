@@ -16142,3 +16142,117 @@ Search terms should include `GOAL v830`, `wiki/1005`, `3021 files`,
 `2794 symbols`, `16427 ms`,
 `agent control SaaS late source recheck index refresh`, `AG-UI`,
 `typed room/order/run events`, and `MUSU.PRO control plane`.
+
+## 2026-06-07 Agent Control SaaS Current Deep Research Recheck (wiki/1006)
+
+Current comparable SaaS research was added after the late source recheck.
+
+Canonical report:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`
+
+Sources rechecked:
+
+- Claude Code Remote Control
+- GitHub Copilot CLI Remote Control
+- OpenAI Codex product, repo, and Windows remote-control notes
+- Cursor Background/Web/Mobile Agents
+- Google Jules
+- Devin
+- AG-UI protocol docs and repo
+- Tailscale connection types and DERP docs
+
+Result:
+
+- closest MUSU lane is remote control over local execution;
+- hosted async agents remain UX references for plan/status/review/team flows;
+- MUSU.PRO remains the command-room/control-plane SaaS;
+- MUSU Desktop remains the local executor and permission boundary;
+- AG UI must require room, target, execution locus, route policy, permission
+  envelope, queue timeout, and evidence requirement before accepting remote
+  work;
+- route UI must show direct, peer relay, hosted relay, fallback reason, and
+  proof as separate states.
+
+Release meaning:
+
+- this is research/spec progress only;
+- it does not close second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay,
+  support mailbox, or Store gates.
+
+Search terms should include `GOAL v831`, `wiki/1006`,
+`current deep research recheck`, `Codex Windows remote control`,
+`GitHub Copilot CLI Remote Control`, `Claude Code Remote Control`,
+`AG-UI typed event streams`, `Tailscale direct peer relay DERP`, and
+`MUSU Desktop local executor`.
+
+## 2026-06-07 Current-Head CPU Matrix After Route Preflight (wiki/1007)
+
+Fresh HUGH_SECOND packaged runtime CPU matrix evidence was promoted after the
+second-PC route preflight helper and current deep research recheck.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_ROUTE_PREFLIGHT_2026_06_07.md`
+
+Evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-174550-HUGH_SECOND.current-head-after-route-preflight.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-174550-HUGH_SECOND.current-head-after-route-preflight.runtime-cpu-scenario-matrix.verification.json`
+
+Result:
+
+- commit `26ae15a853837cfbbbf19d6e72eb0bf9facaa1fc`
+- `git_dirty=false`
+- verifier `ok=true`, `fail_count=0`, `267` checks
+- hot process count `0`
+- MUSU CPU `0`
+- Node CPU `0`
+- owned WebView2 max `0.10`
+- owned process count `8`
+- owned WebView2 helper count `6`
+- max working set `370.46MB`
+- route target `PRIMARY-PC`
+- route failed with `peer 'PRIMARY-PC' not found`
+- route failure was explicitly allowed for CPU diagnostics
+
+Audit:
+
+- Rust background-loop contract `ok=true`, `fail_count=0`, unaudited loops and
+  spawns `0`
+- frontend polling contract `ok=true`, `fail_count=0`, `29/29` low-duty
+  call sites, direct interval hits `0`
+
+Release meaning:
+
+- one-machine current-head CPU matrix remains healthy on HUGH_SECOND;
+- this is not successful multi-device route proof;
+- public release remains No-Go on second-PC route/CPU/matrix, live MUSU.PRO
+  P2P/relay proof, support mailbox, and Store proof.
+
+Search terms should include `GOAL v832`, `wiki/1007`,
+`20260607-174550-HUGH_SECOND`, `26ae15a8`, `WebView2 max 0.10`,
+`PRIMARY-PC peer not found`, and `AllowFailedPostRouteProbe`.
+
+## 2026-06-07 Current Deep Research And CPU Matrix Index Refresh (wiki/1008)
+
+MUSU local indexer was refreshed after wiki/1006, wiki/1007, and GOAL
+v831-v832.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3028 files`
+- `2794 symbols`
+- `18261 ms`
+
+Indexed context includes the current comparable SaaS deep research recheck,
+current-head CPU matrix after route preflight, promoted
+`20260607-174550-HUGH_SECOND` CPU matrix evidence, AG UI/UX control-plane
+design update, MUSU.PRO P2P control-plane spec update, BETA checklist, GOAL,
+WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v833`, `wiki/1008`, `3028 files`,
+`2794 symbols`, `18261 ms`,
+`current deep research CPU matrix index refresh`,
+`20260607-174550-HUGH_SECOND`, `PRIMARY-PC peer not found`,
+`Codex Windows remote control`, and `AG-UI typed event streams`.

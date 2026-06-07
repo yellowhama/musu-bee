@@ -6945,4 +6945,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `agent control SaaS late source recheck index refresh`, `AG-UI`,
   `typed room/order/run events`, and `MUSU.PRO control plane`.
 
+- 2026-06-07 agent control SaaS current deep research recheck:
+  `RESEARCH_AGENT_CONTROL_SAAS_CURRENT_DEEP_RESEARCH_2026_06_07.md`
+  (wiki/1006) records the current primary-source deep recheck across Claude
+  Code Remote Control, GitHub Copilot CLI Remote Control, OpenAI Codex/Codex
+  Windows remote control, Cursor, Jules, Devin, AG-UI, and Tailscale. Search
+  terms should include `GOAL v831`, `wiki/1006`,
+  `current deep research recheck`, `Codex Windows remote control`,
+  `GitHub Copilot CLI Remote Control`, `AG-UI typed event streams`,
+  `Tailscale direct peer relay DERP`, and `MUSU Desktop local executor`.
+
+- 2026-06-07 current-head CPU matrix after route preflight:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_ROUTE_PREFLIGHT_2026_06_07.md`
+  (wiki/1007) records clean HUGH_SECOND packaged runtime CPU matrix evidence
+  `20260607-174550-HUGH_SECOND` from commit `26ae15a8`. Search terms should
+  include `GOAL v832`, `wiki/1007`, `20260607-174550-HUGH_SECOND`,
+  `WebView2 max 0.10`, `PRIMARY-PC peer not found`, and
+  `AllowFailedPostRouteProbe`.
+
+- 2026-06-07 current deep research and CPU matrix index refresh:
+  wiki/1008 records the MUSU local index refresh after wiki/1006, wiki/1007,
+  and GOAL v831-v832. Search terms should include `GOAL v833`, `wiki/1008`,
+  `3028 files`, `2794 symbols`, `18261 ms`,
+  `current deep research CPU matrix index refresh`,
+  `20260607-174550-HUGH_SECOND`, `PRIMARY-PC peer not found`,
+  `Codex Windows remote control`, and `AG-UI typed event streams`.
+
 **End of WIKI_INDEX.md.**
