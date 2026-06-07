@@ -547,6 +547,8 @@ if ($matrix) {
                 "auto_update_check_interval_floor_minutes",
                 "auto_update_health_poll_initial_ms",
                 "auto_update_health_poll_max_ms",
+                "bridge_health_poll_initial_ms",
+                "bridge_health_poll_max_ms",
                 "runtime_loop_candidates",
                 "active_runtime_loop_candidate_count",
                 "active_runtime_loop_candidate_keys"
@@ -579,6 +581,10 @@ if ($matrix) {
                 $autoUpdateHealthPollMaxMs = [uint64]$doctorBackground.auto_update_health_poll_max_ms
                 Add-CheckFromCondition "doctor background auto-update health poll bounds" ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) "doctor background snapshot records bounded auto-update health polling backoff" "doctor background snapshot records invalid auto-update health polling bounds"
 
+                $bridgeHealthPollInitialMs = [uint64]$doctorBackground.bridge_health_poll_initial_ms
+                $bridgeHealthPollMaxMs = [uint64]$doctorBackground.bridge_health_poll_max_ms
+                Add-CheckFromCondition "doctor background bridge health poll bounds" ($bridgeHealthPollInitialMs -ge 250 -and $bridgeHealthPollInitialMs -le $bridgeHealthPollMaxMs -and $bridgeHealthPollMaxMs -le 2000) "doctor background snapshot records bounded bridge readiness polling backoff" "doctor background snapshot records invalid bridge readiness polling bounds"
+
                 $expectedRuntimeLoopCandidateKeys = @(
                     "mdns_discovery",
                     "clipboard_polling",
@@ -586,7 +592,9 @@ if ($matrix) {
                     "file_sync_watch",
                     "relay_target_polling",
                     "autonomous_planner",
-                    "auto_update_supervisor"
+                    "health_check_retry",
+                    "auto_update_supervisor",
+                    "bridge_readiness_wait"
                 )
                 $runtimeLoopCandidates = @($doctorBackground.runtime_loop_candidates)
                 $runtimeLoopCandidateKeys = @(

@@ -7686,4 +7686,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `16699 ms`, `second-PC process attribution verification index`,
   `verify-process-attribution-summary.ps1`, and `133/133`.
 
+- 2026-06-08 doctor idle-loop coverage expansion:
+  wiki/1084 records that `musu doctor --json` runtime-loop summaries now expose
+  `health_check_retry` and `bridge_readiness_wait`, that
+  `DoctorBackground` now carries `bridge_health_poll_initial_ms` and
+  `bridge_health_poll_max_ms`, and that both release verifiers now require the
+  new bridge health-poll bound check plus the expanded 9-key runtime-loop
+  summary. Regression stayed green at `133/133` in
+  `.local-build\release-evidence-verifier-tests\20260608-072210`. Search terms
+  should include `GOAL v909`, `wiki/1084`, `health_check_retry`,
+  `bridge_readiness_wait`, `bridge_health_poll_initial_ms`,
+  `doctor background bridge health poll bounds`, and `133/133`.
+
+- 2026-06-08 doctor idle-loop coverage index:
+  wiki/1085 records the MUSU local index refresh after wiki/1084 and GOAL
+  v909. Search terms should include `GOAL v910`, `wiki/1085`, `3104 files`,
+  `2891 symbols`, `15863 ms`, `doctor idle-loop coverage index`,
+  `health_check_retry`, `bridge_readiness_wait`, and `133/133`.
+
 **End of WIKI_INDEX.md.**

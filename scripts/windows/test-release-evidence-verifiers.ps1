@@ -271,6 +271,7 @@ function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
         'doctor background snapshot schema',
         'doctor background snapshot command',
         'doctor background required fields',
+        'doctor background bridge health poll bounds',
         'doctor background runtime loop candidates',
         'doctor background active runtime loop candidate keys'
     )
@@ -922,6 +923,7 @@ function Test-RuntimeIdleCpuGoNoGoDoctorSnapshotContract {
         'doctor background planner timeout bounds',
         'doctor background auto-update interval floor',
         'doctor background auto-update health poll bounds',
+        'doctor background bridge health poll bounds',
         'doctor background runtime loop candidates',
         'doctor background active runtime loop candidate keys'
     )
@@ -2585,6 +2587,8 @@ function New-RuntimeIdleCpuEvidence {
                 auto_update_check_interval_floor_minutes = 5
                 auto_update_health_poll_initial_ms = 250
                 auto_update_health_poll_max_ms = 2000
+                bridge_health_poll_initial_ms = 250
+                bridge_health_poll_max_ms = 2000
                 runtime_loop_candidates = @(
                     [pscustomobject]@{ key = "mdns_discovery"; label = "mDNS discovery"; active = $false; activation_mode = "env-opt-in"; note = "All mDNS discovery toggles are off." },
                     [pscustomobject]@{ key = "clipboard_polling"; label = "Clipboard polling"; active = $false; activation_mode = "env-opt-in"; note = "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set." },
@@ -2592,7 +2596,9 @@ function New-RuntimeIdleCpuEvidence {
                     [pscustomobject]@{ key = "file_sync_watch"; label = "File sync/watch"; active = $false; activation_mode = "shared-root-config"; note = "No shared roots are configured, so file watcher/sync stays off." },
                     [pscustomobject]@{ key = "relay_target_polling"; label = "Relay target polling"; active = $false; activation_mode = "env-opt-in"; note = "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set." },
                     [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
-                    [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." }
+                    [pscustomobject]@{ key = "health_check_retry"; label = "Health check retry"; active = $false; activation_mode = "update-config"; note = "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched." },
+                    [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." },
+                    [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." }
                 )
                 active_runtime_loop_candidate_count = 1
                 active_runtime_loop_candidate_keys = @("cloud_heartbeat")
@@ -2765,6 +2771,8 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
             auto_update_check_interval_floor_minutes = 5
             auto_update_health_poll_initial_ms = 250
             auto_update_health_poll_max_ms = 2000
+            bridge_health_poll_initial_ms = 250
+            bridge_health_poll_max_ms = 2000
             runtime_loop_candidates = @(
                 [pscustomobject]@{ key = "mdns_discovery"; label = "mDNS discovery"; active = $false; activation_mode = "env-opt-in"; note = "All mDNS discovery toggles are off." },
                 [pscustomobject]@{ key = "clipboard_polling"; label = "Clipboard polling"; active = $false; activation_mode = "env-opt-in"; note = "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set." },
@@ -2772,7 +2780,9 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
                 [pscustomobject]@{ key = "file_sync_watch"; label = "File sync/watch"; active = $false; activation_mode = "shared-root-config"; note = "No shared roots are configured, so file watcher/sync stays off." },
                 [pscustomobject]@{ key = "relay_target_polling"; label = "Relay target polling"; active = $false; activation_mode = "env-opt-in"; note = "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set." },
                 [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
-                [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." }
+                [pscustomobject]@{ key = "health_check_retry"; label = "Health check retry"; active = $false; activation_mode = "update-config"; note = "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched." },
+                [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." },
+                [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." }
             )
             active_runtime_loop_candidate_count = 1
             active_runtime_loop_candidate_keys = @("cloud_heartbeat")

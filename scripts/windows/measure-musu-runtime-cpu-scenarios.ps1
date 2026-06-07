@@ -471,6 +471,8 @@ function Get-DoctorBackgroundSnapshot {
             auto_update_check_interval_floor_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_floor_minutes"]) { [uint64]$background.auto_update_check_interval_floor_minutes } else { 5 }
             auto_update_health_poll_initial_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_initial_ms"]) { [uint64]$background.auto_update_health_poll_initial_ms } else { 250 }
             auto_update_health_poll_max_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_max_ms"]) { [uint64]$background.auto_update_health_poll_max_ms } else { 2000 }
+            bridge_health_poll_initial_ms = if ($background -and $background.PSObject.Properties["bridge_health_poll_initial_ms"]) { [uint64]$background.bridge_health_poll_initial_ms } else { 250 }
+            bridge_health_poll_max_ms = if ($background -and $background.PSObject.Properties["bridge_health_poll_max_ms"]) { [uint64]$background.bridge_health_poll_max_ms } else { 2000 }
             runtime_loop_candidates = $runtimeLoopCandidates
             active_runtime_loop_candidate_count = $activeRuntimeLoopCandidateCount
             active_runtime_loop_candidate_keys = $activeRuntimeLoopCandidateKeys

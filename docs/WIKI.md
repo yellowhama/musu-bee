@@ -18988,3 +18988,80 @@ entries.
 Search terms should include `GOAL v908`, `wiki/1083`, `3104 files`,
 `2891 symbols`, `16699 ms`, `second-PC process attribution verification index`,
 `verify-process-attribution-summary.ps1`, and `133/133`.
+
+## 2026-06-08 Doctor Idle-Loop Coverage Expansion (wiki/1084)
+
+`musu doctor --json` runtime-loop summaries now expose the two release-gated
+idle-loop candidates that were previously only visible through the Rust audit:
+`health_check_retry` and `bridge_readiness_wait`.
+
+- Rust doctor changes:
+  `musu-rs\src\install\cli_commands.rs` extends `DoctorBackground` with
+  `bridge_health_poll_initial_ms` and `bridge_health_poll_max_ms`, and expands
+  `runtime_loop_candidates` from 7 to 9 keys by adding
+  `health_check_retry` and `bridge_readiness_wait`.
+- candidate semantics:
+  - `health_check_retry` is `activation_mode = "update-config"` and becomes
+    active when `update.toml` enables a supervising auto-update source, so
+    doctor snapshots now reflect that sub-loop directly instead of only
+    implying it through `auto_update_supervisor`.
+  - `bridge_readiness_wait` is `activation_mode = "request-scoped"` and stays
+    inactive in steady-state doctor snapshots while still documenting the
+    bounded bridge readiness backoff used by CLI waits.
+- evidence extraction:
+  `scripts\windows\measure-musu-idle-cpu.ps1` and
+  `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` now preserve
+  `bridge_health_poll_initial_ms = 250` and
+  `bridge_health_poll_max_ms = 2000` inside
+  `doctor_background_snapshot.background`.
+- verifier hardening:
+  `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` and
+  `scripts\windows\write-release-go-no-go.ps1` now require the new bridge poll
+  fields, validate their `250..2000ms` bounds, and expect the expanded
+  9-candidate runtime-loop key set that includes `health_check_retry` and
+  `bridge_readiness_wait`.
+- fixture/source-contract updates:
+  `scripts\windows\test-release-evidence-verifiers.ps1` now seeds both new
+  bridge poll fields and the expanded 9-candidate doctor background summary in
+  idle/runtime fixtures, and its source-contract needles now require the
+  `doctor background bridge health poll bounds` check.
+
+Validation for this change set:
+
+- `cargo fmt`
+- `cargo check --manifest-path F:/workspace/musu-bee/musu-rs/Cargo.toml --bin musu`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=133`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-072210`
+
+Not claimed:
+
+- `cargo test --manifest-path F:/workspace/musu-bee/musu-rs/Cargo.toml doctor_background -- --nocapture`
+  was started, but test-profile compilation stayed long and the cargo process
+  was terminated before a pass/fail result was captured.
+
+Search terms should include `GOAL v909`, `wiki/1084`, `health_check_retry`,
+`bridge_readiness_wait`, `bridge_health_poll_initial_ms`,
+`doctor background bridge health poll bounds`, and `133/133`.
+
+## 2026-06-08 Doctor Idle-Loop Coverage Index (wiki/1085)
+
+MUSU local indexer was refreshed after wiki/1084 and GOAL v909.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `15863 ms`
+
+Indexed context includes the doctor runtime-loop summary expansion to
+`health_check_retry` and `bridge_readiness_wait`, the new bridge health-poll
+bound checks in both release verifiers, the green `133/133` verifier sweep, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v910`, `wiki/1085`, `3104 files`,
+`2891 symbols`, `15863 ms`, `doctor idle-loop coverage index`,
+`health_check_retry`, `bridge_readiness_wait`, and `133/133`.

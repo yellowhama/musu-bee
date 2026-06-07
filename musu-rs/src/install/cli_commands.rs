@@ -3361,6 +3361,8 @@ struct DoctorBackground {
     auto_update_check_interval_floor_minutes: u64,
     auto_update_health_poll_initial_ms: u64,
     auto_update_health_poll_max_ms: u64,
+    bridge_health_poll_initial_ms: u64,
+    bridge_health_poll_max_ms: u64,
     runtime_loop_candidates: Vec<DoctorBackgroundLoopCandidate>,
     active_runtime_loop_candidate_count: usize,
     active_runtime_loop_candidate_keys: Vec<&'static str>,
@@ -4204,6 +4206,28 @@ fn check_background_features(
             },
         },
         DoctorBackgroundLoopCandidate {
+            key: "health_check_retry",
+            label: "Health check retry",
+            active: auto_update_supervise_enabled,
+            activation_mode: "update-config",
+            note: match &auto_update_config {
+                Ok(Some(_)) if auto_update_supervise_enabled => format!(
+                    "Auto-update health checks retry with bounded {}-{}ms backoff while supervision is running.",
+                    crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
+                    crate::install::auto_update::HEALTH_POLL_MAX_MS
+                ),
+                Ok(Some(_)) => {
+                    "Health check retry stays off because update.toml does not enable a supervising update source.".into()
+                }
+                Ok(None) => {
+                    "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched.".into()
+                }
+                Err(err) => {
+                    format!("update.toml is invalid ({err}), so health check retry stays off.")
+                }
+            },
+        },
+        DoctorBackgroundLoopCandidate {
             key: "auto_update_supervisor",
             label: "Auto-update supervisor",
             active: auto_update_supervise_enabled,
@@ -4224,6 +4248,17 @@ fn check_background_features(
                     format!("update.toml is invalid ({err}), so auto-update supervision stays off.")
                 }
             },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "bridge_readiness_wait",
+            label: "Bridge readiness wait",
+            active: false,
+            activation_mode: "request-scoped",
+            note: format!(
+                "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded {}-{}ms backoff until the caller timeout expires.",
+                BRIDGE_HEALTH_POLL_INITIAL_MS,
+                BRIDGE_HEALTH_POLL_MAX_MS
+            ),
         },
     ];
     let active_runtime_loop_candidate_keys = runtime_loop_candidates
@@ -4367,6 +4402,8 @@ fn check_background_features(
             crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES,
         auto_update_health_poll_initial_ms: crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
         auto_update_health_poll_max_ms: crate::install::auto_update::HEALTH_POLL_MAX_MS,
+        bridge_health_poll_initial_ms: BRIDGE_HEALTH_POLL_INITIAL_MS,
+        bridge_health_poll_max_ms: BRIDGE_HEALTH_POLL_MAX_MS,
         runtime_loop_candidates,
         active_runtime_loop_candidate_count,
         active_runtime_loop_candidate_keys,
@@ -6087,7 +6124,15 @@ mod tests {
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
         );
-        assert_eq!(background.runtime_loop_candidates.len(), 7);
+        assert_eq!(
+            background.bridge_health_poll_initial_ms,
+            BRIDGE_HEALTH_POLL_INITIAL_MS
+        );
+        assert_eq!(
+            background.bridge_health_poll_max_ms,
+            BRIDGE_HEALTH_POLL_MAX_MS
+        );
+        assert_eq!(background.runtime_loop_candidates.len(), 9);
         assert_eq!(background.active_runtime_loop_candidate_count, 0);
         assert!(background.active_runtime_loop_candidate_keys.is_empty());
     }
@@ -6203,10 +6248,10 @@ mod tests {
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
         );
-        assert_eq!(background.active_runtime_loop_candidate_count, 1);
+        assert_eq!(background.active_runtime_loop_candidate_count, 2);
         assert_eq!(
             background.active_runtime_loop_candidate_keys,
-            vec!["auto_update_supervisor"]
+            vec!["health_check_retry", "auto_update_supervisor"]
         );
     }
 
