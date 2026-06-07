@@ -638,9 +638,10 @@ function Test-RuntimeIdleCpuGoNoGoMatchingProcessInventoryContract {
         'matching process inventory records machine-wide, MUSU-owned, repo-related, and unowned node helper counts',
         'matching process inventory WebView2 buckets',
         'matching process inventory records machine-wide, MUSU-owned, and unowned WebView2 helper counts',
-        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory -Names @("musu", "node", "webview2", "other")',
-        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory.node -Names @("machine_wide", "owned_by_musu_process_tree", "repo_related_unowned", "unowned_other")',
-        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory.webview2 -Names @("machine_wide", "owned_by_musu_process_tree", "unowned_other")'
+        '$matchingProcessInventoryBuckets = if ($matchingProcessInventory.PSObject.Properties["counts_by_bucket"]) { $matchingProcessInventory.counts_by_bucket } else { $matchingProcessInventory }',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventoryBuckets -Names @("musu", "node", "webview2", "other")',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventoryBuckets.node -Names @("machine_wide", "owned_by_musu_process_tree", "repo_related_unowned", "unowned_other")',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventoryBuckets.webview2 -Names @("machine_wide", "owned_by_musu_process_tree", "unowned_other")'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -2934,6 +2935,41 @@ try {
         -FixturePath $runtimeIdleInventoryMissingPath `
         -ShouldPass $true `
         -Invocation $staticInvocation
+
+    $runtimeIdleInventoryNestedRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-nested-inventory-$([guid]::NewGuid().ToString('N')).json"
+    $runtimeIdleInventoryNestedPath = $null
+    try {
+        $nestedEvidence = New-RuntimeIdleCpuEvidence -Machine "VERIFIER-IDLE-INVENTORY-NESTED"
+        $nestedBuckets = $nestedEvidence.matching_process_inventory
+        $nestedEvidence.matching_process_inventory = [pscustomobject]@{
+            counts_by_bucket = $nestedBuckets
+            top_processes = @()
+        }
+        $runtimeIdleInventoryNestedPath = Write-RepoEvidenceFixture `
+            -RelativePath $runtimeIdleInventoryNestedRelativePath `
+            -Object $nestedEvidence
+        $nestedInvocation = Invoke-Verifier -ScriptPath $releaseGoNoGoWriter -Arguments @(
+            "-VerifyRuntimeIdleCpuEvidencePath", $runtimeIdleInventoryNestedPath,
+            "-Json"
+        )
+        $nestedParsed = if ($null -ne $nestedInvocation -and $nestedInvocation.PSObject.Properties["parsed"]) { $nestedInvocation.parsed } else { $null }
+        $nestedRegressionOk = ($null -ne $nestedParsed -and [bool]$nestedParsed.ok)
+        $staticInvocation = New-StaticVerifierInvocation `
+            -Ok $nestedRegressionOk `
+            -Message "runtime idle CPU direct verification accepts matching_process_inventory when role buckets are nested under counts_by_bucket"
+        Add-CaseResult `
+            -Cases $cases `
+            -Name "runtime idle CPU direct verifier accepts nested matching process inventory buckets" `
+            -Verifier "write-release-go-no-go.ps1" `
+            -FixturePath $runtimeIdleInventoryNestedPath `
+            -ShouldPass $true `
+            -Invocation $staticInvocation
+    }
+    finally {
+        if ($runtimeIdleInventoryNestedPath -and (Test-Path -LiteralPath $runtimeIdleInventoryNestedPath)) {
+            Remove-Item -LiteralPath $runtimeIdleInventoryNestedPath -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 finally {
     if ($runtimeIdleInventoryValidPath -and (Test-Path -LiteralPath $runtimeIdleInventoryValidPath)) {

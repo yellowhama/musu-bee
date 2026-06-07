@@ -694,6 +694,10 @@ function Get-RawMatchingProcessSummary {
 
     [pscustomobject]@{
         counts_by_bucket = $countsByBucket
+        musu = $countsByBucket.musu
+        node = $countsByBucket.node
+        webview2 = $countsByBucket.webview2
+        other = $countsByBucket.other
         top_processes = @(
             $samples |
                 Sort-Object cpu_pct_one_core -Descending |
