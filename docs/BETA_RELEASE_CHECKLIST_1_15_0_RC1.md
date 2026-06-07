@@ -10499,3 +10499,29 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_RELAY_CANDIDATE_PROTOCOL_RELEASE_KIND_2026_06_07.md`
   (wiki/977)
+
+## 2026-06-07 Current-HEAD Local Evidence After Relay Candidate Protocol
+
+Fresh HUGH_SECOND evidence after commit `5b2a184d` restored the one-machine
+local gates that went stale after the relay candidate protocol source change:
+
+- single-machine:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-134308-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-134335-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-134335-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-134335-HUGH_SECOND.desktop-single-instance.json`
+
+Dirty-tree go/no-go after recording this evidence reported
+`single_machine=true`, `process_ownership=true`,
+`startup_single_instance=true`, and `desktop_single_instance=true`.
+Release remains No-Go on multi-device, two-machine CPU/matrix, targeted and
+successful second-PC route proof, support mailbox, Store, and live MUSU.PRO P2P
+control-plane proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_EVIDENCE_AFTER_RELAY_CANDIDATE_PROTOCOL_2026_06_07.md`
+  (wiki/979)

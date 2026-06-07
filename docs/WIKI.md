@@ -15246,3 +15246,62 @@ Search terms should include `GOAL v803`, `wiki/978`,
 `P2P relay candidate protocol index refresh`, `2941 files`,
 `2790 symbols`, `19972 ms`, `relay_protocol=quic_relay_tunnel`, and
 `RelayProtocol::QuicRelayTunnel`.
+
+## 2026-06-07 Current-HEAD Local Evidence After Relay Candidate Protocol (wiki/979)
+
+Fresh HUGH_SECOND local evidence was recorded after commit `5b2a184d` because
+the relay candidate protocol source change made prior local evidence stale for
+go/no-go freshness.
+
+Promoted evidence:
+
+- single-machine smoke:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-134308-HUGH_SECOND.evidence.json`
+- single-machine verification:
+  `docs\evidence\single-machine\1.15.0-rc.1\20260607-134308-HUGH_SECOND.verification.json`
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-134335-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-134335-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-134335-HUGH_SECOND.desktop-single-instance.json`
+
+Results:
+
+- single-machine `ok=true`, `local-bridge-only`, bridge
+  `http://127.0.0.1:14361`
+- process ownership `ok=true`
+- startup single-instance `ok=true`
+- desktop single-instance `ok=true`
+- dirty-tree go/no-go restored single-machine/process/startup/desktop gates
+  and stayed No-Go on multi-device, two-machine CPU/matrix, targeted/successful
+  second-PC route proof, support, Store, and P2P control-plane proof
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_EVIDENCE_AFTER_RELAY_CANDIDATE_PROTOCOL_2026_06_07.md`
+
+Search terms should include `GOAL v804`, `wiki/979`,
+`current-head local evidence after relay candidate protocol`,
+`20260607-134308-HUGH_SECOND`, `20260607-134335-HUGH_SECOND`,
+`single_machine=true`, `process_ownership=true`,
+`startup_single_instance=true`, and `desktop_single_instance=true`.
+
+## 2026-06-07 Current-HEAD Local Evidence Index Refresh After Relay Candidate Protocol (wiki/980)
+
+MUSU local indexer was refreshed after wiki/979 and GOAL v804.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2951 files`
+- `2790 symbols`
+- `20277 ms`
+
+Indexed context includes the relay candidate protocol source/docs, fresh
+HUGH_SECOND single-machine/process/startup/desktop evidence, canonical local
+evidence report, WIKI_INDEX, GOAL, BETA checklist, and CoS memory.
+
+Search terms should include `GOAL v805`, `wiki/980`,
+`current-head local evidence index refresh after relay candidate protocol`,
+`2951 files`, `2790 symbols`, `20277 ms`,
+`20260607-134308-HUGH_SECOND`, and `20260607-134335-HUGH_SECOND`.

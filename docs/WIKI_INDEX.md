@@ -6692,4 +6692,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_protocol=quic_relay_tunnel`, and
   `RelayProtocol::QuicRelayTunnel`.
 
+- 2026-06-07 current-head local evidence after relay candidate protocol:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_EVIDENCE_AFTER_RELAY_CANDIDATE_PROTOCOL_2026_06_07.md`
+  (wiki/979) records fresh HUGH_SECOND single-machine, process ownership,
+  startup single-instance, and desktop single-instance evidence after commit
+  `5b2a184d`. Search terms should include `GOAL v804`, `wiki/979`,
+  `20260607-134308-HUGH_SECOND`, `20260607-134335-HUGH_SECOND`,
+  `single_machine=true`, `process_ownership=true`,
+  `startup_single_instance=true`, and `desktop_single_instance=true`.
+
+- 2026-06-07 current-head local evidence index refresh after relay candidate
+  protocol:
+  wiki/980 records the MUSU local index refresh after wiki/979 and GOAL v804.
+  Search terms should include `GOAL v805`, `wiki/980`, `2951 files`,
+  `2790 symbols`, `20277 ms`,
+  `current-head local evidence index refresh after relay candidate protocol`,
+  `20260607-134308-HUGH_SECOND`, and `20260607-134335-HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**

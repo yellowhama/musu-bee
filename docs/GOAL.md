@@ -26,6 +26,19 @@ MUSU local indexer synced `2941 files`, `2790 symbols`, `19972 ms` after the
 P2P relay candidate protocol release-kind update, canonical report, specs,
 WIKI/WIKI_INDEX, BETA checklist, and CoS memory.
 
+**Latest local evidence refresh (2026-06-07 v804 / wiki/979)**:
+After commit `5b2a184d`, fresh HUGH_SECOND local evidence restored
+`single_machine=true`, `process_ownership=true`,
+`startup_single_instance=true`, and `desktop_single_instance=true`. Remaining
+release blockers are still multi-device, two-machine CPU/matrix and successful
+route proof, support mailbox, Store, and live MUSU.PRO P2P proof. Canonical
+report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_EVIDENCE_AFTER_RELAY_CANDIDATE_PROTOCOL_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v805 / wiki/980)**:
+MUSU local indexer synced `2951 files`, `2790 symbols`, `20277 ms` after the
+fresh HUGH_SECOND local evidence refresh and relay candidate protocol docs.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
