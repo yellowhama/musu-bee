@@ -39,6 +39,9 @@ $commands = New-Object System.Collections.Generic.List[object]
 $warnings = New-Object System.Collections.Generic.List[string]
 $extractRoot = $null
 $errorText = $null
+$releaseCheckRouteReachabilityRequired = $null
+$releaseCheckRouteReachabilityVerified = $null
+$releaseCheckRouteReachabilityTarget = $null
 
 function Add-Check {
     param(
@@ -520,9 +523,16 @@ try {
         Add-CheckFromCondition "release-check schema" ([string]$releaseCheck.schema -eq "musu.second_pc_release_check.v1") "release-check schema is valid" "release-check schema is not musu.second_pc_release_check.v1"
         Add-CheckFromCondition "release-check version" ([string]$releaseCheck.version -eq $version) "release-check version matches $version" "release-check version does not match $version"
         Add-CheckFromCondition "release-check ok" ([bool]$releaseCheck.ok) "release-check reports ok=true" "release-check reports ok=false"
+        $releaseCheckRouteReachabilityRequired = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"]) { [bool]$releaseCheck.route_reachability_diagnostic_required } else { $null }
+        $releaseCheckRouteReachabilityVerified = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"] -and $null -ne $releaseCheck.route_reachability_diagnostic_verified) { [bool]$releaseCheck.route_reachability_diagnostic_verified } else { $null }
+        $releaseCheckRouteReachabilityTarget = if ($releaseCheck.PSObject.Properties["route_reachability_target"]) { [string]$releaseCheck.route_reachability_target } else { "" }
         if ($currentGitCommit -match "^[0-9a-f]{40}$") {
             $releaseCheckGitFreshness = New-GitFreshnessSummary -Evidence $releaseCheck -ExpectedGitCommit $currentGitCommit -Label "release_check"
             Add-CheckFromCondition "release-check freshness" ([bool]$releaseCheckGitFreshness.ok) "release-check commit is current or differs only by status/docs-only changes and release-check git_dirty=false" "release-check commit is stale, invalid, missing, or was captured from a dirty second-PC state"
+        }
+        if ($releaseCheckRouteReachabilityRequired -eq $true) {
+            Add-CheckFromCondition "release-check route reachability target" (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) "release-check records the route reachability target" "release-check is missing route reachability target metadata"
+            Add-CheckFromCondition "release-check route reachability verified" ($releaseCheckRouteReachabilityVerified -eq $true) "release-check route reachability diagnostic verified" "release-check route reachability diagnostic is missing or failed verification"
         }
     }
     elseif (-not [string]::IsNullOrWhiteSpace($ReturnZipPath)) {
@@ -634,6 +644,9 @@ $result = [pscustomobject]@{
     release_check_path = $releaseCheckPath
     handoff_git_freshness = $handoffGitFreshness
     release_check_git_freshness = $releaseCheckGitFreshness
+    release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired
+    release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified
+    release_check_route_reachability_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) { $null } else { $releaseCheckRouteReachabilityTarget }
     remote_addr = $RemoteAddr
     remote_name = $RemoteName
     route_target = $RouteTarget

@@ -662,9 +662,13 @@ function Test-SecondPcRoutePreflightFreshnessContract {
         'release-check freshness',
         'handoff freshness',
         'handoff/release-check commit match',
+        'release-check route reachability target',
+        'release-check route reachability verified',
         'release_check_path = $releaseCheckPath',
         'handoff_git_freshness = $handoffGitFreshness',
         'release_check_git_freshness = $releaseCheckGitFreshness',
+        'release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired',
+        'release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified',
         'return zip is missing second-PC release-check JSON',
         'handoff and release-check come from different source commits'
     )
@@ -688,7 +692,11 @@ function Test-SecondPcReturnCardFreshnessContract {
         'route_preflight_ready = [bool]$routePreflightReady',
         'handoff_git_freshness = $handoffGitFreshness',
         'release_check_git_freshness = $releaseCheckGitFreshness',
+        'route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired',
+        'route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified',
+        'route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }',
         'Returned zip does not include second-PC release-check JSON',
+        'Second-PC release-check route reachability diagnostic is missing or failed verification.',
         'Second-PC handoff and release-check were captured from different source commits.',
         'release_check: $(if ($result.release_check_path)'
     )

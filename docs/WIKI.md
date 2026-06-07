@@ -18735,3 +18735,81 @@ green `126/126` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v902`, `wiki/1077`, `3103 files`,
 `2891 symbols`, `15580 ms`, `doctor runtime loop candidate summary index`,
 `runtime_loop_candidates`, and `active_runtime_loop_candidate_keys`.
+
+## 2026-06-08 Second-PC Route Reachability Verification Surfacing (wiki/1078)
+
+Second-PC operator helpers now treat returned route reachability verification as
+part of route readiness, not just freshness.
+
+What changed:
+
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  - now reads these fields from returned
+    `musu.second_pc_release_check.v1`:
+    - `route_reachability_diagnostic_required`
+    - `route_reachability_diagnostic_verified`
+    - `route_reachability_target`
+  - when a returned release-check says route reachability evidence is required,
+    preflight now fails if:
+    - target metadata is missing
+    - verification is absent
+    - verification is false
+  - the preflight result JSON now records:
+    - `release_check_route_reachability_required`
+    - `release_check_route_reachability_verified`
+    - `release_check_route_reachability_target`
+
+- `scripts\windows\show-second-pc-return-card.ps1`
+  - now surfaces:
+    - `route_reachability_diagnostic_required`
+    - `route_reachability_diagnostic_verified`
+    - `route_reachability_target`
+  - `route_preflight_ready` now depends on both git freshness and required route
+    reachability verification.
+  - warnings now explicitly call out missing or failed second-PC route
+    reachability verification.
+
+Why this matters:
+
+- before this change, a return zip could be freshness-clean yet still look
+  route-ready even when the second-PC release-check had not actually verified
+  route reachability evidence.
+- after this change, operator-facing preflight/card output fails earlier and
+  points directly at the missing route-proof condition.
+
+Verification:
+
+- parse:
+  - `test-second-pc-route-preflight.ps1`
+  - `show-second-pc-return-card.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=126`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-064156`
+
+Search terms should include `GOAL v903`, `wiki/1078`,
+`route_reachability_diagnostic_verified`, `route_preflight_ready`,
+`release_check_route_reachability_verified`, and `second-PC route preflight`.
+
+## 2026-06-08 Second-PC Route Reachability Verification Index (wiki/1079)
+
+MUSU local indexer was refreshed after wiki/1078 and GOAL v903.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2891 symbols`
+- `27609 ms`
+
+Indexed context includes the second-PC preflight/card route-reachability
+surfacing, the unchanged green `126/126` verifier sweep, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v904`, `wiki/1079`, `3103 files`,
+`2891 symbols`, `27609 ms`, `second-PC route reachability verification index`,
+`route_preflight_ready`, and `route_reachability_diagnostic_verified`.

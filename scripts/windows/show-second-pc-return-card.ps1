@@ -287,6 +287,9 @@ $handoff = Get-Content -LiteralPath $HandoffPath -Raw | ConvertFrom-Json
 $releaseCheckPath = $null
 $releaseCheck = $null
 $warnings = New-Object System.Collections.Generic.List[string]
+$routeReachabilityDiagnosticRequired = $null
+$routeReachabilityDiagnosticVerified = $null
+$routeReachabilityTarget = $null
 
 if ([string]$handoff.schema -ne "musu.second_pc_handoff.v1") {
     throw "Unexpected handoff schema in ${HandoffPath}: $($handoff.schema)"
@@ -309,6 +312,9 @@ if ($extractedReturnRoot) {
 if (-not [string]::IsNullOrWhiteSpace($releaseCheckPath) -and (Test-Path -LiteralPath $releaseCheckPath)) {
     $releaseCheckPath = (Resolve-Path -LiteralPath $releaseCheckPath).Path
     $releaseCheck = Get-Content -LiteralPath $releaseCheckPath -Raw | ConvertFrom-Json
+    $routeReachabilityDiagnosticRequired = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"]) { [bool]$releaseCheck.route_reachability_diagnostic_required } else { $null }
+    $routeReachabilityDiagnosticVerified = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"] -and $null -ne $releaseCheck.route_reachability_diagnostic_verified) { [bool]$releaseCheck.route_reachability_diagnostic_verified } else { $null }
+    $routeReachabilityTarget = if ($releaseCheck.PSObject.Properties["route_reachability_target"]) { [string]$releaseCheck.route_reachability_target } else { "" }
 }
 
 $handoffGitFreshness = if ($currentGitCommit -match "^[0-9a-f]{40}$") {
@@ -330,6 +336,7 @@ if (-not $releaseCheck -and $extractedReturnRoot) {
 $routePreflightReady = [bool](
     ($handoffGitFreshness -and [bool]$handoffGitFreshness.ok) -and
     (($null -eq $releaseCheckGitFreshness) -or [bool]$releaseCheckGitFreshness.ok) -and
+    (($routeReachabilityDiagnosticRequired -ne $true) -or ($routeReachabilityDiagnosticVerified -eq $true -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTarget))) -and
     (-not ($handoffGitFreshness -and $releaseCheckGitFreshness) -or ([string]$handoffGitFreshness.git_commit -eq [string]$releaseCheckGitFreshness.git_commit))
 )
 if ($handoffGitFreshness -and -not [bool]$handoffGitFreshness.ok) {
@@ -340,6 +347,12 @@ if ($releaseCheckGitFreshness -and -not [bool]$releaseCheckGitFreshness.ok) {
 }
 if ($handoffGitFreshness -and $releaseCheckGitFreshness -and ([string]$handoffGitFreshness.git_commit -ne [string]$releaseCheckGitFreshness.git_commit)) {
     $warnings.Add("Second-PC handoff and release-check were captured from different source commits.") | Out-Null
+}
+if ($routeReachabilityDiagnosticRequired -eq $true -and [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) {
+    $warnings.Add("Second-PC release-check requires route reachability evidence but does not record the target.") | Out-Null
+}
+if ($routeReachabilityDiagnosticRequired -eq $true -and $routeReachabilityDiagnosticVerified -ne $true) {
+    $warnings.Add("Second-PC release-check route reachability diagnostic is missing or failed verification.") | Out-Null
 }
 
 $candidateAddrs = @($handoff.suggested_remote_addrs | ForEach-Object { [string]$_ } | Where-Object {
@@ -410,6 +423,9 @@ $result = [pscustomobject]@{
     handoff_git_freshness = $handoffGitFreshness
     release_check_git_freshness = $releaseCheckGitFreshness
     route_preflight_ready = [bool]$routePreflightReady
+    route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired
+    route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified
+    route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }
     remote_name = $RemoteName
     remote_addr = $RemoteAddr
     suggested_remote_addrs = $candidateAddrs
@@ -438,6 +454,15 @@ else {
     }
     if ($result.release_check_git_freshness) {
         "release_check_git_freshness_ok: $($result.release_check_git_freshness.ok)"
+    }
+    if ($null -ne $result.route_reachability_diagnostic_required) {
+        "route_reachability_diagnostic_required: $($result.route_reachability_diagnostic_required)"
+    }
+    if ($null -ne $result.route_reachability_diagnostic_verified) {
+        "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"
+    }
+    if ($result.route_reachability_target) {
+        "route_reachability_target: $($result.route_reachability_target)"
     }
     ""
     "Candidate RemoteAddr values"

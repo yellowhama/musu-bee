@@ -7635,4 +7635,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `15580 ms`, `doctor runtime loop candidate summary index`,
   `runtime_loop_candidates`, and `active_runtime_loop_candidate_keys`.
 
+- 2026-06-08 second-PC route reachability verification surfacing:
+  wiki/1078 records that `test-second-pc-route-preflight.ps1` and
+  `show-second-pc-return-card.ps1` now surface and require returned
+  `route_reachability_diagnostic_verified` state when the second-PC
+  release-check marks route reachability evidence as required. Regression stayed
+  green at `126/126` in
+  `.local-build\release-evidence-verifier-tests\20260608-064156`. Search terms
+  should include `GOAL v903`, `wiki/1078`,
+  `route_reachability_diagnostic_verified`, `route_preflight_ready`,
+  `release_check_route_reachability_verified`, and
+  `second-PC route preflight`.
+
+- 2026-06-08 second-PC route reachability verification index:
+  wiki/1079 records the MUSU local index refresh after wiki/1078 and GOAL
+  v903. Search terms should include `GOAL v904`, `wiki/1079`, `3103 files`,
+  `2891 symbols`, `27609 ms`, `second-PC route reachability verification index`,
+  `route_preflight_ready`, and `route_reachability_diagnostic_verified`.
+
 **End of WIKI_INDEX.md.**
