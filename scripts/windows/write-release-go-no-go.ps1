@@ -764,6 +764,21 @@ function Test-RuntimeIdleCpuEvidence {
             $doctorSnapshotCommand = if ($doctorBackgroundSnapshot.PSObject.Properties["command"]) { [string]$doctorBackgroundSnapshot.command } else { "" }
             $checks.Add((New-Check -Name "doctor background snapshot command" -Status ($(if ($doctorSnapshotCommand -eq "musu doctor --json") { "pass" } else { "fail" })) -Message ($(if ($doctorSnapshotCommand -eq "musu doctor --json") { "doctor background snapshot records the MUSU doctor command" } else { "doctor background snapshot command is '$doctorSnapshotCommand'" })))) | Out-Null
 
+            $doctorSchemaComplete = ($doctorBackgroundSnapshot.PSObject.Properties["doctor_schema_complete"] -and [bool]$doctorBackgroundSnapshot.doctor_schema_complete)
+            $missingDoctorBackgroundFields = if ($doctorBackgroundSnapshot.PSObject.Properties["missing_background_fields"]) {
+                @($doctorBackgroundSnapshot.missing_background_fields | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            }
+            else {
+                @()
+            }
+            $missingDoctorRuntimeLoopCandidateKeys = if ($doctorBackgroundSnapshot.PSObject.Properties["missing_runtime_loop_candidate_keys"]) {
+                @($doctorBackgroundSnapshot.missing_runtime_loop_candidate_keys | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            }
+            else {
+                @()
+            }
+            $checks.Add((New-Check -Name "doctor background snapshot completeness" -Status ($(if ($doctorSchemaComplete) { "pass" } else { "fail" })) -Message ($(if ($doctorSchemaComplete) { "doctor background snapshot came from a package that exposes the complete loop-attribution schema" } else { "doctor background snapshot required fallback defaults; missing fields: $($missingDoctorBackgroundFields -join ', '); missing runtime loop candidate keys: $($missingDoctorRuntimeLoopCandidateKeys -join ', ')" })))) | Out-Null
+
             $doctorBackground = if ($doctorBackgroundSnapshot.PSObject.Properties["background"]) { $doctorBackgroundSnapshot.background } else { $null }
             $doctorBackgroundPresent = ($null -ne $doctorBackground)
             $checks.Add((New-Check -Name "doctor background fields present" -Status ($(if ($doctorBackgroundPresent) { "pass" } else { "fail" })) -Message ($(if ($doctorBackgroundPresent) { "doctor background snapshot includes background feature fields" } else { "doctor background snapshot is missing background feature fields" })))) | Out-Null

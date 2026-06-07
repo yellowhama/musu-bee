@@ -524,6 +524,17 @@ if ($matrix) {
         $doctorSnapshotCommand = Get-JsonPropertyString -Object $doctorBackgroundSnapshot -Name "command"
         Add-CheckFromCondition "doctor background snapshot command" ($doctorSnapshotCommand -eq "musu doctor --json") "doctor background snapshot records the MUSU doctor command" "doctor background snapshot command is '$doctorSnapshotCommand'"
 
+        $doctorSchemaComplete = ($doctorBackgroundSnapshot.PSObject.Properties["doctor_schema_complete"] -and [bool]$doctorBackgroundSnapshot.doctor_schema_complete)
+        $missingDoctorBackgroundFields = @()
+        if ($doctorBackgroundSnapshot.PSObject.Properties["missing_background_fields"]) {
+            $missingDoctorBackgroundFields = @($doctorBackgroundSnapshot.missing_background_fields | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        $missingDoctorRuntimeLoopCandidateKeys = @()
+        if ($doctorBackgroundSnapshot.PSObject.Properties["missing_runtime_loop_candidate_keys"]) {
+            $missingDoctorRuntimeLoopCandidateKeys = @($doctorBackgroundSnapshot.missing_runtime_loop_candidate_keys | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        Add-CheckFromCondition "doctor background snapshot completeness" $doctorSchemaComplete "doctor background snapshot came from a package that exposes the complete loop-attribution schema" "doctor background snapshot required fallback defaults; missing fields: $($missingDoctorBackgroundFields -join ', '); missing runtime loop candidate keys: $($missingDoctorRuntimeLoopCandidateKeys -join ', ')"
+
         $doctorBackground = Get-JsonPropertyValue -Object $doctorBackgroundSnapshot -Name "background"
         Add-CheckFromCondition "doctor background fields present" ($null -ne $doctorBackground) "doctor background snapshot includes background feature fields" "doctor background snapshot is missing background feature fields"
         if ($null -ne $doctorBackground) {

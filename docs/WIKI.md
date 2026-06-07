@@ -19065,3 +19065,99 @@ the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v910`, `wiki/1085`, `3104 files`,
 `2891 symbols`, `15863 ms`, `doctor idle-loop coverage index`,
 `health_check_retry`, `bridge_readiness_wait`, and `133/133`.
+
+## 2026-06-08 Stale Packaged Doctor Fail-Fast (wiki/1086)
+
+Runtime CPU evidence no longer hides an outdated packaged `musu doctor --json`
+schema behind synthesized fallback values.
+
+- sampler changes:
+  `scripts\windows\measure-musu-idle-cpu.ps1` and
+  `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` now emit:
+  - `doctor_schema_complete`
+  - `background_field_fallback_used`
+  - `runtime_loop_candidate_fallback_used`
+  - `missing_background_fields`
+  - `missing_runtime_loop_candidate_keys`
+  inside `doctor_background_snapshot`.
+- intent:
+  previous samplers filled in bridge/auto-update defaults when an installed
+  packaged MUSU omitted newer doctor fields. That kept evidence JSON parseable,
+  but it could blur the difference between:
+  - a current packaged runtime that genuinely reports the full loop schema
+  - a stale packaged runtime that simply does not know about those fields yet
+- verifier hardening:
+  `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` and
+  `scripts\windows\write-release-go-no-go.ps1` now add
+  `doctor background snapshot completeness` and fail when fallback defaults were
+  required for missing background fields or missing runtime loop candidate keys.
+
+Live proof on the current machine:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 5 -Scenario runtime-started -IncludeNode -IncludeWebView2 -Json`
+- artifact:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-074347.json`
+- extracted result:
+  - `doctor_schema_complete=false`
+  - `background_field_fallback_used=true`
+  - `runtime_loop_candidate_fallback_used=true`
+  - missing background fields included:
+    `runtime_loop_candidates`, `active_runtime_loop_candidate_count`,
+    `active_runtime_loop_candidate_keys`,
+    `bridge_health_poll_initial_ms`, `bridge_health_poll_max_ms`,
+    and the newer auto-update/doctor booleans
+  - missing runtime loop candidate keys included all 9 expected keys:
+    `mdns_discovery`, `clipboard_polling`, `cloud_heartbeat`,
+    `file_sync_watch`, `relay_target_polling`, `autonomous_planner`,
+    `health_check_retry`, `auto_update_supervisor`,
+    `bridge_readiness_wait`
+
+Interpretation:
+
+- the current installed WindowsApps MUSU package is still older than current
+  HEAD with respect to doctor loop-attribution schema
+- CPU evidence now says that explicitly instead of pretending the package
+  reported the full schema
+- this is the right failure mode before any release-grade one-machine or
+  second-PC CPU evidence is accepted
+
+Validation:
+
+- PowerShell parse sanity:
+  - `measure-musu-idle-cpu.ps1`
+  - `measure-musu-runtime-cpu-scenarios.ps1`
+  - `verify-runtime-cpu-scenario-matrix.ps1`
+  - `write-release-go-no-go.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=133`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-074409`
+
+Search terms should include `GOAL v911`, `wiki/1086`,
+`doctor_schema_complete`, `background_field_fallback_used`,
+`runtime_loop_candidate_fallback_used`, and
+`musu-idle-cpu-20260608-074347.json`.
+
+## 2026-06-08 Stale Packaged Doctor Fail-Fast Index (wiki/1087)
+
+MUSU local indexer was refreshed after wiki/1086 and GOAL v911.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `17814 ms`
+
+Indexed context includes the new doctor schema completeness markers, the
+release-verifier fail-fast check, the live stale-package diagnostic artifact
+`musu-idle-cpu-20260608-074347.json`, the green `133/133` verifier sweep, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v912`, `wiki/1087`, `3104 files`,
+`2891 symbols`, `17814 ms`, `stale packaged doctor fail-fast index`,
+`doctor_schema_complete`, and `133/133`.

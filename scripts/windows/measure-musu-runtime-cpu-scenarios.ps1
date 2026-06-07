@@ -405,11 +405,54 @@ function Test-IcmpPing {
 }
 
 function Get-DoctorBackgroundSnapshot {
+    $expectedBackgroundFieldNames = @(
+        "mdns_enabled",
+        "clipboard_sync_enabled",
+        "cloud_registration_enabled",
+        "cloud_heartbeat_interval_sec",
+        "cloud_heartbeat_floor_sec",
+        "relay_payload_poller_enabled",
+        "relay_payload_poller_interval_sec",
+        "relay_payload_poller_interval_floor_sec",
+        "planner_enabled",
+        "planner_interval_sec",
+        "planner_interval_floor_sec",
+        "planner_command_timeout_sec",
+        "planner_command_timeout_floor_sec",
+        "planner_command_timeout_ceiling_sec",
+        "auto_update_supervise_enabled",
+        "auto_update_check_interval_minutes",
+        "auto_update_check_interval_floor_minutes",
+        "auto_update_health_poll_initial_ms",
+        "auto_update_health_poll_max_ms",
+        "bridge_health_poll_initial_ms",
+        "bridge_health_poll_max_ms",
+        "runtime_loop_candidates",
+        "active_runtime_loop_candidate_count",
+        "active_runtime_loop_candidate_keys"
+    )
+    $expectedRuntimeLoopCandidateKeys = @(
+        "mdns_discovery",
+        "clipboard_polling",
+        "cloud_heartbeat",
+        "file_sync_watch",
+        "relay_target_polling",
+        "autonomous_planner",
+        "health_check_retry",
+        "auto_update_supervisor",
+        "bridge_readiness_wait"
+    )
     $doctor = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json") -TimeoutSec $CommandTimeoutSec
     $background = $doctor.background
     $account = $doctor.account
     $bridge = $doctor.bridge
     $dashboard = $doctor.dashboard
+    $rawBackgroundMissingFieldNames = if ($background) {
+        @($expectedBackgroundFieldNames | Where-Object { -not $background.PSObject.Properties[$_] })
+    }
+    else {
+        @($expectedBackgroundFieldNames)
+    }
     $runtimeLoopCandidates = @()
     if ($background -and $background.PSObject.Properties["runtime_loop_candidates"] -and $null -ne $background.runtime_loop_candidates) {
         $runtimeLoopCandidates = @(
@@ -430,6 +473,20 @@ function Get-DoctorBackgroundSnapshot {
             ForEach-Object { [string]$_.key }
     )
     $activeRuntimeLoopCandidateCount = @($activeRuntimeLoopCandidateKeys).Count
+    $runtimeLoopCandidateKeys = @(
+        $runtimeLoopCandidates |
+            ForEach-Object { [string]$_.key } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    $missingRuntimeLoopCandidateKeys = @(
+        $expectedRuntimeLoopCandidateKeys | Where-Object { $_ -notin $runtimeLoopCandidateKeys }
+    )
+    $backgroundFieldFallbackUsed = (@($rawBackgroundMissingFieldNames).Count -gt 0)
+    $runtimeLoopCandidateFallbackUsed = (
+        @($missingRuntimeLoopCandidateKeys).Count -gt 0 -or
+        @($runtimeLoopCandidates).Count -ne @($expectedRuntimeLoopCandidateKeys).Count
+    )
+    $doctorSchemaComplete = (-not $backgroundFieldFallbackUsed -and -not $runtimeLoopCandidateFallbackUsed)
 
     return [pscustomobject]@{
         schema = "musu.runtime_cpu_background_snapshot.v1"
@@ -437,6 +494,12 @@ function Get-DoctorBackgroundSnapshot {
         captured_at = (Get-Date).ToString("o")
         overall = if ($doctor.PSObject.Properties["overall"]) { [string]$doctor.overall } else { "" }
         distribution = if ($doctor.PSObject.Properties["distribution"]) { [string]$doctor.distribution } else { "" }
+        doctor_schema_complete = $doctorSchemaComplete
+        background_field_fallback_used = $backgroundFieldFallbackUsed
+        runtime_loop_candidate_fallback_used = $runtimeLoopCandidateFallbackUsed
+        expected_runtime_loop_candidate_keys = $expectedRuntimeLoopCandidateKeys
+        missing_background_fields = $rawBackgroundMissingFieldNames
+        missing_runtime_loop_candidate_keys = $missingRuntimeLoopCandidateKeys
         account_logged_in = if ($account -and $account.PSObject.Properties["logged_in"]) { [bool]$account.logged_in } else { $false }
         bridge_service_registry_pid = if ($bridge -and $bridge.PSObject.Properties["service_registry_pid"]) { $bridge.service_registry_pid } else { $null }
         bridge_health_http_status = if ($bridge -and $bridge.PSObject.Properties["health_http_status"]) { $bridge.health_http_status } else { $null }

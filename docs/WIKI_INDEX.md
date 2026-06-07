@@ -7704,4 +7704,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `15863 ms`, `doctor idle-loop coverage index`,
   `health_check_retry`, `bridge_readiness_wait`, and `133/133`.
 
+- 2026-06-08 stale packaged doctor fail-fast:
+  wiki/1086 records that runtime CPU samplers now emit
+  `doctor_schema_complete`, `background_field_fallback_used`,
+  `runtime_loop_candidate_fallback_used`, and explicit missing-field/key lists,
+  and that release verifiers now fail when packaged `musu doctor --json`
+  required fallback defaults. It also records the live stale-package diagnostic
+  artifact `musu-idle-cpu-20260608-074347.json`, which proved the currently
+  installed WindowsApps MUSU still lacks the full doctor loop-attribution
+  schema. Regression stayed green at `133/133` in
+  `.local-build\release-evidence-verifier-tests\20260608-074409`. Search terms
+  should include `GOAL v911`, `wiki/1086`, `doctor_schema_complete`,
+  `background_field_fallback_used`, `runtime_loop_candidate_fallback_used`, and
+  `musu-idle-cpu-20260608-074347.json`.
+
+- 2026-06-08 stale packaged doctor fail-fast index:
+  wiki/1087 records the MUSU local index refresh after wiki/1086 and GOAL
+  v911. Search terms should include `GOAL v912`, `wiki/1087`, `3104 files`,
+  `2891 symbols`, `17814 ms`, `stale packaged doctor fail-fast index`,
+  `doctor_schema_complete`, and `133/133`.
+
 **End of WIKI_INDEX.md.**

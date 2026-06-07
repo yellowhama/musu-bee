@@ -270,6 +270,7 @@ function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
         'doctor background snapshot present',
         'doctor background snapshot schema',
         'doctor background snapshot command',
+        'doctor background snapshot completeness',
         'doctor background required fields',
         'doctor background bridge health poll bounds',
         'doctor background runtime loop candidates',
@@ -923,6 +924,7 @@ function Test-RuntimeIdleCpuGoNoGoDoctorSnapshotContract {
         'doctor background planner timeout bounds',
         'doctor background auto-update interval floor',
         'doctor background auto-update health poll bounds',
+        'doctor background snapshot completeness',
         'doctor background bridge health poll bounds',
         'doctor background runtime loop candidates',
         'doctor background active runtime loop candidate keys'
@@ -2553,6 +2555,12 @@ function New-RuntimeIdleCpuEvidence {
             captured_at = $now.AddSeconds(-90).ToString("o")
             overall = "ok"
             distribution = "store-msix"
+            doctor_schema_complete = $true
+            background_field_fallback_used = $false
+            runtime_loop_candidate_fallback_used = $false
+            expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait")
+            missing_background_fields = @()
+            missing_runtime_loop_candidate_keys = @()
             account_logged_in = $true
             bridge_service_registry_pid = 1234
             bridge_health_http_status = 200
@@ -2737,6 +2745,12 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         captured_at = $now.AddSeconds(-30).ToString("o")
         overall = "ok"
         distribution = "store-msix"
+        doctor_schema_complete = $true
+        background_field_fallback_used = $false
+        runtime_loop_candidate_fallback_used = $false
+        expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait")
+        missing_background_fields = @()
+        missing_runtime_loop_candidate_keys = @()
         account_logged_in = $true
         bridge_service_registry_pid = 1234
         bridge_health_http_status = 200
