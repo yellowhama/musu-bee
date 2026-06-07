@@ -8,7 +8,14 @@ export interface ControlAuditEvent {
   actor_email: string | null;
   node: string;
   command: string;
-  result: "accepted" | "rejected" | "bridge_error";
+  result:
+    | "accepted"
+    | "rejected"
+    | "queued"
+    | "claimed"
+    | "claim_empty"
+    | "bridge_error"
+    | "store_error";
   http_status: number;
   bridge_status?: number;
   trace_id: string;

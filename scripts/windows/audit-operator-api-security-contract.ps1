@@ -50,6 +50,7 @@ $processKill = Get-RepoText "musu-bee\src\app\api\processes\kill\route.ts"
 $nativeRpcExec = Get-RepoText "musu-rs\src\bridge\handlers\rpc.rs"
 $roomWorkOrders = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts"
 $roomWorkOrdersTest = Get-RepoText "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts"
+$roomWorkOrderStore = Get-RepoText "musu-bee\src\lib\roomWorkOrderStore.ts"
 $p2pRendezvousStore = Get-RepoText "musu-bee\src\lib\p2pRendezvousStore.ts"
 $p2pRendezvousCreate = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\route.ts"
 $p2pRendezvousRead = Get-RepoText "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\route.ts"
@@ -122,6 +123,11 @@ Add-Check -Scope "source" -Name "room work order requires P2P control auth" `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts" `
     -Message "Room work-order web input requires P2P control auth and writes a command audit event before or after local bridge forwarding."
 
+Add-Check -Scope "source" -Name "room work order outbound pickup inbox is owner-scoped" `
+    -Passed ($roomWorkOrders.Contains("desktop_outbound_pickup") -and $roomWorkOrders.Contains("createRoomWorkOrder") -and $roomWorkOrders.Contains("upsertRoomWorkOrder") -and $roomWorkOrders.Contains("queryRoomWorkOrders") -and $roomWorkOrders.Contains("claimRoomWorkOrders") -and $roomWorkOrders.Contains("musu.room_work_order_claim.v1") -and $roomWorkOrders.Contains("publicRoomWorkOrder") -and $roomWorkOrderStore.Contains("owner_key: string") -and $roomWorkOrderStore.Contains("room_work_order_kv_not_configured") -and $roomWorkOrderStore.Contains("status: `"claimed`"") -and $roomWorkOrderStore.Contains("claimTargetMatches")) `
+    -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts" `
+    -Message "Room work-order API supports owner-scoped durable inbox query and Desktop outbound claim without requiring hosted MUSU.PRO to call user localhost."
+
 Add-Check -Scope "source" -Name "rendezvous sessions are owner-scoped" `
     -Passed ($p2pRendezvousStore.Contains("owner_key: string") -and $p2pRendezvousStore.Contains("isSession(session) && session.owner_key === ownerKey") -and $p2pRendezvousCreate.Contains("p2pControlPrincipal(req).owner_key") -and $p2pRendezvousCreate.Contains("owner_key: ownerKey") -and $p2pRendezvousRead.Contains("getRendezvousSession(id, ownerKey)") -and $p2pRendezvousCandidates.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousApprove.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousClose.Contains("updateRendezvousSession(id, ownerKey") -and $roomRendezvous.Contains("owner_key: ownerKey")) `
     -Path "musu-bee\src\lib\p2pRendezvousStore.ts" `
@@ -146,6 +152,11 @@ Add-Check -Scope "tests" -Name "room work order rejected input audit logging" `
     -Passed ($roomWorkOrders.Contains('reason: "invalid_json"') -and $roomWorkOrders.Contains('reason: "instruction required"') -and $roomWorkOrdersTest.Contains("POST audit-logs invalid JSON after P2P auth without forwarding to bridge") -and $roomWorkOrdersTest.Contains("POST requires a non-empty instruction") -and $roomWorkOrdersTest.Contains("bridge should not be called for invalid JSON") -and $roomWorkOrdersTest.Contains("bridge should not be called for rejected work orders") -and $roomWorkOrdersTest.Contains('assert.equal(audit.result, "rejected")') -and $roomWorkOrdersTest.Contains('assert.equal(audit.reason, "invalid_json")') -and $roomWorkOrdersTest.Contains('assert.equal(audit.reason, "instruction required")') -and $roomWorkOrdersTest.Contains('hasOwnProperty.call(audit, "text")') -and $roomWorkOrdersTest.Contains('hasOwnProperty.call(audit, "instruction")')) `
     -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
     -Message "Route tests prove rejected room work-order inputs after P2P auth are audit-logged without forwarding to the bridge or storing prompt text."
+
+Add-Check -Scope "tests" -Name "room work order outbound pickup regression test" `
+    -Passed ($roomWorkOrdersTest.Contains("POST can queue a MUSU.PRO room work order for Desktop outbound pickup without calling bridge") -and $roomWorkOrdersTest.Contains("GET lists queued owner-scoped room work orders for Desktop pickup") -and $roomWorkOrdersTest.Contains("PATCH claims queued room work orders for the target Desktop") -and $roomWorkOrdersTest.Contains("PATCH does not expose another authorized owner work-order claims") -and $roomWorkOrdersTest.Contains('assert.equal(body.work_order.owner_key, undefined)') -and $roomWorkOrdersTest.Contains('assert.equal(body.work_orders[0]?.owner_key, undefined)')) `
+    -Path "musu-bee\src\app\api\rooms\[roomId]\work-orders\route.test.ts" `
+    -Message "Route tests cover queued outbound pickup, owner-scoped inbox listing, target Desktop claim, and cross-owner claim isolation."
 
 Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
     -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `

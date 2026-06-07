@@ -31,22 +31,27 @@ Release verifier source contract:
 
 `scripts\windows\test-release-evidence-verifiers.ps1`
 
+Server-side work-order inbox/claim implementation:
+
+`docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_OUTBOUND_PICKUP_INBOX_2026_06_07.md`
+
 The source contract now requires the smoke to check local runtime readiness,
 actual bridge URL discovery, MUSU.PRO room presence publish/list,
-owner-scoped work-order POST, no fixed `localhost:3001` assumption, post-run
-idle CPU evidence linkage, and strict failure exit behavior unless
+owner-scoped work-order POST, `desktop_outbound_pickup`, work-order claim
+schema `musu.room_work_order_claim.v1`, no fixed `localhost:3001` assumption,
+post-run idle CPU evidence linkage, and strict failure exit behavior unless
 `-AllowUnverified` is passed for diagnostics.
 
 ## Current Evidence
 
 Diagnostic evidence:
 
-`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-215300-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
 
 Summary:
 
 - `ok=false`
-- `fail_count=10`
+- `fail_count=12`
 - `base_url=https://musu.pro`
 - packaged alias: `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
 - `musu up --json` passed
@@ -57,6 +62,7 @@ Summary:
 - P2P control token present: `false`
 - presence publish/list both returned `not_logged_in`
 - work-order POST was skipped because there was no P2P control token
+- work-order claim was skipped because there was no P2P control token
 - post-run idle CPU evidence was not supplied because no remote pickup ran
 
 This is a valid diagnostic failure, not a release pass.
@@ -64,13 +70,14 @@ This is a valid diagnostic failure, not a release pass.
 ## API Boundary Finding
 
 The existing room work-order API at
-`musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts` is useful as a
-control-plane boundary, but it is not yet the hosted MUSU.PRO product path.
+`musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts` is now a usable
+control-plane boundary for queued work orders, but it is not yet the full local
+Desktop execution path.
 
-The route currently calls `getBridgeUrl()` server-side and forwards to
-`/api/tasks/delegate`. That can work when the web app process can reach the
-local bridge, but hosted `https://musu.pro` cannot directly call a user's
-`127.0.0.1` bridge. The release path needs a Desktop outbound pickup model:
+The old bridge-forward path still calls `getBridgeUrl()` server-side and
+forwards to `/api/tasks/delegate` for local/dev scenarios. Hosted
+`https://musu.pro` cannot directly call a user's `127.0.0.1` bridge, so the
+new hosted-safe path is explicit `delivery_mode: "desktop_outbound_pickup"`:
 
 - MUSU.PRO stores an owner-scoped work-order envelope in a room/device inbox;
 - MUSU Desktop publishes presence and claims/pulls assigned work outbound;
@@ -117,6 +124,10 @@ Next after presence.
 - return `work_order_id`, `trace_id`, `owner_scoped=true`, room, project,
   target, and permission envelope.
 
+Status: server-side inbox and claim API are implemented. Remaining work is
+runtime login/credential, live POST/claim with real token, and local Desktop
+claim client.
+
 Exit evidence:
 
 - smoke passes `P2P control token available`;
@@ -124,6 +135,8 @@ Exit evidence:
 - smoke passes `work-order id echoed`;
 - smoke passes `work-order owner scoped`;
 - smoke passes `work-order origin`.
+- smoke passes `work-order queued for outbound pickup`;
+- smoke passes `MUSU.PRO work-order claim`.
 
 ### Phase 4 - Desktop Outbound Pickup and Local Execution
 

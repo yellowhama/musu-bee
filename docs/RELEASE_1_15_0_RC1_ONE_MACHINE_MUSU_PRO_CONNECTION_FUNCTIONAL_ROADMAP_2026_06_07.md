@@ -65,15 +65,19 @@ Follow-up report:
 
 `docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
 
+Server-side inbox/claim report:
+
+`docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_OUTBOUND_PICKUP_INBOX_2026_06_07.md`
+
 New diagnostic evidence:
 
-`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-215300-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
 
 Current result:
 
 - schema: `musu.one_machine_musu_pro_work_order.v1`
 - `ok=false`
-- `fail_count=10`
+- `fail_count=12`
 - `musu up --json` passed;
 - `musu doctor --json` was not failed;
 - actual local bridge URL was discovered as `http://127.0.0.1:9741`;
@@ -81,16 +85,19 @@ Current result:
 - packaged runtime account login is missing;
 - room presence publish/list fail with `not_logged_in`;
 - P2P control token is missing;
-- MUSU.PRO work-order POST is skipped without that token;
+- MUSU.PRO work-order POST and claim are skipped without that token;
 - post-run idle CPU evidence is missing because no remote work-order pickup
   has executed yet.
 
 Source audit finding: the existing
-`musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts` boundary forwards
-server-side to `getBridgeUrl()/api/tasks/delegate`. That is not a hosted
-`https://musu.pro` to user-localhost route. The next implementation must add a
-Desktop outbound pickup/inbox/claim path so the local program retrieves
-assigned work from MUSU.PRO and then reports status/result/evidence back.
+`musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts` boundary used to
+forward server-side to `getBridgeUrl()/api/tasks/delegate` only. That is not a
+hosted `https://musu.pro` to user-localhost route. The route now also supports
+explicit `delivery_mode: "desktop_outbound_pickup"`, durable owner-scoped
+inbox listing, and `musu.room_work_order_claim.v1` claim. The remaining
+implementation is the packaged Desktop claimant that retrieves assigned work
+from MUSU.PRO, passes it through local policy/bridge execution, and reports
+status/result/evidence back.
 
 ## Product Boundary
 
@@ -193,9 +200,15 @@ web server.
 - The test order should execute a harmless local diagnostic action first, not a
   broad shell command.
 
+Status: the MUSU.PRO server side now has a durable owner-scoped inbox and claim
+API. It still needs a packaged Desktop outbound claim client and local bridge
+execution handoff before this phase can be called complete.
+
 Evidence to add:
 
 - MUSU.PRO work-order id and trace id.
+- MUSU.PRO queued work-order record with `delivery_mode=desktop_outbound_pickup`.
+- `musu.room_work_order_claim.v1` claim response from the local Desktop node.
 - local Desktop pickup log/audit event.
 - local execution result.
 - MUSU.PRO result/status query returning the same trace id.

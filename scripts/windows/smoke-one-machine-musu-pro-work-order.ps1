@@ -298,6 +298,7 @@ $presencePublish = $null
 $presenceListCapture = $null
 $presenceList = $null
 $workOrderPost = $null
+$workOrderClaim = $null
 $postRunIdleCpu = $null
 $bridgeUrl = ""
 $accountLoggedIn = $false
@@ -397,6 +398,12 @@ try {
             company_id = $CompanyId
             project_id = $ProjectId
             work_order_id = $WorkOrderId
+            delivery_mode = "desktop_outbound_pickup"
+            permission_envelope = @{
+                allowed_actions = @("diagnostic_reply")
+                shell = $false
+                network = $false
+            }
         }
         $workOrderPost = Invoke-HttpJson -Uri $uri -Method "Post" -Headers $headers -Body $body
         Add-Check "MUSU.PRO work-order POST" ([bool]$workOrderPost.ok) "MUSU.PRO accepted the work order POST" "MUSU.PRO work-order POST did not return 2xx"
@@ -404,19 +411,43 @@ try {
         $responseWorkOrderId = if ($workOrderPost.json) { [string](Get-PropertyValue -Object $workOrderPost.json -Name "work_order_id") } else { "" }
         $responseOrigin = if ($workOrderPost.json) { [string](Get-PropertyValue -Object $workOrderPost.json -Name "origin") } else { "" }
         $ownerScoped = if ($workOrderPost.json) { [bool](Get-PropertyValue -Object $workOrderPost.json -Name "owner_scoped") } else { $false }
-        $bridgeResponse = if ($workOrderPost.json) { Get-PropertyValue -Object $workOrderPost.json -Name "bridge" } else { $null }
-        $bridgeTaskId = if ($bridgeResponse) { [string](Get-PropertyValue -Object $bridgeResponse -Name "task_id") } else { "" }
-        $bridgeStatus = if ($bridgeResponse) { [string](Get-PropertyValue -Object $bridgeResponse -Name "status") } else { "" }
+        $responseDeliveryMode = if ($workOrderPost.json) { [string](Get-PropertyValue -Object $workOrderPost.json -Name "delivery_mode") } else { "" }
+        $responseRequiresPickup = if ($workOrderPost.json) { [bool](Get-PropertyValue -Object $workOrderPost.json -Name "requires_desktop_outbound_pickup") } else { $false }
         Add-Check "work-order id echoed" ($responseWorkOrderId -eq $WorkOrderId) "work-order id was echoed" "work-order id was not echoed"
         Add-Check "work-order owner scoped" $ownerScoped "work-order response is owner-scoped" "work-order response did not prove owner scope"
         Add-Check "work-order origin" ($responseOrigin -eq "musu.pro") "work-order origin is musu.pro" "work-order origin is not musu.pro"
-        Add-Check "local bridge task response" (-not [string]::IsNullOrWhiteSpace($bridgeTaskId) -or $bridgeStatus -in @("queued", "done", "accepted")) "work order returned local bridge task/status" "work order did not return a local bridge task/status"
+        Add-Check "work-order queued for outbound pickup" ($responseDeliveryMode -eq "desktop_outbound_pickup" -and $responseRequiresPickup) "work order was queued for Desktop outbound pickup" "work order was not queued for Desktop outbound pickup"
+
+        if ([bool]$workOrderPost.ok) {
+            $claimBody = @{
+                schema = "musu.room_work_order_claim.v1"
+                target_node_id = $TargetNode
+                claimant_node_id = $TargetNode
+                work_order_id = $WorkOrderId
+                limit = 1
+            }
+            $workOrderClaim = Invoke-HttpJson -Uri $uri -Method "Patch" -Headers $headers -Body $claimBody
+            $claimCount = 0
+            if ($workOrderClaim.json) {
+                $claimCountValue = Get-PropertyValue -Object $workOrderClaim.json -Name "count"
+                if ($null -ne $claimCountValue) {
+                    $claimCount = [int]$claimCountValue
+                }
+            }
+            Add-Check "MUSU.PRO work-order claim" ([bool]$workOrderClaim.ok -and $claimCount -ge 1) "local Desktop claimant can claim the queued work order" "local Desktop claimant could not claim the queued work order"
+        }
+        else {
+            Add-Check "MUSU.PRO work-order claim" $false "local Desktop claimant can claim the queued work order" "skipped because work-order POST did not succeed"
+        }
+        Add-Check "local bridge task response" $false "claimed work order executed through local bridge" "Desktop outbound pickup to local bridge execution is not implemented in this smoke yet"
     }
     else {
         Add-Check "MUSU.PRO work-order POST" $false "MUSU.PRO accepted the work order POST" "skipped because no P2P control token was available"
         Add-Check "work-order id echoed" $false "work-order id was echoed" "skipped because no P2P control token was available"
         Add-Check "work-order owner scoped" $false "work-order response is owner-scoped" "skipped because no P2P control token was available"
         Add-Check "work-order origin" $false "work-order origin is musu.pro" "skipped because no P2P control token was available"
+        Add-Check "work-order queued for outbound pickup" $false "work order was queued for Desktop outbound pickup" "skipped because no P2P control token was available"
+        Add-Check "MUSU.PRO work-order claim" $false "local Desktop claimant can claim the queued work order" "skipped because no P2P control token was available"
         Add-Check "local bridge task response" $false "work order returned local bridge task/status" "skipped because no P2P control token was available"
     }
 
@@ -444,6 +475,9 @@ if (-not [bool]$tokenResolution.present) {
 }
 if ($null -eq $workOrderPost -or -not [bool]$workOrderPost.ok) {
     $nextSteps.Add("Implement or configure the one-machine remote work-order pickup path so MUSU.PRO can create an order and the local Desktop can pick it up outbound.") | Out-Null
+}
+elseif ($null -eq $workOrderClaim -or -not [bool]$workOrderClaim.ok) {
+    $nextSteps.Add("Wire the packaged Desktop outbound pickup claimant so queued MUSU.PRO work orders are claimed by the local runtime.") | Out-Null
 }
 if ([string]::IsNullOrWhiteSpace($PostRunIdleCpuEvidencePath)) {
     $nextSteps.Add("After a successful remote work-order pickup, capture post-run 60s idle CPU evidence and pass -PostRunIdleCpuEvidencePath.") | Out-Null
@@ -496,6 +530,16 @@ $evidence = [pscustomobject]@{
             error = $workOrderPost.error
         }
     } else { $null }
+    work_order_claim = if ($workOrderClaim) {
+        [pscustomobject]@{
+            uri = $workOrderClaim.uri
+            status_code = $workOrderClaim.status_code
+            ok = $workOrderClaim.ok
+            json = $workOrderClaim.json
+            raw = $workOrderClaim.raw
+            error = $workOrderClaim.error
+        }
+    } else { $null }
     post_run_idle_cpu_evidence_path = $PostRunIdleCpuEvidencePath
     post_run_idle_cpu_evidence = $postRunIdleCpu
     checks = $checks.ToArray()
@@ -518,10 +562,6 @@ else {
     "bridge_url: $bridgeUrl"
     "checks:"
     $checks | Format-Table name, status, message -Wrap
-}
-
-if (-not $ok -and -not $AllowUnverified) {
-    exit 1
 }
 
 if (-not $ok -and -not $AllowUnverified) {

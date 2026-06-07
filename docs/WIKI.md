@@ -16807,3 +16807,58 @@ Search terms should include `GOAL v849`, `wiki/1024`, `3093 files`,
 `2808 symbols`, `15589 ms`, `one-machine MUSU.PRO work-order smoke gate`,
 `20260607-213245-HUGH_SECOND`, `not_logged_in`, `P2P control token`,
 `Desktop outbound pickup`, and `127.0.0.1:9741`.
+
+## 2026-06-07 Room Work-Order Outbound Pickup Inbox (wiki/1025)
+
+`docs\RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_OUTBOUND_PICKUP_INBOX_2026_06_07.md`
+records the first server-side implementation step for hosted-safe MUSU.PRO work
+orders. The room work-order route now supports explicit
+`delivery_mode: "desktop_outbound_pickup"`, persists owner-scoped
+`musu.room_work_order.v1` queued records through
+`musu-bee\src\lib\roomWorkOrderStore.ts`, lists same-owner public records via
+`GET /api/rooms/[roomId]/work-orders`, and claims queued target-node work via
+`PATCH /api/rooms/[roomId]/work-orders` with schema
+`musu.room_work_order_claim.v1`.
+
+This preserves the existing local/dev bridge-forward path, but hosted
+`https://musu.pro` now has the durable inbox/claim boundary needed before a
+packaged Desktop outbound claimant can pull work without MUSU.PRO calling the
+user's `127.0.0.1` bridge directly. Security behavior is owner-scoped: P2P
+control auth is required for POST/GET/PATCH, public responses strip `owner_key`,
+and cross-owner claim attempts return zero records.
+
+Latest diagnostic smoke evidence is
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-215300-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+with `ok=false`/`fail_count=12`: local Desktop starts and bridge discovery is
+`127.0.0.1:9741`, but packaged login and P2P control token are still missing,
+so live work-order POST/claim, local bridge execution, result return, and
+post-run CPU evidence remain open.
+
+Validation passed `npm run test:routes` `34/34`, `npx tsc --noEmit --pretty
+false`, one-machine smoke diagnostic No-Go with expected login/token blockers,
+operator API security audit `ok=true`/`fail_count=0`, release evidence verifier
+`ok=true`/`failed_case_count=0`/`case_count=106`, and `git diff --check`.
+Search terms should include `GOAL v850`, `wiki/1025`,
+`room work-order outbound pickup inbox`, `desktop_outbound_pickup`,
+`musu.room_work_order_claim.v1`, `roomWorkOrderStore`,
+`20260607-215300-HUGH_SECOND`, `P2P control token`, and `127.0.0.1:9741`.
+
+## 2026-06-07 Room Work-Order Outbound Pickup Inbox Index Refresh (wiki/1026)
+
+MUSU local indexer was refreshed after wiki/1025 and GOAL v850.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3098 files`
+- `2843 symbols`
+- `11321 ms`
+
+Indexed context includes `roomWorkOrderStore`, the room work-order POST/GET/PATCH
+route and tests, one-machine smoke update, operator API security contract
+update, canonical outbound pickup inbox report, latest diagnostic smoke evidence
+`20260607-215300-HUGH_SECOND`, WIKI/WIKI_INDEX/GOAL, and CoS memory.
+
+Search terms should include `GOAL v851`, `wiki/1026`, `3098 files`,
+`2843 symbols`, `11321 ms`, `desktop_outbound_pickup`,
+`musu.room_work_order_claim.v1`, `roomWorkOrderStore`, and
+`20260607-215300-HUGH_SECOND`.

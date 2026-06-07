@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -7,9 +8,13 @@ import { join } from "node:path";
 import { NextRequest } from "next/server";
 
 type Module = {
+  GET: (req: NextRequest, context: { params: Promise<{ roomId: string }> }) => Promise<Response>;
+  PATCH: (req: NextRequest, context: { params: Promise<{ roomId: string }> }) => Promise<Response>;
   POST: (req: NextRequest, context: { params: Promise<{ roomId: string }> }) => Promise<Response>;
 };
 
+let GET: Module["GET"];
+let PATCH: Module["PATCH"];
 let POST: Module["POST"];
 let testHome = "";
 
@@ -21,6 +26,7 @@ before(async () => {
   process.env.MUSU_BRIDGE_URL = "http://127.0.0.1:2817";
   process.env.MUSU_BRIDGE_TOKEN = "bridge-token";
   process.env.MUSU_P2P_CONTROL_TOKEN = "room-control-token";
+  process.env.MUSU_ROOM_WORK_ORDER_STORE_PATH = join(testHome, "room-work-orders.json");
 
   const require = createRequire(import.meta.url);
   const nodeModule = require("module") as typeof import("node:module") & {
@@ -32,7 +38,7 @@ before(async () => {
     return originalLoad.call(this, request, parent, isMain);
   };
   try {
-    ({ POST } = (await import("./route")) as Module);
+    ({ GET, PATCH, POST } = (await import("./route")) as Module);
   } finally {
     nodeModule._load = originalLoad;
   }
@@ -59,6 +65,26 @@ function rawReq(body: string, token: string | null = "room-control-token") {
     method: "POST",
     headers,
     body,
+  });
+}
+
+function getReq(url: string, token: string | null = "room-control-token") {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  return new NextRequest(url, { method: "GET", headers });
+}
+
+function patchReq(body: unknown, token: string | null = "room-control-token") {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  return new NextRequest("https://musu.pro/api/rooms/release-room/work-orders", {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body),
   });
 }
 
@@ -308,6 +334,200 @@ test("POST generates a bounded work order id when omitted", async () => {
 
       const body = (await res.json()) as { work_order_id: string };
       assert.equal(body.work_order_id, forwarded.work_order_id);
+    },
+  );
+});
+
+test("POST can queue a MUSU.PRO room work order for Desktop outbound pickup without calling bridge", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("hosted MUSU.PRO must not call a local bridge for outbound pickup orders");
+    },
+    async () => {
+      const res = await POST(
+        req({
+          instruction: "Reply with one-machine work-order smoke token",
+          sender_id: "operator-1",
+          target_node: "HUGH_SECOND",
+          adapter_type: "claude",
+          workspace_uri: "file:///F:/workspace/musu-bee",
+          company_id: "company-1",
+          project_id: "project-rc1",
+          source_agent_id: "planner",
+          work_order_id: "wo-outbound-1",
+          delivery_mode: "desktop_outbound_pickup",
+          permission_envelope: {
+            allowed_actions: ["diagnostic_reply"],
+            shell: false,
+            network: false,
+          },
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+
+      assert.equal(res.status, 202);
+      const body = (await res.json()) as {
+        ok: boolean;
+        room_id: string;
+        work_order_id: string;
+        origin: string;
+        owner_scoped: boolean;
+        delivery_mode: string;
+        requires_desktop_outbound_pickup: boolean;
+        bridge: null;
+        work_order: {
+          owner_key?: string;
+          work_order_id: string;
+          status: string;
+          target_node: string;
+          instruction: string;
+          delivery_mode: string;
+          permission_envelope: { allowed_actions: string[]; shell: boolean; network: boolean };
+        };
+      };
+      assert.equal(body.ok, true);
+      assert.equal(body.room_id, "release-room");
+      assert.equal(body.work_order_id, "wo-outbound-1");
+      assert.equal(body.origin, "musu.pro");
+      assert.equal(body.owner_scoped, true);
+      assert.equal(body.delivery_mode, "desktop_outbound_pickup");
+      assert.equal(body.requires_desktop_outbound_pickup, true);
+      assert.equal(body.bridge, null);
+      assert.equal(body.work_order.owner_key, undefined);
+      assert.equal(body.work_order.work_order_id, "wo-outbound-1");
+      assert.equal(body.work_order.status, "queued");
+      assert.equal(body.work_order.target_node, "HUGH_SECOND");
+      assert.equal(body.work_order.instruction, "Reply with one-machine work-order smoke token");
+      assert.equal(body.work_order.delivery_mode, "desktop_outbound_pickup");
+      assert.deepEqual(body.work_order.permission_envelope.allowed_actions, ["diagnostic_reply"]);
+      assert.equal(body.work_order.permission_envelope.shell, false);
+      assert.equal(body.work_order.permission_envelope.network, false);
+
+      const auditEvents = await readAuditEvents();
+      const audit = auditEvents.at(-1);
+      assert.ok(audit);
+      assert.equal(audit.event, "rooms.work_orders");
+      assert.equal(audit.command, "room.work_order");
+      assert.equal(audit.result, "queued");
+      assert.equal(audit.http_status, 202);
+      assert.equal(audit.room_id, "release-room");
+      assert.equal(audit.work_order_id, "wo-outbound-1");
+      assert.equal(audit.target_node, "HUGH_SECOND");
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "text"), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(audit, "instruction"), false);
+    },
+  );
+});
+
+test("GET lists queued owner-scoped room work orders for Desktop pickup", async () => {
+  const res = await GET(
+    getReq("https://musu.pro/api/rooms/release-room/work-orders?status=queued&target_node=HUGH_SECOND"),
+    { params: Promise.resolve({ roomId: "release-room" }) },
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as {
+    schema: string;
+    ok: boolean;
+    room_id: string;
+    owner_scoped: boolean;
+    count: number;
+    work_orders: Array<{ owner_key?: string; work_order_id: string; status: string }>;
+  };
+  assert.equal(body.schema, "musu.room_work_order_inbox.v1");
+  assert.equal(body.ok, true);
+  assert.equal(body.room_id, "release-room");
+  assert.equal(body.owner_scoped, true);
+  assert.ok(body.count >= 1);
+  assert.equal(body.work_orders.some((order) => order.work_order_id === "wo-outbound-1"), true);
+  assert.equal(body.work_orders.find((order) => order.work_order_id === "wo-outbound-1")?.owner_key, undefined);
+});
+
+test("PATCH claims queued room work orders for the target Desktop", async () => {
+  const res = await PATCH(
+    patchReq({
+      schema: "musu.room_work_order_claim.v1",
+      target_node_id: "HUGH_SECOND",
+      claimant_node_id: "hugh_second",
+      work_order_id: "wo-outbound-1",
+      limit: 1,
+    }),
+    { params: Promise.resolve({ roomId: "release-room" }) },
+  );
+  assert.equal(res.status, 202);
+  const body = (await res.json()) as {
+    schema: string;
+    ok: boolean;
+    owner_scoped: boolean;
+    claimed: boolean;
+    count: number;
+    target_node: string;
+    work_orders: Array<{
+      owner_key?: string;
+      work_order_id: string;
+      status: string;
+      claimed_by: string;
+      claimed_at: string;
+    }>;
+  };
+  assert.equal(body.schema, "musu.room_work_order_claim.v1");
+  assert.equal(body.ok, true);
+  assert.equal(body.owner_scoped, true);
+  assert.equal(body.claimed, true);
+  assert.equal(body.count, 1);
+  assert.equal(body.target_node, "HUGH_SECOND");
+  assert.equal(body.work_orders[0]?.owner_key, undefined);
+  assert.equal(body.work_orders[0]?.work_order_id, "wo-outbound-1");
+  assert.equal(body.work_orders[0]?.status, "claimed");
+  assert.equal(body.work_orders[0]?.claimed_by, "hugh_second");
+  assert.equal(typeof body.work_orders[0]?.claimed_at, "string");
+});
+
+test("PATCH does not expose another authorized owner work-order claims", async () => {
+  await withFetchMock(
+    async () => {
+      throw new Error("hosted MUSU.PRO must not call a local bridge for outbound pickup orders");
+    },
+    async () => {
+      const queued = await POST(
+        req({
+          instruction: "Owner-scoped queued order",
+          target_node: "HUGH_SECOND",
+          work_order_id: "wo-owner-scope-1",
+          delivery_mode: "desktop_outbound_pickup",
+        }),
+        { params: Promise.resolve({ roomId: "release-room" }) },
+      );
+      assert.equal(queued.status, 202);
+
+      const previous = process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S;
+      process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = [
+        "room-control-token",
+        "other-room-token",
+      ].map((token) => createHash("sha256").update(token).digest("hex")).join(",");
+      try {
+        const res = await PATCH(
+          patchReq({
+            schema: "musu.room_work_order_claim.v1",
+            target_node_id: "HUGH_SECOND",
+            claimant_node_id: "other-owner-node",
+            work_order_id: "wo-owner-scope-1",
+            limit: 10,
+          }, "other-room-token"),
+          { params: Promise.resolve({ roomId: "release-room" }) },
+        );
+        assert.equal(res.status, 202);
+        const body = (await res.json()) as { ok: boolean; claimed: boolean; count: number; work_orders: unknown[] };
+        assert.equal(body.ok, true);
+        assert.equal(body.claimed, false);
+        assert.equal(body.count, 0);
+        assert.deepEqual(body.work_orders, []);
+      } finally {
+        if (previous === undefined) {
+          delete process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S;
+        } else {
+          process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = previous;
+        }
+      }
     },
   );
 });

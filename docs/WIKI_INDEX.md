@@ -7131,4 +7131,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-213245-HUGH_SECOND`, `not_logged_in`, `P2P control token`,
   `Desktop outbound pickup`, and `127.0.0.1:9741`.
 
+- 2026-06-07 room work-order outbound pickup inbox:
+  `RELEASE_1_15_0_RC1_ROOM_WORK_ORDER_OUTBOUND_PICKUP_INBOX_2026_06_07.md`
+  (wiki/1025) records the server-side durable owner-scoped MUSU.PRO
+  work-order inbox and target Desktop claim path. Search terms should include
+  `GOAL v850`, `wiki/1025`, `desktop_outbound_pickup`,
+  `musu.room_work_order_claim.v1`, `roomWorkOrderStore`,
+  `20260607-215300-HUGH_SECOND`, `P2P control token`, and `127.0.0.1:9741`.
+
+- 2026-06-07 room work-order outbound pickup inbox index refresh:
+  wiki/1026 records the MUSU local index refresh after wiki/1025 and GOAL
+  v850. Search terms should include `GOAL v851`, `wiki/1026`, `3098 files`,
+  `2843 symbols`, `11321 ms`, `desktop_outbound_pickup`,
+  `musu.room_work_order_claim.v1`, `roomWorkOrderStore`, and
+  `20260607-215300-HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**
