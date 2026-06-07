@@ -10045,3 +10045,43 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2891 files`, `2790 symbols`, `15617 ms`
 - wiki: `wiki/954`
+
+## 2026-06-07 Bridge-Only Idle CPU Attribution
+
+Bridge-only CPU attribution was captured after closing the packaged desktop
+shell.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105020-HUGH_SECOND.bridge-only.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample duration `60.05s`
+- bridge `http://127.0.0.1:14361`, PID `34860`
+- process roles: MUSU `1`, Node `0`, WebView2 `0`
+- process subroles: bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- hot processes `0`
+- max one-core CPU `0`
+- total working set `18.98MB`
+
+Release meaning:
+
+- bridge/runtime alone is not the current idle CPU source on `HUGH_SECOND`
+- public release remains No-Go until second-PC CPU/matrix/route, hosted
+  MUSU.PRO P2P/relay, support mailbox, and Store evidence are captured
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_BRIDGE_ONLY_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/955)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2895 files`, `2790 symbols`, `17851 ms`
+- wiki: `wiki/956`

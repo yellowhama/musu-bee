@@ -1378,3 +1378,19 @@ Boundary implications:
 - MUSU.PRO must not become the default runtime or the default payload path;
 - this one-machine CPU pass does not close second-PC evidence, hosted P2P
   route/relay proof, support mailbox proof, or Store proof.
+
+## 2026-06-07 Bridge-Only CPU Boundary
+
+Bridge-only CPU evidence `20260607-105020-HUGH_SECOND.bridge-only` proves the
+packaged local bridge can run without desktop shell, Node helpers, WebView2
+helpers, or a localhost dashboard.
+
+Boundary implications:
+
+- the local bridge is part of the MUSU Desktop executor boundary;
+- the bridge can stay alive as a local control surface without requiring
+  `localhost:3001`;
+- MUSU.PRO remains remote input, room, rendezvous, path selection, relay
+  fallback, and evidence/control plane;
+- bridge-only CPU proof does not prove hosted P2P route success or relay
+  payload transport.

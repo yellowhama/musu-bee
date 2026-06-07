@@ -833,3 +833,28 @@ Stabilization interpretation:
   five-state runtime matrix evidence;
 - hosted MUSU.PRO P2P/relay proof remains a control-plane/transport proof
   problem, not a localhost dashboard problem.
+
+## 2026-06-07 Bridge-Only Idle CPU Attribution
+
+The packaged desktop shell was closed and the bridge was sampled alone for 60s.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105020-HUGH_SECOND.bridge-only.evidence.json`
+- source commit `eab3dc2ff2fdde503f56d23c887db333f929455d`
+- `ok=true`, `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- process roles MUSU `1`, Node `0`, WebView2 `0`
+- process subroles bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- bridge runtime max one-core CPU `0`
+- hot process count `0`
+- total working set `18.98MB`
+
+Stabilization interpretation:
+
+- the bridge readiness/health path is quiet in isolation;
+- current single-machine CPU suspicion should focus on UI/WebView2,
+  runtime-started after a clean evidence commit, post-route behavior, and
+  second-machine evidence;
+- this does not replace the two-machine idle CPU release gate.

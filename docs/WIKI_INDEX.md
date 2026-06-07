@@ -6484,4 +6484,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-07 bridge-only idle CPU attribution:
+  `RELEASE_1_15_0_RC1_BRIDGE_ONLY_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/955) records a clean 60s packaged bridge-only CPU sample with desktop
+  shell, Node helpers, and WebView2 helpers absent. Search terms should include
+  `GOAL v780`, `wiki/955`, `20260607-105020-HUGH_SECOND.bridge-only`,
+  `bridge_runtime 1`, `desktop_shell 0`, `WebView2 0`, `Node 0`,
+  `working set 18.98MB`, and `bridge CPU 0`.
+
+- 2026-06-07 bridge-only idle CPU attribution index refresh:
+  wiki/956 records the MUSU local index refresh after wiki/955 and GOAL v780.
+  Search terms should include `GOAL v781`, `wiki/956`, `2895 files`,
+  `2790 symbols`, `17851 ms`,
+  `bridge-only idle CPU attribution index refresh`,
+  `20260607-105020-HUGH_SECOND.bridge-only`, `bridge_runtime 1`,
+  `desktop_shell 0`, and `bridge CPU 0`.
+
 **End of WIKI_INDEX.md.**

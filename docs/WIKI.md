@@ -14541,3 +14541,62 @@ Search terms should include `GOAL v779`, `wiki/954`,
 `current-head desktop-open CPU recheck index refresh`, `2891 files`,
 `2790 symbols`, `15617 ms`, `20260607-102745-HUGH_SECOND.desktop-open`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Bridge-Only Idle CPU Attribution (wiki/955)
+
+Bridge-only CPU attribution was captured after closing the packaged desktop
+shell and keeping the WindowsApps bridge runtime alive.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105020-HUGH_SECOND.bridge-only.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- sample duration `60.05s`
+- process count before/after `1/1`
+- process roles: MUSU `1`, Node `0`, WebView2 `0`, other `0`
+- process subroles: bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- hot processes `0`
+- resource budget violations `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0`
+- total working set `18.98MB`
+
+Assessment: the packaged bridge runtime is quiet in isolation, so the current
+busy-loop investigation should not treat the bridge readiness/health loop as
+the active CPU source on this machine. The remaining attribution work is
+runtime-started after this evidence commit, desktop-open/WebView2 comparison,
+post-route behavior, and second-PC evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_BRIDGE_ONLY_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+
+Search terms should include `GOAL v780`, `wiki/955`,
+`bridge-only idle CPU attribution`, `20260607-105020-HUGH_SECOND.bridge-only`,
+`bridge_runtime 1`, `desktop_shell 0`, `WebView2 0`, `Node 0`,
+`working set 18.98MB`, and `bridge CPU 0`.
+
+## 2026-06-07 Bridge-Only Idle CPU Attribution Index Refresh (wiki/956)
+
+MUSU local indexer was refreshed after wiki/955 and GOAL v780.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2895 files`
+- `2790 symbols`
+- `17851 ms`
+
+Indexed context includes the `20260607-105020-HUGH_SECOND.bridge-only`
+evidence JSON, bridge-only idle CPU attribution report, BETA checklist,
+runtime stabilization plan, network boundary spec, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v781`, `wiki/956`,
+`bridge-only idle CPU attribution index refresh`, `2895 files`,
+`2790 symbols`, `17851 ms`, `20260607-105020-HUGH_SECOND.bridge-only`,
+`bridge_runtime 1`, `desktop_shell 0`, and `bridge CPU 0`.
