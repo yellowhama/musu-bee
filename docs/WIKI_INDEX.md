@@ -6709,4 +6709,34 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `current-head local evidence index refresh after relay candidate protocol`,
   `20260607-134308-HUGH_SECOND`, and `20260607-134335-HUGH_SECOND`.
 
+- 2026-06-07 agent control SaaS research current primary-source supplement:
+  `RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md` and
+  `AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md` (wiki/981) now include
+  Claude Code on the web, OpenAI Codex Local/Cloud/Remote Control policy
+  implications, OpenAI local shell, OpenHands, Twingate, and ZeroTier. Search
+  terms should include `GOAL v806`, `wiki/981`,
+  `agent control SaaS research current primary-source supplement`,
+  `Codex Local`, `Codex Cloud`, `Remote Control`, `OpenHands`, `Twingate`,
+  `ZeroTier`, and `execution-locus banner`.
+
+- 2026-06-07 current-head CPU matrix after agent control research:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_AGENT_CONTROL_RESEARCH_2026_06_07.md`
+  (wiki/982) records clean HUGH_SECOND packaged runtime CPU matrix evidence
+  from commit `13dcd467`, with verifier `ok=true`, `fail_count=0`,
+  `git_dirty=false`, hot process count `0`, MUSU `0`, Node `0`, owned WebView2
+  max `0.13`, and a failed allowed `HUGH-MAIN` route probe timeout to
+  `http://192.168.1.192:8949/api/tasks/delegate`. Search terms should include
+  `GOAL v807`, `wiki/982`, `current-head CPU matrix after agent control
+  research`, `20260607-141207-HUGH_SECOND`, `13dcd467`, `HUGH-MAIN timeout`,
+  `WebView2 max 0.13`, and `MUSU CPU 0`.
+
+- 2026-06-07 current-head CPU matrix agent control research index refresh:
+  wiki/983 records the MUSU local index refresh after wiki/981, wiki/982, and
+  GOAL v807. Search terms should include `GOAL v808`, `wiki/983`,
+  `2963 files`, `2790 symbols`, `39771 ms`,
+  `current-head CPU matrix agent control research index refresh`,
+  `20260607-141207-HUGH_SECOND`,
+  `agent control SaaS primary-source supplement`, and
+  `execution-locus banner`.
+
 **End of WIKI_INDEX.md.**

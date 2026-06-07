@@ -112,6 +112,27 @@ multi-device route proof. Its 60s CPU sample stayed healthy: hot process count
 `0`, MUSU `0`, Node `0`, WebView2 `0.13`, owned process count `8`, WebView2
 helper count `6`, and working set `364.24MB`.
 
+Current-head CPU matrix after the agent-control SaaS research supplement:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_AGENT_CONTROL_RESEARCH_2026_06_07.md`
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- post-route target verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+
+This clean matrix was captured from commit
+`13dcd4677fde12daa6454b4064ca14da55b3a3ae` with `git_dirty=false` and
+`musu_exe_release_identity=true`. It covers `startup-open`,
+`runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`; all five
+scenarios have hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2
+helper count `6`, and working set `370.07-370.13MB`. The highest owned WebView2
+one-core CPU value is `0.13`. The HUGH-MAIN route probe still timed out at
+`http://192.168.1.192:8949/api/tasks/delegate`, so this is valid failed
+target-route CPU diagnostic evidence, not successful multi-device route proof.
+
 Current post-crash-recovery-package reinstall evidence on `HUGH_SECOND`:
 
 - HEAD `29dc84db1d8018fd8f8f7bf98588cb6bca0700a2` was rebuilt and reinstalled

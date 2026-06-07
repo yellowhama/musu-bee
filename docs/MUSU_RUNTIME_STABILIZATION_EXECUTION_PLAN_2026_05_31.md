@@ -137,6 +137,15 @@ Already applied:
   attempt timed out to `192.168.1.192:8949`, so this closes targeted
   route-attempt CPU diagnostic evidence but not successful two-machine route
   proof.
+- current-head post-research CPU matrix evidence
+  `20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+  passed verifier checks with `ok=true`, `fail_count=0`, `git_dirty=false`,
+  and the packaged WindowsApps MUSU command on commit `13dcd467`. It covers
+  startup-open/runtime-started/dashboard-open/desktop-open/post-route with hot
+  process count `0`, MUSU `0`, Node `0`, and owned WebView2 max `0.13`. The
+  `HUGH-MAIN` route attempt still timed out at
+  `http://192.168.1.192:8949/api/tasks/delegate`, so this refresh does not
+  prove successful two-machine routing.
 - `measure-musu-runtime-cpu-scenarios.ps1` now records failed route diagnostics
   with a non-zero effective `exit_code` when the expected token is absent while
   preserving the raw CLI exit code as `raw_exit_code`.

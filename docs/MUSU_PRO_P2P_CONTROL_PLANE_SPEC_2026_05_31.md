@@ -20,6 +20,22 @@ local execution, while MUSU.PRO accepts remote input, hosts project rooms,
 coordinates rendezvous/path selection, issues fallback relay only after direct
 path failure, and records evidence.
 
+**2026-06-07 post-research CPU matrix update**: After supplementing the
+agent-control SaaS research and AG UI/UX design, current HEAD
+`13dcd4677fde12daa6454b4064ca14da55b3a3ae` has clean packaged HUGH_SECOND
+runtime CPU evidence:
+`20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`,
+`20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`,
+and
+`20260607-141207-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`.
+The full matrix and post-route target verifier both pass with `ok=true` and
+`fail_count=0`; every scenario has hot process count `0`, MUSU `0`, Node `0`,
+and owned WebView2 max `0.13`. The route target remains unreachable at
+`http://192.168.1.192:8949/api/tasks/delegate`, so this is current
+failed-route CPU diagnostic evidence only. It does not close successful
+second-PC route proof, second-PC CPU/matrix, live MUSU.PRO relay proof,
+support, or Store gates.
+
 **2026-06-03 gate update**: Hosted P2P release evidence now requires relay
 payload transport proof separately from relay lease control-plane proof.
 `verify-p2p-control-plane-evidence.ps1` fails unless

@@ -39,6 +39,35 @@ report:
 MUSU local indexer synced `2951 files`, `2790 symbols`, `20277 ms` after the
 fresh HUGH_SECOND local evidence refresh and relay candidate protocol docs.
 
+**Latest SaaS/AG UX research supplement (2026-06-07 v806 / wiki/981)**:
+Agent-control SaaS research and AG UI/UX design now include the latest
+primary-source split between remote control of local execution and hosted cloud
+execution. The updated research adds Claude Code on the web, OpenAI Codex
+Local/Cloud/Remote Control policy implications, OpenAI local shell, OpenHands,
+Twingate, and ZeroTier. Product rule: MUSU.PRO coordinates remote input,
+rooms, rendezvous, path selection, relay fallback, and evidence, while MUSU
+Desktop remains the local executor. UI must expose input surface, execution
+device/runtime, route, and evidence status. Canonical docs:
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md` and
+`docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`.
+
+**Latest CPU matrix refresh (2026-06-07 v807 / wiki/982)**:
+Clean current-head HUGH_SECOND packaged runtime CPU matrix evidence was
+captured after the SaaS/AG UX supplement at commit `13dcd467`. Full matrix and
+post-route target verification both pass with `ok=true`, `fail_count=0`,
+`git_dirty=false`, hot process count `0` across all five scenarios, MUSU `0`,
+Node `0`, and owned WebView2 max `0.13`. The `HUGH-MAIN` route probe still
+times out at `http://192.168.1.192:8949/api/tasks/delegate`, so this remains
+failed target-route CPU diagnostic evidence, not successful multi-device route
+proof. Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_AGENT_CONTROL_RESEARCH_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v808 / wiki/983)**:
+MUSU local indexer synced `2963 files`, `2790 symbols`, `39771 ms` after the
+agent-control SaaS primary-source supplement, AG UI/UX execution-locus design,
+clean current-head CPU matrix evidence, canonical report, WIKI/WIKI_INDEX,
+BETA checklist, P2P specs, runtime stabilization plan, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)

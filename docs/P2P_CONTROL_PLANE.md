@@ -79,6 +79,20 @@ Relay is a fallback, not the default path. Relay lease requests must prove that 
 
 ## Current gate status
 
+2026-06-07 current-head post-research CPU addendum: after the agent-control
+SaaS research and AG UI/UX design supplement, HUGH_SECOND captured a clean
+packaged runtime CPU matrix at commit `13dcd467`. Evidence
+`20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+and both verifier JSONs pass with `ok=true`, `fail_count=0`,
+`git_dirty=false`, and `musu_exe_release_identity=true`. All five scenarios
+have hot process count `0`, MUSU `0`, Node `0`, and owned WebView2 max `0.13`.
+The HUGH-MAIN route probe still times out at
+`http://192.168.1.192:8949/api/tasks/delegate`; this remains failed
+target-route CPU diagnostic evidence, not successful multi-device route proof.
+The product boundary is unchanged: MUSU.PRO coordinates remote input, project
+rooms, rendezvous, path selection, relay fallback, and evidence; MUSU Desktop
+executes local work.
+
 2026-06-06 addendum after relay proof hardening and MSIX candidate selection:
 the product split is unchanged. MUSU Desktop is still the local executor and
 resource owner. `musu.pro` is remote input, project/company room, presence,

@@ -15305,3 +15305,100 @@ Search terms should include `GOAL v805`, `wiki/980`,
 `current-head local evidence index refresh after relay candidate protocol`,
 `2951 files`, `2790 symbols`, `20277 ms`,
 `20260607-134308-HUGH_SECOND`, and `20260607-134335-HUGH_SECOND`.
+
+## 2026-06-07 Agent Control SaaS Research Current Primary-Source Supplement (wiki/981)
+
+The agent-control SaaS landscape research and AG UI/UX control-plane design
+were supplemented with current primary-source findings.
+
+Updated docs:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+- `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+
+Added/reinforced comparators:
+
+- Claude Code Remote Control versus Claude Code on the web
+- OpenAI Codex Local, Codex Cloud, Remote Control, enterprise controls, and
+  local shell
+- GitHub Copilot CLI Remote Control and cloud agent
+- OpenHands local GUI/CLI, SDK, remote server, and cloud topology
+- Tailscale, ZeroTier, Twingate, VS Code Remote Tunnels, and Cloudflare Tunnel
+  as control-plane/data-plane and connector/relay references
+
+Product conclusion:
+
+- MUSU.PRO is the remote input, project room, presence, rendezvous, path
+  selection, relay fallback, and evidence/control plane.
+- MUSU Desktop is the local executor on each device.
+- UI must expose `Input from <surface>`, `Executing on <device/runtime>`,
+  `Route <direct|relay|cloud>`, and `Evidence <ok|missing|failed>`.
+- `Remote control`, `Local execution`, `Local sandbox`, `Cloud task`, and
+  `Relay fallback` are separate states and must not collapse into a generic
+  `connected` label.
+
+Search terms should include `GOAL v806`, `wiki/981`,
+`agent control SaaS research current primary-source supplement`,
+`Codex Local`, `Codex Cloud`, `Remote Control`, `OpenHands`,
+`Twingate`, `ZeroTier`, and `execution-locus banner`.
+
+## 2026-06-07 Current-HEAD CPU Matrix After Agent Control Research (wiki/982)
+
+After commit `13dcd4677fde12daa6454b4064ca14da55b3a3ae`, HUGH_SECOND captured
+a clean packaged runtime CPU matrix with `-OpenDesktopApp`, `-RunRouteProbe`,
+target `HUGH-MAIN`, and `-AllowFailedRouteProbe`.
+
+Promoted evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-141207-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+- per-scenario evidence for startup-open, runtime-started, dashboard-open,
+  desktop-open, and post-route
+
+Results:
+
+- full matrix verifier `ok=true`, `fail_count=0`
+- post-route target verifier `ok=true`, `fail_count=0`
+- `git_dirty=false`
+- hot process count `0` in all five scenarios
+- MUSU CPU `0`, Node CPU `0`
+- owned WebView2 max `0.13`
+- route probe `ok=false`, `failure_allowed=true`, target `HUGH-MAIN`,
+  timeout to `http://192.168.1.192:8949/api/tasks/delegate`
+
+Release meaning:
+
+- the reported 20% busy-loop did not reproduce on HUGH_SECOND/current HEAD
+- this is valid failed target-route CPU diagnostic evidence
+- this is not successful second-PC route proof or hosted P2P release proof
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_AGENT_CONTROL_RESEARCH_2026_06_07.md`
+
+Search terms should include `GOAL v807`, `wiki/982`,
+`current-head CPU matrix after agent control research`,
+`20260607-141207-HUGH_SECOND`, `13dcd467`, `HUGH-MAIN timeout`,
+`WebView2 max 0.13`, and `MUSU CPU 0`.
+
+## 2026-06-07 Current-HEAD CPU Matrix Agent Control Research Index Refresh (wiki/983)
+
+MUSU local indexer was refreshed after wiki/981, wiki/982, and GOAL v807.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2963 files`
+- `2790 symbols`
+- `39771 ms`
+
+Indexed context includes the agent-control SaaS primary-source supplement, AG
+UI/UX execution-locus design, clean current-head CPU matrix evidence,
+canonical report, BETA checklist, P2P specs, runtime stabilization plan,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v808`, `wiki/983`, `2963 files`,
+`2790 symbols`, `39771 ms`,
+`current-head CPU matrix agent control research index refresh`,
+`20260607-141207-HUGH_SECOND`, `agent control SaaS primary-source supplement`,
+and `execution-locus banner`.
