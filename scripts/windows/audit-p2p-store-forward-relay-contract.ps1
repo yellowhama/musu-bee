@@ -721,7 +721,11 @@ Add-Check `
             "peer_identity_verified",
             "peer_identity_method",
             "peer_public_key",
-            "cloud transport proof"
+            "cloud transport proof",
+            "record_release_relay_payload_delivery_route_evidence",
+            "RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE",
+            "relay_transport_proof: Some(transport_proof)",
+            "connect_pro_fallback_only"
         )
     ) `
     -Path $bridgeRouteEvidencePath `

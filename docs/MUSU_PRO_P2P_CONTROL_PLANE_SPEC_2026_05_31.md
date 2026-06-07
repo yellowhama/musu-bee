@@ -2410,3 +2410,37 @@ device and route state without weakening the evidence gates:
 5. relay fallback is requested only after direct-route failure and policy allow;
 6. route metadata, transport proof, payload delivery proof, and CPU evidence
    are attached separately.
+
+## 2026-06-07 Release Relay Payload Route Evidence Recorder
+
+The Rust runtime now has the release route-evidence writer that future relay
+tunnel runtime code must call after successful byte transit:
+`record_release_relay_payload_delivery_route_evidence(...)`.
+
+The recorder is part of the proof contract, not the transport implementation.
+It requires one successful relay record to bind:
+
+- delivered release payload record
+- `musu.relay_transport_proof.v1`
+- `musu.relay_payload_delivery_proof.v1`
+- `session_id`, `lease_id`, source node, target node, WSS relay URL, tunnel ID,
+  payload hash, and payload byte count
+- `transport_kind=quic_relay_tunnel`
+- `encryption=quic_tls_1_3`
+- `transport_verified_by=musu_quic_tls_transport`
+- verified peer identity with `quic_tls_cert_fingerprint`
+- `payload_transited_musu_infra=true`
+- `relay_fallback.payload_transport_proven=true`
+- `policy=connect_pro_fallback_only`
+
+Spec interpretation:
+
+- relay lease issuance is still only control-plane permission;
+- the preview store-forward queue is still non-release-grade;
+- the release payload endpoint and local release tunnel runtime remain
+  unimplemented;
+- future runtime code must call the recorder only after the actual
+  `quic_relay_tunnel` byte path has delivered the payload;
+- AG UI Evidence Center must show relay route evidence as incomplete until
+  route metadata, transport proof, and payload delivery proof are attached to
+  the same release-grade route record.

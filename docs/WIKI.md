@@ -16256,3 +16256,72 @@ Search terms should include `GOAL v833`, `wiki/1008`, `3028 files`,
 `current deep research CPU matrix index refresh`,
 `20260607-174550-HUGH_SECOND`, `PRIMARY-PC peer not found`,
 `Codex Windows remote control`, and `AG-UI typed event streams`.
+
+## 2026-06-07 Release Relay Payload Route Evidence Recorder (wiki/1009)
+
+Rust route evidence now has a release-grade relay payload delivery recorder:
+`record_release_relay_payload_delivery_route_evidence(...)`.
+
+The recorder accepts only a delivered release payload plus bound transport and
+delivery proof. It verifies:
+
+- `route_kind=relay`
+- `transport_kind=quic_relay_tunnel`
+- `encryption=quic_tls_1_3`
+- `transport_verified_by=musu_quic_tls_transport`
+- `peer_identity_method=quic_tls_cert_fingerprint`
+- `payload_transited_musu_infra=true`
+- `relay_fallback.payload_transport_proven=true`
+- matching session, lease, source, target, relay URL, tunnel ID, payload hash,
+  and payload byte count across payload, transport proof, and delivery proof
+
+Updated source gates:
+
+- `scripts\windows\show-musu-pro-p2p-env-status.ps1`
+- `scripts\windows\audit-p2p-store-forward-relay-contract.ps1`
+
+Validation:
+
+- Rust route evidence tests: `16 passed`
+- cargo check for `musu`: passed
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false`
+- release verifier regression: `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Release meaning:
+
+- this is source-contract/evidence-chain hardening only;
+- release relay payload endpoint remains unimplemented;
+- release relay tunnel runtime remains unimplemented;
+- live `musu.pro` route/transport/payload proof remains missing;
+- public release remains No-Go.
+
+Search terms should include `GOAL v834`, `wiki/1009`,
+`record_release_relay_payload_delivery_route_evidence`,
+`RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE`,
+`quic_tls_1_3`, `musu_quic_tls_transport`,
+`relay_payload_delivery_proof`, and
+`release relay payload route evidence recorder`.
+
+## 2026-06-07 Release Relay Payload Route Evidence Recorder Index Refresh (wiki/1010)
+
+MUSU local indexer was refreshed after wiki/1009 and GOAL v834.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3031 files`
+- `2800 symbols`
+- `21469 ms`
+
+Indexed context includes `musu-rs/src/bridge/route_evidence.rs`, the release
+relay payload route evidence recorder, P2P env/source audits, the canonical
+recorder report, AG UI Evidence Center update, MUSU.PRO P2P control-plane spec,
+BETA checklist, GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v835`, `wiki/1010`, `3031 files`,
+`2800 symbols`, `21469 ms`,
+`release relay payload route evidence recorder index refresh`,
+`record_release_relay_payload_delivery_route_evidence`,
+`musu_quic_tls_transport`, and `relay_payload_delivery_proof`.

@@ -10818,3 +10818,47 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_LEASE_READINESS_GATE_2026_06_07.md`
   (wiki/990)
+
+## 2026-06-07 Release Relay Payload Route Evidence Recorder
+
+Rust route evidence now includes a strict writer for future release relay
+payload delivery evidence:
+`record_release_relay_payload_delivery_route_evidence(...)`.
+
+The writer is allowed to record release-grade relay route evidence only when:
+
+- the payload status is `delivered`;
+- payload, transport proof, and delivery proof all use
+  `transport_kind=quic_relay_tunnel`;
+- transport proof uses `encryption=quic_tls_1_3` and
+  `transport_verified_by=musu_quic_tls_transport`;
+- peer identity is verified with
+  `peer_identity_method=quic_tls_cert_fingerprint`;
+- payload, transport proof, and delivery proof are bound to the same session,
+  lease, source, target, WSS relay URL, tunnel ID, payload hash, and payload
+  byte count;
+- `relay_fallback.payload_transport_proven=true` is written only with the
+  bound proof pair.
+
+Release status:
+
+- this is evidence-chain hardening, not relay tunnel implementation;
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` remains correct;
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remains correct;
+- live MUSU.PRO P2P proof, second-PC route/CPU/matrix proof, support mailbox,
+  and Store evidence remain required.
+
+Validation:
+
+- Rust route evidence tests: `16/16`
+- `cargo check --manifest-path musu-rs\Cargo.toml --bin musu -j 1`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false`
+- release verifier regression: `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_ROUTE_EVIDENCE_RECORDER_2026_06_07.md`
+  (wiki/1009)

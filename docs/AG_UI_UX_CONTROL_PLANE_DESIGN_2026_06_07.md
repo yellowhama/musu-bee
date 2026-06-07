@@ -809,3 +809,25 @@ Minimum event taxonomy:
 The UI must never infer execution from control-plane events alone. Execution
 starts only when the selected MUSU Desktop runtime accepts the authenticated
 work-order envelope under local policy.
+
+## 2026-06-07 Release Relay Evidence Center Detail
+
+The release relay payload route evidence recorder adds a concrete Evidence
+Center display contract.
+
+For any relay fallback run, the UI must keep these as separate checklist rows:
+
+- relay lease issued
+- direct route failed with reason
+- relay route metadata attached
+- relay transport proof attached
+- payload delivery proof attached
+- CPU/resource evidence attached
+
+The relay row may show release-grade only when the same route evidence record
+contains `route_kind=relay`, `quic_relay_tunnel`, `quic_tls_1_3`,
+`musu_quic_tls_transport`, verified peer identity, MUSU infra payload transit,
+and matching payload delivery proof.
+
+The UI must not infer release-grade execution from room events, relay leases,
+or preview store-forward queue delivery alone.

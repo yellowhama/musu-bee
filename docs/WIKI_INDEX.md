@@ -6971,4 +6971,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-174550-HUGH_SECOND`, `PRIMARY-PC peer not found`,
   `Codex Windows remote control`, and `AG-UI typed event streams`.
 
+- 2026-06-07 release relay payload route evidence recorder:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_PAYLOAD_ROUTE_EVIDENCE_RECORDER_2026_06_07.md`
+  (wiki/1009) records the Rust route evidence writer that binds release relay
+  payload, relay transport proof, and payload delivery proof into one
+  successful relay route evidence record. Search terms should include
+  `GOAL v834`, `wiki/1009`,
+  `record_release_relay_payload_delivery_route_evidence`,
+  `RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE`,
+  `quic_tls_1_3`, `musu_quic_tls_transport`, and
+  `relay_payload_delivery_proof`.
+
+- 2026-06-07 release relay payload route evidence recorder index refresh:
+  wiki/1010 records the MUSU local index refresh after wiki/1009 and GOAL
+  v834. Search terms should include `GOAL v835`, `wiki/1010`, `3031 files`,
+  `2800 symbols`, `21469 ms`,
+  `release relay payload route evidence recorder index refresh`,
+  `record_release_relay_payload_delivery_route_evidence`,
+  `musu_quic_tls_transport`, and `relay_payload_delivery_proof`.
+
 **End of WIKI_INDEX.md.**

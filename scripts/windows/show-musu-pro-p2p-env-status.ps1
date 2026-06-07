@@ -149,6 +149,7 @@ function Get-SourceRelayMarker {
     $payloadRoutePath = Join-Path $RepoRoot "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
     $rustRendezvousPath = Join-Path $RepoRoot "musu-rs\src\bridge\rendezvous.rs"
     $rustRelayPayloadDrainPath = Join-Path $RepoRoot "musu-rs\src\bridge\handlers\relay_payload.rs"
+    $rustRouteEvidencePath = Join-Path $RepoRoot "musu-rs\src\bridge\route_evidence.rs"
     $summary = [ordered]@{
         checked = $false
         path = $policyPath
@@ -193,6 +194,7 @@ function Get-SourceRelayMarker {
         $payloadRouteText = if (Test-Path -LiteralPath $payloadRoutePath) { Get-Content -LiteralPath $payloadRoutePath -Raw } else { "" }
         $rustRendezvousText = if (Test-Path -LiteralPath $rustRendezvousPath) { Get-Content -LiteralPath $rustRendezvousPath -Raw } else { "" }
         $rustRelayPayloadDrainText = if (Test-Path -LiteralPath $rustRelayPayloadDrainPath) { Get-Content -LiteralPath $rustRelayPayloadDrainPath -Raw } else { "" }
+        $rustRouteEvidenceText = if (Test-Path -LiteralPath $rustRouteEvidencePath) { Get-Content -LiteralPath $rustRouteEvidencePath -Raw } else { "" }
         $summary.checked = $true
         $summary.relay_connect_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_CONNECT_ENDPOINT_IMPLEMENTED\s*=\s*true')
         $summary.relay_payload_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED\s*=\s*true')
@@ -235,7 +237,10 @@ function Get-SourceRelayMarker {
             )
             rust_delivery_records_release_relay_tunnel_payload = (
                 [regex]::IsMatch($rustRelayPayloadDrainText, 'quic_relay_tunnel') -and
-                [regex]::IsMatch($rustRelayPayloadDrainText, 'release_grade:\s*true')
+                [regex]::IsMatch($rustRelayPayloadDrainText, 'release_grade:\s*true') -and
+                [regex]::IsMatch($rustRouteEvidenceText, 'record_release_relay_payload_delivery_route_evidence') -and
+                [regex]::IsMatch($rustRouteEvidenceText, 'relay_transport_proof:\s*Some\(transport_proof\)') -and
+                [regex]::IsMatch($rustRouteEvidenceText, 'RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE')
             )
         }
         $missingReleaseTunnelHooks = @(

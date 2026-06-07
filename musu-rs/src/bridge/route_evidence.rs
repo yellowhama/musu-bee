@@ -11,11 +11,19 @@ use crate::peer::discovery::ResolvedPeer;
 pub const CLI_ROUTE_EVIDENCE_NOTE: &str = "Actual CLI route attempt evidence. HTTPS peers with advertised sha256 certificate fingerprints are recorded only after a fingerprint-pinned request succeeds; HTTP and advertised-only metadata remain non-release-grade until QUIC/TLS proof is wired.";
 pub const BRIDGE_FORWARD_ROUTE_EVIDENCE_NOTE: &str = "Actual bridge remote forwarding evidence. Release-grade status depends on recorded peer identity and encryption proof; non-QUIC HTTP bearer remains non-release-grade.";
 pub const RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE: &str = "Target-side relay payload drain evidence. This records owner-scoped relay payload delivery proof after local task acceptance; it remains non-release-grade until QUIC/TLS relay transport proof is attached.";
+#[allow(dead_code)]
+pub const RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE: &str = "Release-grade relay payload delivery evidence. This requires a bound quic_relay_tunnel transport proof, quic_tls_1_3 encryption proof, peer identity proof, and payload delivery proof.";
 pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
     "musu_bridge_forward_fingerprint_pinned_client";
 #[allow(dead_code)]
 pub const QUIC_TLS_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 pub const RELAY_PAYLOAD_DRAIN_PREVIEW_VERIFIER: &str = "musu_relay_payload_drain_preview";
+#[allow(dead_code)]
+pub const RELEASE_RELAY_TUNNEL_TRANSPORT_KIND: &str = "quic_relay_tunnel";
+#[allow(dead_code)]
+pub const RELEASE_RELAY_TUNNEL_ENCRYPTION: &str = "quic_tls_1_3";
+#[allow(dead_code)]
+pub const RELEASE_RELAY_TUNNEL_PEER_IDENTITY_METHOD: &str = "quic_tls_cert_fingerprint";
 pub const RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED: &str = "relay_payload_transport_not_implemented";
 pub const RELAY_TARGET_POLLING_NOT_IMPLEMENTED: &str = "relay_target_polling_not_implemented";
 
@@ -594,6 +602,130 @@ pub fn record_relay_payload_delivery_route_evidence(
     Ok(RouteEvidenceRecord { path, evidence })
 }
 
+#[allow(dead_code)]
+pub fn record_release_relay_payload_delivery_route_evidence(
+    musu_home: &Path,
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    transport_proof: RouteRelayTransportProof,
+    proof: RouteRelayPayloadDeliveryProof,
+    total_attempt_ms: u64,
+) -> Result<RouteEvidenceRecord> {
+    if payload.status.trim() != "delivered" {
+        anyhow::bail!("release_relay_payload_not_delivered");
+    }
+    if payload.transport_kind != RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        || transport_proof.transport_kind != RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        || proof.transport_kind != RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+    {
+        anyhow::bail!("release_relay_payload_transport_kind_not_release_grade");
+    }
+    if !payload.release_grade || !proof.release_grade {
+        anyhow::bail!("release_relay_payload_not_release_grade");
+    }
+    if payload.relay_default_data_path || proof.relay_default_data_path {
+        anyhow::bail!("release_relay_payload_default_data_path");
+    }
+    if !payload.relay_url.trim().starts_with("wss://")
+        || !transport_proof.relay_url.trim().starts_with("wss://")
+        || !proof.relay_url.trim().starts_with("wss://")
+    {
+        anyhow::bail!("release_relay_payload_relay_url_not_wss");
+    }
+    if payload.session_id != transport_proof.session_id
+        || payload.session_id != proof.session_id
+        || payload.lease_id != transport_proof.lease_id
+        || payload.lease_id != proof.lease_id
+        || payload.source_node_id != transport_proof.source_node_id
+        || payload.source_node_id != proof.source_node_id
+        || payload.target_node_id != transport_proof.target_node_id
+        || payload.target_node_id != proof.target_node_id
+        || payload.relay_url != transport_proof.relay_url
+        || payload.relay_url != proof.relay_url
+        || payload.tunnel_id != transport_proof.tunnel_id
+        || payload.tunnel_id != proof.tunnel_id
+        || payload.payload_sha256 != proof.payload_sha256
+        || payload.payload_bytes != proof.payload_bytes
+        || payload.payload_bytes != transport_proof.payload_bytes_transited
+    {
+        anyhow::bail!("release_relay_payload_proof_mismatch");
+    }
+    if payload.payload_bytes == 0
+        || proof.payload_bytes == 0
+        || transport_proof.payload_bytes_transited == 0
+    {
+        anyhow::bail!("release_relay_payload_empty");
+    }
+    if proof.schema != "musu.relay_payload_delivery_proof.v1" {
+        anyhow::bail!("release_relay_payload_delivery_proof_schema_invalid");
+    }
+    if proof.delivered_at.trim().is_empty() {
+        anyhow::bail!("release_relay_payload_delivery_time_missing");
+    }
+    if !transport_proof.payload_transited_musu_infra
+        || !transport_proof.peer_identity_verified
+        || transport_proof.peer_identity_method != RELEASE_RELAY_TUNNEL_PEER_IDENTITY_METHOD
+        || !transport_proof.peer_public_key.starts_with("sha256:")
+        || transport_proof.encryption != RELEASE_RELAY_TUNNEL_ENCRYPTION
+        || transport_proof.transport_verified_by != QUIC_TLS_TRANSPORT_VERIFIER
+    {
+        anyhow::bail!("release_relay_transport_proof_not_release_grade");
+    }
+
+    let path = route_evidence_path(
+        musu_home,
+        &format!("release-relay-payload-{}", payload.payload_id),
+    );
+    let evidence = RouteAttemptEvidence {
+        schema: "musu.route_evidence.v1",
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        source_node_id: payload.source_node_id.clone(),
+        target_node_id: payload.target_node_id.clone(),
+        session_id: Some(payload.session_id.clone()),
+        route_kind: "relay",
+        candidate_addr: payload.relay_url.clone(),
+        handshake_ms: Some(transport_proof.handshake_ms),
+        total_attempt_ms: total_attempt_ms.max(transport_proof.handshake_ms).max(1),
+        peer_identity_verified: transport_proof.peer_identity_verified,
+        peer_identity_method: Some(transport_proof.peer_identity_method.clone()),
+        peer_public_key: Some(transport_proof.peer_public_key.clone()),
+        encryption: transport_proof.encryption.clone(),
+        transport_verified_by: Some(transport_proof.transport_verified_by.clone()),
+        payload_transited_musu_infra: true,
+        result: RouteAttemptEvidenceResult::Success,
+        failure_class: None,
+        relay_fallback: Some(RouteRelayFallbackEvidence {
+            direct_path_failed: true,
+            lease_requested: true,
+            status: "issued".to_string(),
+            lease_issued: true,
+            candidate_route_kinds: payload
+                .candidate_route_kinds
+                .iter()
+                .filter_map(route_kind_label)
+                .collect(),
+            attempted_route_kinds: payload
+                .attempted_route_kinds
+                .iter()
+                .filter_map(route_kind_label)
+                .collect(),
+            requested_capability: Some("remote_command".to_string()),
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: Vec::new(),
+            lease_id: Some(payload.lease_id.clone()),
+            failure_class: None,
+            payload_transport_attempted: true,
+            payload_transport_proven: true,
+            payload_transport_failure_class: None,
+        }),
+        relay_transport_proof: Some(transport_proof),
+        relay_payload_delivery_proof: Some(proof),
+        recorded_at: chrono::Utc::now().to_rfc3339(),
+        note: RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE,
+    };
+    write_route_attempt_evidence(&path, &evidence)?;
+    Ok(RouteEvidenceRecord { path, evidence })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1084,6 +1216,185 @@ mod tests {
         assert_eq!(cloud.route_kind, crate::cloud::RouteKind::Relay);
         assert!(cloud.payload_transited_musu_infra);
         assert!(cloud.relay_payload_delivery_proof.is_some());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn release_relay_payload_record() -> crate::cloud::P2pRelayPayloadStoredRecord {
+        crate::cloud::P2pRelayPayloadStoredRecord {
+            payload_id: "payload-release-1".to_string(),
+            session_id: "rv_release".to_string(),
+            lease_id: "lease-release-1".to_string(),
+            source_node_id: "source-node".to_string(),
+            target_node_id: "target-node".to_string(),
+            relay_url: "wss://relay.musu.pro/connect".to_string(),
+            tunnel_id: "release-tunnel-1".to_string(),
+            payload_kind: "forwarded_task_envelope".to_string(),
+            payload_bytes: 256,
+            payload_sha256: "def456".to_string(),
+            status: "delivered".to_string(),
+            relay_default_data_path: false,
+            release_grade: true,
+            transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND.to_string(),
+            created_at: "2026-06-04T00:00:00Z".to_string(),
+            expires_at: "2026-06-04T00:05:00Z".to_string(),
+            claimed_by: Some("target-node".to_string()),
+            claimed_at: Some("2026-06-04T00:00:01Z".to_string()),
+            delivered_at: Some("2026-06-04T00:00:03Z".to_string()),
+            payload_base64: None,
+            candidate_route_kinds: vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::DirectQuic,
+                crate::cloud::RouteKind::Relay,
+            ],
+            attempted_route_kinds: vec![
+                crate::cloud::RouteKind::Lan,
+                crate::cloud::RouteKind::DirectQuic,
+            ],
+        }
+    }
+
+    fn release_relay_transport_proof(
+        payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    ) -> RouteRelayTransportProof {
+        RouteRelayTransportProof {
+            schema: "musu.relay_transport_proof.v1".to_string(),
+            session_id: payload.session_id.clone(),
+            lease_id: payload.lease_id.clone(),
+            source_node_id: payload.source_node_id.clone(),
+            target_node_id: payload.target_node_id.clone(),
+            transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND.to_string(),
+            relay_url: payload.relay_url.clone(),
+            tunnel_id: payload.tunnel_id.clone(),
+            handshake_ms: 23,
+            payload_bytes_transited: payload.payload_bytes,
+            payload_transited_musu_infra: true,
+            peer_identity_verified: true,
+            peer_identity_method: RELEASE_RELAY_TUNNEL_PEER_IDENTITY_METHOD.to_string(),
+            peer_public_key: "sha256:release-peer".to_string(),
+            encryption: RELEASE_RELAY_TUNNEL_ENCRYPTION.to_string(),
+            transport_verified_by: QUIC_TLS_TRANSPORT_VERIFIER.to_string(),
+            opened_at: "2026-06-04T00:00:01Z".to_string(),
+            closed_at: Some("2026-06-04T00:00:03Z".to_string()),
+        }
+    }
+
+    fn release_relay_delivery_proof(
+        payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    ) -> RouteRelayPayloadDeliveryProof {
+        RouteRelayPayloadDeliveryProof {
+            schema: "musu.relay_payload_delivery_proof.v1".to_string(),
+            payload_id: payload.payload_id.clone(),
+            session_id: payload.session_id.clone(),
+            lease_id: payload.lease_id.clone(),
+            source_node_id: payload.source_node_id.clone(),
+            target_node_id: payload.target_node_id.clone(),
+            relay_url: payload.relay_url.clone(),
+            tunnel_id: payload.tunnel_id.clone(),
+            transport_kind: payload.transport_kind.clone(),
+            relay_default_data_path: payload.relay_default_data_path,
+            release_grade: payload.release_grade,
+            payload_sha256: payload.payload_sha256.clone(),
+            payload_bytes: payload.payload_bytes,
+            delivered_at: payload.delivered_at.clone().unwrap(),
+        }
+    }
+
+    #[test]
+    fn release_relay_payload_delivery_records_transport_and_delivery_proof() {
+        let dir =
+            std::env::temp_dir().join(format!("musu-route-evidence-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let payload = release_relay_payload_record();
+        let transport_proof = release_relay_transport_proof(&payload);
+        let delivery_proof = release_relay_delivery_proof(&payload);
+
+        let record = record_release_relay_payload_delivery_route_evidence(
+            &dir,
+            &payload,
+            transport_proof,
+            delivery_proof,
+            31,
+        )
+        .unwrap();
+        let value = serde_json::to_value(&record.evidence).unwrap();
+
+        assert!(record.path.ends_with(
+            "route-evidence/release-relay-payload-payload-release-1.route-evidence.json"
+        ));
+        assert_eq!(value["route_kind"], "relay");
+        assert_eq!(value["candidate_addr"], "wss://relay.musu.pro/connect");
+        assert_eq!(value["handshake_ms"], 23);
+        assert_eq!(value["total_attempt_ms"], 31);
+        assert_eq!(value["peer_identity_verified"], true);
+        assert_eq!(
+            value["peer_identity_method"],
+            RELEASE_RELAY_TUNNEL_PEER_IDENTITY_METHOD
+        );
+        assert_eq!(value["peer_public_key"], "sha256:release-peer");
+        assert_eq!(value["encryption"], RELEASE_RELAY_TUNNEL_ENCRYPTION);
+        assert_eq!(value["transport_verified_by"], QUIC_TLS_TRANSPORT_VERIFIER);
+        assert_eq!(
+            value["relay_transport_proof"]["transport_kind"],
+            RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        );
+        assert_eq!(
+            value["relay_transport_proof"]["transport_verified_by"],
+            QUIC_TLS_TRANSPORT_VERIFIER
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["transport_kind"],
+            RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        );
+        assert_eq!(value["relay_payload_delivery_proof"]["release_grade"], true);
+        assert_eq!(value["relay_fallback"]["payload_transport_proven"], true);
+        assert_eq!(
+            value["relay_fallback"]["policy"],
+            "connect_pro_fallback_only"
+        );
+
+        let cloud = cloud_route_evidence(&record.evidence);
+        let cloud_transport = cloud.relay_transport_proof.expect("transport proof");
+        let cloud_delivery = cloud
+            .relay_payload_delivery_proof
+            .expect("payload delivery proof");
+        assert_eq!(
+            cloud_transport.transport_kind,
+            RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        );
+        assert_eq!(cloud_transport.encryption, RELEASE_RELAY_TUNNEL_ENCRYPTION);
+        assert!(cloud_transport.peer_identity_verified);
+        assert_eq!(
+            cloud_delivery.transport_kind,
+            RELEASE_RELAY_TUNNEL_TRANSPORT_KIND
+        );
+        assert!(cloud_delivery.release_grade);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn release_relay_payload_delivery_rejects_unbound_transport_proof() {
+        let dir =
+            std::env::temp_dir().join(format!("musu-route-evidence-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let payload = release_relay_payload_record();
+        let mut transport_proof = release_relay_transport_proof(&payload);
+        transport_proof.peer_public_key = "not-sha256".to_string();
+        let delivery_proof = release_relay_delivery_proof(&payload);
+
+        let result = record_release_relay_payload_delivery_route_evidence(
+            &dir,
+            &payload,
+            transport_proof,
+            delivery_proof,
+            31,
+        );
+        let error = match result {
+            Ok(_) => panic!("expected release relay transport proof rejection"),
+            Err(error) => error.to_string(),
+        };
+        assert_eq!(error, "release_relay_transport_proof_not_release_grade");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
