@@ -33,6 +33,12 @@ Sources checked on 2026-06-07:
   `https://github.com/openai/codex`
 - GitHub Copilot cloud agent docs:
   `https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent`
+- GitHub Copilot CLI Remote Control docs:
+  `https://docs.github.com/en/copilot/concepts/agents/copilot-cli/about-remote-control`
+- GitHub Copilot cloud/local sandbox docs:
+  `https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes`
+- GitHub Actions self-hosted runner docs:
+  `https://docs.github.com/en/actions/reference/runners/self-hosted-runners`
 - Cursor background agents docs:
   `https://docs.cursor.com/background-agent`
 - Google Jules docs:
@@ -41,6 +47,14 @@ Sources checked on 2026-06-07:
   `https://docs.devin.ai/get-started/devin-intro`
 - Replit Agent docs:
   `https://docs.replit.com/references/agent/overview`
+- Factory Droids:
+  `https://factory.ai/product/droids`
+- VS Code Remote Tunnels:
+  `https://code.visualstudio.com/docs/remote/tunnels`
+- Cloudflare Tunnel:
+  `https://developers.cloudflare.com/tunnel/`
+- Tailscale DERP servers:
+  `https://tailscale.com/docs/reference/derp-servers`
 
 Observed patterns:
 
@@ -49,20 +63,27 @@ Observed patterns:
 | Claude Code Remote Control | local session controlled from web/mobile | remote session list, QR/session URL, synced conversation, outbound-only connection | Closest direct comparator: MUSU.PRO should be a window/control plane into local MUSU Desktop execution, with local process liveness made explicit. |
 | OpenAI Codex | connected local/cloud agent surfaces | command center, parallel agents, skills, background work | MUSU needs a command center, but must show local device ownership rather than only cloud worktrees. |
 | GitHub Copilot cloud agent | GitHub Actions powered ephemeral environment | issue/PR workflow, plan, branch, logs, PR review | MUSU should expose plan, branch/artifact, review, and audit trails; every task needs a clear handoff object. |
+| GitHub Copilot CLI Remote Control | local CLI session controlled from GitHub.com/mobile | live session list, remote prompts, approval responses, cancel, plan approval | MUSU remote UI should support prompts/approvals/cancel while clearly saying local commands and files remain on the selected device. |
+| GitHub Copilot cloud/local sandboxes | explicit local or cloud execution sandbox | execution-location choice and policy-managed isolation | MUSU needs separate status labels for local execution, local sandbox, relay, and any future hosted worker mode. |
+| GitHub Actions self-hosted runners | cloud queue assigns jobs to online customer runner | labels, idle/online matching, pickup timeout, external logs | Device scheduling should use labels/capabilities and make queued vs delivered vs executing states explicit. |
 | Cursor background agents | remote async environment connected to IDE/web/mobile | background-agent sidebar, status, follow-ups, take-over | MUSU should support remote input and follow-ups, but the take-over target is a local device/runtime. |
 | Google Jules | cloud VM that clones repos | repo selector, branch selector, plan approval, notifications | MUSU needs repo/project selectors, plan approval, and completion notifications before local execution feels safe. |
 | Devin | autonomous software engineer with CLI/desktop/cloud/integrations | team workflow, tickets, integrations, backlog work | MUSU should model agents as team members tied to rooms, tickets, and local capabilities. |
 | Replit Agent | hosted workspace and deployment flow | natural-language build flow, plan mode, design preview | MUSU can borrow plain-language ordering and preview, but must avoid hiding infra/runtime location. |
+| Factory Droids | multi-surface agent task flow | terminal, IDE, browser, Slack, model routing, adjustable autonomy | MUSU should allow the same room/order to originate from multiple surfaces while local permission policy remains consistent. |
+| VS Code Remote Tunnels | remote server on user's machine over authenticated tunnel | connect from VS Code web/desktop without SSH or inbound listener | MUSU remote access should be outbound-only and authenticated; anonymous tunnel behavior must be impossible for agent control. |
 | Tailscale | control plane coordinates devices; data plane runs on devices | device identity, policy, peer discovery, NAT traversal, direct/relayed paths | MUSU.PRO should coordinate registration/rendezvous/path choice while local devices move work and evidence. |
+| Tailscale DERP / peer relays | direct paths preferred, peer/DERP relay fallback | DERP map, coordination server, encrypted blind relay | Route UI should show direct attempt, peer relay, hosted relay, and why fallback happened. |
+| Cloudflare Tunnel | local daemon opens outbound connection to cloud edge | public hostname to local service, no inbound ports | MUSU relay/connect should be explicit infrastructure, not a hidden default execution mode. |
 | ngrok | local agent opens outbound TLS tunnel to cloud endpoint | no inbound ports, explicit tunnel endpoint, cloud relay | Relay fallback should be explicit and proven, not the default execution path. |
 
 Competitive gap for MUSU:
 
 Most comparable SaaS products make cloud execution feel simple. Claude Code
-Remote Control proves there is also demand for browser/mobile control over a
-local session. MUSU should generalize that pattern to multiple local devices
-and agents while making execution location, device identity, route path, and
-evidence more visible than competitors do.
+Remote Control and GitHub Copilot CLI Remote Control prove there is also demand
+for browser/mobile control over a local session. MUSU should generalize that
+pattern to multiple local devices and agents while making execution location,
+device identity, route path, and evidence more visible than competitors do.
 
 Strategic conclusion:
 
@@ -73,6 +94,9 @@ Strategic conclusion:
 - Paid MUSU.PRO value should be remote input, rooms, presence, rendezvous,
   relay fallback, evidence history, notifications, and team permissions, not
   moving default execution into the cloud.
+- Remote control is allowed to synchronize prompts, messages, approvals,
+  cancellations, and status; local file, shell, tool, and adapter execution
+  remains on the selected MUSU Desktop device.
 
 ## Product Position
 
@@ -142,6 +166,7 @@ Essential controls:
 - execution path selector: `Prefer direct`, `Allow relay fallback`, `Local only`
 - approval toggle for write/file/command/network actions
 - budget controls: max time, max spend, max CPU, max parallel agents
+- session controls: keep awake hint, cancel current work, revoke remote access
 
 Status badges:
 
@@ -153,6 +178,8 @@ Status badges:
 - `Waiting for device`
 - `Needs approval`
 - `Evidence missing`
+- `Remote control`
+- `Local-only action`
 
 ### 2. Project Room
 
@@ -205,6 +232,8 @@ Device list columns:
 - route candidates: LAN, Tailscale, public endpoint, relay
 - last successful route kind
 - last evidence
+- local process keepalive/offline risk
+- queue state: idle, assigned, pickup timeout, executing
 
 Device detail tabs:
 
@@ -224,6 +253,8 @@ Route view:
 - encryption proof
 - latency
 - reason for fallback
+- whether the connection is direct, peer relay, hosted relay, or tunnel
+- whether inbound ports are open or the connector is outbound-only
 
 ### 5. Run Timeline
 
@@ -303,6 +334,7 @@ Every run needs a visible line:
 - "Execution on HUGH_SECOND"
 - "Route: LAN/direct/relay"
 - "Evidence: available/missing"
+- "Remote control: enabled/disabled/policy-blocked"
 
 ### Control Plane Must Not Look Like Compute
 
@@ -320,6 +352,14 @@ Avoid labels that imply hosted execution:
 - `Cloud worker`
 - `Hosted task`
 
+Use separate labels for execution-location choices:
+
+- `Local execution`
+- `Local sandbox`
+- `Cloud sandbox`
+- `Relay transport`
+- `Remote control`
+
 ### Ask Less, Show More
 
 The default user flow:
@@ -331,6 +371,33 @@ The default user flow:
 5. review evidence/artifacts
 
 Advanced network fields should be progressive disclosure unless something fails.
+
+### Remote Control Is A Limited Surface
+
+Remote web/mobile sessions can:
+
+- submit prompts and follow-ups
+- answer agent questions
+- approve or deny plans
+- approve or deny permission requests
+- cancel the current operation
+- view logs, status, and evidence
+
+Remote web/mobile sessions cannot silently grant broader local access than the
+desktop policy already allows. Local-only commands and interactive local pickers
+must render as unavailable with a clear reason.
+
+### No Anonymous Agent Tunnels
+
+The UI must never offer anonymous tunnel exposure for agent control. If a future
+Connect feature uses outbound tunneling or relay, the visible contract must show:
+
+- authenticated account/company owner
+- device identity
+- tunnel/relay endpoint
+- allowed routes and permissions
+- expiration and revoke control
+- audit/evidence destination
 
 ### Make Blockers Actionable
 

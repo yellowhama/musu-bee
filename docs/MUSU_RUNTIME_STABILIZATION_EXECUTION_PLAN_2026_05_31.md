@@ -980,9 +980,12 @@ Deep research source:
 - `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
 
 The closest comparable product pattern is remote browser/mobile input into a
-local agent session. Cloud coding-agent products mostly solve async delegation
-by moving execution into cloud VMs or GitHub Actions-like environments. MUSU
-should keep the product boundary stricter:
+local agent session. Claude Code Remote Control and GitHub Copilot CLI Remote
+Control both keep shell/file/tool execution on the machine that started the
+session while web/mobile surfaces send prompts, approvals, plan responses,
+cancellation, and status. Cloud coding-agent products mostly solve async
+delegation by moving execution into cloud VMs or GitHub Actions-like
+environments. MUSU should keep the product boundary stricter:
 
 - MUSU.PRO receives remote work orders, hosts rooms, tracks presence, creates
   rendezvous sessions, exchanges route candidates, negotiates relay fallback,
@@ -994,6 +997,15 @@ should keep the product boundary stricter:
   product path.
 - Paid MUSU.PRO value should be coordination, relay fallback, evidence history,
   team permissions, and notifications, not hosted default execution.
+- Remote control must be owner-scoped, policy-gated, revocable, and honest
+  about local process liveness, sleep/offline state, queued state, pickup
+  timeout, and local-only actions.
+- Device scheduling should borrow self-hosted-runner semantics: online/idle
+  matching, capability labels, assignment, pickup timeout, and logs that survive
+  local process exit.
+- Tunnel/relay UX must be outbound-only or P2P-first by default, authenticated,
+  non-anonymous, expiring, revocable, and backed by route/transport/delivery
+  proof before it is accepted by release gates.
 
 Engineering consequence: the next release-grade product slice remains
 second-machine local execution proof first, then live MUSU.PRO rendezvous/relay

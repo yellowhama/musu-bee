@@ -38,12 +38,30 @@ same current MUSU build on the second Windows machine.
 Comparable SaaS research was updated on 2026-06-07 in
 `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`. The closest
 validated market pattern is remote browser/mobile input controlling a local
-agent session, while most coding-agent SaaS products move execution into cloud
-VMs or GitHub Actions-like environments. MUSU should keep the sharper boundary:
-MUSU.PRO is the paid coordination/control plane, and MUSU Desktop remains the
-local executor. Pro features should be described as remote input, rooms,
-presence, rendezvous, relay fallback, evidence history, notifications, and team
-permissions, not as hosted default execution.
+agent session. Claude Code Remote Control and GitHub Copilot CLI Remote Control
+both keep the local process, shell commands, file operations, tools, and project
+context on the originating machine while the web/mobile surface provides
+prompts, status, approvals, cancellation, and plan decisions. Most other
+coding-agent SaaS products move execution into cloud VMs or GitHub
+Actions-like environments.
+
+MUSU should keep the sharper boundary: MUSU.PRO is the paid
+coordination/control plane, and MUSU Desktop remains the local executor. Pro
+features should be described as remote input, rooms, presence, rendezvous,
+relay fallback, evidence history, notifications, and team permissions, not as
+hosted default execution. Remote-control UX must say when the local device is
+offline, asleep, policy-blocked, waiting for pickup, executing, or missing
+evidence.
+
+Supplemental infrastructure research also validates three release requirements:
+
+- self-hosted-runner style scheduling semantics: online/idle matching, device
+  labels, pickup timeout, queued state, and externalized logs
+- outbound-only authenticated tunnel/relay semantics: no anonymous tunnel access
+  for agent control, explicit expiration, revoke, owner, and audit trail
+- direct-first mesh semantics: prefer direct/P2P routes after MUSU.PRO
+  rendezvous; relay fallback must emit route metadata, transport proof, and
+  payload delivery proof before it can close release gates
 
 ## Current P2P Candidate Publish Contract
 

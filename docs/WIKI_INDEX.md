@@ -6634,4 +6634,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `HUGH-MAIN timeout`, `candidate_selection`, and
   `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`.
 
+- 2026-06-07 agent control SaaS deep research supplement:
+  `RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md` and
+  `AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md` (wiki/973) were supplemented
+  with GitHub Copilot CLI Remote Control, GitHub cloud/local sandboxes,
+  GitHub Actions self-hosted runners, VS Code Remote Tunnels, Cloudflare
+  Tunnel, Tailscale DERP, and Factory Droids. Search terms should include
+  `GOAL v798`, `wiki/973`, `agent control SaaS deep research supplement`,
+  `GitHub Copilot CLI Remote Control`, `self-hosted runners`,
+  `VS Code Remote Tunnels`, `Cloudflare Tunnel`, `Tailscale DERP`,
+  `remote control local execution`, `MUSU.PRO remote input`,
+  `local MUSU Desktop execution`, and `no anonymous agent tunnels`.
+
+- 2026-06-07 agent control SaaS deep research supplement index refresh:
+  wiki/974 records the MUSU local index refresh after wiki/973 and GOAL v798.
+  Search terms should include `GOAL v799`, `wiki/974`, `2935 files`,
+  `2790 symbols`, `18552 ms`,
+  `agent control SaaS deep research supplement index refresh`,
+  `GitHub Copilot CLI Remote Control`, `self-hosted runners`,
+  `VS Code Remote Tunnels`, `Cloudflare Tunnel`, `Tailscale DERP`,
+  `remote control local execution`, and `no anonymous agent tunnels`.
+
 **End of WIKI_INDEX.md.**

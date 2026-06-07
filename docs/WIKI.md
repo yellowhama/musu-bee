@@ -15040,3 +15040,77 @@ Search terms should include `GOAL v797`, `wiki/972`,
 `20260607-122313-HUGH_SECOND.current-head-target-route`, `HUGH-MAIN timeout`,
 `candidate_selection`, and
 `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`.
+
+## 2026-06-07 Agent Control SaaS Deep Research Supplement (wiki/973)
+
+The agent-control SaaS landscape and AG UI/UX design were supplemented with
+new primary-source comparisons checked on 2026-06-07.
+
+Updated files:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+- `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+- `docs\BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`
+- `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
+- CoS memory:
+  `docs\memory\chief_of_staff\2026-06-07_agent_control_saas_deep_research_supplement.md`
+
+New comparators:
+
+- GitHub Copilot CLI Remote Control
+- GitHub Copilot cloud/local sandboxes
+- GitHub Actions self-hosted runners
+- VS Code Remote Tunnels
+- Cloudflare Tunnel
+- Tailscale DERP servers
+- Factory Droids
+
+Supplemental decision:
+
+- Claude Code Remote Control and GitHub Copilot CLI Remote Control are the
+  closest direct comparators for MUSU.PRO remote input into local execution.
+- Web/mobile remote control may submit prompts, answer questions, approve/deny
+  plans and permission requests, cancel current work, and view status/evidence.
+- Local files, shell commands, tools, adapters, and process ownership must stay
+  on the selected MUSU Desktop device unless a separately labeled hosted-worker
+  mode is introduced later.
+- Device scheduling should borrow self-hosted-runner semantics: online/idle
+  matching, capability labels, assignment, pickup timeout, queued state, stale
+  runner detection, and externalized logs.
+- Tunnel/relay features must be authenticated, non-anonymous, owner-scoped,
+  expiring, revocable, and backed by route metadata, transport proof, and
+  payload delivery proof before closing release gates.
+
+Release impact:
+
+- This is docs/spec/research progress only.
+- Public release remains No-Go on second-PC route/CPU/matrix, live
+  `musu.pro` release-grade relay proof, support mailbox proof, and Store proof.
+
+Search terms should include `GOAL v798`, `wiki/973`,
+`agent control SaaS deep research supplement`,
+`GitHub Copilot CLI Remote Control`, `self-hosted runners`,
+`VS Code Remote Tunnels`, `Cloudflare Tunnel`, `Tailscale DERP`,
+`remote control local execution`, `MUSU.PRO remote input`,
+`local MUSU Desktop execution`, and `no anonymous agent tunnels`.
+
+## 2026-06-07 Agent Control SaaS Deep Research Supplement Index Refresh (wiki/974)
+
+MUSU local indexer was refreshed after wiki/973 and GOAL v798.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2935 files`
+- `2790 symbols`
+- `18552 ms`
+
+Indexed context includes the supplemented agent-control SaaS research, updated
+AG UI/UX control-plane design, BETA checklist product split, runtime
+stabilization research alignment, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v799`, `wiki/974`,
+`agent control SaaS deep research supplement index refresh`, `2935 files`,
+`2790 symbols`, `18552 ms`, `GitHub Copilot CLI Remote Control`,
+`self-hosted runners`, `VS Code Remote Tunnels`, `Cloudflare Tunnel`,
+`Tailscale DERP`, `remote control local execution`, and
+`no anonymous agent tunnels`.
