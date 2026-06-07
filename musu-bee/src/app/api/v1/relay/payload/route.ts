@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  publicReleaseRelayLease,
+  releaseRelayLeaseBlockers,
+} from "@/lib/p2pReleaseRelayLeaseValidation";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   RELEASE_GRADE_RELAY_TRANSPORT_KIND,
@@ -120,6 +124,29 @@ function releasePayloadBytesNotAccepted(method: string, forbiddenFields: string[
   );
 }
 
+function releaseRelayLeaseNotPayloadReady(
+  method: string,
+  lease: Awaited<ReturnType<typeof queryRelayLeases>>[number],
+  leaseBlockers: string[]
+) {
+  const blockers = uniqueBlockers([...relayTransportPreflightBlockers(), ...leaseBlockers]);
+  return NextResponse.json(
+    {
+      ...releasePayloadPreflightStatus(method, blockers),
+      ok: false,
+      release_payload_accepted: false,
+      payload_stored: false,
+      payload_transported: false,
+      lease_verified: true,
+      release_payload_lease_ready: false,
+      error: "release_relay_lease_not_payload_ready",
+      lease_blockers: leaseBlockers,
+      lease: publicReleaseRelayLease(lease),
+    },
+    { status: 409 }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
@@ -220,20 +247,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const leaseBlockers = releaseRelayLeaseBlockers(lease);
+  if (leaseBlockers.length > 0) {
+    return releaseRelayLeaseNotPayloadReady(req.method, lease, leaseBlockers);
+  }
+
   return releasePayloadBlocked(req.method, {
     lease_verified: true,
+    release_payload_lease_ready: true,
     release_payload_metadata: {
       tunnel_id: parsed.data.tunnel_id,
       payload_kind: parsed.data.payload_kind,
       payload_sha256: parsed.data.payload_sha256,
     },
     lease: {
-      lease_id: lease.lease_id,
-      session_id: lease.session_id,
-      source_node_id: lease.source_node_id,
-      target_node_id: lease.target_node_id,
-      route_kind: lease.route_kind,
-      expires_at: lease.expires_at,
+      ...publicReleaseRelayLease(lease),
     },
   });
 }

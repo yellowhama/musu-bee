@@ -2328,3 +2328,26 @@ Spec lock:
 - A release relay tunnel claim requires the local runtime to remove the
   not-implemented branch, move bytes through `quic_relay_tunnel`, and record
   live `quic_tls_1_3` transport proof plus payload delivery proof.
+
+## 2026-06-07 Release Relay Lease Readiness Gate
+
+Release relay connect/payload preflight must reject stale relay leases before
+any future release transport proof can be bound to them.
+
+The shared readiness gate rejects a lease when:
+
+- the lease relay URL is not WSS;
+- the lease relay URL does not match the current configured relay URL;
+- direct route attempts are missing;
+- direct route failure class is missing;
+- the lease policy is not `connect_pro_fallback_only`;
+- the lease claims default data path;
+- the lease does not describe MUSU relay payload transit.
+
+Spec interpretation:
+
+- this is a proof-binding hardening step;
+- it does not make the preflight endpoint a release payload endpoint;
+- it does not make MUSU.PRO the executor;
+- it keeps release payload transport blocked until the local runtime byte path
+  and live route/transport/delivery proof exist.

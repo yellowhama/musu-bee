@@ -15610,3 +15610,66 @@ Search terms should include `GOAL v814`, `wiki/989`, `2981 files`,
 `relay tunnel not-implemented branch guard index refresh`,
 `release_relay_tunnel_runtime_not_implemented_branch_active`,
 `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, and `case_count=105`.
+
+## 2026-06-07 Release Relay Lease Readiness Gate (wiki/990)
+
+Release relay connect and payload preflight now share a release relay lease
+readiness gate.
+
+Changed implementation:
+
+- added `musu-bee\src\lib\p2pReleaseRelayLeaseValidation.ts`;
+- `/api/v1/relay/connect` rejects stale or mismatched relay leases with
+  `release_relay_lease_not_connect_ready`;
+- `/api/v1/relay/payload` rejects stale or mismatched relay leases with
+  `release_relay_lease_not_payload_ready`;
+- both paths expose lease blockers such as
+  `release_relay_lease_relay_url_mismatch`;
+- P2P tests cover stale relay URL rejection for both preflight paths;
+- P2P relay contract audit now checks the shared readiness validator.
+
+Validation:
+
+- `npm run test:p2p`: `114/114`
+- `npm run typecheck`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Release meaning:
+
+- no release marker was flipped;
+- release payload bytes remain rejected;
+- release payload endpoint and release tunnel runtime remain unimplemented;
+- live MUSU.PRO route metadata, transport proof, payload delivery proof, and
+  second-PC evidence remain required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_LEASE_READINESS_GATE_2026_06_07.md`
+
+Search terms should include `GOAL v815`, `wiki/990`,
+`p2pReleaseRelayLeaseValidation`, `release_relay_lease_relay_url_mismatch`,
+`release_relay_lease_not_connect_ready`,
+`release_relay_lease_not_payload_ready`, and `test:p2p 114/114`.
+
+## 2026-06-07 Release Relay Lease Readiness Gate Index Refresh (wiki/991)
+
+MUSU local indexer was refreshed after wiki/990 and GOAL v815.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2985 files`
+- `2794 symbols`
+- `25903 ms`
+
+Indexed context includes the shared release relay lease validator,
+connect/payload preflight readiness gate updates, P2P tests, P2P relay contract
+audit update, canonical release relay lease readiness report, BETA checklist,
+P2P control-plane specs, runtime stabilization plan, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v816`, `wiki/991`, `2985 files`,
+`2794 symbols`, `25903 ms`,
+`release relay lease readiness gate index refresh`,
+`p2pReleaseRelayLeaseValidation`,
+`release_relay_lease_relay_url_mismatch`, and `test:p2p 114/114`.

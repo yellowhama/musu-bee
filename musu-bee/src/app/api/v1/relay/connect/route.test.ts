@@ -96,7 +96,7 @@ function rawConnectReq(method: "POST", token: string | null, body: string): Next
   });
 }
 
-async function seedLease(token = "test-token") {
+async function seedLease(token = "test-token", overrides: { relay_url?: string } = {}) {
   const lease = createRelayLease({
     owner_key: p2pControlOwnerKey(token),
     session_id: "session-1",
@@ -105,7 +105,7 @@ async function seedLease(token = "test-token") {
     requested_capability: "remote_command",
     attempted_route_kinds: ["lan", "direct_quic"],
     failure_class: "connect_timeout",
-    relay_url: "wss://relay.musu.pro/api/v1/relay/connect",
+    relay_url: overrides.relay_url ?? "wss://relay.musu.pro/api/v1/relay/connect",
   });
   await appendRelayLease(lease);
   return lease;
@@ -226,6 +226,50 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+  });
+});
+
+test("rejects relay connect preflight when relay lease no longer matches configured relay URL", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const lease = await seedLease("test-token", {
+      relay_url: "wss://stale-relay.musu.pro/api/v1/relay/connect",
+    });
+    const { POST } = await loadModule("post-stale-relay-url");
+    const res = await POST(connectReq("POST", "test-token", {
+      lease_id: lease.lease_id,
+      session_id: lease.session_id,
+      source_node_id: lease.source_node_id,
+      target_node_id: lease.target_node_id,
+    }));
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      relay_connect_accepted: boolean;
+      payload_transported: boolean;
+      lease_verified: boolean;
+      release_connect_lease_ready: boolean;
+      lease_blockers: string[];
+      blockers: string[];
+      lease: {
+        relay_url: string;
+        payload_transited_musu_infra: boolean;
+        default_data_path: boolean;
+      };
+    };
+
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "release_relay_lease_not_connect_ready");
+    assert.equal(body.relay_connect_accepted, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.lease_verified, true);
+    assert.equal(body.release_connect_lease_ready, false);
+    assert.deepEqual(body.lease_blockers, ["release_relay_lease_relay_url_mismatch"]);
+    assert.match(body.blockers.join(","), /release_relay_lease_relay_url_mismatch/);
+    assert.equal(body.lease.relay_url, "wss://stale-relay.musu.pro/api/v1/relay/connect");
+    assert.equal(body.lease.payload_transited_musu_infra, true);
+    assert.equal(body.lease.default_data_path, false);
   });
 });
 

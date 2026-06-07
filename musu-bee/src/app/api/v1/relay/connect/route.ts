@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  publicReleaseRelayLease,
+  releaseRelayLeaseBlockers,
+} from "@/lib/p2pReleaseRelayLeaseValidation";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   RELEASE_GRADE_RELAY_TRANSPORT_KIND,
@@ -116,6 +120,28 @@ function relayConnectPayloadBytesNotAccepted(method: string, forbiddenFields: st
   );
 }
 
+function releaseRelayLeaseNotConnectReady(
+  method: string,
+  lease: Awaited<ReturnType<typeof queryRelayLeases>>[number],
+  leaseBlockers: string[]
+) {
+  const blockers = uniqueBlockers([...relayTransportPreflightBlockers(), ...leaseBlockers]);
+  return NextResponse.json(
+    {
+      ...relayConnectStatus(method, blockers),
+      ok: false,
+      relay_connect_accepted: false,
+      payload_transported: false,
+      lease_verified: true,
+      release_connect_lease_ready: false,
+      error: "release_relay_lease_not_connect_ready",
+      lease_blockers: leaseBlockers,
+      lease: publicReleaseRelayLease(lease),
+    },
+    { status: 409 }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const failedAuth = authorizeP2pControl(req);
   if (failedAuth) {
@@ -211,15 +237,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const leaseBlockers = releaseRelayLeaseBlockers(lease);
+  if (leaseBlockers.length > 0) {
+    return releaseRelayLeaseNotConnectReady(req.method, lease, leaseBlockers);
+  }
+
   return relayConnectBlocked(req.method, {
     lease_verified: true,
-    lease: {
-      lease_id: lease.lease_id,
-      session_id: lease.session_id,
-      source_node_id: lease.source_node_id,
-      target_node_id: lease.target_node_id,
-      route_kind: lease.route_kind,
-      expires_at: lease.expires_at,
-    },
+    release_connect_lease_ready: true,
+    lease: publicReleaseRelayLease(lease),
   });
 }

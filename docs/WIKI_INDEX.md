@@ -6803,4 +6803,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_not_implemented_branch_active`,
   `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, and `case_count=105`.
 
+- 2026-06-07 release relay lease readiness gate:
+  `RELEASE_1_15_0_RC1_RELEASE_RELAY_LEASE_READINESS_GATE_2026_06_07.md`
+  (wiki/990) records shared release relay lease validation for
+  `/api/v1/relay/connect` and `/api/v1/relay/payload`. Search terms should
+  include `GOAL v815`, `wiki/990`, `p2pReleaseRelayLeaseValidation`,
+  `release_relay_lease_relay_url_mismatch`,
+  `release_relay_lease_not_connect_ready`,
+  `release_relay_lease_not_payload_ready`, `test:p2p 114/114`, and
+  `P2P relay contract audit ok=true`.
+
+- 2026-06-07 release relay lease readiness gate index refresh:
+  wiki/991 records the MUSU local index refresh after wiki/990 and GOAL v815.
+  Search terms should include `GOAL v816`, `wiki/991`, `2985 files`,
+  `2794 symbols`, `25903 ms`,
+  `release relay lease readiness gate index refresh`,
+  `p2pReleaseRelayLeaseValidation`,
+  `release_relay_lease_relay_url_mismatch`, and `test:p2p 114/114`.
+
 **End of WIKI_INDEX.md.**

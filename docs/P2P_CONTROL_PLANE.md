@@ -740,3 +740,24 @@ not-implemented branch is active. The release marker can only be set after the
 local runtime removes that branch, moves bytes through `quic_relay_tunnel`, and
 emits `quic_tls_1_3` route/transport/payload delivery proof from the real data
 path.
+
+## 2026-06-07 release relay lease readiness gate
+
+Release connect and release payload preflight now share a lease-readiness gate
+before any future proof can be attached.
+
+Required release lease properties:
+
+- route kind remains `relay`;
+- policy remains `connect_pro_fallback_only`;
+- default data path remains false;
+- payload transit is MUSU relay transit;
+- lease relay URL is WSS;
+- lease relay URL matches the currently configured relay URL;
+- direct-route attempt context is present;
+- direct-route failure class is present.
+
+This prevents stale relay leases and changed relay URLs from becoming valid
+release payload/connect preflight inputs. It still does not implement payload
+transport; `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remain correct.

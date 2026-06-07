@@ -10649,3 +10649,39 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_RELAY_TUNNEL_NOT_IMPLEMENTED_BRANCH_MARKER_GUARD_2026_06_07.md`
   (wiki/988)
+
+## 2026-06-07 Release Relay Lease Readiness Gate
+
+Release relay connect and payload preflight now reject stale or mismatched relay
+leases before future transport proof can be attached.
+
+Changed:
+
+- shared validator:
+  `musu-bee\src\lib\p2pReleaseRelayLeaseValidation.ts`
+- `/api/v1/relay/connect` and `/api/v1/relay/payload` both require the lease to
+  remain bound to the current configured relay URL;
+- both preflight paths reject non-WSS lease URLs, missing direct-route failure
+  context, missing failure class, default-data-path leases, policy mismatches,
+  and leases that do not describe MUSU relay payload transit.
+
+Release status remains No-Go:
+
+- release payload bytes are still rejected;
+- release payload endpoint marker remains false;
+- release tunnel runtime marker remains false;
+- live MUSU.PRO route/transport/payload proof is still missing;
+- second-PC route/CPU/matrix, support mailbox, and Store evidence are still
+  required.
+
+Validation:
+
+- `npm run test:p2p`: `114/114`
+- `npm run typecheck`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELEASE_RELAY_LEASE_READINESS_GATE_2026_06_07.md`
+  (wiki/990)

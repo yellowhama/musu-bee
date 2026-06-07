@@ -1213,3 +1213,23 @@ This does not change the next runtime implementation order: implement the
 release payload endpoint, implement local release relay tunnel byte transit,
 record live MUSU.PRO relay proof, then capture real second-machine route/CPU
 matrix evidence.
+
+## 2026-06-07 Release Relay Lease Readiness Gate
+
+Release relay preflight now validates the relay lease before future transport
+proof can be attached.
+
+Runtime implication:
+
+- stale relay URLs are rejected before connect/payload preflight;
+- non-WSS relay lease URLs are rejected;
+- relay leases without direct-route attempt/failure context are rejected;
+- default-data-path or non-policy leases are rejected.
+
+This reduces the risk that future relay tunnel proof is attached to the wrong
+lease after relay configuration changes. It does not close the relay runtime
+blocker: `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remain in place.
+
+Validation passed P2P tests `114/114`, typecheck, P2P relay contract audit
+`ok=true`/`fail_count=0`, and `git diff --check`.

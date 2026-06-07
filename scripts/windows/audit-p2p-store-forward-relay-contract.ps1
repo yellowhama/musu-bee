@@ -54,6 +54,7 @@ function Test-ContainsAll {
 $policyPath = "musu-bee\src\lib\p2pRelayPolicy.ts"
 $releaseConnectPreflightRoutePath = "musu-bee\src\app\api\v1\relay\connect\route.ts"
 $releaseConnectPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
+$releaseRelayLeaseValidationPath = "musu-bee\src\lib\p2pReleaseRelayLeaseValidation.ts"
 $payloadRoutePath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
 $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts"
 $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
@@ -88,6 +89,7 @@ $packageJsonPath = "musu-bee\package.json"
 $policy = Get-RepoText $policyPath
 $releaseConnectPreflightRoute = Get-RepoText $releaseConnectPreflightRoutePath
 $releaseConnectPreflightRouteTest = Get-RepoText $releaseConnectPreflightRouteTestPath
+$releaseRelayLeaseValidation = Get-RepoText $releaseRelayLeaseValidationPath
 $payloadRoute = Get-RepoText $payloadRoutePath
 $payloadRouteTest = Get-RepoText $payloadRouteTestPath
 $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
@@ -198,6 +200,9 @@ Add-Check `
             "authorizeP2pControl(req)",
             "p2pControlPrincipal(req)",
             "queryRelayLeases",
+            "releaseRelayLeaseBlockers",
+            "release_relay_lease_not_connect_ready",
+            "release_connect_lease_ready",
             "FORBIDDEN_RELAY_CONNECT_BYTE_FIELDS",
             "relay_connect_payload_bytes_not_accepted",
             "relay_connect_accepted: false",
@@ -224,6 +229,9 @@ Add-Check `
             "authorizeP2pControl(req)",
             "p2pControlPrincipal(req)",
             "queryRelayLeases",
+            "releaseRelayLeaseBlockers",
+            "release_relay_lease_not_payload_ready",
+            "release_payload_lease_ready",
             "RELAY_PAYLOAD_PATH",
             "release_payload_metadata",
             "release_payload_endpoint_preflight_wired: true",
@@ -239,6 +247,24 @@ Add-Check `
     ) `
     -Path $releasePayloadPreflightRoutePath `
     -Message "The distinct release payload endpoint validates auth and lease state, but remains fail-closed and never reuses the non-release-grade store-forward queue as release transport."
+
+Add-Check `
+    -Scope "web-release-payload-preflight" `
+    -Name "release relay lease readiness rejects stale relay leases" `
+    -Passed (
+        Test-ContainsAll -Text $releaseRelayLeaseValidation -Needles @(
+            "releaseRelayLeaseBlockers",
+            "publicReleaseRelayLease",
+            "release_relay_lease_relay_url_mismatch",
+            "release_relay_lease_relay_url_not_wss",
+            "release_relay_lease_direct_route_attempt_missing",
+            "release_relay_lease_failure_class_missing",
+            "release_relay_lease_default_data_path",
+            "release_relay_lease_payload_transit_not_musu_infra"
+        )
+    ) `
+    -Path $releaseRelayLeaseValidationPath `
+    -Message "Release connect/payload preflight rejects relay leases that are stale, non-WSS, missing direct-route failure context, or no longer bound to the configured relay URL."
 
 Add-Check `
     -Scope "web-lease-transport" `
@@ -820,6 +846,9 @@ Add-Check `
             "rejects relay connect payload bytes before lease lookup",
             "relay_connect_payload_bytes_not_accepted",
             "rejects unknown relay connect preflight fields",
+            "rejects relay connect preflight when relay lease no longer matches configured relay URL",
+            "release_relay_lease_not_connect_ready",
+            "release_relay_lease_relay_url_mismatch",
             "unexpected_release_field",
             "lease_verified",
             "payload_transported"
@@ -840,6 +869,9 @@ Add-Check `
             "rejects release payload bytes before lease lookup while endpoint is preflight-only",
             "release_payload_bytes_not_accepted",
             "rejects unknown release payload preflight fields",
+            "rejects release payload preflight when relay lease no longer matches configured relay URL",
+            "release_relay_lease_not_payload_ready",
+            "release_relay_lease_relay_url_mismatch",
             "unexpected_release_field",
             "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
             "lease_verified",
