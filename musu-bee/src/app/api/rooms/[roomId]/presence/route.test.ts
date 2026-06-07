@@ -137,7 +137,7 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
             addr: "relay.musu.pro:443",
             observed_at: "2026-06-04T00:00:03Z",
             relay_url: "https://relay.musu.pro/r/lease-pc-a",
-            relay_protocol: "websocket_tunnel",
+            relay_protocol: "quic_relay_tunnel",
           },
         ],
         relay_capable: true,
@@ -205,7 +205,7 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
     assert.equal(body.presence.candidate_endpoints[2]?.nat_type, "restricted_cone");
     assert.equal(body.presence.candidate_endpoints[2]?.nat_observed_by, "stun:musu.pro");
     assert.equal(body.presence.candidate_endpoints[3]?.relay_url, "https://relay.musu.pro/r/lease-pc-a");
-    assert.equal(body.presence.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
+    assert.equal(body.presence.candidate_endpoints[3]?.relay_protocol, "quic_relay_tunnel");
     assert.equal(body.presence.relay_capable, true);
     assert.equal(body.presence.public_key, "pk_source");
     assert.deepEqual(body.presence.capabilities, ["remote_command", "browser"]);
@@ -218,7 +218,7 @@ test("POST upserts bounded room presence and seeds rendezvous candidates", async
     assert.equal(cached?.candidate_endpoints[0]?.addr, "192.168.1.100:8949");
     assert.equal(cached?.candidate_endpoints[2]?.public_addr, "203.0.113.100:8949");
     assert.equal(cached?.candidate_endpoints[2]?.nat_type, "restricted_cone");
-    assert.equal(cached?.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
+    assert.equal(cached?.candidate_endpoints[3]?.relay_protocol, "quic_relay_tunnel");
     assert.deepEqual(cached?.capabilities, ["remote_command", "browser"]);
   });
 });

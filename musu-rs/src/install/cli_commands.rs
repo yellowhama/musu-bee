@@ -299,7 +299,7 @@ pub struct RoomPresencePublishOpts {
     /// Relay fallback URL advertised for this local node.
     #[arg(long)]
     pub relay_url: Option<String>,
-    /// Relay transport protocol: quic_tls_1_3, websocket_tunnel, or store_forward_queue.
+    /// Relay transport protocol: quic_relay_tunnel, quic_tls_1_3, websocket_tunnel, or store_forward_queue.
     #[arg(long)]
     pub relay_protocol: Option<String>,
     /// Mark this node as relay-capable in the room presence record.
@@ -2602,13 +2602,14 @@ fn parse_relay_protocol(value: Option<&str>) -> Result<Option<crate::cloud::Rela
     };
     let normalized = value.to_ascii_lowercase().replace('-', "_");
     match normalized.as_str() {
+        "quic_relay_tunnel" => Ok(Some(crate::cloud::RelayProtocol::QuicRelayTunnel)),
         "quic_tls_1_3" | "quic_tls13" => Ok(Some(crate::cloud::RelayProtocol::QuicTls13)),
         "websocket" | "websocket_tunnel" => Ok(Some(crate::cloud::RelayProtocol::WebsocketTunnel)),
         "store_forward" | "store_forward_queue" => {
             Ok(Some(crate::cloud::RelayProtocol::StoreForwardQueue))
         }
         _ => Err(anyhow!(
-            "relay protocol must be one of: quic_tls_1_3, websocket_tunnel, store_forward_queue"
+            "relay protocol must be one of: quic_relay_tunnel, quic_tls_1_3, websocket_tunnel, store_forward_queue"
         )),
     }
 }
@@ -2742,7 +2743,7 @@ fn room_presence_request_from_opts(
         }
     }
     if let Some(relay_url) = relay_url {
-        let protocol = relay_protocol.unwrap_or(crate::cloud::RelayProtocol::WebsocketTunnel);
+        let protocol = relay_protocol.unwrap_or(crate::cloud::RelayProtocol::QuicRelayTunnel);
         if let Some(candidate) =
             room_presence_relay_candidate_endpoint_from_url(relay_url, protocol, &observed_at)
         {
@@ -5340,7 +5341,7 @@ mod tests {
             nat_type: Some("symmetric".to_string()),
             nat_observed_by: Some("stun:musu.pro".to_string()),
             relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".to_string()),
-            relay_protocol: Some("websocket_tunnel".to_string()),
+            relay_protocol: None,
             relay_capable: false,
             origin: "musu.local-program".to_string(),
         };
@@ -5375,7 +5376,7 @@ mod tests {
         );
         assert!(matches!(
             relay.relay_protocol,
-            Some(crate::cloud::RelayProtocol::WebsocketTunnel)
+            Some(crate::cloud::RelayProtocol::QuicRelayTunnel)
         ));
         assert!(request.relay_capable);
         assert_eq!(candidates.len(), 3);

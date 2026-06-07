@@ -1054,6 +1054,68 @@ function Test-P2pReleaseRelayTunnelRuntimeHookContract {
     return $true
 }
 
+function Test-P2pRelayCandidateProtocolContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$RendezvousStorePath,
+        [Parameter(Mandatory = $true)][string]$RendezvousCandidatesRoutePath,
+        [Parameter(Mandatory = $true)][string]$RoomPresenceRoutePath,
+        [Parameter(Mandatory = $true)][string]$CloudPath,
+        [Parameter(Mandatory = $true)][string]$CliCommandsPath
+    )
+
+    $rendezvousStore = Get-Content -LiteralPath $RendezvousStorePath -Raw
+    $rendezvousCandidatesRoute = Get-Content -LiteralPath $RendezvousCandidatesRoutePath -Raw
+    $roomPresenceRoute = Get-Content -LiteralPath $RoomPresenceRoutePath -Raw
+    $cloud = Get-Content -LiteralPath $CloudPath -Raw
+    $cliCommands = Get-Content -LiteralPath $CliCommandsPath -Raw
+
+    $rendezvousStoreNeedles = @(
+        'export type P2pRelayProtocol',
+        '"quic_relay_tunnel"',
+        'value === "quic_relay_tunnel"'
+    )
+    $webRouteNeedles = @(
+        'relay_protocol: z.enum',
+        '"quic_relay_tunnel"'
+    )
+    $cloudNeedles = @(
+        'pub enum RelayProtocol',
+        'QuicRelayTunnel',
+        'quic_relay_tunnel'
+    )
+    $cliNeedles = @(
+        'Relay transport protocol: quic_relay_tunnel',
+        '"quic_relay_tunnel" => Ok(Some(crate::cloud::RelayProtocol::QuicRelayTunnel))',
+        'unwrap_or(crate::cloud::RelayProtocol::QuicRelayTunnel)',
+        'Some(crate::cloud::RelayProtocol::QuicRelayTunnel)'
+    )
+
+    foreach ($needle in $rendezvousStoreNeedles) {
+        if (-not $rendezvousStore.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $webRouteNeedles) {
+        if (-not $rendezvousCandidatesRoute.Contains($needle)) {
+            return $false
+        }
+        if (-not $roomPresenceRoute.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $cloudNeedles) {
+        if (-not $cloud.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $cliNeedles) {
+        if (-not $cliCommands.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-GoNoGoP2pEnvStatusSurfaceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2507,6 +2569,28 @@ Add-CaseResult `
     -Name "Rust release relay tunnel hook contract is explicit" `
     -Verifier "P2P release relay tunnel runtime source contract" `
     -FixturePath $rustRendezvousPath `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$webRendezvousStorePath = Join-Path $repoRoot "musu-bee\src\lib\p2pRendezvousStore.ts"
+$webRendezvousCandidatesRoutePath = Join-Path $repoRoot "musu-bee\src\app\api\v1\p2p\rendezvous\[id]\candidates\route.ts"
+$webRoomPresenceRoutePath = Join-Path $repoRoot "musu-bee\src\app\api\rooms\[roomId]\presence\route.ts"
+$rustCloudPath = Join-Path $repoRoot "musu-rs\src\cloud\mod.rs"
+$rustCliCommandsPath = Join-Path $repoRoot "musu-rs\src\install\cli_commands.rs"
+$p2pRelayCandidateProtocolContractOk = Test-P2pRelayCandidateProtocolContract `
+    -RendezvousStorePath $webRendezvousStorePath `
+    -RendezvousCandidatesRoutePath $webRendezvousCandidatesRoutePath `
+    -RoomPresenceRoutePath $webRoomPresenceRoutePath `
+    -CloudPath $rustCloudPath `
+    -CliCommandsPath $rustCliCommandsPath
+$invocation = New-StaticVerifierInvocation `
+    -Ok $p2pRelayCandidateProtocolContractOk `
+    -Message "P2P candidate exchange must accept and preserve quic_relay_tunnel in web schemas, Rust DTOs, and local room presence CLI defaults"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "P2P relay candidate protocol is release tunnel kind" `
+    -Verifier "P2P relay candidate protocol source contract" `
+    -FixturePath $webRendezvousStorePath `
     -ShouldPass $true `
     -Invocation $invocation
 

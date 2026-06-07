@@ -1082,3 +1082,19 @@ Remaining stabilization work:
 4. Record live MUSU.PRO route metadata, `quic_tls_1_3` transport proof, and
    payload delivery proof.
 5. Capture second-machine route/CPU/matrix evidence.
+
+## 2026-06-07 P2P Relay Candidate Protocol Alignment
+
+The control-plane candidate metadata now aligns with the release relay
+descriptor:
+
+- web rendezvous and room presence accept `relay_protocol=quic_relay_tunnel`;
+- candidate normalization preserves the value;
+- Rust `RelayProtocol::QuicRelayTunnel` serializes to `quic_relay_tunnel`;
+- `musu room presence publish --relay-url ...` defaults relay candidates to
+  that protocol.
+
+This removes a candidate-metadata mismatch before runtime work begins. It does
+not change the remaining runtime plan: the local release relay tunnel byte path
+and release payload endpoint still need implementation, and live MUSU.PRO
+evidence must prove route metadata, transport proof, and payload delivery proof.

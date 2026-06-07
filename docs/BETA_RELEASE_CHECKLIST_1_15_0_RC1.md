@@ -10466,3 +10466,36 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_TARGET_KIND_2026_06_07.md`
   (wiki/975)
+
+## 2026-06-07 P2P Relay Candidate Protocol Release Kind
+
+The P2P candidate metadata path now matches the relay descriptor target kind:
+
+- web rendezvous candidates and room presence accept
+  `relay_protocol=quic_relay_tunnel`;
+- `normalizeCandidateEndpoints()` preserves that value through the candidate
+  cache;
+- Rust `RelayProtocol` includes `QuicRelayTunnel`;
+- `musu room presence publish --relay-url ...` defaults relay candidates to
+  `QuicRelayTunnel`;
+- CLI legacy parsing still accepts `websocket_tunnel` for compatibility.
+
+Validation:
+
+- P2P tests: `112/112`
+- typecheck passed
+- Rust route candidate tests: `2/2`
+- Rust room presence tests: `5/5`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- release verifier regression: `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+
+Release status remains No-Go. This is metadata alignment only; release payload
+endpoint, local release tunnel runtime, production KV/Upstash, runtime login,
+route metadata, relay transport proof, relay payload delivery proof, second-PC
+evidence, support mailbox, and Store proof remain required.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_CANDIDATE_PROTOCOL_RELEASE_KIND_2026_06_07.md`
+  (wiki/977)

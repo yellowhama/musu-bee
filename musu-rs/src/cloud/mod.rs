@@ -95,6 +95,7 @@ pub enum NatType {
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
 pub enum RelayProtocol {
+    QuicRelayTunnel,
     #[serde(rename = "quic_tls_1_3")]
     QuicTls13,
     WebsocketTunnel,
@@ -1476,7 +1477,7 @@ mod tests {
                 nat_type: Some(NatType::Symmetric),
                 nat_observed_by: Some("stun:musu.pro".into()),
                 relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".into()),
-                relay_protocol: Some(RelayProtocol::WebsocketTunnel),
+                relay_protocol: Some(RelayProtocol::QuicRelayTunnel),
             }],
             relay_capable: false,
             public_key: Some("sha256:cert".into()),
@@ -1507,7 +1508,7 @@ mod tests {
         );
         assert_eq!(
             value["candidate_endpoints"][0]["relay_protocol"],
-            "websocket_tunnel"
+            "quic_relay_tunnel"
         );
         assert_eq!(value["relay_capable"], false);
         assert_eq!(value["capabilities"][0], "bridge_http_forward");

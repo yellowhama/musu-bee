@@ -9,6 +9,24 @@ MUSU has two separate surfaces.
 
 `musu.pro` must not become the default execution server or the default data path. A web request can create a work order or rendezvous session, but the local MUSU programs execute the work and exchange payloads peer-to-peer whenever a direct path is available.
 
+## Relay Candidate Protocol
+
+Relay candidate metadata now accepts and preserves
+`relay_protocol=quic_relay_tunnel` across:
+
+- web rendezvous candidate exchange;
+- room presence publication and candidate-cache seeding;
+- Rust cloud DTO serialization;
+- local `musu room presence publish --relay-url ...` defaults.
+
+`websocket_tunnel` remains a CLI compatibility input, but release/default relay
+candidate metadata is now `quic_relay_tunnel`.
+
+This is not release relay runtime readiness. The live release gate still
+requires production runtime login/storage, a real local `quic_relay_tunnel`
+byte path, `quic_tls_1_3` transport proof, route metadata, transport proof, and
+payload delivery proof.
+
 ## Connection flow
 
 1. A user enters a work order on `musu.pro`.

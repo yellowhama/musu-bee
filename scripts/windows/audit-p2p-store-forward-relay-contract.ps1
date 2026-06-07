@@ -79,6 +79,7 @@ $bridgeRouteEvidencePath = "musu-rs\src\bridge\route_evidence.rs"
 $relayPayloadDrainPath = "musu-rs\src\bridge\handlers\relay_payload.rs"
 $forwardPath = "musu-rs\src\bridge\handlers\forward.rs"
 $cloudPath = "musu-rs\src\cloud\mod.rs"
+$cliCommandsPath = "musu-rs\src\install\cli_commands.rs"
 $statusScriptPath = "scripts\windows\show-musu-pro-p2p-env-status.ps1"
 $p2pEvidenceVerifierPath = "scripts\windows\verify-p2p-control-plane-evidence.ps1"
 $releaseEvidenceVerifierTestPath = "scripts\windows\test-release-evidence-verifiers.ps1"
@@ -112,6 +113,7 @@ $bridgeRouteEvidence = Get-RepoText $bridgeRouteEvidencePath
 $relayPayloadDrain = Get-RepoText $relayPayloadDrainPath
 $forward = Get-RepoText $forwardPath
 $cloud = Get-RepoText $cloudPath
+$cliCommands = Get-RepoText $cliCommandsPath
 $statusScript = Get-RepoText $statusScriptPath
 $p2pEvidenceVerifier = Get-RepoText $p2pEvidenceVerifierPath
 $releaseEvidenceVerifierTest = Get-RepoText $releaseEvidenceVerifierTestPath
@@ -278,6 +280,7 @@ Add-Check `
             "nat_observed_by?: string | null",
             "relay_url?: string | null",
             "relay_protocol?: P2pRelayProtocol | null",
+            '"quic_relay_tunnel"',
             "normalizeCandidateEndpoints(input.candidate_endpoints)"
         )) -and
         (Test-ContainsAll -Text $roomPresenceStore -Needles @(
@@ -289,34 +292,58 @@ Add-Check `
             "nat_type",
             "nat_observed_by",
             "relay_url",
-            "relay_protocol"
+            "relay_protocol",
+            '"quic_relay_tunnel"'
         )) -and
         (Test-ContainsAll -Text $roomPresenceRoute -Needles @(
             "public_addr",
             "nat_type",
             "nat_observed_by",
             "relay_url",
-            "relay_protocol"
+            "relay_protocol",
+            '"quic_relay_tunnel"'
         )) -and
         (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
             "203.0.113.10:8949",
             "symmetric",
             "https://relay.musu.pro/r/lease-pc-a",
+            "quic_relay_tunnel",
             "port_restricted_cone"
         )) -and
         (Test-ContainsAll -Text $roomPresenceRouteTest -Needles @(
             "203.0.113.100:8949",
             "restricted_cone",
-            "https://relay.musu.pro/r/lease-pc-a"
+            "https://relay.musu.pro/r/lease-pc-a",
+            "quic_relay_tunnel"
         )) -and
         (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
             "198.51.100.192:8949",
             "open_internet",
-            "https://relay.musu.pro/r/lease-pc-b"
+            "https://relay.musu.pro/r/lease-pc-b",
+            "quic_relay_tunnel"
         ))
     ) `
     -Path $rendezvousStorePath `
     -Message "musu.pro room presence and rendezvous candidate exchange preserve public endpoint, NAT, and relay descriptors used for P2P path selection."
+
+Add-Check `
+    -Scope "rust-control-plane" `
+    -Name "room presence advertises release relay candidate protocol" `
+    -Passed (
+        (Test-ContainsAll -Text $cloud -Needles @(
+            "pub enum RelayProtocol",
+            "QuicRelayTunnel",
+            "quic_relay_tunnel"
+        )) -and
+        (Test-ContainsAll -Text $cliCommands -Needles @(
+            "Relay transport protocol: quic_relay_tunnel",
+            '"quic_relay_tunnel" => Ok(Some(crate::cloud::RelayProtocol::QuicRelayTunnel))',
+            "unwrap_or(crate::cloud::RelayProtocol::QuicRelayTunnel)",
+            "Some(crate::cloud::RelayProtocol::QuicRelayTunnel)"
+        ))
+    ) `
+    -Path $cliCommandsPath `
+    -Message "Local room presence relay candidates default to the release relay tunnel protocol while preserving legacy protocol parsing."
 
 Add-Check `
     -Scope "web-rendezvous" `

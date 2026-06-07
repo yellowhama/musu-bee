@@ -15179,3 +15179,70 @@ Search terms should include `GOAL v801`, `wiki/976`,
 `P2P relay transport descriptor target kind index refresh`, `2938 files`,
 `2790 symbols`, `14289 ms`, and
 `RELAY_TRANSPORT_KIND=quic_relay_tunnel`.
+
+## 2026-06-07 P2P Relay Candidate Protocol Release Kind (wiki/977)
+
+The P2P relay candidate metadata path now accepts and preserves the same
+release relay kind used by the transport descriptor.
+
+Changed:
+
+- web rendezvous candidate schema accepts `relay_protocol=quic_relay_tunnel`
+- room presence schema accepts `relay_protocol=quic_relay_tunnel`
+- `normalizeCandidateEndpoints()` preserves `quic_relay_tunnel`
+- Rust `RelayProtocol` adds `QuicRelayTunnel`
+- `musu room presence publish --relay-url ...` defaults relay candidates to
+  `QuicRelayTunnel`
+- Rust route candidate metadata tests now preserve `quic_relay_tunnel`
+- P2P relay contract audit and release verifier regressions now source-check
+  this candidate protocol path
+
+Validation passed:
+
+- `npm run test:p2p` `112/112`
+- `npm run typecheck`
+- Rust route candidate tests `2/2`
+- Rust room presence tests `5/5`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- release verifier regression `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+- P2P env status expected `ok=false`
+- `git diff --check`
+
+Release boundary:
+
+- this is candidate metadata alignment only
+- it does not implement the release payload endpoint
+- it does not implement local `quic_relay_tunnel` byte movement
+- it does not close live MUSU.PRO login/storage, route metadata, transport
+  proof, payload delivery proof, second-machine, support mailbox, or Store
+  gates
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_CANDIDATE_PROTOCOL_RELEASE_KIND_2026_06_07.md`
+
+Search terms should include `GOAL v802`, `wiki/977`,
+`P2P relay candidate protocol release kind`,
+`relay_protocol=quic_relay_tunnel`, `RelayProtocol::QuicRelayTunnel`,
+`room presence publish`, `release verifier 105/105`, and
+`source_release_relay_tunnel_runtime_not_implemented`.
+
+## 2026-06-07 P2P Relay Candidate Protocol Index Refresh (wiki/978)
+
+MUSU local indexer was refreshed after wiki/977 and GOAL v802.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2941 files`
+- `2790 symbols`
+- `19972 ms`
+
+Indexed context includes the web/Rust candidate protocol source change,
+release verifier source-contract coverage, canonical report, P2P
+control-plane specs, BETA checklist, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v803`, `wiki/978`,
+`P2P relay candidate protocol index refresh`, `2941 files`,
+`2790 symbols`, `19972 ms`, `relay_protocol=quic_relay_tunnel`, and
+`RelayProtocol::QuicRelayTunnel`.

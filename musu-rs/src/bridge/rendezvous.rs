@@ -1124,7 +1124,7 @@ mod tests {
                     nat_type: None,
                     nat_observed_by: None,
                     relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".to_string()),
-                    relay_protocol: Some(crate::cloud::RelayProtocol::WebsocketTunnel),
+                    relay_protocol: Some(crate::cloud::RelayProtocol::QuicRelayTunnel),
                 },
             ],
         };
@@ -1209,7 +1209,7 @@ mod tests {
                     nat_type: None,
                     nat_observed_by: None,
                     relay_url: Some("wss://relay.musu.pro/api/v1/relay/connect".to_string()),
-                    relay_protocol: Some(crate::cloud::RelayProtocol::WebsocketTunnel),
+                    relay_protocol: Some(crate::cloud::RelayProtocol::QuicRelayTunnel),
                 },
             ],
         };
@@ -1244,7 +1244,7 @@ mod tests {
                 .and_then(|values| values.first())
                 .and_then(|value| value.get("relay_protocol"))
                 .and_then(|value| value.as_str()),
-            Some("websocket_tunnel")
+            Some("quic_relay_tunnel")
         );
     }
 

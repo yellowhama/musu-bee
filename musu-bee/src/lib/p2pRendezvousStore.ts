@@ -16,7 +16,11 @@ export type P2pNatType =
   | "restricted_cone"
   | "port_restricted_cone"
   | "symmetric";
-export type P2pRelayProtocol = "quic_tls_1_3" | "websocket_tunnel" | "store_forward_queue";
+export type P2pRelayProtocol =
+  | "quic_relay_tunnel"
+  | "quic_tls_1_3"
+  | "websocket_tunnel"
+  | "store_forward_queue";
 
 export const P2P_PATH_SELECTION_ORDER: readonly P2pPathSelectionRouteKind[] = [
   "lan",
@@ -239,6 +243,7 @@ function isNatType(value: unknown): value is P2pNatType {
 
 function isRelayProtocol(value: unknown): value is P2pRelayProtocol {
   return (
+    value === "quic_relay_tunnel" ||
     value === "quic_tls_1_3" ||
     value === "websocket_tunnel" ||
     value === "store_forward_queue"

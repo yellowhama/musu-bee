@@ -177,7 +177,7 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
             addr: "relay.musu.pro:443",
             observed_at: "2026-06-01T00:00:03Z",
             relay_url: "https://relay.musu.pro/r/lease-pc-a",
-            relay_protocol: "websocket_tunnel",
+            relay_protocol: "quic_relay_tunnel",
           },
         ],
         relay_capable: true,
@@ -215,7 +215,7 @@ test("updates candidates, approves, and closes the rendezvous", async () => {
     assert.equal(withCandidates.source.candidate_endpoints[2]?.nat_type, "symmetric");
     assert.equal(withCandidates.source.candidate_endpoints[2]?.nat_observed_by, "stun:musu.pro");
     assert.equal(withCandidates.source.candidate_endpoints[3]?.relay_url, "https://relay.musu.pro/r/lease-pc-a");
-    assert.equal(withCandidates.source.candidate_endpoints[3]?.relay_protocol, "websocket_tunnel");
+    assert.equal(withCandidates.source.candidate_endpoints[3]?.relay_protocol, "quic_relay_tunnel");
 
     const { POST: approve } = await loadApprove("flow-approve");
     const approveRes = await approve(postReq({}), ctx(created.session_id));

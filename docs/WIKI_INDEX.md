@@ -6674,4 +6674,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `P2P relay transport descriptor target kind index refresh`, and
   `RELAY_TRANSPORT_KIND=quic_relay_tunnel`.
 
+- 2026-06-07 P2P relay candidate protocol release kind:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_CANDIDATE_PROTOCOL_RELEASE_KIND_2026_06_07.md`
+  (wiki/977) records that web candidate exchange, room presence, Rust DTOs,
+  and the local room presence CLI now accept/preserve/default
+  `relay_protocol=quic_relay_tunnel`. Search terms should include
+  `GOAL v802`, `wiki/977`, `P2P relay candidate protocol release kind`,
+  `RelayProtocol::QuicRelayTunnel`, `room presence publish`,
+  `release verifier 105/105`, and
+  `source_release_relay_tunnel_runtime_not_implemented`.
+
+- 2026-06-07 P2P relay candidate protocol index refresh:
+  wiki/978 records the MUSU local index refresh after wiki/977 and GOAL v802.
+  Search terms should include `GOAL v803`, `wiki/978`, `2941 files`,
+  `2790 symbols`, `19972 ms`,
+  `P2P relay candidate protocol index refresh`,
+  `relay_protocol=quic_relay_tunnel`, and
+  `RelayProtocol::QuicRelayTunnel`.
+
 **End of WIKI_INDEX.md.**

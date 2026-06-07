@@ -30,6 +30,7 @@ const CandidateEndpointSchema = z.object({
   nat_observed_by: z.string().min(1).nullable().optional(),
   relay_url: z.string().min(1).nullable().optional(),
   relay_protocol: z.enum([
+    "quic_relay_tunnel",
     "quic_tls_1_3",
     "websocket_tunnel",
     "store_forward_queue",

@@ -2272,3 +2272,21 @@ Current release blockers are the real implementation/proof gaps: release
 payload endpoint, local release tunnel runtime, KV/Upstash-backed hosted
 storage, packaged runtime login, relay route metadata, relay transport proof,
 and payload delivery proof.
+
+## 2026-06-07 Relay Candidate Protocol Release Kind
+
+Candidate exchange now supports the release relay tunnel kind end to end:
+
+- `P2pRelayProtocol` includes `quic_relay_tunnel`;
+- rendezvous candidate updates accept `relay_protocol=quic_relay_tunnel`;
+- room presence accepts and caches `relay_protocol=quic_relay_tunnel`;
+- Rust `RelayProtocol::QuicRelayTunnel` serializes as `quic_relay_tunnel`;
+- the local room presence CLI defaults relay candidates to
+  `QuicRelayTunnel` when a relay URL is advertised.
+
+This is required so MUSU.PRO can be the room/rendezvous/path-selection control
+plane for local programs without rewriting the local runtime's route semantics.
+It does not make MUSU.PRO the executor and does not prove relay payload
+transport. Release evidence still requires an actual local `quic_relay_tunnel`
+runtime, `quic_tls_1_3` proof, owner-scoped route metadata, relay transport
+proof, and payload delivery proof.

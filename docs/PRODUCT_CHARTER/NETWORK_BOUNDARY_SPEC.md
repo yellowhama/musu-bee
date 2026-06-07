@@ -1444,3 +1444,21 @@ Boundary implications:
 
 Public release still requires live owner-scoped route metadata, transport
 proof, payload delivery proof, and second-machine evidence.
+
+## 2026-06-07 Relay Candidate Protocol Boundary Update
+
+P2P relay candidate metadata now names the release relay tunnel kind:
+
+- web rendezvous candidate exchange accepts `relay_protocol=quic_relay_tunnel`;
+- room presence accepts and seeds `relay_protocol=quic_relay_tunnel`;
+- Rust DTOs serialize `RelayProtocol::QuicRelayTunnel`;
+- local room presence publish defaults relay candidates to the release tunnel
+  kind when `--relay-url` is present.
+
+Boundary implications:
+
+- this is still control-plane metadata, not local execution;
+- MUSU.PRO may coordinate and preserve route candidate metadata;
+- MUSU Desktop must still implement and prove the actual data plane;
+- `quic_relay_tunnel` candidate metadata cannot satisfy release gates without
+  `quic_tls_1_3` transport proof and payload delivery proof.

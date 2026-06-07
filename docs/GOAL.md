@@ -11,6 +11,21 @@ This is the single source of truth for the autonomous /loop. Future Claude sessi
 
 **Current operating pointer (2026-06-01)**: the historical V24/V26 planning chain remains useful context, but the live beta-readiness state is now `1.15.0-rc.1`. Future sessions should start with `docs/RELEASE_1_15_0_RC1_CURRENT_STATUS_AUDIT_2026_05_31.md` (wiki/522), `docs/RELEASE_1_15_0_RC1_RUNTIME_HARDENING_RELAY_ROADMAP_2026_05_31.md` (wiki/523), `docs/MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md` (wiki/525), `docs/MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md` (wiki/526), `docs/RELEASE_1_15_0_RC1_QUAL_AUDIT_NEXT_STEPS_2026_06_01.md` (wiki/527), `docs/BETA_RELEASE_CHECKLIST_1_15_0_RC1.md`, and this file's revision history before resuming roadmap work.
 
+**Latest release-gate update (2026-06-07 v802 / wiki/977)**:
+P2P relay candidate protocol metadata now accepts and defaults to
+`relay_protocol=quic_relay_tunnel` across web rendezvous, room presence, Rust
+DTOs, and local room presence CLI defaults. This is metadata alignment only;
+release payload endpoint, local `quic_relay_tunnel` runtime, production
+KV/Upstash, runtime login, route metadata, transport proof, payload delivery
+proof, second-machine evidence, support mailbox, and Store proof remain open.
+Canonical report:
+`docs\RELEASE_1_15_0_RC1_P2P_RELAY_CANDIDATE_PROTOCOL_RELEASE_KIND_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v803 / wiki/978)**:
+MUSU local indexer synced `2941 files`, `2790 symbols`, `19972 ms` after the
+P2P relay candidate protocol release-kind update, canonical report, specs,
+WIKI/WIKI_INDEX, BETA checklist, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
