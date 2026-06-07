@@ -18813,3 +18813,69 @@ GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v904`, `wiki/1079`, `3103 files`,
 `2891 symbols`, `27609 ms`, `second-PC route reachability verification index`,
 `route_preflight_ready`, and `route_reachability_diagnostic_verified`.
+
+## 2026-06-08 Runtime Idle Repo-Orphan Helper Gate (wiki/1080)
+
+Runtime-idle direct verification now treats repo/workspace orphan `node.exe`
+helpers as a release failure instead of merely diagnostic noise.
+
+What changed:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+  - `Test-RuntimeIdleCpuEvidence` now adds:
+    - `matching process inventory repo-related node helpers`
+  - it fails when:
+    - `matching_process_inventory.node.repo_related_unowned > 0`
+  - this closes the gap where idle CPU evidence could still pass even though a
+    repo-related unowned helper process was present on the same machine.
+
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  - source contract now requires the new check strings
+  - the valid runtime-idle fixture was corrected from
+    `repo_related_unowned=1` to `repo_related_unowned=0`
+  - a new direct verifier replay case now mutates that field back to `1` and
+    expects the direct idle verifier to fail specifically on the new check
+
+Why this matters:
+
+- the product objective already treats repo/workspace orphan helpers as a real
+  process-ownership problem
+- CPU evidence was recording this signal but was not enforcing it at the direct
+  idle release gate
+- after this change, “machine-wide noise” and “repo-related orphan contamination”
+  are no longer treated the same way
+
+Verification:
+
+- parse:
+  - `write-release-go-no-go.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - both `PARSE_OK`
+- full regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=127`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-064828`
+
+Search terms should include `GOAL v905`, `wiki/1080`,
+`repo_related_unowned`, `matching process inventory repo-related node helpers`,
+and `127/127`.
+
+## 2026-06-08 Runtime Idle Repo-Orphan Helper Gate Index (wiki/1081)
+
+MUSU local indexer was refreshed after wiki/1080 and GOAL v905.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2891 symbols`
+- `14339 ms`
+
+Indexed context includes the repo-orphan idle gate hardening, the green
+`127/127` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v906`, `wiki/1081`, `3103 files`,
+`2891 symbols`, `14339 ms`, `runtime idle repo-orphan helper gate index`,
+`repo_related_unowned`, and `127/127`.

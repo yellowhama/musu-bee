@@ -7653,4 +7653,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `27609 ms`, `second-PC route reachability verification index`,
   `route_preflight_ready`, and `route_reachability_diagnostic_verified`.
 
+- 2026-06-08 runtime idle repo-orphan helper gate:
+  wiki/1080 records that `write-release-go-no-go.ps1` now rejects
+  `matching_process_inventory.node.repo_related_unowned > 0`, and that the
+  verifier harness now proves both the corrected valid fixture and the new
+  negative replay. Regression stayed green at `127/127` in
+  `.local-build\release-evidence-verifier-tests\20260608-064828`. Search terms
+  should include `GOAL v905`, `wiki/1080`, `repo_related_unowned`,
+  `matching process inventory repo-related node helpers`, and `127/127`.
+
+- 2026-06-08 runtime idle repo-orphan helper gate index:
+  wiki/1081 records the MUSU local index refresh after wiki/1080 and GOAL
+  v905. Search terms should include `GOAL v906`, `wiki/1081`, `3103 files`,
+  `2891 symbols`, `14339 ms`, `runtime idle repo-orphan helper gate index`,
+  `repo_related_unowned`, and `127/127`.
+
 **End of WIKI_INDEX.md.**

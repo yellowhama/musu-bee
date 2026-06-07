@@ -741,6 +741,10 @@ function Test-RuntimeIdleCpuEvidence {
             if ($matchingInventoryTopLevelPresent) {
                 $nodeMatchingInventoryPresent = Test-ObjectHasPropertyNames -Object $matchingProcessInventoryBuckets.node -Names @("machine_wide", "owned_by_musu_process_tree", "repo_related_unowned", "unowned_other")
                 $checks.Add((New-Check -Name "matching process inventory node buckets" -Status ($(if ($nodeMatchingInventoryPresent) { "pass" } else { "fail" })) -Message ($(if ($nodeMatchingInventoryPresent) { "matching process inventory records machine-wide, MUSU-owned, repo-related, and unowned node helper counts" } else { "matching process inventory is missing node helper ownership buckets" })))) | Out-Null
+                if ($nodeMatchingInventoryPresent) {
+                    $repoRelatedUnownedNodeHelpers = [int]$matchingProcessInventoryBuckets.node.repo_related_unowned
+                    $checks.Add((New-Check -Name "matching process inventory repo-related node helpers" -Status ($(if ($repoRelatedUnownedNodeHelpers -eq 0) { "pass" } else { "fail" })) -Message ($(if ($repoRelatedUnownedNodeHelpers -eq 0) { "matching process inventory records no repo-related unowned node helpers" } else { "matching process inventory records $repoRelatedUnownedNodeHelpers repo-related unowned node helper(s)" })))) | Out-Null
+                }
 
                 $webview2MatchingInventoryPresent = Test-ObjectHasPropertyNames -Object $matchingProcessInventoryBuckets.webview2 -Names @("machine_wide", "owned_by_musu_process_tree", "unowned_other")
                 $checks.Add((New-Check -Name "matching process inventory WebView2 buckets" -Status ($(if ($webview2MatchingInventoryPresent) { "pass" } else { "fail" })) -Message ($(if ($webview2MatchingInventoryPresent) { "matching process inventory records machine-wide, MUSU-owned, and unowned WebView2 helper counts" } else { "matching process inventory is missing WebView2 helper ownership buckets" })))) | Out-Null

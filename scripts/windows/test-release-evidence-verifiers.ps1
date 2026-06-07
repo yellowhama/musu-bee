@@ -882,6 +882,8 @@ function Test-RuntimeIdleCpuGoNoGoMatchingProcessInventoryContract {
         'matching process inventory includes MUSU/node/WebView2/other role buckets',
         'matching process inventory node buckets',
         'matching process inventory records machine-wide, MUSU-owned, repo-related, and unowned node helper counts',
+        'matching process inventory repo-related node helpers',
+        'matching process inventory records no repo-related unowned node helpers',
         'matching process inventory WebView2 buckets',
         'matching process inventory records machine-wide, MUSU-owned, and unowned WebView2 helper counts',
         '$matchingProcessInventoryBuckets = if ($matchingProcessInventory.PSObject.Properties["counts_by_bucket"]) { $matchingProcessInventory.counts_by_bucket } else { $matchingProcessInventory }',
@@ -2445,8 +2447,8 @@ function New-RuntimeIdleCpuEvidence {
             node = [pscustomobject]@{
                 machine_wide = 4
                 owned_by_musu_process_tree = 0
-                repo_related_unowned = 1
-                unowned_other = 3
+                repo_related_unowned = 0
+                unowned_other = 4
             }
             webview2 = [pscustomobject]@{
                 machine_wide = 6
@@ -3276,8 +3278,10 @@ Add-CaseResult `
 
 $runtimeIdleInventoryValidRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-valid-$([guid]::NewGuid().ToString('N')).json"
 $runtimeIdleInventoryMissingRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-missing-inventory-$([guid]::NewGuid().ToString('N')).json"
+$runtimeIdleInventoryRepoOrphanRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-repo-orphan-$([guid]::NewGuid().ToString('N')).json"
 $runtimeIdleInventoryValidPath = $null
 $runtimeIdleInventoryMissingPath = $null
+$runtimeIdleInventoryRepoOrphanPath = $null
 try {
     $runtimeIdleInventoryValidPath = Write-RepoEvidenceFixture `
         -RelativePath $runtimeIdleInventoryValidRelativePath `
@@ -3329,6 +3333,43 @@ try {
         -ShouldPass $true `
         -Invocation $staticInvocation
 
+    $repoOrphanEvidence = New-RuntimeIdleCpuEvidence -Machine "VERIFIER-IDLE-REPO-ORPHAN"
+    $repoOrphanEvidence.matching_process_inventory.node.repo_related_unowned = 1
+    $repoOrphanEvidence.matching_process_inventory.node.unowned_other = 3
+    $runtimeIdleInventoryRepoOrphanPath = Write-RepoEvidenceFixture `
+        -RelativePath $runtimeIdleInventoryRepoOrphanRelativePath `
+        -Object $repoOrphanEvidence
+    $repoOrphanInvocation = Invoke-Verifier -ScriptPath $releaseGoNoGoWriter -Arguments @(
+        "-VerifyRuntimeIdleCpuEvidencePath", $runtimeIdleInventoryRepoOrphanPath,
+        "-Json"
+    )
+    $repoOrphanParsed = if ($null -ne $repoOrphanInvocation -and $repoOrphanInvocation.PSObject.Properties["parsed"]) { $repoOrphanInvocation.parsed } else { $null }
+    $repoOrphanFailure = if ($repoOrphanParsed -and $repoOrphanParsed.PSObject.Properties["checks"]) {
+        @(
+            $repoOrphanParsed.checks |
+                Where-Object { $_.name -eq "matching process inventory repo-related node helpers" -and $_.status -eq "fail" } |
+                Select-Object -First 1
+        )
+    }
+    else {
+        @()
+    }
+    $repoOrphanRegressionOk = (
+        $null -ne $repoOrphanParsed -and
+        -not [bool]$repoOrphanParsed.ok -and
+        @($repoOrphanFailure).Count -gt 0
+    )
+    $staticInvocation = New-StaticVerifierInvocation `
+        -Ok $repoOrphanRegressionOk `
+        -Message "runtime idle CPU direct verification rejects repo-related unowned node helpers in matching_process_inventory"
+    Add-CaseResult `
+        -Cases $cases `
+        -Name "runtime idle CPU direct verifier rejects repo-related unowned node helpers" `
+        -Verifier "write-release-go-no-go.ps1" `
+        -FixturePath $runtimeIdleInventoryRepoOrphanPath `
+        -ShouldPass $true `
+        -Invocation $staticInvocation
+
     $runtimeIdleInventoryNestedRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-nested-inventory-$([guid]::NewGuid().ToString('N')).json"
     $runtimeIdleInventoryNestedPath = $null
     try {
@@ -3370,6 +3411,9 @@ finally {
     }
     if ($runtimeIdleInventoryMissingPath -and (Test-Path -LiteralPath $runtimeIdleInventoryMissingPath)) {
         Remove-Item -LiteralPath $runtimeIdleInventoryMissingPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($runtimeIdleInventoryRepoOrphanPath -and (Test-Path -LiteralPath $runtimeIdleInventoryRepoOrphanPath)) {
+        Remove-Item -LiteralPath $runtimeIdleInventoryRepoOrphanPath -Force -ErrorAction SilentlyContinue
     }
 }
 
