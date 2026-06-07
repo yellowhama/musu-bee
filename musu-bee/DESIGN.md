@@ -50,6 +50,12 @@ MUSU surfaces should prefer operational layouts over marketing layouts:
 Panels are separated by strong borders. Repeated items may use cards, but page
 sections should stay unframed and full-width within the app shell.
 
+AG UI/UX for remote input, local execution, project rooms, device mesh, and
+evidence is specified in
+`docs/AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`. That document extends this
+layout contract without changing the product boundary: MUSU.PRO coordinates,
+while local MUSU Desktop runtimes execute work.
+
 ## 4. Components
 
 - Buttons and controls use black borders, hard shadows, and immediate pressed
@@ -67,3 +73,15 @@ sections should stay unframed and full-width within the app shell.
 - Shadows are hard offset shadows only, e.g. `4px 4px 0 #000000`.
 - Avoid blur shadows, gradients as primary structure, bokeh/orb decoration, and
   hero-scale typography inside dense tool panels.
+
+## 6. Agent Grid UX
+
+Agent Grid surfaces should make execution location explicit on every run:
+
+- input source: MUSU.PRO, desktop, CLI, or room
+- execution device: named local MUSU Desktop runtime
+- route kind: LAN, Tailscale, Direct QUIC, or Relay
+- evidence state: available, missing, stale, or failed
+
+The primary app should lead with Command Center, Project Rooms, Agent Grid,
+Device Mesh, Tasks, Evidence, and Settings rather than a generic chatbot.

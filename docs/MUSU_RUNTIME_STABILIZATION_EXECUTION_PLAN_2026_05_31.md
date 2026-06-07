@@ -884,3 +884,36 @@ Stabilization interpretation:
   `HUGH_SECOND`;
 - next local attribution work should compare desktop-open/WebView2 and
   startup-open activation deltas, then post-route and second-PC evidence.
+
+## 2026-06-07 Startup-Open CPU Attribution
+
+Startup-open CPU attribution was captured by launching the packaged desktop app
+and starting the sample after `2.01s`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-111114-HUGH_SECOND.startup-open.evidence.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-111114-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- source commit `af394058c10d9691cf9d5217ffaa4ed24e4a31f9`
+- targeted verifier `ok=true`, `fail_count=0`
+
+Result:
+
+- `ok=true`, `git_dirty=false`, `60.039s`
+- process roles MUSU `2`, Node `0`, WebView2 `6`
+- process subroles bridge runtime `1`, desktop shell `1`, Node helper `0`,
+  WebView2 helper `6`
+- max one-core CPU MUSU `0`, Node `0`, WebView2 `0.52`
+- bridge runtime CPU `0`, desktop shell CPU `0`
+- hot process count `0`
+- total working set `359.53MB`
+
+Stabilization interpretation:
+
+- startup activation does not reproduce a 20% busy-loop on `HUGH_SECOND`;
+- the only measurable CPU is WebView2 startup cost and it is below the 5%
+  one-core release budget;
+- bridge readiness/health and desktop shell loops remain unimplicated by the
+  current local evidence set;
+- remaining attribution work is focused post-route behavior and second-PC
+  evidence.

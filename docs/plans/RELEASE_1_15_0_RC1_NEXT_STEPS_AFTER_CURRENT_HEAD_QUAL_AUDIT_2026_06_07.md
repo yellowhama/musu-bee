@@ -73,10 +73,18 @@ Canonical report:
    Current recheck evidence:
 
    - `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-102745-HUGH_SECOND.desktop-open.evidence.json`
+   - `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-111114-HUGH_SECOND.startup-open.evidence.json`
 
    Canonical recheck record:
 
    - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_RECHECK_AFTER_OPERATOR_HANDOFF_2026_06_07.md`
+   - `docs\RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_ATTRIBUTION_2026_06_07.md`
+
+   Startup-open attribution now shows app activation sampled after `2.01s`,
+   WebView2 max one-core CPU `0.52`, bridge runtime CPU `0`, desktop shell CPU
+   `0`, Node `0`, hot process count `0`, and verifier `ok=true`. Remaining
+   local attribution before physical second-PC work is focused post-route
+   behavior; it does not replace the required second-PC evidence.
 
 2. Install the current MSIX on the second machine.
 
@@ -137,3 +145,20 @@ Do not solve second-machine or hosted P2P gaps by moving execution into
 MUSU.PRO. MUSU.PRO is the remote input, project room, rendezvous,
 path-selection, relay fallback, and evidence plane. Work runs on local MUSU
 Desktop programs, with relay used only as an explicitly proven fallback.
+
+## AG UI/UX Design Addendum
+
+AG UI/UX is now documented in
+`docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`.
+
+Next design implementation order:
+
+1. Command Center IA and copy
+2. Project Room wireframe for agent meetings, plans, approvals, and artifacts
+3. Device Mesh wireframe for route candidates and local runtime state
+4. Evidence Center wireframe mapped to current release verifiers
+5. Desktop Mini Console wireframe for local runtime status
+
+Design constraint: every run must visibly separate MUSU.PRO input/coordination
+from local MUSU Desktop execution, including execution device, route kind, and
+evidence state.

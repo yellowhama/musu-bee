@@ -10126,3 +10126,95 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2899 files`, `2790 symbols`, `16322 ms`
 - wiki: `wiki/958`
+
+## 2026-06-07 Startup-Open CPU Attribution
+
+Targeted startup-open CPU attribution was captured by launching the packaged
+desktop app and sampling after `2.01s`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-111114-HUGH_SECOND.startup-open.evidence.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-111114-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample duration `60.039s`
+- process roles: MUSU `2`, Node `0`, WebView2 `6`
+- process subroles: bridge runtime `1`, desktop shell `1`, Node helper `0`,
+  WebView2 helper `6`
+- hot processes `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.52`
+- bridge runtime CPU `0`, desktop shell CPU `0`
+- total working set `359.53MB`
+- targeted verifier:
+  `verify-runtime-cpu-scenario-matrix.ps1 -RequiredScenarios startup-open`
+  returned `ok=true`, `fail_count=0`
+
+Release meaning:
+
+- startup activation does not reproduce the reported 20% idle CPU busy-loop on
+  `HUGH_SECOND`
+- this is targeted one-machine attribution evidence, not a replacement for the
+  two-machine desktop-open idle CPU gate or the full five-state runtime matrix
+- public release remains No-Go until second-PC CPU/matrix/route, hosted
+  MUSU.PRO P2P/relay, support mailbox, and Store evidence are complete
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/959)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2904 files`, `2790 symbols`, `19789 ms`
+- wiki: `wiki/960`
+
+## 2026-06-07 AG UI/UX SaaS Landscape Design
+
+AG UI/UX design was documented in
+`docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md` after reviewing similar
+SaaS/agent products.
+
+Research scope:
+
+- OpenAI Codex
+- GitHub Copilot cloud agent
+- Cursor background agents
+- Google Jules
+- Devin
+- Replit Agent
+
+Design result:
+
+- primary IA: Command Center, Project Rooms, Agent Grid, Devices, Tasks,
+  Evidence, Settings
+- every run must show input source, local execution device, route kind, and
+  evidence state
+- Project Rooms become the AI company meeting room surface where local agents
+  coordinate plans, approvals, artifacts, and evidence
+- Device Mesh and Evidence Center are first-class screens so local execution
+  and release blockers are visible
+
+Release meaning:
+
+- this is product/design documentation only;
+- it does not change runtime gates;
+- it reinforces that MUSU.PRO coordinates remote input and rooms while local
+  MUSU Desktop runtimes execute work.
+
+Canonical design:
+
+- `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+  (wiki/961)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2907 files`, `2790 symbols`, `19508 ms`
+- wiki: `wiki/962`

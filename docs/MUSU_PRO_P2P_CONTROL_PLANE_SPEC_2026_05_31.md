@@ -2231,3 +2231,18 @@ control-plane spec.
 - Local MUSU Desktop programs still execute work and own local resources.
 - Public P2P release proof still requires a real second machine and live
   hosted owner-scoped route, transport, and payload delivery proof.
+
+## 2026-06-07 AG UI/UX Control-Plane Note
+
+AG UI/UX design is now a product-facing expression of this spec:
+
+- MUSU.PRO receives remote input and hosts Command Center / Project Room state.
+- Local MUSU Desktop runtimes remain the execution devices.
+- Every run UI must show input source, execution device, route kind, and
+  evidence state.
+- Device Mesh must expose route candidates and fallback reason.
+- Evidence Center must map UI readiness to release verifier outputs.
+
+The design is documented in
+`docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`. It does not relax relay,
+route, second-PC, support, or Store release gates.

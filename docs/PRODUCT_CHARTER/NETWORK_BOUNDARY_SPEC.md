@@ -1409,3 +1409,18 @@ Boundary implications:
   local runtime work;
 - runtime-started CPU proof does not prove hosted P2P route success, relay
   payload transport, or second-machine readiness.
+
+## 2026-06-07 Startup-Open CPU Boundary
+
+Startup-open CPU evidence `20260607-111114-HUGH_SECOND.startup-open` confirms
+that packaged MUSU Desktop activation stays inside the local executor boundary.
+
+Boundary implications:
+
+- the packaged desktop app was launched through
+  `Yellowhama.MUSU_ygcjq669as2b6!MUSU`;
+- the local bridge remained `127.0.0.1:14361`;
+- MUSU-owned WebView2 helpers were local child processes of the desktop shell;
+- MUSU.PRO was not used as a runtime or default payload path;
+- this proof narrows local startup CPU attribution but does not prove hosted
+  P2P route success, relay payload transport, or second-machine readiness.

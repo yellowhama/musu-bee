@@ -6516,4 +6516,37 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
   `desktop_shell 0`, and `bridge CPU 0`.
 
+- 2026-06-07 startup-open CPU attribution:
+  `RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/959) records a targeted startup activation CPU sample that launched
+  the packaged desktop app and sampled after `2.01s`. Search terms should
+  include `GOAL v784`, `wiki/959`,
+  `20260607-111114-HUGH_SECOND.startup-open`,
+  `startup-open CPU attribution`, `WebView2 0.52`, `bridge_runtime 0`,
+  `desktop_shell 0`, `Node 0`, `hot process count 0`, and
+  `working set 359.53MB`.
+
+- 2026-06-07 startup-open CPU attribution index refresh:
+  wiki/960 records the MUSU local index refresh after wiki/959 and GOAL v784.
+  Search terms should include `GOAL v785`, `wiki/960`, `2904 files`,
+  `2790 symbols`, `19789 ms`,
+  `startup-open CPU attribution index refresh`,
+  `20260607-111114-HUGH_SECOND.startup-open`, `WebView2 0.52`,
+  `sample_delay_seconds 2.01`, and `bridge_runtime 0`.
+
+- 2026-06-07 AG UI/UX SaaS landscape design:
+  `AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md` (wiki/961) records the Agent
+  Grid UI/UX design after reviewing official Codex, GitHub Copilot cloud
+  agent, Cursor background agents, Jules, Devin, and Replit Agent docs/pages.
+  Search terms should include `GOAL v786`, `wiki/961`, `AG UI/UX`,
+  `Agent Grid`, `Command Center`, `Project Rooms`, `Device Mesh`,
+  `Evidence Center`, `execution location explicit`, and `SaaS landscape`.
+
+- 2026-06-07 AG UI/UX SaaS landscape design index refresh:
+  wiki/962 records the MUSU local index refresh after wiki/961 and GOAL v786.
+  Search terms should include `GOAL v787`, `wiki/962`, `2907 files`,
+  `2790 symbols`, `19508 ms`, `AG UI/UX index refresh`, `Agent Grid`,
+  `Command Center`, `Project Rooms`, `Device Mesh`, `Evidence Center`, and
+  `SaaS landscape`.
+
 **End of WIKI_INDEX.md.**

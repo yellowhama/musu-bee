@@ -14660,3 +14660,123 @@ Search terms should include `GOAL v783`, `wiki/958`,
 `2790 symbols`, `16322 ms`,
 `20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
 `desktop_shell 0`, and `bridge CPU 0`.
+
+## 2026-06-07 Startup-Open CPU Attribution (wiki/959)
+
+Targeted startup-open CPU attribution was captured from clean source commit
+`af394058c10d9691cf9d5217ffaa4ed24e4a31f9`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-111114-HUGH_SECOND.startup-open.evidence.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-111114-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- startup sample delay `2.01s`
+- sample duration `60.039s`
+- bridge `127.0.0.1:14361`, PID `34860`
+- process roles: MUSU `2`, Node `0`, WebView2 `6`, other `0`
+- process subroles: bridge runtime `1`, desktop shell `1`, Node helper `0`,
+  WebView2 helper `6`
+- hot processes `0`
+- resource budget violations `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0.52`
+- max subrole CPU: bridge runtime `0`, desktop shell `0`,
+  WebView2 helper `0.52`
+- total working set `359.53MB`
+- targeted startup-open matrix verifier `ok=true`, `fail_count=0`
+
+Assessment: startup activation does not reproduce a 20% idle busy-loop on
+`HUGH_SECOND`. The only measurable CPU came from WebView2 helpers and stayed
+far below the 5% one-core release budget. Bridge/runtime readiness and desktop
+shell activation are not implicated by the current bridge-only,
+runtime-started, and startup-open samples. Remaining attribution work is
+post-route behavior and second-PC evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_STARTUP_OPEN_CPU_ATTRIBUTION_2026_06_07.md`
+
+Search terms should include `GOAL v784`, `wiki/959`,
+`startup-open CPU attribution`,
+`20260607-111114-HUGH_SECOND.startup-open`, `sample_delay_seconds 2.01`,
+`WebView2 0.52`, `bridge_runtime 0`, `desktop_shell 0`,
+`Node 0`, and `working set 359.53MB`.
+
+## 2026-06-07 Startup-Open CPU Attribution Index Refresh (wiki/960)
+
+MUSU local indexer was refreshed after wiki/959 and GOAL v784.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2904 files`
+- `2790 symbols`
+- `19789 ms`
+
+Indexed context includes the `20260607-111114-HUGH_SECOND.startup-open`
+evidence JSON, the targeted startup-open matrix, startup-open CPU attribution
+report, BETA checklist, runtime stabilization plan, network boundary spec,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v785`, `wiki/960`,
+`startup-open CPU attribution index refresh`, `2904 files`, `2790 symbols`,
+`19789 ms`, `20260607-111114-HUGH_SECOND.startup-open`,
+`WebView2 0.52`, `sample_delay_seconds 2.01`, and `bridge_runtime 0`.
+
+## 2026-06-07 AG UI/UX SaaS Landscape Design (wiki/961)
+
+AG UI/UX design was added after a same-day landscape check of official product
+and docs surfaces for OpenAI Codex, GitHub Copilot cloud agent, Cursor
+background agents, Google Jules, Devin, and Replit Agent.
+
+Design source:
+
+- `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+
+Existing design-system files now point to it:
+
+- `DESIGN.md`
+- `musu-bee\DESIGN.md`
+
+Design conclusion:
+
+- comparable SaaS products make cloud or remote async execution feel simple;
+- MUSU should make distributed local execution feel just as simple;
+- MUSU must be more explicit than competitors about execution device, route
+  kind, local runtime state, and evidence;
+- every run should show input source, execution device, route kind, and
+  evidence state;
+- primary IA is Command Center, Project Rooms, Agent Grid, Devices, Tasks,
+  Evidence, and Settings;
+- Project Rooms are the "AI company meeting room" where local agents coordinate
+  plans, approvals, artifacts, and evidence.
+
+Product boundary remains unchanged: MUSU.PRO is remote input, project/company
+room, rendezvous, path-selection, relay fallback, and evidence/control plane;
+local MUSU Desktop runtimes execute work.
+
+Search terms should include `GOAL v786`, `wiki/961`, `AG UI/UX`,
+`Agent Grid`, `Command Center`, `Project Rooms`, `Device Mesh`,
+`Evidence Center`, `execution location explicit`, and `SaaS landscape`.
+
+## 2026-06-07 AG UI/UX SaaS Landscape Design Index Refresh (wiki/962)
+
+MUSU local indexer was refreshed after wiki/961 and GOAL v786.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2907 files`
+- `2790 symbols`
+- `19508 ms`
+
+Indexed context includes `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`,
+the root and app `DESIGN.md` updates, MUSU.PRO P2P control-plane spec addendum,
+BETA checklist, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v787`, `wiki/962`,
+`AG UI/UX index refresh`, `2907 files`, `2790 symbols`, `19508 ms`,
+`Agent Grid`, `Command Center`, `Project Rooms`, `Device Mesh`,
+`Evidence Center`, and `SaaS landscape`.
