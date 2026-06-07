@@ -16487,3 +16487,84 @@ Search terms should include `GOAL v839`, `wiki/1014`, `3059 files`,
 `target drain release relay proof wiring index refresh`,
 `relay_transport_proof_from_cloud_proof`, and
 `local fleet control plane addendum`.
+
+## 2026-06-07 Current-Head Local Desktop Evidence After Target-Drain Proof Wiring (wiki/1015)
+
+Fresh packaged local Desktop evidence was refreshed after target-drain release
+relay proof wiring.
+
+Evidence:
+
+- MSIX install: `20260607-201305-HUGH_SECOND`
+- single-machine smoke: `20260607-201412-HUGH_SECOND`
+- process ownership: `20260607-201501-HUGH_SECOND`
+- startup single-instance: `20260607-201501-HUGH_SECOND`
+- desktop single-instance: `20260607-201501-HUGH_SECOND`
+- desktop-open idle CPU:
+  `20260607-202202-HUGH_SECOND.current-head-after-target-proof`
+- five-state runtime CPU matrix:
+  `20260607-202317-HUGH_SECOND.current-head-after-target-proof`
+- target-route diagnostic:
+  `20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof`
+
+Results:
+
+- evidence commit: `573d727f0df3b823e12090a237728ca1d293b00c`
+- local bridge: `http://127.0.0.1:9741`
+- desktop-open idle CPU: `ok=true`, `git_dirty=false`, hot `0`, MUSU `0`,
+  Node `0`, WebView2 max `0.08`, owned WebView2 helpers `6`, working set
+  `367.77MB`
+- full runtime matrix: `ok=true`, `fail_count=0`, `git_dirty=false`, local
+  route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_202317`, hot `0`, MUSU
+  `0`, Node `0`, WebView2 max `0.16`, max working set `367.99MB`
+- target route: `PRIMARY-PC`, `peer 'PRIMARY-PC' not found`,
+  `failure_allowed=true`, target-only verifier `ok=true`
+
+Operator diagnosis:
+
+- `http://127.0.0.1:3001/app` is not the current installed MUSU Desktop
+  runtime.
+- Port `3001` refusal means that separate dashboard/dev surface is absent.
+- The installed local runtime evidence is the packaged bridge on
+  `127.0.0.1:9741`.
+
+Release meaning:
+
+- one-machine local Desktop evidence is healthy;
+- target-route evidence is failed-route CPU diagnostic proof only;
+- successful second-PC route proof, second-PC CPU/matrix, live MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store proof remain open.
+
+Search terms should include `GOAL v840`, `wiki/1015`,
+`current-head local desktop evidence after target-drain proof wiring`,
+`20260607-202202-HUGH_SECOND.current-head-after-target-proof`,
+`20260607-202317-HUGH_SECOND.current-head-after-target-proof`,
+`20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof`,
+`127.0.0.1:9741`, `localhost 3001`, and `PRIMARY-PC peer not found`.
+
+## 2026-06-07 Current-Head Local Desktop Evidence Index Refresh After Target-Drain Proof Wiring (wiki/1016)
+
+MUSU local indexer was refreshed after wiki/1015 and GOAL v840.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3077 files`
+- `2808 symbols`
+- `45011 ms`
+
+Indexed context includes fresh MSIX/single-machine/process/startup/desktop
+evidence, desktop-open idle CPU
+`20260607-202202-HUGH_SECOND.current-head-after-target-proof`, full runtime
+CPU matrix `20260607-202317-HUGH_SECOND.current-head-after-target-proof`,
+target-route diagnostic
+`20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof`,
+the current-head local Desktop evidence report, localhost `3001` versus
+packaged bridge `9741` diagnosis, AG UI/UX localhost diagnostic lock,
+comparable SaaS local-fleet source recheck, BETA checklist, WIKI_INDEX, GOAL,
+and CoS memory.
+
+Search terms should include `GOAL v841`, `wiki/1016`, `3077 files`,
+`2808 symbols`, `45011 ms`,
+`current-head local desktop evidence index refresh after target-drain proof wiring`,
+`localhost 3001`, `127.0.0.1:9741`, and
+`20260607-202317-HUGH_SECOND.current-head-after-target-proof`.

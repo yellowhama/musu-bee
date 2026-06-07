@@ -7034,4 +7034,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_transport_proof_from_cloud_proof`, and
   `local fleet control plane addendum`.
 
+- 2026-06-07 current-head local desktop evidence after target-drain proof
+  wiring:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_TARGET_DRAIN_PROOF_WIRING_2026_06_07.md`
+  (wiki/1015) records the fresh packaged HUGH_SECOND local desktop refresh
+  after the target-drain release relay proof wiring. Search terms should
+  include `GOAL v840`, `wiki/1015`,
+  `current-head local desktop evidence after target-drain proof wiring`,
+  `20260607-202202-HUGH_SECOND.current-head-after-target-proof`,
+  `20260607-202317-HUGH_SECOND.current-head-after-target-proof`,
+  `20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof`,
+  `127.0.0.1:9741`, `localhost 3001`, and `PRIMARY-PC peer not found`.
+
+- 2026-06-07 current-head local desktop evidence index refresh after
+  target-drain proof wiring:
+  wiki/1016 records the MUSU local index refresh after wiki/1015 and GOAL
+  v840. Search terms should include `GOAL v841`, `wiki/1016`, `3077 files`,
+  `2808 symbols`, `45011 ms`,
+  `current-head local desktop evidence index refresh after target-drain proof wiring`,
+  `localhost 3001`, `127.0.0.1:9741`, and
+  `20260607-202317-HUGH_SECOND.current-head-after-target-proof`.
+
 **End of WIKI_INDEX.md.**

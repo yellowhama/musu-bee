@@ -154,6 +154,41 @@ runtime second-PC route attempt `1`, process/startup/desktop single-instance
 all true, and public release still No-Go on multi-device, support mailbox,
 Store, live MUSU.PRO P2P/control-plane, and dirty git until commit.
 
+Current-head local desktop evidence after target-drain release relay proof
+wiring:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_TARGET_DRAIN_PROOF_WIRING_2026_06_07.md`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-202202-HUGH_SECOND.current-head-after-target-proof.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-202317-HUGH_SECOND.current-head-after-target-proof.runtime-cpu-scenario-matrix.json`
+- full runtime CPU matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-202317-HUGH_SECOND.current-head-after-target-proof.runtime-cpu-scenario-matrix.verification.json`
+- target-route diagnostic matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof.runtime-cpu-scenario-matrix.json`
+- target-route diagnostic verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-202934-HUGH_SECOND.current-head-target-route-after-target-proof.post-route-target.verification.json`
+
+The fresh CPU evidence was captured from clean commit
+`573d727f0df3b823e12090a237728ca1d293b00c` with `git_dirty=false` and
+`musu_exe_release_identity=true`. Desktop-open idle CPU passed for `60.052s`
+with hot `0`, MUSU `0`, Node `0`, owned WebView2 max `0.08`, owned WebView2
+helpers `6`, and working set `367.77MB`. The full five-state matrix passed
+with `fail_count=0`, local route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_202317`, hot `0` in every scenario, MUSU
+`0`, Node `0`, owned WebView2 max `0.16`, and max working set `367.99MB`.
+
+The target-route diagnostic used `PRIMARY-PC`, failed with `peer 'PRIMARY-PC'
+not found`, and passed the target-only verifier with
+`AllowFailedPostRouteProbe`. This is valid failed target-route CPU diagnostic
+evidence, not successful multi-device proof.
+
+Operator diagnosis: `http://127.0.0.1:3001/app` is not the current installed
+MUSU Desktop runtime in this evidence set. The packaged local bridge was alive
+at `http://127.0.0.1:9741`; connection refusal on port `3001` means the
+separate dashboard/dev surface for that port is not running.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

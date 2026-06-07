@@ -158,3 +158,41 @@ roadmap:
 3. Represent room/order/run updates as typed events.
 4. Keep device registration and remote control revocable and owner-scoped.
 5. Make evidence missing a first-class run state, not a post-release audit note.
+
+## 2026-06-07 20:35 KST Current Source Recheck
+
+Additional same-turn recheck used current primary/product-owned sources:
+
+- OpenAI Codex repository:
+  `https://github.com/openai/codex`
+- OpenAI Codex launch/agent evidence:
+  `https://openai.com/index/introducing-codex/`
+- OpenAI Codex agent loop:
+  `https://openai.com/index/unrolling-the-codex-agent-loop/`
+- GitHub Copilot cloud agent:
+  `https://code.visualstudio.com/docs/copilot/copilot-cloud-agent`
+- Claude Code on the web:
+  `https://support.claude.com/en/articles/12618689-claude-code-on-the-web`
+- Google Jules:
+  `https://jules.google/`, `https://jules.google/docs/`
+- OpenHands runtime docs:
+  `https://docs.openhands.dev/openhands/usage/v0/runtimes/V0_overview`
+- Replit Agent:
+  `https://docs.replit.com/references/agent/overview`
+- Xians ACP:
+  `https://xians.ai/`
+- ZyAgents:
+  `https://zyagents.com/`
+- Pilox:
+  `https://pilox.dev/`
+
+Updated read:
+
+- cloud coding-agent products validate command-center UX, task progress,
+  review, parallelism, and session logs;
+- self-hosted/local-worker control planes are the closer MUSU execution model;
+- MUSU must keep the strict product split: MUSU.PRO is the control plane and
+  MUSU Desktop is the executor;
+- every remote order must show input surface, execution locus, route, and
+  evidence before it is treated as real work;
+- `localhost` is diagnostic vocabulary only, not public remote-control UX.

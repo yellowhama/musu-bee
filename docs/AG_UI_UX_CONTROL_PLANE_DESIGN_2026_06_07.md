@@ -883,3 +883,27 @@ relay fallback.
 Security rule from tunnel research: remote-control access must be authenticated,
 owner-scoped, expiring, revocable, and audited. Anonymous tunnels are not a
 valid MUSU agent-control path.
+
+## 2026-06-07 20:35 KST Localhost Diagnostic Lock
+
+Fresh local Desktop evidence after target-drain proof wiring adds one UI rule:
+never route the operator to a stale localhost dashboard URL as if it were the
+product.
+
+The product UI must label local addresses by role:
+
+- `Local bridge`: packaged runtime API, currently discovered from
+  `musu up --json` or the bridge registry.
+- `Desktop shell`: installed app/WebView surface.
+- `Dashboard/dev surface`: optional same-machine UI server.
+- `MUSU.PRO`: remote input, room, rendezvous, route policy, evidence, and team
+  control plane.
+
+If `http://127.0.0.1:3001/app` refuses connection while the packaged bridge is
+healthy elsewhere, the UI copy should say the dashboard surface is not running,
+not that MUSU Desktop is offline. In the current evidence set the packaged
+local bridge is `http://127.0.0.1:9741`.
+
+Evidence Center should display the discovered bridge URL and the source of that
+URL. Command Center should not expose raw localhost URLs as the primary remote
+control affordance; use `musu.pro` rooms and device state for remote input.
