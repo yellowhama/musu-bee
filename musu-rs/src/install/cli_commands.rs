@@ -3361,6 +3361,9 @@ struct DoctorBackground {
     auto_update_check_interval_floor_minutes: u64,
     auto_update_health_poll_initial_ms: u64,
     auto_update_health_poll_max_ms: u64,
+    runtime_loop_candidates: Vec<DoctorBackgroundLoopCandidate>,
+    active_runtime_loop_candidate_count: usize,
+    active_runtime_loop_candidate_keys: Vec<&'static str>,
     note: String,
 }
 
@@ -3368,6 +3371,15 @@ struct DoctorBackground {
 struct DoctorBackgroundFeature {
     enabled: bool,
     env_var: Option<&'static str>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorBackgroundLoopCandidate {
+    key: &'static str,
+    label: &'static str,
+    active: bool,
+    activation_mode: &'static str,
     note: String,
 }
 
@@ -4105,6 +4117,121 @@ fn check_background_features(
     } else {
         DoctorLevel::Warn
     };
+    let runtime_loop_candidates = vec![
+        DoctorBackgroundLoopCandidate {
+            key: "mdns_discovery",
+            label: "mDNS discovery",
+            active: mdns_enabled
+                || mdns_ipv6_enabled
+                || mdns_tailscale_enabled
+                || mdns_virtual_enabled,
+            activation_mode: "env-opt-in",
+            note: if mdns_enabled
+                || mdns_ipv6_enabled
+                || mdns_tailscale_enabled
+                || mdns_virtual_enabled
+            {
+                format!(
+                    "MUSU_ENABLE_MDNS={}, ipv6={}, tailscale={}, virtual_interfaces={}.",
+                    mdns_enabled, mdns_ipv6_enabled, mdns_tailscale_enabled, mdns_virtual_enabled
+                )
+            } else {
+                "All mDNS discovery toggles are off.".into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "clipboard_polling",
+            label: "Clipboard polling",
+            active: clipboard_enabled,
+            activation_mode: "env-opt-in",
+            note: if clipboard_enabled {
+                "Clipboard polling is active because MUSU_ENABLE_CLIPBOARD_SYNC is set.".into()
+            } else {
+                "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set.".into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "cloud_heartbeat",
+            label: "Cloud heartbeat",
+            active: account_token_present,
+            activation_mode: "login-gated",
+            note: if account_token_present {
+                format!(
+                    "Account login is present, so cloud registration can heartbeat at {cloud_heartbeat_interval_sec}s."
+                )
+            } else {
+                "No account token is present, so cloud registration heartbeat stays off.".into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "file_sync_watch",
+            label: "File sync/watch",
+            active: file_sync_enabled,
+            activation_mode: "shared-root-config",
+            note: if file_sync_enabled {
+                format!(
+                    "{file_serve_root_count} shared root(s) are configured; watcher/sync can start when the bridge runs."
+                )
+            } else {
+                "No shared roots are configured, so file watcher/sync stays off.".into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "relay_target_polling",
+            label: "Relay target polling",
+            active: relay_payload_poller_enabled,
+            activation_mode: "env-opt-in",
+            note: if relay_payload_poller_enabled {
+                format!(
+                    "Relay target polling is active at {relay_payload_poller_interval_sec}s with empty backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
+                )
+            } else {
+                "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set."
+                    .into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "autonomous_planner",
+            label: "Autonomous planner",
+            active: planner_enabled,
+            activation_mode: "env-opt-in",
+            note: if planner_enabled {
+                format!(
+                    "Planner is active at {planner_interval_sec}s with command timeout capped at {planner_command_timeout_sec}s."
+                )
+            } else {
+                "Planner is off because MUSU_ENABLE_PLANNER is not set.".into()
+            },
+        },
+        DoctorBackgroundLoopCandidate {
+            key: "auto_update_supervisor",
+            label: "Auto-update supervisor",
+            active: auto_update_supervise_enabled,
+            activation_mode: "update-config",
+            note: match &auto_update_config {
+                Ok(Some(config)) if auto_update_supervise_enabled => format!(
+                    "update.toml enables {:?} with {}m cadence and {}-{}ms health polling.",
+                    config.source,
+                    auto_update_check_interval_minutes,
+                    crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
+                    crate::install::auto_update::HEALTH_POLL_MAX_MS
+                ),
+                Ok(Some(_)) => {
+                    "update.toml exists but does not enable a supervising update source.".into()
+                }
+                Ok(None) => "update.toml is absent, so auto-update supervision stays off.".into(),
+                Err(err) => {
+                    format!("update.toml is invalid ({err}), so auto-update supervision stays off.")
+                }
+            },
+        },
+    ];
+    let active_runtime_loop_candidate_keys = runtime_loop_candidates
+        .iter()
+        .filter(|candidate| candidate.active)
+        .map(|candidate| candidate.key)
+        .collect::<Vec<_>>();
+    let active_runtime_loop_candidate_count = active_runtime_loop_candidate_keys.len();
 
     DoctorBackground {
         status,
@@ -4240,6 +4367,9 @@ fn check_background_features(
             crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES,
         auto_update_health_poll_initial_ms: crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
         auto_update_health_poll_max_ms: crate::install::auto_update::HEALTH_POLL_MAX_MS,
+        runtime_loop_candidates,
+        active_runtime_loop_candidate_count,
+        active_runtime_loop_candidate_keys,
         note: if auto_update_config_invalid {
             "Auto-update config is invalid or one or more optional background features are enabled; include them explicitly in idle CPU evidence.".into()
         } else if status == DoctorLevel::Ok {
@@ -4638,6 +4768,23 @@ fn print_doctor_report(report: &DoctorReport) {
         report.background.auto_update_check_interval_minutes,
         report.background.auto_update_health_poll_initial_ms,
         report.background.auto_update_health_poll_max_ms
+    );
+    println!(
+        "  runtime_loop_candidates active={}/{} [{}]",
+        report.background.active_runtime_loop_candidate_count,
+        report.background.runtime_loop_candidates.len(),
+        if report
+            .background
+            .active_runtime_loop_candidate_keys
+            .is_empty()
+        {
+            "none".into()
+        } else {
+            report
+                .background
+                .active_runtime_loop_candidate_keys
+                .join(", ")
+        }
     );
     println!();
     println!("Next steps:");
@@ -5940,6 +6087,9 @@ mod tests {
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
         );
+        assert_eq!(background.runtime_loop_candidates.len(), 7);
+        assert_eq!(background.active_runtime_loop_candidate_count, 0);
+        assert!(background.active_runtime_loop_candidate_keys.is_empty());
     }
 
     #[test]
@@ -5958,6 +6108,11 @@ mod tests {
         assert!(background.clipboard_sync.enabled);
         assert!(background.cloud_registration.enabled);
         assert_eq!(background.cloud_heartbeat_interval_sec, 60);
+        assert_eq!(background.active_runtime_loop_candidate_count, 3);
+        assert_eq!(
+            background.active_runtime_loop_candidate_keys,
+            vec!["mdns_discovery", "clipboard_polling", "cloud_heartbeat"]
+        );
 
         std::env::remove_var("MUSU_ENABLE_MDNS");
         std::env::remove_var("MUSU_ENABLE_CLIPBOARD_SYNC");
@@ -6047,6 +6202,11 @@ mod tests {
         assert_eq!(
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
+        );
+        assert_eq!(background.active_runtime_loop_candidate_count, 1);
+        assert_eq!(
+            background.active_runtime_loop_candidate_keys,
+            vec!["auto_update_supervisor"]
         );
     }
 

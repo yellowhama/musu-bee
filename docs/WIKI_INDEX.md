@@ -7617,4 +7617,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `16681 ms`, `idle busy-loop candidate coverage index`,
   `autonomous planner loop`, and `auto-update supervisor loop`.
 
+- 2026-06-08 doctor runtime loop candidate summary:
+  wiki/1076 records that packaged `musu doctor --json` now emits
+  `runtime_loop_candidates`, `active_runtime_loop_candidate_count`, and
+  `active_runtime_loop_candidate_keys`, that both CPU samplers preserve the
+  summary, and that both CPU verifiers now require the expected packaged
+  runtime candidate-key set plus active-key consistency. Regression stayed
+  green at `126/126` in
+  `.local-build\release-evidence-verifier-tests\20260608-063228`. Search terms
+  should include `GOAL v901`, `wiki/1076`, `runtime_loop_candidates`,
+  `active_runtime_loop_candidate_keys`, `clipboard_polling`, and
+  `doctor background runtime loop candidates`.
+
+- 2026-06-08 doctor runtime loop candidate summary index:
+  wiki/1077 records the MUSU local index refresh after wiki/1076 and GOAL
+  v901. Search terms should include `GOAL v902`, `wiki/1077`, `3103 files`,
+  `2891 symbols`, `15580 ms`, `doctor runtime loop candidate summary index`,
+  `runtime_loop_candidates`, and `active_runtime_loop_candidate_keys`.
+
 **End of WIKI_INDEX.md.**

@@ -95,6 +95,26 @@ function Get-DoctorBackgroundSnapshot {
         $account = $doctor.account
         $bridge = $doctor.bridge
         $dashboard = $doctor.dashboard
+        $runtimeLoopCandidates = @()
+        if ($background -and $background.PSObject.Properties["runtime_loop_candidates"] -and $null -ne $background.runtime_loop_candidates) {
+            $runtimeLoopCandidates = @(
+                $background.runtime_loop_candidates | ForEach-Object {
+                    [pscustomobject]@{
+                        key = if ($_.PSObject.Properties["key"]) { [string]$_.key } else { "" }
+                        label = if ($_.PSObject.Properties["label"]) { [string]$_.label } else { "" }
+                        active = if ($_.PSObject.Properties["active"]) { [bool]$_.active } else { $false }
+                        activation_mode = if ($_.PSObject.Properties["activation_mode"]) { [string]$_.activation_mode } else { "" }
+                        note = if ($_.PSObject.Properties["note"]) { [string]$_.note } else { "" }
+                    }
+                }
+            )
+        }
+        $activeRuntimeLoopCandidateKeys = @(
+            $runtimeLoopCandidates |
+                Where-Object { $_.active } |
+                ForEach-Object { [string]$_.key }
+        )
+        $activeRuntimeLoopCandidateCount = @($activeRuntimeLoopCandidateKeys).Count
 
         return [pscustomobject]@{
             schema = "musu.runtime_cpu_background_snapshot.v1"
@@ -137,6 +157,9 @@ function Get-DoctorBackgroundSnapshot {
                 auto_update_check_interval_floor_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_floor_minutes"]) { [uint64]$background.auto_update_check_interval_floor_minutes } else { 5 }
                 auto_update_health_poll_initial_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_initial_ms"]) { [uint64]$background.auto_update_health_poll_initial_ms } else { 250 }
                 auto_update_health_poll_max_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_max_ms"]) { [uint64]$background.auto_update_health_poll_max_ms } else { 2000 }
+                runtime_loop_candidates = $runtimeLoopCandidates
+                active_runtime_loop_candidate_count = $activeRuntimeLoopCandidateCount
+                active_runtime_loop_candidate_keys = $activeRuntimeLoopCandidateKeys
             }
         }
     }

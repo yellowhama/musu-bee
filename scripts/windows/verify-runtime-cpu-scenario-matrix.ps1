@@ -545,7 +545,10 @@ if ($matrix) {
                 "auto_update_check_interval_minutes",
                 "auto_update_check_interval_floor_minutes",
                 "auto_update_health_poll_initial_ms",
-                "auto_update_health_poll_max_ms"
+                "auto_update_health_poll_max_ms",
+                "runtime_loop_candidates",
+                "active_runtime_loop_candidate_count",
+                "active_runtime_loop_candidate_keys"
             )
             $missingBackgroundFields = @($backgroundFieldNames | Where-Object { -not $doctorBackground.PSObject.Properties[$_] })
             Add-CheckFromCondition "doctor background required fields" ($missingBackgroundFields.Count -eq 0) "doctor background snapshot includes the required loop-attribution fields" "doctor background snapshot is missing fields: $($missingBackgroundFields -join ', ')"
@@ -574,6 +577,44 @@ if ($matrix) {
                 $autoUpdateHealthPollInitialMs = [uint64]$doctorBackground.auto_update_health_poll_initial_ms
                 $autoUpdateHealthPollMaxMs = [uint64]$doctorBackground.auto_update_health_poll_max_ms
                 Add-CheckFromCondition "doctor background auto-update health poll bounds" ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) "doctor background snapshot records bounded auto-update health polling backoff" "doctor background snapshot records invalid auto-update health polling bounds"
+
+                $expectedRuntimeLoopCandidateKeys = @(
+                    "mdns_discovery",
+                    "clipboard_polling",
+                    "cloud_heartbeat",
+                    "file_sync_watch",
+                    "relay_target_polling",
+                    "autonomous_planner",
+                    "auto_update_supervisor"
+                )
+                $runtimeLoopCandidates = @($doctorBackground.runtime_loop_candidates)
+                $runtimeLoopCandidateKeys = @(
+                    $runtimeLoopCandidates |
+                        ForEach-Object {
+                            if ($_.PSObject.Properties["key"]) {
+                                [string]$_.key
+                            }
+                        } |
+                        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                )
+                $missingRuntimeLoopCandidateKeys = @($expectedRuntimeLoopCandidateKeys | Where-Object { $_ -notin $runtimeLoopCandidateKeys })
+                Add-CheckFromCondition "doctor background runtime loop candidates" ($runtimeLoopCandidates.Count -eq $expectedRuntimeLoopCandidateKeys.Count) "doctor background snapshot records the expected runtime loop candidate summary" "doctor background snapshot records $($runtimeLoopCandidates.Count) runtime loop candidates; expected $($expectedRuntimeLoopCandidateKeys.Count)"
+                Add-CheckFromCondition "doctor background runtime loop candidate keys" ($missingRuntimeLoopCandidateKeys.Count -eq 0) "doctor background snapshot includes the expected runtime loop candidate keys" "doctor background snapshot is missing runtime loop candidate keys: $($missingRuntimeLoopCandidateKeys -join ', ')"
+
+                $activeRuntimeLoopCandidateKeys = @(
+                    @($doctorBackground.active_runtime_loop_candidate_keys) |
+                        ForEach-Object { [string]$_ } |
+                        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                )
+                $calculatedActiveRuntimeLoopCandidateKeys = @(
+                    $runtimeLoopCandidates |
+                        Where-Object { $_.PSObject.Properties["active"] -and [bool]$_.active } |
+                        ForEach-Object { [string]$_.key }
+                )
+                $activeRuntimeLoopCandidateKeySetsMatch = (@(Compare-Object -ReferenceObject $activeRuntimeLoopCandidateKeys -DifferenceObject $calculatedActiveRuntimeLoopCandidateKeys).Count -eq 0)
+                $activeRuntimeLoopCandidateCount = [int]$doctorBackground.active_runtime_loop_candidate_count
+                Add-CheckFromCondition "doctor background active runtime loop candidate count" ($activeRuntimeLoopCandidateCount -eq $calculatedActiveRuntimeLoopCandidateKeys.Count) "doctor background snapshot records a consistent active runtime loop candidate count" "doctor background snapshot active runtime loop candidate count $activeRuntimeLoopCandidateCount does not match calculated count $($calculatedActiveRuntimeLoopCandidateKeys.Count)"
+                Add-CheckFromCondition "doctor background active runtime loop candidate keys" $activeRuntimeLoopCandidateKeySetsMatch "doctor background snapshot records the active runtime loop candidate keys" "doctor background snapshot active runtime loop candidate keys do not match the runtime loop candidate summary"
             }
         }
     }

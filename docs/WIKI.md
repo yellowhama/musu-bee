@@ -18651,3 +18651,87 @@ entries.
 Search terms should include `GOAL v900`, `wiki/1075`, `3103 files`,
 `2890 symbols`, `16681 ms`, `idle busy-loop candidate coverage index`,
 `autonomous planner loop`, and `auto-update supervisor loop`.
+
+## 2026-06-08 Doctor Runtime Loop Candidate Summary (wiki/1076)
+
+Packaged `musu doctor --json` now emits a runtime loop candidate summary so
+idle/runtime CPU evidence can say which packaged background loops were actually
+active without reverse-reading scattered booleans and interval fields.
+
+What changed:
+
+- `musu-rs\src\install\cli_commands.rs`
+  - `DoctorBackground` now includes:
+    - `runtime_loop_candidates`
+    - `active_runtime_loop_candidate_count`
+    - `active_runtime_loop_candidate_keys`
+  - candidates currently covered:
+    - `mdns_discovery`
+    - `clipboard_polling`
+    - `cloud_heartbeat`
+    - `file_sync_watch`
+    - `relay_target_polling`
+    - `autonomous_planner`
+    - `auto_update_supervisor`
+  - every candidate carries:
+    - `key`
+    - `label`
+    - `active`
+    - `activation_mode`
+    - `note`
+  - human `musu doctor` output now also prints a one-line
+    `runtime_loop_candidates active=X/Y [...]` summary.
+
+- `scripts\windows\measure-musu-idle-cpu.ps1`
+- `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1`
+  - both samplers now preserve that runtime-loop summary inside
+    `doctor_background_snapshot.background`.
+
+- `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+- `scripts\windows\write-release-go-no-go.ps1`
+  - both gates now require:
+    - the new summary fields
+    - the expected candidate-key set
+    - consistency between
+      `active_runtime_loop_candidate_keys`
+      and per-candidate `active` booleans.
+
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  - fixture/source contracts were updated so the summary cannot silently drop
+    out of either sampler or either verifier.
+
+Verification:
+
+- `cargo fmt`
+- `cargo check --manifest-path F:\workspace\musu-bee\musu-rs\Cargo.toml --bin musu`
+  - passed
+  - existing warnings in `src\bridge\rendezvous.rs` remain unrelated
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=126`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-063228`
+
+Search terms should include `GOAL v901`, `wiki/1076`,
+`runtime_loop_candidates`, `active_runtime_loop_candidate_keys`,
+`clipboard_polling`, `auto_update_supervisor`, and
+`doctor background runtime loop candidates`.
+
+## 2026-06-08 Doctor Runtime Loop Candidate Summary Index (wiki/1077)
+
+MUSU local indexer was refreshed after wiki/1076 and GOAL v901.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2891 symbols`
+- `15580 ms`
+
+Indexed context includes the new `runtime_loop_candidates` doctor summary, the
+sampler/verifier propagation through idle/runtime CPU evidence, the unchanged
+green `126/126` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v902`, `wiki/1077`, `3103 files`,
+`2891 symbols`, `15580 ms`, `doctor runtime loop candidate summary index`,
+`runtime_loop_candidates`, and `active_runtime_loop_candidate_keys`.

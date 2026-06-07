@@ -260,13 +260,18 @@ function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
     $measureNeedles = @(
         'Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json")',
         'schema = "musu.runtime_cpu_background_snapshot.v1"',
+        'runtime_loop_candidates = $runtimeLoopCandidates',
+        'active_runtime_loop_candidate_count = $activeRuntimeLoopCandidateCount',
+        'active_runtime_loop_candidate_keys = $activeRuntimeLoopCandidateKeys',
         'doctor_background_snapshot = $doctorBackgroundSnapshot'
     )
     $verifierNeedles = @(
         'doctor background snapshot present',
         'doctor background snapshot schema',
         'doctor background snapshot command',
-        'doctor background required fields'
+        'doctor background required fields',
+        'doctor background runtime loop candidates',
+        'doctor background active runtime loop candidate keys'
     )
 
     foreach ($needle in $measureNeedles) {
@@ -845,7 +850,9 @@ function Test-RuntimeIdleCpuGoNoGoDoctorSnapshotContract {
         'doctor background planner floor',
         'doctor background planner timeout bounds',
         'doctor background auto-update interval floor',
-        'doctor background auto-update health poll bounds'
+        'doctor background auto-update health poll bounds',
+        'doctor background runtime loop candidates',
+        'doctor background active runtime loop candidate keys'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -2505,6 +2512,17 @@ function New-RuntimeIdleCpuEvidence {
                 auto_update_check_interval_floor_minutes = 5
                 auto_update_health_poll_initial_ms = 250
                 auto_update_health_poll_max_ms = 2000
+                runtime_loop_candidates = @(
+                    [pscustomobject]@{ key = "mdns_discovery"; label = "mDNS discovery"; active = $false; activation_mode = "env-opt-in"; note = "All mDNS discovery toggles are off." },
+                    [pscustomobject]@{ key = "clipboard_polling"; label = "Clipboard polling"; active = $false; activation_mode = "env-opt-in"; note = "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set." },
+                    [pscustomobject]@{ key = "cloud_heartbeat"; label = "Cloud heartbeat"; active = $true; activation_mode = "login-gated"; note = "Account login is present, so cloud registration can heartbeat at 300s." },
+                    [pscustomobject]@{ key = "file_sync_watch"; label = "File sync/watch"; active = $false; activation_mode = "shared-root-config"; note = "No shared roots are configured, so file watcher/sync stays off." },
+                    [pscustomobject]@{ key = "relay_target_polling"; label = "Relay target polling"; active = $false; activation_mode = "env-opt-in"; note = "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set." },
+                    [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
+                    [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." }
+                )
+                active_runtime_loop_candidate_count = 1
+                active_runtime_loop_candidate_keys = @("cloud_heartbeat")
             }
         }
         cpu_attribution = $measurement.cpu_attribution
@@ -2629,6 +2647,17 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
             auto_update_check_interval_floor_minutes = 5
             auto_update_health_poll_initial_ms = 250
             auto_update_health_poll_max_ms = 2000
+            runtime_loop_candidates = @(
+                [pscustomobject]@{ key = "mdns_discovery"; label = "mDNS discovery"; active = $false; activation_mode = "env-opt-in"; note = "All mDNS discovery toggles are off." },
+                [pscustomobject]@{ key = "clipboard_polling"; label = "Clipboard polling"; active = $false; activation_mode = "env-opt-in"; note = "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set." },
+                [pscustomobject]@{ key = "cloud_heartbeat"; label = "Cloud heartbeat"; active = $true; activation_mode = "login-gated"; note = "Account login is present, so cloud registration can heartbeat at 300s." },
+                [pscustomobject]@{ key = "file_sync_watch"; label = "File sync/watch"; active = $false; activation_mode = "shared-root-config"; note = "No shared roots are configured, so file watcher/sync stays off." },
+                [pscustomobject]@{ key = "relay_target_polling"; label = "Relay target polling"; active = $false; activation_mode = "env-opt-in"; note = "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set." },
+                [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
+                [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." }
+            )
+            active_runtime_loop_candidate_count = 1
+            active_runtime_loop_candidate_keys = @("cloud_heartbeat")
         }
     }
     route_probe = [pscustomobject]@{

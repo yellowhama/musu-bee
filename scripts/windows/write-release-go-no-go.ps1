@@ -616,7 +616,10 @@ function Test-RuntimeIdleCpuEvidence {
         "auto_update_check_interval_minutes",
         "auto_update_check_interval_floor_minutes",
         "auto_update_health_poll_initial_ms",
-        "auto_update_health_poll_max_ms"
+        "auto_update_health_poll_max_ms",
+        "runtime_loop_candidates",
+        "active_runtime_loop_candidate_count",
+        "active_runtime_loop_candidate_keys"
     )
     $evidence = $null
     try {
@@ -785,6 +788,44 @@ function Test-RuntimeIdleCpuEvidence {
                     $autoUpdateHealthPollInitialMs = [uint64]$doctorBackground.auto_update_health_poll_initial_ms
                     $autoUpdateHealthPollMaxMs = [uint64]$doctorBackground.auto_update_health_poll_max_ms
                     $checks.Add((New-Check -Name "doctor background auto-update health poll bounds" -Status ($(if ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) { "pass" } else { "fail" })) -Message ($(if ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) { "doctor background snapshot records bounded auto-update health polling backoff" } else { "doctor background snapshot records invalid auto-update health polling bounds" })))) | Out-Null
+
+                    $expectedRuntimeLoopCandidateKeys = @(
+                        "mdns_discovery",
+                        "clipboard_polling",
+                        "cloud_heartbeat",
+                        "file_sync_watch",
+                        "relay_target_polling",
+                        "autonomous_planner",
+                        "auto_update_supervisor"
+                    )
+                    $runtimeLoopCandidates = @($doctorBackground.runtime_loop_candidates)
+                    $runtimeLoopCandidateKeys = @(
+                        $runtimeLoopCandidates |
+                            ForEach-Object {
+                                if ($_.PSObject.Properties["key"]) {
+                                    [string]$_.key
+                                }
+                            } |
+                            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                    )
+                    $missingRuntimeLoopCandidateKeys = @($expectedRuntimeLoopCandidateKeys | Where-Object { $_ -notin $runtimeLoopCandidateKeys })
+                    $checks.Add((New-Check -Name "doctor background runtime loop candidates" -Status ($(if ($runtimeLoopCandidates.Count -eq $expectedRuntimeLoopCandidateKeys.Count) { "pass" } else { "fail" })) -Message ($(if ($runtimeLoopCandidates.Count -eq $expectedRuntimeLoopCandidateKeys.Count) { "doctor background snapshot records the expected runtime loop candidate summary" } else { "doctor background snapshot records $($runtimeLoopCandidates.Count) runtime loop candidates; expected $($expectedRuntimeLoopCandidateKeys.Count)" })))) | Out-Null
+                    $checks.Add((New-Check -Name "doctor background runtime loop candidate keys" -Status ($(if ($missingRuntimeLoopCandidateKeys.Count -eq 0) { "pass" } else { "fail" })) -Message ($(if ($missingRuntimeLoopCandidateKeys.Count -eq 0) { "doctor background snapshot includes the expected runtime loop candidate keys" } else { "doctor background snapshot is missing runtime loop candidate keys: $($missingRuntimeLoopCandidateKeys -join ', ')" })))) | Out-Null
+
+                    $activeRuntimeLoopCandidateKeys = @(
+                        @($doctorBackground.active_runtime_loop_candidate_keys) |
+                            ForEach-Object { [string]$_ } |
+                            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                    )
+                    $calculatedActiveRuntimeLoopCandidateKeys = @(
+                        $runtimeLoopCandidates |
+                            Where-Object { $_.PSObject.Properties["active"] -and [bool]$_.active } |
+                            ForEach-Object { [string]$_.key }
+                    )
+                    $activeRuntimeLoopCandidateKeySetsMatch = (@(Compare-Object -ReferenceObject $activeRuntimeLoopCandidateKeys -DifferenceObject $calculatedActiveRuntimeLoopCandidateKeys).Count -eq 0)
+                    $activeRuntimeLoopCandidateCount = [int]$doctorBackground.active_runtime_loop_candidate_count
+                    $checks.Add((New-Check -Name "doctor background active runtime loop candidate count" -Status ($(if ($activeRuntimeLoopCandidateCount -eq $calculatedActiveRuntimeLoopCandidateKeys.Count) { "pass" } else { "fail" })) -Message ($(if ($activeRuntimeLoopCandidateCount -eq $calculatedActiveRuntimeLoopCandidateKeys.Count) { "doctor background snapshot records a consistent active runtime loop candidate count" } else { "doctor background snapshot active runtime loop candidate count $activeRuntimeLoopCandidateCount does not match calculated count $($calculatedActiveRuntimeLoopCandidateKeys.Count)" })))) | Out-Null
+                    $checks.Add((New-Check -Name "doctor background active runtime loop candidate keys" -Status ($(if ($activeRuntimeLoopCandidateKeySetsMatch) { "pass" } else { "fail" })) -Message ($(if ($activeRuntimeLoopCandidateKeySetsMatch) { "doctor background snapshot records the active runtime loop candidate keys" } else { "doctor background snapshot active runtime loop candidate keys do not match the runtime loop candidate summary" })))) | Out-Null
                 }
             }
         }
