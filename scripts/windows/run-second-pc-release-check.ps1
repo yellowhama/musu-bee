@@ -52,6 +52,13 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "machine" } else { $env:COMPUTERNAME }
 $safeMachine = $machine -replace "[^A-Za-z0-9._-]", "_"
+if (
+    -not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget) -and
+    -not [string]::IsNullOrWhiteSpace($RouteReachabilityTarget) -and
+    $RuntimeCpuRouteTarget -ne $RouteReachabilityTarget
+) {
+    throw "RouteReachabilityTarget must match RuntimeCpuRouteTarget when both are provided. RuntimeCpuRouteTarget='$RuntimeCpuRouteTarget' RouteReachabilityTarget='$RouteReachabilityTarget'"
+}
 $routeReachabilityTargetEffective = if (-not [string]::IsNullOrWhiteSpace($RouteReachabilityTarget)) {
     $RouteReachabilityTarget
 }
@@ -830,6 +837,7 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
     runtime_cpu_scenario_matrix_error = $runtimeCpuScenarioMatrixError
     route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $null } else { $routeReachabilityTargetEffective }
+    route_target_consistency_ok = if ([string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective) -and [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) { $null } else { $true }
     route_reachability_diagnostic_required = [bool](-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective))
     route_reachability_diagnostic_path = if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath } else { $null }
     route_reachability_diagnostic_ok = if ($routeReachabilityDiagnostic) { [bool]$routeReachabilityDiagnostic.conclusion.local_musu_desktop_runtime_healthy } else { $null }
@@ -899,7 +907,9 @@ else {
     "msix_legacy_conflicts_path: $(if ($result.msix_legacy_conflicts_path) { $result.msix_legacy_conflicts_path } else { '<not captured>' })"
     "runtime_idle_cpu_evidence_path: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<skipped>' })"
     "runtime_cpu_scenario_matrix_path: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } elseif ($SkipRuntimeCpuScenarioMatrix) { '<skipped>' } else { '<not captured>' })"
+    "runtime_cpu_route_target: $(if ($result.runtime_cpu_route_target) { $result.runtime_cpu_route_target } else { '<none>' })"
     "route_reachability_diagnostic_path: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } elseif ($SkipRouteReachabilityDiagnostic -or [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { '<skipped>' } else { '<not captured>' })"
+    "route_target_consistency_ok: $(if ($null -ne $result.route_target_consistency_ok) { $result.route_target_consistency_ok } else { '<none>' })"
     "route_reachability_diagnostic_verified: $(if ($null -ne $result.route_reachability_diagnostic_verified) { $result.route_reachability_diagnostic_verified } else { '<skipped>' })"
     "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
     if ($result.runtime_idle_cpu_subrole_summary) {

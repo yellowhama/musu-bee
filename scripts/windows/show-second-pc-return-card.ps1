@@ -291,6 +291,8 @@ $warnings = New-Object System.Collections.Generic.List[string]
 $routeReachabilityDiagnosticRequired = $null
 $routeReachabilityDiagnosticVerified = $null
 $routeReachabilityTarget = $null
+$runtimeCpuRouteTarget = $null
+$routeTargetConsistencyOk = $null
 
 if ([string]$handoff.schema -ne "musu.second_pc_handoff.v1") {
     throw "Unexpected handoff schema in ${HandoffPath}: $($handoff.schema)"
@@ -316,6 +318,18 @@ if (-not [string]::IsNullOrWhiteSpace($releaseCheckPath) -and (Test-Path -Litera
     $routeReachabilityDiagnosticRequired = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"]) { [bool]$releaseCheck.route_reachability_diagnostic_required } else { $null }
     $routeReachabilityDiagnosticVerified = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"] -and $null -ne $releaseCheck.route_reachability_diagnostic_verified) { [bool]$releaseCheck.route_reachability_diagnostic_verified } else { $null }
     $routeReachabilityTarget = if ($releaseCheck.PSObject.Properties["route_reachability_target"]) { [string]$releaseCheck.route_reachability_target } else { "" }
+    $runtimeCpuRouteTarget = if ($releaseCheck.PSObject.Properties["runtime_cpu_route_target"]) { [string]$releaseCheck.runtime_cpu_route_target } else { "" }
+    $routeTargetConsistencyOk = if (
+        [string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget) -and
+        [string]::IsNullOrWhiteSpace($routeReachabilityTarget)
+    ) {
+        $null
+    }
+    else {
+        (-not [string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) -and
+        (-not [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) -and
+        $runtimeCpuRouteTarget -eq $routeReachabilityTarget
+    }
 }
 
 $handoffGitFreshness = if ($currentGitCommit -match "^[0-9a-f]{40}$") {
@@ -337,6 +351,7 @@ if (-not $releaseCheck -and $extractedReturnRoot) {
 $routePreflightReady = [bool](
     ($handoffGitFreshness -and [bool]$handoffGitFreshness.ok) -and
     (($null -eq $releaseCheckGitFreshness) -or [bool]$releaseCheckGitFreshness.ok) -and
+    (($null -eq $routeTargetConsistencyOk) -or [bool]$routeTargetConsistencyOk) -and
     (($routeReachabilityDiagnosticRequired -ne $true) -or ($routeReachabilityDiagnosticVerified -eq $true -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTarget))) -and
     (-not ($handoffGitFreshness -and $releaseCheckGitFreshness) -or ([string]$handoffGitFreshness.git_commit -eq [string]$releaseCheckGitFreshness.git_commit))
 )
@@ -354,6 +369,9 @@ if ($routeReachabilityDiagnosticRequired -eq $true -and [string]::IsNullOrWhiteS
 }
 if ($routeReachabilityDiagnosticRequired -eq $true -and $routeReachabilityDiagnosticVerified -ne $true) {
     $warnings.Add("Second-PC release-check route reachability diagnostic is missing or failed verification.") | Out-Null
+}
+if ($null -ne $routeTargetConsistencyOk -and -not [bool]$routeTargetConsistencyOk) {
+    $warnings.Add("Second-PC release-check runtime CPU route target and route reachability target differ or one side is missing.") | Out-Null
 }
 
 $candidateAddrs = @($handoff.suggested_remote_addrs | ForEach-Object { [string]$_ } | Where-Object {
@@ -424,6 +442,8 @@ $result = [pscustomobject]@{
     handoff_git_freshness = $handoffGitFreshness
     release_check_git_freshness = $releaseCheckGitFreshness
     route_preflight_ready = [bool]$routePreflightReady
+    runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) { $null } else { $runtimeCpuRouteTarget }
+    route_target_consistency_ok = $routeTargetConsistencyOk
     route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired
     route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified
     route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }
@@ -458,6 +478,12 @@ else {
     }
     if ($null -ne $result.route_reachability_diagnostic_required) {
         "route_reachability_diagnostic_required: $($result.route_reachability_diagnostic_required)"
+    }
+    if ($result.runtime_cpu_route_target) {
+        "runtime_cpu_route_target: $($result.runtime_cpu_route_target)"
+    }
+    if ($null -ne $result.route_target_consistency_ok) {
+        "route_target_consistency_ok: $($result.route_target_consistency_ok)"
     }
     if ($null -ne $result.route_reachability_diagnostic_verified) {
         "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"

@@ -7767,4 +7767,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `15398 ms`, `four-scenario one-machine rerun`, and
   `dashboard_url=""`.
 
+- 2026-06-08 second-PC route-target consistency gate:
+  wiki/1092 records that second-PC operator artifacts now reject mixed primary
+  targets across runtime CPU and route reachability evidence. It records the new
+  release-check source fail-fast when `-RuntimeCpuRouteTarget` and
+  `-RouteReachabilityTarget` disagree, the new `route_target_consistency_ok`
+  field on release-check/import/return-card output, the new preflight check
+  `release-check route targets consistent`, and the new primary import gate
+  issue `release_check_route_targets_not_consistent`. Regression stayed green at
+  `134/134` in `.local-build\release-evidence-verifier-tests\20260608-082904`.
+  Search terms should include `GOAL v917`, `wiki/1092`,
+  `route_target_consistency_ok`, `release_check_route_targets_not_consistent`,
+  and `134/134`.
+
+- 2026-06-08 second-PC route-target consistency gate index:
+  wiki/1093 records the MUSU local index refresh after wiki/1092 and GOAL
+  v917. Search terms should include `GOAL v918`, `wiki/1093`, `3104 files`,
+  `2891 symbols`, `20638 ms`, `route_target_consistency_ok`, and
+  `134/134`.
+
 **End of WIKI_INDEX.md.**

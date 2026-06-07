@@ -585,13 +585,36 @@ function Test-SecondPcImportRouteReachabilityContract {
         'RequireNonLocalTarget',
         'AllowSuccessfulReachability',
         'route_reachability_diagnostic_path',
+        'runtime_cpu_route_target',
+        'route_target_consistency_ok',
         'route_reachability_target',
         'route_reachability_diagnostic_required',
         'route_reachability_diagnostic_verified',
         'release_check_route_reachability_diagnostic_verified_missing',
         'release_check_route_reachability_diagnostic_not_verified',
+        'release_check_route_targets_not_consistent',
         'missing_route_reachability_diagnostic',
         'route_reachability_diagnostic_not_verified'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcReleaseCheckRouteTargetConsistencyContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        "RouteReachabilityTarget must match RuntimeCpuRouteTarget when both are provided.",
+        'runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) { $null } else { $RuntimeCpuRouteTarget }',
+        'route_target_consistency_ok = if ([string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective) -and [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) { $null } else { $true }',
+        'runtime_cpu_route_target: $(if ($result.runtime_cpu_route_target) { $result.runtime_cpu_route_target } else { ''<none>'' })',
+        'route_target_consistency_ok: $(if ($null -ne $result.route_target_consistency_ok) { $result.route_target_consistency_ok } else { ''<none>'' })'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -712,9 +735,12 @@ function Test-SecondPcRoutePreflightFreshnessContract {
         'handoff/release-check commit match',
         'release-check route reachability target',
         'release-check route reachability verified',
+        'release-check route targets consistent',
         'release_check_path = $releaseCheckPath',
         'handoff_git_freshness = $handoffGitFreshness',
         'release_check_git_freshness = $releaseCheckGitFreshness',
+        'release_check_runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }',
+        'release_check_route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk',
         'release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired',
         'release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified',
         'return zip is missing second-PC release-check JSON',
@@ -740,11 +766,14 @@ function Test-SecondPcReturnCardFreshnessContract {
         'route_preflight_ready = [bool]$routePreflightReady',
         'handoff_git_freshness = $handoffGitFreshness',
         'release_check_git_freshness = $releaseCheckGitFreshness',
+        'runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) { $null } else { $runtimeCpuRouteTarget }',
+        'route_target_consistency_ok = $routeTargetConsistencyOk',
         'route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired',
         'route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified',
         'route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }',
         'Returned zip does not include second-PC release-check JSON',
         'Second-PC release-check route reachability diagnostic is missing or failed verification.',
+        'Second-PC release-check runtime CPU route target and route reachability target differ or one side is missing.',
         'Second-PC handoff and release-check were captured from different source commits.',
         'release_check: $(if ($result.release_check_path)'
     )
@@ -3204,6 +3233,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcReleaseCheckRouteTargetConsistencyOk = Test-SecondPcReleaseCheckRouteTargetConsistencyContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcReleaseCheckRouteTargetConsistencyOk `
+    -Message "second-PC release check must reject mismatched runtime CPU and route reachability targets and surface target consistency in its summary"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check enforces route target consistency" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcImportSubroleContractOk = Test-SecondPcImportRuntimeCpuSubroleContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportSubroleContractOk `
@@ -3255,7 +3296,7 @@ Add-CaseResult `
 $secondPcImportRouteReachabilityOk = Test-SecondPcImportRouteReachabilityContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportRouteReachabilityOk `
-    -Message "second-PC return import must copy and verify route reachability diagnostics when the release-check required them"
+    -Message "second-PC return import must copy and verify route reachability diagnostics when the release-check required them, and reject mismatched second-PC route targets"
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC return import verifies route reachability diagnostics" `

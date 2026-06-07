@@ -533,6 +533,9 @@ $handoffGitFreshness = New-GitFreshnessSummary -Evidence $handoff -ExpectedGitCo
 
 $releaseCheck = $null
 $releaseCheckGitFreshness = $null
+$releaseCheckRuntimeCpuRouteTarget = ""
+$releaseCheckRouteReachabilityTarget = ""
+$releaseCheckRouteTargetConsistencyOk = $null
 if ($canonicalReleaseCheck) {
     $releaseCheck = Get-Content -LiteralPath $canonicalReleaseCheck -Raw | ConvertFrom-Json
     if ((Get-JsonPropertyString -Object $releaseCheck -Name "schema") -ne "musu.second_pc_release_check.v1") {
@@ -545,6 +548,19 @@ if ($canonicalReleaseCheck) {
         throw "Release-check file reports ok=false: $canonicalReleaseCheck"
     }
     $releaseCheckGitFreshness = New-GitFreshnessSummary -Evidence $releaseCheck -ExpectedGitCommit $currentGitCommit -Label "release_check"
+    $releaseCheckRuntimeCpuRouteTarget = Get-JsonPropertyString -Object $releaseCheck -Name "runtime_cpu_route_target"
+    $releaseCheckRouteReachabilityTarget = Get-JsonPropertyString -Object $releaseCheck -Name "route_reachability_target"
+    $releaseCheckRouteTargetConsistencyOk = if (
+        [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget) -and
+        [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)
+    ) {
+        $null
+    }
+    else {
+        (-not [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) -and
+        (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) -and
+        $releaseCheckRuntimeCpuRouteTarget -eq $releaseCheckRouteReachabilityTarget
+    }
 }
 
 $verifyMsixText = (& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "verify-msix-install-evidence.ps1") -EvidencePath $canonicalMsixEvidence -ExpectedVersion $ExpectedVersion -Json 2>&1 | Out-String).Trim()
@@ -810,6 +826,9 @@ else {
             $releaseGateEvidenceIssues.Add("release_check_route_reachability_diagnostic_not_verified") | Out-Null
         }
     }
+    if ($null -ne $releaseCheckRouteTargetConsistencyOk -and -not [bool]$releaseCheckRouteTargetConsistencyOk) {
+        $releaseGateEvidenceIssues.Add("release_check_route_targets_not_consistent") | Out-Null
+    }
 }
 if (-not $handoffGitFreshness.git_commit_present) {
     $releaseGateEvidenceIssues.Add("handoff_git_commit_missing") | Out-Null
@@ -892,6 +911,8 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
     route_reachability_diagnostic_path = $canonicalRouteReachabilityDiagnostic
+    runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }
+    route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk
     route_reachability_target = $routeReachabilityTarget
     route_reachability_diagnostic_required = [bool]$routeReachabilityDiagnosticRequired
     route_reachability_diagnostic_verified = [bool]$routeReachabilityDiagnosticVerified
@@ -929,7 +950,9 @@ else {
     "runtime_idle_cpu_evidence: $(if ($result.runtime_idle_cpu_evidence_path) { $result.runtime_idle_cpu_evidence_path } else { '<not present>' })"
     "runtime_cpu_scenario_matrix: $(if ($result.runtime_cpu_scenario_matrix_path) { $result.runtime_cpu_scenario_matrix_path } else { '<not present>' })"
     "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
+    "runtime_cpu_route_target: $(if ($result.runtime_cpu_route_target) { $result.runtime_cpu_route_target } else { '<not present>' })"
     "route_reachability_diagnostic: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } else { '<not present>' })"
+    "route_target_consistency_ok: $(if ($null -ne $result.route_target_consistency_ok) { $result.route_target_consistency_ok } else { '<not present>' })"
     "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"
     if ($result.runtime_idle_cpu_subrole_summary) {
         $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole

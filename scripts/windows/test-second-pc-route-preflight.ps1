@@ -42,6 +42,8 @@ $errorText = $null
 $releaseCheckRouteReachabilityRequired = $null
 $releaseCheckRouteReachabilityVerified = $null
 $releaseCheckRouteReachabilityTarget = $null
+$releaseCheckRuntimeCpuRouteTarget = $null
+$releaseCheckRouteTargetConsistencyOk = $null
 
 function Add-Check {
     param(
@@ -527,9 +529,24 @@ try {
         $releaseCheckRouteReachabilityRequired = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"]) { [bool]$releaseCheck.route_reachability_diagnostic_required } else { $null }
         $releaseCheckRouteReachabilityVerified = if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"] -and $null -ne $releaseCheck.route_reachability_diagnostic_verified) { [bool]$releaseCheck.route_reachability_diagnostic_verified } else { $null }
         $releaseCheckRouteReachabilityTarget = if ($releaseCheck.PSObject.Properties["route_reachability_target"]) { [string]$releaseCheck.route_reachability_target } else { "" }
+        $releaseCheckRuntimeCpuRouteTarget = if ($releaseCheck.PSObject.Properties["runtime_cpu_route_target"]) { [string]$releaseCheck.runtime_cpu_route_target } else { "" }
+        $releaseCheckRouteTargetConsistencyOk = if (
+            [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget) -and
+            [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)
+        ) {
+            $null
+        }
+        else {
+            (-not [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) -and
+            (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) -and
+            $releaseCheckRuntimeCpuRouteTarget -eq $releaseCheckRouteReachabilityTarget
+        }
         if ($currentGitCommit -match "^[0-9a-f]{40}$") {
             $releaseCheckGitFreshness = New-GitFreshnessSummary -Evidence $releaseCheck -ExpectedGitCommit $currentGitCommit -Label "release_check"
             Add-CheckFromCondition "release-check freshness" ([bool]$releaseCheckGitFreshness.ok) "release-check commit is current or differs only by status/docs-only changes and release-check git_dirty=false" "release-check commit is stale, invalid, missing, or was captured from a dirty second-PC state"
+        }
+        if ($null -ne $releaseCheckRouteTargetConsistencyOk) {
+            Add-CheckFromCondition "release-check route targets consistent" ([bool]$releaseCheckRouteTargetConsistencyOk) "release-check runtime CPU target matches route reachability target" "release-check runtime CPU target and route reachability target differ or one side is missing"
         }
         if ($releaseCheckRouteReachabilityRequired -eq $true) {
             Add-CheckFromCondition "release-check route reachability target" (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) "release-check records the route reachability target" "release-check is missing route reachability target metadata"
@@ -645,6 +662,8 @@ $result = [pscustomobject]@{
     release_check_path = $releaseCheckPath
     handoff_git_freshness = $handoffGitFreshness
     release_check_git_freshness = $releaseCheckGitFreshness
+    release_check_runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }
+    release_check_route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk
     release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired
     release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified
     release_check_route_reachability_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) { $null } else { $releaseCheckRouteReachabilityTarget }
@@ -680,6 +699,12 @@ else {
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"
     "route_target: $($result.route_target)"
+    if ($result.release_check_runtime_cpu_route_target) {
+        "release_check_runtime_cpu_route_target: $($result.release_check_runtime_cpu_route_target)"
+    }
+    if ($null -ne $result.release_check_route_target_consistency_ok) {
+        "release_check_route_target_consistency_ok: $($result.release_check_route_target_consistency_ok)"
+    }
     ""
     "Next commands"
     "measure_target_route_cpu: $($result.next_commands.measure_target_route_cpu)"

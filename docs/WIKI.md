@@ -19385,3 +19385,100 @@ GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v916`, `wiki/1091`, `3104 files`,
 `2891 symbols`, `15398 ms`, `four-scenario one-machine rerun`, and
 `dashboard_url=""`.
+
+## 2026-06-08 Second-PC Route-Target Consistency Gate (wiki/1092)
+
+Second-PC return artifacts can no longer mix a runtime CPU route target and a
+route reachability target for different machines without failing the operator
+flow.
+
+What changed:
+
+- `scripts\windows\run-second-pc-release-check.ps1`
+  - now throws when both `-RuntimeCpuRouteTarget` and
+    `-RouteReachabilityTarget` are provided but differ
+  - summary now surfaces:
+    - `runtime_cpu_route_target`
+    - `route_target_consistency_ok`
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  - now reads `runtime_cpu_route_target` from returned
+    `musu.second_pc_release_check.v1`
+  - computes `release_check_route_target_consistency_ok`
+  - adds explicit preflight check:
+    - `release-check route targets consistent`
+  - fails when second-PC runtime CPU route target and route reachability target
+    differ or one side is missing
+- `scripts\windows\show-second-pc-return-card.ps1`
+  - now surfaces:
+    - `runtime_cpu_route_target`
+    - `route_target_consistency_ok`
+  - folds that check into `route_preflight_ready`
+  - warns:
+    `Second-PC release-check runtime CPU route target and route reachability target differ or one side is missing.`
+- `scripts\windows\import-second-pc-return.ps1`
+  - now computes the same consistency check on primary HEAD from imported
+    release-check metadata
+  - records:
+    - `runtime_cpu_route_target`
+    - `route_target_consistency_ok`
+  - adds release gate blocker:
+    - `release_check_route_targets_not_consistent`
+
+Why this matters:
+
+- second-PC return zips already had freshness gates and per-artifact direct
+  verification
+- there was still room for a mixed bundle where the second PC measured
+  `post-route` against one primary target but recorded route reachability
+  against another
+- this closes that hole before:
+  - route preflight suggests a route attempt
+  - return card says the zip is route-ready
+  - primary import accepts the bundle for release evidence
+
+Validation:
+
+- parse sanity:
+  - `run-second-pc-release-check.ps1`
+  - `import-second-pc-return.ps1`
+  - `test-second-pc-route-preflight.ps1`
+  - `show-second-pc-return-card.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- `git diff --check`
+  - clean
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=134`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-082904`
+
+Interpretation:
+
+- this does not replace the real second-PC `post-route` evidence requirement
+- it makes the operator path stricter so that when a real second-PC return zip
+  finally arrives, it must at least be internally consistent about which
+  primary target it exercised
+
+Search terms should include `GOAL v917`, `wiki/1092`,
+`route_target_consistency_ok`, `release_check_route_targets_not_consistent`,
+and `134/134`.
+
+## 2026-06-08 Second-PC Route-Target Consistency Gate Index (wiki/1093)
+
+MUSU local indexer was refreshed after wiki/1092 and GOAL v917.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `20638 ms`
+
+Indexed context includes the second-PC route-target consistency gate in release
+check/preflight/return-card/import, the green `134/134` verifier sweep, and the
+updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v918`, `wiki/1093`, `3104 files`,
+`2891 symbols`, `20638 ms`, `route_target_consistency_ok`, and `134/134`.
