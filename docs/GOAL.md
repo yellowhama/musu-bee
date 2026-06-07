@@ -134,6 +134,24 @@ MUSU local indexer synced `3004 files`, `2794 symbols`, `16440 ms` after the
 P2P env root readiness summary code update, release verifier contract update,
 canonical report, BETA checklist, WIKI/WIKI_INDEX, GOAL, and CoS memory.
 
+**Latest CPU matrix refresh (2026-06-07 v825 / wiki/1000)**:
+Fresh current-head HUGH_SECOND packaged runtime CPU matrix evidence was
+captured after the P2P env root readiness JSON update at commit `eb7f5823`.
+Matrix and verifier passed with `ok=true`, `fail_count=0`, `git_dirty=false`,
+hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`,
+owned process count `8`, owned WebView2 helper count `6`, max working set
+`370.51MB`, and route token
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`. The `PRIMARY-PC` route probe
+failed with `peer 'PRIMARY-PC' not found`, so this remains target-route CPU
+diagnostic evidence, not successful multi-device route proof. Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v826 / wiki/1001)**:
+MUSU local indexer synced `3014 files`, `2794 symbols`, `18870 ms` after the
+promoted `20260607-165333-HUGH_SECOND` CPU matrix evidence, verifier output,
+canonical CPU matrix report, BETA checklist, WIKI/WIKI_INDEX, GOAL, and CoS
+memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
@@ -1256,3 +1274,5 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 | 2026-06-07 v822 | Code, docs, evidence, wiki, and CoS memory were indexed after the current-head CPU matrix. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3001 files`, `2794 symbols`, and `15498 ms` after GOAL v821/wiki/996, promoted `20260607-161441-HUGH_SECOND` CPU matrix evidence, verifier output, canonical CPU matrix report, operator SaaS deep dive, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v822`, `wiki/997`, `current-head CPU matrix after operator deep dive index refresh`, `3001 files`, `2794 symbols`, `15498 ms`, `20260607-161441-HUGH_SECOND`, `WebView2 max 0.08`, and `runtime_cpu_scenario_matrix_valid_machine_count=1`. |
 | 2026-06-07 v823 | P2P env status now exposes release relay readiness as root JSON summary fields. | `show-musu-pro-p2p-env-status.ps1 -Json` now surfaces release relay source/runtime readiness at root: `release_relay_payload_endpoint_implemented=false`, `release_payload_preflight_endpoint_implemented=true`, `release_tunnel_payload_endpoint_missing=true`, `release_relay_tunnel_runtime_implemented=false`, `release_relay_tunnel_runtime_source_contract_ready=true`, `release_relay_tunnel_runtime_not_implemented_branch_active=true`, `preview_store_forward_payload_queue_non_release_grade=true`, `relay_transport_kind=quic_relay_tunnel`, and `relay_transport_kind_release_grade=true`. Release verifier now requires those root fields. Validation passed `git diff --check`, P2P env root-field smoke, P2P relay/store-forward contract audit `ok=true`/`fail_count=0`, and release verifier `ok=true`/`case_count=105`/`failed_case_count=0`. No release marker was flipped; public release remains No-Go. Canonical report: `docs\RELEASE_1_15_0_RC1_P2P_ENV_ROOT_READINESS_SUMMARY_2026_06_07.md` (wiki/998). |
 | 2026-06-07 v824 | Code, docs, specs, wiki, and CoS memory were indexed after the P2P env root readiness summary. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3004 files`, `2794 symbols`, and `16440 ms` after GOAL v823/wiki/998, `show-musu-pro-p2p-env-status.ps1`, `test-release-evidence-verifiers.ps1`, the canonical P2P env root readiness report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v824`, `wiki/999`, `P2P env root readiness summary index refresh`, `3004 files`, `2794 symbols`, `16440 ms`, `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and `case_count=105`. |
+| 2026-06-07 v825 | Current-head CPU matrix after the P2P env root readiness update stayed under budget. | Clean HUGH_SECOND packaged runtime CPU matrix evidence `20260607-165333-HUGH_SECOND` from commit `eb7f58231547d73d8f011a3fbbebca90d585f1e9` passed matrix and verifier with `ok=true`, `fail_count=0`, `git_dirty=false`, token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`, hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`, owned process count `8`, owned WebView2 helper count `6`, and max working set `370.51MB`. The `PRIMARY-PC` route probe failed with `peer 'PRIMARY-PC' not found` and was explicitly allowed for target-route CPU diagnostics, so this is not successful multi-device route proof. Canonical report: `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md` (wiki/1000). |
+| 2026-06-07 v826 | Code, docs, evidence, wiki, and CoS memory were indexed after the current-head CPU matrix after P2P env root readiness. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3014 files`, `2794 symbols`, and `18870 ms` after GOAL v825/wiki/1000, promoted `20260607-165333-HUGH_SECOND` CPU matrix evidence, verifier output, canonical CPU matrix report, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v826`, `wiki/1001`, `current-head CPU matrix after P2P env root readiness index refresh`, `3014 files`, `2794 symbols`, `18870 ms`, `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`. |

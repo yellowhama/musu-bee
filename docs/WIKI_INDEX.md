@@ -6899,4 +6899,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
   `case_count=105`.
 
+- 2026-06-07 current-head CPU matrix after P2P env root readiness:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md`
+  (wiki/1000) records clean HUGH_SECOND packaged runtime CPU matrix evidence
+  `20260607-165333-HUGH_SECOND` from commit `eb7f5823`. Search terms should
+  include `GOAL v825`, `wiki/1000`, `20260607-165333-HUGH_SECOND`,
+  `WebView2 max 0.10`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`, and
+  `PRIMARY-PC peer not found`.
+
+- 2026-06-07 current-head CPU matrix after P2P env root readiness index
+  refresh:
+  wiki/1001 records the MUSU local index refresh after wiki/1000 and GOAL
+  v825. Search terms should include `GOAL v826`, `wiki/1001`, `3014 files`,
+  `2794 symbols`, `18870 ms`,
+  `current-head CPU matrix after P2P env root readiness index refresh`,
+  `20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`.
+
 **End of WIKI_INDEX.md.**

@@ -15944,3 +15944,70 @@ Search terms should include `GOAL v824`, `wiki/999`, `3004 files`,
 `P2P env root readiness summary index refresh`,
 `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
 `case_count=105`.
+
+## 2026-06-07 Current-Head CPU Matrix After P2P Env Root Readiness (wiki/1000)
+
+Fresh HUGH_SECOND packaged runtime CPU matrix evidence was captured from clean
+commit `eb7f58231547d73d8f011a3fbbebca90d585f1e9` after the P2P env root
+readiness JSON update.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md`
+
+Evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-165333-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-165333-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+
+Result:
+
+- `ok=true`
+- `fail_count=0`
+- `git_dirty=false`
+- `musu_exe_release_identity=true`
+- hot process count `0`
+- MUSU CPU `0`
+- Node CPU `0`
+- owned WebView2 max `0.10`
+- owned process count `8`
+- owned WebView2 helper count `6`
+- max working set `370.51MB`
+- route target `PRIMARY-PC`
+- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`
+- route probe failed with `peer 'PRIMARY-PC' not found`
+
+Release meaning:
+
+- current HEAD remains under local runtime resource budgets on `HUGH_SECOND`;
+- the failed `PRIMARY-PC` target route was explicitly allowed for diagnostic
+  CPU evidence;
+- this is not successful multi-device route proof;
+- release remains No-Go on second-machine CPU/matrix, real multi-device route
+  evidence, hosted MUSU.PRO relay proof, support mailbox proof, and Store
+  proof.
+
+Search terms should include `GOAL v825`, `wiki/1000`,
+`20260607-165333-HUGH_SECOND`, `eb7f5823`, `WebView2 max 0.10`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260607_165333`, and
+`PRIMARY-PC peer not found`.
+
+## 2026-06-07 Current-Head CPU Matrix After P2P Env Root Readiness Index Refresh (wiki/1001)
+
+MUSU local indexer was refreshed after wiki/1000 and GOAL v825.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3014 files`
+- `2794 symbols`
+- `18870 ms`
+
+Indexed context includes the promoted
+`20260607-165333-HUGH_SECOND` CPU matrix evidence, matrix verifier output,
+canonical CPU matrix report, BETA checklist update, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v826`, `wiki/1001`, `3014 files`,
+`2794 symbols`, `18870 ms`,
+`current-head CPU matrix after P2P env root readiness index refresh`,
+`20260607-165333-HUGH_SECOND`, and `WebView2 max 0.10`.

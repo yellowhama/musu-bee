@@ -136,6 +136,24 @@ Current P2P env root readiness summary:
 - This does not change release status; it makes the remaining relay blockers
   more directly machine-readable.
 
+Current-head CPU matrix after the P2P env root readiness update:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_P2P_ENV_ROOT_READINESS_2026_06_07.md`
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-165333-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-165333-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+
+This matrix was captured from clean commit
+`eb7f58231547d73d8f011a3fbbebca90d585f1e9` with `git_dirty=false` and
+`musu_exe_release_identity=true`. All five scenarios passed with hot process
+count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.10`, owned
+process count `8`, owned WebView2 helper count `6`, and max working set
+`370.51MB`. The `PRIMARY-PC` route probe failed with `peer 'PRIMARY-PC' not
+found`; failure was explicitly allowed for this target-route CPU diagnostic, so
+this is not successful multi-device route proof.
+
 ## Current P2P Candidate Publish Contract
 
 `musu.pro` is the meeting room and rendezvous surface. Each installed local
