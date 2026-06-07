@@ -14600,3 +14600,63 @@ Search terms should include `GOAL v781`, `wiki/956`,
 `bridge-only idle CPU attribution index refresh`, `2895 files`,
 `2790 symbols`, `17851 ms`, `20260607-105020-HUGH_SECOND.bridge-only`,
 `bridge_runtime 1`, `desktop_shell 0`, and `bridge CPU 0`.
+
+## 2026-06-07 Runtime-Started Idle CPU Attribution (wiki/957)
+
+Runtime-started CPU attribution was captured from clean source commit
+`763a85a7880466e2bcccc72b57cdf0d5b9a660b1`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105940-HUGH_SECOND.runtime-started.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- sample duration `60.049s`
+- process count before/after `1/1`
+- process roles: MUSU `1`, Node `0`, WebView2 `0`, other `0`
+- process subroles: bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- hot processes `0`
+- resource budget violations `0`
+- max one-core CPU: MUSU `0`, Node `0`, WebView2 `0`
+- total working set `18.98MB`
+
+Assessment: runtime-started matches bridge-only. The packaged bridge runtime
+does not introduce a startup/readiness/health CPU loop in isolation on
+`HUGH_SECOND`. Remaining attribution work is desktop-open/WebView2 delta,
+startup-open activation delta, post-route behavior, and second-PC evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_STARTED_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+
+Search terms should include `GOAL v782`, `wiki/957`,
+`runtime-started idle CPU attribution`,
+`20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
+`desktop_shell 0`, `WebView2 0`, `Node 0`, `working set 18.98MB`, and
+`bridge CPU 0`.
+
+## 2026-06-07 Runtime-Started Idle CPU Attribution Index Refresh (wiki/958)
+
+MUSU local indexer was refreshed after wiki/957 and GOAL v782.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2899 files`
+- `2790 symbols`
+- `16322 ms`
+
+Indexed context includes the `20260607-105940-HUGH_SECOND.runtime-started`
+evidence JSON, runtime-started idle CPU attribution report, BETA checklist,
+runtime stabilization plan, network boundary spec, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v783`, `wiki/958`,
+`runtime-started idle CPU attribution index refresh`, `2899 files`,
+`2790 symbols`, `16322 ms`,
+`20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
+`desktop_shell 0`, and `bridge CPU 0`.

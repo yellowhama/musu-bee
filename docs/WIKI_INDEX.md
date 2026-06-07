@@ -6500,4 +6500,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-105020-HUGH_SECOND.bridge-only`, `bridge_runtime 1`,
   `desktop_shell 0`, and `bridge CPU 0`.
 
+- 2026-06-07 runtime-started idle CPU attribution:
+  `RELEASE_1_15_0_RC1_RUNTIME_STARTED_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/957) records a clean 60s packaged runtime-started CPU sample with the
+  bridge runtime alone. Search terms should include `GOAL v782`, `wiki/957`,
+  `20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
+  `desktop_shell 0`, `WebView2 0`, `Node 0`, `working set 18.98MB`, and
+  `bridge CPU 0`.
+
+- 2026-06-07 runtime-started idle CPU attribution index refresh:
+  wiki/958 records the MUSU local index refresh after wiki/957 and GOAL v782.
+  Search terms should include `GOAL v783`, `wiki/958`, `2899 files`,
+  `2790 symbols`, `16322 ms`,
+  `runtime-started idle CPU attribution index refresh`,
+  `20260607-105940-HUGH_SECOND.runtime-started`, `bridge_runtime 1`,
+  `desktop_shell 0`, and `bridge CPU 0`.
+
 **End of WIKI_INDEX.md.**

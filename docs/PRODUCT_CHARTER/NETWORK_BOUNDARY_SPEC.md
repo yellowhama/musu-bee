@@ -1394,3 +1394,18 @@ Boundary implications:
   fallback, and evidence/control plane;
 - bridge-only CPU proof does not prove hosted P2P route success or relay
   payload transport.
+
+## 2026-06-07 Runtime-Started CPU Boundary
+
+Runtime-started CPU evidence `20260607-105940-HUGH_SECOND.runtime-started`
+confirms the packaged local bridge can remain healthy before desktop/WebView2
+activation without a localhost developer dashboard.
+
+Boundary implications:
+
+- local runtime startup is part of the MUSU Desktop executor boundary;
+- the release runtime can be healthy as a packaged bridge-only local service;
+- MUSU.PRO may coordinate remote input and rendezvous, but does not execute the
+  local runtime work;
+- runtime-started CPU proof does not prove hosted P2P route success, relay
+  payload transport, or second-machine readiness.

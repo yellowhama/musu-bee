@@ -858,3 +858,29 @@ Stabilization interpretation:
   runtime-started after a clean evidence commit, post-route behavior, and
   second-machine evidence;
 - this does not replace the two-machine idle CPU release gate.
+
+## 2026-06-07 Runtime-Started Idle CPU Attribution
+
+Runtime-started CPU attribution was captured after the clean bridge-only
+evidence commit.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105940-HUGH_SECOND.runtime-started.evidence.json`
+- source commit `763a85a7880466e2bcccc72b57cdf0d5b9a660b1`
+- `ok=true`, `git_dirty=false`
+- bridge `127.0.0.1:14361`, PID `34860`
+- process roles MUSU `1`, Node `0`, WebView2 `0`
+- process subroles bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- bridge runtime max one-core CPU `0`
+- hot process count `0`
+- total working set `18.98MB`
+
+Stabilization interpretation:
+
+- runtime-started matches bridge-only on CPU and process ownership;
+- bridge startup/readiness/health loops are not the active local CPU source on
+  `HUGH_SECOND`;
+- next local attribution work should compare desktop-open/WebView2 and
+  startup-open activation deltas, then post-route and second-PC evidence.

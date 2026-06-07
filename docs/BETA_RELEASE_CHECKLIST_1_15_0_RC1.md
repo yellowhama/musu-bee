@@ -10085,3 +10085,44 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2895 files`, `2790 symbols`, `17851 ms`
 - wiki: `wiki/956`
+
+## 2026-06-07 Runtime-Started Idle CPU Attribution
+
+Runtime-started CPU attribution was captured from clean source commit
+`763a85a7880466e2bcccc72b57cdf0d5b9a660b1`.
+
+Evidence:
+
+- `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-105940-HUGH_SECOND.runtime-started.evidence.json`
+
+Result:
+
+- `ok=true`
+- `git_dirty=false`
+- sample duration `60.049s`
+- bridge `http://127.0.0.1:14361`, PID `34860`
+- process roles: MUSU `1`, Node `0`, WebView2 `0`
+- process subroles: bridge runtime `1`, desktop shell `0`, Node helper `0`,
+  WebView2 helper `0`
+- hot processes `0`
+- max one-core CPU `0`
+- total working set `18.98MB`
+
+Release meaning:
+
+- runtime-started matches bridge-only and does not implicate bridge
+  startup/readiness/health loops as the active local CPU source
+- public release remains No-Go until second-PC CPU/matrix/route, hosted
+  MUSU.PRO P2P/relay, support mailbox, and Store evidence are captured
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_STARTED_IDLE_CPU_ATTRIBUTION_2026_06_07.md`
+  (wiki/957)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2899 files`, `2790 symbols`, `16322 ms`
+- wiki: `wiki/958`
