@@ -645,6 +645,66 @@ function Test-SecondPcImportGitFreshnessContract {
     return $true
 }
 
+function Test-SecondPcRoutePreflightFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        '"second-PC release check from return zip"',
+        'function Test-DocumentationOrStatusOnlyGitDelta',
+        'function New-GitFreshnessSummary',
+        'release-check freshness',
+        'handoff freshness',
+        'handoff/release-check commit match',
+        'release_check_path = $releaseCheckPath',
+        'handoff_git_freshness = $handoffGitFreshness',
+        'release_check_git_freshness = $releaseCheckGitFreshness',
+        'return zip is missing second-PC release-check JSON',
+        'handoff and release-check come from different source commits'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcReturnCardFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        'function Test-DocumentationOrStatusOnlyGitDelta',
+        'function New-GitFreshnessSummary',
+        'route_preflight_ready = [bool]$routePreflightReady',
+        'handoff_git_freshness = $handoffGitFreshness',
+        'release_check_git_freshness = $releaseCheckGitFreshness',
+        'Returned zip does not include second-PC release-check JSON',
+        'Second-PC handoff and release-check were captured from different source commits.',
+        'release_check: $(if ($result.release_check_path)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-FinalOperatorPacketMsixCommonContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    return ($source.Contains('"msix-common.ps1",') -and
+        $source.Contains('"test-second-pc-route-preflight.ps1",') -and
+        $source.Contains('"show-second-pc-return-card.ps1",'))
+}
+
 function Test-SecondPcKitRouteReachabilityContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -3049,6 +3109,42 @@ Add-CaseResult `
     -Name "second-PC return import verifies handoff and release-check freshness" `
     -Verifier "second-PC import source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcRoutePreflightFreshnessOk = Test-SecondPcRoutePreflightFreshnessContract -ScriptPath (Join-Path $scriptDir "test-second-pc-route-preflight.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRoutePreflightFreshnessOk `
+    -Message "second-PC route preflight must freshness-gate returned handoff and release-check metadata before suggesting route attempts"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC route preflight verifies returned git freshness" `
+    -Verifier "second-PC route preflight source contract" `
+    -FixturePath (Join-Path $scriptDir "test-second-pc-route-preflight.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcReturnCardFreshnessOk = Test-SecondPcReturnCardFreshnessContract -ScriptPath (Join-Path $scriptDir "show-second-pc-return-card.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcReturnCardFreshnessOk `
+    -Message "second-PC return card must surface returned handoff/release-check freshness so stale zips are visible before route preflight"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return card surfaces git freshness" `
+    -Verifier "second-PC return card source contract" `
+    -FixturePath (Join-Path $scriptDir "show-second-pc-return-card.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalOperatorPacketMsixCommonOk = Test-FinalOperatorPacketMsixCommonContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketMsixCommonOk `
+    -Message "final operator packet must include msix-common when route preflight and return-card scripts depend on it"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet includes msix-common for route helper scripts" `
+    -Verifier "final operator packet source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

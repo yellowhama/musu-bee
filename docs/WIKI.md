@@ -18502,3 +18502,76 @@ release-check git metadata stamps, the import freshness gate, the green
 Search terms should include `GOAL v896`, `wiki/1071`, `3103 files`,
 `2890 symbols`, `16344 ms`, `second-PC return git freshness index`, `123/123`,
 `kit-build-metadata.json`, and `handoff_release_check_git_commit_mismatch`.
+
+## 2026-06-08 Second-PC Route Preflight Freshness Hardening (wiki/1072)
+
+Second-PC route preflight and the return-card helper now surface stale or mixed
+return zips before the operator wastes a targeted route attempt.
+
+Key changes:
+
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  now sources `msix-common.ps1`, resolves primary current HEAD with
+  `Get-MusuSourceGitState`, loads the returned `*.release-check.json` when
+  present, and applies the same docs/status-only delta freshness policy used by
+  the release gate.
+- The preflight now fails early when:
+  - a provided return zip is missing `*.release-check.json`
+  - handoff commit metadata is missing, invalid, stale, or dirty
+  - release-check commit metadata is missing, invalid, stale, or dirty
+  - handoff and release-check commits disagree
+- `scripts\windows\show-second-pc-return-card.ps1`
+  now exposes:
+  - `handoff_git_freshness`
+  - `release_check_git_freshness`
+  - `route_preflight_ready`
+  - operator warnings when the return zip is stale or mixed
+- `scripts\windows\prepare-final-operator-gate-packet.ps1`
+  now includes `msix-common.ps1` because the route-preflight and return-card
+  reference copies now depend on it.
+
+Why this matters:
+
+- Import already freshness-gated returned evidence, but the operator could
+  still waste time on `musu peer add`, `musu route --explain`, or a targeted
+  post-route CPU matrix using a stale return zip.
+- The new preflight/card step moves that failure closer to the operator entry
+  point, which is the right place to stop a bad second-PC bundle.
+
+Regression:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=126`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-061654`
+- new source-contract cases:
+  - `second-PC route preflight verifies returned git freshness`
+  - `second-PC return card surfaces git freshness`
+  - `final operator packet includes msix-common for route helper scripts`
+
+Search terms should include `GOAL v897`, `wiki/1072`, `126/126`,
+`route_preflight_ready`, `second-PC route preflight verifies returned git freshness`,
+and `second-PC return card surfaces git freshness`.
+
+## 2026-06-08 Second-PC Route Preflight Freshness Index (wiki/1073)
+
+MUSU local indexer was refreshed after wiki/1072 and GOAL v897.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `14915 ms`
+
+Indexed context includes the route-preflight freshness gate, the return-card
+freshness surfacing, the final operator packet `msix-common.ps1` dependency
+update, the green `126/126` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v898`, `wiki/1073`, `3103 files`,
+`2890 symbols`, `14915 ms`, `second-PC route preflight freshness index`,
+`126/126`, and `route_preflight_ready`.

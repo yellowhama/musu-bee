@@ -107,6 +107,7 @@ foreach ($relative in $docsToCopy) {
 }
 
 $scriptsToCopy = @(
+    "msix-common.ps1",
     "release-config.ps1",
     "prepare-support-mailbox-verification-request.ps1",
     "record-support-mailbox-verification.ps1",

@@ -7584,4 +7584,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `123/123`, `kit-build-metadata.json`, and
   `handoff_release_check_git_commit_mismatch`.
 
+- 2026-06-08 second-PC route preflight freshness hardening:
+  wiki/1072 records that `test-second-pc-route-preflight.ps1` now freshness-
+  gates returned handoff/release-check artifacts before peer add / route
+  explain, `show-second-pc-return-card.ps1` now surfaces
+  `route_preflight_ready`, and the final operator packet now includes
+  `msix-common.ps1` for those helper scripts. Regression stayed green at
+  `126/126` in `.local-build\release-evidence-verifier-tests\20260608-061654`.
+  Search terms should include `GOAL v897`, `wiki/1072`, `126/126`,
+  `route_preflight_ready`,
+  `second-PC route preflight verifies returned git freshness`, and
+  `second-PC return card surfaces git freshness`.
+
+- 2026-06-08 second-PC route preflight freshness index:
+  wiki/1073 records the MUSU local index refresh after wiki/1072 and GOAL
+  v897. Search terms should include `GOAL v898`, `wiki/1073`, `3103 files`,
+  `2890 symbols`, `14915 ms`, `second-PC route preflight freshness index`,
+  `126/126`, and `route_preflight_ready`.
+
 **End of WIKI_INDEX.md.**
