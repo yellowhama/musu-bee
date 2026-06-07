@@ -663,3 +663,30 @@ Spec lock:
 - The next physical handoff must regenerate operator packs from current HEAD
   before second-PC testing because the latest recorded operator pack predates
   `078ce1c5`.
+
+## 2026-06-07 relay transport descriptor target kind
+
+Latest source status supersedes older notes that listed the active relay
+descriptor as `websocket_tunnel`.
+
+- `RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+
+Interpretation:
+
+- the source descriptor now names the release relay tunnel kind;
+- relay payload transport is still not wired;
+- the release payload endpoint is still metadata-only preflight;
+- the preview store-forward queue remains non-release-grade;
+- `relayTransportWired()` still cannot pass until the real local release relay
+  tunnel runtime and release payload endpoint are implemented and live
+  route/transport/delivery proof exists.
+
+Current P2P env status therefore removes
+`source_relay_transport_kind_not_release_grade` but remains No-Go on missing
+release payload endpoint, missing release tunnel runtime, preview queue,
+hosted storage/login, route metadata, transport proof, and payload delivery
+proof.

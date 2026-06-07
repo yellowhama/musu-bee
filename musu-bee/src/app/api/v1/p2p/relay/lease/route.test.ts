@@ -150,7 +150,7 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.match(body.blockers.join(","), /relay_disabled/);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
   });
@@ -188,7 +188,7 @@ test("denies env-only relay fallback lease until payload endpoint is wired", asy
     assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });

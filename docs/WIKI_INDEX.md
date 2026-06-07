@@ -6655,4 +6655,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `VS Code Remote Tunnels`, `Cloudflare Tunnel`, `Tailscale DERP`,
   `remote control local execution`, and `no anonymous agent tunnels`.
 
+- 2026-06-07 P2P relay transport descriptor target kind:
+  `RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_TARGET_KIND_2026_06_07.md`
+  (wiki/975) records that `RELAY_TRANSPORT_KIND` now reports
+  `quic_relay_tunnel` while `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` keep relay transport unwired.
+  Search terms should include `GOAL v800`, `wiki/975`,
+  `P2P relay transport descriptor target kind`,
+  `RELAY_TRANSPORT_KIND=quic_relay_tunnel`,
+  `relay_transport_kind_release_grade=true`,
+  `source_release_relay_payload_endpoint_not_implemented`, and
+  `source_release_relay_tunnel_runtime_not_implemented`.
+
+- 2026-06-07 P2P relay transport descriptor target kind index refresh:
+  wiki/976 records the MUSU local index refresh after wiki/975 and GOAL v800.
+  Search terms should include `GOAL v801`, `wiki/976`, `2938 files`,
+  `2790 symbols`, `14289 ms`,
+  `P2P relay transport descriptor target kind index refresh`, and
+  `RELAY_TRANSPORT_KIND=quic_relay_tunnel`.
+
 **End of WIKI_INDEX.md.**

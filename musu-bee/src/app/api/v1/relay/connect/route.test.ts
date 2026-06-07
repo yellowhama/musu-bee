@@ -160,7 +160,7 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.equal(body.ok, false);
     assert.equal(body.method, "GET");
     assert.equal(body.relay_connect_path, "/api/v1/relay/connect");
-    assert.equal(body.relay_transport_kind, "websocket_tunnel");
+    assert.equal(body.relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_transport_wired, false);
@@ -176,7 +176,7 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.equal(body.relay_lease_store_release_grade, false);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.doesNotMatch(body.blockers.join(","), /relay_disabled/);
     assert.doesNotMatch(body.blockers.join(","), /relay_url_not_configured/);
@@ -223,7 +223,7 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.owner_scoped, true);
     assert.equal(body.relay_transport_proof, undefined);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });

@@ -107,7 +107,7 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.match(body.blockers.join(","), /relay_disabled/);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_url_not_configured/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
@@ -165,7 +165,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_url, "wss://relay.musu.pro/api/v1/relay/connect");
     assert.equal(body.relay_connect_path, "/api/v1/relay/connect");
-    assert.equal(body.relay_transport_kind, "websocket_tunnel");
+    assert.equal(body.relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.payload_transit_requires_lease, true);
@@ -173,7 +173,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_lease_store_release_grade, true);
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });

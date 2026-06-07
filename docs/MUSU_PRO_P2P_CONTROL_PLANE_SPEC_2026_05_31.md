@@ -2246,3 +2246,29 @@ AG UI/UX design is now a product-facing expression of this spec:
 The design is documented in
 `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`. It does not relax relay,
 route, second-PC, support, or Store release gates.
+
+## 2026-06-07 Relay Transport Descriptor Target Kind
+
+Current source now reports the release relay descriptor as
+`quic_relay_tunnel`. This supersedes earlier current-state notes that said the
+descriptor itself was `websocket_tunnel`.
+
+Current source/evidence state:
+
+- `RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- release payload preflight remains metadata-only and fail-closed
+- preview store-forward payload queue remains non-release-grade
+
+This does not change the product boundary. MUSU.PRO coordinates remote input,
+rooms, rendezvous, relay fallback, and evidence; MUSU Desktop executes local
+work and must implement the actual release relay tunnel runtime before payload
+transit can be claimed.
+
+Current release blockers are the real implementation/proof gaps: release
+payload endpoint, local release tunnel runtime, KV/Upstash-backed hosted
+storage, packaged runtime login, relay route metadata, relay transport proof,
+and payload delivery proof.

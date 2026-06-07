@@ -1060,3 +1060,25 @@ Stabilization interpretation:
   `HUGH_SECOND` CPU behavior;
 - second-PC installation and successful route evidence remain required before
   release readiness can move.
+
+## 2026-06-07 P2P Relay Descriptor Alignment
+
+Current source now aligns the relay transport descriptor with the release target
+kind:
+
+- `RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+This removes the source transport-kind blocker only. It does not implement
+release relay payload movement.
+
+Remaining stabilization work:
+
+1. Implement the local release relay tunnel runtime.
+2. Add the distinct release payload endpoint that accepts real release tunnel
+   payload transport only after lease and proof requirements are met.
+3. Keep preview store-forward queue records non-release-grade.
+4. Record live MUSU.PRO route metadata, `quic_tls_1_3` transport proof, and
+   payload delivery proof.
+5. Capture second-machine route/CPU/matrix evidence.

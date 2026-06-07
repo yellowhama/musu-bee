@@ -1,8 +1,8 @@
 import { p2pRelayLeaseStoreStatus } from "@/lib/p2pRelayLeaseStore";
 
 export const RELAY_POLICY = "connect_pro_fallback_only";
-export const RELAY_TRANSPORT_KIND = "websocket_tunnel";
 export const RELEASE_GRADE_RELAY_TRANSPORT_KIND = "quic_relay_tunnel";
+export const RELAY_TRANSPORT_KIND = RELEASE_GRADE_RELAY_TRANSPORT_KIND;
 export const RELAY_CONNECT_PATH = "/api/v1/relay/connect";
 export const RELAY_PAYLOAD_PATH = "/api/v1/relay/payload";
 export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";

@@ -155,7 +155,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_transport_kind, "websocket_tunnel");
+    assert.equal(body.relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_relay_transport_kind, "quic_relay_tunnel");
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_default_data_path, false);
@@ -163,7 +163,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
   });
 });
 

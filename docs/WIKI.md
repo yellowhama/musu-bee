@@ -15114,3 +15114,68 @@ Search terms should include `GOAL v799`, `wiki/974`,
 `self-hosted runners`, `VS Code Remote Tunnels`, `Cloudflare Tunnel`,
 `Tailscale DERP`, `remote control local execution`, and
 `no anonymous agent tunnels`.
+
+## 2026-06-07 P2P Relay Transport Descriptor Target Kind (wiki/975)
+
+The P2P relay policy now reports the source relay transport descriptor as the
+release target kind:
+
+- `RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+- `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+The release data path remains closed:
+
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- release payload endpoint is still metadata-only preflight
+- preview store-forward queue remains non-release-grade
+
+Current `show-musu-pro-p2p-env-status.ps1 -Json` now reports
+`source.relay_transport_kind_release_grade=true` and no longer includes
+`source_relay_transport_kind_not_release_grade`, but remains `ok=false` on the
+real missing work: release payload endpoint, local release tunnel runtime,
+preview queue, hosted KV/Upstash storage, runtime login, route proof, route
+metadata, transport proof, and payload delivery proof.
+
+Validation passed:
+
+- `npm run test:p2p` `112/112`
+- `npm run typecheck`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- P2P env status expected `ok=false`
+- release verifier regression `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Code audit found no high or medium issue. Residual semantic risk is that
+`relay_transport_kind=quic_relay_tunnel` can be misread as runtime readiness;
+the source gate still prevents that because `relayTransportWired()` requires
+the release payload endpoint and local release tunnel runtime markers, both
+still false.
+
+Search terms should include `GOAL v800`, `wiki/975`,
+`P2P relay transport descriptor target kind`,
+`RELAY_TRANSPORT_KIND=quic_relay_tunnel`,
+`relay_transport_kind_release_grade=true`,
+`source_release_relay_payload_endpoint_not_implemented`, and
+`source_release_relay_tunnel_runtime_not_implemented`.
+
+## 2026-06-07 P2P Relay Transport Descriptor Target Kind Index Refresh (wiki/976)
+
+MUSU local indexer was refreshed after wiki/975 and GOAL v800.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2938 files`
+- `2790 symbols`
+- `14289 ms`
+
+Indexed context includes the relay descriptor target-kind code/test update,
+canonical report, P2P control-plane specs, BETA checklist, WIKI_INDEX, GOAL,
+and CoS memory.
+
+Search terms should include `GOAL v801`, `wiki/976`,
+`P2P relay transport descriptor target kind index refresh`, `2938 files`,
+`2790 symbols`, `14289 ms`, and
+`RELAY_TRANSPORT_KIND=quic_relay_tunnel`.

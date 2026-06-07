@@ -1424,3 +1424,23 @@ Boundary implications:
 - MUSU.PRO was not used as a runtime or default payload path;
 - this proof narrows local startup CPU attribution but does not prove hosted
   P2P route success, relay payload transport, or second-machine readiness.
+
+## 2026-06-07 Relay Descriptor Boundary Update
+
+The current source descriptor for the release relay target is now
+`RELAY_TRANSPORT_KIND=quic_relay_tunnel`.
+
+Boundary implications:
+
+- naming the release relay tunnel kind is not runtime readiness;
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` keep the data plane closed;
+- the preview store-forward queue remains non-release-grade and cannot satisfy
+  public relay proof;
+- MUSU.PRO remains the control plane for remote input, rendezvous, relay
+  fallback coordination, and evidence;
+- MUSU Desktop remains the local executor that must move payload bytes through
+  a real release tunnel before the relay path can pass release gates.
+
+Public release still requires live owner-scoped route metadata, transport
+proof, payload delivery proof, and second-machine evidence.

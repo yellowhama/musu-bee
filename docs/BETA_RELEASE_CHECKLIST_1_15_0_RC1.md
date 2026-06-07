@@ -10426,3 +10426,43 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_MATRIX_AND_SELECTION_GATE_2026_06_07.md`
   (wiki/971)
+
+## 2026-06-07 P2P Relay Transport Descriptor Target Kind
+
+Current source now reports the release relay transport descriptor as
+`quic_relay_tunnel`.
+
+Changed:
+
+- `musu-bee\src\lib\p2pRelayPolicy.ts`
+  - `RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+  - `RELEASE_GRADE_RELAY_TRANSPORT_KIND=quic_relay_tunnel`
+  - `RELEASE_GRADE_TRANSPORT_REQUIRED=quic_tls_1_3`
+
+Still blocked:
+
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- release payload preflight is metadata-only
+- preview store-forward queue remains non-release-grade
+- live hosted P2P evidence still lacks runtime login, route metadata,
+  transport proof, and payload delivery proof
+
+Current P2P env status no longer emits
+`source_relay_transport_kind_not_release_grade`, but remains `ok=false` with
+the expected implementation/proof blockers.
+
+Validation:
+
+- `npm run test:p2p`: `112/112`
+- `npm run typecheck`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- P2P env status: expected `ok=false`
+- release verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_P2P_RELAY_TRANSPORT_DESCRIPTOR_TARGET_KIND_2026_06_07.md`
+  (wiki/975)
