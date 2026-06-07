@@ -205,6 +205,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/write-release-candidate-manifest.ps1",
         "scripts/windows/test-release-evidence-verifiers.ps1",
         "scripts/windows/show-musu-process-attribution.ps1",
+        "scripts/windows/verify-process-attribution-summary.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)
@@ -569,6 +570,9 @@ $runtimeIdleCpuVerified = $false
 $runtimeCpuScenarioMatrixVerification = $null
 $runtimeCpuScenarioMatrixVerificationError = $null
 $runtimeCpuScenarioMatrixVerified = $false
+$processAttributionVerification = $null
+$processAttributionVerificationError = $null
+$processAttributionVerified = $false
 $routeReachabilityTarget = $null
 $routeReachabilityDiagnosticVerified = $false
 if ($canonicalRouteReachabilityDiagnostic) {
@@ -710,6 +714,29 @@ else {
         $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_subrole_contract_unreadable:$($_.Exception.Message)") | Out-Null
     }
 }
+if ($canonicalProcessAttributionSummary) {
+    try {
+        $processAttributionVerifyArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $scriptDir "verify-process-attribution-summary.ps1"),
+            "-EvidencePath", $canonicalProcessAttributionSummary,
+            "-Json"
+        )
+        $processAttributionVerifyOutput = & powershell @processAttributionVerifyArgs 2>&1
+        $processAttributionVerifyText = ($processAttributionVerifyOutput | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            $processAttributionVerificationError = "Process attribution summary did not verify.`n$processAttributionVerifyText"
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($processAttributionVerifyText)) {
+            $processAttributionVerification = $processAttributionVerifyText | ConvertFrom-Json
+            $processAttributionVerified = [bool]$processAttributionVerification.ok
+        }
+    }
+    catch {
+        $processAttributionVerificationError = $_.Exception.Message
+    }
+}
 if (-not $canonicalProcessAttributionSummary) {
     $releaseGateEvidenceIssues.Add("missing_process_attribution_summary") | Out-Null
 }
@@ -740,6 +767,12 @@ else {
     }
     elseif (-not [bool]$releaseCheck.process_attribution_ok) {
         $releaseGateEvidenceIssues.Add("release_check_process_attribution_not_ok") | Out-Null
+    }
+    if (-not $releaseCheck.PSObject.Properties["process_attribution_verified"]) {
+        $releaseGateEvidenceIssues.Add("release_check_process_attribution_verified_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.process_attribution_verified) {
+        $releaseGateEvidenceIssues.Add("release_check_process_attribution_not_verified") | Out-Null
     }
     if (-not $releaseCheck.PSObject.Properties["runtime_cpu_subrole_contract_ok"]) {
         $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_subrole_contract_ok_missing") | Out-Null
@@ -812,6 +845,14 @@ if ($canonicalRuntimeCpuScenarioMatrix) {
         $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_matrix_verification_error:$runtimeCpuScenarioMatrixVerificationError") | Out-Null
     }
 }
+if ($canonicalProcessAttributionSummary) {
+    if (-not $processAttributionVerified) {
+        $releaseGateEvidenceIssues.Add("process_attribution_summary_not_verified") | Out-Null
+    }
+    if ($processAttributionVerificationError) {
+        $releaseGateEvidenceIssues.Add("process_attribution_summary_verification_error:$processAttributionVerificationError") | Out-Null
+    }
+}
 if ($routeReachabilityDiagnosticRequired) {
     if (-not $canonicalRouteReachabilityDiagnostic) {
         $releaseGateEvidenceIssues.Add("missing_route_reachability_diagnostic") | Out-Null
@@ -857,6 +898,9 @@ $result = [pscustomobject]@{
     route_reachability_diagnostic_verification = $routeReachabilityDiagnosticVerification
     route_reachability_diagnostic_verification_error = $routeReachabilityDiagnosticVerificationError
     process_attribution_summary_path = $canonicalProcessAttributionSummary
+    process_attribution_verified = [bool]$processAttributionVerified
+    process_attribution_verification = $processAttributionVerification
+    process_attribution_verification_error = $processAttributionVerificationError
     release_check_path = $canonicalReleaseCheck
     release_check_git_freshness = $releaseCheckGitFreshness
     handoff_git_freshness = $handoffGitFreshness
@@ -896,6 +940,7 @@ else {
         "runtime_cpu_scenario_subroles[$($summary.scenario)]: ok=$($summary.ok), bridge_runtime=$(Get-SubroleCount -Counts $counts -Name 'bridge_runtime'), desktop_shell=$(Get-SubroleCount -Counts $counts -Name 'desktop_shell'), webview2_helper=$(Get-SubroleCount -Counts $counts -Name 'webview2_helper')"
     }
     "process_attribution_summary: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not present>' })"
+    "process_attribution_verified: $($result.process_attribution_verified)"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"

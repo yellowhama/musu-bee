@@ -142,6 +142,7 @@ $scriptsToCopy = @(
     "verify-route-reachability-diagnostic.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
+    "verify-process-attribution-summary.ps1",
     "repair-packaged-local-runtime-state.ps1",
     "audit-musu-startup-single-instance.ps1",
     "audit-musu-desktop-single-instance.ps1",

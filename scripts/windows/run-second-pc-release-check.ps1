@@ -96,6 +96,8 @@ $routeReachabilityDiagnosticError = $null
 $routeReachabilityDiagnosticVerification = $null
 $processAttributionSummary = $null
 $processAttributionError = $null
+$processAttributionVerification = $null
+$processAttributionVerificationError = $null
 $runtimeCleanup = $null
 $runtimeCleanupError = $null
 
@@ -678,6 +680,47 @@ try {
             -ScriptName "show-musu-process-attribution.ps1" `
             -Arguments @("-OutputPath", $processAttributionSummaryPath, "-Json") `
             -ParseJson
+
+        $verifyProcessAttributionScript = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
+        if (Test-Path -LiteralPath $verifyProcessAttributionScript) {
+            $startedAt = Get-Date
+            $verifyProcessAttributionOutput = & powershell `
+                -NoProfile `
+                -ExecutionPolicy Bypass `
+                -File $verifyProcessAttributionScript `
+                -EvidencePath $processAttributionSummaryPath `
+                -Json 2>&1
+            $verifyProcessAttributionExitCode = $LASTEXITCODE
+            $verifyProcessAttributionRaw = ($verifyProcessAttributionOutput | Out-String).Trim()
+            $verifyProcessAttributionParsed = $null
+            if (-not [string]::IsNullOrWhiteSpace($verifyProcessAttributionRaw)) {
+                try {
+                    $verifyProcessAttributionParsed = $verifyProcessAttributionRaw | ConvertFrom-Json
+                }
+                catch {
+                    $verifyProcessAttributionParsed = [pscustomobject]@{
+                        ok = $false
+                        parse_error = $_.Exception.Message
+                        raw = $verifyProcessAttributionRaw
+                    }
+                }
+            }
+            $steps.Add([pscustomobject]@{
+                name = "verify process attribution summary"
+                script = "verify-process-attribution-summary.ps1"
+                exit_code = $verifyProcessAttributionExitCode
+                started_at = $startedAt.ToString("o")
+                completed_at = (Get-Date).ToString("o")
+                output = $verifyProcessAttributionRaw
+            }) | Out-Null
+            if ($verifyProcessAttributionExitCode -ne 0) {
+                $processAttributionVerificationError = "Process attribution summary did not verify.`n$verifyProcessAttributionRaw"
+            }
+            $processAttributionVerification = $verifyProcessAttributionParsed
+        }
+        else {
+            $processAttributionVerificationError = "Process attribution verifier is missing: $verifyProcessAttributionScript"
+        }
     }
     catch {
         $processAttributionError = $_.Exception.Message
@@ -801,6 +844,9 @@ $result = [pscustomobject]@{
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
     process_attribution_summary_path = $processAttributionSummaryPath
     process_attribution_ok = if ($processAttributionSummary) { [bool]$processAttributionSummary.ok } else { $false }
+    process_attribution_verified = if ($processAttributionVerification) { [bool]$processAttributionVerification.ok } else { $false }
+    process_attribution_verification = $processAttributionVerification
+    process_attribution_verification_error = $processAttributionVerificationError
     process_attribution_error = $processAttributionError
     process_attribution_counts = if ($processAttributionSummary) { $processAttributionSummary.counts } else { $null }
     runtime_cleanup_report_path = $runtimeCleanupReportPath
@@ -868,6 +914,7 @@ else {
         }
     }
     "process_attribution_summary_path: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not captured>' })"
+    "process_attribution_verified: $($result.process_attribution_verified)"
     "runtime_cleanup_report_path: $(if ($result.runtime_cleanup_report_path) { $result.runtime_cleanup_report_path } else { '<not captured>' })"
     "return_zip_path: $($result.return_zip_path)"
     "remote_name_suggestion: $($result.remote_name_suggestion)"
@@ -887,6 +934,10 @@ else {
     if ($result.process_attribution_error) {
         ""
         "process_attribution_error: $($result.process_attribution_error)"
+    }
+    if ($result.process_attribution_verification_error) {
+        ""
+        "process_attribution_verification_error: $($result.process_attribution_verification_error)"
     }
     if ($result.runtime_cleanup_error) {
         ""

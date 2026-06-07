@@ -65,6 +65,7 @@ $scriptFiles = @(
     "verify-route-reachability-diagnostic.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
+    "verify-process-attribution-summary.ps1",
     "collect-second-pc-handoff.ps1",
     "test-second-pc-route-preflight.ps1",
     "run-second-pc-release-check.ps1",

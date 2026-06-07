@@ -26,6 +26,7 @@ $msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
+$processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
@@ -420,6 +421,27 @@ function Test-SecondPcRuntimeIdleVerifierContract {
     return $true
 }
 
+function Test-SecondPcProcessAttributionVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"verify process attribution summary"',
+        '"verify-process-attribution-summary.ps1"',
+        '-EvidencePath $processAttributionSummaryPath',
+        'process_attribution_verified',
+        'process_attribution_verification',
+        'process_attribution_verification_error'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcRouteReachabilityHandoffContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -516,6 +538,30 @@ function Test-SecondPcImportRuntimeMatrixVerifierContract {
         'runtime_cpu_scenario_matrix_verification_error = $runtimeCpuScenarioMatrixVerificationError',
         'runtime_cpu_scenario_matrix_evidence_not_verified',
         'runtime_cpu_scenario_matrix_verification_error:'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportProcessAttributionVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'verify-process-attribution-summary.ps1',
+        '-EvidencePath", $canonicalProcessAttributionSummary',
+        'process_attribution_verified = [bool]$processAttributionVerified',
+        'process_attribution_verification = $processAttributionVerification',
+        'process_attribution_verification_error = $processAttributionVerificationError',
+        'release_check_process_attribution_verified_missing',
+        'release_check_process_attribution_not_verified',
+        'process_attribution_summary_not_verified',
+        'process_attribution_summary_verification_error:'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -716,6 +762,23 @@ function Test-FinalOperatorPacketMsixCommonContract {
     return ($source.Contains('"msix-common.ps1",') -and
         $source.Contains('"test-second-pc-route-preflight.ps1",') -and
         $source.Contains('"show-second-pc-return-card.ps1",'))
+}
+
+function Test-SecondPcKitProcessAttributionVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    return ($source.Contains('"show-musu-process-attribution.ps1",') -and
+        $source.Contains('"verify-process-attribution-summary.ps1",'))
+}
+
+function Test-FinalOperatorPacketProcessAttributionVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    return ($source.Contains('"show-musu-process-attribution.ps1",') -and
+        $source.Contains('"verify-process-attribution-summary.ps1",') -and
+        $source.Contains('"import-second-pc-return.ps1",'))
 }
 
 function Test-SecondPcKitRouteReachabilityContract {
@@ -2564,6 +2627,51 @@ function New-RuntimeIdleCpuEvidence {
     return $evidence
 }
 
+function New-ProcessAttributionSummaryEvidence {
+    param([string]$Machine = "VERIFIER-TEST-PROCESS-ATTRIBUTION")
+
+    [pscustomobject]@{
+        schema = "musu.process_attribution_summary.v1"
+        ok = $true
+        generated_at = $now.ToString("o")
+        summary_path = "fixture"
+        audit_evidence_path = "fixture-process-ownership.json"
+        operator_machine = $Machine
+        bridge_registry = [pscustomobject]@{
+            pid = 1234
+            pid_alive = $true
+            health = [pscustomobject]@{
+                ok = $true
+                http_status = 200
+            }
+        }
+        counts = [pscustomobject]@{
+            musu_runtime = 1
+            musu_cli = 0
+            desktop_shell = 1
+            machine_wide_node = 4
+            owned_node = 0
+            unowned_node = 4
+            machine_wide_webview2 = 6
+            owned_webview2 = 6
+            unowned_webview2 = 0
+            orphan_repo_helpers = 0
+        }
+        findings = @(
+            "Machine-wide node.exe processes are present, but none are owned by the live MUSU process tree.",
+            "6 WebView2 helper process(es) are owned by MUSU.",
+            "Process ownership release checks pass."
+        )
+        checks = @(
+            [pscustomobject]@{ scope = "process-ownership"; name = "bridge registry pid alive"; status = "pass"; message = "bridge registry pid is alive" },
+            [pscustomobject]@{ scope = "process-ownership"; name = "bridge health"; status = "pass"; message = "bridge /health passed" },
+            [pscustomobject]@{ scope = "process-ownership"; name = "orphan repo helper count"; status = "pass"; message = "no repo-related orphan helper processes detected" }
+        )
+        top_node_processes = @()
+        top_webview2_processes = @()
+    }
+}
+
 function Write-RepoEvidenceFixture {
     param(
         [Parameter(Mandatory = $true)][string]$RelativePath,
@@ -3048,6 +3156,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcProcessAttributionVerifierContractOk = Test-SecondPcProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcProcessAttributionVerifierContractOk `
+    -Message "second-PC release check must direct-verify the captured process attribution summary and surface process_attribution_verified"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check verifies process attribution summary" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcRouteReachabilityHandoffOk = Test-SecondPcRouteReachabilityHandoffContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcRouteReachabilityHandoffOk `
@@ -3096,6 +3216,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcImportProcessAttributionVerifierContractOk = Test-SecondPcImportProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportProcessAttributionVerifierContractOk `
+    -Message "second-PC return import must direct-verify imported process attribution summaries on primary HEAD and require the verification result in release-gate imports"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import verifies process attribution summary" `
+    -Verifier "second-PC import source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcImportRouteReachabilityOk = Test-SecondPcImportRouteReachabilityContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportRouteReachabilityOk `
@@ -3115,6 +3247,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit embeds source git metadata" `
+    -Verifier "second-PC kit source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitProcessAttributionVerifierOk = Test-SecondPcKitProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitProcessAttributionVerifierOk `
+    -Message "second-PC multi-device kit must ship the process attribution verifier alongside the summary/audit scripts"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes process attribution verifier" `
     -Verifier "second-PC kit source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
@@ -3187,6 +3331,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "final operator packet includes msix-common for route helper scripts" `
+    -Verifier "final operator packet source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalOperatorPacketProcessAttributionVerifierOk = Test-FinalOperatorPacketProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketProcessAttributionVerifierOk `
+    -Message "final operator packet must include the process attribution verifier because import-second-pc-return.ps1 depends on it"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet includes process attribution verifier" `
     -Verifier "final operator packet source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
     -ShouldPass $true `
@@ -4042,6 +4198,16 @@ $badRouteReachabilityFakeSuccess.conclusion.successful_multi_device_route_proof 
 $fixture = Write-Fixture -Name "route-reachability-bad-fake-success" -Object $badRouteReachabilityFakeSuccess
 $invocation = Invoke-Verifier -ScriptPath $routeReachabilityVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedTarget", "SECOND-PC", "-RequireNonLocalTarget", "-Json")
 Add-CaseResult -Cases $cases -Name "route reachability rejects fake successful route proof" -Verifier "verify-route-reachability-diagnostic.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$fixture = Write-Fixture -Name "process-attribution-valid" -Object (New-ProcessAttributionSummaryEvidence)
+$invocation = Invoke-Verifier -ScriptPath $processAttributionSummaryVerifier -Arguments @("-EvidencePath", $fixture, "-Json")
+Add-CaseResult -Cases $cases -Name "process attribution summary accepts clean owned/unowned helper counts" -Verifier "verify-process-attribution-summary.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$badProcessAttributionOrphan = New-ProcessAttributionSummaryEvidence
+$badProcessAttributionOrphan.counts.orphan_repo_helpers = 1
+$fixture = Write-Fixture -Name "process-attribution-bad-orphan-helpers" -Object $badProcessAttributionOrphan
+$invocation = Invoke-Verifier -ScriptPath $processAttributionSummaryVerifier -Arguments @("-EvidencePath", $fixture, "-Json")
+Add-CaseResult -Cases $cases -Name "process attribution summary rejects repo-related orphan helpers" -Verifier "verify-process-attribution-summary.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")

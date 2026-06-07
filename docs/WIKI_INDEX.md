@@ -7668,4 +7668,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `14339 ms`, `runtime idle repo-orphan helper gate index`,
   `repo_related_unowned`, and `127/127`.
 
+- 2026-06-08 second-PC process attribution direct verification:
+  wiki/1082 records that `verify-process-attribution-summary.ps1` now
+  direct-verifies `musu.process_attribution_summary.v1`, that
+  `run-second-pc-release-check.ps1` now records `process_attribution_verified`,
+  and that `import-second-pc-return.ps1` re-verifies the imported summary on
+  primary HEAD instead of trusting wrapper booleans alone. Regression stayed
+  green at `133/133` in
+  `.local-build\release-evidence-verifier-tests\20260608-070937`. Search terms
+  should include `GOAL v907`, `wiki/1082`,
+  `verify-process-attribution-summary.ps1`, `process_attribution_verified`,
+  `process_attribution_summary_not_verified`, and `133/133`.
+
+- 2026-06-08 second-PC process attribution verification index:
+  wiki/1083 records the MUSU local index refresh after wiki/1082 and GOAL
+  v907. Search terms should include `GOAL v908`, `wiki/1083`, `3104 files`,
+  `2891 symbols`, `16699 ms`, `second-PC process attribution verification index`,
+  `verify-process-attribution-summary.ps1`, and `133/133`.
+
 **End of WIKI_INDEX.md.**

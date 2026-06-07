@@ -18879,3 +18879,112 @@ Indexed context includes the repo-orphan idle gate hardening, the green
 Search terms should include `GOAL v906`, `wiki/1081`, `3103 files`,
 `2891 symbols`, `14339 ms`, `runtime idle repo-orphan helper gate index`,
 `repo_related_unowned`, and `127/127`.
+
+## 2026-06-08 Second-PC Process Attribution Direct Verification (wiki/1082)
+
+What changed:
+
+- `scripts\windows\verify-process-attribution-summary.ps1`
+  - new direct verifier for `musu.process_attribution_summary.v1`
+  - requires:
+    - valid summary schema and `generated_at`
+    - `audit_evidence_path` and `operator_machine`
+    - bridge registry presence, live PID, and healthy bridge check
+    - required helper count fields
+    - node/WebView2 count conservation
+    - `orphan_repo_helpers=0`
+    - no nested ownership-check failures
+- `scripts\windows\run-second-pc-release-check.ps1`
+  - now runs `verify-process-attribution-summary.ps1` immediately after
+    `show-musu-process-attribution.ps1`
+  - records:
+    - `process_attribution_verified`
+    - `process_attribution_verification`
+    - `process_attribution_verification_error`
+- `scripts\windows\import-second-pc-return.ps1`
+  - now replays the same verifier on the imported summary on primary HEAD
+  - requires returned `release_check.process_attribution_verified=true`
+  - adds release-gate issues:
+    - `release_check_process_attribution_verified_missing`
+    - `release_check_process_attribution_not_verified`
+    - `process_attribution_summary_not_verified`
+    - `process_attribution_summary_verification_error:...`
+- second-PC packaging and operator tooling:
+  - `prepare-multidevice-test-kit.ps1` now ships
+    `verify-process-attribution-summary.ps1`
+  - `prepare-final-operator-gate-packet.ps1` now ships the same verifier
+  - `verify-final-operator-gate-packet.ps1` now requires the importer source to
+    reference `verify-process-attribution-summary.ps1` and
+    `process_attribution_verified`
+  - `verify-operator-action-pack.ps1` now requires nested kits to include the
+    new verifier alongside `show-musu-process-attribution.ps1` and
+    `audit-musu-process-ownership.ps1`
+- freshness/status-only allowlists:
+  - `import-second-pc-return.ps1`
+  - `show-second-pc-return-card.ps1`
+  - `test-second-pc-route-preflight.ps1`
+  - `verify-runtime-cpu-scenario-matrix.ps1`
+  - `verify-single-machine-evidence.ps1`
+  - `write-release-go-no-go.ps1`
+  all now treat `scripts/windows/verify-process-attribution-summary.ps1` as a
+  docs/status/tooling-only delta for evidence freshness.
+
+Why this matters:
+
+- before this change, cross-machine release gating only trusted:
+  - `process_attribution_ok`
+  - imported summary presence
+  - wrapper-level CPU subrole booleans
+- that left a gap where the summary JSON itself was never re-verified on the
+  primary repo HEAD
+- now the ownership summary has the same shape as runtime-idle and runtime-matrix
+  evidence:
+  - direct verifier at capture time
+  - direct verifier again at import time
+
+Verification:
+
+- parse:
+  - `verify-process-attribution-summary.ps1`
+  - `run-second-pc-release-check.ps1`
+  - `import-second-pc-return.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- full regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=133`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-070937`
+- new regression coverage includes:
+  - `second-PC release check verifies process attribution summary`
+  - `second-PC return import verifies process attribution summary`
+  - `second-PC kit includes process attribution verifier`
+  - `final operator packet includes process attribution verifier`
+  - `process attribution summary accepts clean owned/unowned helper counts`
+  - `process attribution summary rejects repo-related orphan helpers`
+
+Search terms should include `GOAL v907`, `wiki/1082`,
+`verify-process-attribution-summary.ps1`, `process_attribution_verified`,
+`process_attribution_summary_not_verified`, and `133/133`.
+
+## 2026-06-08 Second-PC Process Attribution Verification Index (wiki/1083)
+
+MUSU local indexer was refreshed after wiki/1082 and GOAL v907.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `16699 ms`
+
+Indexed context includes the new
+`verify-process-attribution-summary.ps1` direct verifier, the second-PC
+release-check/import/kit/packet process-attribution verification wiring, the
+green `133/133` verifier regression sweep, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v908`, `wiki/1083`, `3104 files`,
+`2891 symbols`, `16699 ms`, `second-PC process attribution verification index`,
+`verify-process-attribution-summary.ps1`, and `133/133`.

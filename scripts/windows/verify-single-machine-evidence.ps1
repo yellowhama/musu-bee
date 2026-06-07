@@ -180,6 +180,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/write-release-candidate-manifest.ps1",
         "scripts/windows/test-release-evidence-verifiers.ps1",
         "scripts/windows/show-musu-process-attribution.ps1",
+        "scripts/windows/verify-process-attribution-summary.ps1",
         "scripts/windows/show-musu-pro-p2p-env-status.ps1"
     )
     return ($statusOnlyScripts -contains $normalizedPath)

@@ -143,6 +143,7 @@ try {
         "scripts\windows\verify-route-reachability-diagnostic.ps1",
         "scripts\windows\audit-musu-process-ownership.ps1",
         "scripts\windows\show-musu-process-attribution.ps1",
+        "scripts\windows\verify-process-attribution-summary.ps1",
         "scripts\windows\repair-packaged-local-runtime-state.ps1",
         "scripts\windows\audit-musu-startup-single-instance.ps1",
         "scripts\windows\audit-musu-desktop-single-instance.ps1",
@@ -315,9 +316,9 @@ try {
         $returnImporterScript = Get-Content -LiteralPath $returnImporterScriptPath -Raw
         Add-CheckFromCondition `
             "second pc return importer safety" `
-            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*verify-route-reachability-diagnostic.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*" -and $returnImporterScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $returnImporterScript -like "*musu.route_reachability_diagnostic.v1*" -and $returnImporterScript -like "*route_reachability_diagnostic_verified*" -and $returnImporterScript -like "*RequireNonLocalTarget*" -and $returnImporterScript -like "*runtime_cpu_subrole_contract_ok*" -and $returnImporterScript -like "*process_counts_by_subrole*" -and $returnImporterScript -like "*bridge_runtime*" -and $returnImporterScript -like "*desktop_shell*") `
-            "packet second-PC return importer verifies MSIX evidence, route reachability diagnostics, CPU subrole evidence, and produces primary commands" `
-            "packet second-PC return importer lacks route reachability, verification, CPU subrole, command, or recording support"
+            ($returnImporterScript -like "*verify-msix-install-evidence.ps1*" -and $returnImporterScript -like "*show-second-pc-return-card.ps1*" -and $returnImporterScript -like "*verify-route-reachability-diagnostic.ps1*" -and $returnImporterScript -like "*verify-process-attribution-summary.ps1*" -and $returnImporterScript -like "*RecordMsixInstall*" -and $returnImporterScript -like "*musu.second_pc_return_import.v1*" -and $returnImporterScript -like "*musu.runtime_cpu_scenario_matrix.v1*" -and $returnImporterScript -like "*musu.route_reachability_diagnostic.v1*" -and $returnImporterScript -like "*route_reachability_diagnostic_verified*" -and $returnImporterScript -like "*process_attribution_verified*" -and $returnImporterScript -like "*RequireNonLocalTarget*" -and $returnImporterScript -like "*runtime_cpu_subrole_contract_ok*" -and $returnImporterScript -like "*process_counts_by_subrole*" -and $returnImporterScript -like "*bridge_runtime*" -and $returnImporterScript -like "*desktop_shell*") `
+            "packet second-PC return importer verifies MSIX evidence, route reachability diagnostics, process attribution, CPU subrole evidence, and produces primary commands" `
+            "packet second-PC return importer lacks route reachability, process-attribution verification, CPU subrole, command, or recording support"
     }
 
     $runtimeMatrixVerifierScriptPath = Join-Path $packetRoot "scripts\windows\verify-runtime-cpu-scenario-matrix.ps1"
