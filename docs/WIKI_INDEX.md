@@ -7805,4 +7805,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `15003 ms`,
   `route_reachability_diagnostic_target_not_consistent`, and `134/134`.
 
+- 2026-06-08 second-PC preferred route target commands:
+  wiki/1096 records that operator-facing preflight/card commands now prefer the
+  strongest verified target from the returned evidence bundle instead of
+  defaulting to `RemoteName`. It records the new `preferred_route_target` and
+  `preferred_route_target_source` in preflight, the new
+  `recommended_route_target` and `recommended_route_target_source` in the return
+  card, and the new preflight check `route target matches preferred target`.
+  Regression stayed green at `134/134` in
+  `.local-build\release-evidence-verifier-tests\20260608-084458`. Search terms
+  should include `GOAL v921`, `wiki/1096`, `preferred_route_target`,
+  `recommended_route_target`, and `134/134`.
+
+- 2026-06-08 second-PC preferred route target commands index:
+  wiki/1097 records the MUSU local index refresh after wiki/1096 and GOAL
+  v921. Search terms should include `GOAL v922`, `wiki/1097`, `3104 files`,
+  `2891 symbols`, `21516 ms`, `preferred_route_target`, and `134/134`.
+
 **End of WIKI_INDEX.md.**

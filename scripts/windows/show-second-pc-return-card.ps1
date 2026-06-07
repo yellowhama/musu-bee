@@ -326,6 +326,8 @@ $routeTargetConsistencyOk = $null
 $routeReachabilityDiagnosticPath = $null
 $routeReachabilityDiagnosticTarget = $null
 $routeReachabilityDiagnosticTargetConsistencyOk = $null
+$recommendedRouteTarget = $null
+$recommendedRouteTargetSource = $null
 
 if ([string]$handoff.schema -ne "musu.second_pc_handoff.v1") {
     throw "Unexpected handoff schema in ${HandoffPath}: $($handoff.schema)"
@@ -459,6 +461,22 @@ if ([string]::IsNullOrWhiteSpace($RemoteName)) {
 if ([string]::IsNullOrWhiteSpace($RemoteName)) {
     $RemoteName = "second-pc"
 }
+if ([bool]$routeTargetConsistencyOk -and -not [string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) {
+    $recommendedRouteTarget = $runtimeCpuRouteTarget
+    $recommendedRouteTargetSource = "release_check_runtime_cpu_route_target"
+}
+elseif ([bool]$routeReachabilityDiagnosticTargetConsistencyOk -and -not [string]::IsNullOrWhiteSpace($routeReachabilityDiagnosticTarget)) {
+    $recommendedRouteTarget = $routeReachabilityDiagnosticTarget
+    $recommendedRouteTargetSource = "route_reachability_diagnostic_target"
+}
+elseif (-not [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) {
+    $recommendedRouteTarget = $routeReachabilityTarget
+    $recommendedRouteTargetSource = "release_check_route_reachability_target"
+}
+else {
+    $recommendedRouteTarget = $RemoteName
+    $recommendedRouteTargetSource = "remote_name_fallback"
+}
 
 $msixEvidenceFound = $false
 if ([string]::IsNullOrWhiteSpace($MsixInstallEvidencePath)) {
@@ -489,7 +507,7 @@ $multiDeviceEvidenceDisplay = ".local-build\multi-device\<EVIDENCE_JSON>"
 
 $commands = [pscustomobject]@{
     record_msix_install = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-msix-install-evidence.ps1 -EvidencePath $msixEvidenceDisplay -Json"
-    run_multidevice_smoke = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.ps1 -RemoteAddr $RemoteAddr -RemoteName $RemoteName -RouteTarget $RemoteName -ExpectedRouteOutput $ExpectedRouteOutput"
+    run_multidevice_smoke = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\smoke-multidevice-beta.ps1 -RemoteAddr $RemoteAddr -RemoteName $RemoteName -RouteTarget $recommendedRouteTarget -ExpectedRouteOutput $ExpectedRouteOutput"
     record_multidevice = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath $multiDeviceEvidenceDisplay -ExpectedRouteOutput $ExpectedRouteOutput -Json"
     show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1"
 }
@@ -507,6 +525,8 @@ $result = [pscustomobject]@{
     handoff_git_freshness = $handoffGitFreshness
     release_check_git_freshness = $releaseCheckGitFreshness
     route_preflight_ready = [bool]$routePreflightReady
+    recommended_route_target = $recommendedRouteTarget
+    recommended_route_target_source = $recommendedRouteTargetSource
     runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) { $null } else { $runtimeCpuRouteTarget }
     route_target_consistency_ok = $routeTargetConsistencyOk
     route_reachability_diagnostic_path = $routeReachabilityDiagnosticPath
@@ -537,6 +557,8 @@ else {
     "route_preflight_ready: $($result.route_preflight_ready)"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"
+    "recommended_route_target: $($result.recommended_route_target)"
+    "recommended_route_target_source: $($result.recommended_route_target_source)"
     "msix_install_evidence: $(if ($msixEvidenceFound) { $result.msix_install_evidence_path } else { '<not found; use returned .local-build\msix-install\*.evidence.json>' })"
     if ($result.handoff_git_freshness) {
         "handoff_git_freshness_ok: $($result.handoff_git_freshness.ok)"

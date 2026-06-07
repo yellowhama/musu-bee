@@ -47,6 +47,8 @@ $releaseCheckRouteTargetConsistencyOk = $null
 $releaseCheckDiagnosticPath = $null
 $releaseCheckDiagnosticTarget = $null
 $releaseCheckDiagnosticTargetConsistencyOk = $null
+$preferredRouteTarget = $null
+$preferredRouteTargetSource = $null
 
 function Add-Check {
     param(
@@ -634,8 +636,26 @@ try {
     if ([string]::IsNullOrWhiteSpace($RemoteName)) {
         $RemoteName = "second-pc"
     }
+    if ([bool]$releaseCheckRouteTargetConsistencyOk -and -not [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) {
+        $preferredRouteTarget = $releaseCheckRuntimeCpuRouteTarget
+        $preferredRouteTargetSource = "release_check_runtime_cpu_route_target"
+    }
+    elseif ([bool]$releaseCheckDiagnosticTargetConsistencyOk -and -not [string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget)) {
+        $preferredRouteTarget = $releaseCheckDiagnosticTarget
+        $preferredRouteTargetSource = "release_check_route_reachability_diagnostic_target"
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) {
+        $preferredRouteTarget = $releaseCheckRouteReachabilityTarget
+        $preferredRouteTargetSource = "release_check_route_reachability_target"
+    }
     if ([string]::IsNullOrWhiteSpace($RouteTarget)) {
-        $RouteTarget = $RemoteName
+        if (-not [string]::IsNullOrWhiteSpace($preferredRouteTarget)) {
+            $RouteTarget = $preferredRouteTarget
+        }
+        else {
+            $RouteTarget = $RemoteName
+            $preferredRouteTargetSource = "remote_name_fallback"
+        }
     }
 
     $remoteHost = Get-CandidateHost -CandidateAddr $RemoteAddr
@@ -643,6 +663,9 @@ try {
     Add-CheckFromCondition "remote addr" (-not [string]::IsNullOrWhiteSpace($RemoteAddr) -and ($RemoteAddr -match "^\[[^\]]+\]:\d+$" -or $RemoteAddr -match "^[^:]+:\d+$")) "remote addr is host:port" "remote addr must be host:port"
     Add-CheckFromCondition "remote name" (-not [string]::IsNullOrWhiteSpace($RemoteName)) "remote name is present" "remote name is missing"
     Add-CheckFromCondition "route target" (-not [string]::IsNullOrWhiteSpace($RouteTarget)) "route target is present" "route target is missing"
+    if (-not [string]::IsNullOrWhiteSpace($preferredRouteTarget)) {
+        Add-CheckFromCondition "route target matches preferred target" ($RouteTarget -eq $preferredRouteTarget) "route target matches the verified preferred target from returned evidence" "route target '$RouteTarget' does not match verified preferred target '$preferredRouteTarget'"
+    }
     Add-CheckFromCondition "route target not self" (-not $localValues.Contains($RouteTarget)) "route target is not this machine" "route target '$RouteTarget' is this machine"
     Add-CheckFromCondition "remote addr not local" (-not $localValues.Contains($remoteHost)) "remote addr host is not local" "remote addr host '$remoteHost' is local"
 
@@ -721,6 +744,8 @@ $result = [pscustomobject]@{
     release_check_route_reachability_diagnostic_path = $releaseCheckDiagnosticPath
     release_check_route_reachability_diagnostic_target = if ([string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget)) { $null } else { $releaseCheckDiagnosticTarget }
     release_check_route_reachability_diagnostic_target_consistency_ok = $releaseCheckDiagnosticTargetConsistencyOk
+    preferred_route_target = if ([string]::IsNullOrWhiteSpace($preferredRouteTarget)) { $null } else { $preferredRouteTarget }
+    preferred_route_target_source = if ([string]::IsNullOrWhiteSpace($preferredRouteTargetSource)) { $null } else { $preferredRouteTargetSource }
     release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired
     release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified
     release_check_route_reachability_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) { $null } else { $releaseCheckRouteReachabilityTarget }
@@ -761,6 +786,12 @@ else {
     }
     if ($null -ne $result.release_check_route_target_consistency_ok) {
         "release_check_route_target_consistency_ok: $($result.release_check_route_target_consistency_ok)"
+    }
+    if ($result.preferred_route_target) {
+        "preferred_route_target: $($result.preferred_route_target)"
+    }
+    if ($result.preferred_route_target_source) {
+        "preferred_route_target_source: $($result.preferred_route_target_source)"
     }
     if ($result.release_check_route_reachability_diagnostic_path) {
         "release_check_route_reachability_diagnostic_path: $($result.release_check_route_reachability_diagnostic_path)"

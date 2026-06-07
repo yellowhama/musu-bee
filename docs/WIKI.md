@@ -19576,3 +19576,84 @@ the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v920`, `wiki/1095`, `3104 files`,
 `2891 symbols`, `15003 ms`,
 `route_reachability_diagnostic_target_not_consistent`, and `134/134`.
+
+## 2026-06-08 Second-PC Preferred Route Target Commands (wiki/1096)
+
+Second-PC operator commands now prefer the verified returned target from the
+evidence bundle instead of blindly defaulting to `RemoteName`.
+
+What changed:
+
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  - now computes:
+    - `preferred_route_target`
+    - `preferred_route_target_source`
+  - precedence:
+    1. `release_check.runtime_cpu_route_target` when internal target consistency
+       is already green
+    2. raw route reachability diagnostic target when it matches the release-check
+    3. `release_check.route_reachability_target`
+    4. `RemoteName` fallback
+  - if a caller supplies `-RouteTarget` and it differs from the verified
+    preferred target, preflight now fails:
+    - `route target matches preferred target`
+- `scripts\windows\show-second-pc-return-card.ps1`
+  - now surfaces:
+    - `recommended_route_target`
+    - `recommended_route_target_source`
+  - its suggested command:
+    `smoke-multidevice-beta.ps1 -RouteTarget ...`
+    now uses the verified recommended target instead of always using
+    `RemoteName`
+
+Why this matters:
+
+- even with stronger consistency gates, the operator flow could still drift if
+  the suggested commands used a fallback name rather than the specific target
+  the returned evidence actually exercised
+- this change keeps operator commands aligned with the same verified target that
+  preflight/card/import already trust
+
+Validation:
+
+- parse sanity:
+  - `show-second-pc-return-card.ps1`
+  - `test-second-pc-route-preflight.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- `git diff --check`
+  - clean
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=134`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-084458`
+
+Interpretation:
+
+- operator next-step commands now follow the strongest verified target available
+  in the return zip
+- this still does not replace real second-PC proof, but it reduces the chance
+  that a human operator runs the next route or smoke command against a different
+  target than the evidence bundle claims
+
+Search terms should include `GOAL v921`, `wiki/1096`,
+`preferred_route_target`, `recommended_route_target`, and `134/134`.
+
+## 2026-06-08 Second-PC Preferred Route Target Commands Index (wiki/1097)
+
+MUSU local indexer was refreshed after wiki/1096 and GOAL v921.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `21516 ms`
+
+Indexed context includes the preferred-route-target preflight/card command
+generation, the green `134/134` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v922`, `wiki/1097`, `3104 files`,
+`2891 symbols`, `21516 ms`, `preferred_route_target`, and `134/134`.
