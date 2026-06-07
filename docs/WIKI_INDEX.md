@@ -6840,4 +6840,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Cursor Web and Mobile Agents`, `Tailscale control data plane`, and
   `execution-locus strip`.
 
+- 2026-06-07 agent control SaaS operator deep dive:
+  `RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`
+  (wiki/994) records the operator-requested deeper comparable SaaS research.
+  Search terms should include `GOAL v819`, `wiki/994`,
+  `operator deep dive`, `remote control of local execution`,
+  `GitHub Copilot CLI Remote Control`, `Codex Remote connections`,
+  `cloud queue to customer-owned runner`, `Command Center`,
+  `local MUSU Desktop executor`, and `route metadata transport proof payload
+  delivery proof`.
+
+- 2026-06-07 agent control SaaS operator deep dive index refresh:
+  wiki/995 records the MUSU local index refresh after wiki/994 and GOAL v819.
+  Search terms should include `GOAL v820`, `wiki/995`, `2991 files`,
+  `2794 symbols`, `16985 ms`, `operator deep dive index refresh`,
+  `GitHub Copilot CLI Remote Control`, `Codex Remote connections`,
+  `local MUSU Desktop executor`, and `control plane plus device data plane`.
+
 **End of WIKI_INDEX.md.**

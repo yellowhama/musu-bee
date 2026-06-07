@@ -73,6 +73,16 @@ direct paths are preferred after bootstrap, and hosted relay is explicit
 fallback only after policy, lease readiness, route metadata, transport proof,
 and payload delivery proof.
 
+Operator-requested deeper SaaS research is recorded in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`. It locks
+the closest direct comparator set as Claude Code Remote Control, GitHub Copilot
+CLI Remote Control, and OpenAI Codex Remote connections. It also keeps hosted
+agent products in the correct lane: useful for plan/status/review/team UX, but
+not proof that MUSU should move default execution into the cloud. The release
+UI must therefore expose local runtime liveness, target device, route policy,
+queue timeout, remote-control policy, and expected evidence before remote work
+is accepted.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

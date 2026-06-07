@@ -15741,3 +15741,69 @@ Search terms should include `GOAL v818`, `wiki/993`, `2988 files`,
 `GitHub third-party coding agents`, `Codex command center`,
 `Cursor Web and Mobile Agents`, `Tailscale control data plane`, and
 `execution-locus strip`.
+
+## 2026-06-07 Agent Control SaaS Operator Deep Dive (wiki/994)
+
+Operator-requested deeper SaaS research was added after wiki/992/wiki/993.
+
+Canonical report:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`
+
+The research separates comparable products into five patterns:
+
+- remote control of local execution;
+- command center for multiple agents;
+- hosted async coding agent;
+- cloud queue to customer-owned runner;
+- control plane plus device data plane.
+
+Closest direct comparators:
+
+- Claude Code Remote Control;
+- GitHub Copilot CLI Remote Control;
+- OpenAI Codex Remote connections.
+
+Product decision remains unchanged:
+
+- MUSU.PRO is web/mobile/team coordination SaaS: remote input, rooms, meeting
+  timeline, presence, authenticated work-order envelopes, rendezvous, path
+  selection, relay fallback negotiation, evidence, notifications, and policy.
+- MUSU Desktop remains the local executor: filesystem, process, tools,
+  adapters, secrets, permission prompts, local durable inbox, and evidence.
+- Hosted agent products are useful references for plan/status/review UX, but
+  not MUSU's default execution model.
+- Relay/tunnel behavior must be explicit, authenticated, revocable, and backed
+  by route metadata, transport proof, and payload delivery proof.
+
+AG UI/UX requirement:
+
+- Command Center must require room, target, execution locus, route policy,
+  permission envelope, queue timeout, and expected evidence before submission.
+- No eligible online Desktop runtime means explicit queueing or remediation,
+  not fake cloud execution.
+
+Search terms should include `GOAL v819`, `wiki/994`,
+`operator deep dive`, `remote control of local execution`,
+`GitHub Copilot CLI Remote Control`, `Codex Remote connections`,
+`cloud queue to customer-owned runner`, `Command Center`, and
+`local MUSU Desktop executor`.
+
+## 2026-06-07 Agent Control SaaS Operator Deep Dive Index Refresh (wiki/995)
+
+MUSU local indexer was refreshed after wiki/994 and GOAL v819.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2991 files`
+- `2794 symbols`
+- `16985 ms`
+
+Indexed context includes the operator-requested SaaS deep dive, updated
+landscape research, AG UI/UX design update, BETA checklist product split,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v820`, `wiki/995`, `2991 files`,
+`2794 symbols`, `16985 ms`, `operator deep dive index refresh`,
+`GitHub Copilot CLI Remote Control`, `Codex Remote connections`,
+`local MUSU Desktop executor`, and `control plane plus device data plane`.

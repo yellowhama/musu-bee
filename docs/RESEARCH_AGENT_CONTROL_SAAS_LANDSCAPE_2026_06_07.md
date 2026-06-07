@@ -484,3 +484,31 @@ Final decision unchanged:
 - Relay fallback remains explicit, owner-scoped, expiring, revocable, and
   proof-gated.
 - `localhost` stays a diagnostic detail, not the normal release URL.
+
+## 2026-06-07 16:10 KST Operator Deep Dive
+
+The operator-requested deeper SaaS research pass is recorded in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`
+
+This pass separates the market into five execution patterns:
+
+- remote control of local execution;
+- command center for multiple agents;
+- hosted async coding agent;
+- cloud queue to customer-owned runner;
+- control plane plus device data plane.
+
+The direct comparator set is now locked as Claude Code Remote Control, GitHub
+Copilot CLI Remote Control, and OpenAI Codex Remote connections. These validate
+MUSU.PRO web/mobile input controlling local executors, provided the UI exposes
+host liveness, policy, route, and evidence before submission.
+
+Hosted-agent products such as GitHub Copilot cloud agent, Cursor Background
+Agents, Jules, Devin, Replit, and Factory remain useful for plan/review/status
+UX. They are not the default execution model for MUSU.
+
+Network products such as Tailscale, Twingate, Cloudflare Tunnel, and VS Code
+Remote Tunnels reinforce the same release rule: control-plane coordination is
+not payload execution, and relay/tunnel fallback must be explicit,
+authenticated, revocable, and evidence-backed.

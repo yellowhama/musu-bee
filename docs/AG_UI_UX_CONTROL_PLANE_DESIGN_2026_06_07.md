@@ -518,6 +518,27 @@ Phase 4: release proof
 
 - visual gates must map to existing verifier outputs
 - every UI "ready" state must be backed by release evidence
+
+## 2026-06-07 Operator Deep Research Update
+
+The operator-requested deeper SaaS comparison is recorded in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`
+
+AG UI/UX impact:
+
+- Command Center is the primary paid SaaS surface.
+- The composer must require room, target, execution locus, route policy,
+  permission envelope, queue timeout, and expected evidence before submission.
+- No online eligible MUSU Desktop runtime means no immediate run; show explicit
+  queue-with-timeout, install/start Desktop, or future hosted-worker selection.
+- Device Mesh should show the runner-like lifecycle: online, idle, assigned,
+  pickup timeout, executing, stale, offline.
+- Evidence Center must explain No-Go from verifier outputs instead of exposing
+  raw JSON as the primary user experience.
+- Remote control local execution, local sandbox, relay fallback, and cloud
+  execution are separate labels and must never collapse into one `connected`
+  state.
 - second-PC and relay proof must be visible in Evidence Center
 
 ## Design Audit Checklist
