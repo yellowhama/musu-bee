@@ -103,6 +103,22 @@ MUSU local indexer synced `2991 files`, `2794 symbols`, `16985 ms` after the
 operator-requested SaaS deep dive, landscape research update, AG UI/UX update,
 BETA checklist product split, WIKI/WIKI_INDEX, GOAL, and CoS memory.
 
+**Latest CPU matrix refresh (2026-06-07 v821 / wiki/996)**:
+Fresh current-head HUGH_SECOND packaged runtime CPU matrix evidence was
+captured after the operator-requested SaaS deep dive at commit `924a2b1f`.
+Matrix and verifier passed with `ok=true`, `fail_count=0`, `git_dirty=false`,
+hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.08`,
+and route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_161441`. Dirty-tree
+go/no-go after evidence promotion restored
+`runtime_cpu_scenario_matrix_valid_machine_count=1`. Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_OPERATOR_DEEP_DIVE_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v822 / wiki/997)**:
+MUSU local indexer synced `3001 files`, `2794 symbols`, `15498 ms` after the
+promoted `20260607-161441-HUGH_SECOND` CPU matrix evidence, verifier output,
+canonical CPU matrix report, operator SaaS deep dive, BETA checklist, WIKI,
+WIKI_INDEX, GOAL, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)
@@ -1221,3 +1237,5 @@ Per `~/.claude/MODE_Agent_Team.md` /loop decision tree, evaluate in order:
 | 2026-06-07 v818 | Code, docs, specs, wiki, and CoS memory were indexed after the agent-control SaaS final source recheck. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `2988 files`, `2794 symbols`, and `18593 ms` after GOAL v817/wiki/992, `docs\RESEARCH_AGENT_CONTROL_SAAS_FINAL_RECHECK_2026_06_07.md`, AG UI/UX final design recheck, BETA checklist final source recheck update, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v818`, `wiki/993`, `agent control SaaS final source recheck index refresh`, `2988 files`, `2794 symbols`, `18593 ms`, `GitHub third-party coding agents`, `Codex command center`, `Cursor Web and Mobile Agents`, `Tailscale control data plane`, and `execution-locus strip`. |
 | 2026-06-07 v819 | Operator-requested comparable SaaS deep dive was documented. | `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md` separates the market into remote-control local execution, command center, hosted async agent, cloud queue to customer-owned runner, and control-plane/device-data-plane patterns. Closest MUSU comparators are Claude Code Remote Control, GitHub Copilot CLI Remote Control, and OpenAI Codex Remote connections. Hosted products such as GitHub Copilot cloud agent, Cursor, Jules, Devin, Replit, and Factory remain UX references for plan/status/review/team workflows, not default MUSU execution. Tailscale/Twingate/Cloudflare/VS Code tunnel references reinforce explicit control/data-plane separation and proof-gated relay fallback. Canonical report: `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md` (wiki/994). |
 | 2026-06-07 v820 | Code, docs, specs, wiki, and CoS memory were indexed after the operator-requested SaaS deep dive. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `2991 files`, `2794 symbols`, and `16985 ms` after GOAL v819/wiki/994, `docs\RESEARCH_AGENT_CONTROL_SAAS_OPERATOR_DEEP_DIVE_2026_06_07.md`, landscape research update, AG UI/UX update, BETA checklist product split, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v820`, `wiki/995`, `operator deep dive index refresh`, `2991 files`, `2794 symbols`, `16985 ms`, `GitHub Copilot CLI Remote Control`, `Codex Remote connections`, and `local MUSU Desktop executor`. |
+| 2026-06-07 v821 | Current-head CPU matrix after the operator-requested SaaS deep dive stayed under budget. | Clean HUGH_SECOND packaged runtime CPU matrix evidence `20260607-161441-HUGH_SECOND` from commit `924a2b1f680f6c9041bc01c2307d011c626276fd` passed matrix and verifier with `ok=true`, `fail_count=0`, `git_dirty=false`, route task `02b2af44-5ec5-451f-b692-343a7db40b10`, token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_161441`, hot process count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.08`, owned process count `8`, owned WebView2 helper count `6`, and max working set `370.46MB`. Dirty-tree go/no-go after evidence promotion restored `runtime_cpu_scenario_matrix_valid_machine_count=1`. Canonical report: `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_OPERATOR_DEEP_DIVE_2026_06_07.md` (wiki/996). |
+| 2026-06-07 v822 | Code, docs, evidence, wiki, and CoS memory were indexed after the current-head CPU matrix. | MUSU local indexer succeeded via explicit packaged alias `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` with `3001 files`, `2794 symbols`, and `15498 ms` after GOAL v821/wiki/996, promoted `20260607-161441-HUGH_SECOND` CPU matrix evidence, verifier output, canonical CPU matrix report, operator SaaS deep dive, BETA checklist, WIKI/WIKI_INDEX, and CoS memory. Search terms should include `GOAL v822`, `wiki/997`, `current-head CPU matrix after operator deep dive index refresh`, `3001 files`, `2794 symbols`, `15498 ms`, `20260607-161441-HUGH_SECOND`, `WebView2 max 0.08`, and `runtime_cpu_scenario_matrix_valid_machine_count=1`. |

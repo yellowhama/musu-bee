@@ -6857,4 +6857,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GitHub Copilot CLI Remote Control`, `Codex Remote connections`,
   `local MUSU Desktop executor`, and `control plane plus device data plane`.
 
+- 2026-06-07 current-head CPU matrix after operator deep dive:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_AFTER_OPERATOR_DEEP_DIVE_2026_06_07.md`
+  (wiki/996) records fresh HUGH_SECOND packaged runtime CPU matrix evidence
+  from clean commit `924a2b1f`, with matrix and verifier `ok=true`,
+  `fail_count=0`, route task `02b2af44-5ec5-451f-b692-343a7db40b10`,
+  token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_161441`, hot process count `0`,
+  MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.08`, and dirty-tree
+  go/no-go restoring `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+  Search terms should include `GOAL v821`, `wiki/996`,
+  `20260607-161441-HUGH_SECOND`, `924a2b1f`, `WebView2 max 0.08`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_161441`, and
+  `operator deep dive CPU matrix`.
+
+- 2026-06-07 current-head CPU matrix after operator deep dive index refresh:
+  wiki/997 records the MUSU local index refresh after wiki/996 and GOAL v821.
+  Search terms should include `GOAL v822`, `wiki/997`, `3001 files`,
+  `2794 symbols`, `15498 ms`,
+  `current-head CPU matrix after operator deep dive index refresh`,
+  `20260607-161441-HUGH_SECOND`, `WebView2 max 0.08`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
 **End of WIKI_INDEX.md.**
