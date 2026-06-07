@@ -19161,3 +19161,124 @@ the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v912`, `wiki/1087`, `3104 files`,
 `2891 symbols`, `17814 ms`, `stale packaged doctor fail-fast index`,
 `doctor_schema_complete`, and `133/133`.
+
+## 2026-06-08 Local-Sideload Refresh and Clean One-Machine Matrix (wiki/1088)
+
+The stale packaged-doctor failure was closed by refreshing the local-sideload
+MUSU package to current HEAD and then re-running one-machine packaged CPU
+evidence from a clean git state.
+
+Package refresh:
+
+- rebuilt runtime:
+  `cargo build --manifest-path F:/workspace/musu-bee/musu-rs/Cargo.toml --bin musu --release`
+- packed MSIX:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\build-msix.ps1 -Configuration release -StartupContract local-sideload-manual -SkipBuild`
+- output package:
+  `F:\workspace\musu-bee\.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- reinstalled package:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`
+
+Post-refresh doctor confirmation:
+
+- explicit packaged alias:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" doctor --json`
+- the packaged doctor output now exposes:
+  - full 9-key `runtime_loop_candidates`
+  - `active_runtime_loop_candidate_count`
+  - `active_runtime_loop_candidate_keys`
+  - `auto_update_supervise`
+  - `auto_update_check_interval_minutes`
+  - `auto_update_health_poll_initial_ms`
+  - `bridge_health_poll_initial_ms`
+  - `bridge_health_poll_max_ms`
+- short diagnostic artifact:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-075850.json`
+- extracted result:
+  - `doctor_schema_complete=true`
+  - `background_field_fallback_used=false`
+  - `runtime_loop_candidate_fallback_used=false`
+  - that sample was not release-grade CPU evidence because
+    `process_count_before=0` and `process_count_after=0`; it served only to
+    prove the installed package now emits the current doctor schema
+
+Clean one-machine packaged rerun:
+
+- matrix artifact:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-080400-HUGH_SECOND\20260608-080400-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix summary:
+  - `ok=true`
+  - `git_commit=7118ca52dac92d42668a5b0448d8e85279cce9ad`
+  - `git_dirty=false`
+  - scenarios:
+    `startup-open`, `runtime-started`, `desktop-open`
+  - `doctor_schema_complete=true`
+  - `background_field_fallback_used=false`
+  - `runtime_loop_candidate_fallback_used=false`
+- per-scenario result:
+  - `startup-open`
+    - `sample_seconds=60.055`
+    - `hot_process_count=0`
+    - MUSU max `0`
+    - WebView2 max `0.05`
+    - owned process count `8`
+    - owned WebView2 helper count `6`
+    - working set `378.08MB`
+  - `runtime-started`
+    - `sample_seconds=60.066`
+    - `hot_process_count=0`
+    - MUSU max `0`
+    - WebView2 max `0.08`
+    - owned process count `8`
+    - owned WebView2 helper count `6`
+    - working set `378.16MB`
+  - `desktop-open`
+    - `sample_seconds=60.051`
+    - `hot_process_count=0`
+    - MUSU max `0`
+    - WebView2 max `0.05`
+    - owned process count `8`
+    - owned WebView2 helper count `6`
+    - working set `377.99MB`
+
+Targeted verifier:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-080400-HUGH_SECOND\20260608-080400-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios startup-open,runtime-started,desktop-open -MinSampleSeconds 60 -MaxOneCorePercent 5 -Json`
+- result:
+  - `ok=true`
+  - `fail_count=0`
+  - `present_required_scenarios=startup-open,runtime-started,desktop-open`
+
+Interpretation:
+
+- the local-sideload refresh removed the stale packaged-doctor schema gap on
+  this machine
+- clean one-machine packaged CPU evidence is green again for the three primary
+  local scenarios
+- remaining release blockers are no longer this machine's packaged doctor
+  schema; they are the real second-PC and two-machine evidence gaps
+
+Search terms should include `GOAL v913`, `wiki/1088`,
+`musu_1.15.0.0_x64_local-sideload-manual.msix`,
+`doctor_schema_complete=true`, `20260608-080400-HUGH_SECOND`, and
+`verify-runtime-cpu-scenario-matrix.ps1`.
+
+## 2026-06-08 Local-Sideload Refresh and Clean One-Machine Matrix Index (wiki/1089)
+
+MUSU local indexer was refreshed after wiki/1088 and GOAL v913.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `83466 ms`
+
+Indexed context includes the local-sideload MSIX refresh, the packaged doctor
+schema completeness proof from `musu-idle-cpu-20260608-075850.json`, the clean
+`20260608-080400-HUGH_SECOND` one-machine matrix rerun, the targeted three-
+scenario verifier pass, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v914`, `wiki/1089`, `3104 files`,
+`2891 symbols`, `83466 ms`, `local-sideload refresh index`, and
+`20260608-080400-HUGH_SECOND`.

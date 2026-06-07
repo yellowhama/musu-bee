@@ -7724,4 +7724,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `17814 ms`, `stale packaged doctor fail-fast index`,
   `doctor_schema_complete`, and `133/133`.
 
+- 2026-06-08 local-sideload refresh and clean one-machine matrix:
+  wiki/1088 records that current HEAD `musu.exe` was rebuilt, packed into
+  `musu_1.15.0.0_x64_local-sideload-manual.msix`, reinstalled as the local
+  sideload package, and then re-proved on this machine with both a packaged
+  doctor schema completeness sample and a clean three-scenario one-machine
+  matrix. It records that `musu-idle-cpu-20260608-075850.json` showed
+  `doctor_schema_complete=true` with no fallback markers, and that
+  `20260608-080400-HUGH_SECOND.runtime-cpu-scenario-matrix.json` passed from a
+  clean git state with `startup-open`, `runtime-started`, and `desktop-open`
+  all at `hot_process_count=0` and WebView2 max `0.05/0.08/0.05`. The targeted
+  verifier replay also passed with `ok=true` and `fail_count=0`. Search terms
+  should include `GOAL v913`, `wiki/1088`,
+  `musu_1.15.0.0_x64_local-sideload-manual.msix`,
+  `doctor_schema_complete=true`, `20260608-080400-HUGH_SECOND`, and
+  `verify-runtime-cpu-scenario-matrix.ps1`.
+
+- 2026-06-08 local-sideload refresh and clean one-machine matrix index:
+  wiki/1089 records the MUSU local index refresh after wiki/1088 and GOAL
+  v913. Search terms should include `GOAL v914`, `wiki/1089`, `3104 files`,
+  `2891 symbols`, `83466 ms`, `local-sideload refresh index`, and
+  `20260608-080400-HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**
