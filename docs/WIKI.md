@@ -16630,3 +16630,85 @@ Search terms should include `GOAL v843`, `wiki/1018`, `3082 files`,
 `2808 symbols`, `12708 ms`, `idle busy-loop candidate audit index refresh`,
 `20260607-204601-HUGH_SECOND`, `localhost 3001`, `127.0.0.1:9741`, and
 `release CPU gate still requires second Windows PC evidence`.
+
+## 2026-06-07 Public Metadata and P2P Source Blocker Recheck (wiki/1019)
+
+Current-head go/no-go was rerun without skipping public metadata after the
+idle busy-loop candidate audit.
+
+Evidence:
+
+- canonical report:
+  `docs\RELEASE_1_15_0_RC1_PUBLIC_METADATA_AND_P2P_SOURCE_BLOCKER_RECHECK_2026_06_07.md`
+- public metadata verifier:
+  `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`
+- go/no-go:
+  `scripts\windows\write-release-go-no-go.ps1 -Json`
+- P2P env status:
+  `scripts\windows\show-musu-pro-p2p-env-status.ps1 -SkipGithub -Json`
+
+Results:
+
+- `https://musu.pro/privacy` returned HTTP `200`
+- `https://musu.pro/support` returned HTTP `200`
+- public metadata `ok=true`, `fail_count=0`
+- current go/no-go commit:
+  `f158336ac3fec3481ea4160bb1351485c6e10a63`
+- `public_metadata_checked=true`
+- `public_metadata_ok=true`
+- blocker count is now `6`
+
+Remaining blocker areas:
+
+- `multi-device`
+- `runtime-idle-cpu`
+- `runtime-cpu-scenario-matrix`
+- `support-mailbox`
+- `store-release`
+- `p2p-control-plane`
+
+P2P source read:
+
+- release relay payload endpoint implemented `false`
+- release payload preflight endpoint implemented `true`
+- store-forward queue fallback implemented `true`
+- release relay tunnel runtime implemented `false`
+- release relay tunnel runtime source contract ready `true`
+- release relay tunnel runtime not-implemented branch active `true`
+- preview store-forward payload queue non-release-grade `true`
+
+Release meaning:
+
+- public privacy/support metadata is no longer the active blocker;
+- release relay source markers must stay false until the real
+  `quic_relay_tunnel` byte path and bound relay transport/delivery proofs
+  exist;
+- second-PC CPU/matrix/route evidence, support mailbox, Store evidence, and
+  live MUSU.PRO P2P proof remain open.
+
+Search terms should include `GOAL v844`, `wiki/1019`,
+`public metadata and P2P source blocker recheck`, `public_metadata_ok=true`,
+`blocker count 6`, `f158336ac3fec3481ea4160bb1351485c6e10a63`,
+`release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`.
+
+## 2026-06-07 Public Metadata and P2P Source Blocker Recheck Index Refresh (wiki/1020)
+
+MUSU local indexer was refreshed after wiki/1019 and GOAL v844.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3085 files`
+- `2808 symbols`
+- `13386 ms`
+
+Indexed context includes the public metadata and P2P source blocker recheck
+report, latest current-head go/no-go with public metadata included, P2P source
+blocker status, BETA checklist, WIKI/WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v845`, `wiki/1020`, `3085 files`,
+`2808 symbols`, `13386 ms`,
+`public metadata and P2P source blocker recheck index refresh`,
+`public_metadata_ok=true`, `blocker count 6`,
+`release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED`.

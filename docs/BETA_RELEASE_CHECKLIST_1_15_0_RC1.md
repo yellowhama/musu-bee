@@ -208,6 +208,32 @@ not reproduced by current one-machine packaged evidence, but the release CPU
 gate remains open until a second Windows PC also passes the 60s idle CPU and
 five-state matrix gates.
 
+Public metadata and P2P source blocker recheck after the idle busy-loop audit:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_PUBLIC_METADATA_AND_P2P_SOURCE_BLOCKER_RECHECK_2026_06_07.md`
+- public metadata command:
+  `scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`
+- latest go/no-go command:
+  `scripts\windows\write-release-go-no-go.ps1 -Json`
+
+`https://musu.pro/privacy` and `https://musu.pro/support` both returned HTTP
+`200` and contained the expected release metadata plus `musu@musu.pro`.
+Current HEAD go/no-go on
+`f158336ac3fec3481ea4160bb1351485c6e10a63` now reports
+`public_metadata_checked=true`, `public_metadata_ok=true`, and blocker count
+`6`. Remaining blocker areas are `multi-device`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `support-mailbox`, `store-release`, and
+`p2p-control-plane`.
+
+P2P source status still correctly blocks release: release relay payload endpoint
+`false`, release relay tunnel runtime `false`, release payload preflight `true`,
+store-forward queue fallback `true`, source contract ready `true`, and
+not-implemented branch active `true`. Do not flip
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED` or `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`
+until a real `quic_relay_tunnel` byte path and bound transport/delivery proofs
+exist.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

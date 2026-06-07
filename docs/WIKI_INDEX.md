@@ -7073,4 +7073,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-204601-HUGH_SECOND`, `localhost 3001`, `127.0.0.1:9741`, and
   `release CPU gate still requires second Windows PC evidence`.
 
+- 2026-06-07 public metadata and P2P source blocker recheck:
+  `RELEASE_1_15_0_RC1_PUBLIC_METADATA_AND_P2P_SOURCE_BLOCKER_RECHECK_2026_06_07.md`
+  (wiki/1019) records the current-head public metadata verification and latest
+  go/no-go blocker reduction from `7` to `6`. Search terms should include
+  `GOAL v844`, `wiki/1019`,
+  `public metadata and P2P source blocker recheck`,
+  `public_metadata_ok=true`, `blocker count 6`,
+  `f158336ac3fec3481ea4160bb1351485c6e10a63`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`.
+
+- 2026-06-07 public metadata and P2P source blocker recheck index refresh:
+  wiki/1020 records the MUSU local index refresh after wiki/1019 and GOAL
+  v844. Search terms should include `GOAL v845`, `wiki/1020`, `3085 files`,
+  `2808 symbols`, `13386 ms`,
+  `public metadata and P2P source blocker recheck index refresh`,
+  `public_metadata_ok=true`, `blocker count 6`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`, and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`.
+
 **End of WIKI_INDEX.md.**
