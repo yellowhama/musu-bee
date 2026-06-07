@@ -25,10 +25,16 @@ Sources checked on 2026-06-07:
   `https://code.claude.com/docs/en/remote-control`
 - Claude Code architecture:
   `https://code.claude.com/docs/en/how-claude-code-works`
+- Claude Code on the web:
+  `https://code.claude.com/docs/en/claude-code-on-the-web`
 - OpenAI Codex product page:
   `https://openai.com/codex/`
 - OpenAI Codex CLI docs:
   `https://developers.openai.com/codex/cli`
+- OpenAI Codex with ChatGPT plan / enterprise controls:
+  `https://help.openai.com/en/articles/11369540-codex-in-chatgpt`
+- OpenAI local shell tool:
+  `https://developers.openai.com/api/docs/guides/tools-local-shell`
 - OpenAI Codex GitHub repo:
   `https://github.com/openai/codex`
 - GitHub Copilot cloud agent docs:
@@ -47,6 +53,9 @@ Sources checked on 2026-06-07:
   `https://docs.devin.ai/get-started/devin-intro`
 - Replit Agent docs:
   `https://docs.replit.com/references/agent/overview`
+- OpenHands docs and SDK:
+  `https://docs.openhands.dev/overview/introduction`,
+  `https://docs.openhands.dev/sdk/index`
 - Factory Droids:
   `https://factory.ai/product/droids`
 - VS Code Remote Tunnels:
@@ -55,13 +64,21 @@ Sources checked on 2026-06-07:
   `https://developers.cloudflare.com/tunnel/`
 - Tailscale DERP servers:
   `https://tailscale.com/docs/reference/derp-servers`
+- Twingate architecture:
+  `https://www.twingate.com/docs/how-twingate-works/`
+- ZeroTier controller/root docs:
+  `https://docs.zerotier.com/what-is-a-controller/`,
+  `https://docs.zerotier.com/roots`
 
 Observed patterns:
 
 | Service | Execution model | UX pattern | Lesson for MUSU |
 |---|---|---|---|
 | Claude Code Remote Control | local session controlled from web/mobile | remote session list, QR/session URL, synced conversation, outbound-only connection | Closest direct comparator: MUSU.PRO should be a window/control plane into local MUSU Desktop execution, with local process liveness made explicit. |
+| Claude Code on the web | cloud task on Anthropic infrastructure | same web surface, different execution location | MUSU must avoid using the same badge for local remote control and future hosted execution. |
 | OpenAI Codex | connected local/cloud agent surfaces | command center, parallel agents, skills, background work | MUSU needs a command center, but must show local device ownership rather than only cloud worktrees. |
+| OpenAI Codex controls | Codex Local, Codex Cloud, Remote Control | admin policy, RBAC, compliance/API visibility | MUSU.PRO needs org policy and audit views for remote control, not just a feature toggle. |
+| OpenAI local shell | agent loop with local commands in user runtime | explicit local execution loop with sandbox/allowlist warning | MUSU remote order execution should always pass through local desktop permission policy. |
 | GitHub Copilot cloud agent | GitHub Actions powered ephemeral environment | issue/PR workflow, plan, branch, logs, PR review | MUSU should expose plan, branch/artifact, review, and audit trails; every task needs a clear handoff object. |
 | GitHub Copilot CLI Remote Control | local CLI session controlled from GitHub.com/mobile | live session list, remote prompts, approval responses, cancel, plan approval | MUSU remote UI should support prompts/approvals/cancel while clearly saying local commands and files remain on the selected device. |
 | GitHub Copilot cloud/local sandboxes | explicit local or cloud execution sandbox | execution-location choice and policy-managed isolation | MUSU needs separate status labels for local execution, local sandbox, relay, and any future hosted worker mode. |
@@ -70,10 +87,13 @@ Observed patterns:
 | Google Jules | cloud VM that clones repos | repo selector, branch selector, plan approval, notifications | MUSU needs repo/project selectors, plan approval, and completion notifications before local execution feels safe. |
 | Devin | autonomous software engineer with CLI/desktop/cloud/integrations | team workflow, tickets, integrations, backlog work | MUSU should model agents as team members tied to rooms, tickets, and local capabilities. |
 | Replit Agent | hosted workspace and deployment flow | natural-language build flow, plan mode, design preview | MUSU can borrow plain-language ordering and preview, but must avoid hiding infra/runtime location. |
+| OpenHands | local GUI/CLI, SDK, remote servers, cloud | open agent runtime with local-to-remote portability | Useful future reference, but MUSU's first release should not blur Windows Desktop evidence with optional hosted runtimes. |
 | Factory Droids | multi-surface agent task flow | terminal, IDE, browser, Slack, model routing, adjustable autonomy | MUSU should allow the same room/order to originate from multiple surfaces while local permission policy remains consistent. |
 | VS Code Remote Tunnels | remote server on user's machine over authenticated tunnel | connect from VS Code web/desktop without SSH or inbound listener | MUSU remote access should be outbound-only and authenticated; anonymous tunnel behavior must be impossible for agent control. |
 | Tailscale | control plane coordinates devices; data plane runs on devices | device identity, policy, peer discovery, NAT traversal, direct/relayed paths | MUSU.PRO should coordinate registration/rendezvous/path choice while local devices move work and evidence. |
 | Tailscale DERP / peer relays | direct paths preferred, peer/DERP relay fallback | DERP map, coordination server, encrypted blind relay | Route UI should show direct attempt, peer relay, hosted relay, and why fallback happened. |
+| ZeroTier | controller/root discovery plus node data plane | membership authorization, root/moon discovery | Device enrollment should distinguish identity/control membership from payload routing. |
+| Twingate | hosted controller, customer connector, relay fallback | controller/connector/relay separation | MUSU relay UI should expose connector/device identity without implying relay can inspect payloads. |
 | Cloudflare Tunnel | local daemon opens outbound connection to cloud edge | public hostname to local service, no inbound ports | MUSU relay/connect should be explicit infrastructure, not a hidden default execution mode. |
 | ngrok | local agent opens outbound TLS tunnel to cloud endpoint | no inbound ports, explicit tunnel endpoint, cloud relay | Relay fallback should be explicit and proven, not the default execution path. |
 
@@ -97,6 +117,17 @@ Strategic conclusion:
 - Remote control is allowed to synchronize prompts, messages, approvals,
   cancellations, and status; local file, shell, tool, and adapter execution
   remains on the selected MUSU Desktop device.
+
+UX rule added from the 2026-06-07 supplemental research:
+
+- A run must always show an execution-locus banner:
+  `Input from <surface>`, `Executing on <device/runtime>`,
+  `Route <direct|relay|cloud>`, and `Evidence <ok|missing|failed>`.
+- `Remote control`, `Local execution`, `Local sandbox`, `Cloud task`, and
+  `Relay fallback` are separate labels. They must never collapse into a single
+  `connected` state.
+- If MUSU later adds hosted workers, they must appear as a distinct execution
+  mode with different policy, evidence, billing, and data controls.
 
 ## Product Position
 
@@ -164,6 +195,8 @@ Essential controls:
 - room selector
 - target selector: `Best device`, specific device, agent group
 - execution path selector: `Prefer direct`, `Allow relay fallback`, `Local only`
+- execution locus selector: `Local MUSU Desktop`; future `Hosted worker` stays
+  disabled until a separate cloud-execution product exists
 - approval toggle for write/file/command/network actions
 - budget controls: max time, max spend, max CPU, max parallel agents
 - session controls: keep awake hint, cancel current work, revoke remote access
@@ -179,6 +212,8 @@ Status badges:
 - `Needs approval`
 - `Evidence missing`
 - `Remote control`
+- `Cloud task`
+- `Local sandbox`
 - `Local-only action`
 
 ### 2. Project Room

@@ -19,10 +19,18 @@ Official or primary sources checked on 2026-06-07:
   `https://code.claude.com/docs/en/remote-control`
 - Claude Code architecture:
   `https://code.claude.com/docs/en/how-claude-code-works`
+- Claude Code on the web:
+  `https://code.claude.com/docs/en/claude-code-on-the-web`
 - OpenAI Codex product page:
   `https://openai.com/codex/`
 - OpenAI Codex CLI docs:
   `https://developers.openai.com/codex/cli`
+- OpenAI Codex with ChatGPT plan / enterprise controls:
+  `https://help.openai.com/en/articles/11369540-codex-in-chatgpt`
+- OpenAI Codex agent loop:
+  `https://openai.com/index/unrolling-the-codex-agent-loop/`
+- OpenAI local shell tool:
+  `https://developers.openai.com/api/docs/guides/tools-local-shell`
 - OpenAI Codex GitHub repository:
   `https://github.com/openai/codex`
 - GitHub Copilot cloud agent:
@@ -43,6 +51,10 @@ Official or primary sources checked on 2026-06-07:
   `https://docs.devin.ai/get-started/devin-intro`
 - Replit Agent:
   `https://docs.replit.com/references/agent/overview`
+- OpenHands overview:
+  `https://docs.openhands.dev/overview/introduction`
+- OpenHands Software Agent SDK:
+  `https://docs.openhands.dev/sdk/index`
 - Factory Droids:
   `https://factory.ai/product/droids`
 - VS Code Remote Tunnels:
@@ -51,6 +63,11 @@ Official or primary sources checked on 2026-06-07:
   `https://tailscale.com/docs/concepts/control-data-planes`
 - Tailscale DERP servers:
   `https://tailscale.com/docs/reference/derp-servers`
+- ZeroTier controller and private root servers:
+  `https://docs.zerotier.com/what-is-a-controller/`,
+  `https://docs.zerotier.com/roots`
+- Twingate architecture:
+  `https://www.twingate.com/docs/how-twingate-works/`
 - Cloudflare Tunnel:
   `https://developers.cloudflare.com/tunnel/`
 - ngrok secure tunnels:
@@ -61,8 +78,10 @@ Official or primary sources checked on 2026-06-07:
 | Product | Execution location | User control surface | Useful pattern | Risk for MUSU to avoid |
 |---|---|---|---|---|
 | Claude Code Remote Control | local user machine | browser/mobile connected to local session | closest match for remote input controlling local execution | hiding that a local process must stay awake and connected |
+| Claude Code on the web | Anthropic-managed cloud infrastructure | browser/mobile cloud session | clean contrast between local remote-control and cloud execution modes | letting one UI label cover both local and cloud work |
 | OpenAI Codex CLI | local machine | terminal/IDE/desktop app | local agent harness, approvals, app/CLI split | letting app/cloud terminology blur where work ran |
-| OpenAI Codex app/cloud | local and cloud agent surfaces | command center for parallel work | multi-agent command center, worktrees, automations, skills | defaulting MUSU toward cloud execution instead of local device ownership |
+| OpenAI Codex app/cloud | local and cloud agent surfaces | command center for parallel work | multi-agent command center, worktrees, automations, skills, enterprise controls | defaulting MUSU toward cloud execution instead of local device ownership |
+| OpenAI local shell | user-provided runtime | API-driven agent loop with local command execution | explicit statement that command execution happens in the user's runtime | forwarding shell actions without local sandbox/allowlist policy |
 | GitHub Copilot cloud agent | GitHub Actions-powered ephemeral environment | GitHub issues/agents/PR flow | plan, branch, logs, PR, review trail | assuming GitHub PR flow is enough for non-code local work |
 | GitHub Copilot CLI Remote Control | local user machine | GitHub.com or GitHub Mobile | remote prompts, approvals, plans, cancel, and status while CLI tools stay local | syncing sensitive session events without clear owner/device policy |
 | GitHub Copilot local/cloud sandboxes | local sandbox or GitHub cloud sandbox | CLI and Copilot app | explicit execution-location choice and policy-managed isolation | mixing local and cloud sandbox claims in one status label |
@@ -71,10 +90,13 @@ Official or primary sources checked on 2026-06-07:
 | Google Jules | cloud VM with GitHub repo clone | web app, repo selector, plan approval | repo/branch selector, plan approval, notifications | losing local runtime and device evidence |
 | Devin | autonomous hosted software engineer plus CLI/desktop | team backlog, tickets, integrations | agent as teammate, backlog work, rich integrations | positioning as generic hosted worker instead of device fleet |
 | Replit Agent | hosted workspace/deploy flow | natural-language builder | plain-language order flow and preview | hiding infrastructure/runtime location behind simplicity |
+| OpenHands | local Docker/GUI, remote servers, or cloud | CLI, local GUI, SDK, hosted/enterprise surfaces | model-agnostic agent core with local-to-remote portability | building runtime portability before MUSU's local evidence gates are solid |
 | Factory Droids | terminal/IDE/browser/Slack surfaces | one prompt to PR | multi-surface agent routing and adjustable autonomy | selling autonomy without local execution proof |
 | VS Code Remote Tunnels | VS Code Server on the remote machine | VS Code desktop/web | authenticated outbound tunnel with no SSH or inbound listener | anonymous tunnels plus auto-approved agents are a severe risk |
 | Tailscale | data plane on devices, coordination server for control plane | admin console and clients | clean control-plane/data-plane split, device identity, NAT traversal | accidentally routing payload/data through MUSU.PRO by default |
 | Tailscale DERP / peer relays | local devices with direct, peer relay, or DERP fallback | clients plus coordination server | direct-first pathing, encrypted blind relay, DERP map distribution | relay fallback without route/e2e proof |
+| ZeroTier | data plane on nodes, controller/root infrastructure for membership/discovery | local controller/API and hosted management | controller-issued membership and root-server discovery model | making controller availability a hidden single point of trust |
+| Twingate | client to customer connector, P2P attempted first, relay fallback | hosted controller plus connectors | controller/connector/relay separation and minimal relay knowledge | overloading MUSU.PRO with payload visibility when it should coordinate only |
 | Cloudflare Tunnel | local daemon opens outbound tunnel to Cloudflare | public hostname/dashboard/API | no inbound ports, persistent connector, public hostname to local service | making Cloudflare/MUSU.PRO the default data plane |
 | ngrok | local agent opens outbound TLS tunnel to cloud endpoint | dashboard plus public endpoint | no inbound ports, relay/tunnel as explicit connector | treating relay as the primary execution path |
 
@@ -94,6 +116,34 @@ not copy that default. MUSU's sharper position is:
 
 > Submit work from anywhere. Coordinate through MUSU.PRO. Execute on your own
 > machines. Prove the device, route, and resource behavior.
+
+## 2026-06-07 Supplemental Findings
+
+The latest primary-source check reinforces the boundary rather than changing
+it:
+
+- Claude Code now draws an explicit product line between Remote Control
+  sessions that run on the user's machine and web sessions that run in
+  Anthropic-managed cloud infrastructure. MUSU should use the same visible
+  split: `Remote control of local MUSU Desktop` is not `cloud execution`.
+- GitHub Copilot CLI Remote Control is now a mature comparator for remote
+  steering of local work: progress, prompts, permission requests, plan
+  approvals, cancellation, and new prompts can flow through web/mobile while
+  tools, shell commands, and file operations stay on the originating machine.
+- OpenAI Codex validates the command-center and multi-agent direction, but its
+  own product controls separate Codex Local, Codex Cloud, and Remote Control.
+  MUSU needs that same execution-location policy as a first-class product
+  primitive.
+- OpenHands validates a different wedge: an open, model-agnostic agent SDK that
+  can run locally, in Docker/Kubernetes, or behind remote servers. This is
+  useful later, but MUSU's near-term release gate should stay narrower:
+  installed Windows Desktop runtime, local evidence, P2P route proof, and
+  explicit relay fallback.
+- Twingate, Tailscale, ZeroTier, VS Code Remote Tunnels, and Cloudflare Tunnel
+  all converge on the same network lesson: a hosted service can coordinate
+  identity, policy, rendezvous, route maps, connectors, or fallback relays, but
+  the UI must show whether the data/work path is direct, relayed, tunneled, or
+  cloud-hosted.
 
 ## Execution Topologies Observed
 
