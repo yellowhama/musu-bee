@@ -6615,4 +6615,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `local MUSU Desktop execution`, `control plane data plane`, and
   `localhost:3001`.
 
+- 2026-06-07 current-head target route CPU matrix and selection gate:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_MATRIX_AND_SELECTION_GATE_2026_06_07.md`
+  (wiki/971) records current HEAD `c71915aa` five-state runtime CPU evidence
+  after a targeted `HUGH-MAIN` route attempt plus go/no-go runtime CPU
+  candidate selection hardening. Search terms should include `GOAL v796`,
+  `wiki/971`, `20260607-122313-HUGH_SECOND.current-head-target-route`,
+  `HUGH-MAIN timeout`, `candidate_selection`,
+  `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`,
+  `WebView2 0.16`, `MUSU max 0`, `Node 0`, and `hot process count 0`.
+
+- 2026-06-07 current-head target route CPU matrix selection gate index refresh:
+  wiki/972 records the MUSU local index refresh after wiki/971 and GOAL v796.
+  Search terms should include `GOAL v797`, `wiki/972`, `2933 files`,
+  `2790 symbols`, `26410 ms`,
+  `current-head target route CPU matrix selection gate index refresh`,
+  `20260607-122313-HUGH_SECOND.current-head-target-route`,
+  `HUGH-MAIN timeout`, `candidate_selection`, and
+  `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`.
+
 **End of WIKI_INDEX.md.**

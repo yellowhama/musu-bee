@@ -14969,3 +14969,74 @@ Search terms should include `GOAL v795`, `wiki/970`,
 `13677 ms`, `Claude Code Remote Control`, `MUSU.PRO remote input`,
 `local MUSU Desktop execution`, `control plane data plane`, and
 `localhost:3001`.
+
+## 2026-06-07 Current-HEAD Target Route CPU Matrix and Selection Gate (wiki/971)
+
+Current HEAD `c71915aa86b94241cbd12d53b88c303c324a599b` has fresh five-state
+runtime CPU evidence on `HUGH_SECOND` after a targeted route attempt to
+`HUGH-MAIN`.
+
+Promoted evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- per-scenario evidence for `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`
+- five-state verification:
+  `20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- targeted post-route verification:
+  `20260607-122313-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+
+Results:
+
+- all five samples ran at least `60s` and stayed under the `5%` one-core
+  budget
+- MUSU, bridge runtime, and desktop shell max CPU stayed `0`
+- Node process count stayed `0`
+- owned WebView2 count stayed `6`
+- highest WebView2 max was `0.16`
+- hot process count stayed `0`
+- `HUGH-MAIN` route attempt timed out at
+  `http://192.168.1.192:8949/api/tasks/delegate`
+
+Go/no-go runtime CPU scenario selection now keeps latest candidates, complete
+five-state candidates, and target-bearing `post-route` candidates. The reported
+selection mode is
+`latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`.
+
+Validation passed:
+
+- five-state failed-route-allowed verifier `ok=true`, `fail_count=0`
+- targeted post-route verifier `ok=true`, `fail_count=0`
+- release evidence verifier regression `104/104`
+- pre-commit go/no-go completed and remains No-Go on second-PC/multi-device,
+  P2P env, support mailbox, Store, and dirty-worktree blockers
+
+Search terms should include `GOAL v796`, `wiki/971`,
+`current-head target route CPU matrix`,
+`20260607-122313-HUGH_SECOND.current-head-target-route`, `HUGH-MAIN timeout`,
+`candidate_selection`,
+`latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`,
+`WebView2 0.16`, `MUSU max 0`, `Node 0`, and `hot process count 0`.
+
+## 2026-06-07 Current-HEAD Target Route CPU Matrix Selection Gate Index Refresh (wiki/972)
+
+MUSU local indexer was refreshed after wiki/971 and GOAL v796.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2933 files`
+- `2790 symbols`
+- `26410 ms`
+
+Indexed context includes the current-head target-route CPU matrix report,
+promoted `20260607-122313-HUGH_SECOND.current-head-target-route` evidence,
+go/no-go runtime CPU candidate selection hardening, release verifier
+source-contract update, BETA checklist, runtime stabilization plan, WIKI_INDEX,
+GOAL, and CoS memory.
+
+Search terms should include `GOAL v797`, `wiki/972`,
+`current-head target route CPU matrix selection gate index refresh`,
+`2933 files`, `2790 symbols`, `26410 ms`,
+`20260607-122313-HUGH_SECOND.current-head-target-route`, `HUGH-MAIN timeout`,
+`candidate_selection`, and
+`latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`.

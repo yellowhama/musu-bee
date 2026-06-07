@@ -999,3 +999,52 @@ Engineering consequence: the next release-grade product slice remains
 second-machine local execution proof first, then live MUSU.PRO rendezvous/relay
 proof. The preview store-forward queue still cannot count as release-grade
 `quic_relay_tunnel` payload transit.
+
+## 2026-06-07 Current-HEAD Target Route CPU Matrix
+
+Current HEAD `c71915aa86b94241cbd12d53b88c303c324a599b` now has a fresh
+five-state runtime CPU matrix after a targeted `HUGH-MAIN` route attempt.
+
+Evidence:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- five-state verifier:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- targeted post-route verifier:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-122313-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+
+CPU result:
+
+- `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route` all pass at >= `60s` and <= `5%` of one logical core
+- MUSU, bridge runtime, and desktop shell max CPU stayed `0`
+- Node process count stayed `0`
+- WebView2 process count stayed `6`
+- highest WebView2 max was `0.16`
+- hot process count stayed `0`
+
+Route result:
+
+- `musu route --target HUGH-MAIN --wait-timeout-sec 180` timed out at
+  `http://192.168.1.192:8949/api/tasks/delegate`
+- failure is explicitly allowed for route-attempt CPU evidence
+- this is still not successful two-machine route proof
+
+Go/no-go matrix candidate selection was hardened so target-route-only files and
+complete five-state files cannot mask each other:
+
+- latest candidates per machine are still considered
+- complete required-scenario candidates are also kept
+- target-bearing `post-route` candidates are also kept
+- reported selection mode:
+  `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`
+
+Stabilization interpretation:
+
+- the local packaged runtime still does not reproduce the reported 20% CPU
+  busy-loop in the measured states;
+- the remaining CPU release blocker is machine-count scope, not current
+  `HUGH_SECOND` CPU behavior;
+- second-PC installation and successful route evidence remain required before
+  release readiness can move.

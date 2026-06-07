@@ -10349,3 +10349,62 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2922 files`, `2790 symbols`, `13677 ms`
 - wiki: `wiki/970`
+
+## 2026-06-07 Current-HEAD Target Route CPU Matrix and Selection Gate
+
+Current HEAD `c71915aa86b94241cbd12d53b88c303c324a599b` now has fresh
+`HUGH_SECOND` five-state CPU evidence after a targeted second-PC route attempt
+to `HUGH-MAIN`.
+
+Promoted evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- per-scenario evidence for `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`
+- five-state verification:
+  `20260607-122313-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- targeted post-route verification:
+  `20260607-122313-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+
+CPU result:
+
+- all five samples ran for at least `60s`
+- MUSU max one-core CPU stayed `0`
+- bridge runtime max stayed `0`
+- desktop shell max stayed `0`
+- Node process count stayed `0`
+- owned WebView2 process count stayed `6`
+- highest WebView2 max was `0.16`
+- hot process count stayed `0`
+
+Route attempt result:
+
+- target: `HUGH-MAIN`
+- URL attempted: `http://192.168.1.192:8949/api/tasks/delegate`
+- result: timeout, `ok=false`, `failure_allowed=true`
+
+This is still not successful two-machine route proof. It only proves the local
+packaged runtime remains resource-budget-safe before and after a failed
+targeted second-PC route attempt.
+
+Go/no-go runtime CPU scenario selection was also hardened:
+
+- `write-release-go-no-go.ps1` now keeps latest candidates, complete
+  five-state candidates, and target-bearing post-route candidates
+- `candidate_selection` is
+  `latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates`
+- `test-release-evidence-verifiers.ps1` source-checks this contract
+
+Validation:
+
+- five-state failed-route-allowed verifier: `ok=true`, `fail_count=0`
+- targeted post-route verifier: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=104`,
+  `failed_case_count=0`
+- pre-commit go/no-go completed and remains No-Go on second-PC/multi-device,
+  P2P env, support mailbox, Store, and dirty-worktree blockers
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_MATRIX_AND_SELECTION_GATE_2026_06_07.md`
+  (wiki/971)

@@ -471,6 +471,118 @@ function Select-LatestEvidenceCandidatesByMachine {
     @($selected.ToArray() | Sort-Object LastWriteTime -Descending)
 }
 
+function Test-StringSetContainsAll {
+    param(
+        [string[]]$Values = @(),
+        [string[]]$Required = @()
+    )
+
+    $set = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($value in @($Values)) {
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            [void]$set.Add([string]$value)
+        }
+    }
+    foreach ($requiredValue in @($Required)) {
+        if ([string]::IsNullOrWhiteSpace($requiredValue)) {
+            continue
+        }
+        if (-not $set.Contains([string]$requiredValue)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Get-RuntimeCpuScenarioMatrixCandidateShape {
+    param([Parameter(Mandatory = $true)]$Candidate)
+
+    try {
+        $matrix = Get-Content -LiteralPath $Candidate.FullName -Raw | ConvertFrom-Json
+    }
+    catch {
+        return [pscustomobject]@{
+            scenario_names = @()
+            has_target_post_route_probe = $false
+        }
+    }
+
+    $scenarioEntries = @()
+    if ($matrix.PSObject.Properties["scenarios"] -and $null -ne $matrix.scenarios) {
+        $scenarioEntries = @($matrix.scenarios)
+    }
+    $scenarioNames = @($scenarioEntries | ForEach-Object {
+            if ($_.PSObject.Properties["scenario"]) {
+                [string]$_.scenario
+            }
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+
+    $postRouteEntry = @($scenarioEntries | Where-Object {
+            $_.PSObject.Properties["scenario"] -and [string]$_.scenario -eq "post-route"
+        } | Select-Object -First 1)
+    $routeProbe = $null
+    if ($postRouteEntry.Count -gt 0 -and
+        $postRouteEntry[0].PSObject.Properties["preparation"] -and
+        $postRouteEntry[0].preparation -and
+        $postRouteEntry[0].preparation.PSObject.Properties["route_probe"]) {
+        $routeProbe = $postRouteEntry[0].preparation.route_probe
+    }
+
+    [pscustomobject]@{
+        scenario_names = @($scenarioNames)
+        has_target_post_route_probe = (
+            $null -ne $routeProbe -and
+            $routeProbe.PSObject.Properties["target"] -and
+            -not [string]::IsNullOrWhiteSpace([string]$routeProbe.target)
+        )
+    }
+}
+
+function Select-RuntimeCpuScenarioMatrixCandidates {
+    param(
+        [object[]]$Candidates = @(),
+        [string[]]$RequiredScenarios = @(),
+        [int]$MaxPerMachine = 12,
+        [int]$MaxUnknown = 12
+    )
+
+    $selectedByPath = @{}
+    function Add-UniqueRuntimeCpuCandidate {
+        param([object[]]$Items = @())
+        foreach ($item in @($Items)) {
+            if ($null -eq $item -or [string]::IsNullOrWhiteSpace([string]$item.FullName)) {
+                continue
+            }
+            $key = [string]$item.FullName
+            if (-not $selectedByPath.ContainsKey($key)) {
+                $selectedByPath[$key] = $item
+            }
+        }
+    }
+
+    Add-UniqueRuntimeCpuCandidate -Items (
+        Select-LatestEvidenceCandidatesByMachine -Candidates $Candidates -MaxPerMachine $MaxPerMachine -MaxUnknown $MaxUnknown
+    )
+
+    $completeScenarioCandidates = @($Candidates | Where-Object {
+            $shape = Get-RuntimeCpuScenarioMatrixCandidateShape -Candidate $_
+            Test-StringSetContainsAll -Values $shape.scenario_names -Required $RequiredScenarios
+        })
+    Add-UniqueRuntimeCpuCandidate -Items (
+        Select-LatestEvidenceCandidatesByMachine -Candidates $completeScenarioCandidates -MaxPerMachine $MaxPerMachine -MaxUnknown $MaxUnknown
+    )
+
+    $targetRouteCandidates = @($Candidates | Where-Object {
+            $shape = Get-RuntimeCpuScenarioMatrixCandidateShape -Candidate $_
+            [bool]$shape.has_target_post_route_probe
+        })
+    Add-UniqueRuntimeCpuCandidate -Items (
+        Select-LatestEvidenceCandidatesByMachine -Candidates $targetRouteCandidates -MaxPerMachine $MaxPerMachine -MaxUnknown $MaxUnknown
+    )
+
+    @($selectedByPath.Values | Sort-Object LastWriteTime -Descending)
+}
+
 function Test-RuntimeIdleCpuEvidence {
     param(
         [Parameter(Mandatory = $true)][string]$EvidencePath,
@@ -1252,7 +1364,7 @@ foreach ($root in $runtimeCpuScenarioMatrixRoots) {
 
 $runtimeCpuScenarioMatrixResults = @()
 $runtimeCpuScenarioMatrixMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-$runtimeCpuScenarioMatrixSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 12 -MaxUnknown 12
+$runtimeCpuScenarioMatrixSelectedCandidates = Select-RuntimeCpuScenarioMatrixCandidates -Candidates $runtimeCpuScenarioMatrixCandidates -RequiredScenarios $RequiredRuntimeCpuScenarioMatrixScenarios -MaxPerMachine 12 -MaxUnknown 12
 foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $matrixArgs = @(
         "-EvidencePath", $candidate.FullName,
@@ -1293,7 +1405,7 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuScenarioMatrixMachines)
     candidate_count = $runtimeCpuScenarioMatrixResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine-up-to-12"
+    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"
     required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
     candidates = $runtimeCpuScenarioMatrixResults
 }
@@ -1346,7 +1458,7 @@ $runtimeCpuSecondPcRouteAttemptEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuSecondPcRouteAttemptMachines)
     candidate_count = $runtimeCpuSecondPcRouteAttemptResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine-up-to-12"
+    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"
     required_scenarios = @($runtimeCpuSecondPcRouteAttemptRequiredScenarios)
     route_probe = "post-route target route attempt, success or explicitly allowed failure"
     candidates = $runtimeCpuSecondPcRouteAttemptResults

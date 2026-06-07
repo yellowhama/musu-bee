@@ -426,12 +426,15 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
 
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
-        'Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeCpuScenarioMatrixCandidates -MaxPerMachine 12 -MaxUnknown 12',
+        'function Select-RuntimeCpuScenarioMatrixCandidates',
+        'Get-RuntimeCpuScenarioMatrixCandidateShape',
+        'Test-StringSetContainsAll -Values $shape.scenario_names -Required $RequiredScenarios',
+        'Select-RuntimeCpuScenarioMatrixCandidates -Candidates $runtimeCpuScenarioMatrixCandidates -RequiredScenarios $RequiredRuntimeCpuScenarioMatrixScenarios -MaxPerMachine 12 -MaxUnknown 12',
         '$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")',
         '"-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")',
         '"-RejectSelfPostRouteTarget"',
         '"-RejectLocalPostRouteTarget"',
-        'candidate_selection = "latest-per-machine-up-to-12"'
+        'candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"'
     )
 
     foreach ($needle in $requiredNeedles) {
