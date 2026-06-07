@@ -7565,4 +7565,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `19392 ms`, `second-PC runtime matrix verification index`,
   `119/119`, and `runtime_cpu_scenario_matrix_verified`.
 
+- 2026-06-08 second-PC return git freshness hardening:
+  wiki/1070 records that second-PC kits now carry `kit-build-metadata.json`,
+  second-PC handoff/release-check artifacts now stamp git metadata, and
+  `import-second-pc-return.ps1` now freshness-gates both artifacts and rejects
+  mixed return bundles via `handoff_release_check_git_commit_mismatch`.
+  Regression stayed green at `123/123` in
+  `.local-build\release-evidence-verifier-tests\20260608-060601`. Search terms
+  should include `GOAL v895`, `wiki/1070`, `123/123`,
+  `kit-build-metadata.json`, `Get-MusuSourceGitState`,
+  `release_check_git_commit_not_current`, and
+  `handoff_release_check_git_commit_mismatch`.
+
+- 2026-06-08 second-PC return git freshness index:
+  wiki/1071 records the MUSU local index refresh after wiki/1070 and GOAL
+  v895. Search terms should include `GOAL v896`, `wiki/1071`, `3103 files`,
+  `2890 symbols`, `16344 ms`, `second-PC return git freshness index`,
+  `123/123`, `kit-build-metadata.json`, and
+  `handoff_release_check_git_commit_mismatch`.
+
 **End of WIKI_INDEX.md.**

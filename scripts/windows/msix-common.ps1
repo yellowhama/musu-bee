@@ -2,6 +2,74 @@ function Get-WindowsRepoRoot([string]$ScriptPath) {
     return (Resolve-Path (Join-Path (Split-Path -Parent $ScriptPath) "..\..")).Path
 }
 
+function Get-MusuSourceGitState {
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+
+    $gitBranch = (& git -C $RepoRoot rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
+    $gitCommit = (& git -C $RepoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+    $gitStatusShort = (& git -C $RepoRoot status --short 2>$null | Out-String).Trim()
+    if ($gitCommit -match "^[0-9a-f]{40}$") {
+        return [pscustomobject]@{
+            source = "git"
+            branch = $gitBranch
+            commit = $gitCommit
+            dirty = (-not [string]::IsNullOrWhiteSpace($gitStatusShort))
+            status_short = $gitStatusShort
+            metadata_path = $null
+        }
+    }
+
+    $metadataCandidates = @(
+        Join-Path $RepoRoot "kit-build-metadata.json",
+        Join-Path $RepoRoot "packet-build-metadata.json"
+    )
+    foreach ($metadataPath in $metadataCandidates) {
+        if (-not (Test-Path -LiteralPath $metadataPath)) {
+            continue
+        }
+
+        try {
+            $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
+            $metadataCommit = if ($metadata -and $metadata.PSObject.Properties["git"] -and $metadata.git.PSObject.Properties["commit"]) {
+                [string]$metadata.git.commit
+            }
+            else {
+                ""
+            }
+            if ($metadataCommit -notmatch "^[0-9a-f]{40}$") {
+                continue
+            }
+
+            $metadataStatusShort = if ($metadata.git.PSObject.Properties["status_short"]) {
+                [string]$metadata.git.status_short
+            }
+            else {
+                ""
+            }
+            return [pscustomobject]@{
+                source = "metadata"
+                branch = if ($metadata.git.PSObject.Properties["branch"]) { [string]$metadata.git.branch } else { "" }
+                commit = $metadataCommit
+                dirty = if ($metadata.git.PSObject.Properties["dirty"]) { [bool]$metadata.git.dirty } else { $null }
+                status_short = $metadataStatusShort
+                metadata_path = $metadataPath
+            }
+        }
+        catch {
+            continue
+        }
+    }
+
+    return [pscustomobject]@{
+        source = $null
+        branch = $gitBranch
+        commit = ""
+        dirty = $null
+        status_short = $gitStatusShort
+        metadata_path = $null
+    }
+}
+
 function Find-LatestArtifact([string]$Directory, [string]$Filter) {
     if (-not (Test-Path -LiteralPath $Directory)) {
         return $null

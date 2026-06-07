@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "msix-common.ps1")
 $versionPath = Join-Path $repoRoot "VERSION"
 $version = if (Test-Path -LiteralPath $versionPath) {
     (Get-Content -LiteralPath $versionPath -Raw).Trim()
@@ -19,6 +20,7 @@ $version = if (Test-Path -LiteralPath $versionPath) {
 else {
     "unknown"
 }
+$sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\second-pc-handoff"
@@ -255,6 +257,11 @@ $handoff = [pscustomobject]@{
     schema = "musu.second_pc_handoff.v1"
     ok = ($failCount -eq 0)
     version = $version
+    git_commit = [string]$sourceGitState.commit
+    git_dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }
+    git_status_short = [string]$sourceGitState.status_short
+    git_source = [string]$sourceGitState.source
+    git_metadata_path = [string]$sourceGitState.metadata_path
     started_at = $startedAt.ToString("o")
     completed_at = (Get-Date).ToString("o")
     operator_machine = $env:COMPUTERNAME

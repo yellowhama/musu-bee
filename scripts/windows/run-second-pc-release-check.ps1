@@ -43,6 +43,7 @@ $version = if (Test-Path -LiteralPath $versionPath) {
 else {
     "unknown"
 }
+$sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\second-pc-release-check"
@@ -757,6 +758,11 @@ $result = [pscustomobject]@{
     schema = "musu.second_pc_release_check.v1"
     ok = ([string]::IsNullOrWhiteSpace($errorText) -and ($runtimeCleanup -and [bool]$runtimeCleanup.ok))
     version = $version
+    git_commit = [string]$sourceGitState.commit
+    git_dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }
+    git_status_short = [string]$sourceGitState.status_short
+    git_source = [string]$sourceGitState.source
+    git_metadata_path = [string]$sourceGitState.metadata_path
     startup_contract = $StartupContract
     completed_at = (Get-Date).ToString("o")
     operator_machine = $env:COMPUTERNAME

@@ -18417,3 +18417,88 @@ Indexed context includes the importer matrix re-verification change, the green
 Search terms should include `GOAL v894`, `wiki/1069`, `3103 files`,
 `2890 symbols`, `19392 ms`, `second-PC runtime matrix verification index`,
 `119/119`, and `runtime_cpu_scenario_matrix_verified`.
+
+## 2026-06-08 Second-PC Return Git Freshness Hardening (wiki/1070)
+
+Second-PC return kits now preserve source-commit metadata, and primary import
+now freshness-gates both the second-PC release-check summary and the handoff
+before accepting cross-machine evidence.
+
+Key changes:
+
+- `scripts\windows\msix-common.ps1`
+  now exposes `Get-MusuSourceGitState`, which resolves source commit/dirty
+  state from repo git when available or from `kit-build-metadata.json` /
+  `packet-build-metadata.json` when the second PC is running from an extracted
+  kit without `.git`.
+- `scripts\windows\prepare-multidevice-test-kit.ps1`
+  now writes `kit-build-metadata.json` into the kit root with source
+  `commit`, `branch`, `dirty`, `status_short`, and metadata source details.
+- `scripts\windows\collect-second-pc-handoff.ps1`
+  and `scripts\windows\run-second-pc-release-check.ps1`
+  now stamp `git_commit`, `git_dirty`, `git_status_short`, `git_source`, and
+  `git_metadata_path` into `musu.second_pc_handoff.v1` and
+  `musu.second_pc_release_check.v1`.
+- `scripts\windows\import-second-pc-return.ps1`
+  now reuses the release freshness classifier logic, computes
+  `release_check_git_freshness` and `handoff_git_freshness`, and fails
+  release-gate import on:
+  - `release_check_git_commit_missing`
+  - `release_check_git_commit_invalid`
+  - `release_check_git_commit_not_current`
+  - `release_check_git_dirty_missing`
+  - `release_check_git_dirty_true`
+  - `handoff_git_commit_missing`
+  - `handoff_git_commit_invalid`
+  - `handoff_git_commit_not_current`
+  - `handoff_git_dirty_missing`
+  - `handoff_git_dirty_true`
+  - `handoff_release_check_git_commit_mismatch`
+
+Why this matters:
+
+- Previous second-PC import already re-verified idle and matrix artifacts on
+  primary HEAD, but it could still trust a structurally valid return zip built
+  from an older or mixed operator-kit run.
+- The new gate closes that trust gap without requiring live git on the second
+  PC, because kit metadata is now embedded at kit-build time and replayed into
+  the returned handoff/release-check artifacts.
+
+Regression:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=123`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-060601`
+- new source-contract cases:
+  - `second-PC kit embeds source git metadata`
+  - `second-PC release check records git freshness metadata`
+  - `second-PC handoff records git freshness metadata`
+  - `second-PC return import verifies handoff and release-check freshness`
+
+Search terms should include `GOAL v895`, `wiki/1070`, `123/123`,
+`kit-build-metadata.json`, `Get-MusuSourceGitState`,
+`release_check_git_commit_not_current`, and
+`handoff_release_check_git_commit_mismatch`.
+
+## 2026-06-08 Second-PC Return Git Freshness Index (wiki/1071)
+
+MUSU local indexer was refreshed after wiki/1070 and GOAL v895.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `16344 ms`
+
+Indexed context includes the kit metadata fallback, second-PC handoff and
+release-check git metadata stamps, the import freshness gate, the green
+`123/123` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v896`, `wiki/1071`, `3103 files`,
+`2890 symbols`, `16344 ms`, `second-PC return git freshness index`, `123/123`,
+`kit-build-metadata.json`, and `handoff_release_check_git_commit_mismatch`.

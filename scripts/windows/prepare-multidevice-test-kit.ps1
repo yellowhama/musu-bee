@@ -18,6 +18,10 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
+if ([string]::IsNullOrWhiteSpace([string]$sourceGitState.commit)) {
+    throw "Unable to resolve source git commit for multi-device test kit."
+}
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $safeVersion = $version -replace "[^A-Za-z0-9._-]", "_"
 $kitRoot = Join-Path $OutputRoot "musu-multidevice-$safeVersion-$stamp"
@@ -79,6 +83,21 @@ Copy-Item -LiteralPath $packagePath -Destination (Join-Path $kitMsixDir (Split-P
 Copy-Item -LiteralPath $certPath -Destination (Join-Path $kitMsixDir (Split-Path -Leaf $certPath))
 Copy-Item -LiteralPath (Join-Path $repoRoot "VERSION") -Destination (Join-Path $kitRoot "VERSION")
 Copy-Item -LiteralPath (Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md") -Destination $kitDocsDir
+
+$kitMetadata = [pscustomobject]@{
+    schema = "musu.multidevice_test_kit_metadata.v1"
+    generated_at = (Get-Date).ToString("o")
+    version = $version
+    git = [pscustomobject]@{
+        source = [string]$sourceGitState.source
+        branch = [string]$sourceGitState.branch
+        commit = [string]$sourceGitState.commit
+        dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }
+        status_short = [string]$sourceGitState.status_short
+        metadata_path = [string]$sourceGitState.metadata_path
+    }
+}
+$kitMetadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $kitRoot "kit-build-metadata.json") -Encoding UTF8
 
 if ($IncludeDesktopShell) {
     New-Item -ItemType Directory -Force -Path $kitDesktopDir | Out-Null

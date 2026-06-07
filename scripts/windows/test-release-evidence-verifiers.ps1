@@ -549,6 +549,102 @@ function Test-SecondPcImportRouteReachabilityContract {
     return $true
 }
 
+function Test-SecondPcKitMetadataContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        'Unable to resolve source git commit for multi-device test kit.',
+        'schema = "musu.multidevice_test_kit_metadata.v1"',
+        'kit-build-metadata.json',
+        'commit = [string]$sourceGitState.commit',
+        'dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcReleaseCheckGitFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        'git_commit = [string]$sourceGitState.commit',
+        'git_dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }',
+        'git_status_short = [string]$sourceGitState.status_short',
+        'git_source = [string]$sourceGitState.source',
+        'git_metadata_path = [string]$sourceGitState.metadata_path'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcHandoffGitFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        'schema = "musu.second_pc_handoff.v1"',
+        'git_commit = [string]$sourceGitState.commit',
+        'git_dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }',
+        'git_status_short = [string]$sourceGitState.status_short',
+        'git_source = [string]$sourceGitState.source',
+        'git_metadata_path = [string]$sourceGitState.metadata_path'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportGitFreshnessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Get-MusuSourceGitState -RepoRoot $repoRoot',
+        'function Test-DocumentationOrStatusOnlyGitDelta',
+        'function New-GitFreshnessSummary',
+        'release_check_git_commit_missing',
+        'release_check_git_commit_invalid',
+        'release_check_git_commit_not_current',
+        'release_check_git_dirty_missing',
+        'release_check_git_dirty_true',
+        'handoff_git_commit_missing',
+        'handoff_git_commit_invalid',
+        'handoff_git_commit_not_current',
+        'handoff_git_dirty_missing',
+        'handoff_git_dirty_true',
+        'handoff_release_check_git_commit_mismatch',
+        'release_check_git_freshness = $releaseCheckGitFreshness',
+        'handoff_git_freshness = $handoffGitFreshness',
+        'Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitRouteReachabilityContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2904,6 +3000,54 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC return import verifies route reachability diagnostics" `
     -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitMetadataOk = Test-SecondPcKitMetadataContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitMetadataOk `
+    -Message "second-PC multi-device kit must embed kit-build-metadata.json with source git commit fallback for offline operator runs"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit embeds source git metadata" `
+    -Verifier "second-PC kit source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcReleaseCheckGitFreshnessOk = Test-SecondPcReleaseCheckGitFreshnessContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcReleaseCheckGitFreshnessOk `
+    -Message "second-PC release check must record git commit/dirty metadata from repo git or kit metadata fallback"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check records git freshness metadata" `
+    -Verifier "second-PC release-check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcHandoffGitFreshnessOk = Test-SecondPcHandoffGitFreshnessContract -ScriptPath (Join-Path $scriptDir "collect-second-pc-handoff.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcHandoffGitFreshnessOk `
+    -Message "second-PC handoff must record git commit/dirty metadata from repo git or kit metadata fallback"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC handoff records git freshness metadata" `
+    -Verifier "second-PC handoff source contract" `
+    -FixturePath (Join-Path $scriptDir "collect-second-pc-handoff.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportGitFreshnessOk = Test-SecondPcImportGitFreshnessContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportGitFreshnessOk `
+    -Message "second-PC return import must freshness-gate release-check and handoff git metadata, and reject mixed commit bundles"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import verifies handoff and release-check freshness" `
+    -Verifier "second-PC import source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
     -ShouldPass $true `
     -Invocation $invocation

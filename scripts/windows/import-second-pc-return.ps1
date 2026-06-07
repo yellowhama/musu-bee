@@ -12,7 +12,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "msix-common.ps1")
+$repoRoot = Get-WindowsRepoRoot $MyInvocation.MyCommand.Path
+$currentGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
+$currentGitCommit = [string]$currentGitState.commit
 
 if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
     $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -114,6 +117,205 @@ function Resolve-LatestRuntimeIdleReleaseEvidence {
         return $null
     }
     return $match.FullName
+}
+
+function Test-ReleaseEvidenceFreshnessAllowedPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $normalizedPath = $Path.Replace("\", "/")
+    if ($normalizedPath -like "docs/*" -or $normalizedPath -like "musu-bee/docs/*" -or $normalizedPath -like "*.md") {
+        return $true
+    }
+
+    $serverOnlyControlPlanePaths = @(
+        "musu-bee/src/app/api/v1/p2p/*",
+        "musu-bee/src/app/api/v1/relay/*",
+        "musu-bee/src/app/api/rooms/*",
+        "musu-bee/src/lib/routeEvidence*.ts",
+        "musu-bee/src/lib/p2p*.ts"
+    )
+    foreach ($pattern in $serverOnlyControlPlanePaths) {
+        if ($normalizedPath -like $pattern) {
+            return $true
+        }
+    }
+
+    $testOnlyPathPatterns = @(
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx"
+    )
+    foreach ($pattern in $testOnlyPathPatterns) {
+        if ($normalizedPath -like $pattern) {
+            return $true
+        }
+    }
+
+    $statusOnlyScripts = @(
+        ".github/workflows/deploy-musu-bee.yml",
+        "scripts/windows/audit-desktop-release-readiness.ps1",
+        "scripts/windows/audit-frontend-polling-contract.ps1",
+        "scripts/windows/audit-rust-background-loop-contract.ps1",
+        "scripts/windows/audit-local-api-auth-contract.ps1",
+        "scripts/windows/audit-operator-api-security-contract.ps1",
+        "scripts/windows/audit-degraded-mode-contract.ps1",
+        "scripts/windows/audit-musu-crash-recovery-contract.ps1",
+        "scripts/windows/audit-musu-process-ownership.ps1",
+        "scripts/windows/audit-musu-startup-single-instance.ps1",
+        "scripts/windows/audit-p2p-store-forward-relay-contract.ps1",
+        "scripts/windows/audit-secret-storage-contract.ps1",
+        "scripts/windows/capture-msix-install-evidence.ps1",
+        "scripts/windows/check-msix-legacy-conflicts.ps1",
+        "scripts/windows/complete-final-operator-gates.ps1",
+        "scripts/windows/configure-musu-pro-p2p-env.ps1",
+        "scripts/windows/import-second-pc-return.ps1",
+        "scripts/windows/measure-musu-runtime-cpu-scenarios.ps1",
+        "scripts/windows/msix-common.ps1",
+        "scripts/windows/prepare-final-operator-gate-packet.ps1",
+        "scripts/windows/prepare-multidevice-test-kit.ps1",
+        "scripts/windows/prepare-operator-action-pack.ps1",
+        "scripts/windows/prepare-support-mailbox-verification-request.ps1",
+        "scripts/windows/repair-packaged-local-runtime-state.ps1",
+        "scripts/windows/record-route-reachability-diagnostic.ps1",
+        "scripts/windows/record-msix-install-evidence.ps1",
+        "scripts/windows/record-multidevice-evidence.ps1",
+        "scripts/windows/record-external-release-gate-recheck.ps1",
+        "scripts/windows/record-p2p-control-plane-evidence.ps1",
+        "scripts/windows/record-single-machine-evidence.ps1",
+        "scripts/windows/record-support-mailbox-verification.ps1",
+        "scripts/windows/run-second-pc-release-check.ps1",
+        "scripts/windows/test-second-pc-route-preflight.ps1",
+        "scripts/windows/smoke-multidevice-beta.ps1",
+        "scripts/windows/smoke-single-machine-beta.ps1",
+        "scripts/windows/verify-installed-msix-package.ps1",
+        "scripts/windows/verify-final-operator-gate-packet.ps1",
+        "scripts/windows/verify-msix-install-evidence.ps1",
+        "scripts/windows/verify-multidevice-evidence.ps1",
+        "scripts/windows/verify-operator-action-pack.ps1",
+        "scripts/windows/verify-p2p-control-plane-evidence.ps1",
+        "scripts/windows/verify-route-reachability-diagnostic.ps1",
+        "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
+        "scripts/windows/verify-single-machine-evidence.ps1",
+        "scripts/windows/verify-support-mailbox-evidence.ps1",
+        "scripts/windows/verify-store-submission-bundle.ps1",
+        "scripts/windows/show-final-release-handoff-status.ps1",
+        "scripts/windows/show-operator-handoff-card.ps1",
+        "scripts/windows/write-release-go-no-go.ps1",
+        "scripts/windows/write-release-candidate-manifest.ps1",
+        "scripts/windows/test-release-evidence-verifiers.ps1",
+        "scripts/windows/show-musu-process-attribution.ps1",
+        "scripts/windows/show-musu-pro-p2p-env-status.ps1"
+    )
+    return ($statusOnlyScripts -contains $normalizedPath)
+}
+
+function Test-ReleaseEvidenceFreshnessAllowedDiff {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $normalizedPath = $Path.Replace("\", "/")
+    if ($normalizedPath -notin @(".github/workflows/test.yml", "musu-bee/package.json")) {
+        return $false
+    }
+
+    $diffText = (& git -C $repoRoot diff --unified=0 $FromCommit $ToCommit -- $Path 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($diffText)) {
+        return $false
+    }
+
+    $changedLines = @(
+        $diffText -split "`r?`n" |
+            Where-Object { ($_ -match "^[+-]") -and ($_ -notmatch "^\+\+\+") -and ($_ -notmatch "^---") }
+    )
+    if ($changedLines.Count -eq 0) {
+        return $true
+    }
+
+    if ($normalizedPath -eq ".github/workflows/test.yml") {
+        $allowed = @(
+            '^\+\s*- name: P2P control-plane tests\s*$',
+            '^\+\s*run: npm run test:p2p\s*$',
+            '^\+\s*$'
+        )
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            -not (@($allowed | Where-Object { $line -match $_ }).Count -gt 0)
+        }).Count -eq 0)
+    }
+
+    if ($normalizedPath -eq "musu-bee/package.json") {
+        return (@($changedLines | Where-Object {
+            $line = [string]$_
+            $line -notmatch '^\+\s*"test:p2p":\s*"tsx --test src/lib/p2pKvEnv\.test\.ts src/app/api/v1/p2p/route-evidence/route\.test\.ts src/app/api/v1/p2p/rendezvous/route\.test\.ts src/app/api/v1/p2p/relay/lease/route\.test\.ts src/app/api/v1/p2p/relay/transport/route\.test\.ts",\s*$'
+        }).Count -eq 0)
+    }
+
+    return $false
+}
+
+function Test-DocumentationOrStatusOnlyGitDelta {
+    param(
+        [Parameter(Mandatory = $true)][string]$FromCommit,
+        [Parameter(Mandatory = $true)][string]$ToCommit
+    )
+
+    if ($FromCommit -notmatch "^[0-9a-f]{40}$" -or $ToCommit -notmatch "^[0-9a-f]{40}$") {
+        return $false
+    }
+
+    $changedPathsText = (& git -C $repoRoot diff --name-only $FromCommit $ToCommit 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($changedPathsText)) {
+        return $true
+    }
+
+    $changedPaths = @($changedPathsText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $runtimeAffectingPaths = @($changedPaths | Where-Object {
+        $path = [string]$_
+        -not (Test-ReleaseEvidenceFreshnessAllowedPath -Path $path) -and
+        -not (Test-ReleaseEvidenceFreshnessAllowedDiff -FromCommit $FromCommit -ToCommit $ToCommit -Path $path)
+    })
+    return ($runtimeAffectingPaths.Count -eq 0)
+}
+
+function New-GitFreshnessSummary {
+    param(
+        [Parameter(Mandatory = $true)]$Evidence,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitCommit,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    $gitCommit = if ($Evidence -and $Evidence.PSObject.Properties["git_commit"]) { [string]$Evidence.git_commit } else { "" }
+    $gitCommitPresent = -not [string]::IsNullOrWhiteSpace($gitCommit)
+    $gitCommitValid = ($gitCommit -match "^[0-9a-f]{40}$")
+    $gitDirtyPresent = ($Evidence -and $Evidence.PSObject.Properties["git_dirty"])
+    $gitDirty = if ($gitDirtyPresent) { [bool]$Evidence.git_dirty } else { $null }
+    $gitCommitMatchesExpected = ($gitCommitValid -and $gitCommit -eq $ExpectedGitCommit)
+    $documentationOrStatusOnlyGitDelta = $false
+    if (-not $gitCommitMatchesExpected -and $gitCommitValid -and $ExpectedGitCommit -match "^[0-9a-f]{40}$") {
+        $documentationOrStatusOnlyGitDelta = Test-DocumentationOrStatusOnlyGitDelta -FromCommit $gitCommit -ToCommit $ExpectedGitCommit
+    }
+
+    return [pscustomobject]@{
+        label = $Label
+        git_commit = if ($gitCommitPresent) { $gitCommit } else { $null }
+        git_commit_present = [bool]$gitCommitPresent
+        git_commit_valid = [bool]$gitCommitValid
+        expected_git_commit = $ExpectedGitCommit
+        git_commit_matches_expected = [bool]$gitCommitMatchesExpected
+        documentation_or_status_only_git_delta = [bool]$documentationOrStatusOnlyGitDelta
+        git_dirty_present = [bool]$gitDirtyPresent
+        git_dirty = $gitDirty
+        git_source = if ($Evidence -and $Evidence.PSObject.Properties["git_source"]) { [string]$Evidence.git_source } else { $null }
+        git_metadata_path = if ($Evidence -and $Evidence.PSObject.Properties["git_metadata_path"]) { [string]$Evidence.git_metadata_path } else { $null }
+        ok = [bool]($gitCommitPresent -and $gitCommitValid -and ($gitCommitMatchesExpected -or $documentationOrStatusOnlyGitDelta) -and $gitDirtyPresent -and -not [bool]$gitDirty)
+    }
 }
 
 function Copy-IntoRoot {
@@ -326,8 +528,10 @@ if ((Get-JsonPropertyString -Object $handoff -Name "version") -ne $ExpectedVersi
 if (-not [bool]$handoff.ok) {
     throw "Handoff file reports ok=false: $canonicalHandoff"
 }
+$handoffGitFreshness = New-GitFreshnessSummary -Evidence $handoff -ExpectedGitCommit $currentGitCommit -Label "handoff"
 
 $releaseCheck = $null
+$releaseCheckGitFreshness = $null
 if ($canonicalReleaseCheck) {
     $releaseCheck = Get-Content -LiteralPath $canonicalReleaseCheck -Raw | ConvertFrom-Json
     if ((Get-JsonPropertyString -Object $releaseCheck -Name "schema") -ne "musu.second_pc_release_check.v1") {
@@ -339,6 +543,7 @@ if ($canonicalReleaseCheck) {
     if (-not [bool]$releaseCheck.ok) {
         throw "Release-check file reports ok=false: $canonicalReleaseCheck"
     }
+    $releaseCheckGitFreshness = New-GitFreshnessSummary -Evidence $releaseCheck -ExpectedGitCommit $currentGitCommit -Label "release_check"
 }
 
 $verifyMsixText = (& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir "verify-msix-install-evidence.ps1") -EvidencePath $canonicalMsixEvidence -ExpectedVersion $ExpectedVersion -Json 2>&1 | Out-String).Trim()
@@ -548,6 +753,21 @@ else {
     elseif (-not [bool]$releaseCheck.return_zip_ok) {
         $releaseGateEvidenceIssues.Add("release_check_return_zip_not_ok") | Out-Null
     }
+    if (-not $releaseCheckGitFreshness.git_commit_present) {
+        $releaseGateEvidenceIssues.Add("release_check_git_commit_missing") | Out-Null
+    }
+    elseif (-not $releaseCheckGitFreshness.git_commit_valid) {
+        $releaseGateEvidenceIssues.Add("release_check_git_commit_invalid") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheckGitFreshness.ok) {
+        $releaseGateEvidenceIssues.Add("release_check_git_commit_not_current") | Out-Null
+    }
+    if (-not $releaseCheckGitFreshness.git_dirty_present) {
+        $releaseGateEvidenceIssues.Add("release_check_git_dirty_missing") | Out-Null
+    }
+    elseif ([bool]$releaseCheckGitFreshness.git_dirty) {
+        $releaseGateEvidenceIssues.Add("release_check_git_dirty_true") | Out-Null
+    }
     if ($releaseCheck.PSObject.Properties["route_reachability_diagnostic_required"] -and [bool]$releaseCheck.route_reachability_diagnostic_required) {
         $routeReachabilityDiagnosticRequired = $true
         if (-not $releaseCheck.PSObject.Properties["route_reachability_diagnostic_verified"]) {
@@ -557,6 +777,24 @@ else {
             $releaseGateEvidenceIssues.Add("release_check_route_reachability_diagnostic_not_verified") | Out-Null
         }
     }
+}
+if (-not $handoffGitFreshness.git_commit_present) {
+    $releaseGateEvidenceIssues.Add("handoff_git_commit_missing") | Out-Null
+}
+elseif (-not $handoffGitFreshness.git_commit_valid) {
+    $releaseGateEvidenceIssues.Add("handoff_git_commit_invalid") | Out-Null
+}
+elseif (-not [bool]$handoffGitFreshness.ok) {
+    $releaseGateEvidenceIssues.Add("handoff_git_commit_not_current") | Out-Null
+}
+if (-not $handoffGitFreshness.git_dirty_present) {
+    $releaseGateEvidenceIssues.Add("handoff_git_dirty_missing") | Out-Null
+}
+elseif ([bool]$handoffGitFreshness.git_dirty) {
+    $releaseGateEvidenceIssues.Add("handoff_git_dirty_true") | Out-Null
+}
+if ($releaseCheckGitFreshness -and $releaseCheckGitFreshness.git_commit_present -and $handoffGitFreshness.git_commit_present -and $releaseCheckGitFreshness.git_commit -ne $handoffGitFreshness.git_commit) {
+    $releaseGateEvidenceIssues.Add("handoff_release_check_git_commit_mismatch") | Out-Null
 }
 if ($canonicalRuntimeIdleCpuEvidence) {
     if (-not $runtimeIdleCpuVerified) {
@@ -620,6 +858,8 @@ $result = [pscustomobject]@{
     route_reachability_diagnostic_verification_error = $routeReachabilityDiagnosticVerificationError
     process_attribution_summary_path = $canonicalProcessAttributionSummary
     release_check_path = $canonicalReleaseCheck
+    release_check_git_freshness = $releaseCheckGitFreshness
+    handoff_git_freshness = $handoffGitFreshness
     remote_name = [string]$returnCard.remote_name
     remote_addr = [string]$returnCard.remote_addr
     suggested_remote_addrs = $returnCard.suggested_remote_addrs
