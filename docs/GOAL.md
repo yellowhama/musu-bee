@@ -169,6 +169,20 @@ second-PC route preflight helper, packet/kit/action-pack updates,
 verifier/audit updates, canonical route preflight report, BETA checklist,
 WIKI/WIKI_INDEX, GOAL, and CoS memory.
 
+**Latest SaaS/AG-UI source recheck (2026-06-07 v829 / wiki/1004)**:
+Late same-day comparable SaaS research was added in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md` after rechecking
+OpenAI Codex product/app/upgrades/repo sources, GitHub Copilot cloud-agent
+session docs, Cursor, Jules, Devin, Replit, AG-UI, and Tailscale. Product
+boundary remains unchanged: MUSU.PRO is the command-room/control-plane SaaS,
+MUSU Desktop is the local executor, and AG UI should stream typed
+room/order/run events without treating control metadata as execution proof.
+
+**Latest index refresh (2026-06-07 v830 / wiki/1005)**:
+MUSU local indexer synced `3021 files`, `2794 symbols`, `16427 ms` after the
+late SaaS/AG-UI source recheck, AG UI/UX design update, P2P control-plane spec
+note, BETA checklist update, WIKI/WIKI_INDEX, GOAL, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)

@@ -16079,3 +16079,66 @@ Search terms should include `GOAL v828`, `wiki/1003`, `3018 files`,
 `2794 symbols`, `36479 ms`, `second-PC route preflight index refresh`,
 `musu.second_pc_route_preflight.v1`, and
 `test-second-pc-route-preflight.ps1`.
+
+## 2026-06-07 Agent Control SaaS Late Source Recheck (wiki/1004)
+
+Late same-day comparable SaaS research was added after the second-PC route
+preflight helper.
+
+Canonical report:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md`
+
+Sources rechecked:
+
+- OpenAI Codex product/app/upgrades/repo sources
+- GitHub Copilot cloud-agent session docs
+- Cursor Background Agents
+- Google Jules
+- Devin
+- Replit Agent
+- AG-UI protocol docs and repo
+- Tailscale connection types and DERP docs
+
+Result:
+
+- MUSU.PRO remains the remote input, room, presence, rendezvous, path
+  selection, relay fallback, evidence, notification, and policy control plane.
+- MUSU Desktop remains the installed local executor and permission boundary.
+- Competitor command-center/cloud-agent UX should inform assignment, plan,
+  follow-up, review, notification, and artifact surfaces.
+- AG-UI validates typed, event-based room/order/run UI streams, but it does not
+  replace local execution policy or release evidence.
+- Tailscale continues to validate direct-first mesh UX with explicit relay
+  fallback.
+
+Release meaning:
+
+- this is research/spec progress only;
+- it does not close second-PC route/CPU/matrix, hosted MUSU.PRO P2P/relay,
+  support mailbox, or Store gates.
+
+Search terms should include `GOAL v829`, `wiki/1004`,
+`Agent Control SaaS Late Source Recheck`, `AG-UI`,
+`typed room/order/run events`, `Codex command center`, `local MUSU Desktop
+executor`, and `Tailscale direct-first relay fallback`.
+
+## 2026-06-07 Agent Control SaaS Late Source Recheck Index Refresh (wiki/1005)
+
+MUSU local indexer was refreshed after wiki/1004 and GOAL v829.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3021 files`
+- `2794 symbols`
+- `16427 ms`
+
+Indexed context includes
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md`, AG UI/UX
+design updates, BETA checklist update, MUSU.PRO P2P control-plane spec note,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v830`, `wiki/1005`, `3021 files`,
+`2794 symbols`, `16427 ms`,
+`agent control SaaS late source recheck index refresh`, `AG-UI`,
+`typed room/order/run events`, and `MUSU.PRO control plane`.

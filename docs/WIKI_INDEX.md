@@ -6930,4 +6930,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.second_pc_route_preflight.v1`, and
   `test-second-pc-route-preflight.ps1`.
 
+- 2026-06-07 agent control SaaS late source recheck:
+  `RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md` (wiki/1004)
+  records the late same-day comparable SaaS and AG-UI source recheck after the
+  second-PC route preflight helper. Search terms should include `GOAL v829`,
+  `wiki/1004`, `Agent Control SaaS Late Source Recheck`, `AG-UI`,
+  `typed room/order/run events`, `Codex command center`,
+  `local MUSU Desktop executor`, and `Tailscale direct-first relay fallback`.
+
+- 2026-06-07 agent control SaaS late source recheck index refresh:
+  wiki/1005 records the MUSU local index refresh after wiki/1004 and GOAL
+  v829. Search terms should include `GOAL v830`, `wiki/1005`, `3021 files`,
+  `2794 symbols`, `16427 ms`,
+  `agent control SaaS late source recheck index refresh`, `AG-UI`,
+  `typed room/order/run events`, and `MUSU.PRO control plane`.
+
 **End of WIKI_INDEX.md.**

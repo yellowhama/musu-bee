@@ -21,6 +21,8 @@ Sources checked on 2026-06-07:
 
 - Deep research report:
   `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+- Late same-day source recheck:
+  `docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md`
 - Claude Code Remote Control:
   `https://code.claude.com/docs/en/remote-control`
 - Claude Code architecture:
@@ -53,6 +55,9 @@ Sources checked on 2026-06-07:
   `https://docs.devin.ai/get-started/devin-intro`
 - Replit Agent docs:
   `https://docs.replit.com/references/agent/overview`
+- AG-UI protocol docs and repo:
+  `https://docs.ag-ui.com/`,
+  `https://github.com/ag-ui-protocol/ag-ui`
 - OpenHands docs and SDK:
   `https://docs.openhands.dev/overview/introduction`,
   `https://docs.openhands.dev/sdk/index`
@@ -87,6 +92,7 @@ Observed patterns:
 | Google Jules | cloud VM that clones repos | repo selector, branch selector, plan approval, notifications | MUSU needs repo/project selectors, plan approval, and completion notifications before local execution feels safe. |
 | Devin | autonomous software engineer with CLI/desktop/cloud/integrations | team workflow, tickets, integrations, backlog work | MUSU should model agents as team members tied to rooms, tickets, and local capabilities. |
 | Replit Agent | hosted workspace and deployment flow | natural-language build flow, plan mode, design preview | MUSU can borrow plain-language ordering and preview, but must avoid hiding infra/runtime location. |
+| AG-UI | event protocol between agents and user-facing apps | streaming messages, tool results, state sync, custom events, human-in-the-loop | MUSU AG UI should use typed room/order/run events while keeping local command execution behind Desktop policy. |
 | OpenHands | local GUI/CLI, SDK, remote servers, cloud | open agent runtime with local-to-remote portability | Useful future reference, but MUSU's first release should not blur Windows Desktop evidence with optional hosted runtimes. |
 | Factory Droids | multi-surface agent task flow | terminal, IDE, browser, Slack, model routing, adjustable autonomy | MUSU should allow the same room/order to originate from multiple surfaces while local permission policy remains consistent. |
 | VS Code Remote Tunnels | remote server on user's machine over authenticated tunnel | connect from VS Code web/desktop without SSH or inbound listener | MUSU remote access should be outbound-only and authenticated; anonymous tunnel behavior must be impossible for agent control. |
@@ -728,3 +734,31 @@ MVP rule:
 - No online eligible MUSU Desktop runtime means no immediate submit. The only
   valid remote path is explicit queueing with pickup timeout and visible
   offline/sleep/policy state.
+
+## 2026-06-07 17:55 KST Late SaaS/AG-UI Recheck
+
+The late same-day source recheck is documented in:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md`
+
+Design decision still unchanged:
+
+- Codex validates Windows/macOS desktop plus cloud/app/editor/terminal
+  command-center surfaces, but its local CLI remains a local computer runtime.
+- GitHub, Cursor, Jules, Devin, and Replit validate assignment, plan approval,
+  background status, follow-ups, notifications, artifacts, and review.
+- AG-UI validates typed, event-based agent-to-UI interaction; MUSU should use
+  that event mental model for room/order/run streams.
+- Tailscale validates direct-first route UX with explicit relay fallback.
+
+Additional UI contract:
+
+- every room/order/run update should be streamable as a typed event;
+- event transport can be SSE/WebSocket/webhook later, but the product state
+  model must not depend on a specific transport;
+- command/tool execution events must distinguish `requested`, `approved`,
+  `rejected`, `started`, `completed`, `failed`, and `timed_out`;
+- route events must distinguish candidate publication, direct attempt, relay
+  lease, transport proof, payload proof, and evidence attachment;
+- remote web/mobile control may stream status and approvals, but local Desktop
+  policy owns whether execution is allowed.

@@ -2351,3 +2351,32 @@ Spec interpretation:
 - it does not make MUSU.PRO the executor;
 - it keeps release payload transport blocked until the local runtime byte path
   and live route/transport/delivery proof exist.
+
+## 2026-06-07 Late SaaS/AG-UI Recheck Note
+
+The late comparable-SaaS recheck does not change the P2P control-plane spec.
+It reinforces the existing split:
+
+- MUSU.PRO coordinates room/order state, presence, rendezvous, path selection,
+  relay lease negotiation, evidence indexing, notifications, and owner/org
+  policy.
+- MUSU Desktop executes local work, owns file/process/tool/adapter access,
+  applies local approval policy, records route/resource evidence, and owns the
+  relay byte path when implemented.
+- Remote input and status can use an event-stream UI model, but events are
+  control metadata unless and until the local runtime accepts and executes an
+  authenticated work-order envelope.
+
+AG-UI protocol research adds a useful UI model, not a release gate. MUSU room,
+order, and run state should be represented as typed events such as prompt
+delivered, approval requested, command rejected, route candidate published,
+rendezvous created, direct route attempted, relay lease requested, transport
+proof attached, payload proof attached, evidence attached, and run completed.
+These events must not collapse control-plane state into payload execution
+claims.
+
+Codex, GitHub Copilot, Cursor, Jules, Devin, and Replit validate command-center
+and async-agent UX. Tailscale validates direct-first mesh UX with explicit
+relay fallback. MUSU keeps the stricter release requirement: second-machine
+evidence, owner-scoped live P2P metadata, relay transport proof, and relay
+payload delivery proof are still required before public release.

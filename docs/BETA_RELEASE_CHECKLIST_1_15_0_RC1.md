@@ -83,6 +83,17 @@ UI must therefore expose local runtime liveness, target device, route policy,
 queue timeout, remote-control policy, and expected evidence before remote work
 is accepted.
 
+Late same-day SaaS/AG-UI source recheck is recorded in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LATE_RECHECK_2026_06_07.md`. It rechecked
+OpenAI Codex product/app/upgrades/repo sources, GitHub Copilot cloud-agent
+session docs, Cursor, Jules, Devin, Replit, AG-UI, and Tailscale. The added
+design rule is that room/order/run updates should be typed event streams:
+prompt delivery, approval requests, command accept/reject, route candidate
+publication, rendezvous, direct attempt, relay lease, transport proof, payload
+proof, evidence attachment, and terminal state must be separate events. This
+supports AG UI without changing the runtime boundary: web/mobile input can
+stream control metadata, but MUSU Desktop policy owns local execution.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:
