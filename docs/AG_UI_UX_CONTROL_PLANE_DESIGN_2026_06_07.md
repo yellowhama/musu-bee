@@ -530,3 +530,127 @@ Phase 4: release proof
 - Can a user pause or revoke local runtime execution?
 - Can a user approve or deny risky actions with enough context?
 - Can a user understand public release No-Go blockers from the UI?
+
+## MVP Screen Contracts
+
+The first AG UI slice should be a working operator cockpit, not a landing page.
+It can be built before full multi-device release proof as long as blocked
+states are honest.
+
+### Command Center MVP
+
+Primary table columns:
+
+- room
+- order
+- assigned agents
+- execution device
+- local runtime state
+- route state
+- evidence state
+- next action
+
+Composer controls:
+
+- room selector
+- target selector: best device, specific device, or agent group
+- route policy: local only, prefer direct, allow relay fallback
+- approval policy: ask, read-only auto, project policy
+- budget: time, CPU, cost, parallelism
+
+The submit button is disabled when no eligible local MUSU Desktop runtime is
+online, unless the order is explicitly queued. Queued orders must show pickup
+timeout.
+
+### Project Room MVP
+
+The room should read like a compact meeting room for a small AI company:
+
+- humans and agents in one roster
+- current agenda/orders
+- plan discussion and decisions
+- artifacts
+- evidence and blockers
+- rejected work-order audit events
+
+The room timeline stores coordination metadata. Local execution details remain
+owned by the selected device and attached back as evidence.
+
+### Device Mesh MVP
+
+The device table must expose:
+
+- device name
+- owner/company
+- installed version
+- online/offline/sleep state
+- local bridge health
+- CPU/memory baseline
+- route candidates
+- current room/order
+- revoke/pause action
+
+Route state machine:
+
+1. registered
+2. presence current
+3. candidates published
+4. rendezvous created
+5. candidate exchange complete
+6. direct path attempted
+7. relay lease requested
+8. relay transport proven
+9. payload delivery proven
+10. route evidence recorded
+
+States 8-10 must stay blocked until the release `quic_relay_tunnel` runtime and
+payload endpoint are implemented and proven.
+
+### Evidence Center MVP
+
+Evidence Center is table-first:
+
+- release gate
+- machine
+- latest evidence path
+- verifier
+- result
+- freshness
+- blocker
+- next action
+
+Required release gates:
+
+- single-machine smoke
+- process ownership
+- startup single-instance
+- desktop single-instance
+- desktop-open idle CPU
+- five-state runtime CPU matrix
+- targeted route-attempt CPU diagnostic
+- successful second-PC route
+- live MUSU.PRO P2P owner scope
+- relay transport proof
+- relay payload delivery proof
+- support mailbox
+- Store/Partner Center
+
+Raw JSON should open in a detail drawer, but the main screen must be readable
+without raw logs.
+
+### Desktop Mini Console MVP
+
+The installed desktop program needs a local control strip:
+
+- local runtime online/offline
+- current account/company
+- active rooms and orders
+- local bridge URL
+- route candidates published
+- remote control allowed/paused
+- relay fallback allowed/blocked
+- CPU/memory baseline
+- quit/revoke controls
+
+The mini console can link to MUSU.PRO for remote input, but should not ask
+normal users to operate `localhost:3001` as the product surface.

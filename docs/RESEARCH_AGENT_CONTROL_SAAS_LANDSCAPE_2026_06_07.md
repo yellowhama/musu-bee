@@ -214,6 +214,82 @@ count, CPU/memory baseline, connected peers, route state, and a pause/revoke
 control. It should not send users to `localhost:3001` as the release product
 experience.
 
+## 2026-06-07 Continuation Source Check
+
+The later same-day source check after the operator requested deeper SaaS
+research did not change the product direction. It sharpened the release
+requirements.
+
+Additional current official sources reviewed:
+
+- Claude Code Remote Control:
+  `https://code.claude.com/docs/en/remote-control`
+- OpenAI Codex product page:
+  `https://openai.com/codex/`
+- OpenAI Codex app announcement:
+  `https://openai.com/index/introducing-the-codex-app/`
+- OpenAI Codex GitHub repository:
+  `https://github.com/openai/codex`
+- OpenAI Codex ChatGPT plan controls:
+  `https://help.openai.com/en/articles/11369540-codex-in-chatgpt`
+- OpenAI Enterprise/Edu release notes for Windows remote control:
+  `https://help.openai.com/en/articles/10128477-chatgpt-enterprise-edu-release-notes`
+- GitHub Copilot cloud agent:
+  `https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent`
+- Cursor Background Agents:
+  `https://docs.cursor.com/background-agent`
+- Devin docs:
+  `https://docs.devin.ai/`
+- Factory Droids:
+  `https://factory.ai/product/droids`
+- Replit Agent:
+  `https://docs.replit.com/core-concepts/agent/`
+- Tailscale control/data planes:
+  `https://tailscale.com/docs/concepts/control-data-planes`
+- Tailscale DERP and peer relay references:
+  `https://tailscale.com/docs/reference/derp-servers`,
+  `https://tailscale.com/docs/features/peer-relay`
+- Twingate architecture:
+  `https://www.twingate.com/docs/how-twingate-works/`
+- VS Code Remote Tunnels:
+  `https://code.visualstudio.com/docs/remote/tunnels`
+- Cloudflare Tunnel:
+  `https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/`
+
+Continuation conclusions:
+
+- The closest market pattern is now clearly local-session remote control:
+  Claude Code Remote Control and GitHub Copilot/Codex-style remote-control
+  policies let browser/mobile surfaces steer work while local files, shell,
+  app servers, and context remain hosted by the user's machine.
+- OpenAI Codex validates the command-center, Windows app, local/cloud split,
+  remote-control permission, and multi-agent workflow direction. MUSU should
+  copy the explicit execution-location policy, not the assumption that most
+  work is cloud-hosted.
+- Devin, Cursor, Replit, Jules, Factory, and similar SaaS products validate
+  planning, status, take-over, PR/artifact, and team workflow UX. They do not
+  replace MUSU's local-device evidence requirement because their usual default
+  is vendor cloud or managed background environments.
+- Tailscale, Twingate, VS Code Remote Tunnels, and Cloudflare Tunnel validate
+  a hosted control plane plus device-side data plane or connector model. MUSU
+  should expose the same separation: controller/room/rendezvous is not the
+  executor, and relay fallback is not the default work path.
+- Any future hosted MUSU worker mode must be a separate product mode with
+  separate policy, billing, evidence, data controls, and UI labels.
+
+Release-grade requirements reinforced by this check:
+
+- local process liveness must be visible before remote orders are accepted;
+- device selection must show online, idle, assigned, pickup timeout, and
+  offline states;
+- remote-control permission must be owner/org scoped and revocable;
+- anonymous tunnels must not be available for agent control;
+- relay fallback must be authenticated, expiring, owner-scoped, and backed by
+  route metadata, transport proof, and payload delivery proof;
+- every run needs an execution-locus banner:
+  `Input from <surface>`, `Executing on <device/runtime>`,
+  `Route <direct|relay|cloud>`, `Evidence <ok|missing|failed>`.
+
 ## AG UI/UX Decisions
 
 ### Command Center

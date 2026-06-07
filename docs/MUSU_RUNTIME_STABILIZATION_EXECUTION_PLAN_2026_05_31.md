@@ -1107,3 +1107,50 @@ This removes a candidate-metadata mismatch before runtime work begins. It does
 not change the remaining runtime plan: the local release relay tunnel byte path
 and release payload endpoint still need implementation, and live MUSU.PRO
 evidence must prove route metadata, transport proof, and payload delivery proof.
+
+## 2026-06-07 Current-HEAD CPU Continuation And Audit
+
+Current HEAD `f7f45922611e1986947053e94c3525d7b395eb8a` has a later same-day
+HUGH_SECOND five-state runtime CPU matrix after the SaaS/AG UI research
+updates.
+
+Evidence:
+
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- five-state verifier:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- targeted post-route verifier:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+- canonical report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_GOAL_CONTINUATION_2026_06_07.md`
+
+CPU result:
+
+- all five scenarios sampled for >= `60s`
+- hot process count stayed `0`
+- MUSU CPU stayed `0`
+- Node CPU stayed `0`
+- owned WebView2 helper count stayed `6`
+- highest owned WebView2 one-core CPU was `0.10`
+- working set stayed `370.10-371.04MB`
+
+Audit result:
+
+- P2P store-forward relay contract `ok=true`, `fail_count=0`
+- Rust background-loop contract `ok=true`, `fail_count=0`
+- frontend polling contract `ok=true`, `fail_count=0`
+- process ownership `ok=true`, `fail_count=0`, packaged runtime `1`,
+  packaged desktop `1`, owned Node `0`, owned WebView2 `6`
+
+Stabilization interpretation:
+
+- the local packaged runtime still does not reproduce the reported 20% CPU
+  busy-loop on `HUGH_SECOND`;
+- current route-attempt diagnostics still prove only a failed attempt to
+  `HUGH-MAIN`, not a successful second-machine route;
+- the next meaningful gate is current MUSU Desktop installed and running on
+  `HUGH-MAIN`, followed by second-PC CPU/matrix/route evidence without skips;
+- release relay tunnel markers must remain blocked until the actual
+  `quic_relay_tunnel` byte path and release payload endpoint exist and emit
+  route metadata, transport proof, and payload delivery proof.

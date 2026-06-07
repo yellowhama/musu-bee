@@ -6739,4 +6739,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `agent control SaaS primary-source supplement`, and
   `execution-locus banner`.
 
+- 2026-06-07 current-head CPU matrix goal continuation:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_GOAL_CONTINUATION_2026_06_07.md`
+  (wiki/984) records clean HUGH_SECOND packaged runtime CPU matrix evidence
+  from commit `f7f45922`, with verifier `ok=true`, `fail_count=0`,
+  `git_dirty=false`, hot process count `0`, MUSU `0`, Node `0`, owned WebView2
+  max `0.10`, process ownership `ok=true`, and a failed allowed `HUGH-MAIN`
+  route probe timeout to `http://192.168.1.192:8949/api/tasks/delegate`.
+  Search terms should include `GOAL v809`, `wiki/984`,
+  `current-head CPU matrix goal continuation`,
+  `20260607-143513-HUGH_SECOND`, `f7f45922`, `HUGH-MAIN timeout`,
+  `WebView2 max 0.10`, and `process ownership fail_count=0`.
+
+- 2026-06-07 current-head CPU matrix goal continuation index refresh:
+  wiki/985 records the MUSU local index refresh after wiki/984 and GOAL v809.
+  Search terms should include `GOAL v810`, `wiki/985`, `2974 files`,
+  `2790 symbols`, `15841 ms`,
+  `current-head CPU matrix goal continuation index refresh`,
+  `20260607-143513-HUGH_SECOND`, `SaaS continuation source check`, and
+  `AG MVP screen contracts`.
+
 **End of WIKI_INDEX.md.**

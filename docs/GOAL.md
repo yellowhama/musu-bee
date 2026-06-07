@@ -68,6 +68,27 @@ agent-control SaaS primary-source supplement, AG UI/UX execution-locus design,
 clean current-head CPU matrix evidence, canonical report, WIKI/WIKI_INDEX,
 BETA checklist, P2P specs, runtime stabilization plan, and CoS memory.
 
+**Latest CPU/audit continuation (2026-06-07 v809 / wiki/984)**:
+Current HEAD `f7f45922` has a later HUGH_SECOND packaged runtime CPU matrix
+under
+`docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.*`.
+Full matrix and post-route target verifiers both pass with `ok=true`,
+`fail_count=0`, `git_dirty=false`, hot process count `0`, MUSU CPU `0`, Node
+CPU `0`, owned WebView2 max `0.10`, and owned WebView2 helper count `6`.
+The `HUGH-MAIN` route probe still times out at
+`http://192.168.1.192:8949/api/tasks/delegate`, so this is failed
+target-route CPU diagnostic evidence, not successful multi-device route proof.
+Rust background-loop, frontend polling, P2P relay contract, and process
+ownership audits passed. Canonical report:
+`docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_GOAL_CONTINUATION_2026_06_07.md`.
+
+**Latest index refresh (2026-06-07 v810 / wiki/985)**:
+MUSU local indexer synced `2974 files`, `2790 symbols`, `15841 ms` after the
+current-head CPU matrix goal continuation, promoted
+`20260607-143513-HUGH_SECOND` evidence, SaaS continuation source check, AG
+MVP screen contracts, BETA checklist update, runtime stabilization plan,
+WIKI/WIKI_INDEX, and CoS memory.
+
 ---
 
 ## §A — Current cycle goal: V24-Rust-cleanup (panel-reshaped 2026-05-20)

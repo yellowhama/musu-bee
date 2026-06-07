@@ -15402,3 +15402,76 @@ Search terms should include `GOAL v808`, `wiki/983`, `2963 files`,
 `current-head CPU matrix agent control research index refresh`,
 `20260607-141207-HUGH_SECOND`, `agent control SaaS primary-source supplement`,
 and `execution-locus banner`.
+
+## 2026-06-07 Current-HEAD CPU Matrix Goal Continuation (wiki/984)
+
+Current HEAD `f7f45922611e1986947053e94c3525d7b395eb8a` has a later
+HUGH_SECOND packaged WindowsApps runtime CPU matrix after the SaaS/AG UI
+research and docs refresh.
+
+Promoted evidence:
+
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+- per-scenario evidence for startup-open, runtime-started, dashboard-open,
+  desktop-open, and post-route
+
+Results:
+
+- full matrix verifier `ok=true`, `fail_count=0`
+- post-route target verifier `ok=true`, `fail_count=0`
+- `git_dirty=false`
+- `musu_exe_release_identity=true`
+- hot process count `0` in all five scenarios
+- MUSU CPU `0`, Node CPU `0`
+- owned WebView2 max `0.10`
+- owned WebView2 helper count `6`
+- route probe target `HUGH-MAIN`, timeout to
+  `http://192.168.1.192:8949/api/tasks/delegate`, `failure_allowed=true`
+
+Audit results:
+
+- P2P store-forward relay contract `ok=true`, `fail_count=0`
+- Rust background-loop contract `ok=true`, `fail_count=0`
+- frontend polling contract `ok=true`, `fail_count=0`, `29/29` low-duty
+  polling call sites
+- process ownership `ok=true`, `fail_count=0`, packaged runtime `1`,
+  packaged desktop `1`, owned Node `0`, owned WebView2 `6`
+
+Release meaning:
+
+- the reported 20% busy-loop did not reproduce on HUGH_SECOND/current HEAD;
+- this is valid failed target-route CPU diagnostic evidence;
+- this is not successful second-PC route proof and does not close the
+  multi-device, hosted P2P/relay, support, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_GOAL_CONTINUATION_2026_06_07.md`
+
+Search terms should include `GOAL v809`, `wiki/984`,
+`current-head CPU matrix goal continuation`,
+`20260607-143513-HUGH_SECOND`, `f7f45922`, `HUGH-MAIN timeout`,
+`WebView2 max 0.10`, `MUSU CPU 0`, and `process ownership fail_count=0`.
+
+## 2026-06-07 Current-HEAD CPU Matrix Goal Continuation Index Refresh (wiki/985)
+
+MUSU local indexer was refreshed after wiki/984 and GOAL v809.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2974 files`
+- `2790 symbols`
+- `15841 ms`
+
+Indexed context includes the current-head CPU matrix goal continuation report,
+promoted `20260607-143513-HUGH_SECOND` runtime CPU matrix evidence, SaaS
+continuation source check, AG MVP screen contracts, BETA checklist update,
+runtime stabilization plan, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v810`, `wiki/985`, `2974 files`,
+`2790 symbols`, `15841 ms`,
+`current-head CPU matrix goal continuation index refresh`,
+`20260607-143513-HUGH_SECOND`, `SaaS continuation source check`, and
+`AG MVP screen contracts`.

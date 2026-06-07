@@ -63,6 +63,26 @@ Supplemental infrastructure research also validates three release requirements:
   rendezvous; relay fallback must emit route metadata, transport proof, and
   payload delivery proof before it can close release gates
 
+Current continuation evidence after the SaaS/AG UI research:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_CPU_MATRIX_GOAL_CONTINUATION_2026_06_07.md`
+- matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.json`
+- matrix verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.runtime-cpu-scenario-matrix.verification.json`
+- post-route target verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-143513-HUGH_SECOND.current-head-target-route.post-route-target.verification.json`
+
+This matrix was captured from clean commit
+`f7f45922611e1986947053e94c3525d7b395eb8a` with `git_dirty=false` and
+`musu_exe_release_identity=true`. All five scenarios have hot process count
+`0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 helper count `6`, working set
+`370.10-371.04MB`, and highest owned WebView2 one-core CPU `0.10`. The
+`HUGH-MAIN` route probe still timed out at
+`http://192.168.1.192:8949/api/tasks/delegate`, so this remains failed
+target-route CPU diagnostic evidence, not successful multi-device route proof.
+
 ## Current P2P Candidate Publish Contract
 
 `musu.pro` is the meeting room and rendezvous surface. Each installed local
