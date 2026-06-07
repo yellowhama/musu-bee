@@ -19657,3 +19657,83 @@ generation, the green `134/134` verifier sweep, and the updated GOAL/WIKI/WIKI_I
 
 Search terms should include `GOAL v922`, `wiki/1097`, `3104 files`,
 `2891 symbols`, `21516 ms`, `preferred_route_target`, and `134/134`.
+
+## 2026-06-08 Second-PC Primary-Side Command Target Correction (wiki/1098)
+
+The previous attempt to feed returned second-PC targets into primary-side route
+commands was semantically wrong and has now been corrected.
+
+Correction:
+
+- returned second-PC fields such as:
+  - `runtime_cpu_route_target`
+  - `route_reachability_target`
+  - raw route reachability diagnostic `requested_target`
+  describe the second PC targeting the primary machine
+- primary-side operator commands such as:
+  - `measure-musu-runtime-cpu-scenarios.ps1 ... -RouteTarget ...`
+  - `smoke-multidevice-beta.ps1 -RouteTarget ...`
+  must instead target the remote second PC peer from the primary side
+
+What changed:
+
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  - dropped `preferred_route_target`
+  - now records:
+    - `route_target_source`
+  - default route target is again the remote peer name (`RemoteName`) unless
+    explicitly overridden by the caller
+- `scripts\windows\show-second-pc-return-card.ps1`
+  - dropped `recommended_route_target`
+  - now surfaces:
+    - `primary_route_target`
+    - `primary_route_target_source`
+  - suggested `smoke-multidevice-beta.ps1` command again uses the remote
+    second-PC target on the primary side
+- returned second-PC target fields are still present for diagnostic consistency
+  checks, but they no longer drive primary-side next commands
+
+Why this matters:
+
+- primary and second-PC route targets are role-specific
+- reusing the second-PC return-side target on the primary side would point the
+  operator at the wrong machine and corrupt the next evidence capture
+- this fix restores correct role direction while preserving the earlier
+  consistency gates for returned evidence
+
+Validation:
+
+- parse sanity:
+  - `show-second-pc-return-card.ps1`
+  - `test-second-pc-route-preflight.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- `git diff --check`
+  - clean
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=134`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-085145`
+
+Search terms should include `GOAL v923`, `wiki/1098`,
+`primary_route_target`, `route_target_source`, and `134/134`.
+
+## 2026-06-08 Second-PC Primary-Side Command Target Correction Index (wiki/1099)
+
+MUSU local indexer was refreshed after wiki/1098 and GOAL v923.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `14243 ms`
+
+Indexed context includes the second-PC primary-side command-target correction,
+the green `134/134` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v924`, `wiki/1099`, `3104 files`,
+`2891 symbols`, `14243 ms`, `primary_route_target`, and `134/134`.

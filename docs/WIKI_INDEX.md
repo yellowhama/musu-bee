@@ -7822,4 +7822,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   v921. Search terms should include `GOAL v922`, `wiki/1097`, `3104 files`,
   `2891 symbols`, `21516 ms`, `preferred_route_target`, and `134/134`.
 
+- 2026-06-08 second-PC primary-side command target correction:
+  wiki/1098 records the correction that primary-side operator commands must
+  target the remote second PC, not the target recorded by the second PC when it
+  routed back toward the primary. It records new `primary_route_target` and
+  `primary_route_target_source` fields, plus the removal of returned-target
+  routing from primary-side next commands. Regression stayed green at `134/134`
+  in `.local-build\release-evidence-verifier-tests\20260608-085145`. Search
+  terms should include `GOAL v923`, `wiki/1098`, `primary_route_target`,
+  `route_target_source`, and `134/134`.
+
+- 2026-06-08 second-PC primary-side command target correction index:
+  wiki/1099 records the MUSU local index refresh after wiki/1098 and GOAL
+  v923. Search terms should include `GOAL v924`, `wiki/1099`, `3104 files`,
+  `2891 symbols`, `14243 ms`, `primary_route_target`, and `134/134`.
+
 **End of WIKI_INDEX.md.**
