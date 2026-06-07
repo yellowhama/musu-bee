@@ -1322,3 +1322,22 @@ Boundary implications:
 The product boundary remains: MUSU Desktop executes local work and joins the
 mesh; MUSU.PRO receives user input, coordinates project rooms and rendezvous,
 helps devices discover each other, and records evidence.
+
+## 2026-06-07 Current-Head Boundary Lock
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` does not change the
+network boundary. It clarifies it:
+
+- local MUSU Desktop programs execute work on each device;
+- MUSU.PRO can receive user input from a remote browser and forward only
+  authenticated control metadata to the local runtime;
+- MUSU.PRO can host project/company rooms where local agents coordinate;
+- MUSU.PRO can assist rendezvous and path selection;
+- MUSU.PRO can issue relay fallback only after direct path failure;
+- MUSU.PRO must not become the default runtime or default payload path;
+- release relay proof must be `quic_relay_tunnel` plus `quic_tls_1_3` proof,
+  not preview store-forward queue proof.
+
+The current local desktop evidence is one-machine proof only. Release still
+requires second-machine route/CPU/matrix evidence and live hosted
+owner-scoped P2P/relay evidence.

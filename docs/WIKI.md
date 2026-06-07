@@ -14264,3 +14264,74 @@ Search terms should include `GOAL v771`, `wiki/946`,
 `2879 files`, `2790 symbols`,
 `57437 ms`, `20260607-092453`, `20260607-091438`, and
 `20260607-092030`.
+
+## 2026-06-07 Current-Head Qual Audit, Spec, and Next Steps (wiki/947)
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` was re-audited after
+the local desktop evidence refresh.
+
+Current interpretation:
+
+- local packaged MUSU Desktop evidence remains current on `HUGH_SECOND`
+- public release remains No-Go
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `p2p_control_plane_env_ready=false`
+- P2P env status still reports 12 blockers
+
+Spec lock:
+
+- MUSU Desktop is the local executor.
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- MUSU.PRO does not execute local work and does not become the default payload
+  path.
+- `localhost:3001` is not the packaged desktop runtime contract.
+
+Validation:
+
+- P2P tests: `112/112`
+- typecheck: passed
+- P2P relay/source contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=True`, `case_count=104`
+- `git diff --check`
+
+Qualitative code audit found no high or medium issue. Low concerns are current
+PowerShell PATH alias shadowing for developer evidence, fail-closed relay hook
+dead-code appearance before real tunnel runtime lands, and stale operator packs
+from `981f37ac` that must be regenerated before second-PC handoff.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_AUDIT_SPEC_AND_NEXT_STEPS_2026_06_07.md`
+
+Next-step plan:
+
+- `docs\plans\RELEASE_1_15_0_RC1_NEXT_STEPS_AFTER_CURRENT_HEAD_QUAL_AUDIT_2026_06_07.md`
+
+Search terms should include `GOAL v772`, `wiki/947`,
+`current-head qual audit spec and next steps`, `078ce1c5`,
+`P2P tests 112/112`, `release verifier 104/104`,
+`P2P env blockers 12`, `MUSU Desktop local executor`,
+`MUSU.PRO remote input control plane`, and `regenerate operator packs`.
+
+## 2026-06-07 Current-Head Qual Audit Index Refresh (wiki/948)
+
+MUSU local indexer was refreshed after wiki/947 and GOAL v772.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2881 files`
+- `2790 symbols`
+- `22225 ms`
+
+Indexed context includes current-head qual audit/spec/next-steps docs, P2P
+No-Go blockers, BETA checklist, P2P control-plane docs, MUSU.PRO P2P spec,
+runtime stabilization spec, network boundary spec, GOAL, WIKI_INDEX, and CoS
+memory.
+
+Search terms should include `GOAL v773`, `wiki/948`,
+`current-head qual audit index refresh`, `2881 files`, `2790 symbols`,
+`22225 ms`, `078ce1c5`, `P2P env blockers 12`,
+`MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.

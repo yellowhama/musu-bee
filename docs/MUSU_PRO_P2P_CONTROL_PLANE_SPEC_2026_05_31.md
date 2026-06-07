@@ -2151,3 +2151,51 @@ Current local evidence confirms the product split:
 - The 2026-06-07 current-head local evidence used bridge
   `http://127.0.0.1:1158`, while the public release remains blocked on
   two-machine evidence and hosted MUSU.PRO relay proof.
+
+## 2026-06-07 Current-Head Qual Audit and Next Steps
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` keeps the P2P
+control-plane spec unchanged and fail-closed.
+
+Current product state:
+
+- MUSU Desktop remains the local executor.
+- MUSU.PRO remains remote input, project/company room, AI meeting room,
+  presence, rendezvous, path selection, relay fallback, and evidence/control
+  plane.
+- MUSU.PRO may collect user input from elsewhere and deliver control metadata
+  to local programs.
+- MUSU.PRO must not run local tasks or become the default payload transit path.
+- After rendezvous, local programs still prefer `lan`, `tailscale`,
+  `direct_quic`, then relay fallback.
+
+Current source/evidence state:
+
+- release connect preflight exists and is authenticated;
+- release payload preflight exists, is strict metadata-only, and remains
+  fail-closed;
+- Rust release relay tunnel source hooks exist and require release payload
+  metadata;
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false`;
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`;
+- `RELAY_TRANSPORT_KIND=websocket_tunnel`;
+- release transport still requires `quic_relay_tunnel` plus `quic_tls_1_3`
+  proof;
+- live hosted P2P evidence still lacks runtime login, owner-scoped
+  KV/Upstash-backed storage, route metadata, transport proof, and payload
+  delivery proof.
+
+Validation for the current audit passed P2P tests `112/112`, typecheck, P2P
+relay/source contract audit `ok=true`, release evidence verifier regression
+`104/104`, and `git diff --check`. No high or medium code issue was found.
+
+Next implementation order:
+
+1. Regenerate final/operator handoff packs from current HEAD before physical
+   second-PC transfer.
+2. Capture second-machine local package, CPU, matrix, route, and return
+   evidence.
+3. Configure live hosted MUSU.PRO owner-scoped storage/login.
+4. Implement real release `quic_relay_tunnel` runtime byte transit and proof
+   emission.
+5. Record support mailbox and Store/Partner Center proof.

@@ -634,3 +634,32 @@ Control-plane interpretation:
   fallback, and evidence/control plane.
 - MUSU Desktop remains the local executor that must actually move payload
   bytes and record proof.
+
+## 2026-06-07 current-head qual audit and spec lock
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` keeps the local
+desktop gate healthy on one machine while preserving the P2P No-Go boundary.
+
+Current interpretation:
+
+- local packaged MUSU Desktop evidence on `HUGH_SECOND` is current;
+- `runtime_idle_cpu_valid_machine_count=1`;
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`;
+- `runtime_cpu_second_pc_route_attempt_verified=true`;
+- public release is still No-Go;
+- P2P env status still reports 12 blockers, including missing release tunnel
+  runtime, missing release payload endpoint, non-release relay transport kind,
+  missing hosted KV/Upstash storage, missing runtime login, and missing live
+  route metadata/transport/payload delivery proof.
+
+Spec lock:
+
+- MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+  rendezvous, path selection, relay fallback, and evidence/control plane.
+- MUSU.PRO does not execute local work and must not become the default payload
+  path.
+- Local MUSU Desktop programs perform the work on each device and communicate
+  through direct P2P paths whenever available.
+- The next physical handoff must regenerate operator packs from current HEAD
+  before second-PC testing because the latest recorded operator pack predates
+  `078ce1c5`.

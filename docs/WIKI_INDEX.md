@@ -6413,4 +6413,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `current-head local desktop evidence after relay metadata gate index refresh`,
   `20260607-092453`, `20260607-091438`, and `20260607-092030`.
 
+- 2026-06-07 current-head qual audit, spec, and next steps:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_AUDIT_SPEC_AND_NEXT_STEPS_2026_06_07.md`
+  (wiki/947) records the current-head qualitative code audit, product boundary
+  lock, P2P No-Go blockers, and next-step handoff. Search terms should include
+  `GOAL v772`, `wiki/947`, `078ce1c5`, `P2P tests 112/112`,
+  `release verifier 104/104`, `P2P env blockers 12`,
+  `MUSU Desktop local executor`, `MUSU.PRO remote input control plane`, and
+  `regenerate operator packs`.
+
+- 2026-06-07 current-head qual audit index refresh:
+  wiki/948 records the MUSU local index refresh after wiki/947 and GOAL v772.
+  Search terms should include `GOAL v773`, `wiki/948`, `2881 files`,
+  `2790 symbols`, `22225 ms`, `current-head qual audit index refresh`,
+  `078ce1c5`, `P2P env blockers 12`, `MUSU Desktop local executor`, and
+  `MUSU.PRO remote input control plane`.
+
 **End of WIKI_INDEX.md.**

@@ -9873,3 +9873,45 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2879 files`, `2790 symbols`, `57437 ms`
 - wiki: `wiki/946`
+
+## 2026-06-07 Current-Head Qual Audit, Spec, and Next Steps
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` keeps one-machine
+local MUSU Desktop evidence valid but public release remains No-Go.
+
+Current local pass:
+
+- single-machine smoke current on `HUGH_SECOND`
+- MSIX install current
+- process ownership current
+- startup single-instance current
+- desktop single-instance current
+- desktop-open idle CPU `1/2`
+- five-state runtime CPU matrix `1/2`
+- targeted HUGH-MAIN route-attempt CPU diagnostic true
+
+Audit and validation:
+
+- P2P tests `112/112`
+- typecheck passed
+- P2P relay/source contract audit `ok=true`, `fail_count=0`
+- release evidence verifier regression `104/104`
+- `git diff --check`
+- no high or medium code issue found
+
+Release remains blocked by:
+
+- second-machine CPU/matrix/route evidence
+- live hosted MUSU.PRO P2P/relay proof
+- production KV/Upstash storage and runtime login
+- real release `quic_relay_tunnel` runtime/payload proof
+- support mailbox proof
+- Store/Partner Center proof
+
+Before second-PC handoff, regenerate operator artifacts from current HEAD. The
+latest recorded pack was generated from `981f37ac`, not `078ce1c5`.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_AUDIT_SPEC_AND_NEXT_STEPS_2026_06_07.md`
+  (wiki/947)

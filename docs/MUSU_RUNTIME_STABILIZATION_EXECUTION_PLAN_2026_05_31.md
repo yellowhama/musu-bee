@@ -760,3 +760,29 @@ Go/no-go interpretation:
 Next stabilization step: run the same packaged evidence pack on the second
 machine, then address hosted MUSU.PRO P2P/relay proof without moving local
 execution into the web server.
+
+## 2026-06-07 Current-Head Qual Audit Stabilization Update
+
+Current HEAD `078ce1c5eeb11edc00aa9a6597e6db1f5b0acc59` confirms the current
+stabilization posture:
+
+- local packaged MUSU Desktop evidence on `HUGH_SECOND` is healthy;
+- idle CPU evidence is still `1/2` machines;
+- five-state runtime CPU matrix evidence is still `1/2` machines;
+- targeted non-local route-attempt CPU diagnostic is true;
+- no high or medium code issue was found in the current P2P/control-plane
+  audit;
+- P2P tests passed `112/112`;
+- release verifier regressions passed `104/104`.
+
+The stabilization next step is operational, not a localhost dashboard fix:
+
+1. regenerate operator packs from current HEAD;
+2. run the packaged evidence kit on the second Windows machine;
+3. import the second-machine return zip;
+4. rerun clean go/no-go;
+5. only then continue hosted MUSU.PRO relay proof work.
+
+The hosted relay work must keep the same boundary: MUSU.PRO can coordinate
+rendezvous and fallback, but local MUSU Desktop runtimes must execute the work
+and emit route/transport/payload proof.
