@@ -473,6 +473,8 @@ function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
         'CPU attribution records MUSU/node/WebView2/other sample counts by role',
         'CPU attribution records MUSU/node/WebView2/other CPU totals by role',
         'CPU attribution records MUSU/node/WebView2/other max one-core CPU by role',
+        'Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeIdleCpuEvidenceCandidates -MaxPerMachine 12 -MaxUnknown 12',
+        'candidate_selection = "latest-per-machine-up-to-12"',
         'Test-ObjectHasPropertyNames -Object $processCountsByRole -Names $cpuAttributionRoleNames',
         'Test-ObjectHasPropertyNames -Object $sampleCountByRole -Names $cpuAttributionRoleNames',
         'Test-ObjectHasPropertyNames -Object $totalCpuByRole -Names $cpuAttributionRoleNames',

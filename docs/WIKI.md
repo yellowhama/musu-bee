@@ -14813,3 +14813,49 @@ memory, BETA checklist freshness note, WIKI_INDEX, and GOAL.
 Search terms should include `GOAL v789`, `wiki/964`,
 `AG UI/UX freshness boundary index refresh`, `2909 files`, `2790 symbols`,
 `16842 ms`, `DESIGN.md freshness`, and `docs-only design`.
+
+## 2026-06-07 Runtime Idle CPU Scenario Selection Gate (wiki/965)
+
+Clean go/no-go exposed a release-gate selection bug after targeted
+`startup-open` CPU evidence was added. The release idle CPU gate requires
+`desktop-open`, but go/no-go selected only recent runtime-idle files per machine
+and the newer `startup-open` evidence masked the older desktop-open evidence.
+That made `runtime_idle_cpu_valid_machine_count=0` even though the local
+desktop-open CPU evidence was still valid.
+
+Fix:
+
+- `scripts\windows\write-release-go-no-go.ps1` now selects up to 12 recent
+  runtime idle CPU candidates per machine;
+- `candidate_selection=latest-per-machine-up-to-12`;
+- `scripts\windows\test-release-evidence-verifiers.ps1` source-checks the
+  runtime idle selection contract.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_SCENARIO_SELECTION_GATE_2026_06_07.md`
+
+Search terms should include `GOAL v790`, `wiki/965`,
+`runtime idle CPU scenario selection`, `latest-per-machine-up-to-12`,
+`startup-open masked desktop-open`, and
+`runtime_idle_cpu_valid_machine_count=1`.
+
+## 2026-06-07 Runtime Idle CPU Scenario Selection Gate Index Refresh (wiki/966)
+
+MUSU local indexer was refreshed after wiki/965 and GOAL v790.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2912 files`
+- `2790 symbols`
+- `20441 ms`
+
+Indexed context includes `write-release-go-no-go.ps1`,
+`test-release-evidence-verifiers.ps1`, the runtime idle CPU scenario selection
+report, BETA checklist, runtime stabilization plan, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v791`, `wiki/966`,
+`runtime idle CPU scenario selection index refresh`, `2912 files`,
+`2790 symbols`, `20441 ms`, `latest-per-machine-up-to-12`, and
+`startup-open masked desktop-open`.

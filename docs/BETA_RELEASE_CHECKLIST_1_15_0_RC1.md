@@ -10229,3 +10229,35 @@ Freshness note:
   (wiki/963)
 - final index refresh after this correction: `2909 files`, `2790 symbols`,
   `16842 ms` (wiki/964)
+
+## 2026-06-07 Runtime Idle CPU Scenario Selection Gate
+
+Clean go/no-go exposed that targeted `startup-open` idle CPU evidence could
+mask the older release-gated `desktop-open` idle CPU evidence because the
+selector looked at too few recent candidates per machine.
+
+Fix:
+
+- `write-release-go-no-go.ps1` now scans up to 12 recent runtime idle CPU
+  candidates per machine
+- candidate selection reports `latest-per-machine-up-to-12`
+- `test-release-evidence-verifiers.ps1` now source-checks this contract
+
+Release meaning:
+
+- targeted attribution evidence can coexist with release `desktop-open`
+  evidence
+- CPU budget and scenario requirements are unchanged
+- public release still requires two machines
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_SCENARIO_SELECTION_GATE_2026_06_07.md`
+  (wiki/965)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2912 files`, `2790 symbols`, `20441 ms`
+- wiki: `wiki/966`

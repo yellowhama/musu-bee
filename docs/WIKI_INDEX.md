@@ -6563,4 +6563,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2790 symbols`, `16842 ms`, `AG UI/UX freshness boundary index refresh`,
   `DESIGN.md freshness`, and `docs-only design`.
 
+- 2026-06-07 runtime idle CPU scenario selection gate:
+  `RELEASE_1_15_0_RC1_RUNTIME_IDLE_CPU_SCENARIO_SELECTION_GATE_2026_06_07.md`
+  (wiki/965) records the go/no-go fix for targeted `startup-open` evidence
+  masking release-gated `desktop-open` CPU evidence. Search terms should
+  include `GOAL v790`, `wiki/965`,
+  `runtime idle CPU scenario selection`, `latest-per-machine-up-to-12`,
+  `startup-open masked desktop-open`, and
+  `runtime_idle_cpu_valid_machine_count=1`.
+
+- 2026-06-07 runtime idle CPU scenario selection gate index refresh:
+  wiki/966 records the MUSU local index refresh after wiki/965 and GOAL v790.
+  Search terms should include `GOAL v791`, `wiki/966`, `2912 files`,
+  `2790 symbols`, `20441 ms`,
+  `runtime idle CPU scenario selection index refresh`,
+  `latest-per-machine-up-to-12`, and `startup-open masked desktop-open`.
+
 **End of WIKI_INDEX.md.**

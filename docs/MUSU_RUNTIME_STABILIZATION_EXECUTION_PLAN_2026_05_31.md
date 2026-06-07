@@ -917,3 +917,23 @@ Stabilization interpretation:
   current local evidence set;
 - remaining attribution work is focused post-route behavior and second-PC
   evidence.
+
+## 2026-06-07 Runtime Idle CPU Scenario Selection Gate
+
+Targeted attribution files now coexist with release-gated desktop-open idle CPU
+evidence.
+
+Stabilization problem:
+
+- adding a newer `startup-open` evidence file under runtime-idle CPU made
+  go/no-go select the wrong scenario and drop valid machine count to `0`;
+- this was a selector issue, not a runtime CPU regression.
+
+Fix:
+
+- go/no-go scans up to 12 recent runtime idle CPU candidates per machine;
+- the verifier still enforces `desktop-open` for the release idle CPU gate;
+- candidate selection is reported as `latest-per-machine-up-to-12`.
+
+This allows future bridge-only/runtime-started/startup-open/post-route
+attribution evidence without hiding the release-gated desktop-open sample.

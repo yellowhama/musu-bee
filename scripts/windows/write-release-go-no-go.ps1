@@ -1199,7 +1199,7 @@ foreach ($root in $runtimeIdleCpuEvidenceRoots) {
 
 $runtimeIdleCpuEvidenceResults = @()
 $runtimeIdleCpuMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
-$runtimeIdleCpuSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeIdleCpuEvidenceCandidates -MaxPerMachine 3 -MaxUnknown 6
+$runtimeIdleCpuSelectedCandidates = Select-LatestEvidenceCandidatesByMachine -Candidates $runtimeIdleCpuEvidenceCandidates -MaxPerMachine 12 -MaxUnknown 12
 foreach ($candidate in @($runtimeIdleCpuSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
     $verification = Test-RuntimeIdleCpuEvidence `
         -EvidencePath $candidate.FullName `
@@ -1221,7 +1221,7 @@ $runtimeIdleCpuEvidence = [pscustomobject]@{
     valid_machines = @($runtimeIdleCpuMachines)
     candidate_count = $runtimeIdleCpuEvidenceResults.Count
     available_candidate_count = @($runtimeIdleCpuEvidenceCandidates).Count
-    candidate_selection = "latest-per-machine"
+    candidate_selection = "latest-per-machine-up-to-12"
     candidates = $runtimeIdleCpuEvidenceResults
 }
 
