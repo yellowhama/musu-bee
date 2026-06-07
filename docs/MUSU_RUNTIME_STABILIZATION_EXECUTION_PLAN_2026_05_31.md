@@ -937,3 +937,65 @@ Fix:
 
 This allows future bridge-only/runtime-started/startup-open/post-route
 attribution evidence without hiding the release-gated desktop-open sample.
+
+## 2026-06-07 Process, Startup, and Desktop Single-Instance Recheck
+
+Current packaged local hardening remains healthy on `HUGH_SECOND` at commit
+`c9129327884eefe016e7776442a96d3eb8643831`.
+
+Evidence:
+
+- process ownership:
+  `docs\evidence\process-ownership\1.15.0-rc.1\20260607-115103-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.json`
+- nested startup process ownership:
+  `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.process-ownership.json`
+- desktop single-instance:
+  `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-115149-HUGH_SECOND.desktop-single-instance.json`
+
+Result:
+
+- packaged runtime process count stays `1`
+- packaged desktop shell process count stays `1`
+- owned Node helper count is `0`
+- owned WebView2 helper count is `6`
+- repo-related orphan helper count is `0`
+- startup invocations reused bridge PID `34860`
+- desktop activations reused desktop PID `24144`
+
+Stabilization interpretation:
+
+- process ownership and startup/desktop single-instance are not current local
+  blockers on this machine;
+- the remaining release runtime blocker is not duplicate local process
+  ownership, but missing second-PC CPU/matrix/route evidence;
+- release relay transport markers must stay blocked until a real
+  `quic_relay_tunnel` payload path emits proof.
+
+## 2026-06-07 Agent Control SaaS Research Alignment
+
+Deep research source:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+
+The closest comparable product pattern is remote browser/mobile input into a
+local agent session. Cloud coding-agent products mostly solve async delegation
+by moving execution into cloud VMs or GitHub Actions-like environments. MUSU
+should keep the product boundary stricter:
+
+- MUSU.PRO receives remote work orders, hosts rooms, tracks presence, creates
+  rendezvous sessions, exchanges route candidates, negotiates relay fallback,
+  stores evidence indexes, and sends notifications.
+- MUSU Desktop on each device receives authenticated work-order envelopes,
+  applies local permission policy, executes local agents/adapters, records
+  CPU/process/route evidence, and prefers direct P2P paths after rendezvous.
+- Release UI and docs should not make `localhost:3001` the normal user-facing
+  product path.
+- Paid MUSU.PRO value should be coordination, relay fallback, evidence history,
+  team permissions, and notifications, not hosted default execution.
+
+Engineering consequence: the next release-grade product slice remains
+second-machine local execution proof first, then live MUSU.PRO rendezvous/relay
+proof. The preview store-forward queue still cannot count as release-grade
+`quic_relay_tunnel` payload transit.

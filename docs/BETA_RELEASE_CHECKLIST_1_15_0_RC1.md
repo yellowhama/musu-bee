@@ -35,6 +35,16 @@ Current one-machine validation can continue without the second PC. Successful
 multi-device proof and second-PC CPU/resource evidence require installing the
 same current MUSU build on the second Windows machine.
 
+Comparable SaaS research was updated on 2026-06-07 in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`. The closest
+validated market pattern is remote browser/mobile input controlling a local
+agent session, while most coding-agent SaaS products move execution into cloud
+VMs or GitHub Actions-like environments. MUSU should keep the sharper boundary:
+MUSU.PRO is the paid coordination/control plane, and MUSU Desktop remains the
+local executor. Pro features should be described as remote input, rooms,
+presence, rendezvous, relay fallback, evidence history, notifications, and team
+permissions, not as hosted default execution.
+
 ## Current P2P Candidate Publish Contract
 
 `musu.pro` is the meeting room and rendezvous surface. Each installed local
@@ -10261,3 +10271,81 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2912 files`, `2790 symbols`, `20441 ms`
 - wiki: `wiki/966`
+
+## 2026-06-07 Process, Startup, and Desktop Single-Instance Recheck
+
+Current packaged MUSU Desktop local hardening was rechecked on `HUGH_SECOND`
+at commit `c9129327884eefe016e7776442a96d3eb8643831`.
+
+Promoted evidence:
+
+- `docs\evidence\process-ownership\1.15.0-rc.1\20260607-115103-HUGH_SECOND.process-ownership.json`
+- `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.json`
+- `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.process-ownership.json`
+- `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-115149-HUGH_SECOND.desktop-single-instance.json`
+
+Results:
+
+- process ownership passed with packaged runtime `1`, desktop shell `1`, owned
+  Node `0`, owned WebView2 `6`, orphan repo helpers `0`, bridge PID `34860`,
+  and bridge `/health` HTTP `200`
+- startup single-instance passed: three `musu up --json` invocations reused
+  bridge PID `34860`, runtime remained `1 -> 1`, repeated spawn count `0`
+- desktop single-instance passed: three AppUserModelId activations reused
+  desktop PID `24144`, desktop shell remained `1 -> 1`, new shell count `0`
+- P2P store-forward relay contract and Rust background loop contract both
+  passed with `fail_count=0`
+
+Release meaning:
+
+- local packaged desktop process/startup ownership is healthy on the primary
+  machine;
+- release relay markers stay blocked until a real `quic_relay_tunnel` payload
+  transport exists;
+- public release still requires second-PC CPU/matrix/route evidence, hosted
+  MUSU.PRO release-grade P2P relay proof, support mailbox proof, and Store
+  evidence.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PROCESS_STARTUP_DESKTOP_SINGLE_INSTANCE_RECHECK_2026_06_07.md`
+  (wiki/967)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2919 files`, `2790 symbols`, `15387 ms`
+- wiki: `wiki/968`
+
+## 2026-06-07 Agent Control SaaS Deep Research
+
+Comparable SaaS and agent-control research was added in
+`docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`.
+
+Research conclusion:
+
+- Claude Code Remote Control is the closest direct comparator: remote
+  browser/mobile input controls a local agent session while execution stays on
+  the local machine.
+- Codex, GitHub Copilot cloud agent, Cursor Background Agents, Jules, Devin,
+  and Replit validate command center, background agent, plan/log/review,
+  ticket/team, and plain-language order patterns.
+- Tailscale and ngrok validate the control-plane/data-plane split plus explicit
+  outbound connector/relay fallback concepts.
+
+Product decision:
+
+- MUSU.PRO remains remote input, project/company room, presence, rendezvous,
+  path selection, relay fallback, evidence history, notifications, and team
+  permissions.
+- MUSU Desktop remains the local executor on each device.
+- Pro features must not imply hosted default execution.
+- `localhost:3001` should not be the normal release user-facing path.
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2922 files`, `2790 symbols`, `13677 ms`
+- wiki: `wiki/970`

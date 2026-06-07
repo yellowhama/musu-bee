@@ -19,10 +19,18 @@ This design is for MUSU.PRO plus MUSU Desktop together:
 
 Sources checked on 2026-06-07:
 
+- Deep research report:
+  `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+- Claude Code Remote Control:
+  `https://code.claude.com/docs/en/remote-control`
+- Claude Code architecture:
+  `https://code.claude.com/docs/en/how-claude-code-works`
 - OpenAI Codex product page:
   `https://openai.com/codex/`
-- OpenAI Codex help:
-  `https://help.openai.com/en/articles/11369540-getting-started-with-codex`
+- OpenAI Codex CLI docs:
+  `https://developers.openai.com/codex/cli`
+- OpenAI Codex GitHub repo:
+  `https://github.com/openai/codex`
 - GitHub Copilot cloud agent docs:
   `https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent`
 - Cursor background agents docs:
@@ -38,18 +46,33 @@ Observed patterns:
 
 | Service | Execution model | UX pattern | Lesson for MUSU |
 |---|---|---|---|
+| Claude Code Remote Control | local session controlled from web/mobile | remote session list, QR/session URL, synced conversation, outbound-only connection | Closest direct comparator: MUSU.PRO should be a window/control plane into local MUSU Desktop execution, with local process liveness made explicit. |
 | OpenAI Codex | connected local/cloud agent surfaces | command center, parallel agents, skills, background work | MUSU needs a command center, but must show local device ownership rather than only cloud worktrees. |
 | GitHub Copilot cloud agent | GitHub Actions powered ephemeral environment | issue/PR workflow, plan, branch, logs, PR review | MUSU should expose plan, branch/artifact, review, and audit trails; every task needs a clear handoff object. |
 | Cursor background agents | remote async environment connected to IDE/web/mobile | background-agent sidebar, status, follow-ups, take-over | MUSU should support remote input and follow-ups, but the take-over target is a local device/runtime. |
 | Google Jules | cloud VM that clones repos | repo selector, branch selector, plan approval, notifications | MUSU needs repo/project selectors, plan approval, and completion notifications before local execution feels safe. |
 | Devin | autonomous software engineer with CLI/desktop/cloud/integrations | team workflow, tickets, integrations, backlog work | MUSU should model agents as team members tied to rooms, tickets, and local capabilities. |
 | Replit Agent | hosted workspace and deployment flow | natural-language build flow, plan mode, design preview | MUSU can borrow plain-language ordering and preview, but must avoid hiding infra/runtime location. |
+| Tailscale | control plane coordinates devices; data plane runs on devices | device identity, policy, peer discovery, NAT traversal, direct/relayed paths | MUSU.PRO should coordinate registration/rendezvous/path choice while local devices move work and evidence. |
+| ngrok | local agent opens outbound TLS tunnel to cloud endpoint | no inbound ports, explicit tunnel endpoint, cloud relay | Relay fallback should be explicit and proven, not the default execution path. |
 
 Competitive gap for MUSU:
 
-Most comparable SaaS products make cloud execution feel simple. MUSU should make
-distributed local execution feel just as simple while making execution location,
-device identity, route path, and evidence more visible than competitors do.
+Most comparable SaaS products make cloud execution feel simple. Claude Code
+Remote Control proves there is also demand for browser/mobile control over a
+local session. MUSU should generalize that pattern to multiple local devices
+and agents while making execution location, device identity, route path, and
+evidence more visible than competitors do.
+
+Strategic conclusion:
+
+- MUSU.PRO is the web command room and rendezvous/control plane.
+- MUSU Desktop is the local executor on each device.
+- P2P direct paths are preferred after web rendezvous.
+- Hosted relay is an explicit fallback path with release-grade proof.
+- Paid MUSU.PRO value should be remote input, rooms, presence, rendezvous,
+  relay fallback, evidence history, notifications, and team permissions, not
+  moving default execution into the cloud.
 
 ## Product Position
 

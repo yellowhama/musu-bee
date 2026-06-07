@@ -6579,4 +6579,40 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime idle CPU scenario selection index refresh`,
   `latest-per-machine-up-to-12`, and `startup-open masked desktop-open`.
 
+- 2026-06-07 process, startup, and desktop single-instance recheck:
+  `RELEASE_1_15_0_RC1_PROCESS_STARTUP_DESKTOP_SINGLE_INSTANCE_RECHECK_2026_06_07.md`
+  (wiki/967) records fresh current packaged local hardening evidence on
+  `HUGH_SECOND`. Search terms should include `GOAL v792`, `wiki/967`,
+  `process startup desktop single-instance recheck`,
+  `20260607-115103-HUGH_SECOND.process-ownership`,
+  `20260607-115104-HUGH_SECOND.startup-single-instance`,
+  `20260607-115149-HUGH_SECOND.desktop-single-instance`, `bridge PID 34860`,
+  `desktop PID 24144`, `owned WebView2 6`, and `repeated_spawn_count 0`.
+
+- 2026-06-07 process/startup/desktop single-instance recheck index refresh:
+  wiki/968 records the MUSU local index refresh after wiki/967 and GOAL v792.
+  Search terms should include `GOAL v793`, `wiki/968`, `2919 files`,
+  `2790 symbols`, `15387 ms`,
+  `process startup desktop single-instance recheck index refresh`,
+  `bridge PID 34860`, `desktop PID 24144`, and `owned WebView2 6`.
+
+- 2026-06-07 agent control SaaS deep research:
+  `RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md` (wiki/969) records
+  comparable product research across Claude Code Remote Control, Codex,
+  GitHub Copilot cloud agent, Cursor Background Agents, Jules, Devin, Replit,
+  Tailscale, and ngrok. Search terms should include `GOAL v794`, `wiki/969`,
+  `agent control SaaS deep research`, `Claude Code Remote Control`,
+  `MUSU.PRO remote input`, `local MUSU Desktop execution`,
+  `control plane data plane`, `Agent Grid`, `Project Rooms`, `Device Mesh`,
+  and `localhost:3001`.
+
+- 2026-06-07 agent control SaaS deep research index refresh:
+  wiki/970 records the MUSU local index refresh after wiki/969 and GOAL v794.
+  Search terms should include `GOAL v795`, `wiki/970`, `2922 files`,
+  `2790 symbols`, `13677 ms`,
+  `agent control SaaS deep research index refresh`,
+  `Claude Code Remote Control`, `MUSU.PRO remote input`,
+  `local MUSU Desktop execution`, `control plane data plane`, and
+  `localhost:3001`.
+
 **End of WIKI_INDEX.md.**

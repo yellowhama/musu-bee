@@ -14859,3 +14859,113 @@ Search terms should include `GOAL v791`, `wiki/966`,
 `runtime idle CPU scenario selection index refresh`, `2912 files`,
 `2790 symbols`, `20441 ms`, `latest-per-machine-up-to-12`, and
 `startup-open masked desktop-open`.
+
+## 2026-06-07 Process, Startup, and Desktop Single-Instance Recheck (wiki/967)
+
+Current packaged MUSU Desktop local hardening was rechecked on `HUGH_SECOND`
+from source commit `c9129327884eefe016e7776442a96d3eb8643831`.
+
+Promoted evidence:
+
+- `docs\evidence\process-ownership\1.15.0-rc.1\20260607-115103-HUGH_SECOND.process-ownership.json`
+- `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.json`
+- `docs\evidence\startup-single-instance\1.15.0-rc.1\20260607-115104-HUGH_SECOND.startup-single-instance.process-ownership.json`
+- `docs\evidence\desktop-single-instance\1.15.0-rc.1\20260607-115149-HUGH_SECOND.desktop-single-instance.json`
+
+Results:
+
+- process ownership `ok=true`, runtime `1`, desktop shell `1`, owned Node
+  `0`, owned WebView2 `6`, orphan repo helpers `0`, bridge PID `34860`
+- startup single-instance `ok=true`, three `musu up --json` calls reused
+  bridge PID `34860`, repeated spawn count `0`
+- desktop single-instance `ok=true`, three packaged AppUserModelId activations
+  reused desktop PID `24144`, new desktop shell count `0`
+- P2P store-forward/relay contract `ok=true`, Rust background loop contract
+  `ok=true`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_PROCESS_STARTUP_DESKTOP_SINGLE_INSTANCE_RECHECK_2026_06_07.md`
+
+Search terms should include `GOAL v792`, `wiki/967`,
+`process startup desktop single-instance recheck`,
+`20260607-115103-HUGH_SECOND.process-ownership`,
+`20260607-115104-HUGH_SECOND.startup-single-instance`,
+`20260607-115149-HUGH_SECOND.desktop-single-instance`, `bridge PID 34860`,
+`desktop PID 24144`, `owned WebView2 6`, and `repeated_spawn_count 0`.
+
+## 2026-06-07 Process/Startup/Desktop Single-Instance Recheck Index Refresh (wiki/968)
+
+MUSU local indexer was refreshed after wiki/967 and GOAL v792.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2919 files`
+- `2790 symbols`
+- `15387 ms`
+
+Indexed context includes the process/startup/desktop single-instance recheck
+report, promoted process/startup/desktop evidence JSON, BETA checklist,
+runtime stabilization plan, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v793`, `wiki/968`,
+`process startup desktop single-instance recheck index refresh`, `2919 files`,
+`2790 symbols`, `15387 ms`, `bridge PID 34860`, `desktop PID 24144`,
+`owned WebView2 6`, and `repeated_spawn_count 0`.
+
+## 2026-06-07 Agent Control SaaS Deep Research (wiki/969)
+
+Comparable SaaS and agent-control research was added:
+
+- `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`
+- updated `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+- updated BETA checklist product split
+- updated runtime stabilization execution plan
+- CoS memory:
+  `docs\memory\chief_of_staff\2026-06-07_agent_control_saas_deep_research.md`
+
+Research conclusion:
+
+- Claude Code Remote Control is the closest direct comparator because
+  web/mobile controls a local agent session while execution stays on the local
+  machine.
+- Codex, GitHub Copilot cloud agent, Cursor Background Agents, Jules, Devin,
+  and Replit validate command center, async agent, plan/log/review, ticket/team,
+  and plain-language order patterns, but most move work into cloud execution.
+- Tailscale validates the control-plane/data-plane split; ngrok validates
+  outbound connector and explicit relay/tunnel patterns.
+
+MUSU product decision:
+
+- MUSU.PRO is the paid coordination/control plane: remote input, rooms,
+  presence, rendezvous, path selection, relay fallback, evidence history,
+  notifications, and team permissions.
+- MUSU Desktop remains the local executor on each device.
+- Pro features must not be described as hosted default execution.
+- `localhost:3001` should not be the normal user-facing release path.
+
+Search terms should include `GOAL v794`, `wiki/969`,
+`agent control SaaS deep research`, `Claude Code Remote Control`,
+`MUSU.PRO remote input`, `local MUSU Desktop execution`,
+`control plane data plane`, `Agent Grid`, `Project Rooms`, `Device Mesh`, and
+`localhost:3001`.
+
+## 2026-06-07 Agent Control SaaS Deep Research Index Refresh (wiki/970)
+
+MUSU local indexer was refreshed after wiki/969 and GOAL v794.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2922 files`
+- `2790 symbols`
+- `13677 ms`
+
+Indexed context includes the agent-control SaaS deep research report, AG UI/UX
+design update, BETA checklist product split update, runtime stabilization
+research alignment, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v795`, `wiki/970`,
+`agent control SaaS deep research index refresh`, `2922 files`, `2790 symbols`,
+`13677 ms`, `Claude Code Remote Control`, `MUSU.PRO remote input`,
+`local MUSU Desktop execution`, `control plane data plane`, and
+`localhost:3001`.
