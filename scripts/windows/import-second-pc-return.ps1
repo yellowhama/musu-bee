@@ -361,6 +361,9 @@ $routeReachabilityDiagnosticVerificationError = $null
 $runtimeIdleCpuVerification = $null
 $runtimeIdleCpuVerificationError = $null
 $runtimeIdleCpuVerified = $false
+$runtimeCpuScenarioMatrixVerification = $null
+$runtimeCpuScenarioMatrixVerificationError = $null
+$runtimeCpuScenarioMatrixVerified = $false
 $routeReachabilityTarget = $null
 $routeReachabilityDiagnosticVerified = $false
 if ($canonicalRouteReachabilityDiagnostic) {
@@ -447,6 +450,38 @@ if (-not $canonicalRuntimeCpuScenarioMatrix) {
 else {
     try {
         $runtimeCpuScenarioJson = Get-Content -LiteralPath $canonicalRuntimeCpuScenarioMatrix -Raw | ConvertFrom-Json
+        $runtimeCpuScenarioVerifyArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"),
+            "-EvidencePath", $canonicalRuntimeCpuScenarioMatrix,
+            "-ExpectedVersion", $ExpectedVersion,
+            "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route",
+            "-MinSampleSeconds", "60",
+            "-MaxOneCorePercent", "5",
+            "-RequirePostRouteProbe",
+            "-Json"
+        )
+        $runtimeCpuRouteTarget = if ($releaseCheck -and $releaseCheck.PSObject.Properties["runtime_cpu_route_target"]) { Get-JsonPropertyString -Object $releaseCheck -Name "runtime_cpu_route_target" } else { "" }
+        if (-not [string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) {
+            $runtimeCpuScenarioVerifyArgs += "-RequirePostRouteTarget"
+            $runtimeCpuScenarioVerifyArgs += @("-ExpectedPostRouteTarget", $runtimeCpuRouteTarget)
+            $runtimeCpuScenarioVerifyArgs += "-RejectSelfPostRouteTarget"
+            $runtimeCpuScenarioVerifyArgs += "-RejectLocalPostRouteTarget"
+        }
+        if ($releaseCheck -and $releaseCheck.PSObject.Properties["runtime_cpu_route_probe_failure_allowed"] -and [bool]$releaseCheck.runtime_cpu_route_probe_failure_allowed) {
+            $runtimeCpuScenarioVerifyArgs += "-AllowFailedPostRouteProbe"
+        }
+        $runtimeCpuScenarioVerifyOutput = & powershell @runtimeCpuScenarioVerifyArgs 2>&1
+        $runtimeCpuScenarioVerifyText = ($runtimeCpuScenarioVerifyOutput | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            $runtimeCpuScenarioMatrixVerificationError = "Runtime CPU scenario matrix did not verify.`n$runtimeCpuScenarioVerifyText"
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($runtimeCpuScenarioVerifyText)) {
+            $runtimeCpuScenarioMatrixVerification = $runtimeCpuScenarioVerifyText | ConvertFrom-Json
+            $runtimeCpuScenarioMatrixVerified = [bool]$runtimeCpuScenarioMatrixVerification.ok
+        }
+
         if (-not $runtimeCpuScenarioJson.PSObject.Properties["scenarios"] -or @($runtimeCpuScenarioJson.scenarios).Count -eq 0) {
             $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_matrix_subrole_contract_missing_scenarios") | Out-Null
         }
@@ -531,6 +566,14 @@ if ($canonicalRuntimeIdleCpuEvidence) {
         $releaseGateEvidenceIssues.Add("runtime_idle_cpu_verification_error:$runtimeIdleCpuVerificationError") | Out-Null
     }
 }
+if ($canonicalRuntimeCpuScenarioMatrix) {
+    if (-not $runtimeCpuScenarioMatrixVerified) {
+        $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_matrix_evidence_not_verified") | Out-Null
+    }
+    if ($runtimeCpuScenarioMatrixVerificationError) {
+        $releaseGateEvidenceIssues.Add("runtime_cpu_scenario_matrix_verification_error:$runtimeCpuScenarioMatrixVerificationError") | Out-Null
+    }
+}
 if ($routeReachabilityDiagnosticRequired) {
     if (-not $canonicalRouteReachabilityDiagnostic) {
         $releaseGateEvidenceIssues.Add("missing_route_reachability_diagnostic") | Out-Null
@@ -563,6 +606,9 @@ $result = [pscustomobject]@{
     runtime_idle_cpu_verification = $runtimeIdleCpuVerification
     runtime_idle_cpu_verification_error = $runtimeIdleCpuVerificationError
     runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
+    runtime_cpu_scenario_matrix_verified = [bool]$runtimeCpuScenarioMatrixVerified
+    runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification
+    runtime_cpu_scenario_matrix_verification_error = $runtimeCpuScenarioMatrixVerificationError
     runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk

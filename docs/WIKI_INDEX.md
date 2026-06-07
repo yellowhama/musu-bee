@@ -7548,4 +7548,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `18772 ms`, `second-PC runtime idle verification index`,
   `118/118`, and `runtime_idle_cpu_verified`.
 
+- 2026-06-08 second-PC runtime CPU matrix import re-verification:
+  wiki/1068 records that `import-second-pc-return.ps1` now replays
+  `verify-runtime-cpu-scenario-matrix.ps1` on imported second-PC matrices using
+  the release-grade scenario set, post-route probe requirement, and recorded
+  route-target/failure policy from the wrapper. Regression stayed green at
+  `119/119` in `.local-build\release-evidence-verifier-tests\20260608-055302`.
+  Search terms should include `GOAL v893`, `wiki/1068`, `119/119`,
+  `runtime_cpu_scenario_matrix_verified`,
+  `second-PC return import verifies runtime CPU matrix evidence`, and
+  `primary HEAD matrix re-verification`.
+
+- 2026-06-08 second-PC runtime CPU matrix verification index:
+  wiki/1069 records the MUSU local index refresh after wiki/1068 and GOAL
+  v893. Search terms should include `GOAL v894`, `wiki/1069`, `3103 files`,
+  `2890 symbols`, `19392 ms`, `second-PC runtime matrix verification index`,
+  `119/119`, and `runtime_cpu_scenario_matrix_verified`.
+
 **End of WIKI_INDEX.md.**

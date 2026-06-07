@@ -491,6 +491,36 @@ function Test-SecondPcImportRuntimeIdleVerifierContract {
     return $true
 }
 
+function Test-SecondPcImportRuntimeMatrixVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'verify-runtime-cpu-scenario-matrix.ps1',
+        '-EvidencePath", $canonicalRuntimeCpuScenarioMatrix',
+        '-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route"',
+        '-RequirePostRouteProbe',
+        '$runtimeCpuRouteTarget = if ($releaseCheck -and $releaseCheck.PSObject.Properties["runtime_cpu_route_target"])',
+        '$runtimeCpuScenarioVerifyArgs += "-RequirePostRouteTarget"',
+        '$runtimeCpuScenarioVerifyArgs += @("-ExpectedPostRouteTarget", $runtimeCpuRouteTarget)',
+        '$runtimeCpuScenarioVerifyArgs += "-RejectSelfPostRouteTarget"',
+        '$runtimeCpuScenarioVerifyArgs += "-RejectLocalPostRouteTarget"',
+        '$runtimeCpuScenarioVerifyArgs += "-AllowFailedPostRouteProbe"',
+        'runtime_cpu_scenario_matrix_verified = [bool]$runtimeCpuScenarioMatrixVerified',
+        'runtime_cpu_scenario_matrix_verification = $runtimeCpuScenarioMatrixVerification',
+        'runtime_cpu_scenario_matrix_verification_error = $runtimeCpuScenarioMatrixVerificationError',
+        'runtime_cpu_scenario_matrix_evidence_not_verified',
+        'runtime_cpu_scenario_matrix_verification_error:'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcImportRouteReachabilityContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2849,6 +2879,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC return import verifies runtime idle CPU evidence" `
+    -Verifier "second-PC import source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportRuntimeMatrixVerifierContractOk = Test-SecondPcImportRuntimeMatrixVerifierContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportRuntimeMatrixVerifierContractOk `
+    -Message "second-PC return import must direct-verify imported runtime CPU matrix evidence on primary HEAD and require the verification result in release-gate imports"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import verifies runtime CPU matrix evidence" `
     -Verifier "second-PC import source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
     -ShouldPass $true `

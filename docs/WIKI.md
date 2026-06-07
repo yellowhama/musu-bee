@@ -18335,3 +18335,85 @@ green `118/118` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v892`, `wiki/1067`, `3103 files`,
 `2890 symbols`, `18772 ms`, `second-PC runtime idle verification index`,
 `118/118`, and `runtime_idle_cpu_verified`.
+
+## 2026-06-08 Second-PC Runtime CPU Matrix Import Re-Verification (wiki/1068)
+
+Second-PC return import now direct-verifies imported runtime CPU matrices on
+primary HEAD, so cross-machine CPU matrix evidence is re-checked under the same
+route-target and post-route probe policy instead of trusting wrapper booleans.
+
+Changed scripts:
+
+- `scripts\windows\import-second-pc-return.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+
+Behavior change:
+
+- importer now replays `verify-runtime-cpu-scenario-matrix.ps1` against the
+  imported second-PC matrix using:
+  - `-RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open,post-route`
+  - `-MinSampleSeconds 60`
+  - `-MaxOneCorePercent 5`
+  - `-RequirePostRouteProbe`
+- when the second-PC wrapper recorded `runtime_cpu_route_target`, importer now
+  also re-applies:
+  - `-RequirePostRouteTarget`
+  - `-ExpectedPostRouteTarget`
+  - `-RejectSelfPostRouteTarget`
+  - `-RejectLocalPostRouteTarget`
+  - `-AllowFailedPostRouteProbe` when the wrapper allowed route-probe failure
+
+Importer output now records:
+
+- `runtime_cpu_scenario_matrix_verified`
+- `runtime_cpu_scenario_matrix_verification`
+- `runtime_cpu_scenario_matrix_verification_error`
+
+Release-gate import now fails on:
+
+- `runtime_cpu_scenario_matrix_evidence_not_verified`
+- `runtime_cpu_scenario_matrix_verification_error:...`
+
+Why this matters:
+
+- second-PC CPU matrix evidence now gets the same primary-HEAD verifier replay
+  that one-machine clean matrix evidence already relies on
+- imported return zips can no longer satisfy the matrix side of the release gate
+  merely by carrying a wrapper boolean plus structurally plausible scenario JSON
+- the remaining blocker becomes more honestly external: real second-PC matrix
+  evidence is still missing, but the import path is now much less trusting
+
+Regression:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=119`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-055302`
+- new source-contract case:
+  - `second-PC return import verifies runtime CPU matrix evidence`
+
+Search terms should include `GOAL v893`, `wiki/1068`, `119/119`,
+`runtime_cpu_scenario_matrix_verified`,
+`second-PC return import verifies runtime CPU matrix evidence`, and
+`primary HEAD matrix re-verification`.
+
+## 2026-06-08 Second-PC Runtime CPU Matrix Verification Index (wiki/1069)
+
+MUSU local indexer was refreshed after wiki/1068 and GOAL v893.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `19392 ms`
+
+Indexed context includes the importer matrix re-verification change, the green
+`119/119` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v894`, `wiki/1069`, `3103 files`,
+`2890 symbols`, `19392 ms`, `second-PC runtime matrix verification index`,
+`119/119`, and `runtime_cpu_scenario_matrix_verified`.
