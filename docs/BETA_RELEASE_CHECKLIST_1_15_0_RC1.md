@@ -10218,3 +10218,14 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2907 files`, `2790 symbols`, `19508 ms`
 - wiki: `wiki/962`
+
+Freshness note:
+
+- root/app `DESIGN.md` edits were not kept because they are outside the runtime
+  evidence freshness allowlist and made desktop-open CPU evidence appear stale
+  in clean go/no-go
+- canonical AG UI/UX design remains under
+  `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
+  (wiki/963)
+- final index refresh after this correction: `2909 files`, `2790 symbols`,
+  `16842 ms` (wiki/964)

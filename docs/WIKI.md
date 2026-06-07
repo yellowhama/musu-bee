@@ -14736,11 +14736,6 @@ Design source:
 
 - `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
 
-Existing design-system files now point to it:
-
-- `DESIGN.md`
-- `musu-bee\DESIGN.md`
-
 Design conclusion:
 
 - comparable SaaS products make cloud or remote async execution feel simple;
@@ -14773,10 +14768,48 @@ MUSU local indexer was refreshed after wiki/961 and GOAL v786.
 - `19508 ms`
 
 Indexed context includes `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`,
-the root and app `DESIGN.md` updates, MUSU.PRO P2P control-plane spec addendum,
-BETA checklist, WIKI_INDEX, GOAL, and CoS memory.
+the MUSU.PRO P2P control-plane spec addendum, BETA checklist, WIKI_INDEX,
+GOAL, and CoS memory.
 
 Search terms should include `GOAL v787`, `wiki/962`,
 `AG UI/UX index refresh`, `2907 files`, `2790 symbols`, `19508 ms`,
 `Agent Grid`, `Command Center`, `Project Rooms`, `Device Mesh`,
 `Evidence Center`, and `SaaS landscape`.
+
+## 2026-06-07 AG UI/UX Design Freshness Boundary (wiki/963)
+
+Clean go/no-go after commit `6c03729c` showed
+`runtime_idle_cpu_valid_machine_count=0` because root/app `DESIGN.md` updates
+are not part of the runtime evidence freshness allowlist. The AG UI/UX work was
+documentation-only, but changing allowlist-external root design files made the
+desktop-open CPU evidence appear stale.
+
+Decision:
+
+- keep canonical AG UI/UX design in
+  `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`;
+- do not touch root/app `DESIGN.md` for this release-evidence update;
+- do not broaden freshness allowlists without source-contract tests;
+- preserve local packaged runtime evidence freshness by keeping design addenda
+  under `docs\`.
+
+Search terms should include `GOAL v788`, `wiki/963`,
+`AG UI/UX design freshness boundary`, `runtime_idle_cpu_valid_machine_count=0`,
+`DESIGN.md freshness`, and `docs-only design`.
+
+## 2026-06-07 AG UI/UX Design Freshness Boundary Index Refresh (wiki/964)
+
+MUSU local indexer was refreshed after wiki/963 and GOAL v788.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2909 files`
+- `2790 symbols`
+- `16842 ms`
+
+Indexed context includes the canonical AG UI/UX design, freshness boundary CoS
+memory, BETA checklist freshness note, WIKI_INDEX, and GOAL.
+
+Search terms should include `GOAL v789`, `wiki/964`,
+`AG UI/UX freshness boundary index refresh`, `2909 files`, `2790 symbols`,
+`16842 ms`, `DESIGN.md freshness`, and `docs-only design`.

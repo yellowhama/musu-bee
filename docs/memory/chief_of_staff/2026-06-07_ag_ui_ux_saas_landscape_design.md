@@ -23,10 +23,8 @@ Main conclusion:
 - Project Rooms should model the "AI company meeting room" concept where local
   agents coordinate, propose plans, request approval, and attach evidence.
 
-Design files updated:
-
-- `DESIGN.md`
-- `musu-bee\DESIGN.md`
+Design is kept under `docs\` so release freshness gates do not confuse
+root-level design-system edits with runtime-affecting changes.
 
 Product boundary remains unchanged: MUSU.PRO coordinates remote input, rooms,
 rendezvous, path selection, relay fallback, and evidence. Local MUSU Desktop

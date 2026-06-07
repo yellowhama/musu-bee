@@ -18,8 +18,6 @@ Result:
 Indexed context includes:
 
 - `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`
-- `DESIGN.md`
-- `musu-bee\DESIGN.md`
 - `docs\MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`
 - BETA checklist AG UI/UX section
 - WIKI/WIKI_INDEX/GOAL updates

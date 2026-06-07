@@ -6549,4 +6549,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Command Center`, `Project Rooms`, `Device Mesh`, `Evidence Center`, and
   `SaaS landscape`.
 
+- 2026-06-07 AG UI/UX design freshness boundary:
+  wiki/963 records that root/app `DESIGN.md` edits are not release freshness
+  allowlisted and can stale desktop-open CPU evidence. Canonical AG design now
+  stays under `docs\AG_UI_UX_CONTROL_PLANE_DESIGN_2026_06_07.md`. Search terms
+  should include `GOAL v788`, `wiki/963`, `AG UI/UX design freshness boundary`,
+  `runtime_idle_cpu_valid_machine_count=0`, `DESIGN.md freshness`, and
+  `docs-only design`.
+
+- 2026-06-07 AG UI/UX design freshness boundary index refresh:
+  wiki/964 records the MUSU local index refresh after wiki/963 and GOAL v788.
+  Search terms should include `GOAL v789`, `wiki/964`, `2909 files`,
+  `2790 symbols`, `16842 ms`, `AG UI/UX freshness boundary index refresh`,
+  `DESIGN.md freshness`, and `docs-only design`.
+
 **End of WIKI_INDEX.md.**
