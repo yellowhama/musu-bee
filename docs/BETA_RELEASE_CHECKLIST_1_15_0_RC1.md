@@ -44,6 +44,24 @@ MUSU.PRO work input, local Desktop pickup/execution on this PC, result/status
 return to MUSU.PRO, and post-run idle/resource evidence. Two-machine install,
 P2P mesh proof, and relay byte-path work resume only after that gate is proven.
 
+One-machine work-order smoke gate added on 2026-06-07:
+
+- script: `scripts\windows\smoke-one-machine-musu-pro-work-order.ps1`
+- schema: `musu.one_machine_musu_pro_work_order.v1`
+- report:
+  `docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
+- diagnostic evidence:
+  `docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+
+Current result is intentionally No-Go: local Desktop starts, `musu up` passes,
+doctor is not failed, and the actual bridge URL is `http://127.0.0.1:9741`;
+however the packaged runtime is not logged in to MUSU.PRO, room presence
+publish/list return `not_logged_in`, no P2P control token is present, work-order
+POST is skipped, Desktop outbound pickup is not proven, and post-run CPU
+evidence is missing. The next release work is login/presence, owner-scoped
+credential, MUSU.PRO durable work-order inbox, Desktop outbound pickup/claim,
+local execution/result return, then post-run CPU evidence.
+
 Comparable SaaS research was updated on 2026-06-07 in
 `docs\RESEARCH_AGENT_CONTROL_SAAS_LANDSCAPE_2026_06_07.md`. The closest
 validated market pattern is remote browser/mobile input controlling a local

@@ -16752,3 +16752,58 @@ BETA checklist scope reset, WIKI/WIKI_INDEX/GOAL, and CoS memory.
 Search terms should include `GOAL v847`, `wiki/1022`, `3088 files`,
 `2808 symbols`, `11642 ms`, `one-machine MUSU.PRO functional roadmap`,
 `musu.one_machine_musu_pro_work_order.v1`, and `remote work-order pickup`.
+
+## 2026-06-07 One-Machine MUSU.PRO Work-Order Smoke Gate (wiki/1023)
+
+`scripts\windows\smoke-one-machine-musu-pro-work-order.ps1` now records the
+one-machine MUSU.PRO functional gate as executable evidence with schema
+`musu.one_machine_musu_pro_work_order.v1`. The release verifier regression has
+a source contract that requires local Desktop readiness, actual bridge URL
+discovery, room presence publish/list, owner-scoped work-order POST, no fixed
+`localhost:3001` assumption, post-run idle CPU evidence linkage, and failure
+exit behavior unless `-AllowUnverified` is used for diagnostics.
+
+Canonical report:
+
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
+
+Diagnostic evidence:
+
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+
+Current result is `ok=false` with `fail_count=10`. Local Desktop starts,
+`musu up` passes, `doctor` is not failed, and bridge discovery returns
+`http://127.0.0.1:9741`, so the repeated `localhost:3001` browser refusal is
+not the product success criterion. The remaining one-machine blockers are
+MUSU.PRO account login, room presence publish/list, P2P control token,
+work-order POST, Desktop outbound pickup/claim, result return, and post-run
+idle CPU evidence.
+
+Source audit note: the existing room work-order API currently forwards
+server-side through `getBridgeUrl()` to `/api/tasks/delegate`, so hosted
+`https://musu.pro` still needs a durable owner-scoped work-order inbox and local
+Desktop outbound pickup path. Search terms should include `GOAL v848`,
+`wiki/1023`, `one-machine MUSU.PRO work-order smoke gate`,
+`20260607-213245-HUGH_SECOND`, `not_logged_in`, `P2P control token`,
+`Desktop outbound pickup`, `127.0.0.1:9741`, and `localhost:3001`.
+
+## 2026-06-07 One-Machine MUSU.PRO Work-Order Smoke Gate Index Refresh (wiki/1024)
+
+MUSU local indexer was refreshed after wiki/1023 and GOAL v848.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3093 files`
+- `2808 symbols`
+- `15589 ms`
+
+Indexed context includes the one-machine MUSU.PRO work-order smoke script,
+release verifier source contract, diagnostic evidence
+`20260607-213245-HUGH_SECOND`, canonical smoke-gate report, one-machine
+roadmap updates, AG UI/UX incomplete-state update, BETA checklist, WIKI,
+WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v849`, `wiki/1024`, `3093 files`,
+`2808 symbols`, `15589 ms`, `one-machine MUSU.PRO work-order smoke gate`,
+`20260607-213245-HUGH_SECOND`, `not_logged_in`, `P2P control token`,
+`Desktop outbound pickup`, and `127.0.0.1:9741`.

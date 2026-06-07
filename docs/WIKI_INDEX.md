@@ -7110,4 +7110,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `one-machine MUSU.PRO functional roadmap`,
   `musu.one_machine_musu_pro_work_order.v1`, and `remote work-order pickup`.
 
+- 2026-06-07 one-machine MUSU.PRO work-order smoke gate:
+  `RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
+  (wiki/1023) records the executable one-machine MUSU.PRO work-order smoke and
+  diagnostic evidence `20260607-213245-HUGH_SECOND`. Current result is
+  `ok=false`/`fail_count=10`: local Desktop starts, `musu up` passes, `doctor`
+  is not failed, actual bridge discovery is `127.0.0.1:9741`, and there is no
+  fixed `localhost:3001` assumption, but MUSU.PRO account login, room presence,
+  P2P control token, work-order POST, Desktop outbound pickup, result return,
+  and post-run CPU evidence remain open. Search terms should include
+  `GOAL v848`, `wiki/1023`, `one-machine MUSU.PRO work-order smoke gate`,
+  `not_logged_in`, `P2P control token`, `Desktop outbound pickup`,
+  `127.0.0.1:9741`, and `localhost:3001`.
+
+- 2026-06-07 one-machine MUSU.PRO work-order smoke gate index refresh:
+  wiki/1024 records the MUSU local index refresh after wiki/1023 and GOAL
+  v848. Search terms should include `GOAL v849`, `wiki/1024`, `3093 files`,
+  `2808 symbols`, `15589 ms`,
+  `one-machine MUSU.PRO work-order smoke gate`,
+  `20260607-213245-HUGH_SECOND`, `not_logged_in`, `P2P control token`,
+  `Desktop outbound pickup`, and `127.0.0.1:9741`.
+
 **End of WIKI_INDEX.md.**

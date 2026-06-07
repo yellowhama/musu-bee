@@ -181,6 +181,16 @@ local execution, returned status/result, and evidence attachment for that one
 device. Multi-device routing controls can remain visible as disabled or
 evidence-missing states until the same build is installed on the second PC.
 
+2026-06-07 work-order smoke update: the first Command Center screen must handle
+the current incomplete states explicitly. On `HUGH_SECOND`, Desktop is running
+and bridge discovery succeeds at `http://127.0.0.1:9741`, but MUSU.PRO account
+login is missing, room presence returns `not_logged_in`, no P2P control token is
+available, and no remote pickup/result evidence exists yet. The UI should show
+these as actionable states: `Sign in to MUSU.PRO`, `Device not published`,
+`Control credential missing`, `Waiting for local pickup`, and
+`Evidence missing`. It should not send the user to `localhost:3001` as the
+product path.
+
 ## Core Objects
 
 | Object | User-facing meaning | Required visible fields |

@@ -37,6 +37,7 @@ $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
 $routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
 $supportMailboxRequestPreparer = Join-Path $scriptDir "prepare-support-mailbox-verification-request.ps1"
+$oneMachineMusuProWorkOrderSmoke = Join-Path $scriptDir "smoke-one-machine-musu-pro-work-order.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -1375,6 +1376,43 @@ function Test-OperatorApiSecurityRoomWorkOrderRejectedAuditContract {
     return $true
 }
 
+function Test-OneMachineMusuProWorkOrderSmokeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.one_machine_musu_pro_work_order.v1"',
+        '"up", "--json"',
+        '"doctor", "--json"',
+        '"room", "presence", "publish"',
+        '"room", "presence", "list"',
+        '/api/rooms/',
+        '/work-orders',
+        'requires_desktop_outbound_pickup',
+        'P2P control token',
+        'owner_scoped',
+        'post-run idle CPU evidence',
+        'localhost:3001',
+        'allow_unverified',
+        'exit 1',
+        'AllowUnverified'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return (
+        $source -like '*MUSU_P2P_CONTROL_TOKEN*' -and
+        $source -like '*MUSU_ROUTE_EVIDENCE_TOKEN*' -and
+        $source -like '*MUSU_CLOUD_BASE_URL*' -and
+        $source -like '*measure-musu-idle-cpu.ps1*' -and
+        $source -like '*-not $ok -and -not $AllowUnverified*'
+    )
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -2519,6 +2557,18 @@ Add-CaseResult `
     -Name "operator API security gates rejected room work-order audit logging" `
     -Verifier "operator API security source contract" `
     -FixturePath $operatorApiSecurityAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$oneMachineMusuProWorkOrderSmokeContractOk = Test-OneMachineMusuProWorkOrderSmokeContract -ScriptPath $oneMachineMusuProWorkOrderSmoke
+$invocation = New-StaticVerifierInvocation `
+    -Ok $oneMachineMusuProWorkOrderSmokeContractOk `
+    -Message "one-machine MUSU.PRO work-order smoke must verify local Desktop readiness, MUSU.PRO presence, remote work-order POST, owner scope, and post-run idle CPU evidence without relying on localhost:3001"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "one-machine MUSU.PRO work-order smoke contract is explicit" `
+    -Verifier "one-machine MUSU.PRO work-order source contract" `
+    -FixturePath $oneMachineMusuProWorkOrderSmoke `
     -ShouldPass $true `
     -Invocation $invocation
 

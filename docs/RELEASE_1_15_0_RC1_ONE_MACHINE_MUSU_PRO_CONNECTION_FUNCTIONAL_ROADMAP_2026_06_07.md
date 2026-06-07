@@ -59,6 +59,39 @@ surface. The packaged local bridge evidence currently uses its discovered
 runtime bridge URL, for example `http://127.0.0.1:9741` in the latest local
 Desktop report.
 
+## 2026-06-07 21:32 Work-Order Smoke Gate
+
+Follow-up report:
+
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
+
+New diagnostic evidence:
+
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+
+Current result:
+
+- schema: `musu.one_machine_musu_pro_work_order.v1`
+- `ok=false`
+- `fail_count=10`
+- `musu up --json` passed;
+- `musu doctor --json` was not failed;
+- actual local bridge URL was discovered as `http://127.0.0.1:9741`;
+- fixed `localhost:3001` assumption is `false`;
+- packaged runtime account login is missing;
+- room presence publish/list fail with `not_logged_in`;
+- P2P control token is missing;
+- MUSU.PRO work-order POST is skipped without that token;
+- post-run idle CPU evidence is missing because no remote work-order pickup
+  has executed yet.
+
+Source audit finding: the existing
+`musu-bee\src\app\api\rooms\[roomId]\work-orders\route.ts` boundary forwards
+server-side to `getBridgeUrl()/api/tasks/delegate`. That is not a hosted
+`https://musu.pro` to user-localhost route. The next implementation must add a
+Desktop outbound pickup/inbox/claim path so the local program retrieves
+assigned work from MUSU.PRO and then reports status/result/evidence back.
+
 ## Product Boundary
 
 The first product target is not "make localhost work from the browser".
@@ -188,6 +221,11 @@ two-machine work.
 Suggested verifier name:
 
 `scripts/windows/smoke-one-machine-musu-pro-work-order.ps1`
+
+Status: implemented as a diagnostic smoke and guarded by
+`scripts/windows/test-release-evidence-verifiers.ps1`. By default it exits
+non-zero on failure; `-AllowUnverified` is only for collecting diagnostic
+evidence while the functional path is still incomplete.
 
 Required output schema:
 

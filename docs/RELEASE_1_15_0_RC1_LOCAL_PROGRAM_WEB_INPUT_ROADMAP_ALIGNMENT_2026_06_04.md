@@ -164,3 +164,29 @@ One-machine completion now means:
 
 Second-PC testing should start only after that one-machine remote-input path is
 proven on the current build.
+
+## 2026-06-07 One-Machine Work-Order Smoke Result
+
+The diagnostic smoke is now implemented:
+
+`scripts\windows\smoke-one-machine-musu-pro-work-order.ps1`
+
+Canonical report:
+
+`docs\RELEASE_1_15_0_RC1_ONE_MACHINE_MUSU_PRO_WORK_ORDER_SMOKE_GATE_2026_06_07.md`
+
+Evidence:
+
+`docs\evidence\one-machine-musu-pro-work-order\1.15.0-rc.1\20260607-213245-HUGH_SECOND-musu.pro.one-machine-musu-pro-work-order.evidence.json`
+
+Current result is `ok=false` with `fail_count=10`. The local program side is
+alive: `musu up` passes, `doctor` is not failed, and the discovered local bridge
+is `http://127.0.0.1:9741`, not `localhost:3001`. The web connection side is
+not complete: packaged account login is missing, room presence publish/list
+return `not_logged_in`, no P2P control token is available, work-order POST is
+skipped, Desktop outbound pickup is not proven, and post-run CPU evidence is
+missing.
+
+This confirms the product split: MUSU.PRO should not try to reach the user's
+localhost directly. MUSU.PRO should store an owner-scoped order, and the local
+MUSU Desktop should pick it up outbound, execute locally, and report back.
