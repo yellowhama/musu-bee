@@ -19482,3 +19482,97 @@ updated GOAL/WIKI/WIKI_INDEX entries.
 
 Search terms should include `GOAL v918`, `wiki/1093`, `3104 files`,
 `2891 symbols`, `20638 ms`, `route_target_consistency_ok`, and `134/134`.
+
+## 2026-06-08 Second-PC Raw Route-Diagnostic Target Consistency (wiki/1094)
+
+Second-PC operator flow now compares the raw route reachability diagnostic
+target inside the returned zip against the release-check target instead of
+treating them as independent artifacts.
+
+What changed:
+
+- `scripts\windows\show-second-pc-return-card.ps1`
+  - now locates the returned `musu.route_reachability_diagnostic.v1`
+  - extracts `route_explain.requested_target`
+  - surfaces:
+    - `route_reachability_diagnostic_path`
+    - `route_reachability_diagnostic_target`
+    - `route_reachability_diagnostic_target_consistency_ok`
+  - folds that consistency into `route_preflight_ready`
+  - warns:
+    `Second-PC route reachability diagnostic target differs from the release-check route reachability target or one side is missing.`
+- `scripts\windows\test-second-pc-route-preflight.ps1`
+  - now resolves the same raw route reachability diagnostic from the returned
+    zip
+  - adds preflight check:
+    - `release-check diagnostic target consistent`
+  - surfaces:
+    - `release_check_route_reachability_diagnostic_path`
+    - `release_check_route_reachability_diagnostic_target`
+    - `release_check_route_reachability_diagnostic_target_consistency_ok`
+- `scripts\windows\import-second-pc-return.ps1`
+  - now compares imported raw route reachability diagnostic target against
+    `releaseCheck.route_reachability_target`
+  - surfaces:
+    - `route_reachability_diagnostic_target_consistency_ok`
+  - adds release-gate issue:
+    - `route_reachability_diagnostic_target_not_consistent`
+
+Why this matters:
+
+- the previous hardening closed mismatches between two fields inside
+  `musu.second_pc_release_check.v1`
+- there was still room for a zip where the raw diagnostic file itself pointed at
+  a different target than the release-check summary
+- this closes that remaining mismatch before:
+  - return card says the zip is route-ready
+  - route preflight suggests the next operator commands
+  - primary import accepts the evidence bundle
+
+Validation:
+
+- parse sanity:
+  - `import-second-pc-return.ps1`
+  - `show-second-pc-return-card.ps1`
+  - `test-second-pc-route-preflight.ps1`
+  - `test-release-evidence-verifiers.ps1`
+  - all `PARSE_OK`
+- `git diff --check`
+  - clean
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=134`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-083834`
+
+Interpretation:
+
+- second-PC operator flow now requires not just freshness and per-artifact
+  verification, but also that the returned raw reachability diagnostic is about
+  the same target that the release-check claims it exercised
+- this still does not replace real second-PC `post-route` or multi-device proof;
+  it makes the eventual bundle harder to fake or mix incorrectly
+
+Search terms should include `GOAL v919`, `wiki/1094`,
+`route_reachability_diagnostic_target_not_consistent`,
+`route_reachability_diagnostic_target_consistency_ok`, and `134/134`.
+
+## 2026-06-08 Second-PC Raw Route-Diagnostic Target Consistency Index (wiki/1095)
+
+MUSU local indexer was refreshed after wiki/1094 and GOAL v919.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `15003 ms`
+
+Indexed context includes the second-PC raw route-diagnostic target consistency
+gate in return-card/preflight/import, the green `134/134` verifier sweep, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v920`, `wiki/1095`, `3104 files`,
+`2891 symbols`, `15003 ms`,
+`route_reachability_diagnostic_target_not_consistent`, and `134/134`.

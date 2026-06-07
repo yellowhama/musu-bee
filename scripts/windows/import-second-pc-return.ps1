@@ -591,11 +591,23 @@ $processAttributionVerificationError = $null
 $processAttributionVerified = $false
 $routeReachabilityTarget = $null
 $routeReachabilityDiagnosticVerified = $false
+$routeReachabilityDiagnosticTargetConsistencyOk = $null
 if ($canonicalRouteReachabilityDiagnostic) {
     try {
         $routeReachabilityDiagnosticJson = Get-Content -LiteralPath $canonicalRouteReachabilityDiagnostic -Raw | ConvertFrom-Json
         if ($routeReachabilityDiagnosticJson.PSObject.Properties["route_explain"]) {
             $routeReachabilityTarget = Get-JsonPropertyString -Object $routeReachabilityDiagnosticJson.route_explain -Name "requested_target"
+        }
+        $routeReachabilityDiagnosticTargetConsistencyOk = if (
+            [string]::IsNullOrWhiteSpace($routeReachabilityTarget) -and
+            [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)
+        ) {
+            $null
+        }
+        else {
+            (-not [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) -and
+            (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) -and
+            $routeReachabilityTarget -eq $releaseCheckRouteReachabilityTarget
         }
         $routeReachabilityVerifyArgs = @(
             "-NoProfile",
@@ -879,6 +891,9 @@ if ($routeReachabilityDiagnosticRequired) {
     elseif (-not $routeReachabilityDiagnosticVerified) {
         $releaseGateEvidenceIssues.Add("route_reachability_diagnostic_not_verified") | Out-Null
     }
+    if ($null -ne $routeReachabilityDiagnosticTargetConsistencyOk -and -not [bool]$routeReachabilityDiagnosticTargetConsistencyOk) {
+        $releaseGateEvidenceIssues.Add("route_reachability_diagnostic_target_not_consistent") | Out-Null
+    }
     if ($routeReachabilityDiagnosticVerificationError) {
         $releaseGateEvidenceIssues.Add("route_reachability_diagnostic_verification_error:$routeReachabilityDiagnosticVerificationError") | Out-Null
     }
@@ -914,6 +929,7 @@ $result = [pscustomobject]@{
     runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }
     route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk
     route_reachability_target = $routeReachabilityTarget
+    route_reachability_diagnostic_target_consistency_ok = $routeReachabilityDiagnosticTargetConsistencyOk
     route_reachability_diagnostic_required = [bool]$routeReachabilityDiagnosticRequired
     route_reachability_diagnostic_verified = [bool]$routeReachabilityDiagnosticVerified
     route_reachability_diagnostic_verification = $routeReachabilityDiagnosticVerification
@@ -953,6 +969,7 @@ else {
     "runtime_cpu_route_target: $(if ($result.runtime_cpu_route_target) { $result.runtime_cpu_route_target } else { '<not present>' })"
     "route_reachability_diagnostic: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } else { '<not present>' })"
     "route_target_consistency_ok: $(if ($null -ne $result.route_target_consistency_ok) { $result.route_target_consistency_ok } else { '<not present>' })"
+    "route_reachability_diagnostic_target_consistency_ok: $(if ($null -ne $result.route_reachability_diagnostic_target_consistency_ok) { $result.route_reachability_diagnostic_target_consistency_ok } else { '<not present>' })"
     "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"
     if ($result.runtime_idle_cpu_subrole_summary) {
         $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole

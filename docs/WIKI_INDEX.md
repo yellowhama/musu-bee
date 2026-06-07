@@ -7786,4 +7786,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2891 symbols`, `20638 ms`, `route_target_consistency_ok`, and
   `134/134`.
 
+- 2026-06-08 second-PC raw route-diagnostic target consistency:
+  wiki/1094 records that second-PC operator flow now compares the raw
+  `musu.route_reachability_diagnostic.v1` target inside the returned zip
+  against `release_check.route_reachability_target`. It records new surfaced
+  fields for diagnostic path/target/consistency in return-card and preflight,
+  and the new primary import release-gate issue
+  `route_reachability_diagnostic_target_not_consistent`. Regression stayed
+  green at `134/134` in
+  `.local-build\release-evidence-verifier-tests\20260608-083834`. Search terms
+  should include `GOAL v919`, `wiki/1094`,
+  `route_reachability_diagnostic_target_not_consistent`,
+  `route_reachability_diagnostic_target_consistency_ok`, and `134/134`.
+
+- 2026-06-08 second-PC raw route-diagnostic target consistency index:
+  wiki/1095 records the MUSU local index refresh after wiki/1094 and GOAL
+  v919. Search terms should include `GOAL v920`, `wiki/1095`, `3104 files`,
+  `2891 symbols`, `15003 ms`,
+  `route_reachability_diagnostic_target_not_consistent`, and `134/134`.
+
 **End of WIKI_INDEX.md.**

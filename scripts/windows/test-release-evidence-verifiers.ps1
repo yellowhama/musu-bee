@@ -588,12 +588,14 @@ function Test-SecondPcImportRouteReachabilityContract {
         'runtime_cpu_route_target',
         'route_target_consistency_ok',
         'route_reachability_target',
+        'route_reachability_diagnostic_target_consistency_ok',
         'route_reachability_diagnostic_required',
         'route_reachability_diagnostic_verified',
         'release_check_route_reachability_diagnostic_verified_missing',
         'release_check_route_reachability_diagnostic_not_verified',
         'release_check_route_targets_not_consistent',
         'missing_route_reachability_diagnostic',
+        'route_reachability_diagnostic_target_not_consistent',
         'route_reachability_diagnostic_not_verified'
     )
 
@@ -741,8 +743,12 @@ function Test-SecondPcRoutePreflightFreshnessContract {
         'release_check_git_freshness = $releaseCheckGitFreshness',
         'release_check_runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }',
         'release_check_route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk',
+        'release_check_route_reachability_diagnostic_path = $releaseCheckDiagnosticPath',
+        'release_check_route_reachability_diagnostic_target = if ([string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget)) { $null } else { $releaseCheckDiagnosticTarget }',
+        'release_check_route_reachability_diagnostic_target_consistency_ok = $releaseCheckDiagnosticTargetConsistencyOk',
         'release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired',
         'release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified',
+        'release-check diagnostic target consistent',
         'return zip is missing second-PC release-check JSON',
         'handoff and release-check come from different source commits'
     )
@@ -768,12 +774,16 @@ function Test-SecondPcReturnCardFreshnessContract {
         'release_check_git_freshness = $releaseCheckGitFreshness',
         'runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) { $null } else { $runtimeCpuRouteTarget }',
         'route_target_consistency_ok = $routeTargetConsistencyOk',
+        'route_reachability_diagnostic_path = $routeReachabilityDiagnosticPath',
+        'route_reachability_diagnostic_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityDiagnosticTarget)) { $null } else { $routeReachabilityDiagnosticTarget }',
+        'route_reachability_diagnostic_target_consistency_ok = $routeReachabilityDiagnosticTargetConsistencyOk',
         'route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired',
         'route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified',
         'route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }',
         'Returned zip does not include second-PC release-check JSON',
         'Second-PC release-check route reachability diagnostic is missing or failed verification.',
         'Second-PC release-check runtime CPU route target and route reachability target differ or one side is missing.',
+        'Second-PC route reachability diagnostic target differs from the release-check route reachability target or one side is missing.',
         'Second-PC handoff and release-check were captured from different source commits.',
         'release_check: $(if ($result.release_check_path)'
     )

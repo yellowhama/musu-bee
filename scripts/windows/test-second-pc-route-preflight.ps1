@@ -44,6 +44,9 @@ $releaseCheckRouteReachabilityVerified = $null
 $releaseCheckRouteReachabilityTarget = $null
 $releaseCheckRuntimeCpuRouteTarget = $null
 $releaseCheckRouteTargetConsistencyOk = $null
+$releaseCheckDiagnosticPath = $null
+$releaseCheckDiagnosticTarget = $null
+$releaseCheckDiagnosticTargetConsistencyOk = $null
 
 function Add-Check {
     param(
@@ -102,6 +105,36 @@ function Resolve-LatestFile {
         throw "$Label file not found under $Root matching $Filter"
     }
     return $file.FullName
+}
+
+function Resolve-LatestJsonBySchema {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Schema,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [switch]$Optional
+    )
+
+    $matches = @()
+    foreach ($file in @(Get-ChildItem -LiteralPath $Root -Filter "*.json" -File -Recurse -ErrorAction SilentlyContinue)) {
+        try {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            if ([string]$json.schema -eq $Schema) {
+                $matches += $file
+            }
+        }
+        catch {
+        }
+    }
+
+    $match = $matches | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $match -and -not $Optional) {
+        throw "$Label file not found under $Root with schema $Schema"
+    }
+    if (-not $match) {
+        return $null
+    }
+    return $match.FullName
 }
 
 function Test-ReleaseEvidenceFreshnessAllowedPath {
@@ -492,6 +525,7 @@ try {
             $HandoffPath = Resolve-LatestFile -Root $extractRoot -Filter "*.handoff.json" -Label "second-PC handoff from return zip" -Recurse
         }
         $releaseCheckPath = Resolve-LatestFile -Root $extractRoot -Filter "*.release-check.json" -Label "second-PC release check from return zip" -Recurse
+        $releaseCheckDiagnosticPath = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.route_reachability_diagnostic.v1" -Label "second-PC route reachability diagnostic from return zip" -Optional
     }
 
     if ([string]::IsNullOrWhiteSpace($HandoffPath)) {
@@ -547,6 +581,26 @@ try {
         }
         if ($null -ne $releaseCheckRouteTargetConsistencyOk) {
             Add-CheckFromCondition "release-check route targets consistent" ([bool]$releaseCheckRouteTargetConsistencyOk) "release-check runtime CPU target matches route reachability target" "release-check runtime CPU target and route reachability target differ or one side is missing"
+        }
+        if ($releaseCheckDiagnosticPath) {
+            $releaseCheckDiagnosticJson = Get-Content -LiteralPath $releaseCheckDiagnosticPath -Raw | ConvertFrom-Json
+            if ($releaseCheckDiagnosticJson.PSObject.Properties["route_explain"] -and $releaseCheckDiagnosticJson.route_explain) {
+                $releaseCheckDiagnosticTarget = if ($releaseCheckDiagnosticJson.route_explain.PSObject.Properties["requested_target"]) { [string]$releaseCheckDiagnosticJson.route_explain.requested_target } else { "" }
+            }
+            $releaseCheckDiagnosticTargetConsistencyOk = if (
+                [string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget) -and
+                [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)
+            ) {
+                $null
+            }
+            else {
+                (-not [string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget)) -and
+                (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) -and
+                $releaseCheckDiagnosticTarget -eq $releaseCheckRouteReachabilityTarget
+            }
+            if ($null -ne $releaseCheckDiagnosticTargetConsistencyOk) {
+                Add-CheckFromCondition "release-check diagnostic target consistent" ([bool]$releaseCheckDiagnosticTargetConsistencyOk) "route reachability diagnostic target matches release-check route reachability target" "route reachability diagnostic target differs from release-check route reachability target or one side is missing"
+            }
         }
         if ($releaseCheckRouteReachabilityRequired -eq $true) {
             Add-CheckFromCondition "release-check route reachability target" (-not [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) "release-check records the route reachability target" "release-check is missing route reachability target metadata"
@@ -664,6 +718,9 @@ $result = [pscustomobject]@{
     release_check_git_freshness = $releaseCheckGitFreshness
     release_check_runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget)) { $null } else { $releaseCheckRuntimeCpuRouteTarget }
     release_check_route_target_consistency_ok = $releaseCheckRouteTargetConsistencyOk
+    release_check_route_reachability_diagnostic_path = $releaseCheckDiagnosticPath
+    release_check_route_reachability_diagnostic_target = if ([string]::IsNullOrWhiteSpace($releaseCheckDiagnosticTarget)) { $null } else { $releaseCheckDiagnosticTarget }
+    release_check_route_reachability_diagnostic_target_consistency_ok = $releaseCheckDiagnosticTargetConsistencyOk
     release_check_route_reachability_required = $releaseCheckRouteReachabilityRequired
     release_check_route_reachability_verified = $releaseCheckRouteReachabilityVerified
     release_check_route_reachability_target = if ([string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)) { $null } else { $releaseCheckRouteReachabilityTarget }
@@ -704,6 +761,15 @@ else {
     }
     if ($null -ne $result.release_check_route_target_consistency_ok) {
         "release_check_route_target_consistency_ok: $($result.release_check_route_target_consistency_ok)"
+    }
+    if ($result.release_check_route_reachability_diagnostic_path) {
+        "release_check_route_reachability_diagnostic_path: $($result.release_check_route_reachability_diagnostic_path)"
+    }
+    if ($result.release_check_route_reachability_diagnostic_target) {
+        "release_check_route_reachability_diagnostic_target: $($result.release_check_route_reachability_diagnostic_target)"
+    }
+    if ($null -ne $result.release_check_route_reachability_diagnostic_target_consistency_ok) {
+        "release_check_route_reachability_diagnostic_target_consistency_ok: $($result.release_check_route_reachability_diagnostic_target_consistency_ok)"
     }
     ""
     "Next commands"

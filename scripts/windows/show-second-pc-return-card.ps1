@@ -50,6 +50,36 @@ function Resolve-LatestFile {
     return $file.FullName
 }
 
+function Resolve-LatestJsonBySchema {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Schema,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [switch]$Optional
+    )
+
+    $matches = @()
+    foreach ($file in @(Get-ChildItem -LiteralPath $Root -Filter "*.json" -File -Recurse -ErrorAction SilentlyContinue)) {
+        try {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            if ([string]$json.schema -eq $Schema) {
+                $matches += $file
+            }
+        }
+        catch {
+        }
+    }
+
+    $match = $matches | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if (-not $match -and -not $Optional) {
+        throw "$Label file not found under $Root with schema $Schema"
+    }
+    if (-not $match) {
+        return $null
+    }
+    return $match.FullName
+}
+
 function ConvertTo-RepoRelativeDisplayPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -293,6 +323,9 @@ $routeReachabilityDiagnosticVerified = $null
 $routeReachabilityTarget = $null
 $runtimeCpuRouteTarget = $null
 $routeTargetConsistencyOk = $null
+$routeReachabilityDiagnosticPath = $null
+$routeReachabilityDiagnosticTarget = $null
+$routeReachabilityDiagnosticTargetConsistencyOk = $null
 
 if ([string]$handoff.schema -ne "musu.second_pc_handoff.v1") {
     throw "Unexpected handoff schema in ${HandoffPath}: $($handoff.schema)"
@@ -307,6 +340,12 @@ if (-not [bool]$handoff.ok) {
 if ($extractedReturnRoot) {
     try {
         $releaseCheckPath = Resolve-LatestFile -Root $extractedReturnRoot -Filter "*.release-check.json" -Label "second-PC release check from return zip" -Recurse
+    }
+    catch {
+        $warnings.Add($_.Exception.Message) | Out-Null
+    }
+    try {
+        $routeReachabilityDiagnosticPath = Resolve-LatestJsonBySchema -Root $extractedReturnRoot -Schema "musu.route_reachability_diagnostic.v1" -Label "second-PC route reachability diagnostic from return zip" -Optional
     }
     catch {
         $warnings.Add($_.Exception.Message) | Out-Null
@@ -331,6 +370,28 @@ if (-not [string]::IsNullOrWhiteSpace($releaseCheckPath) -and (Test-Path -Litera
         $runtimeCpuRouteTarget -eq $routeReachabilityTarget
     }
 }
+if ($routeReachabilityDiagnosticPath) {
+    try {
+        $routeReachabilityDiagnosticJson = Get-Content -LiteralPath $routeReachabilityDiagnosticPath -Raw | ConvertFrom-Json
+        if ($routeReachabilityDiagnosticJson.PSObject.Properties["route_explain"] -and $routeReachabilityDiagnosticJson.route_explain) {
+            $routeReachabilityDiagnosticTarget = if ($routeReachabilityDiagnosticJson.route_explain.PSObject.Properties["requested_target"]) { [string]$routeReachabilityDiagnosticJson.route_explain.requested_target } else { "" }
+        }
+        $routeReachabilityDiagnosticTargetConsistencyOk = if (
+            [string]::IsNullOrWhiteSpace($routeReachabilityDiagnosticTarget) -and
+            [string]::IsNullOrWhiteSpace($routeReachabilityTarget)
+        ) {
+            $null
+        }
+        else {
+            (-not [string]::IsNullOrWhiteSpace($routeReachabilityDiagnosticTarget)) -and
+            (-not [string]::IsNullOrWhiteSpace($routeReachabilityTarget)) -and
+            $routeReachabilityDiagnosticTarget -eq $routeReachabilityTarget
+        }
+    }
+    catch {
+        $warnings.Add("Second-PC route reachability diagnostic from return zip could not be parsed: $($_.Exception.Message)") | Out-Null
+    }
+}
 
 $handoffGitFreshness = if ($currentGitCommit -match "^[0-9a-f]{40}$") {
     New-GitFreshnessSummary -Evidence $handoff -ExpectedGitCommit $currentGitCommit -Label "handoff"
@@ -352,6 +413,7 @@ $routePreflightReady = [bool](
     ($handoffGitFreshness -and [bool]$handoffGitFreshness.ok) -and
     (($null -eq $releaseCheckGitFreshness) -or [bool]$releaseCheckGitFreshness.ok) -and
     (($null -eq $routeTargetConsistencyOk) -or [bool]$routeTargetConsistencyOk) -and
+    (($null -eq $routeReachabilityDiagnosticTargetConsistencyOk) -or [bool]$routeReachabilityDiagnosticTargetConsistencyOk) -and
     (($routeReachabilityDiagnosticRequired -ne $true) -or ($routeReachabilityDiagnosticVerified -eq $true -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTarget))) -and
     (-not ($handoffGitFreshness -and $releaseCheckGitFreshness) -or ([string]$handoffGitFreshness.git_commit -eq [string]$releaseCheckGitFreshness.git_commit))
 )
@@ -372,6 +434,9 @@ if ($routeReachabilityDiagnosticRequired -eq $true -and $routeReachabilityDiagno
 }
 if ($null -ne $routeTargetConsistencyOk -and -not [bool]$routeTargetConsistencyOk) {
     $warnings.Add("Second-PC release-check runtime CPU route target and route reachability target differ or one side is missing.") | Out-Null
+}
+if ($null -ne $routeReachabilityDiagnosticTargetConsistencyOk -and -not [bool]$routeReachabilityDiagnosticTargetConsistencyOk) {
+    $warnings.Add("Second-PC route reachability diagnostic target differs from the release-check route reachability target or one side is missing.") | Out-Null
 }
 
 $candidateAddrs = @($handoff.suggested_remote_addrs | ForEach-Object { [string]$_ } | Where-Object {
@@ -444,6 +509,9 @@ $result = [pscustomobject]@{
     route_preflight_ready = [bool]$routePreflightReady
     runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($runtimeCpuRouteTarget)) { $null } else { $runtimeCpuRouteTarget }
     route_target_consistency_ok = $routeTargetConsistencyOk
+    route_reachability_diagnostic_path = $routeReachabilityDiagnosticPath
+    route_reachability_diagnostic_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityDiagnosticTarget)) { $null } else { $routeReachabilityDiagnosticTarget }
+    route_reachability_diagnostic_target_consistency_ok = $routeReachabilityDiagnosticTargetConsistencyOk
     route_reachability_diagnostic_required = $routeReachabilityDiagnosticRequired
     route_reachability_diagnostic_verified = $routeReachabilityDiagnosticVerified
     route_reachability_target = if ([string]::IsNullOrWhiteSpace($routeReachabilityTarget)) { $null } else { $routeReachabilityTarget }
@@ -484,6 +552,15 @@ else {
     }
     if ($null -ne $result.route_target_consistency_ok) {
         "route_target_consistency_ok: $($result.route_target_consistency_ok)"
+    }
+    if ($result.route_reachability_diagnostic_path) {
+        "route_reachability_diagnostic_path: $($result.route_reachability_diagnostic_path)"
+    }
+    if ($result.route_reachability_diagnostic_target) {
+        "route_reachability_diagnostic_target: $($result.route_reachability_diagnostic_target)"
+    }
+    if ($null -ne $result.route_reachability_diagnostic_target_consistency_ok) {
+        "route_reachability_diagnostic_target_consistency_ok: $($result.route_reachability_diagnostic_target_consistency_ok)"
     }
     if ($null -ne $result.route_reachability_diagnostic_verified) {
         "route_reachability_diagnostic_verified: $($result.route_reachability_diagnostic_verified)"
