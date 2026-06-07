@@ -159,6 +159,7 @@ function Get-SourceRelayMarker {
         relay_payload_queue_endpoint_implemented = $false
         release_relay_tunnel_runtime_implemented = $false
         release_relay_tunnel_runtime_source_contract_ready = $false
+        release_relay_tunnel_runtime_not_implemented_branch_active = $false
         release_relay_tunnel_runtime_missing_source_hooks = @()
         release_tunnel_payload_endpoint_missing = $false
         release_payload_preflight_only = $false
@@ -244,13 +245,20 @@ function Get-SourceRelayMarker {
         )
         $summary.release_relay_tunnel_runtime_missing_source_hooks = @($missingReleaseTunnelHooks)
         $summary.release_relay_tunnel_runtime_source_contract_ready = ($missingReleaseTunnelHooks.Count -eq 0)
+        $summary.release_relay_tunnel_runtime_not_implemented_branch_active = (
+            [regex]::IsMatch($rustRendezvousText, 'Err\(RELEASE_RELAY_TUNNEL_NOT_IMPLEMENTED\)') -or
+            [regex]::IsMatch($rustRendezvousText, 'release_relay_tunnel_runtime_not_implemented')
+        )
         $summary.release_payload_endpoint_marker_conflicts_with_preflight_only = (
             [bool]$summary.relay_payload_endpoint_implemented -and
             [bool]$summary.release_payload_preflight_only
         )
         $summary.release_relay_tunnel_runtime_marker_conflicts_with_source_contract = (
             [bool]$summary.release_relay_tunnel_runtime_implemented -and
-            -not [bool]$summary.release_relay_tunnel_runtime_source_contract_ready
+            (
+                -not [bool]$summary.release_relay_tunnel_runtime_source_contract_ready -or
+                [bool]$summary.release_relay_tunnel_runtime_not_implemented_branch_active
+            )
         )
         $queueFallbackComponents = [pscustomobject]@{
             policy_marker = [bool]$summary.relay_payload_queue_endpoint_implemented
@@ -623,7 +631,7 @@ if ($blockers -contains "source_release_relay_payload_marker_conflicts_with_pref
     $nextSteps.Add("Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only release_payload_accepted=false and payload_transported=false responses.") | Out-Null
 }
 if ($blockers -contains "source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract") {
-    $nextSteps.Add("Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks and quic_relay_tunnel quic_tls_1_3 payload proof emission.") | Out-Null
+    $nextSteps.Add("Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks, removes the release_relay_tunnel_runtime_not_implemented branch, and emits quic_relay_tunnel quic_tls_1_3 payload proof from the real byte path.") | Out-Null
 }
 if ($blockers -contains "source_relay_transport_kind_not_release_grade") {
     $nextSteps.Add("Keep relay_transport_wired=false while RELAY_TRANSPORT_KIND is not the release relay tunnel kind quic_relay_tunnel; a websocket/store-forward descriptor cannot satisfy the release transport gate.") | Out-Null
@@ -700,6 +708,7 @@ else {
     "source release tunnel payload endpoint missing: $($result.source.release_tunnel_payload_endpoint_missing)"
     "source release relay tunnel runtime implemented: $($result.source.release_relay_tunnel_runtime_implemented)"
     "source release relay tunnel runtime source contract ready: $($result.source.release_relay_tunnel_runtime_source_contract_ready)"
+    "source release relay tunnel runtime not implemented branch active: $($result.source.release_relay_tunnel_runtime_not_implemented_branch_active)"
     "source release relay tunnel runtime missing source hooks: $((@($result.source.release_relay_tunnel_runtime_missing_source_hooks) -join ', '))"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
     "source release payload preflight only: $($result.source.release_payload_preflight_only)"

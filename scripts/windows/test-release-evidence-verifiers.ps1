@@ -986,6 +986,7 @@ function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         'release_relay_tunnel_runtime_source_contract_ready',
+        'release_relay_tunnel_runtime_not_implemented_branch_active',
         'release_relay_tunnel_runtime_missing_source_hooks',
         'release_payload_preflight_only',
         'release_payload_endpoint_marker_conflicts_with_preflight_only',
@@ -997,7 +998,8 @@ function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
         'source_release_relay_payload_marker_conflicts_with_preflight_only',
         'source_release_relay_tunnel_runtime_marker_conflicts_with_source_contract',
         'Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only',
-        'Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks'
+        'Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks',
+        'removes the release_relay_tunnel_runtime_not_implemented branch'
     )
 
     foreach ($needle in $requiredNeedles) {

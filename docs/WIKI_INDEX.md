@@ -6781,4 +6781,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260607-150047-HUGH_SECOND.desktop-open`, `WebView2 max 0.13`, and
   `runtime_idle_cpu_valid_machine_count=1`.
 
+- 2026-06-07 relay tunnel not-implemented branch marker guard:
+  `RELEASE_1_15_0_RC1_RELAY_TUNNEL_NOT_IMPLEMENTED_BRANCH_MARKER_GUARD_2026_06_07.md`
+  (wiki/988) records the P2P env-status guard that treats an active Rust
+  `release_relay_tunnel_runtime_not_implemented` branch as a release marker
+  conflict if `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` is flipped before the
+  real byte path exists. Current status remains expected No-Go with `11`
+  blockers, `release_relay_tunnel_runtime_source_contract_ready=true`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`, release
+  verifier `105/105`, and P2P relay contract audit `ok=true`. Search terms
+  should include `GOAL v813`, `wiki/988`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active`,
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, `quic_relay_tunnel`, `quic_tls_1_3`,
+  and `case_count=105`.
+
+- 2026-06-07 relay tunnel not-implemented branch guard index refresh:
+  wiki/989 records the MUSU local index refresh after wiki/988 and GOAL v813.
+  Search terms should include `GOAL v814`, `wiki/989`, `2981 files`,
+  `2790 symbols`, `20979 ms`,
+  `relay tunnel not-implemented branch guard index refresh`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active`,
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, and `case_count=105`.
+
 **End of WIKI_INDEX.md.**

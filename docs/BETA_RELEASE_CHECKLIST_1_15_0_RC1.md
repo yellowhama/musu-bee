@@ -10608,3 +10608,44 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_DESKTOP_OPEN_CPU_AND_RESEARCH_GATE_RECHECK_2026_06_07.md`
   (wiki/986)
+
+## 2026-06-07 Relay Tunnel Not-Implemented Branch Marker Guard
+
+P2P env status now treats the active Rust
+`release_relay_tunnel_runtime_not_implemented` branch as part of the release
+relay tunnel runtime marker contract.
+
+Current source state:
+
+- Rust release relay tunnel submit/accept hooks exist.
+- `release_relay_tunnel_runtime_source_contract_ready=true`.
+- The runtime still returns the fail-closed not-implemented branch.
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remains correct.
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` remains correct.
+
+Release meaning:
+
+- hook presence alone is not runtime readiness;
+- a future `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` marker flip is invalid while
+  the not-implemented branch is active;
+- the branch must be removed only when the real local `quic_relay_tunnel` byte
+  path exists and emits `quic_tls_1_3` transport proof plus payload delivery
+  proof.
+
+Validation:
+
+- P2P env status: expected `ok=false`, blocker count `11`,
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`
+- release verifier regression: `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Public release remains No-Go on live MUSU.PRO relay proof, second-PC
+route/CPU/matrix evidence, support mailbox proof, and Store/Partner Center
+proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TUNNEL_NOT_IMPLEMENTED_BRANCH_MARKER_GUARD_2026_06_07.md`
+  (wiki/988)

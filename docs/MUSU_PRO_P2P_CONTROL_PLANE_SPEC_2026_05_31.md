@@ -2306,3 +2306,25 @@ It does not make MUSU.PRO the executor and does not prove relay payload
 transport. Release evidence still requires an actual local `quic_relay_tunnel`
 runtime, `quic_tls_1_3` proof, owner-scoped route metadata, relay transport
 proof, and payload delivery proof.
+
+## 2026-06-07 Relay Tunnel Not-Implemented Branch Guard
+
+Current env status must treat release tunnel hook presence and release tunnel
+runtime execution as separate gates.
+
+Required interpretation:
+
+- `release_relay_tunnel_runtime_source_contract_ready=true` only means the Rust
+  source has the expected submit/accept/proof-boundary hooks.
+- `release_relay_tunnel_runtime_not_implemented_branch_active=true` means the
+  runtime still fails closed and does not move payload bytes.
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` is invalid while the
+  not-implemented branch is active.
+
+Spec lock:
+
+- MUSU.PRO remains control plane and relay coordination.
+- MUSU Desktop remains executor and data-plane owner.
+- A release relay tunnel claim requires the local runtime to remove the
+  not-implemented branch, move bytes through `quic_relay_tunnel`, and record
+  live `quic_tls_1_3` transport proof plus payload delivery proof.

@@ -1180,3 +1180,36 @@ Gate interpretation:
 
 This confirms the remaining CPU blocker is proof scope and route success, not a
 new local busy-loop on `HUGH_SECOND`.
+
+## 2026-06-07 Release Relay Tunnel Not-Implemented Branch Guard
+
+The P2P release gate now separates release tunnel hook presence from release
+tunnel runtime execution.
+
+Current Rust state:
+
+- release tunnel submit/accept source hooks exist;
+- `release_relay_tunnel_runtime_source_contract_ready=true`;
+- the runtime still returns `release_relay_tunnel_runtime_not_implemented`;
+- no release marker has been flipped.
+
+Runtime stabilization rule:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` is invalid while the fail-closed
+  not-implemented branch is active;
+- removing the branch is part of implementing the real local
+  `quic_relay_tunnel` byte path, not a documentation or descriptor change;
+- release proof must come from the real runtime path and include
+  `quic_tls_1_3` transport proof, route metadata, and payload delivery proof.
+
+Verification:
+
+- P2P env status remains expected No-Go with `11` blockers and
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`;
+- release verifier regression passes `105/105`;
+- P2P store-forward relay contract audit passes with `fail_count=0`.
+
+This does not change the next runtime implementation order: implement the
+release payload endpoint, implement local release relay tunnel byte transit,
+record live MUSU.PRO relay proof, then capture real second-machine route/CPU
+matrix evidence.

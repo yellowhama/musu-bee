@@ -722,3 +722,21 @@ Current P2P env status therefore removes
 release payload endpoint, missing release tunnel runtime, preview queue,
 hosted storage/login, route metadata, transport proof, and payload delivery
 proof.
+
+## 2026-06-07 release relay tunnel not-implemented branch guard
+
+P2P env status now reports
+`release_relay_tunnel_runtime_not_implemented_branch_active`.
+
+The release tunnel source contract has two distinct meanings:
+
+- `release_relay_tunnel_runtime_source_contract_ready=true` means source hooks
+  and proof-boundary names exist.
+- `release_relay_tunnel_runtime_not_implemented_branch_active=true` means the
+  runtime still fails closed before payload bytes move.
+
+Therefore, `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` is still invalid while the
+not-implemented branch is active. The release marker can only be set after the
+local runtime removes that branch, moves bytes through `quic_relay_tunnel`, and
+emits `quic_tls_1_3` route/transport/payload delivery proof from the real data
+path.

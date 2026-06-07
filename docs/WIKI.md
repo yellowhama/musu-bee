@@ -15547,3 +15547,66 @@ Search terms should include `GOAL v812`, `wiki/987`, `2978 files`,
 `current-head desktop-open CPU research gate index refresh`,
 `20260607-150047-HUGH_SECOND.desktop-open`, `WebView2 max 0.13`, and
 `runtime_idle_cpu_valid_machine_count=1`.
+
+## 2026-06-07 Relay Tunnel Not-Implemented Branch Marker Guard (wiki/988)
+
+P2P env status now treats the active Rust
+`release_relay_tunnel_runtime_not_implemented` branch as part of the release
+relay tunnel runtime marker contract.
+
+Changed implementation:
+
+- `show-musu-pro-p2p-env-status.ps1` now reports
+  `release_relay_tunnel_runtime_not_implemented_branch_active`;
+- the marker conflict rule now fails a future
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` flip if the not-implemented branch is
+  still active;
+- `test-release-evidence-verifiers.ps1` checks the guard and next-step
+  contract.
+
+Current env status remains expected No-Go:
+
+- `ok=false`
+- blocker count `11`
+- `release_relay_tunnel_runtime_implemented=false`
+- `release_relay_tunnel_runtime_source_contract_ready=true`
+- `release_relay_tunnel_runtime_not_implemented_branch_active=true`
+- marker conflict is currently false because the runtime marker remains false
+
+Validation:
+
+- P2P env status expected No-Go with `11` blockers
+- release verifier regression `ok=true`, `case_count=105`,
+  `failed_case_count=0`
+- P2P relay contract audit `ok=true`, `fail_count=0`
+- `git diff --check`
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_RELAY_TUNNEL_NOT_IMPLEMENTED_BRANCH_MARKER_GUARD_2026_06_07.md`
+
+Search terms should include `GOAL v813`, `wiki/988`,
+`release_relay_tunnel_runtime_not_implemented_branch_active`,
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, `quic_relay_tunnel`,
+`quic_tls_1_3`, `case_count=105`, and `blocker count 11`.
+
+## 2026-06-07 Relay Tunnel Not-Implemented Branch Guard Index Refresh (wiki/989)
+
+MUSU local indexer was refreshed after wiki/988 and GOAL v813.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2981 files`
+- `2790 symbols`
+- `20979 ms`
+
+Indexed context includes the not-implemented branch marker guard code update,
+canonical relay tunnel marker-guard report, P2P control-plane spec notes, BETA
+checklist update, runtime stabilization plan update, WIKI_INDEX, GOAL, and CoS
+memory.
+
+Search terms should include `GOAL v814`, `wiki/989`, `2981 files`,
+`2790 symbols`, `20979 ms`,
+`relay tunnel not-implemented branch guard index refresh`,
+`release_relay_tunnel_runtime_not_implemented_branch_active`,
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED`, and `case_count=105`.
