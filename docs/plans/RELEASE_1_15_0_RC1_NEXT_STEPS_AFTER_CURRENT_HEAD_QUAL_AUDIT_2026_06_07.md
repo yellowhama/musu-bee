@@ -54,9 +54,17 @@ Canonical report:
 
 1. Regenerate operator handoff artifacts from current HEAD.
 
-   The latest recorded operator pack was generated from `981f37ac`. Before
-   touching the second PC, regenerate final operator gate and action packs from
-   `078ce1c5` so the transferred kit matches the evidence and docs.
+   Done after the frontend polling inventory gate. The latest generated
+   operator artifacts now use source commit
+   `e53810cf365c4c3228cae5a14b373ee8878376fb`.
+
+   Current second-PC transfer zip:
+
+   - `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`
+
+   Canonical handoff record:
+
+   - `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_AFTER_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
 
 2. Install the current MSIX on the second machine.
 

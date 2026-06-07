@@ -14404,3 +14404,77 @@ Search terms should include `GOAL v775`, `wiki/950`,
 `expected_low_duty_polling_call_site_count`,
 `missing_low_duty_polling_call_sites`,
 `unexpected_low_duty_polling_call_sites`, and `frontend interval/refetch`.
+
+## 2026-06-07 Current Operator Handoff After Frontend Polling Inventory Gate (wiki/951)
+
+Final operator handoff artifacts were regenerated after the frontend polling
+inventory gate.
+
+Source commit:
+
+- `e53810cf365c4c3228cae5a14b373ee8878376fb`
+
+Generated artifacts:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260607-101224.zip`
+- latest final operator packet alias:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-latest.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255.zip`
+- latest operator action pack alias:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-latest.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255\partner-center\MUSU-1.15.0-rc.1-store-submission-20260607-101255.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260607-101224`
+
+Verification:
+
+- final packet verifier `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack verifier `ok=true`, `fail_count=0`
+- final handoff status sees packet/action pack verified
+- clean go/no-go still reports `ready_for_public_desktop_release=false`,
+  `local_artifacts_ready=true`, `single_machine_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `multi_device_verified=false`, `p2p_control_plane_env_ready=false`,
+  `support_mailbox_verified=false`, `store_release_verified=false`, and
+  `manifest_git.dirty=false`
+
+Release meaning: the current operator artifact is ready for the next physical
+second-PC run. It does not close second-PC route/CPU/matrix, live MUSU.PRO
+P2P/relay, support mailbox, or Store gates.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_AFTER_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+
+Search terms should include `GOAL v776`, `wiki/951`,
+`current operator handoff after frontend polling inventory gate`, `e53810cf`,
+`20260607-101224`, `20260607-101255`,
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`,
+`musu-store-support-1.15.0-rc.1-20260607-101224`, `packet verified`,
+`action pack verified`, and `ready_for_public_desktop_release=false`.
+
+## 2026-06-07 Current Operator Handoff Index Refresh (wiki/952)
+
+MUSU local indexer was refreshed after wiki/951 and GOAL v776.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2887 files`
+- `2790 symbols`
+- `30952 ms`
+
+Indexed context includes the regenerated current operator handoff report, the
+new second-PC transfer path, BETA checklist, next-step plan, WIKI_INDEX, GOAL,
+and CoS memory.
+
+Search terms should include `GOAL v777`, `wiki/952`,
+`current operator handoff index refresh`, `2887 files`, `2790 symbols`,
+`30952 ms`, `e53810cf`, `20260607-101224`, `20260607-101255`, and
+`MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`.

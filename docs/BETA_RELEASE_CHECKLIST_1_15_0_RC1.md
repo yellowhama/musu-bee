@@ -9956,3 +9956,48 @@ Index refresh:
   `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
 - `2884 files`, `2790 symbols`, `15020 ms`
 - wiki: `wiki/950`
+
+## 2026-06-07 Current Operator Handoff After Frontend Polling Inventory Gate
+
+Current operator handoff artifacts were regenerated from clean source commit
+`e53810cf365c4c3228cae5a14b373ee8878376fb`.
+
+Generated:
+
+- final operator packet:
+  `.local-build\final-operator-gates\musu-final-operator-gates-1.15.0-rc.1-20260607-101224.zip`
+- operator action pack:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255.zip`
+- second-PC transfer:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255\second-pc\MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`
+- Partner Center zip:
+  `.local-build\operator-action-pack\MUSU-1.15.0-rc.1-operator-action-pack-20260607-101255\partner-center\MUSU-1.15.0-rc.1-store-submission-20260607-101255.zip`
+- support verification id:
+  `musu-store-support-1.15.0-rc.1-20260607-101224`
+
+Verification:
+
+- final packet verifier `ok=true`, `fail_count=0`, `kit_count=1`
+- action pack verifier `ok=true`, `fail_count=0`
+- final handoff status verifies packet/action pack, but
+  `ready_for_public_desktop_release=false`
+
+Remaining No-Go:
+
+- second-PC multi-device route evidence
+- second-PC idle CPU and five-state runtime matrix evidence
+- live MUSU.PRO P2P/relay proof
+- support mailbox proof
+- Store/Partner Center proof
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_AFTER_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+  (wiki/951)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2887 files`, `2790 symbols`, `30952 ms`
+- wiki: `wiki/952`

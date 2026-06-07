@@ -6450,4 +6450,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `unexpected_low_duty_polling_call_sites`, and
   `frontend interval/refetch`.
 
+- 2026-06-07 current operator handoff after frontend polling inventory gate:
+  `RELEASE_1_15_0_RC1_CURRENT_OPERATOR_HANDOFF_AFTER_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+  (wiki/951) records the regenerated final operator packet and action pack
+  from source commit `e53810cf`. Search terms should include `GOAL v776`,
+  `wiki/951`, `20260607-101224`, `20260607-101255`,
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`,
+  `musu-store-support-1.15.0-rc.1-20260607-101224`, `packet verified`,
+  `action pack verified`, and `ready_for_public_desktop_release=false`.
+
+- 2026-06-07 current operator handoff index refresh:
+  wiki/952 records the MUSU local index refresh after wiki/951 and GOAL v776.
+  Search terms should include `GOAL v777`, `wiki/952`, `2887 files`,
+  `2790 symbols`, `30952 ms`, `current operator handoff index refresh`,
+  `e53810cf`, `20260607-101224`, `20260607-101255`, and
+  `MUSU-second-PC-transfer-1.15.0-rc.1-20260607-101255.zip`.
+
 **End of WIKI_INDEX.md.**
