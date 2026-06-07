@@ -2444,3 +2444,37 @@ Spec interpretation:
 - AG UI Evidence Center must show relay route evidence as incomplete until
   route metadata, transport proof, and payload delivery proof are attached to
   the same release-grade route record.
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence After Relay Recorder
+
+The current packaged local desktop evidence refresh after the release relay
+payload route evidence recorder keeps the control-plane spec unchanged.
+
+Current `HUGH_SECOND` one-machine state:
+
+- single-machine smoke: pass
+- process ownership: pass
+- startup single-instance: pass
+- desktop single-instance: pass
+- desktop-open idle CPU: pass
+- five-state runtime CPU matrix: pass
+- target-route CPU diagnostic: pass as explicitly allowed failed
+  `PRIMARY-PC` route attempt
+
+The target route failed because `PRIMARY-PC` is not registered as a peer on this
+machine. That is valid failed-route CPU diagnostic evidence, not successful
+multi-device route proof.
+
+Spec interpretation stays fixed:
+
+- MUSU.PRO receives remote input, room/meeting events, presence, rendezvous,
+  route policy, relay fallback coordination, evidence, notifications, and
+  owner/org policy.
+- MUSU Desktop remains the executor and local permission boundary.
+- A web order becomes execution only when the selected Desktop runtime accepts
+  the authenticated work-order envelope.
+- Direct P2P remains preferred after MUSU.PRO rendezvous.
+- Hosted relay remains explicit fallback and still requires route metadata,
+  `quic_tls_1_3` transport proof, and payload delivery proof before release.
+- The current local evidence does not close second-PC, live MUSU.PRO P2P,
+  support mailbox, or Store release gates.

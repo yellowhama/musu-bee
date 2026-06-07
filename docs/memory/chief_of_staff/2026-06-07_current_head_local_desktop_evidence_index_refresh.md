@@ -1,29 +1,25 @@
 # 2026-06-07 Current-HEAD Local Desktop Evidence Index Refresh
 
-MUSU local indexer was refreshed after the current-head local desktop evidence
-refresh.
+MUSU local indexer was refreshed after GOAL v836 and wiki/1011.
 
-- command: `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-- `2828 files`
-- `2788 symbols`
-- `16114 ms`
-- wiki: `wiki/928`
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3055 files`
+- `2800 symbols`
+- `26417 ms`
 
-Indexed context includes:
+Indexed context includes promoted MSIX/single-machine/process/startup/desktop
+single-instance evidence, desktop-open idle CPU evidence, the full runtime CPU
+matrix `20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`, the
+target-route diagnostic matrix
+`20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
+the current-head local desktop evidence report, current SaaS research
+supplement, AG UI lock, P2P spec update, BETA checklist, GOAL, WIKI_INDEX, and
+CoS memory.
 
-- GOAL v752-v753
-- wiki/927-wiki/928
-- current single-machine evidence `20260607-054358-HUGH_SECOND`
-- process ownership `20260607-053318-HUGH_SECOND`
-- startup single-instance `20260607-053336-HUGH_SECOND`
-- desktop single-instance `20260607-053413-HUGH_SECOND`
-- desktop-open CPU `20260607-053429-HUGH_SECOND`
-- five-state matrix `20260607-053555-HUGH_SECOND`
-- route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260607_053555`
-- canonical local desktop evidence report
-- BETA checklist, P2P control-plane spec, runtime stabilization spec, network
-  boundary spec, WIKI/WIKI_INDEX
-
-Search terms: `current-head local desktop evidence index refresh`,
-`local-bridge-only`, `127.0.0.1:1158`, `single_machine_verified=true`,
-`WebView2 0.13`.
+Search terms should include `GOAL v837`, `wiki/1012`, `3055 files`,
+`2800 symbols`, `26417 ms`,
+`current-head local desktop evidence index refresh`,
+`20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`,
+`20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
+and `PRIMARY-PC peer not found`.

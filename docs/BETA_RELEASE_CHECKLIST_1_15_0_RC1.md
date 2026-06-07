@@ -122,6 +122,38 @@ process count `8`, owned WebView2 helper count `6`, and max working set
 found`; failure was explicitly allowed for this target-route CPU diagnostic.
 This is not successful multi-device route proof.
 
+Current-head local desktop evidence after the release relay payload route
+evidence recorder:
+
+- report:
+  `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_RELAY_RECORDER_2026_06_07.md`
+- desktop-open idle CPU:
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\20260607-190027-HUGH_SECOND.desktop-open.evidence.json`
+- full runtime CPU matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-190401-HUGH_SECOND.current-head-after-relay-recorder.runtime-cpu-scenario-matrix.json`
+- target-route diagnostic matrix:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder.runtime-cpu-scenario-matrix.json`
+- target-route diagnostic verification:
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder.post-route-target.verification.json`
+
+The full matrix was captured from clean commit
+`66172a054aa718622017a1091ea1b57c7e559928` with `git_dirty=false` and
+`musu_exe_release_identity=true`. It passed all five scenarios with hot process
+count `0`, MUSU CPU `0`, Node CPU `0`, owned WebView2 max `0.08`, owned
+process count `8`, owned WebView2 helper count `6`, and max working set
+`365.22MB`.
+
+The target-route diagnostic used `PRIMARY-PC`, failed with `peer 'PRIMARY-PC'
+not found`, and passed the target-only verifier with
+`AllowFailedPostRouteProbe`. This is valid failed target-route CPU diagnostic
+evidence, not successful multi-device proof.
+
+Dirty-tree go/no-go after evidence promotion reported local artifacts and
+single-machine gates ready, runtime idle CPU `1`, runtime CPU matrix `1`,
+runtime second-PC route attempt `1`, process/startup/desktop single-instance
+all true, and public release still No-Go on multi-device, support mailbox,
+Store, live MUSU.PRO P2P/control-plane, and dirty git until commit.
+
 Current continuation evidence after the SaaS/AG UI research:
 
 - report:

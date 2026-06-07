@@ -831,3 +831,37 @@ and matching payload delivery proof.
 
 The UI must not infer release-grade execution from room events, relay leases,
 or preview store-forward queue delivery alone.
+
+## 2026-06-07 19:15 KST Supplemental AG UI Lock
+
+The latest local evidence refresh and comparable SaaS recheck add one concrete
+implementation rule: every primary action surface must split control, execution,
+route, and proof before submit.
+
+Command Center composer required fields:
+
+- room
+- target device, best-device policy, or agent group
+- execution locus, default `Local MUSU Desktop`
+- route policy: `Local only`, `Prefer direct`, or `Allow relay fallback`
+- permission envelope
+- pickup timeout
+- evidence requirement
+
+Run header required fields:
+
+- `Input from <web|mobile|desktop|api|github>`
+- `Executing on <device/runtime>`
+- `Route <local|lan|direct_quic|peer_relay|hosted_relay|cloud>`
+- `Evidence <required|collecting|ok|missing|failed>`
+- `Remote control <enabled|paused|policy-blocked>`
+
+No eligible online Desktop runtime means immediate submit is disabled. Queueing
+is allowed only when the pickup timeout, target policy, and offline/sleeping
+device state are visible. A generic `connected` badge must not hide whether the
+run is local remote control, local sandbox, hosted worker, peer relay, or hosted
+relay fallback.
+
+Security rule from tunnel research: remote-control access must be authenticated,
+owner-scoped, expiring, revocable, and audited. Anonymous tunnels are not a
+valid MUSU agent-control path.

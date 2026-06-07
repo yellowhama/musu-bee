@@ -178,3 +178,38 @@ obvious and must not imply `musu.pro` executed work that happened on a local PC.
 Release meaning is unchanged. This research/spec update does not close
 second-PC route/CPU/matrix, live MUSU.PRO P2P/relay proof, support mailbox, or
 Store/Partner Center gates.
+
+## 2026-06-07 19:15 KST Supplemental Recheck
+
+Additional same-turn source recheck:
+
+- OpenAI Enterprise/Edu release notes for Codex Windows remote control:
+  `https://help.openai.com/en/articles/10128477-chatgpt-enterprise-edu-release-notes`
+- OpenAI Codex product page:
+  `https://openai.com/codex/`
+- OpenAI Codex GitHub repository:
+  `https://github.com/openai/codex`
+- VS Code Remote Tunnels:
+  `https://code.visualstudio.com/docs/remote/tunnels`
+- AG-UI protocol docs and repo:
+  `https://docs.ag-ui.com/`,
+  `https://github.com/ag-ui-protocol/ag-ui`
+
+Update:
+
+OpenAI's Windows remote-control release-note wording is especially relevant to
+MUSU. It reinforces the same architecture: a remote surface can steer work,
+but the Windows machine remains host for local project context, shell, app
+server, and files. That is the product lane MUSU should claim more strictly:
+web input and collaboration through MUSU.PRO, local execution through MUSU
+Desktop, and route/evidence proof for every run.
+
+VS Code Remote Tunnels reinforces the security rule. Remote access can be
+acceptable when it is authenticated and explicit, but anonymous tunnel behavior
+combined with agentic coding is unsafe. MUSU should therefore require owner
+scope, explicit remote-control enablement, revocation, audit, and route/evidence
+status before accepting remote work.
+
+AG-UI continues to validate the event model, not a dependency decision. MUSU
+should implement room/order/run state as typed streamable events and keep local
+command execution behind Desktop policy.

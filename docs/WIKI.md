@@ -16325,3 +16325,82 @@ Search terms should include `GOAL v835`, `wiki/1010`, `3031 files`,
 `release relay payload route evidence recorder index refresh`,
 `record_release_relay_payload_delivery_route_evidence`,
 `musu_quic_tls_transport`, and `relay_payload_delivery_proof`.
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence After Relay Recorder (wiki/1011)
+
+Current packaged local desktop evidence was refreshed after the release relay
+payload route evidence recorder.
+
+Promoted evidence:
+
+- MSIX install: `20260607-185659-HUGH_SECOND`
+- single-machine smoke: `20260607-185741-HUGH_SECOND`
+- process ownership: `20260607-185807-HUGH_SECOND`
+- startup single-instance: `20260607-185807-HUGH_SECOND`
+- desktop single-instance: `20260607-185821-HUGH_SECOND`
+- desktop-open idle CPU: `20260607-190027-HUGH_SECOND.desktop-open`
+- five-state CPU matrix:
+  `20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`
+- target-route diagnostic:
+  `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`
+
+Results:
+
+- desktop-open idle CPU: `ok=true`, `git_dirty=false`, hot `0`, WebView2 max
+  `0.08`, owned WebView2 helpers `6`
+- full runtime matrix: `ok=true`, `fail_count=0`, `git_dirty=false`, hot `0`,
+  MUSU `0`, Node `0`, WebView2 max `0.08`, max working set `365.22MB`
+- target route: `PRIMARY-PC`, `peer 'PRIMARY-PC' not found`,
+  `failure_allowed=true`, target-only verifier `ok=true`
+- dirty-tree go/no-go: local artifacts true, single-machine true, runtime idle
+  CPU `1`, runtime matrix `1`, runtime second-PC route attempt `1`,
+  process/startup/desktop single-instance true
+
+Release meaning:
+
+- one-machine local desktop evidence is healthy;
+- target-route evidence is failed-route CPU diagnostic proof only;
+- successful second-PC route proof, second-PC CPU/matrix, live MUSU.PRO
+  P2P/relay proof, support mailbox proof, and Store proof remain open.
+
+SaaS/AG UI research recheck:
+
+- Codex Windows remote-control and the Codex repo reinforce remote input over
+  local execution.
+- VS Code Remote Tunnels reinforces authenticated, non-anonymous remote access.
+- AG-UI reinforces typed streamable room/order/run events.
+- MUSU.PRO remains command center, remote input, rooms, rendezvous, route
+  policy, relay fallback, evidence, notification, and owner/org policy plane.
+- MUSU Desktop remains executor.
+
+Search terms should include `GOAL v836`, `wiki/1011`,
+`current-head local desktop evidence after relay recorder`,
+`20260607-190401-HUGH_SECOND`, `20260607-191020-HUGH_SECOND`,
+`PRIMARY-PC peer not found`, `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1`, and
+`Codex Windows remote control`.
+
+## 2026-06-07 Current-HEAD Local Desktop Evidence Index Refresh (wiki/1012)
+
+MUSU local indexer was refreshed after wiki/1011 and GOAL v836.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3055 files`
+- `2800 symbols`
+- `26417 ms`
+
+Indexed context includes promoted MSIX/single-machine/process/startup/desktop
+single-instance evidence, desktop-open idle CPU evidence, the
+`20260607-190401-HUGH_SECOND.current-head-after-relay-recorder` runtime CPU
+matrix, the `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`
+diagnostic matrix, the current-head local desktop evidence report, the current
+SaaS research supplement, AG UI lock, P2P spec update, BETA checklist, GOAL,
+WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v837`, `wiki/1012`, `3055 files`,
+`2800 symbols`, `26417 ms`,
+`current-head local desktop evidence index refresh`,
+`20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`,
+`20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
+and `PRIMARY-PC peer not found`.

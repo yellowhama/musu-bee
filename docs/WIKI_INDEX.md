@@ -6990,4 +6990,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `record_release_relay_payload_delivery_route_evidence`,
   `musu_quic_tls_transport`, and `relay_payload_delivery_proof`.
 
+- 2026-06-07 current-head local desktop evidence after relay recorder:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_RELAY_RECORDER_2026_06_07.md`
+  (wiki/1011) records the packaged HUGH_SECOND local desktop refresh after the
+  relay payload route evidence recorder. Search terms should include
+  `GOAL v836`, `wiki/1011`,
+  `current-head local desktop evidence after relay recorder`,
+  `20260607-190027-HUGH_SECOND.desktop-open`,
+  `20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`,
+  `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
+  `PRIMARY-PC peer not found`, `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  and `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`.
+
+- 2026-06-07 current-head local desktop evidence index refresh:
+  wiki/1012 records the MUSU local index refresh after wiki/1011 and GOAL
+  v836. Search terms should include `GOAL v837`, `wiki/1012`, `3055 files`,
+  `2800 symbols`, `26417 ms`,
+  `current-head local desktop evidence index refresh`,
+  `20260607-190401-HUGH_SECOND.current-head-after-relay-recorder`,
+  `20260607-191020-HUGH_SECOND.current-head-target-route-after-relay-recorder`,
+  and `PRIMARY-PC peer not found`.
+
 **End of WIKI_INDEX.md.**
