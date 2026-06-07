@@ -16923,3 +16923,143 @@ Search terms should include `GOAL v853`, `wiki/1028`, `3103 files`,
 `2878 symbols`, `72601 ms`, `room work-order drain delivery ack index refresh`,
 `musu.room_work_order_delivery.v1`, `server_ack_count`, and
 `room_work_orders.rs`.
+
+## 2026-06-08 MUSU.PRO Login Endpoint Blocker and Concise Cloud Errors (wiki/1029)
+
+Packaged one-machine diagnostics narrowed the current MUSU.PRO blocker to live
+device-auth deployment, not local bridge startup.
+
+- packaged alias direct doctor showed `logged_in=false`, `account_token_present=false`,
+  `bridge_token_present=true`, no `~/.musu/token`, and `PATH` shadowing by
+  `C:\Users\empty\.cargo\bin\musu.exe`
+- packaged alias direct login reproduced the failure against the live cloud:
+  `POST https://musu.pro/api/v1/auth/device` returned a Next HTML `404` page
+  instead of API JSON
+- local web source at `F:\Aisaak\Projects\musu-pro\src\app\api\v1\auth\device\route.ts`
+  still exists, so the blocker is deployment/base-URL mismatch rather than a
+  missing desktop caller
+- `musu-rs\src\cloud\mod.rs` now normalizes cloud failures into concise errors
+  that report the URL, HTTP status, and whether MUSU.PRO returned landing-page
+  HTML instead of API JSON
+- the same helper covers login, node registration, room presence/work-order,
+  rendezvous, relay, and route-evidence calls so future cloud failures stop
+  dumping raw HTML into the terminal
+
+Validation target for this change:
+
+- `cargo fmt --manifest-path .\musu-rs\Cargo.toml`
+- `cargo check --bin musu`
+- `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" login`
+
+Search terms should include `GOAL v854`, `wiki/1029`,
+`https://musu.pro/api/v1/auth/device`, `returned HTML instead of API JSON`,
+`landing site`, `account_token_present=false`, `bridge_token_present=true`,
+and `alias_shadowed_by`.
+
+## 2026-06-08 Local MUSU.PRO Override Proved Device-Code Start/Poll (wiki/1030)
+
+One-machine MUSU.PRO testing is no longer blocked at Desktop-to-control-plane
+handshake once the local web control plane is allowed to run.
+
+- local `musu-pro` `next start -p 3102` responded to
+  `POST /api/v1/auth/device` with `503 {"code":"site_disabled"}`, which
+  narrowed the local blocker to the hard site-disable gate rather than missing
+  route code
+- `F:\Aisaak\Projects\musu-pro\src\lib\site-availability.ts` was changed so
+  `MUSU_SITE_DISABLED=false` can locally override the default disabled state
+- with `MUSU_SITE_DISABLED=false`, local `musu-pro` on
+  `http://localhost:3005` returned `200` for `POST /api/v1/auth/device` and
+  emitted a valid `user_code`, `device_code`, and `expires_in`
+- packaged WindowsApps MUSU then succeeded with
+  `MUSU_CLOUD_BASE_URL=http://localhost:3005` and printed the device approval
+  code instead of failing immediately
+- local server logs confirmed end-to-end handshake traffic:
+  `POST /api/v1/auth/device 200` and repeated
+  `GET /api/v1/auth/device?... 202` polls from Desktop
+
+This moves the blocker forward. Desktop can now start and poll device login
+against a local MUSU.PRO control plane; what remains is approval/auth UX on the
+web side, token persistence under `~/.musu/token`, and then room/work-order
+E2E on the same machine.
+
+Search terms should include `GOAL v855`, `wiki/1030`,
+`MUSU_SITE_DISABLED=false`, `POST /api/v1/auth/device 200`,
+`GET /api/v1/auth/device?... 202`, `MUSU_CLOUD_BASE_URL=http://localhost:3005`,
+`site_disabled`, and `device_code`.
+
+## 2026-06-08 Local MUSU.PRO Override Proof Index Refresh (wiki/1031)
+
+MUSU local indexer was refreshed after wiki/1030 and GOAL v855.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2881 symbols`
+- `129838 ms`
+
+Indexed context now includes the concise cloud error changes, packaged doctor
+shadowing findings, live `musu.pro` HTML 404 blocker, local
+`MUSU_SITE_DISABLED=false` override, local `POST /api/v1/auth/device 200`
+proof, packaged Desktop `MUSU_CLOUD_BASE_URL=http://localhost:3005` device-code
+start/poll evidence, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v856`, `wiki/1031`, `3103 files`,
+`2881 symbols`, `129838 ms`, `local MUSU.PRO override proof index refresh`,
+`MUSU_SITE_DISABLED=false`, and `device-code start/poll`.
+
+## 2026-06-08 One-Machine Packaged Desktop CPU Refresh (wiki/1032)
+
+Fresh packaged Desktop CPU evidence on this machine does not reproduce a busy
+loop in the one-machine states that can be tested locally today.
+
+- diagnostic bridge-only idle evidence:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-024014.json`
+  passed with `sample_seconds=60.04`, bridge-runtime CPU `0`, hot process
+  count `0`, and working set `5.23MB`
+- packaged Desktop 4-state matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-024133-HUGH_SECOND\20260608-024133-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  passed with `ok=true`
+- scenario maxima:
+  - `startup-open`: MUSU `0`, Node `0`, WebView2 `0.68`, hot `0`
+  - `runtime-started`: MUSU `0`, Node `0`, WebView2 `0.08`, hot `0`
+  - `dashboard-open`: MUSU `0`, Node `0`, WebView2 `0.03`, hot `0`
+  - `desktop-open`: MUSU `0`, Node `0`, WebView2 `0.08`, hot `0`
+- owned process/resource shape stayed stable in all four states:
+  `owned_processes=8`, `owned_webview2=6`, working set `361.66-361.84MB`
+- post-run process attribution confirmed:
+  `musu_runtime=1`, `desktop_shell=1`, `owned_webview2=6`, `owned_node=0`,
+  `orphan_repo_helpers=0`
+- loop-risk code contracts also remained green:
+  - `musu.rust_background_loop_contract.v1 ok=true fail_count=0`
+  - `musu.frontend_polling_contract.v1 ok=true fail_count=0`
+
+`verify-runtime-cpu-scenario-matrix.ps1` still rejects this matrix as release
+evidence because the tree was dirty during capture, not because of CPU or
+resource-budget failure. That narrows the remaining CPU gate to:
+
+1. rerun from a clean tree
+2. capture the eventual `post-route` state against a second machine
+
+Search terms should include `GOAL v857`, `wiki/1032`,
+`20260608-024133-HUGH_SECOND`, `startup-open 0.68`, `owned_webview2=6`,
+`git_dirty=true`, `rust background loop contract`, and
+`frontend polling contract`.
+
+## 2026-06-08 One-Machine Packaged Desktop CPU Refresh Index (wiki/1033)
+
+MUSU local indexer was refreshed after wiki/1032 and GOAL v857.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2881 symbols`
+- `26548 ms`
+
+Indexed context now includes fresh bridge-only idle evidence, packaged Desktop
+4-state CPU matrix evidence, process attribution after the run, background-loop
+audit results, frontend polling audit results, and the updated GOAL/WIKI/WIKI_INDEX
+entries describing the remaining clean-tree and second-PC route blockers.
+
+Search terms should include `GOAL v858`, `wiki/1033`, `3103 files`,
+`2881 symbols`, `26548 ms`, `one-machine packaged Desktop CPU refresh index`,
+and `20260608-024133-HUGH_SECOND`.

@@ -25,6 +25,54 @@ pub fn base_url_from_env() -> String {
         .unwrap_or_else(|| "https://musu.pro".to_string())
 }
 
+fn summarize_cloud_error_body(content_type: Option<&str>, body: &str) -> String {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return "empty response body".to_string();
+    }
+
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) {
+        if let Some(message) = value
+            .get("error")
+            .and_then(serde_json::Value::as_str)
+            .or_else(|| value.get("message").and_then(serde_json::Value::as_str))
+        {
+            return message.trim().to_string();
+        }
+    }
+
+    let looks_like_html = content_type
+        .map(|value| value.contains("text/html"))
+        .unwrap_or(false)
+        || trimmed.starts_with("<!DOCTYPE html")
+        || trimmed.starts_with("<html")
+        || trimmed.contains("<html");
+    if looks_like_html {
+        return "returned HTML instead of API JSON; the MUSU.PRO endpoint may be missing or routed to the landing site".to_string();
+    }
+
+    let first_line = trimmed.lines().next().unwrap_or(trimmed).trim();
+    const MAX_CHARS: usize = 200;
+    if first_line.chars().count() <= MAX_CHARS {
+        return first_line.to_string();
+    }
+
+    let truncated: String = first_line.chars().take(MAX_CHARS).collect();
+    format!("{truncated}...")
+}
+
+async fn cloud_api_error(label: &str, url: &str, resp: reqwest::Response) -> anyhow::Error {
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_string());
+    let body = resp.text().await.unwrap_or_default();
+    let detail = summarize_cloud_error_body(content_type.as_deref(), &body);
+    anyhow!("{label} at {url} failed with HTTP {status}: {detail}")
+}
+
 #[derive(Debug, Deserialize)]
 pub struct DeviceCodeResponse {
     pub user_code: String,
@@ -927,8 +975,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to initiate login: {err}"));
+            return Err(cloud_api_error("Failed to initiate login", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -978,8 +1025,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to register node: {err}"));
+            return Err(cloud_api_error("Failed to register node", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -996,8 +1042,7 @@ impl MusuCloud {
         let resp = self.client.get(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to list nodes: {err}"));
+            return Err(cloud_api_error("Failed to list nodes", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1040,8 +1085,9 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to publish room presence: {err}"));
+            return Err(
+                cloud_api_error("Failed to publish room presence", url.as_ref(), resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -1086,8 +1132,7 @@ impl MusuCloud {
         let resp = self.client.get(url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to query room presence: {err}"));
+            return Err(cloud_api_error("Failed to query room presence", url.as_ref(), resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1114,8 +1159,9 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to claim room work orders: {err}"));
+            return Err(
+                cloud_api_error("Failed to claim room work orders", url.as_ref(), resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -1142,8 +1188,12 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to submit room work-order delivery: {err}"));
+            return Err(cloud_api_error(
+                "Failed to submit room work-order delivery",
+                url.as_ref(),
+                resp,
+            )
+            .await);
         }
 
         Ok(resp.json().await?)
@@ -1170,8 +1220,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to create rendezvous: {err}"));
+            return Err(cloud_api_error("Failed to create rendezvous", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1189,8 +1238,7 @@ impl MusuCloud {
         let resp = self.client.get(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to get rendezvous: {err}"));
+            return Err(cloud_api_error("Failed to get rendezvous", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1221,8 +1269,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to add rendezvous candidates: {err}"));
+            return Err(cloud_api_error("Failed to add rendezvous candidates", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1243,8 +1290,7 @@ impl MusuCloud {
         let resp = self.client.post(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to approve rendezvous: {err}"));
+            return Err(cloud_api_error("Failed to approve rendezvous", &url, resp).await);
         }
 
         Ok(())
@@ -1265,8 +1311,7 @@ impl MusuCloud {
         let resp = self.client.post(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to close rendezvous: {err}"));
+            return Err(cloud_api_error("Failed to close rendezvous", &url, resp).await);
         }
 
         Ok(())
@@ -1293,8 +1338,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to request relay lease: {err}"));
+            return Err(cloud_api_error("Failed to request relay lease", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1330,8 +1374,7 @@ impl MusuCloud {
         let resp = self.client.get(url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to query relay leases: {err}"));
+            return Err(cloud_api_error("Failed to query relay leases", url.as_ref(), resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1349,8 +1392,7 @@ impl MusuCloud {
         let resp = self.client.get(&url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to query relay transport: {err}"));
+            return Err(cloud_api_error("Failed to query relay transport", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1395,8 +1437,9 @@ impl MusuCloud {
         let resp = self.client.get(url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to query route evidence: {err}"));
+            return Err(
+                cloud_api_error("Failed to query route evidence", url.as_ref(), resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -1420,8 +1463,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to submit route evidence: {err}"));
+            return Err(cloud_api_error("Failed to submit route evidence", &url, resp).await);
         }
 
         Ok(())
@@ -1448,8 +1490,9 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to submit relay transport proof: {err}"));
+            return Err(
+                cloud_api_error("Failed to submit relay transport proof", &url, resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -1475,8 +1518,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() && resp.status() != reqwest::StatusCode::CONFLICT {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to submit relay payload: {err}"));
+            return Err(cloud_api_error("Failed to submit relay payload", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1524,8 +1566,9 @@ impl MusuCloud {
         let resp = self.client.get(url).bearer_auth(token).send().await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to query relay payloads: {err}"));
+            return Err(
+                cloud_api_error("Failed to query relay payloads", url.as_ref(), resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -1552,8 +1595,7 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to claim relay payloads: {err}"));
+            return Err(cloud_api_error("Failed to claim relay payloads", &url, resp).await);
         }
 
         Ok(resp.json().await?)
@@ -1580,8 +1622,9 @@ impl MusuCloud {
             .await?;
 
         if !resp.status().is_success() {
-            let err = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Failed to mark relay payload delivered: {err}"));
+            return Err(
+                cloud_api_error("Failed to mark relay payload delivered", &url, resp).await,
+            );
         }
 
         Ok(resp.json().await?)
@@ -2403,5 +2446,26 @@ mod tests {
         assert_eq!(delivery.payload_id, payload.payload_id);
         assert_eq!(delivery.transport_kind, payload.transport_kind);
         assert!(delivery.release_grade);
+    }
+
+    #[test]
+    fn summarize_cloud_error_body_extracts_json_error_message() {
+        let detail = summarize_cloud_error_body(
+            Some("application/json"),
+            r#"{"error":"Invalid or expired token"}"#,
+        );
+
+        assert_eq!(detail, "Invalid or expired token");
+    }
+
+    #[test]
+    fn summarize_cloud_error_body_collapses_html_landing_page_response() {
+        let detail = summarize_cloud_error_body(
+            Some("text/html; charset=utf-8"),
+            "<!DOCTYPE html><html><body>404</body></html>",
+        );
+
+        assert!(detail.contains("returned HTML instead of API JSON"));
+        assert!(detail.contains("landing site"));
     }
 }

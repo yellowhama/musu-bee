@@ -7165,4 +7165,54 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.room_work_order_delivery.v1`, `server_ack_count`, and
   `room_work_orders.rs`.
 
+- 2026-06-08 MUSU.PRO login endpoint blocker and concise cloud errors:
+  wiki/1029 records that packaged `musu login` currently receives HTML `404`
+  from `https://musu.pro/api/v1/auth/device`, while the local `musu-pro`
+  source still contains the device-auth route. It also records the new concise
+  cloud error summarizer in `musu-rs\src\cloud\mod.rs`, plus packaged doctor
+  findings that `account_token_present=false`, `bridge_token_present=true`,
+  `~/.musu/token` is absent, and the WindowsApps alias is shadowed on PATH by
+  `C:\Users\empty\.cargo\bin\musu.exe`. Search terms should include
+  `GOAL v854`, `wiki/1029`, `returned HTML instead of API JSON`,
+  `https://musu.pro/api/v1/auth/device`, `landing site`, `alias_shadowed_by`,
+  and `bridge_token_present=true`.
+
+- 2026-06-08 local MUSU.PRO override proved device-code start/poll:
+  wiki/1030 records that local `musu-pro` `next start -p 3102` was hard-gated
+  by `site_disabled`, `src\lib\site-availability.ts` now allows local
+  `MUSU_SITE_DISABLED=false` override, local `musu-pro` on
+  `http://localhost:3005` returned `POST /api/v1/auth/device 200`, and
+  packaged WindowsApps MUSU succeeded with
+  `MUSU_CLOUD_BASE_URL=http://localhost:3005` through device-code start plus
+  repeated `GET /api/v1/auth/device?... 202` polls. Search terms should include
+  `GOAL v855`, `wiki/1030`, `MUSU_SITE_DISABLED=false`,
+  `MUSU_CLOUD_BASE_URL=http://localhost:3005`, `site_disabled`,
+  `POST /api/v1/auth/device 200`, and `device_code`.
+
+- 2026-06-08 local MUSU.PRO override proof index refresh:
+  wiki/1031 records the MUSU local index refresh after wiki/1030 and GOAL
+  v855. Search terms should include `GOAL v856`, `wiki/1031`, `3103 files`,
+  `2881 symbols`, `129838 ms`, `local MUSU.PRO override proof index refresh`,
+  `MUSU_SITE_DISABLED=false`, and `device-code start/poll`.
+
+- 2026-06-08 one-machine packaged Desktop CPU refresh:
+  wiki/1032 records fresh bridge-only idle evidence plus a packaged Desktop
+  4-state 60s matrix at
+  `20260608-024133-HUGH_SECOND.runtime-cpu-scenario-matrix.json`. CPU and
+  resource budgets passed in `startup-open`, `runtime-started`,
+  `dashboard-open`, and `desktop-open`; process attribution confirmed
+  `musu_runtime=1`, `desktop_shell=1`, `owned_webview2=6`, `owned_node=0`,
+  and loop-risk audits remained green. The verifier still rejects the matrix
+  only because `git_dirty=true`, so the remaining CPU gate is a clean-tree
+  rerun plus second-PC `post-route`. Search terms should include `GOAL v857`,
+  `wiki/1032`, `20260608-024133-HUGH_SECOND`, `startup-open 0.68`,
+  `owned_webview2=6`, `git_dirty=true`, `rust background loop contract`, and
+  `frontend polling contract`.
+
+- 2026-06-08 one-machine packaged Desktop CPU refresh index:
+  wiki/1033 records the MUSU local index refresh after wiki/1032 and GOAL
+  v857. Search terms should include `GOAL v858`, `wiki/1033`, `3103 files`,
+  `2881 symbols`, `26548 ms`, `one-machine packaged Desktop CPU refresh index`,
+  and `20260608-024133-HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**
