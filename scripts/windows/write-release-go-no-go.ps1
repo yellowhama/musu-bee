@@ -14,6 +14,7 @@ param(
     [int]$ScriptTimeoutSeconds = 120,
     [switch]$SkipPublicMetadata,
     [switch]$FailOnNotReady,
+    [string]$VerifyRuntimeIdleCpuEvidencePath,
     [string]$OutputPath,
     [switch]$Json
 )
@@ -596,6 +597,27 @@ function Test-RuntimeIdleCpuEvidence {
     $checks = New-Object System.Collections.Generic.List[object]
     $cpuAttributionRoleNames = @("musu", "node", "webview2", "other")
     $cpuAttributionSubroleNames = @("musu_runtime", "bridge_runtime", "desktop_shell", "node_helper", "webview2_helper", "other")
+    $doctorBackgroundFieldNames = @(
+        "mdns_enabled",
+        "clipboard_sync_enabled",
+        "cloud_registration_enabled",
+        "cloud_heartbeat_interval_sec",
+        "cloud_heartbeat_floor_sec",
+        "relay_payload_poller_enabled",
+        "relay_payload_poller_interval_sec",
+        "relay_payload_poller_interval_floor_sec",
+        "planner_enabled",
+        "planner_interval_sec",
+        "planner_interval_floor_sec",
+        "planner_command_timeout_sec",
+        "planner_command_timeout_floor_sec",
+        "planner_command_timeout_ceiling_sec",
+        "auto_update_supervise_enabled",
+        "auto_update_check_interval_minutes",
+        "auto_update_check_interval_floor_minutes",
+        "auto_update_health_poll_initial_ms",
+        "auto_update_health_poll_max_ms"
+    )
     $evidence = $null
     try {
         $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
@@ -705,6 +727,66 @@ function Test-RuntimeIdleCpuEvidence {
 
         $memoryBySubrolePresent = $evidence.PSObject.Properties["memory_totals_by_subrole_mb"]
         $checks.Add((New-Check -Name "memory by subrole present" -Status ($(if ($memoryBySubrolePresent) { "pass" } else { "fail" })) -Message ($(if ($memoryBySubrolePresent) { "memory totals by bridge/runtime/desktop/helper subrole are recorded" } else { "memory totals by subrole are missing" })))) | Out-Null
+
+        $matchingProcessInventory = if ($evidence.PSObject.Properties["matching_process_inventory"]) { $evidence.matching_process_inventory } else { $null }
+        $matchingProcessInventoryPresent = ($null -ne $matchingProcessInventory)
+        $checks.Add((New-Check -Name "matching process inventory present" -Status ($(if ($matchingProcessInventoryPresent) { "pass" } else { "fail" })) -Message ($(if ($matchingProcessInventoryPresent) { "runtime idle CPU evidence records matching process inventory for machine-wide and MUSU-owned helper attribution" } else { "runtime idle CPU evidence is missing matching_process_inventory" })))) | Out-Null
+        if ($matchingProcessInventoryPresent) {
+            $matchingInventoryTopLevelPresent = Test-ObjectHasPropertyNames -Object $matchingProcessInventory -Names @("musu", "node", "webview2", "other")
+            $checks.Add((New-Check -Name "matching process inventory top-level fields" -Status ($(if ($matchingInventoryTopLevelPresent) { "pass" } else { "fail" })) -Message ($(if ($matchingInventoryTopLevelPresent) { "matching process inventory includes MUSU/node/WebView2/other role buckets" } else { "matching process inventory is missing MUSU/node/WebView2/other role buckets" })))) | Out-Null
+            if ($matchingInventoryTopLevelPresent) {
+                $nodeMatchingInventoryPresent = Test-ObjectHasPropertyNames -Object $matchingProcessInventory.node -Names @("machine_wide", "owned_by_musu_process_tree", "repo_related_unowned", "unowned_other")
+                $checks.Add((New-Check -Name "matching process inventory node buckets" -Status ($(if ($nodeMatchingInventoryPresent) { "pass" } else { "fail" })) -Message ($(if ($nodeMatchingInventoryPresent) { "matching process inventory records machine-wide, MUSU-owned, repo-related, and unowned node helper counts" } else { "matching process inventory is missing node helper ownership buckets" })))) | Out-Null
+
+                $webview2MatchingInventoryPresent = Test-ObjectHasPropertyNames -Object $matchingProcessInventory.webview2 -Names @("machine_wide", "owned_by_musu_process_tree", "unowned_other")
+                $checks.Add((New-Check -Name "matching process inventory WebView2 buckets" -Status ($(if ($webview2MatchingInventoryPresent) { "pass" } else { "fail" })) -Message ($(if ($webview2MatchingInventoryPresent) { "matching process inventory records machine-wide, MUSU-owned, and unowned WebView2 helper counts" } else { "matching process inventory is missing WebView2 helper ownership buckets" })))) | Out-Null
+            }
+        }
+
+        $doctorBackgroundSnapshot = if ($evidence.PSObject.Properties["doctor_background_snapshot"]) { $evidence.doctor_background_snapshot } else { $null }
+        $doctorBackgroundSnapshotPresent = ($null -ne $doctorBackgroundSnapshot)
+        $checks.Add((New-Check -Name "doctor background snapshot present" -Status ($(if ($doctorBackgroundSnapshotPresent) { "pass" } else { "fail" })) -Message ($(if ($doctorBackgroundSnapshotPresent) { "runtime idle CPU evidence captures a MUSU doctor background snapshot" } else { "runtime idle CPU evidence is missing doctor_background_snapshot" })))) | Out-Null
+        if ($doctorBackgroundSnapshotPresent) {
+            $doctorSnapshotSchema = if ($doctorBackgroundSnapshot.PSObject.Properties["schema"]) { [string]$doctorBackgroundSnapshot.schema } else { "" }
+            $checks.Add((New-Check -Name "doctor background snapshot schema" -Status ($(if ($doctorSnapshotSchema -eq "musu.runtime_cpu_background_snapshot.v1") { "pass" } else { "fail" })) -Message ($(if ($doctorSnapshotSchema -eq "musu.runtime_cpu_background_snapshot.v1") { "doctor background snapshot schema is valid" } else { "doctor background snapshot schema is '$doctorSnapshotSchema'" })))) | Out-Null
+
+            $doctorSnapshotCommand = if ($doctorBackgroundSnapshot.PSObject.Properties["command"]) { [string]$doctorBackgroundSnapshot.command } else { "" }
+            $checks.Add((New-Check -Name "doctor background snapshot command" -Status ($(if ($doctorSnapshotCommand -eq "musu doctor --json") { "pass" } else { "fail" })) -Message ($(if ($doctorSnapshotCommand -eq "musu doctor --json") { "doctor background snapshot records the MUSU doctor command" } else { "doctor background snapshot command is '$doctorSnapshotCommand'" })))) | Out-Null
+
+            $doctorBackground = if ($doctorBackgroundSnapshot.PSObject.Properties["background"]) { $doctorBackgroundSnapshot.background } else { $null }
+            $doctorBackgroundPresent = ($null -ne $doctorBackground)
+            $checks.Add((New-Check -Name "doctor background fields present" -Status ($(if ($doctorBackgroundPresent) { "pass" } else { "fail" })) -Message ($(if ($doctorBackgroundPresent) { "doctor background snapshot includes background feature fields" } else { "doctor background snapshot is missing background feature fields" })))) | Out-Null
+            if ($doctorBackgroundPresent) {
+                $missingBackgroundFields = @($doctorBackgroundFieldNames | Where-Object { -not $doctorBackground.PSObject.Properties[$_] })
+                $checks.Add((New-Check -Name "doctor background required fields" -Status ($(if ($missingBackgroundFields.Count -eq 0) { "pass" } else { "fail" })) -Message ($(if ($missingBackgroundFields.Count -eq 0) { "doctor background snapshot includes the required loop-attribution fields" } else { "doctor background snapshot is missing fields: $($missingBackgroundFields -join ', ')" })))) | Out-Null
+                if ($missingBackgroundFields.Count -eq 0) {
+                    $cloudHeartbeatIntervalSec = [uint64]$doctorBackground.cloud_heartbeat_interval_sec
+                    $cloudHeartbeatFloorSec = [uint64]$doctorBackground.cloud_heartbeat_floor_sec
+                    $checks.Add((New-Check -Name "doctor background cloud heartbeat floor" -Status ($(if ($cloudHeartbeatIntervalSec -ge $cloudHeartbeatFloorSec -and $cloudHeartbeatFloorSec -ge 60) { "pass" } else { "fail" })) -Message ($(if ($cloudHeartbeatIntervalSec -ge $cloudHeartbeatFloorSec -and $cloudHeartbeatFloorSec -ge 60) { "doctor background snapshot records a low-duty cloud heartbeat floor" } else { "doctor background snapshot records invalid cloud heartbeat interval/floor values" })))) | Out-Null
+
+                    $relayPollerIntervalSec = [uint64]$doctorBackground.relay_payload_poller_interval_sec
+                    $relayPollerFloorSec = [uint64]$doctorBackground.relay_payload_poller_interval_floor_sec
+                    $checks.Add((New-Check -Name "doctor background relay poller floor" -Status ($(if ($relayPollerIntervalSec -ge $relayPollerFloorSec) { "pass" } else { "fail" })) -Message ($(if ($relayPollerIntervalSec -ge $relayPollerFloorSec) { "doctor background snapshot records bounded relay payload poller cadence" } else { "doctor background snapshot records invalid relay payload poller interval/floor values" })))) | Out-Null
+
+                    $plannerIntervalSec = [uint64]$doctorBackground.planner_interval_sec
+                    $plannerIntervalFloorSec = [uint64]$doctorBackground.planner_interval_floor_sec
+                    $checks.Add((New-Check -Name "doctor background planner floor" -Status ($(if ($plannerIntervalSec -ge $plannerIntervalFloorSec) { "pass" } else { "fail" })) -Message ($(if ($plannerIntervalSec -ge $plannerIntervalFloorSec) { "doctor background snapshot records bounded planner cadence" } else { "doctor background snapshot records invalid planner interval/floor values" })))) | Out-Null
+
+                    $plannerTimeoutSec = [uint64]$doctorBackground.planner_command_timeout_sec
+                    $plannerTimeoutFloorSec = [uint64]$doctorBackground.planner_command_timeout_floor_sec
+                    $plannerTimeoutCeilingSec = [uint64]$doctorBackground.planner_command_timeout_ceiling_sec
+                    $checks.Add((New-Check -Name "doctor background planner timeout bounds" -Status ($(if ($plannerTimeoutSec -ge $plannerTimeoutFloorSec -and $plannerTimeoutSec -le $plannerTimeoutCeilingSec) { "pass" } else { "fail" })) -Message ($(if ($plannerTimeoutSec -ge $plannerTimeoutFloorSec -and $plannerTimeoutSec -le $plannerTimeoutCeilingSec) { "doctor background snapshot records bounded planner command timeout" } else { "doctor background snapshot records invalid planner timeout bounds" })))) | Out-Null
+
+                    $autoUpdateIntervalMinutes = [uint64]$doctorBackground.auto_update_check_interval_minutes
+                    $autoUpdateIntervalFloorMinutes = [uint64]$doctorBackground.auto_update_check_interval_floor_minutes
+                    $checks.Add((New-Check -Name "doctor background auto-update interval floor" -Status ($(if ($autoUpdateIntervalMinutes -ge $autoUpdateIntervalFloorMinutes -and $autoUpdateIntervalFloorMinutes -ge 5) { "pass" } else { "fail" })) -Message ($(if ($autoUpdateIntervalMinutes -ge $autoUpdateIntervalFloorMinutes -and $autoUpdateIntervalFloorMinutes -ge 5) { "doctor background snapshot records bounded auto-update supervisor cadence" } else { "doctor background snapshot records invalid auto-update interval/floor values" })))) | Out-Null
+
+                    $autoUpdateHealthPollInitialMs = [uint64]$doctorBackground.auto_update_health_poll_initial_ms
+                    $autoUpdateHealthPollMaxMs = [uint64]$doctorBackground.auto_update_health_poll_max_ms
+                    $checks.Add((New-Check -Name "doctor background auto-update health poll bounds" -Status ($(if ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) { "pass" } else { "fail" })) -Message ($(if ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) { "doctor background snapshot records bounded auto-update health polling backoff" } else { "doctor background snapshot records invalid auto-update health polling bounds" })))) | Out-Null
+                }
+            }
+        }
 
         $processCountsByRole = if ($evidence.PSObject.Properties["process_counts_by_role"]) { $evidence.process_counts_by_role } else { $null }
         $processCountsByRolePresent = Test-ObjectHasPropertyNames -Object $processCountsByRole -Names $cpuAttributionRoleNames
@@ -822,6 +904,35 @@ function Test-RuntimeIdleCpuEvidence {
         max_one_core_percent = $MaxOneCorePercent
         checks = $checks.ToArray()
     }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($VerifyRuntimeIdleCpuEvidencePath)) {
+    $runtimeIdleEvidencePath = if ([System.IO.Path]::IsPathRooted($VerifyRuntimeIdleCpuEvidencePath)) {
+        [System.IO.Path]::GetFullPath($VerifyRuntimeIdleCpuEvidencePath)
+    }
+    else {
+        [System.IO.Path]::GetFullPath((Join-Path $repoRoot $VerifyRuntimeIdleCpuEvidencePath))
+    }
+
+    $verification = Test-RuntimeIdleCpuEvidence `
+        -EvidencePath $runtimeIdleEvidencePath `
+        -ExpectedVersion $version `
+        -ExpectedGitCommit $currentGitCommit `
+        -MinSampleSeconds $MinRuntimeIdleCpuSampleSeconds `
+        -MaxOneCorePercent $MaxRuntimeIdleCpuOneCorePercent
+
+    if ($Json) {
+        $verification | ConvertTo-Json -Depth 10
+    }
+    else {
+        $verification
+    }
+
+    if (-not [bool]$verification.ok) {
+        exit 1
+    }
+
+    exit 0
 }
 
 function Test-ProcessOwnershipEvidence {

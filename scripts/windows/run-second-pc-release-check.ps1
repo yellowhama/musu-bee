@@ -576,7 +576,10 @@ try {
                         "-Json"
                     )
                     if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) {
+                        $verifyArgs += "-RequirePostRouteTarget"
                         $verifyArgs += @("-ExpectedPostRouteTarget", $RuntimeCpuRouteTarget)
+                        $verifyArgs += "-RejectSelfPostRouteTarget"
+                        $verifyArgs += "-RejectLocalPostRouteTarget"
                     }
                     if ($AllowFailedRuntimeCpuRouteProbe) {
                         $verifyArgs += "-AllowFailedPostRouteProbe"

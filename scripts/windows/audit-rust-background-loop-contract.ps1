@@ -205,7 +205,7 @@ Add-RegexCheck -Scope "mdns" -Name "discover command scoped dispatch" -Text $mai
 
 $autoUpdatePath = "musu-rs\src\install\auto_update.rs"
 $autoUpdateText = Get-RepoText $autoUpdatePath
-Add-RegexCheck -Scope "auto-update" -Name "config minimum interval" -Text $autoUpdateText -Pattern 'check_interval_minutes\s*<\s*5' -Path $autoUpdatePath -Message "Auto-update supervise interval refuses values below 5 minutes."
+Add-RegexCheck -Scope "auto-update" -Name "config minimum interval" -Text $autoUpdateText -Pattern 'check_interval_minutes\s*<\s*(AUTO_UPDATE_MIN_INTERVAL_MINUTES|5)' -Path $autoUpdatePath -Message "Auto-update supervise interval refuses values below 5 minutes."
 Add-RegexCheck -Scope "auto-update" -Name "first tick skipped" -Text $autoUpdateText -Pattern 'ticker\.tick\(\)\.await;[\s\S]*loop\s*\{[\s\S]*ticker\.tick\(\)\.await;' -Path $autoUpdatePath -Message "Auto-update supervise loop skips immediate boot-time update and then waits on interval ticks."
 Add-RegexCheck -Scope "auto-update" -Name "health poll initial backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_INITIAL_MS:\s*u64\s*=\s*250' -Path $autoUpdatePath -Message "Auto-update health poll starts with a bounded delay."
 Add-RegexCheck -Scope "auto-update" -Name "health poll max backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_MAX_MS:\s*u64\s*=\s*2_000' -Path $autoUpdatePath -Message "Auto-update health poll delay is capped."
@@ -226,7 +226,8 @@ Add-RegexCheck -Scope "cli-route-wait" -Name "route wait sleep" -Text $cliText -
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait timeout evidence class" -Text $cliText -Pattern 'remote_task_wait_timeout' -Path $cliPath -Message "CLI route --wait records timeout as a failed wait class instead of spinning forever."
 Add-RegexCheck -Scope "cli-login" -Name "login device flow expiry" -Text $cliText -Pattern 'flow\.expires_in[\s\S]*Duration::from_secs\(flow\.expires_in as u64\)' -Path $cliPath -Message "CLI login device-code polling uses the server-provided expiry as a deadline."
 Add-RegexCheck -Scope "cli-login" -Name "login timeout break" -Text $cliText -Pattern 'start\.elapsed\(\)\s*>\s*timeout[\s\S]*Login timed out' -Path $cliPath -Message "CLI login exits when the device-code flow expires."
-Add-RegexCheck -Scope "cli-login" -Name "login polling sleep" -Text $cliText -Pattern 'tokio::time::sleep\(std::time::Duration::from_secs\(5\)\)\.await' -Path $cliPath -Message "CLI login sleeps 5s between device-token polls."
+Add-RegexCheck -Scope "cli-login" -Name "login polling interval helper" -Text $cloudText -Pattern 'pub fn poll_interval_secs\(&self\)\s*->\s*u32[\s\S]*unwrap_or\(5\)\.max\(5\)' -Path $cloudPath -Message "Device-code login response normalizes poll cadence with a 5s floor."
+Add-RegexCheck -Scope "cli-login" -Name "login polling sleep" -Text $cliText -Pattern 'tokio::time::sleep\(flow\.poll_interval\(\)\)\.await' -Path $cliPath -Message "CLI login sleeps at the server-provided device-flow cadence with a 5s floor."
 Add-RegexCheck -Scope "cli-login" -Name "login poll primitive" -Text $cliText -Pattern 'poll_device_token\(&flow\.device_code\)' -Path $cliPath -Message "CLI login polling is limited to the explicit device-code login command."
 
 $controlHttpPath = "musu-rs\src\control\http_server.rs"

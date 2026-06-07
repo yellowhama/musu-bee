@@ -55,6 +55,102 @@ $script:processMetadataTimedOut = $false
 $script:processMetadataAvailable = $false
 $script:nativeParentLookupAvailable = $false
 
+function Get-DoctorCliPath {
+    $windowsAppsAlias = if ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\musu.exe"
+    }
+    else {
+        $null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($windowsAppsAlias) -and (Test-Path -LiteralPath $windowsAppsAlias)) {
+        return $windowsAppsAlias
+    }
+
+    $command = Get-Command musu.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command -and -not [string]::IsNullOrWhiteSpace([string]$command.Source)) {
+        return [string]$command.Source
+    }
+
+    return $null
+}
+
+function Get-DoctorBackgroundSnapshot {
+    $doctorCliPath = Get-DoctorCliPath
+    if ([string]::IsNullOrWhiteSpace($doctorCliPath)) {
+        return [pscustomobject]@{
+            schema = "musu.runtime_cpu_background_snapshot.v1"
+            command = ""
+            captured_at = (Get-Date).ToString("o")
+            error = "musu doctor CLI not found"
+        }
+    }
+
+    try {
+        $raw = & $doctorCliPath doctor --json 2>$null
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
+            throw "musu doctor --json failed"
+        }
+        $doctor = $raw | ConvertFrom-Json
+        $background = $doctor.background
+        $account = $doctor.account
+        $bridge = $doctor.bridge
+        $dashboard = $doctor.dashboard
+
+        return [pscustomobject]@{
+            schema = "musu.runtime_cpu_background_snapshot.v1"
+            command = "musu doctor --json"
+            command_path = $doctorCliPath
+            captured_at = (Get-Date).ToString("o")
+            overall = if ($doctor.PSObject.Properties["overall"]) { [string]$doctor.overall } else { "" }
+            distribution = if ($doctor.PSObject.Properties["distribution"]) { [string]$doctor.distribution } else { "" }
+            account_logged_in = if ($account -and $account.PSObject.Properties["logged_in"]) { [bool]$account.logged_in } else { $false }
+            bridge_service_registry_pid = if ($bridge -and $bridge.PSObject.Properties["service_registry_pid"]) { $bridge.service_registry_pid } else { $null }
+            bridge_health_http_status = if ($bridge -and $bridge.PSObject.Properties["health_http_status"]) { $bridge.health_http_status } else { $null }
+            dashboard_reachable_url = if ($dashboard -and $dashboard.PSObject.Properties["reachable_url"] -and $null -ne $dashboard.reachable_url) { [string]$dashboard.reachable_url } else { "" }
+            background = [pscustomobject]@{
+                status = if ($background -and $background.PSObject.Properties["status"]) { [string]$background.status } else { "" }
+                mdns_enabled = if ($background -and $background.mdns) { [bool]$background.mdns.enabled } else { $false }
+                mdns_ipv6_enabled = if ($background -and $background.mdns_ipv6) { [bool]$background.mdns_ipv6.enabled } else { $false }
+                mdns_tailscale_enabled = if ($background -and $background.mdns_tailscale) { [bool]$background.mdns_tailscale.enabled } else { $false }
+                mdns_virtual_interfaces_enabled = if ($background -and $background.mdns_virtual_interfaces) { [bool]$background.mdns_virtual_interfaces.enabled } else { $false }
+                clipboard_sync_enabled = if ($background -and $background.clipboard_sync) { [bool]$background.clipboard_sync.enabled } else { $false }
+                cloud_registration_enabled = if ($background -and $background.cloud_registration) { [bool]$background.cloud_registration.enabled } else { $false }
+                cloud_heartbeat_interval_sec = if ($background -and $background.PSObject.Properties["cloud_heartbeat_interval_sec"]) { [uint64]$background.cloud_heartbeat_interval_sec } else { 0 }
+                cloud_heartbeat_floor_sec = if ($background -and $background.PSObject.Properties["cloud_heartbeat_floor_sec"]) { [uint64]$background.cloud_heartbeat_floor_sec } else { 0 }
+                file_sync_enabled = if ($background -and $background.file_sync) { [bool]$background.file_sync.enabled } else { $false }
+                file_serve_root_count = if ($background -and $background.PSObject.Properties["file_serve_root_count"]) { [int]$background.file_serve_root_count } else { 0 }
+                file_serve_writable = if ($background -and $background.PSObject.Properties["file_serve_writable"]) { [bool]$background.file_serve_writable } else { $false }
+                relay_payload_poller_enabled = if ($background -and $background.relay_payload_poller) { [bool]$background.relay_payload_poller.enabled } else { $false }
+                relay_payload_poller_interval_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_interval_sec"]) { [uint64]$background.relay_payload_poller_interval_sec } else { 0 }
+                relay_payload_poller_interval_floor_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_interval_floor_sec"]) { [uint64]$background.relay_payload_poller_interval_floor_sec } else { 0 }
+                relay_payload_poller_empty_backoff_max_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_empty_backoff_max_sec"]) { [uint64]$background.relay_payload_poller_empty_backoff_max_sec } else { 0 }
+                relay_payload_poller_empty_backoff_ceiling_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_empty_backoff_ceiling_sec"]) { [uint64]$background.relay_payload_poller_empty_backoff_ceiling_sec } else { 0 }
+                relay_payload_poller_limit = if ($background -and $background.PSObject.Properties["relay_payload_poller_limit"]) { [uint32]$background.relay_payload_poller_limit } else { 0 }
+                planner_enabled = if ($background -and $background.planner) { [bool]$background.planner.enabled } else { $false }
+                planner_interval_sec = if ($background -and $background.PSObject.Properties["planner_interval_sec"]) { [uint64]$background.planner_interval_sec } else { 0 }
+                planner_interval_floor_sec = if ($background -and $background.PSObject.Properties["planner_interval_floor_sec"]) { [uint64]$background.planner_interval_floor_sec } else { 0 }
+                planner_command_timeout_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_sec"]) { [uint64]$background.planner_command_timeout_sec } else { 0 }
+                planner_command_timeout_floor_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_floor_sec"]) { [uint64]$background.planner_command_timeout_floor_sec } else { 0 }
+                planner_command_timeout_ceiling_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_ceiling_sec"]) { [uint64]$background.planner_command_timeout_ceiling_sec } else { 0 }
+                auto_update_supervise_enabled = if ($background -and $background.PSObject.Properties["auto_update_supervise"] -and $background.auto_update_supervise) { [bool]$background.auto_update_supervise.enabled } else { $false }
+                auto_update_check_interval_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_minutes"]) { [uint64]$background.auto_update_check_interval_minutes } else { 60 }
+                auto_update_check_interval_floor_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_floor_minutes"]) { [uint64]$background.auto_update_check_interval_floor_minutes } else { 5 }
+                auto_update_health_poll_initial_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_initial_ms"]) { [uint64]$background.auto_update_health_poll_initial_ms } else { 250 }
+                auto_update_health_poll_max_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_max_ms"]) { [uint64]$background.auto_update_health_poll_max_ms } else { 2000 }
+            }
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            schema = "musu.runtime_cpu_background_snapshot.v1"
+            command = "musu doctor --json"
+            command_path = $doctorCliPath
+            captured_at = (Get-Date).ToString("o")
+            error = $_.Exception.Message
+        }
+    }
+}
+
 function ConvertTo-ExeName([string]$Name) {
     if ($Name.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {
         return $Name
@@ -490,6 +586,122 @@ function Add-ProcessOwnership {
     return $owned
 }
 
+function Get-RawMatchingProcessSummary {
+    param(
+        [object[]]$BeforeItems,
+        [object[]]$AfterItems,
+        $MetadataMap,
+        $RootProcessIds,
+        [int]$BridgePid,
+        [double]$ElapsedSeconds,
+        [int]$TopProcessCount
+    )
+
+    $beforeById = @{}
+    foreach ($item in $BeforeItems) {
+        $beforeById[[int]$item.id] = $item
+    }
+
+    $countsByBucket = [ordered]@{
+        musu = [ordered]@{
+            machine_wide = 0
+        }
+        node = [ordered]@{
+            machine_wide = 0
+            owned_by_musu_process_tree = 0
+            repo_related_unowned = 0
+            unowned_other = 0
+        }
+        webview2 = [ordered]@{
+            machine_wide = 0
+            owned_by_musu_process_tree = 0
+            unowned_other = 0
+        }
+        other = [ordered]@{
+            machine_wide = 0
+        }
+    }
+
+    $samples = @()
+    foreach ($current in $AfterItems) {
+        $processName = [string]$current.process_name
+        $role = Get-CoarseProcessRole -ProcessName $processName
+        $meta = if ($MetadataMap.ContainsKey([int]$current.id)) { $MetadataMap[[int]$current.id] } else { $null }
+        $isDescendant = Test-DescendantProcess -ProcessId ([int]$current.id) -RootProcessIds $RootProcessIds -MetadataMap $MetadataMap
+        $isRepoRelated = Test-RepoRelatedProcess -Meta $meta -RepoRoot $repoRoot -ProcessPath $current.path
+        $ownershipBucket = "machine_wide"
+
+        $countsByBucket[$role].machine_wide = [int]$countsByBucket[$role].machine_wide + 1
+        switch ($role) {
+            "musu" {
+                $ownershipBucket = "owned_by_musu_process_tree"
+            }
+            "node" {
+                if ($isDescendant) {
+                    $countsByBucket.node.owned_by_musu_process_tree = [int]$countsByBucket.node.owned_by_musu_process_tree + 1
+                    $ownershipBucket = "owned_by_musu_process_tree"
+                }
+                elseif ($isRepoRelated) {
+                    $countsByBucket.node.repo_related_unowned = [int]$countsByBucket.node.repo_related_unowned + 1
+                    $ownershipBucket = "repo_related_unowned"
+                }
+                else {
+                    $countsByBucket.node.unowned_other = [int]$countsByBucket.node.unowned_other + 1
+                    $ownershipBucket = "unowned_other"
+                }
+            }
+            "webview2" {
+                if ($isDescendant) {
+                    $countsByBucket.webview2.owned_by_musu_process_tree = [int]$countsByBucket.webview2.owned_by_musu_process_tree + 1
+                    $ownershipBucket = "owned_by_musu_process_tree"
+                }
+                else {
+                    $countsByBucket.webview2.unowned_other = [int]$countsByBucket.webview2.unowned_other + 1
+                    $ownershipBucket = "unowned_other"
+                }
+            }
+        }
+
+        $previous = if ($beforeById.ContainsKey([int]$current.id)) { $beforeById[[int]$current.id] } else { $null }
+        if ($null -eq $previous -or $null -eq $previous.cpu_seconds -or $null -eq $current.cpu_seconds) {
+            continue
+        }
+
+        $delta = [double]$current.cpu_seconds - [double]$previous.cpu_seconds
+        if ($delta -lt 0) {
+            continue
+        }
+
+        $oneCorePercent = ($delta / $ElapsedSeconds) * 100.0
+        $samples += [pscustomobject]@{
+            id = [int]$current.id
+            process_name = $processName
+            process_role = $role
+            process_subrole = Get-ProcessSubrole -ProcessId ([int]$current.id) -ProcessName $processName -BridgePid $BridgePid
+            bridge_registry_pid_match = ($null -ne $BridgePid -and [int]$current.id -eq [int]$BridgePid)
+            ownership_bucket = $ownershipBucket
+            is_descendant_of_musu = [bool]$isDescendant
+            is_repo_related = [bool]$isRepoRelated
+            cpu_seconds_delta = [Math]::Round($delta, 3)
+            cpu_pct_one_core = [Math]::Round($oneCorePercent, 2)
+            working_set_mb = $current.working_set_mb
+            private_memory_mb = $current.private_memory_mb
+            parent_process_id = if ($meta) { $meta.parent_process_id } else { $null }
+            path = $current.path
+            command_line_hint = if ($meta) { ConvertTo-CommandLineHint $meta.command_line } else { $null }
+        }
+    }
+
+    [pscustomobject]@{
+        counts_by_bucket = $countsByBucket
+        top_processes = @(
+            $samples |
+                Sort-Object cpu_pct_one_core -Descending |
+                Select-Object -First $TopProcessCount
+        )
+    }
+}
+
 $beforeRaw = Get-RawProcessSnapshot $names
 Start-Sleep -Seconds $SampleSeconds
 $afterRaw = Get-RawProcessSnapshot $names
@@ -512,6 +724,14 @@ foreach ($process in @($beforeRaw.items + $afterRaw.items)) {
 
 $before = @(Add-ProcessOwnership -Items $beforeRaw.items -MetadataMap $metadataMap -RootProcessIds $rootProcessIds)
 $after = @(Add-ProcessOwnership -Items $afterRaw.items -MetadataMap $metadataMap -RootProcessIds $rootProcessIds)
+$rawMatchingSummary = Get-RawMatchingProcessSummary `
+    -BeforeItems $beforeRaw.items `
+    -AfterItems $afterRaw.items `
+    -MetadataMap $metadataMap `
+    -RootProcessIds $rootProcessIds `
+    -BridgePid $bridgePid `
+    -ElapsedSeconds $elapsedSeconds `
+    -TopProcessCount 12
 
 $samples = @()
 foreach ($current in $after) {
@@ -730,6 +950,7 @@ $result = [ordered]@{
     process_count_before = $before.Count
     process_count_after = $after.Count
     musu_process_count_after = $musuProcessCountAfter
+    matching_process_inventory = $rawMatchingSummary
     target_process_running = $targetProcessRunning
     process_counts_by_role = $processCountsByRole
     process_counts_by_subrole = $processCountsBySubrole
@@ -741,6 +962,7 @@ $result = [ordered]@{
     max_one_core_percent_by_role = $maxOneCorePercentByRole
     max_one_core_percent_by_subrole = $maxOneCorePercentBySubrole
     hot_process_count = $hot.Count
+    doctor_background_snapshot = Get-DoctorBackgroundSnapshot
     cpu_attribution = $cpuAttribution
     samples = @($samples | Sort-Object cpu_pct_one_core -Descending)
     note = if ($after.Count -eq 0) {

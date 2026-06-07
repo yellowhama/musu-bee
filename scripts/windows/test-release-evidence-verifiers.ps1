@@ -249,6 +249,39 @@ function Test-RuntimeCpuScenarioMatrixOutputRootHygieneContract {
     return $true
 }
 
+function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$MeasureScriptPath,
+        [Parameter(Mandatory = $true)][string]$VerifierScriptPath
+    )
+
+    $measure = Get-Content -LiteralPath $MeasureScriptPath -Raw
+    $verifier = Get-Content -LiteralPath $VerifierScriptPath -Raw
+    $measureNeedles = @(
+        'Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json")',
+        'schema = "musu.runtime_cpu_background_snapshot.v1"',
+        'doctor_background_snapshot = $doctorBackgroundSnapshot'
+    )
+    $verifierNeedles = @(
+        'doctor background snapshot present',
+        'doctor background snapshot schema',
+        'doctor background snapshot command',
+        'doctor background required fields'
+    )
+
+    foreach ($needle in $measureNeedles) {
+        if (-not $measure.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $verifierNeedles) {
+        if (-not $verifier.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -277,6 +310,53 @@ function Test-RuntimeCpuScenarioMatrixTargetBindingContract {
     return $true
 }
 
+function Test-RuntimeCpuScenarioMatrixPostRouteDiagnosticContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$MeasureScriptPath,
+        [Parameter(Mandatory = $true)][string]$VerifierScriptPath
+    )
+
+    $measure = Get-Content -LiteralPath $MeasureScriptPath -Raw
+    $verifier = Get-Content -LiteralPath $VerifierScriptPath -Raw
+    $measureNeedles = @(
+        '"--explain", "--json", $RoutePrompt',
+        '"--route-evidence-path", $routeEvidencePath',
+        'route_explain_command = $routeExplainCommand',
+        'route_explain = $routeExplainJson',
+        'network_probe = $routeNetworkProbe',
+        'route_evidence_path = $routeEvidencePath',
+        'route_attempt_evidence = $routeAttemptEvidence'
+    )
+    $verifierNeedles = @(
+        'post-route route explain present',
+        'post-route route explain schema',
+        'post-route route explain path priority',
+        'post-route route explain bridge path selection wired',
+        'post-route route explain rendezvous wired',
+        'post-route route evidence path',
+        'post-route route attempt evidence present',
+        'post-route route attempt evidence schema',
+        'post-route route attempt result present',
+        'post-route route attempt kind present',
+        'post-route route attempt candidate addr present',
+        'post-route route attempt encryption present',
+        'post-route network probe present',
+        'post-route network probe target'
+    )
+
+    foreach ($needle in $measureNeedles) {
+        if (-not $measure.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $verifierNeedles) {
+        if (-not $verifier.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -284,6 +364,26 @@ function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     $requiredNeedles = @(
         '[int]$RuntimeCpuRouteWaitTimeoutSec = 180',
         '"-RouteWaitTimeoutSec", ([string]$RuntimeCpuRouteWaitTimeoutSec)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcTargetedRouteVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'if (-not [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) {',
+        '$verifyArgs += "-RequirePostRouteTarget"',
+        '$verifyArgs += @("-ExpectedPostRouteTarget", $RuntimeCpuRouteTarget)',
+        '$verifyArgs += "-RejectSelfPostRouteTarget"',
+        '$verifyArgs += "-RejectLocalPostRouteTarget"'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -488,6 +588,81 @@ function Test-RuntimeIdleCpuGoNoGoFullRoleAttributionContract {
         'Test-ObjectHasPropertyNames -Object $sampleCountByRole -Names $cpuAttributionRoleNames',
         'Test-ObjectHasPropertyNames -Object $totalCpuByRole -Names $cpuAttributionRoleNames',
         'Test-ObjectHasPropertyNames -Object $maxCpuByRole -Names $cpuAttributionRoleNames'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RuntimeIdleCpuGoNoGoDoctorSnapshotContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$doctorBackgroundFieldNames = @(',
+        'doctor background snapshot present',
+        'doctor background snapshot schema',
+        'doctor background snapshot command',
+        'doctor background fields present',
+        'doctor background required fields',
+        'doctor background cloud heartbeat floor',
+        'doctor background relay poller floor',
+        'doctor background planner floor',
+        'doctor background planner timeout bounds',
+        'doctor background auto-update interval floor',
+        'doctor background auto-update health poll bounds'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RuntimeIdleCpuGoNoGoMatchingProcessInventoryContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'matching process inventory present',
+        'runtime idle CPU evidence records matching process inventory for machine-wide and MUSU-owned helper attribution',
+        'matching process inventory top-level fields',
+        'matching process inventory includes MUSU/node/WebView2/other role buckets',
+        'matching process inventory node buckets',
+        'matching process inventory records machine-wide, MUSU-owned, repo-related, and unowned node helper counts',
+        'matching process inventory WebView2 buckets',
+        'matching process inventory records machine-wide, MUSU-owned, and unowned WebView2 helper counts',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory -Names @("musu", "node", "webview2", "other")',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory.node -Names @("machine_wide", "owned_by_musu_process_tree", "repo_related_unowned", "unowned_other")',
+        'Test-ObjectHasPropertyNames -Object $matchingProcessInventory.webview2 -Names @("machine_wide", "owned_by_musu_process_tree", "unowned_other")'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RuntimeIdleCpuDirectVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[string]$VerifyRuntimeIdleCpuEvidencePath',
+        'if (-not [string]::IsNullOrWhiteSpace($VerifyRuntimeIdleCpuEvidencePath))',
+        '-EvidencePath $runtimeIdleEvidencePath',
+        '-ExpectedVersion $version',
+        '-ExpectedGitCommit $currentGitCommit',
+        'if (-not [bool]$verification.ok) {',
+        'exit 1'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1970,6 +2145,194 @@ function New-RuntimeMeasurement {
     return $measurement
 }
 
+function New-RuntimeIdleCpuEvidence {
+    param(
+        [string]$Machine = "VERIFIER-TEST-IDLE",
+        [switch]$OmitMatchingProcessInventory
+    )
+
+    $measurement = New-RuntimeMeasurement
+    $evidence = [pscustomobject]@{
+        schema = "musu.runtime_idle_cpu_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        git_commit = $currentGitCommit
+        git_dirty = $false
+        git_status_short = ""
+        started_at = $now.AddSeconds(-120).ToString("o")
+        completed_at = $now.AddSeconds(-60).ToString("o")
+        operator_machine = $Machine
+        operator_user = "verifier-test"
+        scenario = "desktop-open"
+        require_owned_webview2 = $true
+        sample_seconds = 60
+        logical_processor_count = 16
+        max_one_core_percent = 5.0
+        max_owned_process_count = 16
+        max_owned_webview2_process_count = 8
+        max_total_working_set_mb = 1024.0
+        process_names = @("musu", "msedgewebview2", "node")
+        musu_process_names = @("musu")
+        include_node = $true
+        include_webview2 = $true
+        include_unrelated_helpers = $false
+        helper_process_scope = "musu_process_tree_or_repo_related"
+        process_metadata_available = $true
+        process_metadata_timed_out = $false
+        bridge_registry = [pscustomobject]@{
+            exists = $true
+            pid = 1234
+        }
+        process_count_before = 8
+        process_count_after = 8
+        musu_process_count_after = 2
+        matching_process_inventory = [pscustomobject]@{
+            musu = [pscustomobject]@{
+                machine_wide = 2
+            }
+            node = [pscustomobject]@{
+                machine_wide = 4
+                owned_by_musu_process_tree = 0
+                repo_related_unowned = 1
+                unowned_other = 3
+            }
+            webview2 = [pscustomobject]@{
+                machine_wide = 6
+                owned_by_musu_process_tree = 6
+                unowned_other = 0
+            }
+            other = [pscustomobject]@{
+                machine_wide = 0
+            }
+        }
+        target_process_running = $true
+        process_counts_by_role = $measurement.process_counts_by_role
+        process_counts_by_subrole = $measurement.process_counts_by_subrole
+        total_working_set_mb_after = $measurement.total_working_set_mb_after
+        total_private_memory_mb_after = $measurement.total_private_memory_mb_after
+        memory_totals_by_role_mb = [pscustomobject]@{
+            musu = 180.0
+            node = 0.0
+            webview2 = 170.0
+            other = 0.0
+        }
+        memory_totals_by_subrole_mb = [pscustomobject]@{
+            musu_runtime = 0.0
+            bridge_runtime = 90.0
+            desktop_shell = 90.0
+            node_helper = 0.0
+            webview2_helper = 170.0
+            other = 0.0
+        }
+        resource_budget_violations = @()
+        hot_process_count = 0
+        max_one_core_percent_by_role = $measurement.max_one_core_percent_by_role
+        max_one_core_percent_by_subrole = $measurement.max_one_core_percent_by_subrole
+        doctor_background_snapshot = [pscustomobject]@{
+            schema = "musu.runtime_cpu_background_snapshot.v1"
+            command = "musu doctor --json"
+            captured_at = $now.AddSeconds(-90).ToString("o")
+            overall = "ok"
+            distribution = "store-msix"
+            account_logged_in = $true
+            bridge_service_registry_pid = 1234
+            bridge_health_http_status = 200
+            dashboard_reachable_url = "http://127.0.0.1:3000/app"
+            background = [pscustomobject]@{
+                status = "ok"
+                mdns_enabled = $false
+                mdns_ipv6_enabled = $false
+                mdns_tailscale_enabled = $false
+                mdns_virtual_interfaces_enabled = $false
+                clipboard_sync_enabled = $false
+                cloud_registration_enabled = $true
+                cloud_heartbeat_interval_sec = 300
+                cloud_heartbeat_floor_sec = 60
+                file_sync_enabled = $false
+                file_serve_root_count = 0
+                file_serve_writable = $false
+                relay_payload_poller_enabled = $false
+                relay_payload_poller_interval_sec = 60
+                relay_payload_poller_interval_floor_sec = 60
+                relay_payload_poller_empty_backoff_max_sec = 300
+                relay_payload_poller_empty_backoff_ceiling_sec = 300
+                relay_payload_poller_limit = 1
+                planner_enabled = $false
+                planner_interval_sec = 300
+                planner_interval_floor_sec = 300
+                planner_command_timeout_sec = 120
+                planner_command_timeout_floor_sec = 120
+                planner_command_timeout_ceiling_sec = 1800
+                auto_update_supervise_enabled = $false
+                auto_update_check_interval_minutes = 60
+                auto_update_check_interval_floor_minutes = 5
+                auto_update_health_poll_initial_ms = 250
+                auto_update_health_poll_max_ms = 2000
+            }
+        }
+        cpu_attribution = $measurement.cpu_attribution
+        samples = @(
+            [pscustomobject]@{
+                id = 1234
+                process_name = "musu"
+                cpu_pct_one_core = 0.1
+            },
+            [pscustomobject]@{
+                id = 5678
+                process_name = "msedgewebview2"
+                cpu_pct_one_core = 0.2
+            },
+            [pscustomobject]@{
+                id = 6789
+                process_name = "musu"
+                cpu_pct_one_core = 0.0
+            }
+        )
+        note = "fixture"
+        evidence_path = "fixture"
+    }
+
+    if ($OmitMatchingProcessInventory) {
+        $evidence.PSObject.Properties.Remove("matching_process_inventory")
+    }
+
+    return $evidence
+}
+
+function Write-RepoEvidenceFixture {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)]$Object
+    )
+
+    $fullPath = Join-Path $repoRoot $RelativePath
+    $parent = Split-Path -Parent $fullPath
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    $Object | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $fullPath -Encoding UTF8
+    return $fullPath
+}
+
+function Get-GoNoGoRuntimeIdleCandidate {
+    param(
+        [Parameter(Mandatory = $true)]$GoNoGoJson,
+        [Parameter(Mandatory = $true)][string]$EvidencePath
+    )
+
+    $runtimeIdle = if ($GoNoGoJson.PSObject.Properties["runtime_idle_cpu_evidence"]) { $GoNoGoJson.runtime_idle_cpu_evidence } else { $null }
+    if ($null -eq $runtimeIdle -or -not $runtimeIdle.PSObject.Properties["candidates"]) {
+        return $null
+    }
+
+    foreach ($candidate in @($runtimeIdle.candidates)) {
+        $candidatePath = if ($candidate.PSObject.Properties["evidence_path"]) { [string]$candidate.evidence_path } else { "" }
+        if ($candidatePath -eq $EvidencePath) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 $validRuntimeCpuMatrix = [pscustomobject]@{
     schema = "musu.runtime_cpu_scenario_matrix.v1"
     ok = $true
@@ -1989,12 +2352,101 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     max_owned_webview2_process_count = 8
     max_total_working_set_mb = 1024.0
     requested_scenarios = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
+    doctor_background_snapshot = [pscustomobject]@{
+        schema = "musu.runtime_cpu_background_snapshot.v1"
+        command = "musu doctor --json"
+        captured_at = $now.AddSeconds(-30).ToString("o")
+        overall = "ok"
+        distribution = "store-msix"
+        account_logged_in = $true
+        bridge_service_registry_pid = 1234
+        bridge_health_http_status = 200
+        dashboard_reachable_url = "http://127.0.0.1:3000/app"
+        background = [pscustomobject]@{
+            status = "ok"
+            mdns_enabled = $false
+            mdns_ipv6_enabled = $false
+            mdns_tailscale_enabled = $false
+            mdns_virtual_interfaces_enabled = $false
+            clipboard_sync_enabled = $false
+            cloud_registration_enabled = $true
+            cloud_heartbeat_interval_sec = 300
+            cloud_heartbeat_floor_sec = 60
+            file_sync_enabled = $false
+            file_serve_root_count = 0
+            file_serve_writable = $false
+            relay_payload_poller_enabled = $false
+            relay_payload_poller_interval_sec = 60
+            relay_payload_poller_interval_floor_sec = 60
+            relay_payload_poller_empty_backoff_max_sec = 300
+            relay_payload_poller_empty_backoff_ceiling_sec = 300
+            relay_payload_poller_limit = 1
+            planner_enabled = $false
+            planner_interval_sec = 300
+            planner_interval_floor_sec = 300
+            planner_command_timeout_sec = 120
+            planner_command_timeout_floor_sec = 120
+            planner_command_timeout_ceiling_sec = 1800
+            auto_update_supervise_enabled = $false
+            auto_update_check_interval_minutes = 60
+            auto_update_check_interval_floor_minutes = 5
+            auto_update_health_poll_initial_ms = 250
+            auto_update_health_poll_max_ms = 2000
+        }
+    }
     route_probe = [pscustomobject]@{
         ok = $true
         expected_token = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
         target = $null
+        route_explain_command = "musu route --explain --json `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+        route_explain_exit_code = 0
+        route_explain_stdout = '{"schema":"musu.route_explain.v1","version":"1.15.0-rc.1","requested_target":null,"channel":"cli","needs_gpu":false,"submission_endpoint":"http://127.0.0.1:9741/api/tasks/delegate","selected_candidate":null,"candidate_count":0,"current_transport":"http_bearer","bridge_path_selection_wired":true,"rendezvous_session_wired":true,"https_fingerprint_pinning_wired":true,"release_grade_transport_required":"quic_tls_1_3","route_evidence_ready":false,"release_blockers":["peer_identity_verified=false for current manual/local HTTP route"],"path_priority":["lan","tailscale","direct_quic","relay"],"relay_policy":"relay is Connect/Pro fallback only; it must not become the default data path"}'
+        route_explain_stderr = ""
+        route_explain_output = '{"schema":"musu.route_explain.v1","version":"1.15.0-rc.1","requested_target":null,"channel":"cli","needs_gpu":false,"submission_endpoint":"http://127.0.0.1:9741/api/tasks/delegate","selected_candidate":null,"candidate_count":0,"current_transport":"http_bearer","bridge_path_selection_wired":true,"rendezvous_session_wired":true,"https_fingerprint_pinning_wired":true,"release_grade_transport_required":"quic_tls_1_3","route_evidence_ready":false,"release_blockers":["peer_identity_verified=false for current manual/local HTTP route"],"path_priority":["lan","tailscale","direct_quic","relay"],"relay_policy":"relay is Connect/Pro fallback only; it must not become the default data path"}'
+        route_explain = [pscustomobject]@{
+            schema = "musu.route_explain.v1"
+            version = $ExpectedVersion
+            requested_target = $null
+            channel = "cli"
+            needs_gpu = $false
+            submission_endpoint = "http://127.0.0.1:9741/api/tasks/delegate"
+            selected_candidate = $null
+            candidate_count = 0
+            current_transport = "http_bearer"
+            bridge_path_selection_wired = $true
+            rendezvous_session_wired = $true
+            https_fingerprint_pinning_wired = $true
+            release_grade_transport_required = "quic_tls_1_3"
+            route_evidence_ready = $false
+            release_blockers = @("peer_identity_verified=false for current manual/local HTTP route")
+            path_priority = @("lan", "tailscale", "direct_quic", "relay")
+            relay_policy = "relay is Connect/Pro fallback only; it must not become the default data path"
+        }
         command = "musu route --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
         arguments = @("route", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+        network_probe = [pscustomobject]@{
+            target = ""
+            port = $null
+            tcp_test_succeeded = $null
+            ping_succeeded = $null
+        }
+        route_evidence_path = "F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\fixture.post-route.route-evidence.json"
+        route_attempt_evidence = [pscustomobject]@{
+            schema = "musu.route_evidence.v1"
+            version = $ExpectedVersion
+            recorded_at = $now.AddSeconds(-80).ToString("o")
+            target_node_id = ""
+            candidate_addr = "http://127.0.0.1:9741/api/tasks/delegate"
+            route_kind = "local"
+            result = "success"
+            handshake_ms = 5
+            total_attempt_ms = 7
+            peer_identity_verified = $false
+            peer_identity_method = $null
+            peer_public_key = $null
+            encryption = "none_http_bearer"
+            payload_transited_musu_infra = $false
+        }
         exit_code = 0
         raw_exit_code = 0
         stdout = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
@@ -2187,6 +2639,34 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$doctorSnapshotContractOk = Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract `
+    -MeasureScriptPath $runtimeCpuMeasureScript `
+    -VerifierScriptPath $runtimeCpuScenarioMatrixVerifierScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $doctorSnapshotContractOk `
+    -Message "runtime CPU matrix capture must record doctor background feature state and the verifier must require it"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix captures doctor background feature snapshot" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$postRouteDiagnosticContractOk = Test-RuntimeCpuScenarioMatrixPostRouteDiagnosticContract `
+    -MeasureScriptPath $runtimeCpuMeasureScript `
+    -VerifierScriptPath $runtimeCpuScenarioMatrixVerifierScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $postRouteDiagnosticContractOk `
+    -Message "runtime CPU matrix post-route capture must preserve route explain, network probe, and raw route attempt evidence and the verifier must require them"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix captures post-route route diagnostics" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $supportMailboxRequestContractOk = Test-SupportMailboxVerificationRequestContract -ScriptPath $supportMailboxRequestPreparer
 $invocation = New-StaticVerifierInvocation `
     -Ok $supportMailboxRequestContractOk `
@@ -2263,6 +2743,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC runtime CPU route wait timeout pass-through" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcTargetedRouteVerifierContractOk = Test-SecondPcTargetedRouteVerifierContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcTargetedRouteVerifierContractOk `
+    -Message "second-PC release check must require target-bound post-route verification and reject self/local targets when a runtime CPU route target is supplied"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC targeted runtime CPU route verification contract" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
     -ShouldPass $true `
@@ -2351,6 +2843,106 @@ Add-CaseResult `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation
+
+$runtimeIdleCpuGoNoGoDoctorSnapshotOk = Test-RuntimeIdleCpuGoNoGoDoctorSnapshotContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeIdleCpuGoNoGoDoctorSnapshotOk `
+    -Message "go/no-go runtime idle CPU evidence must require the MUSU doctor background snapshot and cadence bounds"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go runtime idle CPU requires doctor background snapshot" `
+    -Verifier "runtime idle CPU source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeIdleCpuGoNoGoMatchingProcessInventoryOk = Test-RuntimeIdleCpuGoNoGoMatchingProcessInventoryContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeIdleCpuGoNoGoMatchingProcessInventoryOk `
+    -Message "go/no-go runtime idle CPU evidence must require matching process inventory that separates MUSU-owned helpers from machine-wide noise"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go runtime idle CPU requires matching process inventory" `
+    -Verifier "runtime idle CPU source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeIdleCpuDirectVerifierOk = Test-RuntimeIdleCpuDirectVerifierContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeIdleCpuDirectVerifierOk `
+    -Message "write-release-go-no-go.ps1 must expose a direct runtime idle CPU verifier entrypoint so one evidence file can be verified without scanning the full go/no-go corpus"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime idle CPU direct verifier entrypoint contract" `
+    -Verifier "runtime idle CPU source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeIdleInventoryValidRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-valid-$([guid]::NewGuid().ToString('N')).json"
+$runtimeIdleInventoryMissingRelativePath = ".local-build\runtime-idle-cpu\verifier-runtime-idle-missing-inventory-$([guid]::NewGuid().ToString('N')).json"
+$runtimeIdleInventoryValidPath = $null
+$runtimeIdleInventoryMissingPath = $null
+try {
+    $runtimeIdleInventoryValidPath = Write-RepoEvidenceFixture `
+        -RelativePath $runtimeIdleInventoryValidRelativePath `
+        -Object (New-RuntimeIdleCpuEvidence -Machine "VERIFIER-IDLE-INVENTORY-OK")
+    $runtimeIdleInventoryMissingPath = Write-RepoEvidenceFixture `
+        -RelativePath $runtimeIdleInventoryMissingRelativePath `
+        -Object (New-RuntimeIdleCpuEvidence -Machine "VERIFIER-IDLE-INVENTORY-MISSING" -OmitMatchingProcessInventory)
+
+    $validInvocation = Invoke-Verifier -ScriptPath $releaseGoNoGoWriter -Arguments @(
+        "-VerifyRuntimeIdleCpuEvidencePath", $runtimeIdleInventoryValidPath,
+        "-Json"
+    )
+    $validParsed = if ($null -ne $validInvocation -and $validInvocation.PSObject.Properties["parsed"]) { $validInvocation.parsed } else { $null }
+    $validParsedJson = ($null -ne $validParsed)
+
+    $missingInvocation = Invoke-Verifier -ScriptPath $releaseGoNoGoWriter -Arguments @(
+        "-VerifyRuntimeIdleCpuEvidencePath", $runtimeIdleInventoryMissingPath,
+        "-Json"
+    )
+    $missingParsed = if ($null -ne $missingInvocation -and $missingInvocation.PSObject.Properties["parsed"]) { $missingInvocation.parsed } else { $null }
+    $missingParsedJson = ($null -ne $missingParsed)
+    $matchingInventoryFailure = if ($missingParsed -and $missingParsed.PSObject.Properties["checks"]) {
+        @(
+            $missingParsed.checks |
+                Where-Object { $_.name -eq "matching process inventory present" -and $_.status -eq "fail" } |
+                Select-Object -First 1
+        )
+    }
+    else {
+        @()
+    }
+    $goNoGoInventoryRegressionOk = (
+        $validParsedJson -and
+        $null -ne $validParsed -and
+        [bool]$validParsed.ok -and
+        $missingParsedJson -and
+        $null -ne $missingParsed -and
+        -not [bool]$missingParsed.ok -and
+        @($matchingInventoryFailure).Count -gt 0
+    )
+    $staticInvocation = New-StaticVerifierInvocation `
+        -Ok $goNoGoInventoryRegressionOk `
+        -Message "runtime idle CPU direct verification accepts evidence with matching_process_inventory and rejects an otherwise-valid candidate that omits it"
+    Add-CaseResult `
+        -Cases $cases `
+        -Name "runtime idle CPU direct verifier rejects missing matching process inventory in live fixture replay" `
+        -Verifier "write-release-go-no-go.ps1" `
+        -FixturePath $runtimeIdleInventoryMissingPath `
+        -ShouldPass $true `
+        -Invocation $staticInvocation
+}
+finally {
+    if ($runtimeIdleInventoryValidPath -and (Test-Path -LiteralPath $runtimeIdleInventoryValidPath)) {
+        Remove-Item -LiteralPath $runtimeIdleInventoryValidPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($runtimeIdleInventoryMissingPath -and (Test-Path -LiteralPath $runtimeIdleInventoryMissingPath)) {
+        Remove-Item -LiteralPath $runtimeIdleInventoryMissingPath -Force -ErrorAction SilentlyContinue
+    }
+}
 
 $processOwnershipGoNoGoFreshnessOk = Test-ProcessOwnershipGoNoGoFreshnessContract -ScriptPath $releaseGoNoGoWriter
 $invocation = New-StaticVerifierInvocation `
@@ -3014,8 +3606,67 @@ $allowedFailedRuntimeRouteAttempt.route_probe = [pscustomobject]@{
     ok = $false
     expected_token = "MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST"
     target = "PRIMARY-PC"
+    route_explain_command = "musu route --target PRIMARY-PC --explain --json `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
+    route_explain_exit_code = 0
+    route_explain_stdout = '{"schema":"musu.route_explain.v1","version":"1.15.0-rc.1","requested_target":"PRIMARY-PC","channel":"cli","needs_gpu":false,"submission_endpoint":"https://203.0.113.2:8949/api/tasks/delegate","selected_candidate":{"name":"PRIMARY-PC","addr":"203.0.113.2:8949","source":"manual","route_kind":"direct_quic","transport_scheme":"https","peer_identity_verified":false,"peer_identity_method":"peer_public_key","peer_public_key_present":true,"https_fingerprint_pin_available":true,"encryption":"quic_tls_1_3","payload_transited_musu_infra":false},"candidate_count":1,"current_transport":"bridge_https_fingerprint_pin_available","bridge_path_selection_wired":true,"rendezvous_session_wired":true,"https_fingerprint_pinning_wired":true,"release_grade_transport_required":"quic_tls_1_3","route_evidence_ready":false,"release_blockers":["rendezvous target-candidate-assisted routing still needs real second-PC evidence"],"path_priority":["lan","tailscale","direct_quic","relay"],"relay_policy":"relay is Connect/Pro fallback only; it must not become the default data path"}'
+    route_explain_stderr = ""
+    route_explain_output = '{"schema":"musu.route_explain.v1","version":"1.15.0-rc.1","requested_target":"PRIMARY-PC","channel":"cli","needs_gpu":false,"submission_endpoint":"https://203.0.113.2:8949/api/tasks/delegate","selected_candidate":{"name":"PRIMARY-PC","addr":"203.0.113.2:8949","source":"manual","route_kind":"direct_quic","transport_scheme":"https","peer_identity_verified":false,"peer_identity_method":"peer_public_key","peer_public_key_present":true,"https_fingerprint_pin_available":true,"encryption":"quic_tls_1_3","payload_transited_musu_infra":false},"candidate_count":1,"current_transport":"bridge_https_fingerprint_pin_available","bridge_path_selection_wired":true,"rendezvous_session_wired":true,"https_fingerprint_pinning_wired":true,"release_grade_transport_required":"quic_tls_1_3","route_evidence_ready":false,"release_blockers":["rendezvous target-candidate-assisted routing still needs real second-PC evidence"],"path_priority":["lan","tailscale","direct_quic","relay"],"relay_policy":"relay is Connect/Pro fallback only; it must not become the default data path"}'
+    route_explain = [pscustomobject]@{
+        schema = "musu.route_explain.v1"
+        version = $ExpectedVersion
+        requested_target = "PRIMARY-PC"
+        channel = "cli"
+        needs_gpu = $false
+        submission_endpoint = "https://203.0.113.2:8949/api/tasks/delegate"
+        selected_candidate = [pscustomobject]@{
+            name = "PRIMARY-PC"
+            addr = "203.0.113.2:8949"
+            source = "manual"
+            route_kind = "direct_quic"
+            transport_scheme = "https"
+            peer_identity_verified = $false
+            peer_identity_method = "peer_public_key"
+            peer_public_key_present = $true
+            https_fingerprint_pin_available = $true
+            encryption = "quic_tls_1_3"
+            payload_transited_musu_infra = $false
+        }
+        candidate_count = 1
+        current_transport = "bridge_https_fingerprint_pin_available"
+        bridge_path_selection_wired = $true
+        rendezvous_session_wired = $true
+        https_fingerprint_pinning_wired = $true
+        release_grade_transport_required = "quic_tls_1_3"
+        route_evidence_ready = $false
+        release_blockers = @("rendezvous target-candidate-assisted routing still needs real second-PC evidence")
+        path_priority = @("lan", "tailscale", "direct_quic", "relay")
+        relay_policy = "relay is Connect/Pro fallback only; it must not become the default data path"
+    }
     command = "musu route --target PRIMARY-PC --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
-    arguments = @("route", "--target", "PRIMARY-PC", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+    arguments = @("route", "--target", "PRIMARY-PC", "--route-evidence-path", "F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\fixture.failed-target.route-evidence.json", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+    network_probe = [pscustomobject]@{
+        target = "203.0.113.2"
+        port = 8949
+        tcp_test_succeeded = $false
+        ping_succeeded = $false
+    }
+    route_evidence_path = "F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\fixture.failed-target.route-evidence.json"
+    route_attempt_evidence = [pscustomobject]@{
+        schema = "musu.route_evidence.v1"
+        version = $ExpectedVersion
+        recorded_at = $now.AddSeconds(-80).ToString("o")
+        target_node_id = "PRIMARY-PC"
+        candidate_addr = "203.0.113.2:8949"
+        route_kind = "direct_quic"
+        result = "failed"
+        handshake_ms = $null
+        total_attempt_ms = 180000
+        peer_identity_verified = $false
+        peer_identity_method = "peer_public_key"
+        peer_public_key = $null
+        encryption = "quic_tls_1_3"
+        payload_transited_musu_infra = $false
+    }
     exit_code = 1
     raw_exit_code = 1
     stdout = ""
@@ -3098,10 +3749,19 @@ $fixture = Write-Fixture -Name "runtime-matrix-success-route-attempt-missing-out
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects successful route probe without token output" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
+$missingRouteExplainRuntimeRouteAttempt = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$missingRouteExplainRuntimeRouteAttempt.route_probe.PSObject.Properties.Remove("route_explain")
+$missingRouteExplainRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $missingRouteExplainRuntimeRouteAttempt.route_probe
+$fixture = Write-Fixture -Name "runtime-matrix-missing-route-explain" -Object $missingRouteExplainRuntimeRouteAttempt
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing post-route route explain metadata" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
 $selfTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeRouteAttempt
 $selfTargetRuntimeRouteAttempt.route_probe.target = "VERIFIER-TEST"
 $selfTargetRuntimeRouteAttempt.route_probe.command = "musu route --target VERIFIER-TEST --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
 $selfTargetRuntimeRouteAttempt.route_probe.arguments = @("route", "--target", "VERIFIER-TEST", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+$selfTargetRuntimeRouteAttempt.route_probe.route_explain.requested_target = "VERIFIER-TEST"
+$selfTargetRuntimeRouteAttempt.route_probe.route_attempt_evidence.target_node_id = "VERIFIER-TEST"
 $selfTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $selfTargetRuntimeRouteAttempt.route_probe
 $fixture = Write-Fixture -Name "runtime-matrix-failed-self-target-route-attempt" -Object $selfTargetRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-RejectSelfPostRouteTarget", "-AllowFailedPostRouteProbe", "-Json")
@@ -3111,6 +3771,8 @@ $localTargetRuntimeRouteAttempt = Copy-JsonObject -Object $allowedFailedRuntimeR
 $localTargetRuntimeRouteAttempt.route_probe.target = "127.0.0.1:2751"
 $localTargetRuntimeRouteAttempt.route_probe.command = "musu route --target 127.0.0.1:2751 --wait `"Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST`""
 $localTargetRuntimeRouteAttempt.route_probe.arguments = @("route", "--target", "127.0.0.1:2751", "--wait", "Reply exactly: MUSU_CPU_SCENARIO_ROUTE_OK_VERIFIER_TEST")
+$localTargetRuntimeRouteAttempt.route_probe.route_explain.requested_target = "127.0.0.1:2751"
+$localTargetRuntimeRouteAttempt.route_probe.route_attempt_evidence.target_node_id = "127.0.0.1:2751"
 $localTargetRuntimeRouteAttempt.scenarios[4].preparation.route_probe = $localTargetRuntimeRouteAttempt.route_probe
 $fixture = Write-Fixture -Name "runtime-matrix-failed-local-target-route-attempt" -Object $localTargetRuntimeRouteAttempt
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-RejectLocalPostRouteTarget", "-AllowFailedPostRouteProbe", "-Json")
@@ -3128,6 +3790,12 @@ $badRuntimeMatrixMissingBudgetField.scenarios[0].measurement.PSObject.Properties
 $fixture = Write-Fixture -Name "runtime-matrix-missing-resource-budget-field" -Object $badRuntimeMatrixMissingBudgetField
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing resource budget field" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$badRuntimeMatrixMissingDoctorBackgroundSnapshot = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$badRuntimeMatrixMissingDoctorBackgroundSnapshot.PSObject.Properties.Remove("doctor_background_snapshot")
+$fixture = Write-Fixture -Name "runtime-matrix-missing-doctor-background-snapshot" -Object $badRuntimeMatrixMissingDoctorBackgroundSnapshot
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix rejects missing doctor background snapshot" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badRuntimeMatrixMissingCpuAttribution = Copy-JsonObject -Object $validRuntimeCpuMatrix
 $badRuntimeMatrixMissingCpuAttribution.scenarios[0].measurement.PSObject.Properties.Remove("cpu_attribution")

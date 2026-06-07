@@ -7215,4 +7215,302 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2881 symbols`, `26548 ms`, `one-machine packaged Desktop CPU refresh index`,
   and `20260608-024133-HUGH_SECOND`.
 
+- 2026-06-08 clean one-machine packaged Desktop CPU recheck:
+  wiki/1034 records the clean-tree rerun after commit
+  `c9b39f65e618f2f10ef446a7c71d08c1bf1325ea`. The packaged 4-state 60s matrix
+  `20260608-025226-HUGH_SECOND.runtime-cpu-scenario-matrix.json` passed with
+  verifier `ok=true`, `fail_count=0`, and `git_dirty=false`; scenario maxima
+  were startup-open MUSU `1.41` / WebView2 `0.81`, runtime-started WebView2
+  `0.13`, dashboard-open WebView2 `0.08`, and desktop-open WebView2 `0.08`,
+  with `owned_webview2=6`, `owned_node=0`, and hot process count `0`. A
+  separate clean `desktop-open` sample
+  `musu-idle-cpu-20260608-025738.json` also passed with MUSU `0.42`,
+  WebView2 `0.10`, and working set `367.3MB`. Search terms should include
+  `GOAL v859`, `wiki/1034`, `20260608-025226-HUGH_SECOND`, `20260608-025738`,
+  `git_dirty=false`, `startup-open 1.41`, and `desktop-open 0.42`.
+
+- 2026-06-08 clean one-machine packaged Desktop CPU recheck index:
+  wiki/1035 records the MUSU local index refresh after wiki/1034 and GOAL
+  v859. Search terms should include `GOAL v860`, `wiki/1035`, `3103 files`,
+  `2881 symbols`, `13423 ms`,
+  `clean one-machine packaged Desktop CPU recheck index`,
+  `20260608-025226-HUGH_SECOND`, and `20260608-025738`.
+
+- 2026-06-08 second-PC runtime CPU target verification hardening:
+  wiki/1036 records that `run-second-pc-release-check.ps1` now passes
+  `-RequirePostRouteTarget`, `-ExpectedPostRouteTarget`,
+  `-RejectSelfPostRouteTarget`, and `-RejectLocalPostRouteTarget` to
+  `verify-runtime-cpu-scenario-matrix.ps1` whenever a targeted runtime CPU
+  route attempt is requested. `test-release-evidence-verifiers.ps1` now has a
+  dedicated wrapper source-contract case, and the full verifier regression
+  passed `107/107`. Search terms should include `GOAL v861`, `wiki/1036`,
+  `second-PC targeted runtime CPU route verification contract`,
+  `RequirePostRouteTarget`, `RejectSelfPostRouteTarget`,
+  `RejectLocalPostRouteTarget`, and `107/107`.
+
+- 2026-06-08 second-PC runtime CPU target verification hardening index:
+  wiki/1037 records the MUSU local index refresh after wiki/1036 and GOAL
+  v861. Search terms should include `GOAL v862`, `wiki/1037`, `3103 files`,
+  `2881 symbols`, `14633 ms`,
+  `second-PC runtime CPU target verification hardening index`, and `107/107`.
+
+- 2026-06-08 device-code login poll cadence hardening:
+  wiki/1038 records that `DeviceCodeResponse` now accepts optional
+  `interval` / `poll_interval_sec` / `interval_seconds`, normalizes it with a
+  `5s` floor, and `run_login()` now sleeps with `flow.poll_interval()` instead
+  of a hard-coded `5s` loop. Validation passed `cargo fmt`,
+  `audit-rust-background-loop-contract.ps1` with `ok=true`,
+  `fail_count=0`, and `test-release-evidence-verifiers.ps1` with `ok=true`,
+  `case_count=107`, `failed_case_count=0`. Search terms should include
+  `GOAL v863`, `wiki/1038`, `DeviceCodeResponse interval`,
+  `poll_interval_secs`, `flow.poll_interval()`, and `107/107`.
+
+- 2026-06-08 device-code login poll cadence hardening index:
+  wiki/1039 records the MUSU local index refresh after wiki/1038 and GOAL
+  v863. Search terms should include `GOAL v864`, `wiki/1039`, `3103 files`,
+  `2886 symbols`, `14292 ms`,
+  `device-code login poll cadence hardening index`, and `flow.poll_interval()`.
+
+- 2026-06-08 room presence candidate publication hardening:
+  wiki/1040 records that `bridge\rendezvous.rs` and
+  `install\cli_commands.rs` now share candidate builders, auto-synthesize a
+  local Tailscale variant from the advertised bridge URL, attach
+  `public_addr`/`nat_type` to `direct_quic` candidates, and relax room
+  presence tests from fixed counts to required candidate presence. Validation
+  passed `cargo check --manifest-path musu-rs/Cargo.toml --bin musu`,
+  `audit-rust-background-loop-contract.ps1` with `ok=true`, `fail_count=0`,
+  and `test-release-evidence-verifiers.ps1` with `ok=true`,
+  `case_count=107`, `failed_case_count=0`. Search terms should include
+  `GOAL v865`, `wiki/1040`,
+  `room presence candidate publication hardening`,
+  `local_candidate_endpoints_for_advertised_url`,
+  `candidate_endpoint_from_url`, `public_addr`, `nat_type`,
+  `auto Tailscale candidate`, and `107/107`.
+
+- 2026-06-08 room presence candidate publication hardening index:
+  wiki/1041 records the MUSU local index refresh after wiki/1040 and GOAL
+  v865. Search terms should include `GOAL v866`, `wiki/1041`, `3103 files`,
+  `2889 symbols`, `44962 ms`,
+  `room presence candidate publication hardening index`,
+  `local_candidate_endpoints_for_advertised_url`, and
+  `candidate_endpoint_from_url`.
+
+- 2026-06-08 runtime CPU matrix doctor background snapshot hardening:
+  wiki/1042 records that `measure-musu-runtime-cpu-scenarios.ps1` now embeds a
+  `musu.runtime_cpu_background_snapshot.v1` object from packaged
+  `musu doctor --json`, `verify-runtime-cpu-scenario-matrix.ps1` now requires
+  it and checks key interval/floor bounds, and
+  `test-release-evidence-verifiers.ps1` now covers the source contract plus a
+  missing-snapshot failing fixture. Regression passed `109/109`, and a short
+  live packaged diagnostic matrix
+  `20260608-034143-HUGH_SECOND.runtime-cpu-scenario-matrix.json` proved the
+  snapshot lands in real output with `mdns=false`, `clipboard=false`,
+  `relay_payload_poller=false`, `planner=false`, `cloud_registration=false`,
+  `cloud_heartbeat_interval_sec=300`, bridge PID `29912`, and health `200`.
+  Search terms should include `GOAL v867`, `wiki/1042`,
+  `runtime CPU matrix doctor background snapshot`,
+  `musu.runtime_cpu_background_snapshot.v1`,
+  `doctor_background_snapshot`, `109/109`,
+  `20260608-034143-HUGH_SECOND`, and `cloud_heartbeat_interval_sec=300`.
+
+- 2026-06-08 runtime CPU matrix doctor background snapshot index:
+  wiki/1043 records the MUSU local index refresh after wiki/1042 and GOAL
+  v867. Search terms should include `GOAL v868`, `wiki/1043`, `3103 files`,
+  `2889 symbols`, `16559 ms`,
+  `runtime CPU matrix doctor background snapshot index`, `109/109`, and
+  `20260608-034143-HUGH_SECOND`.
+
+- 2026-06-08 standalone idle CPU doctor background snapshot:
+  wiki/1044 records that `measure-musu-idle-cpu.ps1` now embeds the same
+  `musu.runtime_cpu_background_snapshot.v1` object used by runtime CPU
+  matrices, using best-effort packaged `musu doctor --json`. A short live
+  diagnostic idle capture
+  `musu-idle-cpu-20260608-034858.json` proved the field lands in standalone
+  evidence with `mdns=false`, `clipboard=false`, `relay_payload_poller=false`,
+  `planner=false`, `cloud_registration=false`,
+  `cloud_heartbeat_interval_sec=300`, bridge PID `29912`, and health `200`.
+  Search terms should include `GOAL v869`, `wiki/1044`,
+  `standalone idle CPU doctor background snapshot`,
+  `musu.runtime_cpu_background_snapshot.v1`,
+  `musu-idle-cpu-20260608-034858.json`, and
+  `cloud_heartbeat_interval_sec=300`.
+
+- 2026-06-08 standalone idle CPU doctor background snapshot index:
+  wiki/1045 records the MUSU local index refresh after wiki/1044 and GOAL
+  v869. Search terms should include `GOAL v870`, `wiki/1045`, `3103 files`,
+  `2889 symbols`, `71216 ms`,
+  `standalone idle CPU doctor background snapshot index`, and
+  `musu-idle-cpu-20260608-034858.json`.
+
+- 2026-06-08 runtime idle go/no-go doctor snapshot gate:
+  wiki/1046 records that `write-release-go-no-go.ps1`
+  `Test-RuntimeIdleCpuEvidence` now requires
+  `doctor_background_snapshot`, validates schema
+  `musu.runtime_cpu_background_snapshot.v1`, requires command
+  `musu doctor --json`, checks background field presence, and enforces bounded
+  `cloud_heartbeat`, `relay_payload_poller`, and `planner`
+  cadence/timeout metadata on standalone idle CPU evidence.
+  `test-release-evidence-verifiers.ps1` now includes
+  `go-no-go runtime idle CPU requires doctor background snapshot`, and the
+  verifier regression passed `110/110`. Search terms should include
+  `GOAL v871`, `wiki/1046`,
+  `runtime idle go/no-go doctor snapshot gate`,
+  `doctor_background_snapshot`, `musu.runtime_cpu_background_snapshot.v1`,
+  and `110/110`.
+
+- 2026-06-08 runtime idle go/no-go doctor snapshot gate index:
+  wiki/1047 records the MUSU local index refresh after wiki/1046 and GOAL
+  v871. Search terms should include `GOAL v872`, `wiki/1047`, `3103 files`,
+  `2889 symbols`, `15957 ms`,
+  `runtime idle go-no-go doctor snapshot gate index`, and `110/110`.
+
+- 2026-06-08 idle CPU matching process inventory and current 4-state evidence:
+  wiki/1048 records that `measure-musu-idle-cpu.ps1` now emits
+  `matching_process_inventory`, so the same idle sample preserves machine-wide
+  vs MUSU-owned `node`/`WebView2` helper counts plus top matching raw helper
+  processes by CPU. It also records the fresh current one-machine packaged
+  4-state matrix `20260608-040059-HUGH_SECOND`, which stayed well below the
+  5%-of-one-core gate on all four 60s scenarios with owned Node `0`, owned
+  WebView2 `6`, and working set about `46.46-46.47MB`. Search terms should
+  include `GOAL v873`, `wiki/1048`, `matching_process_inventory`,
+  `machine_wide=22`, `owned_by_musu_process_tree=6`,
+  `20260608-040059-HUGH_SECOND`, and `runtime-started webview2 0.16`.
+
+- 2026-06-08 idle CPU matching process inventory index:
+  wiki/1049 records the MUSU local index refresh after wiki/1048 and GOAL
+  v873. Search terms should include `GOAL v874`, `wiki/1049`, `3103 files`,
+  `2889 symbols`, `19714 ms`, `matching_process_inventory index`,
+  `20260608-040443`, and `20260608-040059-HUGH_SECOND`.
+
+- 2026-06-08 doctor background auto-update attribution:
+  wiki/1050 records that `musu doctor --json` now exposes
+  `auto_update_supervise`, `auto_update_check_interval_minutes`,
+  `auto_update_check_interval_floor_minutes`,
+  `auto_update_health_poll_initial_ms`, and
+  `auto_update_health_poll_max_ms`, and that both CPU evidence extractors plus
+  both verifier/gate paths now require and bound-check those values. Search
+  terms should include `GOAL v875`, `wiki/1050`, `auto_update_supervise`,
+  `AUTO_UPDATE_MIN_INTERVAL_MINUTES`,
+  `doctor background auto-update interval floor`, and
+  `doctor background auto-update health poll bounds`.
+
+- 2026-06-08 doctor background auto-update attribution index:
+  wiki/1051 records the MUSU local index refresh after wiki/1050 and GOAL
+  v875. Search terms should include `GOAL v876`, `wiki/1051`, `3103 files`,
+  `2890 symbols`, `14379 ms`,
+  `doctor background auto-update attribution index`, and
+  `auto_update_supervise`.
+
+- 2026-06-08 runtime matrix post-route route diagnostics:
+  wiki/1052 records that `measure-musu-runtime-cpu-scenarios.ps1` now embeds
+  `route_explain`, `network_probe`, `route_evidence_path`, and parsed
+  `route_attempt_evidence` in the `post-route` CPU matrix artifact, and that
+  the verifier now requires those fields. It also records the live packaged
+  diagnostic matrix `20260608-043537-HUGH_SECOND`, where every new
+  route-diagnostic check passed and only dirty-git freshness checks failed.
+  Search terms should include `GOAL v877`, `wiki/1052`,
+  `route_explain_command`, `route_attempt_evidence`, `path_priority`,
+  `20260608-043537-HUGH_SECOND`, and `post-route route explain present`.
+
+- 2026-06-08 runtime matrix post-route route diagnostics index:
+  wiki/1053 records the MUSU local index refresh after wiki/1052 and GOAL
+  v877. Search terms should include `GOAL v878`, `wiki/1053`, `3103 files`,
+  `2890 symbols`, `24010 ms`,
+  `runtime matrix post-route route diagnostics index`, and
+  `20260608-043537-HUGH_SECOND`.
+
+- 2026-06-08 runtime idle matching-process inventory gate:
+  wiki/1054 records that `write-release-go-no-go.ps1` now requires
+  `matching_process_inventory` in runtime idle CPU evidence with explicit
+  machine-wide versus MUSU-owned helper buckets for node and WebView2, so the
+  release decision can distinguish MUSU-owned loops from unrelated desktop
+  noise. It also records that
+  `test-release-evidence-verifiers.ps1 -Json` passed `113/113` at
+  `.local-build\release-evidence-verifier-tests\20260608-044449`. Search terms
+  should include `GOAL v879`, `wiki/1054`, `matching_process_inventory`,
+  `runtime idle CPU requires matching process inventory`, `20260608-044449`,
+  and `113/113`.
+
+- 2026-06-08 runtime idle matching-process inventory gate index:
+  wiki/1055 records the MUSU local index refresh after wiki/1054 and GOAL
+  v879. Search terms should include `GOAL v880`, `wiki/1055`, `3103 files`,
+  `2890 symbols`, `13063 ms`,
+  `runtime idle matching-process inventory gate index`, and
+  `20260608-044449`.
+
+- 2026-06-08 runtime idle direct verifier entry point:
+  wiki/1056 records that `write-release-go-no-go.ps1` now exposes
+  `-VerifyRuntimeIdleCpuEvidencePath`, so one idle evidence file can be
+  verified with the same runtime-idle gate logic without scanning the full
+  release corpus. It also records targeted synthetic replay where the valid
+  fixture passed with `valid_ok=true` / `valid_fail_count=0`, while the same
+  payload without `matching_process_inventory` failed with
+  `bad_ok=false` / `bad_fail_count=1` and
+  `bad_matching_inventory_fail=true`. Search terms should include
+  `GOAL v881`, `wiki/1056`, `VerifyRuntimeIdleCpuEvidencePath`,
+  `valid_ok=true`, `bad_matching_inventory_fail=true`, and
+  `runtime idle direct verifier`.
+
+- 2026-06-08 runtime idle direct verifier index:
+  wiki/1057 records the MUSU local index refresh after wiki/1056 and GOAL
+  v881. Search terms should include `GOAL v882`, `wiki/1057`, `3103 files`,
+  `2890 symbols`, `14975 ms`, `runtime idle direct verifier index`, and
+  `VerifyRuntimeIdleCpuEvidencePath`.
+
+- 2026-06-08 verifier regression green after runtime idle direct path:
+  wiki/1058 records that
+  `test-release-evidence-verifiers.ps1 -Json` passed on current HEAD with
+  `ok=true`, `case_count=115`, `failed_case_count=0`, and output root
+  `.local-build\release-evidence-verifier-tests\20260608-050742`, including the
+  new direct idle-verifier contract and live fixture replay cases. Search
+  terms should include `GOAL v883`, `wiki/1058`, `115/115`,
+  `20260608-050742`, `runtime idle CPU direct verifier entrypoint contract`,
+  and `runtime idle CPU direct verifier rejects missing matching process inventory in live fixture replay`.
+
+- 2026-06-08 runtime idle verifier regression green index:
+  wiki/1059 records the MUSU local index refresh after wiki/1058 and GOAL
+  v883. Search terms should include `GOAL v884`, `wiki/1059`, `3103 files`,
+  `2890 symbols`, `15407 ms`, `runtime idle verifier regression green index`,
+  and `20260608-050742`.
+
+- 2026-06-08 clean current-head post-route 60s CPU evidence:
+  wiki/1060 records a detached clean worktree capture at
+  `F:\workspace\musu-bee-clean-current` on HEAD
+  `c9b39f65e618f2f10ef446a7c71d08c1bf1325ea`, where
+  `measure-musu-runtime-cpu-scenarios.ps1 -Scenario post-route -SampleSeconds 60 -RunRouteProbe -Json`
+  produced clean matrix
+  `20260608-051236-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with
+  `git_dirty=false`, successful route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051236`, WebView2 max CPU `0.08`,
+  working set `56.55MB`, and verifier replay `ok=true` / `fail_count=0`.
+  Search terms should include `GOAL v885`, `wiki/1060`,
+  `musu-bee-clean-current`, `20260608-051236-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051236`, and `clean post-route 60s`.
+
+- 2026-06-08 clean post-route 60s CPU evidence index:
+  wiki/1061 records the MUSU local index refresh after wiki/1060 and GOAL
+  v885. Search terms should include `GOAL v886`, `wiki/1061`, `3103 files`,
+  `2890 symbols`, `16347 ms`, `clean post-route 60s index`, and
+  `20260608-051236-HUGH_SECOND`.
+
+- 2026-06-08 clean current-head 5-scenario runtime CPU matrix:
+  wiki/1062 records a detached clean worktree capture at
+  `F:\workspace\musu-bee-clean-current` on HEAD
+  `c9b39f65e618f2f10ef446a7c71d08c1bf1325ea`, where
+  `measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json`
+  produced clean matrix
+  `20260608-051840-HUGH_SECOND.runtime-cpu-scenario-matrix.json` with
+  `git_dirty=false`, successful route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051840`, `ok=true` across all five
+  required scenarios, and verifier replay `ok=true` / `fail_count=0`. Search
+  terms should include `GOAL v887`, `wiki/1062`,
+  `20260608-051840-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051840`,
+  `clean 5-scenario 60s matrix`, and `post-route verifier pass`.
+
+- 2026-06-08 clean 5-scenario runtime CPU matrix index:
+  wiki/1063 records the MUSU local index refresh after wiki/1062 and GOAL
+  v887. Search terms should include `GOAL v888`, `wiki/1063`, `3103 files`,
+  `2890 symbols`, `16032 ms`, `clean 5-scenario matrix index`,
+  `20260608-051840-HUGH_SECOND`, and `runtime CPU matrix current-head clean`.
+
 **End of WIKI_INDEX.md.**

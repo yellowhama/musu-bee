@@ -17063,3 +17063,1114 @@ entries describing the remaining clean-tree and second-PC route blockers.
 Search terms should include `GOAL v858`, `wiki/1033`, `3103 files`,
 `2881 symbols`, `26548 ms`, `one-machine packaged Desktop CPU refresh index`,
 and `20260608-024133-HUGH_SECOND`.
+
+## 2026-06-08 Clean One-Machine Packaged Desktop CPU Recheck (wiki/1034)
+
+The clean-tree rerun is now in place, and it still does not reproduce a local
+idle busy-loop on packaged MUSU Desktop.
+
+- clean 4-state matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-025226-HUGH_SECOND\20260608-025226-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- matrix verifier:
+  `verify-runtime-cpu-scenario-matrix.ps1` returned `ok=true`,
+  `fail_count=0`, and `git_dirty=false`
+- per-state maxima:
+  - `startup-open`: MUSU `1.41`, Node `0`, WebView2 `0.81`, hot `0`
+  - `runtime-started`: MUSU `0`, Node `0`, WebView2 `0.13`, hot `0`
+  - `dashboard-open`: MUSU `0`, Node `0`, WebView2 `0.08`, hot `0`
+  - `desktop-open`: MUSU `0`, Node `0`, WebView2 `0.08`, hot `0`
+- owned process shape stayed stable:
+  `musu_runtime=1`, `desktop_shell=1`, `owned_webview2=6`, `owned_node=0`,
+  and working set `367.55-370.65MB`
+- separate clean `desktop-open` idle sample:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-025738.json`
+  passed with `sample_seconds=60.042`, MUSU `0.42`, WebView2 `0.10`,
+  hot `0`, owned WebView2 `6`, and total working set `367.3MB`
+
+This matters because the dirty-tree qualifier is gone. The remaining CPU proof
+work is now outside this one-machine local state: second-PC `post-route` plus
+the full two-machine capture.
+
+Search terms should include `GOAL v859`, `wiki/1034`,
+`20260608-025226-HUGH_SECOND`, `20260608-025738`, `git_dirty=false`,
+`startup-open 1.41`, `desktop-open 0.08`, and `desktop-open 0.42`.
+
+## 2026-06-08 Clean One-Machine Packaged Desktop CPU Recheck Index (wiki/1035)
+
+MUSU local indexer was refreshed after wiki/1034 and GOAL v859.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2881 symbols`
+- `13423 ms`
+
+Indexed context now includes the clean packaged Desktop 4-state matrix, the
+clean `desktop-open` idle CPU sample, the BETA checklist CPU refresh note, and
+the updated GOAL/WIKI/WIKI_INDEX entries that move the remaining CPU blocker to
+second-PC `post-route` / two-machine proof.
+
+Search terms should include `GOAL v860`, `wiki/1035`, `3103 files`,
+`2881 symbols`, `13423 ms`, `clean one-machine packaged Desktop CPU recheck
+index`, `20260608-025226-HUGH_SECOND`, and `20260608-025738`.
+
+## 2026-06-08 Second-PC Runtime CPU Target Verification Hardening (wiki/1036)
+
+The second-PC release-check wrapper now enforces the same target-proof rules
+that go/no-go already expects for targeted `post-route` CPU evidence.
+
+- changed:
+  `scripts\windows\run-second-pc-release-check.ps1`
+- verifier args added when `-RuntimeCpuRouteTarget` is supplied:
+  - `-RequirePostRouteTarget`
+  - `-ExpectedPostRouteTarget <target>`
+  - `-RejectSelfPostRouteTarget`
+  - `-RejectLocalPostRouteTarget`
+- regression coverage added:
+  `scripts\windows\test-release-evidence-verifiers.ps1`
+- regression result:
+  `musu.release_evidence_verifier_regression.v1 ok=true`, `case_count=107`,
+  `failed_case_count=0`
+
+Why this matters:
+
+- the wrapper previously checked target equality only;
+- it did not force proof that the recorded `musu route` command/arguments
+  actually bound `--target`;
+- it also did not force rejection of self-targeted or localhost/loopback
+  target attempts in the wrapper path.
+
+This is evidence-chain hardening, not final route proof. The release blocker is
+still the real second-PC `post-route` / two-machine capture, but the remaining
+evidence path is now stricter and less ambiguous.
+
+Search terms should include `GOAL v861`, `wiki/1036`,
+`second-PC targeted runtime CPU route verification contract`,
+`RequirePostRouteTarget`, `RejectSelfPostRouteTarget`,
+`RejectLocalPostRouteTarget`, and `107/107`.
+
+## 2026-06-08 Second-PC Runtime CPU Target Verification Hardening Index (wiki/1037)
+
+MUSU local indexer was refreshed after wiki/1036 and GOAL v861.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2881 symbols`
+- `14633 ms`
+
+Indexed context now includes the second-PC runtime CPU target-verifier wrapper
+hardening, the new source-contract regression case, the `107/107` verifier
+result, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v862`, `wiki/1037`, `3103 files`,
+`2881 symbols`, `14633 ms`,
+`second-PC runtime CPU target verification hardening index`, and `107/107`.
+
+## 2026-06-08 Device-Code Login Poll Cadence Hardening (wiki/1038)
+
+The packaged `musu login` device-code poll loop no longer assumes a fixed 5s
+cadence when MUSU.PRO wants to supply one.
+
+- changed:
+  - `musu-rs\src\cloud\mod.rs`
+  - `musu-rs\src\install\cli_commands.rs`
+  - `scripts\windows\audit-rust-background-loop-contract.ps1`
+- `DeviceCodeResponse` now accepts optional:
+  - `interval`
+  - `poll_interval_sec`
+  - `interval_seconds`
+- the Rust client normalizes that through:
+  - `poll_interval_secs()`
+  - `poll_interval()`
+- floor:
+  - minimum poll cadence stays `5s`
+- CLI login now:
+  - prints `timeout` plus effective `poll` cadence
+  - sleeps with `flow.poll_interval()` instead of a hard-coded `5s`
+
+Validation:
+
+- `cargo fmt`
+- `scripts\windows\audit-rust-background-loop-contract.ps1 -Json`:
+  `ok=true`, `fail_count=0`
+- `scripts\windows\test-release-evidence-verifiers.ps1 -Json`:
+  `ok=true`, `case_count=107`, `failed_case_count=0`
+- targeted `cargo test --manifest-path musu-rs/Cargo.toml device_code_response -- --nocapture`
+  was started but stopped after the long test-profile compile path; no passing
+  Rust test claim is attached to this step
+
+This is not the final two-machine proof, but it does make the MUSU.PRO
+control-plane login path better behaved: server-driven cadence when available,
+and no tighter than the existing low-duty floor when it is not.
+
+Search terms should include `GOAL v863`, `wiki/1038`, `DeviceCodeResponse
+interval`, `poll_interval_secs`, `flow.poll_interval()`, and `107/107`.
+
+## 2026-06-08 Device-Code Login Poll Cadence Hardening Index (wiki/1039)
+
+MUSU local indexer was refreshed after wiki/1038 and GOAL v863.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2886 symbols`
+- `14292 ms`
+
+Indexed context now includes the device-code interval DTO change, the login
+poll cadence update, the refreshed Rust background loop audit, the refreshed
+verifier regression result, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v864`, `wiki/1039`, `3103 files`,
+`2886 symbols`, `14292 ms`,
+`device-code login poll cadence hardening index`, and `flow.poll_interval()`.
+
+## 2026-06-08 Room Presence Candidate Publication Hardening (wiki/1040)
+
+Room presence publication and local rendezvous candidate exchange now share the
+same candidate-building logic, and that logic publishes more than one usable
+path when the local machine has one.
+
+- changed:
+  - `musu-rs\src\bridge\rendezvous.rs`
+  - `musu-rs\src\install\cli_commands.rs`
+- new shared rendezvous helpers:
+  - `endpoint_url_with_host(...)`
+  - `candidate_endpoint_from_url(...)`
+  - `local_candidate_endpoints_for_advertised_url(...)`
+- behavior:
+  - normalize candidate `scheme` and `kind` from URL input
+  - auto-synthesize a Tailscale candidate from the advertised bridge URL when
+    `crate::peer::tailscale::get_tailscale_ip()` returns a local IP
+  - dedupe candidates by `(kind, addr)`
+  - attach `public_addr` plus `nat_type` to `direct_quic` candidates instead
+    of publishing a bare URL-derived address
+- `local_candidate_request_for_node_id()` now publishes the multi-candidate
+  set to MUSU.PRO instead of a single advertised endpoint
+- `room_presence_request_from_opts()` now uses the same shared builders for:
+  - the primary advertised/public URL
+  - any explicit `--candidate-url`
+  - the local synthesized Tailscale variant
+  - the explicit relay candidate path
+
+This closes a real control-plane gap: MUSU.PRO candidate exchange was already
+ready for multiple route kinds, but local Rust publication could still degrade
+to only one path or miss the local Tailscale variant. After this change, room
+presence and local rendezvous publication describe the local node more honestly
+to the remote selector.
+
+Test hardening also landed in `cli_commands.rs`: room-presence tests no longer
+assert fixed candidate counts, because the presence of a local Tailscale
+adapter should not make those tests fail on one machine and pass on another.
+They now assert required candidate presence instead.
+
+Validation:
+
+- `cargo fmt`
+- `cargo check --manifest-path musu-rs/Cargo.toml --bin musu`
+- `scripts\windows\audit-rust-background-loop-contract.ps1 -Json`:
+  `ok=true`, `fail_count=0`
+- `scripts\windows\test-release-evidence-verifiers.ps1 -Json`:
+  `ok=true`, `case_count=107`, `failed_case_count=0`
+- targeted Rust tests were not claimed here because the long test-profile
+  compile path still makes them impractical in this session
+
+Search terms should include `GOAL v865`, `wiki/1040`,
+`room presence candidate publication hardening`,
+`local_candidate_endpoints_for_advertised_url`,
+`candidate_endpoint_from_url`, `public_addr`, `nat_type`,
+`auto Tailscale candidate`, and `107/107`.
+
+## 2026-06-08 Room Presence Candidate Publication Hardening Index (wiki/1041)
+
+MUSU local indexer was refreshed after wiki/1040 and GOAL v865.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2889 symbols`
+- `44962 ms`
+
+Indexed context now includes the shared room-presence/rendezvous candidate
+builders, auto-published Tailscale/direct-quic metadata, the room-presence
+test hardening, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v866`, `wiki/1041`, `3103 files`,
+`2889 symbols`, `44962 ms`,
+`room presence candidate publication hardening index`,
+`local_candidate_endpoints_for_advertised_url`, and
+`candidate_endpoint_from_url`.
+
+## 2026-06-08 Runtime CPU Matrix Doctor Background Snapshot Hardening (wiki/1042)
+
+Runtime CPU matrix evidence now carries the low-duty background configuration
+that produced the sample, instead of forcing later readers to infer loop state
+from separate audits.
+
+- changed:
+  - `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1`
+  - `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+  - `scripts\windows\test-release-evidence-verifiers.ps1`
+- new matrix field:
+  - `doctor_background_snapshot`
+  - schema: `musu.runtime_cpu_background_snapshot.v1`
+- capture source:
+  - packaged `musu doctor --json`
+- snapshot records:
+  - `mdns_enabled`
+  - `clipboard_sync_enabled`
+  - `cloud_registration_enabled`
+  - `cloud_heartbeat_interval_sec`
+  - `cloud_heartbeat_floor_sec`
+  - `relay_payload_poller_enabled`
+  - `relay_payload_poller_interval_sec`
+  - `planner_enabled`
+  - `planner_interval_sec`
+  - file-serve state
+  - bridge PID / health HTTP status
+
+The verifier now requires that snapshot on every runtime matrix and rejects
+evidence that lacks it. It also checks that the snapshot came from
+`musu doctor --json` and that key bounded-loop values remain coherent:
+
+- cloud heartbeat interval >= floor and floor >= `60`
+- relay payload poller interval >= floor
+- planner interval >= floor
+- planner timeout within its floor/ceiling bounds
+
+Regression coverage was extended in
+`scripts\windows\test-release-evidence-verifiers.ps1`:
+
+- new source-contract case:
+  - `runtime CPU matrix captures doctor background feature snapshot`
+- new failing verifier fixture:
+  - `runtime matrix rejects missing doctor background snapshot`
+- full regression result:
+  - `ok=true`
+  - `case_count=109`
+  - `failed_case_count=0`
+
+A short real packaged diagnostic run proved the field lands in live evidence:
+
+- matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-034143-HUGH_SECOND\20260608-034143-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- scope:
+  `runtime-started` only
+- sample:
+  `5s`
+- diagnostic snapshot highlights:
+  - `mdns_enabled=false`
+  - `clipboard_sync_enabled=false`
+  - `relay_payload_poller_enabled=false`
+  - `planner_enabled=false`
+  - `cloud_registration_enabled=false`
+  - `cloud_heartbeat_interval_sec=300`
+  - `bridge_service_registry_pid=29912`
+  - `bridge_health_http_status=200`
+
+This is not release-grade CPU evidence because it is a one-scenario, 5-second,
+dirty-tree capture. Its purpose was to verify that the new snapshot contract is
+real on this machine, not just in fixtures.
+
+Search terms should include `GOAL v867`, `wiki/1042`,
+`runtime CPU matrix doctor background snapshot`,
+`musu.runtime_cpu_background_snapshot.v1`,
+`doctor_background_snapshot`, `109/109`,
+`20260608-034143-HUGH_SECOND`, and `cloud_heartbeat_interval_sec=300`.
+
+## 2026-06-08 Runtime CPU Matrix Doctor Background Snapshot Index (wiki/1043)
+
+MUSU local indexer was refreshed after wiki/1042 and GOAL v867.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2889 symbols`
+- `16559 ms`
+
+Indexed context now includes the runtime CPU matrix background snapshot
+capture/verifier hardening, the `109/109` verifier regression pass, the short
+live diagnostic matrix `20260608-034143-HUGH_SECOND`, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v868`, `wiki/1043`, `3103 files`,
+`2889 symbols`, `16559 ms`,
+`runtime CPU matrix doctor background snapshot index`, `109/109`, and
+`20260608-034143-HUGH_SECOND`.
+
+## 2026-06-08 Standalone Idle CPU Doctor Background Snapshot (wiki/1044)
+
+The standalone idle CPU capture now preserves the same background loop state as
+the runtime CPU matrix wrapper.
+
+- changed:
+  - `scripts\windows\measure-musu-idle-cpu.ps1`
+- new field on idle evidence:
+  - `doctor_background_snapshot`
+  - schema: `musu.runtime_cpu_background_snapshot.v1`
+- capture mode:
+  - best-effort packaged `musu doctor --json` when available
+  - fallback snapshot with `error` if the MUSU CLI cannot be resolved
+
+This means a direct `measure-musu-idle-cpu.ps1` run now records:
+
+- `mdns_enabled`
+- `clipboard_sync_enabled`
+- `cloud_registration_enabled`
+- `cloud_heartbeat_interval_sec`
+- `relay_payload_poller_enabled`
+- `planner_enabled`
+- file-serve state
+- bridge PID / health HTTP status
+
+That closes the evidence-shape gap between:
+
+- per-scenario direct idle captures
+- matrix-generated per-scenario evidence
+- matrix wrapper summary JSON
+
+A short live diagnostic run proved the field lands in standalone idle evidence:
+
+- evidence:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-034858.json`
+- scope:
+  `runtime-started`
+- sample:
+  `5.045s`
+- snapshot highlights:
+  - `mdns_enabled=false`
+  - `clipboard_sync_enabled=false`
+  - `relay_payload_poller_enabled=false`
+  - `planner_enabled=false`
+  - `cloud_registration_enabled=false`
+  - `cloud_heartbeat_interval_sec=300`
+  - `bridge_service_registry_pid=29912`
+  - `bridge_health_http_status=200`
+
+This is not release-grade evidence. It was taken on a dirty tree and is too
+short for the release CPU gate. Its job was to verify that direct idle evidence
+now preserves the same loop-state context as the scenario matrix path.
+
+Search terms should include `GOAL v869`, `wiki/1044`,
+`standalone idle CPU doctor background snapshot`,
+`musu.runtime_cpu_background_snapshot.v1`,
+`musu-idle-cpu-20260608-034858.json`, and
+`cloud_heartbeat_interval_sec=300`.
+
+## 2026-06-08 Standalone Idle CPU Doctor Background Snapshot Index (wiki/1045)
+
+MUSU local indexer was refreshed after wiki/1044 and GOAL v869.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2889 symbols`
+- `71216 ms`
+
+Indexed context now includes the standalone idle CPU background snapshot
+capture update, the live diagnostic idle evidence
+`musu-idle-cpu-20260608-034858.json`, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v870`, `wiki/1045`, `3103 files`,
+`2889 symbols`, `71216 ms`,
+`standalone idle CPU doctor background snapshot index`, and
+`musu-idle-cpu-20260608-034858.json`.
+
+## 2026-06-08 Runtime Idle Go/No-Go Doctor Snapshot Gate (wiki/1046)
+
+The release go/no-go path now requires the same MUSU doctor background snapshot
+for standalone idle CPU evidence that runtime CPU matrices already require.
+
+- changed:
+  - `scripts\windows\write-release-go-no-go.ps1`
+  - `scripts\windows\test-release-evidence-verifiers.ps1`
+- gated evidence:
+  - `musu.runtime_idle_cpu_evidence.v1`
+- required nested field:
+  - `doctor_background_snapshot`
+  - schema: `musu.runtime_cpu_background_snapshot.v1`
+  - command: `musu doctor --json`
+
+`write-release-go-no-go.ps1` `Test-RuntimeIdleCpuEvidence` now enforces:
+
+- snapshot presence
+- snapshot schema
+- doctor command identity
+- background feature field presence
+- bounded cadence/timeout metadata for:
+  - `cloud_heartbeat`
+  - `relay_payload_poller`
+  - `planner`
+
+This closes the remaining verifier asymmetry between:
+
+- runtime CPU matrix evidence
+- standalone idle CPU evidence
+- release go/no-go aggregation
+
+Without this change, direct idle evidence could have been accepted by the
+release writer even if it omitted the loop-state snapshot that explains which
+background candidates were actually enabled during sampling.
+
+Regression coverage was updated in
+`scripts\windows\test-release-evidence-verifiers.ps1` and now includes:
+
+- `go-no-go runtime idle CPU requires doctor background snapshot`
+
+Validation passed:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=110`
+  - `failed_case_count=0`
+
+Search terms should include `GOAL v871`, `wiki/1046`,
+`runtime idle go/no-go doctor snapshot gate`,
+`go-no-go runtime idle CPU requires doctor background snapshot`,
+`doctor_background_snapshot`, `musu.runtime_cpu_background_snapshot.v1`, and
+`case_count=110`.
+
+## 2026-06-08 Runtime Idle Go/No-Go Doctor Snapshot Gate Index (wiki/1047)
+
+MUSU local indexer was refreshed after wiki/1046 and GOAL v871.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2889 symbols`
+- `15957 ms`
+
+Indexed context now includes the standalone idle CPU go/no-go doctor snapshot
+gate, the new verifier source-contract case, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v872`, `wiki/1047`, `3103 files`,
+`2889 symbols`, `15957 ms`,
+`runtime idle go-no-go doctor snapshot gate index`, and `110/110`.
+
+## 2026-06-08 Idle CPU Matching Process Inventory And Current 4-State Evidence (wiki/1048)
+
+Idle CPU evidence now preserves the machine-wide helper inventory alongside the
+MUSU-owned attribution slice.
+
+- changed:
+  - `scripts\windows\measure-musu-idle-cpu.ps1`
+- new field on idle evidence:
+  - `matching_process_inventory`
+
+That inventory records:
+
+- machine-wide matching `node` counts
+- machine-wide matching `WebView2` counts
+- MUSU-owned helper counts
+- unowned helper counts
+- top matching raw helper processes by CPU during the sample
+
+This matters because operator-visible CPU spikes can come from unrelated
+machine-wide `node.exe` or `msedgewebview2.exe` processes even when the MUSU
+runtime itself is idle. The previous evidence shape preserved only the
+MUSU-owned slice.
+
+A short live diagnostic run proved the new field lands in output:
+
+- evidence:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-040443.json`
+- scope:
+  `runtime-started`
+- sample:
+  `5.037s`
+- inventory highlights:
+  - `node machine_wide=22`
+  - `node owned_by_musu_process_tree=0`
+  - `node unowned_other=22`
+  - `webview2 machine_wide=18`
+  - `webview2 owned_by_musu_process_tree=6`
+  - `webview2 unowned_other=12`
+
+Fresh current one-machine packaged 4-state evidence also stayed comfortably
+under the release CPU budget:
+
+- matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-040059-HUGH_SECOND\20260608-040059-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `startup-open`
+  - `sample_seconds=60.06`
+  - `hot_process_count=0`
+  - `max_one_core_percent_by_role.musu=0`
+  - `max_one_core_percent_by_role.webview2=0.03`
+- `runtime-started`
+  - `sample_seconds=60.053`
+  - `hot_process_count=0`
+  - `musu=0.03`
+  - `webview2=0.16`
+- `dashboard-open`
+  - `sample_seconds=60.042`
+  - `hot_process_count=0`
+  - `musu=0.03`
+  - `webview2=0.03`
+- `desktop-open`
+  - `sample_seconds=60.059`
+  - `hot_process_count=0`
+  - `musu=0`
+  - `webview2=0.10`
+- common state:
+  - owned Node `0`
+  - owned WebView2 `6`
+  - working set about `46.46-46.47MB`
+  - doctor background snapshot still shows `mdns=false`, `clipboard=false`,
+    `cloud_registration=false`, `relay_payload_poller=false`, `planner=false`
+
+Interpretation:
+
+- current one-machine packaged MUSU Desktop still does not reproduce a
+  MUSU-owned idle busy-loop
+- the sampler now carries enough context to distinguish MUSU-owned helper CPU
+  from unrelated machine-wide helper noise in the same sample artifact
+
+Search terms should include `GOAL v873`, `wiki/1048`,
+`matching_process_inventory`, `machine_wide=22`, `owned_by_musu_process_tree=6`,
+`20260608-040059-HUGH_SECOND`, and `runtime-started webview2 0.16`.
+
+## 2026-06-08 Idle CPU Matching Process Inventory Index (wiki/1049)
+
+MUSU local indexer was refreshed after wiki/1048 and GOAL v873.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2889 symbols`
+- `19714 ms`
+
+Indexed context now includes the `matching_process_inventory` sampler update,
+the live diagnostic idle evidence `musu-idle-cpu-20260608-040443.json`, the
+fresh packaged 4-state matrix `20260608-040059-HUGH_SECOND`, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v874`, `wiki/1049`, `3103 files`,
+`2889 symbols`, `19714 ms`, `matching_process_inventory index`,
+`20260608-040443`, and `20260608-040059-HUGH_SECOND`.
+
+## 2026-06-08 Doctor Background Auto-Update Attribution (wiki/1050)
+
+`musu doctor --json` now exposes the last remaining obvious low-duty loop
+candidate that was missing from the CPU evidence path: auto-update supervisor
+cadence and bounded health polling.
+
+Changes:
+
+- `musu-rs\src\install\auto_update.rs`
+  - exports `AUTO_UPDATE_DEFAULT_INTERVAL_MINUTES=60`
+  - exports `AUTO_UPDATE_MIN_INTERVAL_MINUTES=5`
+  - keeps public `HEALTH_POLL_INITIAL_MS=250`
+  - keeps public `HEALTH_POLL_MAX_MS=2000`
+- `musu-rs\src\install\cli_commands.rs`
+  - extends `DoctorBackground` with:
+    - `auto_update_supervise`
+    - `auto_update_check_interval_minutes`
+    - `auto_update_check_interval_floor_minutes`
+    - `auto_update_health_poll_initial_ms`
+    - `auto_update_health_poll_max_ms`
+  - `check_background_features(...)` now inspects `update.toml`
+  - doctor marks invalid auto-update config as `Warn`
+  - doctor notes that retries only happen during explicit
+    `musu auto-update --supervise`
+- `scripts\windows\measure-musu-idle-cpu.ps1`
+  and `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1`
+  now preserve these auto-update fields in
+  `musu.runtime_cpu_background_snapshot.v1`
+- `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+  and `scripts\windows\write-release-go-no-go.ps1`
+  now require the new fields and enforce:
+  - interval floor `>= 5m`
+  - health poll initial `>= 250ms`
+  - health poll max `<= 2000ms`
+  - initial `<=` max
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  fixture/source-contract coverage was extended for the new checks
+- `scripts\windows\audit-rust-background-loop-contract.ps1`
+  was updated so the auto-update interval audit accepts the new constant-based
+  floor check
+
+Validation:
+
+- `cargo fmt`
+- `cargo check --manifest-path musu-rs/Cargo.toml --bin musu`
+- `scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=110`
+  - `failed_case_count=0`
+- `scripts\windows\audit-rust-background-loop-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+
+Targeted Rust tests were attempted with
+`cargo test --manifest-path musu-rs/Cargo.toml doctor_background -- --nocapture`
+but are still not claimed because test-profile compile stayed too long and the
+run was stopped manually.
+
+Meaning:
+
+- idle/runtime CPU evidence can now say whether auto-update supervise was a
+  real contributor during sampling, instead of leaving that loop candidate
+  implicit
+- the verifier/gate path now treats auto-update cadence the same way it already
+  treats cloud heartbeat, relay payload poller, and planner cadence
+
+Search terms should include `GOAL v875`, `wiki/1050`,
+`auto_update_supervise`, `auto_update_check_interval_minutes`,
+`auto_update_health_poll_initial_ms`, `AUTO_UPDATE_MIN_INTERVAL_MINUTES`,
+`doctor background auto-update interval floor`, and
+`doctor background auto-update health poll bounds`.
+
+## 2026-06-08 Doctor Background Auto-Update Attribution Index (wiki/1051)
+
+MUSU local indexer was refreshed after wiki/1050 and GOAL v875.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `14379 ms`
+
+Indexed context now includes the doctor auto-update background attribution
+changes, the verifier/audit pass updates, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v876`, `wiki/1051`, `3103 files`,
+`2890 symbols`, `14379 ms`, `doctor background auto-update attribution index`,
+and `auto_update_supervise`.
+
+## 2026-06-08 Runtime Matrix Post-Route Route Diagnostics (wiki/1052)
+
+`post-route` runtime CPU evidence now carries the route-diagnostic context that
+was previously split across separate scripts.
+
+Changes:
+
+- `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1`
+  now records, inside `route_probe`:
+  - `route_explain_command`
+  - `route_explain_exit_code`
+  - `route_explain_output`
+  - parsed `route_explain`
+  - `network_probe`
+  - `route_evidence_path`
+  - parsed `route_attempt_evidence`
+- the same extractor now defaults missing auto-update doctor fields to:
+  - `auto_update_check_interval_minutes=60`
+  - `auto_update_check_interval_floor_minutes=5`
+  - `auto_update_health_poll_initial_ms=250`
+  - `auto_update_health_poll_max_ms=2000`
+  so current packaged Desktop builds do not emit zero-valued snapshot budgets
+  before the new Rust doctor schema is rolled into the package
+- `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`
+  now requires:
+  - `post-route route explain present`
+  - `post-route route explain schema`
+  - `post-route route explain path priority`
+  - `post-route route explain bridge path selection wired`
+  - `post-route route explain rendezvous wired`
+  - `post-route route evidence path`
+  - `post-route route attempt evidence present`
+  - `post-route route attempt evidence schema`
+  - `post-route route attempt result present`
+  - `post-route route attempt kind present`
+  - `post-route route attempt candidate addr present`
+  - `post-route route attempt encryption present`
+  - selected-candidate `network_probe` binding when applicable
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  now has a dedicated source-contract gate for this route-diagnostic capture and
+  a negative fixture for missing `route_explain`
+
+Live proof:
+
+- matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-043537-HUGH_SECOND\20260608-043537-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- route evidence sidecar:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-043537-HUGH_SECOND\20260608-043537-HUGH_SECOND.post-route.route-evidence.json`
+- captured facts:
+  - `route_explain.schema = musu.route_explain.v1`
+  - `path_priority = ["lan","tailscale","direct_quic","relay"]`
+  - `bridge_path_selection_wired = true`
+  - `rendezvous_session_wired = true`
+  - `route_attempt_evidence.schema = musu.route_evidence.v1`
+  - `route_attempt_evidence.route_kind = lan`
+  - `route_attempt_evidence.encryption = none_http_bearer`
+  - `route_attempt_evidence.result = success`
+
+Targeted verifier replay:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-043537-HUGH_SECOND\20260608-043537-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios post-route -MinSampleSeconds 5 -MaxOneCorePercent 5 -RequirePostRouteProbe -Json`
+- result:
+  - all new route-diagnostic checks passed
+  - remaining failures were only:
+    - `git clean during matrix`
+    - `measurement clean git: post-route`
+
+This is still diagnostic-only evidence because the tree was dirty, but it proves
+the new `post-route` matrix shape works against the packaged local Desktop and
+captures route/path-selection context in the same artifact as CPU ownership.
+
+`test-release-evidence-verifiers.ps1 -Json` was started after the change but is
+not claimed in this entry because the full regression sweep remained
+long-running and no final pass/fail JSON was captured before continuing work.
+
+Search terms should include `GOAL v877`, `wiki/1052`,
+`route_explain_command`, `route_attempt_evidence`, `path_priority`,
+`20260608-043537-HUGH_SECOND`, and `post-route route explain present`.
+
+## 2026-06-08 Runtime Matrix Post-Route Route Diagnostics Index (wiki/1053)
+
+MUSU local indexer was refreshed after wiki/1052 and GOAL v877.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `24010 ms`
+
+Indexed context now includes the runtime matrix `post-route` route-diagnostic
+capture changes, the live packaged matrix
+`20260608-043537-HUGH_SECOND`, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v878`, `wiki/1053`, `3103 files`,
+`2890 symbols`, `24010 ms`, `runtime matrix post-route route diagnostics index`,
+and `20260608-043537-HUGH_SECOND`.
+
+## 2026-06-08 Runtime Idle Matching Process Inventory Release Gate (wiki/1054)
+
+Standalone idle CPU evidence now hard-fails go/no-go if it lacks the
+machine-wide helper inventory that separates MUSU-owned noise from unrelated
+desktop noise.
+
+Changed files:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+  now requires `matching_process_inventory` inside runtime idle CPU evidence,
+  with:
+  - top-level `musu`, `node`, `webview2`, and `other` buckets
+  - node helper ownership buckets:
+    `machine_wide`, `owned_by_musu_process_tree`,
+    `repo_related_unowned`, `unowned_other`
+  - WebView2 helper ownership buckets:
+    `machine_wide`, `owned_by_musu_process_tree`, `unowned_other`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  now has a dedicated source-contract case asserting that the runtime idle
+  release gate enforces this inventory split
+
+Why this matters:
+
+- the idle busy-loop objective is not just "CPU was low"
+- it is "we can prove whether any observed helper load belongs to MUSU or to
+  unrelated machine-wide noise"
+- `matching_process_inventory` was already landing in idle evidence, but until
+  now the release gate did not require it
+- this change promotes that distinction into the actual no-go decision
+
+Verification:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=113`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-044449`
+
+This does not resolve the remaining product blockers by itself. The real
+release blockers are still:
+
+- clean-tree `post-route` rerun
+- real second-PC `post-route` CPU matrix
+- real two-machine route proof
+- live `musu.pro` login/control-plane cleanup
+
+Search terms should include `GOAL v879`, `wiki/1054`,
+`matching_process_inventory`,
+`runtime idle CPU requires matching process inventory`,
+`20260608-044449`, and `113/113`.
+
+## 2026-06-08 Runtime Idle Matching-Process Inventory Gate Index (wiki/1055)
+
+MUSU local indexer was refreshed after wiki/1054 and GOAL v879.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `13063 ms`
+
+Indexed context now includes the runtime idle matching-process inventory
+release-gate promotion, the `113/113` verifier regression sweep rooted at
+`F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-044449`,
+and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v880`, `wiki/1055`, `3103 files`,
+`2890 symbols`, `13063 ms`, `runtime idle matching-process inventory gate index`,
+and `20260608-044449`.
+
+## 2026-06-08 Runtime Idle Direct Verifier Entry Point (wiki/1056)
+
+The runtime-idle evidence gate now has a direct entry point, so one evidence
+file can be checked without paying for the full release corpus scan.
+
+Changed files:
+
+- `scripts\windows\write-release-go-no-go.ps1`
+  now accepts `-VerifyRuntimeIdleCpuEvidencePath`
+  - resolves the provided evidence path relative to repo root when needed
+  - runs `Test-RuntimeIdleCpuEvidence` directly with repo `VERSION`,
+    current `HEAD`, `MinRuntimeIdleCpuSampleSeconds`, and
+    `MaxRuntimeIdleCpuOneCorePercent`
+  - returns the same verifier JSON and exits `1` on failure
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+  now source-contracts this entry point and uses it for targeted live fixture
+  replay instead of launching the full go/no-go corpus
+
+Why this matters:
+
+- the new `matching_process_inventory` gate is correct, but validating it by
+  spawning the entire go/no-go pipeline is too expensive and noisy
+- this direct verifier path exercises the same runtime-idle logic while keeping
+  the test scope tight
+- it is also useful for manual operator debugging when a single idle evidence
+  file needs explanation
+
+Targeted verification:
+
+- script parse sanity:
+  - `write-release-go-no-go.ps1` parsed successfully
+  - `test-release-evidence-verifiers.ps1` parsed successfully
+- synthetic direct-verifier replay:
+  - valid fixture:
+    - `valid_ok = true`
+    - `valid_fail_count = 0`
+  - same fixture with `matching_process_inventory` removed:
+    - `bad_ok = false`
+    - `bad_fail_count = 1`
+    - `bad_matching_inventory_fail = true`
+
+This proves the direct verifier accepts the fully attributed idle evidence and
+rejects the otherwise-identical payload once the machine-wide helper inventory
+is removed.
+
+Search terms should include `GOAL v881`, `wiki/1056`,
+`VerifyRuntimeIdleCpuEvidencePath`, `valid_ok=true`,
+`bad_matching_inventory_fail=true`, and `runtime idle direct verifier`.
+
+## 2026-06-08 Runtime Idle Direct Verifier Index (wiki/1057)
+
+MUSU local indexer was refreshed after wiki/1056 and GOAL v881.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `14975 ms`
+
+Indexed context now includes the `VerifyRuntimeIdleCpuEvidencePath` direct
+verifier entry point, the targeted valid/invalid fixture replay outcome, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v882`, `wiki/1057`, `3103 files`,
+`2890 symbols`, `14975 ms`, `runtime idle direct verifier index`, and
+`VerifyRuntimeIdleCpuEvidencePath`.
+
+## 2026-06-08 Verifier Regression Green After Runtime Idle Direct Path (wiki/1058)
+
+The full release evidence verifier regression is green again on current HEAD
+after replacing the expensive idle go/no-go replay with the dedicated direct
+runtime-idle verifier path.
+
+Result:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- `ok=true`
+- `case_count=115`
+- `failed_case_count=0`
+- output root:
+  `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-050742`
+
+Important coverage in this sweep:
+
+- `runtime idle CPU direct verifier entrypoint contract`
+- `runtime idle CPU direct verifier rejects missing matching process inventory in live fixture replay`
+
+This closes the loop from:
+
+- gate wiring in `write-release-go-no-go.ps1`
+- targeted direct verifier proof
+- full regression harness proof on current HEAD
+
+Search terms should include `GOAL v883`, `wiki/1058`, `115/115`,
+`20260608-050742`, `runtime idle CPU direct verifier entrypoint contract`, and
+`runtime idle CPU direct verifier rejects missing matching process inventory in live fixture replay`.
+
+## 2026-06-08 Runtime Idle Verifier Regression Green Index (wiki/1059)
+
+MUSU local indexer was refreshed after wiki/1058 and GOAL v883.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `15407 ms`
+
+Indexed context now includes the green `115/115` release evidence verifier
+regression sweep, the runtime-idle direct verifier entry point, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v884`, `wiki/1059`, `3103 files`,
+`2890 symbols`, `15407 ms`, `runtime idle verifier regression green index`,
+and `20260608-050742`.
+
+## 2026-06-08 Clean Current-Head Post-Route 60s CPU Evidence (wiki/1060)
+
+The dirty-tree blocker for one-machine `post-route` CPU evidence is now closed
+with a clean temporary worktree capture at current HEAD.
+
+Execution:
+
+- clean worktree:
+  `F:\workspace\musu-bee-clean-current`
+- HEAD:
+  `c9b39f65e618f2f10ef446a7c71d08c1bf1325ea`
+- measure command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-current\scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario post-route -SampleSeconds 60 -RunRouteProbe -Json`
+- verifier command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-current\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee-clean-current\.local-build\runtime-cpu-scenarios\20260608-051236-HUGH_SECOND\20260608-051236-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios post-route -MinSampleSeconds 60 -MaxOneCorePercent 5 -RequirePostRouteProbe -Json`
+
+Artifacts:
+
+- matrix:
+  `F:\workspace\musu-bee-clean-current\.local-build\runtime-cpu-scenarios\20260608-051236-HUGH_SECOND\20260608-051236-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- per-scenario evidence:
+  `F:\workspace\musu-bee-clean-current\.local-build\runtime-cpu-scenarios\20260608-051236-HUGH_SECOND\20260608-051236-HUGH_SECOND.post-route.evidence.json`
+
+Recorded facts:
+
+- matrix:
+  - `ok=true`
+  - `git_dirty=false`
+  - packaged WindowsApps MUSU
+  - requested scenario only: `post-route`
+- route probe:
+  - `ok=true`
+  - expected token:
+    `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051236`
+  - attempt count `1`
+- post-route measurement:
+  - `ok=true`
+  - `sample_seconds=60.043`
+  - `hot_process_count=0`
+  - owned Node `0`
+  - owned WebView2 `6`
+  - WebView2 max CPU `0.08`
+  - total working set `56.55MB`
+- verifier:
+  - `ok=true`
+  - `fail_count=0`
+
+Meaning:
+
+- the one-machine `post-route` CPU matrix no longer depends on dirty-tree
+  diagnostic evidence
+- current HEAD now has a clean, verified `post-route` 60s artifact
+- remaining route-side release blockers are still:
+  - real second-PC `post-route` CPU matrix
+  - real two-machine route proof
+
+Search terms should include `GOAL v885`, `wiki/1060`,
+`musu-bee-clean-current`, `20260608-051236-HUGH_SECOND`,
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051236`, and `clean post-route 60s`.
+
+## 2026-06-08 Clean Post-Route 60s CPU Evidence Index (wiki/1061)
+
+MUSU local indexer was refreshed after wiki/1060 and GOAL v885.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `16347 ms`
+
+Indexed context now includes the clean temporary worktree post-route 60s CPU
+artifact, its passing verifier replay, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v886`, `wiki/1061`, `3103 files`,
+`2890 symbols`, `16347 ms`, `clean post-route 60s index`, and
+`20260608-051236-HUGH_SECOND`.
+
+## 2026-06-08 Clean Current-Head 5-Scenario Runtime CPU Matrix (wiki/1062)
+
+Current HEAD now has a clean one-machine 5-scenario 60s runtime CPU matrix in a
+detached clean worktree, so startup/runtime/dashboard/desktop/post-route all
+have packaged evidence under the committed verifier.
+
+- clean worktree:
+  `F:\workspace\musu-bee-clean-current`
+- HEAD:
+  `c9b39f65e618f2f10ef446a7c71d08c1bf1325ea`
+- measure command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-current\scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json`
+- matrix:
+  `F:\workspace\musu-bee-clean-current\.local-build\runtime-cpu-scenarios\20260608-051840-HUGH_SECOND\20260608-051840-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- verifier:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee-clean-current\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee-clean-current\.local-build\runtime-cpu-scenarios\20260608-051840-HUGH_SECOND\20260608-051840-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open,post-route -MinSampleSeconds 60 -MaxOneCorePercent 5 -RequirePostRouteProbe -Json`
+- verifier result:
+  - `ok=true`
+  - `fail_count=0`
+
+Key artifact facts:
+
+- `git_dirty=false`
+- packaged WindowsApps `musu.exe`
+- route probe token:
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051840`
+- `hot_process_count=0` in every required scenario
+- owned Node `0` in every required scenario
+- owned WebView2 `6` in every required scenario
+- peak role CPU:
+  - `startup-open`: WebView2 `0.05`
+  - `runtime-started`: WebView2 `0.03`
+  - `dashboard-open`: WebView2 `0.03`
+  - `desktop-open`: WebView2 `0.05`
+  - `post-route`: MUSU `0.03`, WebView2 `0.03`
+
+Meaning:
+
+- current HEAD now has clean one-machine matrix evidence for
+  `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, and
+  `post-route`
+- the remaining one-machine nuance is narrower: standalone clean idle evidence
+  still needs a fresh clean worktree after the newer uncommitted idle-gate
+  script changes are committed, because the current clean worktree script does
+  not emit `doctor_background_snapshot` and `matching_process_inventory`
+- remaining cross-machine blockers are still:
+  - real second-PC `post-route` CPU matrix
+  - real two-machine route proof
+  - live `musu.pro` login/control-plane cleanup
+
+Search terms should include `GOAL v887`, `wiki/1062`,
+`20260608-051840-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260608_051840`,
+`clean 5-scenario 60s matrix`, and `post-route verifier pass`.
+
+## 2026-06-08 Clean 5-Scenario Runtime CPU Matrix Index (wiki/1063)
+
+MUSU local indexer was refreshed after wiki/1062 and GOAL v887.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `16032 ms`
+
+Indexed context includes the clean 5-scenario current-head matrix, its passing
+verifier replay, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v888`, `wiki/1063`, `3103 files`,
+`2890 symbols`, `16032 ms`, `clean 5-scenario matrix index`,
+`20260608-051840-HUGH_SECOND`, and `runtime CPU matrix current-head clean`.

@@ -280,6 +280,181 @@ function Invoke-JsonCommand {
     return $result.stdout | ConvertFrom-Json
 }
 
+function ConvertFrom-JsonText {
+    param([AllowEmptyString()][string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $null
+    }
+
+    try {
+        return ($Text | ConvertFrom-Json)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-JsonPropertyValue {
+    param(
+        $Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Object) {
+        return $null
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if (-not $property) {
+        return $null
+    }
+    return $property.Value
+}
+
+function Get-CandidateHostPort {
+    param([AllowEmptyString()][string]$CandidateAddr)
+
+    $result = [pscustomobject]@{
+        host = ""
+        port = $null
+    }
+    if ([string]::IsNullOrWhiteSpace($CandidateAddr)) {
+        return $result
+    }
+
+    $withoutScheme = $CandidateAddr.Trim() -replace '^[a-z][a-z0-9+.-]*://', ''
+    $authority = (($withoutScheme -split '/', 2)[0]).Trim()
+    if ([string]::IsNullOrWhiteSpace($authority)) {
+        return $result
+    }
+
+    if ($authority.StartsWith("[")) {
+        $end = $authority.IndexOf("]")
+        if ($end -gt 1) {
+            $result.host = $authority.Substring(1, $end - 1)
+            $after = $authority.Substring($end + 1)
+            if ($after.StartsWith(":")) {
+                $portValue = 0
+                if ([int]::TryParse($after.Substring(1), [ref]$portValue)) {
+                    $result.port = $portValue
+                }
+            }
+        }
+        return $result
+    }
+
+    $colonMatches = [regex]::Matches($authority, ":")
+    if ($colonMatches.Count -eq 1) {
+        $parts = $authority -split ":", 2
+        $result.host = $parts[0].Trim()
+        $portValue = 0
+        if ([int]::TryParse($parts[1], [ref]$portValue)) {
+            $result.port = $portValue
+        }
+        return $result
+    }
+
+    $result.host = $authority.Trim()
+    return $result
+}
+
+function Test-TcpPort {
+    param(
+        [Parameter(Mandatory = $true)][string]$HostName,
+        [Parameter(Mandatory = $true)][int]$Port,
+        [Parameter(Mandatory = $true)][int]$TimeoutMs
+    )
+
+    $client = [System.Net.Sockets.TcpClient]::new()
+    try {
+        $async = $client.BeginConnect($HostName, $Port, $null, $null)
+        $connected = $async.AsyncWaitHandle.WaitOne($TimeoutMs)
+        if (-not $connected) {
+            return $false
+        }
+        $client.EndConnect($async)
+        return $client.Connected
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $client.Close()
+    }
+}
+
+function Test-IcmpPing {
+    param(
+        [Parameter(Mandatory = $true)][string]$HostName,
+        [int]$TimeoutMs = 2000
+    )
+
+    try {
+        $ping = [System.Net.NetworkInformation.Ping]::new()
+        try {
+            $reply = $ping.Send($HostName, $TimeoutMs)
+            return ($reply.Status -eq [System.Net.NetworkInformation.IPStatus]::Success)
+        }
+        finally {
+            $ping.Dispose()
+        }
+    }
+    catch {
+        return $false
+    }
+}
+
+function Get-DoctorBackgroundSnapshot {
+    $doctor = Invoke-JsonCommand -FilePath $MusuExe -Arguments @("doctor", "--json") -TimeoutSec $CommandTimeoutSec
+    $background = $doctor.background
+    $account = $doctor.account
+    $bridge = $doctor.bridge
+    $dashboard = $doctor.dashboard
+
+    return [pscustomobject]@{
+        schema = "musu.runtime_cpu_background_snapshot.v1"
+        command = "musu doctor --json"
+        captured_at = (Get-Date).ToString("o")
+        overall = if ($doctor.PSObject.Properties["overall"]) { [string]$doctor.overall } else { "" }
+        distribution = if ($doctor.PSObject.Properties["distribution"]) { [string]$doctor.distribution } else { "" }
+        account_logged_in = if ($account -and $account.PSObject.Properties["logged_in"]) { [bool]$account.logged_in } else { $false }
+        bridge_service_registry_pid = if ($bridge -and $bridge.PSObject.Properties["service_registry_pid"]) { $bridge.service_registry_pid } else { $null }
+        bridge_health_http_status = if ($bridge -and $bridge.PSObject.Properties["health_http_status"]) { $bridge.health_http_status } else { $null }
+        dashboard_reachable_url = if ($dashboard -and $dashboard.PSObject.Properties["reachable_url"] -and $null -ne $dashboard.reachable_url) { [string]$dashboard.reachable_url } else { "" }
+        background = [pscustomobject]@{
+            status = if ($background -and $background.PSObject.Properties["status"]) { [string]$background.status } else { "" }
+            mdns_enabled = if ($background -and $background.mdns) { [bool]$background.mdns.enabled } else { $false }
+            mdns_ipv6_enabled = if ($background -and $background.mdns_ipv6) { [bool]$background.mdns_ipv6.enabled } else { $false }
+            mdns_tailscale_enabled = if ($background -and $background.mdns_tailscale) { [bool]$background.mdns_tailscale.enabled } else { $false }
+            mdns_virtual_interfaces_enabled = if ($background -and $background.mdns_virtual_interfaces) { [bool]$background.mdns_virtual_interfaces.enabled } else { $false }
+            clipboard_sync_enabled = if ($background -and $background.clipboard_sync) { [bool]$background.clipboard_sync.enabled } else { $false }
+            cloud_registration_enabled = if ($background -and $background.cloud_registration) { [bool]$background.cloud_registration.enabled } else { $false }
+            cloud_heartbeat_interval_sec = if ($background -and $background.PSObject.Properties["cloud_heartbeat_interval_sec"]) { [uint64]$background.cloud_heartbeat_interval_sec } else { 0 }
+            cloud_heartbeat_floor_sec = if ($background -and $background.PSObject.Properties["cloud_heartbeat_floor_sec"]) { [uint64]$background.cloud_heartbeat_floor_sec } else { 0 }
+            file_sync_enabled = if ($background -and $background.file_sync) { [bool]$background.file_sync.enabled } else { $false }
+            file_serve_root_count = if ($background -and $background.PSObject.Properties["file_serve_root_count"]) { [int]$background.file_serve_root_count } else { 0 }
+            file_serve_writable = if ($background -and $background.PSObject.Properties["file_serve_writable"]) { [bool]$background.file_serve_writable } else { $false }
+            relay_payload_poller_enabled = if ($background -and $background.relay_payload_poller) { [bool]$background.relay_payload_poller.enabled } else { $false }
+            relay_payload_poller_interval_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_interval_sec"]) { [uint64]$background.relay_payload_poller_interval_sec } else { 0 }
+            relay_payload_poller_interval_floor_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_interval_floor_sec"]) { [uint64]$background.relay_payload_poller_interval_floor_sec } else { 0 }
+            relay_payload_poller_empty_backoff_max_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_empty_backoff_max_sec"]) { [uint64]$background.relay_payload_poller_empty_backoff_max_sec } else { 0 }
+            relay_payload_poller_empty_backoff_ceiling_sec = if ($background -and $background.PSObject.Properties["relay_payload_poller_empty_backoff_ceiling_sec"]) { [uint64]$background.relay_payload_poller_empty_backoff_ceiling_sec } else { 0 }
+            relay_payload_poller_limit = if ($background -and $background.PSObject.Properties["relay_payload_poller_limit"]) { [uint32]$background.relay_payload_poller_limit } else { 0 }
+            planner_enabled = if ($background -and $background.planner) { [bool]$background.planner.enabled } else { $false }
+            planner_interval_sec = if ($background -and $background.PSObject.Properties["planner_interval_sec"]) { [uint64]$background.planner_interval_sec } else { 0 }
+            planner_interval_floor_sec = if ($background -and $background.PSObject.Properties["planner_interval_floor_sec"]) { [uint64]$background.planner_interval_floor_sec } else { 0 }
+            planner_command_timeout_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_sec"]) { [uint64]$background.planner_command_timeout_sec } else { 0 }
+            planner_command_timeout_floor_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_floor_sec"]) { [uint64]$background.planner_command_timeout_floor_sec } else { 0 }
+            planner_command_timeout_ceiling_sec = if ($background -and $background.PSObject.Properties["planner_command_timeout_ceiling_sec"]) { [uint64]$background.planner_command_timeout_ceiling_sec } else { 0 }
+            auto_update_supervise_enabled = if ($background -and $background.PSObject.Properties["auto_update_supervise"] -and $background.auto_update_supervise) { [bool]$background.auto_update_supervise.enabled } else { $false }
+            auto_update_check_interval_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_minutes"]) { [uint64]$background.auto_update_check_interval_minutes } else { 60 }
+            auto_update_check_interval_floor_minutes = if ($background -and $background.PSObject.Properties["auto_update_check_interval_floor_minutes"]) { [uint64]$background.auto_update_check_interval_floor_minutes } else { 5 }
+            auto_update_health_poll_initial_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_initial_ms"]) { [uint64]$background.auto_update_health_poll_initial_ms } else { 250 }
+            auto_update_health_poll_max_ms = if ($background -and $background.PSObject.Properties["auto_update_health_poll_max_ms"]) { [uint64]$background.auto_update_health_poll_max_ms } else { 2000 }
+        }
+    }
+}
+
 function Invoke-MeasureScenario {
     param(
         [Parameter(Mandatory = $true)][string]$Name
@@ -452,11 +627,37 @@ foreach ($name in $Scenario) {
         }
         "post-route" {
             if ($RunRouteProbe) {
+                $routeExplainArgs = @("route")
+                if (-not [string]::IsNullOrWhiteSpace($RouteTarget)) {
+                    $routeExplainArgs += @("--target", $RouteTarget)
+                }
+                $routeExplainArgs += @("--explain", "--json", $RoutePrompt)
+                $routeExplainCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeExplainArgs)
+                $routeExplainCapture = Invoke-CapturedCommand -FilePath $MusuExe -Arguments $routeExplainArgs -TimeoutSec $CommandTimeoutSec
+                $routeExplainOutput = @($routeExplainCapture.stdout, $routeExplainCapture.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                $routeExplainJson = ConvertFrom-JsonText -Text ([string]$routeExplainCapture.stdout)
+                $routeSelectedCandidate = Get-JsonPropertyValue -Object $routeExplainJson -Name "selected_candidate"
+                $routeSelectedCandidateAddr = if ($null -ne $routeSelectedCandidate) { [string](Get-JsonPropertyValue -Object $routeSelectedCandidate -Name "addr") } else { "" }
+                $routeSelectedCandidateHostPort = Get-CandidateHostPort -CandidateAddr $routeSelectedCandidateAddr
+                $routeNetworkProbe = [pscustomobject]@{
+                    target = $routeSelectedCandidateHostPort.host
+                    port = $routeSelectedCandidateHostPort.port
+                    tcp_test_succeeded = $null
+                    ping_succeeded = $null
+                }
+                if (-not [string]::IsNullOrWhiteSpace($routeSelectedCandidateHostPort.host)) {
+                    if ($null -ne $routeSelectedCandidateHostPort.port) {
+                        $routeNetworkProbe.tcp_test_succeeded = Test-TcpPort -HostName $routeSelectedCandidateHostPort.host -Port ([int]$routeSelectedCandidateHostPort.port) -TimeoutMs 3000
+                    }
+                    $routeNetworkProbe.ping_succeeded = Test-IcmpPing -HostName $routeSelectedCandidateHostPort.host -TimeoutMs 2000
+                }
+
+                $routeEvidencePath = Join-Path $OutputRoot ("{0}-{1}.post-route.route-evidence.json" -f $stamp, $machine)
                 $routeArgs = @("route")
                 if (-not [string]::IsNullOrWhiteSpace($RouteTarget)) {
                     $routeArgs += @("--target", $RouteTarget)
                 }
-                $routeArgs += @("--wait-timeout-sec", ([string]$RouteWaitTimeoutSec), "--wait", $RoutePrompt)
+                $routeArgs += @("--route-evidence-path", $routeEvidencePath, "--wait-timeout-sec", ([string]$RouteWaitTimeoutSec), "--wait", $RoutePrompt)
                 $routeCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeArgs)
                 $routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)
                 $routeAttempts = New-Object System.Collections.Generic.List[object]
@@ -497,12 +698,25 @@ foreach ($name in $Scenario) {
                     }
                     Start-Sleep -Seconds ([Math]::Max($RouteProbeRetryDelaySec, [int]$retryAfterSec))
                 }
+                $routeAttemptEvidence = $null
+                if (Test-Path -LiteralPath $routeEvidencePath) {
+                    $routeAttemptEvidence = ConvertFrom-JsonText -Text (Get-Content -LiteralPath $routeEvidencePath -Raw)
+                }
                 $routeProbe = [pscustomobject]@{
                     prompt = $RoutePrompt
                     expected_token = $expectedRouteToken
                     target = if ([string]::IsNullOrWhiteSpace($RouteTarget)) { $null } else { $RouteTarget }
+                    route_explain_command = $routeExplainCommand
+                    route_explain_exit_code = [int]$routeExplainCapture.exit_code
+                    route_explain_stdout = [string]$routeExplainCapture.stdout
+                    route_explain_stderr = [string]$routeExplainCapture.stderr
+                    route_explain_output = (($routeExplainOutput -join "`n").Trim())
+                    route_explain = $routeExplainJson
                     command = $routeCommand
                     arguments = @($routeArgs)
+                    network_probe = $routeNetworkProbe
+                    route_evidence_path = $routeEvidencePath
+                    route_attempt_evidence = $routeAttemptEvidence
                     wait_timeout_sec = $RouteWaitTimeoutSec
                     command_timeout_sec = $routeProbeCommandTimeoutSec
                     max_attempts = $RouteProbeMaxAttempts
@@ -537,6 +751,7 @@ foreach ($name in $Scenario) {
 
 $failed = @($scenarioResults | Where-Object { -not [bool]$_.measurement.ok })
 $matrixPath = Join-Path $OutputRoot ("{0}-{1}.runtime-cpu-scenario-matrix.json" -f $stamp, $machine)
+$doctorBackgroundSnapshot = Get-DoctorBackgroundSnapshot
 $result = [ordered]@{
     schema = "musu.runtime_cpu_scenario_matrix.v1"
     ok = ($failed.Count -eq 0)
@@ -559,6 +774,7 @@ $result = [ordered]@{
     output_root = $outputRootFullPath
     output_root_within_repo = [bool]$outputRootWithinRepo
     output_root_git_ignored = [bool]$outputRootGitIgnored
+    doctor_background_snapshot = $doctorBackgroundSnapshot
     route_probe = $routeProbe
     fail_count = $failed.Count
     scenarios = @($scenarioResults)

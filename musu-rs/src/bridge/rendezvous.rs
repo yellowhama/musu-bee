@@ -284,6 +284,16 @@ pub fn endpoint_addr_from_url(value: &str) -> String {
         .to_string()
 }
 
+pub fn endpoint_url_with_host(value: &str, host: &str) -> Option<String> {
+    let trimmed = value.trim().trim_end_matches('/');
+    if trimmed.is_empty() || host.trim().is_empty() {
+        return None;
+    }
+    let mut url = reqwest::Url::parse(trimmed).ok()?;
+    url.set_host(Some(host.trim())).ok()?;
+    Some(url.to_string().trim_end_matches('/').to_string())
+}
+
 fn endpoint_scheme_from_url(value: &str) -> Option<String> {
     reqwest::Url::parse(value.trim().trim_end_matches('/'))
         .ok()
@@ -301,6 +311,72 @@ fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
         crate::bridge::router::RoutePathKind::Tailscale => crate::cloud::RouteKind::Tailscale,
         crate::bridge::router::RoutePathKind::DirectQuic => crate::cloud::RouteKind::DirectQuic,
     }
+}
+
+pub fn candidate_endpoint_from_url(
+    value: &str,
+    observed_at: &str,
+    nat_type: Option<crate::cloud::NatType>,
+    nat_observed_by: Option<String>,
+) -> Option<crate::cloud::CandidateEndpoint> {
+    let addr = endpoint_addr_from_url(value);
+    if addr.trim().is_empty() {
+        return None;
+    }
+    let kind = cloud_route_kind_for_addr(&addr);
+    let is_direct = matches!(kind, crate::cloud::RouteKind::DirectQuic);
+    Some(crate::cloud::CandidateEndpoint {
+        kind,
+        addr: addr.clone(),
+        observed_at: observed_at.to_string(),
+        scheme: endpoint_scheme_from_url(value),
+        public_addr: is_direct.then_some(addr),
+        nat_type: if is_direct {
+            Some(nat_type.unwrap_or(crate::cloud::NatType::Unknown))
+        } else {
+            None
+        },
+        nat_observed_by: if is_direct { nat_observed_by } else { None },
+        relay_url: None,
+        relay_protocol: None,
+    })
+}
+
+fn push_candidate_endpoint_unique(
+    candidates: &mut Vec<crate::cloud::CandidateEndpoint>,
+    candidate: crate::cloud::CandidateEndpoint,
+) {
+    if candidates
+        .iter()
+        .any(|existing| existing.kind == candidate.kind && existing.addr == candidate.addr)
+    {
+        return;
+    }
+    candidates.push(candidate);
+}
+
+pub fn local_candidate_endpoints_for_advertised_url(
+    advertised: &str,
+    tailscale_ip: Option<&str>,
+    observed_at: &str,
+) -> Vec<crate::cloud::CandidateEndpoint> {
+    let mut candidates = Vec::new();
+    if let Some(candidate) = candidate_endpoint_from_url(advertised, observed_at, None, None) {
+        push_candidate_endpoint_unique(&mut candidates, candidate);
+    }
+    if let Some(tailscale_ip) = tailscale_ip.and_then(|value| {
+        let trimmed = value.trim();
+        (!trimmed.is_empty()).then_some(trimmed)
+    }) {
+        if let Some(tailscale_url) = endpoint_url_with_host(advertised, tailscale_ip) {
+            if let Some(candidate) =
+                candidate_endpoint_from_url(&tailscale_url, observed_at, None, None)
+            {
+                push_candidate_endpoint_unique(&mut candidates, candidate);
+            }
+        }
+    }
+    candidates
 }
 
 fn cloud_route_kind_label(kind: &crate::cloud::RouteKind) -> &'static str {
@@ -397,22 +473,16 @@ pub fn local_candidate_request_for_node_id(
     node_id: String,
 ) -> crate::cloud::P2pRendezvousCandidatesRequest {
     let advertised = crate::bridge::services::advertised_bridge_http_url(cfg);
-    let addr = endpoint_addr_from_url(&advertised);
-    let scheme = endpoint_scheme_from_url(&advertised);
+    let observed_at = chrono::Utc::now().to_rfc3339();
+    let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
     let public_key = local_identity_public_key(cfg);
     crate::cloud::P2pRendezvousCandidatesRequest {
         node_id,
-        candidate_endpoints: vec![crate::cloud::CandidateEndpoint {
-            kind: cloud_route_kind_for_addr(&addr),
-            addr,
-            observed_at: chrono::Utc::now().to_rfc3339(),
-            scheme,
-            public_addr: None,
-            nat_type: None,
-            nat_observed_by: None,
-            relay_url: None,
-            relay_protocol: None,
-        }],
+        candidate_endpoints: local_candidate_endpoints_for_advertised_url(
+            &advertised,
+            tailscale_ip.as_deref(),
+            &observed_at,
+        ),
         relay_capable: false,
         node_name: Some(cfg.node_name.clone()),
         app_version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -1033,6 +1103,35 @@ mod tests {
         let override_req = local_candidate_request_for_node_id(&cfg, "100.64.1.5:8070".into());
         assert_eq!(override_req.node_id, "100.64.1.5:8070");
         assert_eq!(override_req.node_name.as_deref(), Some("test-node"));
+    }
+
+    #[test]
+    fn local_candidate_endpoints_add_tailscale_and_direct_quic_metadata() {
+        let candidates = local_candidate_endpoints_for_advertised_url(
+            "https://203.0.113.10:8949",
+            Some("100.64.1.20"),
+            "2026-06-08T00:00:00Z",
+        );
+
+        assert_eq!(candidates.len(), 2);
+        assert!(matches!(
+            candidates[0].kind,
+            crate::cloud::RouteKind::DirectQuic
+        ));
+        assert_eq!(
+            candidates[0].public_addr.as_deref(),
+            Some("203.0.113.10:8949")
+        );
+        assert!(matches!(
+            candidates[0].nat_type,
+            Some(crate::cloud::NatType::Unknown)
+        ));
+        assert!(matches!(
+            candidates[1].kind,
+            crate::cloud::RouteKind::Tailscale
+        ));
+        assert_eq!(candidates[1].addr, "100.64.1.20:8949");
+        assert!(candidates[1].public_addr.is_none());
     }
 
     #[test]

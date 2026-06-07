@@ -34,8 +34,10 @@ use super::staged_swap;
 use super::update_lock::{UpdateLock, LOCK_HELD_EXIT_CODE};
 use super::AutoUpdateOpts;
 
-const HEALTH_POLL_INITIAL_MS: u64 = 250;
-const HEALTH_POLL_MAX_MS: u64 = 2_000;
+pub const HEALTH_POLL_INITIAL_MS: u64 = 250;
+pub const HEALTH_POLL_MAX_MS: u64 = 2_000;
+pub const AUTO_UPDATE_DEFAULT_INTERVAL_MINUTES: u64 = 60;
+pub const AUTO_UPDATE_MIN_INTERVAL_MINUTES: u64 = 5;
 
 // ── S4 / S9 typed config + manifest ───────────────────────────────────────
 
@@ -65,7 +67,7 @@ fn default_channel() -> String {
     "stable".to_string()
 }
 fn default_interval_min() -> u64 {
-    60
+    AUTO_UPDATE_DEFAULT_INTERVAL_MINUTES
 }
 
 impl UpdateConfig {
@@ -91,7 +93,7 @@ impl UpdateConfig {
             // a URL scheme; the slug regex already forbids `:` and `/`
             // beyond the single separator.
         }
-        if self.check_interval_minutes < 5 {
+        if self.check_interval_minutes < AUTO_UPDATE_MIN_INTERVAL_MINUTES {
             anyhow::bail!(
                 "update.toml: check_interval_minutes must be >= 5 (got {})",
                 self.check_interval_minutes

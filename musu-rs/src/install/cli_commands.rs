@@ -2640,16 +2640,6 @@ fn room_presence_status_label(status: &crate::cloud::RoomPresenceStatus) -> &'st
     }
 }
 
-fn cloud_route_kind_for_addr(addr: &str) -> crate::cloud::RouteKind {
-    match crate::bridge::router::route_kind_for_addr(addr) {
-        crate::bridge::router::RoutePathKind::Local | crate::bridge::router::RoutePathKind::Lan => {
-            crate::cloud::RouteKind::Lan
-        }
-        crate::bridge::router::RoutePathKind::Tailscale => crate::cloud::RouteKind::Tailscale,
-        crate::bridge::router::RoutePathKind::DirectQuic => crate::cloud::RouteKind::DirectQuic,
-    }
-}
-
 fn endpoint_scheme_from_url(value: &str) -> Option<String> {
     reqwest::Url::parse(value.trim().trim_end_matches('/'))
         .ok()
@@ -2695,36 +2685,6 @@ fn parse_relay_protocol(value: Option<&str>) -> Result<Option<crate::cloud::Rela
             "relay protocol must be one of: quic_relay_tunnel, quic_tls_1_3, websocket_tunnel, store_forward_queue"
         )),
     }
-}
-
-fn room_presence_candidate_endpoint_from_url(
-    value: &str,
-    observed_at: &str,
-    nat_type: Option<&crate::cloud::NatType>,
-    nat_observed_by: Option<&str>,
-) -> Option<crate::cloud::CandidateEndpoint> {
-    let addr = crate::bridge::rendezvous::endpoint_addr_from_url(value);
-    if addr.trim().is_empty() {
-        return None;
-    }
-    let scheme = endpoint_scheme_from_url(value);
-    let kind = cloud_route_kind_for_addr(&addr);
-    let is_direct = matches!(kind, crate::cloud::RouteKind::DirectQuic);
-    Some(crate::cloud::CandidateEndpoint {
-        kind,
-        addr: addr.clone(),
-        observed_at: observed_at.to_string(),
-        scheme,
-        public_addr: is_direct.then(|| addr.clone()),
-        nat_type: if is_direct { nat_type.cloned() } else { None },
-        nat_observed_by: if is_direct {
-            nat_observed_by.map(str::to_string)
-        } else {
-            None
-        },
-        relay_url: None,
-        relay_protocol: None,
-    })
 }
 
 fn room_presence_relay_candidate_endpoint_from_url(
@@ -2814,15 +2774,29 @@ fn room_presence_request_from_opts(
     let observed_at = chrono::Utc::now().to_rfc3339();
     let mut candidate_urls = vec![public_url];
     candidate_urls.extend(opts.candidate_urls.iter().cloned());
+    if let Some(tailscale_ip) = crate::peer::tailscale::get_tailscale_ip() {
+        if let Some(tailscale_url) =
+            crate::bridge::rendezvous::endpoint_url_with_host(&candidate_urls[0], &tailscale_ip)
+        {
+            candidate_urls.push(tailscale_url);
+        }
+    }
     let mut candidate_endpoints = Vec::new();
     for candidate_url in candidate_urls {
-        if let Some(candidate) = room_presence_candidate_endpoint_from_url(
+        if let Some(candidate) = crate::bridge::rendezvous::candidate_endpoint_from_url(
             &candidate_url,
             &observed_at,
-            nat_type.as_ref(),
-            nat_observed_by,
+            nat_type.clone(),
+            nat_observed_by.map(str::to_string),
         ) {
-            candidate_endpoints.push(candidate);
+            if !candidate_endpoints
+                .iter()
+                .any(|existing: &crate::cloud::CandidateEndpoint| {
+                    existing.kind == candidate.kind && existing.addr == candidate.addr
+                })
+            {
+                candidate_endpoints.push(candidate);
+            }
         }
     }
     if let Some(relay_url) = relay_url {
@@ -3382,6 +3356,11 @@ struct DoctorBackground {
     planner_command_timeout_sec: u64,
     planner_command_timeout_floor_sec: u64,
     planner_command_timeout_ceiling_sec: u64,
+    auto_update_supervise: DoctorBackgroundFeature,
+    auto_update_check_interval_minutes: u64,
+    auto_update_check_interval_floor_minutes: u64,
+    auto_update_health_poll_initial_ms: u64,
+    auto_update_health_poll_max_ms: u64,
     note: String,
 }
 
@@ -4074,6 +4053,28 @@ fn check_background_features(
             .ok()
             .as_deref(),
     );
+    let auto_update_config_path = home.join("update.toml");
+    let auto_update_config = if auto_update_config_path.exists() {
+        match crate::install::auto_update::UpdateConfig::load(home) {
+            Ok(config) => Ok(Some(config)),
+            Err(err) => Err(err.to_string()),
+        }
+    } else {
+        Ok(None)
+    };
+    let auto_update_supervise_enabled = matches!(
+        auto_update_config,
+        Ok(Some(crate::install::auto_update::UpdateConfig {
+            source: crate::install::auto_update::UpdateSource::GithubRelease
+                | crate::install::auto_update::UpdateSource::Git,
+            ..
+        }))
+    );
+    let auto_update_check_interval_minutes = match &auto_update_config {
+        Ok(Some(config)) => config.check_interval_minutes,
+        _ => crate::install::auto_update::AUTO_UPDATE_DEFAULT_INTERVAL_MINUTES,
+    }
+    .max(crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES);
     let cloud_heartbeat_interval_sec = std::env::var("MUSU_CLOUD_HEARTBEAT_INTERVAL_SEC")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -4092,12 +4093,14 @@ fn check_background_features(
         file_sync_enabled,
         relay_payload_poller_enabled,
         planner_enabled,
+        auto_update_supervise_enabled,
     ]
     .into_iter()
     .filter(|enabled| *enabled)
     .count();
 
-    let status = if hot_opt_ins == 0 {
+    let auto_update_config_invalid = auto_update_config.is_err();
+    let status = if hot_opt_ins == 0 && !auto_update_config_invalid {
         DoctorLevel::Ok
     } else {
         DoctorLevel::Warn
@@ -4208,7 +4211,38 @@ fn check_background_features(
         planner_command_timeout_sec,
         planner_command_timeout_floor_sec: crate::brain::planner::PLANNER_MIN_COMMAND_TIMEOUT_SEC,
         planner_command_timeout_ceiling_sec: crate::brain::planner::PLANNER_MAX_COMMAND_TIMEOUT_SEC,
-        note: if status == DoctorLevel::Ok {
+        auto_update_supervise: DoctorBackgroundFeature {
+            enabled: auto_update_supervise_enabled,
+            env_var: None,
+            note: match &auto_update_config {
+                Ok(Some(config)) if auto_update_supervise_enabled => {
+                    format!(
+                        "Auto-update supervisor is configured via update.toml with source {:?}, {}m cadence, and bounded {}-{}ms health-poll backoff; retries only run during explicit `musu auto-update --supervise`.",
+                        config.source,
+                        auto_update_check_interval_minutes,
+                        crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
+                        crate::install::auto_update::HEALTH_POLL_MAX_MS
+                    )
+                }
+                Ok(Some(_)) => {
+                    "Auto-update config is present but source=none, so no supervisor loop will run.".into()
+                }
+                Ok(None) => {
+                    "Auto-update supervisor is inactive until update.toml enables a source and `musu auto-update --supervise` is launched.".into()
+                }
+                Err(err) => format!(
+                    "update.toml is present but invalid ({err}); auto-update supervisor stays off until the config is fixed."
+                ),
+            },
+        },
+        auto_update_check_interval_minutes,
+        auto_update_check_interval_floor_minutes:
+            crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES,
+        auto_update_health_poll_initial_ms: crate::install::auto_update::HEALTH_POLL_INITIAL_MS,
+        auto_update_health_poll_max_ms: crate::install::auto_update::HEALTH_POLL_MAX_MS,
+        note: if auto_update_config_invalid {
+            "Auto-update config is invalid or one or more optional background features are enabled; include them explicitly in idle CPU evidence.".into()
+        } else if status == DoctorLevel::Ok {
             "Background work is in the low-duty default profile.".into()
         } else {
             "One or more optional background features are enabled; include them explicitly in idle CPU evidence.".into()
@@ -4568,7 +4602,7 @@ fn print_doctor_report(report: &DoctorReport) {
         &report.background.note,
     );
     println!(
-        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} relay_payload_poller={} relay_interval={}s relay_backoff_max={}s relay_limit={} planner={} planner_interval={}s planner_timeout={}s",
+        "  mDNS={} clipboard={} cloud_heartbeat={}s file_roots={} relay_payload_poller={} relay_interval={}s relay_backoff_max={}s relay_limit={} planner={} planner_interval={}s planner_timeout={}s auto_update={} auto_update_interval={}m auto_update_health_poll={}..{}ms",
         if report.background.mdns.enabled {
             "on"
         } else {
@@ -4595,7 +4629,15 @@ fn print_doctor_report(report: &DoctorReport) {
             "off"
         },
         report.background.planner_interval_sec,
-        report.background.planner_command_timeout_sec
+        report.background.planner_command_timeout_sec,
+        if report.background.auto_update_supervise.enabled {
+            "on"
+        } else {
+            "off"
+        },
+        report.background.auto_update_check_interval_minutes,
+        report.background.auto_update_health_poll_initial_ms,
+        report.background.auto_update_health_poll_max_ms
     );
     println!();
     println!("Next steps:");
@@ -5129,8 +5171,9 @@ pub async fn run_login() -> Result<()> {
     println!("   {}", flow.verification_uri);
     println!("   Code: {}", flow.user_code);
     println!(
-        "\n⏳ Waiting for approval (timeout {}s)...",
-        flow.expires_in
+        "\n⏳ Waiting for approval (timeout {}s, poll {}s)...",
+        flow.expires_in,
+        flow.poll_interval_secs()
     );
 
     let start = std::time::Instant::now();
@@ -5141,7 +5184,7 @@ pub async fn run_login() -> Result<()> {
             anyhow::bail!("Login timed out.");
         }
 
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(flow.poll_interval()).await;
 
         match cloud.poll_device_token(&flow.device_code).await {
             Ok(Some(token)) => {
@@ -5388,17 +5431,18 @@ mod tests {
             request.capabilities,
             vec!["bridge_http_forward".to_string()]
         );
-        assert_eq!(request.candidate_endpoints.len(), 1);
-        assert_eq!(request.candidate_endpoints[0].addr, "192.168.1.20:8949");
-        assert!(matches!(
-            request.candidate_endpoints[0].kind,
-            crate::cloud::RouteKind::Lan
-        ));
-        assert!(request.candidate_endpoints[0].public_addr.is_none());
-        assert!(request.candidate_endpoints[0].nat_type.is_none());
-        assert!(request.candidate_endpoints[0].relay_url.is_none());
-        assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].addr, "192.168.1.20:8949");
+        let lan = request
+            .candidate_endpoints
+            .iter()
+            .find(|candidate| candidate.addr == "192.168.1.20:8949")
+            .expect("expected LAN candidate");
+        assert!(matches!(lan.kind, crate::cloud::RouteKind::Lan));
+        assert!(lan.public_addr.is_none());
+        assert!(lan.nat_type.is_none());
+        assert!(lan.relay_url.is_none());
+        assert!(candidates
+            .iter()
+            .any(|candidate| candidate.addr == "192.168.1.20:8949"));
 
         std::env::remove_var("MUSU_NODE_NAME");
         std::env::remove_var("MUSU_BRIDGE_PUBLIC_URL");
@@ -5432,8 +5476,11 @@ mod tests {
         let (request, candidates) = room_presence_request_from_opts(&opts).unwrap();
 
         assert_eq!(request.node_id, "pc-a");
-        assert_eq!(request.candidate_endpoints.len(), 3);
-        let direct = &request.candidate_endpoints[0];
+        let direct = request
+            .candidate_endpoints
+            .iter()
+            .find(|candidate| candidate.addr == "8.8.8.8:8949")
+            .expect("expected direct candidate");
         assert!(matches!(direct.kind, crate::cloud::RouteKind::DirectQuic));
         assert_eq!(direct.addr, "8.8.8.8:8949");
         assert_eq!(direct.scheme.as_deref(), Some("https"));
@@ -5444,13 +5491,21 @@ mod tests {
         ));
         assert_eq!(direct.nat_observed_by.as_deref(), Some("stun:musu.pro"));
 
-        let tailscale = &request.candidate_endpoints[1];
+        let tailscale = request
+            .candidate_endpoints
+            .iter()
+            .find(|candidate| candidate.addr == "100.64.1.20:8949")
+            .expect("expected tailscale candidate");
         assert!(matches!(tailscale.kind, crate::cloud::RouteKind::Tailscale));
         assert_eq!(tailscale.addr, "100.64.1.20:8949");
         assert!(tailscale.public_addr.is_none());
         assert!(tailscale.nat_type.is_none());
 
-        let relay = &request.candidate_endpoints[2];
+        let relay = request
+            .candidate_endpoints
+            .iter()
+            .find(|candidate| candidate.addr == "relay.musu.pro:443")
+            .expect("expected relay candidate");
         assert!(matches!(relay.kind, crate::cloud::RouteKind::Relay));
         assert_eq!(relay.addr, "relay.musu.pro:443");
         assert_eq!(
@@ -5462,10 +5517,14 @@ mod tests {
             Some(crate::cloud::RelayProtocol::QuicRelayTunnel)
         ));
         assert!(request.relay_capable);
-        assert_eq!(candidates.len(), 3);
-        assert_eq!(candidates[0].public_addr.as_deref(), Some("8.8.8.8:8949"));
+        assert!(candidates
+            .iter()
+            .any(|candidate| candidate.public_addr.as_deref() == Some("8.8.8.8:8949")));
         assert_eq!(
-            candidates[2].relay_url.as_deref(),
+            candidates
+                .iter()
+                .find(|candidate| candidate.addr == "relay.musu.pro:443")
+                .and_then(|candidate| candidate.relay_url.as_deref()),
             Some("wss://relay.musu.pro/api/v1/relay/connect")
         );
 
@@ -5864,6 +5923,23 @@ mod tests {
             background.planner_command_timeout_sec,
             crate::brain::planner::PLANNER_DEFAULT_COMMAND_TIMEOUT_SEC
         );
+        assert!(!background.auto_update_supervise.enabled);
+        assert_eq!(
+            background.auto_update_check_interval_minutes,
+            crate::install::auto_update::AUTO_UPDATE_DEFAULT_INTERVAL_MINUTES
+        );
+        assert_eq!(
+            background.auto_update_check_interval_floor_minutes,
+            crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES
+        );
+        assert_eq!(
+            background.auto_update_health_poll_initial_ms,
+            crate::install::auto_update::HEALTH_POLL_INITIAL_MS
+        );
+        assert_eq!(
+            background.auto_update_health_poll_max_ms,
+            crate::install::auto_update::HEALTH_POLL_MAX_MS
+        );
     }
 
     #[test]
@@ -5942,6 +6018,36 @@ mod tests {
             crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC
         );
         assert_eq!(background.relay_payload_poller_limit, 5);
+    }
+
+    #[test]
+    fn doctor_background_reports_auto_update_supervisor_budget() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("update.toml"),
+            "source = \"github-release\"\ngithub_repo = \"openai/musu\"\ncheck_interval_minutes = 17\n",
+        )
+        .unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Warn);
+        assert!(background.auto_update_supervise.enabled);
+        assert_eq!(background.auto_update_check_interval_minutes, 17);
+        assert_eq!(
+            background.auto_update_check_interval_floor_minutes,
+            crate::install::auto_update::AUTO_UPDATE_MIN_INTERVAL_MINUTES
+        );
+        assert_eq!(
+            background.auto_update_health_poll_initial_ms,
+            crate::install::auto_update::HEALTH_POLL_INITIAL_MS
+        );
+        assert_eq!(
+            background.auto_update_health_poll_max_ms,
+            crate::install::auto_update::HEALTH_POLL_MAX_MS
+        );
     }
 
     fn clear_background_env() {

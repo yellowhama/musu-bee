@@ -11063,3 +11063,31 @@ MUSU release UX must continue to state:
 Canonical report:
 
 - `docs\RESEARCH_AGENT_CONTROL_SAAS_LOCAL_FLEET_CONTROL_PLANE_ADDENDUM_2026_06_07.md`
+
+## 2026-06-08 Clean One-Machine Packaged Desktop CPU Recheck
+
+One-machine packaged Desktop CPU is green again from a clean tree on
+`HUGH_SECOND`.
+
+Evidence:
+
+- clean 4-state matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-025226-HUGH_SECOND\20260608-025226-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- clean `desktop-open` idle CPU:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-025738.json`
+
+Current one-machine CPU facts:
+
+- matrix verifier: `ok=true`, `fail_count=0`, `git_dirty=false`
+- `startup-open`: MUSU `1.41`, WebView2 `0.81`
+- `runtime-started`: MUSU `0`, WebView2 `0.13`
+- `dashboard-open`: MUSU `0`, WebView2 `0.08`
+- `desktop-open`: MUSU `0`, WebView2 `0.08`
+- separate `desktop-open` idle sample: MUSU `0.42`, WebView2 `0.10`
+- owned WebView2 `6`, owned Node `0`, hot process count `0`
+
+Release status:
+
+- this does not reproduce a local one-machine idle busy-loop;
+- one-machine packaged CPU evidence is currently healthy;
+- remaining CPU gate is second-PC `post-route` / two-machine runtime capture.

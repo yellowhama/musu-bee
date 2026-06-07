@@ -79,6 +79,18 @@ pub struct DeviceCodeResponse {
     pub device_code: String,
     pub verification_uri: String,
     pub expires_in: u32,
+    #[serde(default, alias = "interval_seconds", alias = "poll_interval_sec")]
+    pub interval: Option<u32>,
+}
+
+impl DeviceCodeResponse {
+    pub fn poll_interval_secs(&self) -> u32 {
+        self.interval.unwrap_or(5).max(5)
+    }
+
+    pub fn poll_interval(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(self.poll_interval_secs() as u64)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -1078,7 +1090,7 @@ impl MusuCloud {
 
         let resp = self
             .client
-            .post(url)
+            .post(url.clone())
             .bearer_auth(token)
             .json(req)
             .send()
@@ -1129,7 +1141,12 @@ impl MusuCloud {
             }
         }
 
-        let resp = self.client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .client
+            .get(url.clone())
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             return Err(cloud_api_error("Failed to query room presence", url.as_ref(), resp).await);
@@ -1152,7 +1169,7 @@ impl MusuCloud {
 
         let resp = self
             .client
-            .patch(url)
+            .patch(url.clone())
             .bearer_auth(token)
             .json(claim)
             .send()
@@ -1181,7 +1198,7 @@ impl MusuCloud {
 
         let resp = self
             .client
-            .patch(url)
+            .patch(url.clone())
             .bearer_auth(token)
             .json(delivery)
             .send()
@@ -1371,7 +1388,12 @@ impl MusuCloud {
             }
         }
 
-        let resp = self.client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .client
+            .get(url.clone())
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             return Err(cloud_api_error("Failed to query relay leases", url.as_ref(), resp).await);
@@ -1434,7 +1456,12 @@ impl MusuCloud {
             }
         }
 
-        let resp = self.client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .client
+            .get(url.clone())
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             return Err(
@@ -1563,7 +1590,12 @@ impl MusuCloud {
             }
         }
 
-        let resp = self.client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .client
+            .get(url.clone())
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             return Err(
@@ -1778,6 +1810,52 @@ mod tests {
         assert_eq!(
             response.presence[0].candidate_endpoints[0].kind,
             RouteKind::Lan
+        );
+    }
+
+    #[test]
+    fn device_code_response_defaults_poll_interval_to_five_seconds() {
+        let response: DeviceCodeResponse = serde_json::from_value(serde_json::json!({
+            "user_code": "ABCD-EFGH",
+            "device_code": "device-123",
+            "verification_uri": "https://musu.pro/device",
+            "expires_in": 900
+        }))
+        .unwrap();
+
+        assert_eq!(response.interval, None);
+        assert_eq!(response.poll_interval_secs(), 5);
+        assert_eq!(response.poll_interval(), std::time::Duration::from_secs(5));
+    }
+
+    #[test]
+    fn device_code_response_honors_interval_field_with_five_second_floor() {
+        let response: DeviceCodeResponse = serde_json::from_value(serde_json::json!({
+            "user_code": "ABCD-EFGH",
+            "device_code": "device-123",
+            "verification_uri": "https://musu.pro/device",
+            "expires_in": 900,
+            "interval": 2
+        }))
+        .unwrap();
+
+        assert_eq!(response.interval, Some(2));
+        assert_eq!(response.poll_interval_secs(), 5);
+
+        let alias_response: DeviceCodeResponse = serde_json::from_value(serde_json::json!({
+            "user_code": "ABCD-EFGH",
+            "device_code": "device-456",
+            "verification_uri": "https://musu.pro/device",
+            "expires_in": 900,
+            "poll_interval_sec": 9
+        }))
+        .unwrap();
+
+        assert_eq!(alias_response.interval, Some(9));
+        assert_eq!(alias_response.poll_interval_secs(), 9);
+        assert_eq!(
+            alias_response.poll_interval(),
+            std::time::Duration::from_secs(9)
         );
     }
 

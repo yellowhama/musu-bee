@@ -179,6 +179,53 @@ function Test-RouteTargetIsLocal {
     return $false
 }
 
+function Get-CandidateHostPort {
+    param([AllowEmptyString()][string]$CandidateAddr)
+
+    $result = [pscustomobject]@{
+        host = ""
+        port = $null
+    }
+    if ([string]::IsNullOrWhiteSpace($CandidateAddr)) {
+        return $result
+    }
+
+    $withoutScheme = $CandidateAddr.Trim() -replace '^[a-z][a-z0-9+.-]*://', ''
+    $authority = (($withoutScheme -split '/', 2)[0]).Trim()
+    if ([string]::IsNullOrWhiteSpace($authority)) {
+        return $result
+    }
+
+    if ($authority.StartsWith("[")) {
+        $end = $authority.IndexOf("]")
+        if ($end -gt 1) {
+            $result.host = $authority.Substring(1, $end - 1)
+            $after = $authority.Substring($end + 1)
+            if ($after.StartsWith(":")) {
+                $portValue = 0
+                if ([int]::TryParse($after.Substring(1), [ref]$portValue)) {
+                    $result.port = $portValue
+                }
+            }
+        }
+        return $result
+    }
+
+    $colonMatches = [regex]::Matches($authority, ":")
+    if ($colonMatches.Count -eq 1) {
+        $parts = $authority -split ":", 2
+        $result.host = $parts[0].Trim()
+        $portValue = 0
+        if ([int]::TryParse($parts[1], [ref]$portValue)) {
+            $result.port = $portValue
+        }
+        return $result
+    }
+
+    $result.host = $authority.Trim()
+    return $result
+}
+
 function Test-ReleaseEvidenceFreshnessAllowedPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -466,6 +513,70 @@ if ($matrix) {
 
     $maxTotalWorkingSetMb = if ($matrix.PSObject.Properties["max_total_working_set_mb"]) { [double]$matrix.max_total_working_set_mb } else { 0.0 }
     Add-CheckFromCondition "working set budget present" ($maxTotalWorkingSetMb -gt 0.0) "working set budget is ${maxTotalWorkingSetMb}MB" "working set budget is missing"
+
+    $doctorBackgroundSnapshot = Get-JsonPropertyValue -Object $matrix -Name "doctor_background_snapshot"
+    Add-CheckFromCondition "doctor background snapshot present" ($null -ne $doctorBackgroundSnapshot) "runtime CPU matrix captures a MUSU doctor background snapshot" "runtime CPU matrix is missing doctor_background_snapshot"
+    if ($null -ne $doctorBackgroundSnapshot) {
+        $doctorSnapshotSchema = Get-JsonPropertyString -Object $doctorBackgroundSnapshot -Name "schema"
+        Add-CheckFromCondition "doctor background snapshot schema" ($doctorSnapshotSchema -eq "musu.runtime_cpu_background_snapshot.v1") "doctor background snapshot schema is valid" "doctor background snapshot schema is '$doctorSnapshotSchema'"
+
+        $doctorSnapshotCommand = Get-JsonPropertyString -Object $doctorBackgroundSnapshot -Name "command"
+        Add-CheckFromCondition "doctor background snapshot command" ($doctorSnapshotCommand -eq "musu doctor --json") "doctor background snapshot records the MUSU doctor command" "doctor background snapshot command is '$doctorSnapshotCommand'"
+
+        $doctorBackground = Get-JsonPropertyValue -Object $doctorBackgroundSnapshot -Name "background"
+        Add-CheckFromCondition "doctor background fields present" ($null -ne $doctorBackground) "doctor background snapshot includes background feature fields" "doctor background snapshot is missing background feature fields"
+        if ($null -ne $doctorBackground) {
+            $backgroundFieldNames = @(
+                "mdns_enabled",
+                "clipboard_sync_enabled",
+                "cloud_registration_enabled",
+                "cloud_heartbeat_interval_sec",
+                "cloud_heartbeat_floor_sec",
+                "relay_payload_poller_enabled",
+                "relay_payload_poller_interval_sec",
+                "relay_payload_poller_interval_floor_sec",
+                "planner_enabled",
+                "planner_interval_sec",
+                "planner_interval_floor_sec",
+                "planner_command_timeout_sec",
+                "planner_command_timeout_floor_sec",
+                "planner_command_timeout_ceiling_sec",
+                "auto_update_supervise_enabled",
+                "auto_update_check_interval_minutes",
+                "auto_update_check_interval_floor_minutes",
+                "auto_update_health_poll_initial_ms",
+                "auto_update_health_poll_max_ms"
+            )
+            $missingBackgroundFields = @($backgroundFieldNames | Where-Object { -not $doctorBackground.PSObject.Properties[$_] })
+            Add-CheckFromCondition "doctor background required fields" ($missingBackgroundFields.Count -eq 0) "doctor background snapshot includes the required loop-attribution fields" "doctor background snapshot is missing fields: $($missingBackgroundFields -join ', ')"
+            if ($missingBackgroundFields.Count -eq 0) {
+                $cloudHeartbeatIntervalSec = [uint64]$doctorBackground.cloud_heartbeat_interval_sec
+                $cloudHeartbeatFloorSec = [uint64]$doctorBackground.cloud_heartbeat_floor_sec
+                Add-CheckFromCondition "doctor background cloud heartbeat floor" ($cloudHeartbeatIntervalSec -ge $cloudHeartbeatFloorSec -and $cloudHeartbeatFloorSec -ge 60) "doctor background snapshot records a low-duty cloud heartbeat floor" "doctor background snapshot records invalid cloud heartbeat interval/floor values"
+
+                $relayPollerIntervalSec = [uint64]$doctorBackground.relay_payload_poller_interval_sec
+                $relayPollerFloorSec = [uint64]$doctorBackground.relay_payload_poller_interval_floor_sec
+                Add-CheckFromCondition "doctor background relay poller floor" ($relayPollerIntervalSec -ge $relayPollerFloorSec) "doctor background snapshot records bounded relay payload poller cadence" "doctor background snapshot records invalid relay payload poller interval/floor values"
+
+                $plannerIntervalSec = [uint64]$doctorBackground.planner_interval_sec
+                $plannerIntervalFloorSec = [uint64]$doctorBackground.planner_interval_floor_sec
+                Add-CheckFromCondition "doctor background planner floor" ($plannerIntervalSec -ge $plannerIntervalFloorSec) "doctor background snapshot records bounded planner cadence" "doctor background snapshot records invalid planner interval/floor values"
+
+                $plannerTimeoutSec = [uint64]$doctorBackground.planner_command_timeout_sec
+                $plannerTimeoutFloorSec = [uint64]$doctorBackground.planner_command_timeout_floor_sec
+                $plannerTimeoutCeilingSec = [uint64]$doctorBackground.planner_command_timeout_ceiling_sec
+                Add-CheckFromCondition "doctor background planner timeout bounds" ($plannerTimeoutSec -ge $plannerTimeoutFloorSec -and $plannerTimeoutSec -le $plannerTimeoutCeilingSec) "doctor background snapshot records bounded planner command timeout" "doctor background snapshot records invalid planner timeout bounds"
+
+                $autoUpdateIntervalMinutes = [uint64]$doctorBackground.auto_update_check_interval_minutes
+                $autoUpdateIntervalFloorMinutes = [uint64]$doctorBackground.auto_update_check_interval_floor_minutes
+                Add-CheckFromCondition "doctor background auto-update interval floor" ($autoUpdateIntervalMinutes -ge $autoUpdateIntervalFloorMinutes -and $autoUpdateIntervalFloorMinutes -ge 5) "doctor background snapshot records bounded auto-update supervisor cadence" "doctor background snapshot records invalid auto-update interval/floor values"
+
+                $autoUpdateHealthPollInitialMs = [uint64]$doctorBackground.auto_update_health_poll_initial_ms
+                $autoUpdateHealthPollMaxMs = [uint64]$doctorBackground.auto_update_health_poll_max_ms
+                Add-CheckFromCondition "doctor background auto-update health poll bounds" ($autoUpdateHealthPollInitialMs -ge 250 -and $autoUpdateHealthPollInitialMs -le $autoUpdateHealthPollMaxMs -and $autoUpdateHealthPollMaxMs -le 2000) "doctor background snapshot records bounded auto-update health polling backoff" "doctor background snapshot records invalid auto-update health polling bounds"
+            }
+        }
+    }
 
     $scenarioEntries = @(Get-JsonPropertyValue -Object $matrix -Name "scenarios" -DefaultValue @())
     foreach ($required in $RequiredScenarios) {
@@ -816,6 +927,48 @@ if ($matrix) {
                     "post-route successful route output does not contain expected token '$routeExpectedToken'"
             }
 
+            $routeExplain = Get-JsonPropertyValue -Object $routeProbe -Name "route_explain"
+            $routeExplainPresent = ($null -ne $routeExplain)
+            Add-CheckFromCondition `
+                "post-route route explain present" `
+                $routeExplainPresent `
+                "post-route route probe includes route explain metadata" `
+                "post-route route probe is missing route_explain"
+            if ($routeExplainPresent) {
+                $routeExplainSchema = Get-JsonPropertyString -Object $routeExplain -Name "schema"
+                Add-CheckFromCondition `
+                    "post-route route explain schema" `
+                    ($routeExplainSchema -eq "musu.route_explain.v1") `
+                    "post-route route explain schema is valid" `
+                    "post-route route explain schema is '$routeExplainSchema'"
+                $routeExplainRequestedTarget = Get-JsonPropertyString -Object $routeExplain -Name "requested_target"
+                $routeExplainPathPriority = @(
+                    $pathPriorityValue = Get-JsonPropertyValue -Object $routeExplain -Name "path_priority"
+                    if ($null -ne $pathPriorityValue) {
+                        @($pathPriorityValue | ForEach-Object { [string]$_ })
+                    }
+                )
+                $expectedPathPriority = @("lan", "tailscale", "direct_quic", "relay")
+                $missingPathPriority = @($expectedPathPriority | Where-Object { $_ -notin $routeExplainPathPriority })
+                Add-CheckFromCondition `
+                    "post-route route explain path priority" `
+                    ($missingPathPriority.Count -eq 0) `
+                    "post-route route explain records lan/tailscale/direct_quic/relay priority" `
+                    "post-route route explain path priority is missing: $($missingPathPriority -join ', ')"
+                $bridgePathSelectionWired = ($routeExplain.PSObject.Properties["bridge_path_selection_wired"] -and [bool]$routeExplain.bridge_path_selection_wired)
+                Add-CheckFromCondition `
+                    "post-route route explain bridge path selection wired" `
+                    $bridgePathSelectionWired `
+                    "post-route route explain records bridge_path_selection_wired=true" `
+                    "post-route route explain does not record bridge_path_selection_wired=true"
+                $rendezvousSessionWired = ($routeExplain.PSObject.Properties["rendezvous_session_wired"] -and [bool]$routeExplain.rendezvous_session_wired)
+                Add-CheckFromCondition `
+                    "post-route route explain rendezvous wired" `
+                    $rendezvousSessionWired `
+                    "post-route route explain records rendezvous_session_wired=true" `
+                    "post-route route explain does not record rendezvous_session_wired=true"
+            }
+
             $routeTarget = Get-JsonPropertyString -Object $routeProbe -Name "target"
             if ($RequirePostRouteTarget) {
                 Add-CheckFromCondition `
@@ -839,6 +992,11 @@ if ($matrix) {
                     $routeArgumentsBindTarget `
                     "post-route route arguments record --target $routeTarget" `
                     "post-route route arguments do not bind --target $routeTarget"
+                Add-CheckFromCondition `
+                    "post-route route explain target" `
+                    ($routeExplainPresent -and $routeExplainRequestedTarget -eq $routeTarget) `
+                    "post-route route explain requested target matches the route probe target" `
+                    "post-route route explain requested target is '$routeExplainRequestedTarget', expected '$routeTarget'"
             }
             if (-not [string]::IsNullOrWhiteSpace($ExpectedPostRouteTarget)) {
                 Add-CheckFromCondition `
@@ -860,6 +1018,96 @@ if ($matrix) {
                     (-not (Test-RouteTargetIsLocal -Target $routeTarget)) `
                     "post-route route target is not localhost or loopback" `
                     "post-route route target '$routeTarget' must not be localhost, loopback, or a local-only alias for second-PC route-attempt evidence"
+            }
+
+            $routeEvidencePath = Get-JsonPropertyString -Object $routeProbe -Name "route_evidence_path"
+            Add-CheckFromCondition `
+                "post-route route evidence path" `
+                (-not [string]::IsNullOrWhiteSpace($routeEvidencePath)) `
+                "post-route route probe records route_evidence_path" `
+                "post-route route probe is missing route_evidence_path"
+
+            $routeAttemptEvidence = Get-JsonPropertyValue -Object $routeProbe -Name "route_attempt_evidence"
+            $routeAttemptEvidencePresent = ($null -ne $routeAttemptEvidence)
+            Add-CheckFromCondition `
+                "post-route route attempt evidence present" `
+                $routeAttemptEvidencePresent `
+                "post-route route probe includes parsed route attempt evidence" `
+                "post-route route probe is missing route_attempt_evidence"
+            if ($routeAttemptEvidencePresent) {
+                $routeAttemptSchema = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "schema"
+                Add-CheckFromCondition `
+                    "post-route route attempt evidence schema" `
+                    ($routeAttemptSchema -eq "musu.route_evidence.v1") `
+                    "post-route route attempt evidence schema is valid" `
+                    "post-route route attempt evidence schema is '$routeAttemptSchema'"
+                $routeAttemptResult = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "result"
+                Add-CheckFromCondition `
+                    "post-route route attempt result present" `
+                    (-not [string]::IsNullOrWhiteSpace($routeAttemptResult)) `
+                    "post-route route attempt evidence records result" `
+                    "post-route route attempt evidence is missing result"
+                $routeAttemptKind = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "route_kind"
+                Add-CheckFromCondition `
+                    "post-route route attempt kind present" `
+                    (-not [string]::IsNullOrWhiteSpace($routeAttemptKind)) `
+                    "post-route route attempt evidence records route_kind" `
+                    "post-route route attempt evidence is missing route_kind"
+                $routeAttemptCandidateAddr = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "candidate_addr"
+                Add-CheckFromCondition `
+                    "post-route route attempt candidate addr present" `
+                    (-not [string]::IsNullOrWhiteSpace($routeAttemptCandidateAddr)) `
+                    "post-route route attempt evidence records candidate_addr" `
+                    "post-route route attempt evidence is missing candidate_addr"
+                $routeAttemptHasPeerIdentity = $routeAttemptEvidence.PSObject.Properties["peer_identity_verified"]
+                Add-CheckFromCondition `
+                    "post-route route attempt peer identity field" `
+                    ([bool]$routeAttemptHasPeerIdentity) `
+                    "post-route route attempt evidence records peer_identity_verified" `
+                    "post-route route attempt evidence is missing peer_identity_verified"
+                $routeAttemptEncryption = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "encryption"
+                Add-CheckFromCondition `
+                    "post-route route attempt encryption present" `
+                    (-not [string]::IsNullOrWhiteSpace($routeAttemptEncryption)) `
+                    "post-route route attempt evidence records encryption" `
+                    "post-route route attempt evidence is missing encryption"
+                if (-not [string]::IsNullOrWhiteSpace($routeTarget)) {
+                    $routeAttemptTargetNodeId = Get-JsonPropertyString -Object $routeAttemptEvidence -Name "target_node_id"
+                    Add-CheckFromCondition `
+                        "post-route route attempt target matches route target" `
+                        ($routeAttemptTargetNodeId -eq $routeTarget) `
+                        "post-route route attempt evidence target matches route target" `
+                        "post-route route attempt evidence target is '$routeAttemptTargetNodeId', expected '$routeTarget'"
+                }
+            }
+
+            $routeNetworkProbe = Get-JsonPropertyValue -Object $routeProbe -Name "network_probe"
+            $routeSelectedCandidate = if ($routeExplainPresent) { Get-JsonPropertyValue -Object $routeExplain -Name "selected_candidate" } else { $null }
+            $routeSelectedCandidateAddr = if ($null -ne $routeSelectedCandidate) { Get-JsonPropertyString -Object $routeSelectedCandidate -Name "addr" } else { "" }
+            if (-not [string]::IsNullOrWhiteSpace($routeSelectedCandidateAddr)) {
+                $routeSelectedCandidateHostPort = Get-CandidateHostPort -CandidateAddr $routeSelectedCandidateAddr
+                $routeNetworkProbePresent = ($null -ne $routeNetworkProbe)
+                Add-CheckFromCondition `
+                    "post-route network probe present" `
+                    $routeNetworkProbePresent `
+                    "post-route route probe includes network probe for the selected candidate" `
+                    "post-route route probe is missing network_probe for the selected candidate"
+                if ($routeNetworkProbePresent) {
+                    $routeNetworkTarget = Get-JsonPropertyString -Object $routeNetworkProbe -Name "target"
+                    Add-CheckFromCondition `
+                        "post-route network probe target" `
+                        ($routeNetworkTarget -eq $routeSelectedCandidateHostPort.host) `
+                        "post-route network probe target matches selected candidate host" `
+                        "post-route network probe target is '$routeNetworkTarget', expected '$($routeSelectedCandidateHostPort.host)'"
+                    if ($null -ne $routeSelectedCandidateHostPort.port) {
+                        $routeNetworkPort = if ($routeNetworkProbe.PSObject.Properties["port"] -and $null -ne $routeNetworkProbe.port) { [int]$routeNetworkProbe.port } else { 0 }
+                        Add-CheckFromCondition `
+                            "post-route network probe port" `
+                            ($routeNetworkPort -eq [int]$routeSelectedCandidateHostPort.port) `
+                            "post-route network probe port matches selected candidate port" `
+                            "post-route network probe port is '$routeNetworkPort', expected '$($routeSelectedCandidateHostPort.port)'"
+                    }
+                }
             }
         }
     }
