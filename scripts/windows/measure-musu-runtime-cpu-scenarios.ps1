@@ -406,21 +406,31 @@ function Test-IcmpPing {
 
 function Get-DoctorBackgroundSnapshot {
     $expectedBackgroundFieldNames = @(
-        "mdns_enabled",
-        "clipboard_sync_enabled",
-        "cloud_registration_enabled",
+        "status",
+        "mdns",
+        "mdns_ipv6",
+        "mdns_tailscale",
+        "mdns_virtual_interfaces",
+        "clipboard_sync",
+        "cloud_registration",
         "cloud_heartbeat_interval_sec",
         "cloud_heartbeat_floor_sec",
-        "relay_payload_poller_enabled",
+        "file_sync",
+        "file_serve_root_count",
+        "file_serve_writable",
+        "relay_payload_poller",
         "relay_payload_poller_interval_sec",
         "relay_payload_poller_interval_floor_sec",
-        "planner_enabled",
+        "relay_payload_poller_empty_backoff_max_sec",
+        "relay_payload_poller_empty_backoff_ceiling_sec",
+        "relay_payload_poller_limit",
+        "planner",
         "planner_interval_sec",
         "planner_interval_floor_sec",
         "planner_command_timeout_sec",
         "planner_command_timeout_floor_sec",
         "planner_command_timeout_ceiling_sec",
-        "auto_update_supervise_enabled",
+        "auto_update_supervise",
         "auto_update_check_interval_minutes",
         "auto_update_check_interval_floor_minutes",
         "auto_update_health_poll_initial_ms",
@@ -429,7 +439,8 @@ function Get-DoctorBackgroundSnapshot {
         "bridge_health_poll_max_ms",
         "runtime_loop_candidates",
         "active_runtime_loop_candidate_count",
-        "active_runtime_loop_candidate_keys"
+        "active_runtime_loop_candidate_keys",
+        "note"
     )
     $expectedRuntimeLoopCandidateKeys = @(
         "mdns_discovery",
