@@ -14176,3 +14176,91 @@ Search terms should include `GOAL v769`, `wiki/944`,
 `2861 files`, `2790 symbols`,
 `11722 ms`, `single_machine_verified=false`,
 `runtime_idle_cpu_valid_machine_count=0`, and `fresh packaged local evidence`.
+
+## 2026-06-07 Current-Head Local Desktop Evidence After Relay Metadata Gate (wiki/945)
+
+Current packaged local desktop evidence was refreshed on `HUGH_SECOND` after
+the release relay tunnel submit metadata gate changed Rust runtime source.
+
+Evidence promoted:
+
+- MSIX install: `20260607-090353-HUGH_SECOND`
+- single-machine smoke: `20260607-090436-HUGH_SECOND`
+- process ownership: `20260607-090457-HUGH_SECOND`
+- startup single-instance: `20260607-090512-HUGH_SECOND`
+- desktop single-instance: `20260607-090550-HUGH_SECOND`
+- desktop-open idle CPU: `20260607-092453-HUGH_SECOND`
+- five-state CPU matrix: `20260607-091438-HUGH_SECOND`
+- HUGH-MAIN target-route CPU attempt: `20260607-092030-HUGH_SECOND`
+
+Results:
+
+- MSIX install evidence passed with `warn-explicit-windowsapps` alias mode
+  because this shell still resolves `C:\Users\empty\.cargo\bin\musu.exe`
+  before the WindowsApps alias.
+- Single-machine smoke passed on `local-bridge-only` with bridge
+  `http://127.0.0.1:14361` and CLI route checked.
+- Process ownership passed with packaged runtime `1`, owned Node `0`, owned
+  WebView2 `0`, and repo orphan helpers `0`.
+- Startup single-instance reused bridge PID `34860` across repeated `musu up`
+  invocations.
+- Desktop single-instance kept one packaged `musu-desktop` process after three
+  activations.
+- Desktop-open idle CPU passed for `60.03s` with bridge runtime `1`, desktop
+  shell `1`, owned WebView2 `6`, hot process count `0`, and WebView2 max
+  `0.18` of one logical core.
+- Five-state CPU matrix passed for `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`; route probe succeeded.
+- Target-route CPU passed after a `HUGH-MAIN` route attempt; the route output
+  did not contain the expected token, but the failed attempt was explicitly
+  allowed and the post-route CPU sample passed.
+
+Clean go/no-go after evidence promotion:
+
+- `ready_for_public_desktop_release=false`
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `p2p_control_plane_env_ready=false`
+- `multi_device_verified=false`
+- `manifest_git.dirty=false`
+
+Qualitative audit: no high or medium issue found. The current packaged local
+desktop runtime does not reproduce the reported idle CPU busy-loop on
+`HUGH_SECOND`. Public release remains No-Go because idle CPU and five-state
+matrix evidence require two machines, and multi-device, hosted MUSU.PRO
+P2P/relay, support mailbox, and Store evidence remain missing.
+
+Search terms should include `GOAL v770`, `wiki/945`,
+`current-head local desktop evidence after relay metadata gate`,
+`20260607-090436-HUGH_SECOND`, `20260607-092453`,
+`20260607-091438`, `20260607-092030`, `WebView2 max 0.18`,
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`.
+
+## 2026-06-07 Current-Head Local Desktop Evidence After Relay Metadata Gate Index Refresh (wiki/946)
+
+MUSU local indexer was refreshed after wiki/945 and GOAL v770.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2879 files`
+- `2790 symbols`
+- `57437 ms`
+
+Indexed context includes the current-head local desktop evidence refresh,
+promoted evidence JSON, canonical report, BETA checklist, runtime
+stabilization spec, GOAL, WIKI_INDEX, and CoS memory.
+
+Search terms should include `GOAL v771`, `wiki/946`,
+`current-head local desktop evidence after relay metadata gate index refresh`,
+`2879 files`, `2790 symbols`,
+`57437 ms`, `20260607-092453`, `20260607-091438`, and
+`20260607-092030`.

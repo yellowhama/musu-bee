@@ -6394,4 +6394,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release relay tunnel submit metadata clean go-no-go index refresh`,
   `single_machine_verified=false`, and `fresh packaged local evidence`.
 
+- 2026-06-07 current-head local desktop evidence after relay metadata gate:
+  `RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_RELAY_METADATA_GATE_2026_06_07.md`
+  (wiki/945) records the rebuilt/reinstalled current package and refreshed
+  one-machine evidence after the Rust relay metadata gate. Search terms should
+  include `GOAL v770`, `wiki/945`, `20260607-090436-HUGH_SECOND`,
+  `20260607-092453`, `20260607-091438`, `20260607-092030`,
+  `WebView2 max 0.18`, `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+
+- 2026-06-07 current-head local desktop evidence after relay metadata gate
+  index refresh:
+  wiki/946 records the MUSU local index refresh after wiki/945 and GOAL v770.
+  Search terms should include `GOAL v771`, `wiki/946`,
+  `2879 files`, `2790 symbols`,
+  `57437 ms`,
+  `current-head local desktop evidence after relay metadata gate index refresh`,
+  `20260607-092453`, `20260607-091438`, and `20260607-092030`.
+
 **End of WIKI_INDEX.md.**

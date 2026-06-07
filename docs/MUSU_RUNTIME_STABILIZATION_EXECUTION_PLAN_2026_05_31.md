@@ -726,3 +726,37 @@ This is runtime source-contract hardening only. It does not implement
 `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED`. Because runtime source changed, packaged
 local evidence must be refreshed after this lands before local desktop evidence
 can be treated as current for release.
+
+## 2026-06-07 Current-Head Local Desktop Evidence After Relay Metadata Gate
+
+After the release relay tunnel submit metadata gate landed, current packaged
+local desktop evidence was refreshed on `HUGH_SECOND`.
+
+Evidence status:
+
+- MSIX rebuild/reinstall passed for local sideload/manual bridge contract
+- single-machine smoke passed on `local-bridge-only`
+- process ownership passed with one packaged runtime and no MUSU-owned Node or
+  WebView2 helpers before desktop activation
+- startup single-instance reused bridge PID `34860`
+- desktop single-instance kept one packaged `musu-desktop` process after
+  repeated activation
+- desktop-open idle CPU passed for `60.03s` with owned WebView2 `6`, hot
+  process count `0`, and WebView2 max `0.18` of one logical core
+- five-state runtime CPU matrix passed with a successful post-route probe
+- HUGH-MAIN target-route CPU attempt passed CPU budget with the failed route
+  output explicitly allowed for attempt evidence
+
+Go/no-go interpretation:
+
+- local desktop gates are current again for this machine
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- public release remains blocked because idle CPU and matrix gates require two
+  machines, and multi-device, hosted MUSU.PRO P2P/relay, support mailbox, and
+  Store evidence remain missing
+
+Next stabilization step: run the same packaged evidence pack on the second
+machine, then address hosted MUSU.PRO P2P/relay proof without moving local
+execution into the web server.
