@@ -84,6 +84,8 @@ $handoff = $null
 $msixLegacyConflicts = $null
 $msixLegacyConflictsError = $null
 $runtimeIdleCpu = $null
+$runtimeIdleCpuVerification = $null
+$runtimeIdleCpuError = $null
 $runtimeCpuScenarioMatrix = $null
 $runtimeCpuScenarioMatrixPath = $null
 $runtimeCpuScenarioMatrixError = $null
@@ -514,6 +516,49 @@ try {
                 "-Json"
             ) `
             -ParseJson
+
+        if (Test-Path -LiteralPath $runtimeIdleCpuEvidencePath) {
+            $verifyRuntimeIdleScript = Join-Path $scriptDir "write-release-go-no-go.ps1"
+            if (Test-Path -LiteralPath $verifyRuntimeIdleScript) {
+                $startedAt = Get-Date
+                $verifyRuntimeIdleOutput = & powershell `
+                    -NoProfile `
+                    -ExecutionPolicy Bypass `
+                    -File $verifyRuntimeIdleScript `
+                    -VerifyRuntimeIdleCpuEvidencePath $runtimeIdleCpuEvidencePath `
+                    -Json 2>&1
+                $verifyRuntimeIdleExitCode = $LASTEXITCODE
+                $verifyRuntimeIdleRaw = ($verifyRuntimeIdleOutput | Out-String).Trim()
+                $verifyRuntimeIdleParsed = $null
+                if (-not [string]::IsNullOrWhiteSpace($verifyRuntimeIdleRaw)) {
+                    try {
+                        $verifyRuntimeIdleParsed = $verifyRuntimeIdleRaw | ConvertFrom-Json
+                    }
+                    catch {
+                        $verifyRuntimeIdleParsed = [pscustomobject]@{
+                            ok = $false
+                            parse_error = $_.Exception.Message
+                            raw = $verifyRuntimeIdleRaw
+                        }
+                    }
+                }
+                $steps.Add([pscustomobject]@{
+                    name = "verify runtime idle CPU evidence"
+                    script = "write-release-go-no-go.ps1"
+                    exit_code = $verifyRuntimeIdleExitCode
+                    started_at = $startedAt.ToString("o")
+                    completed_at = (Get-Date).ToString("o")
+                    output = $verifyRuntimeIdleRaw
+                }) | Out-Null
+                $runtimeIdleCpuVerification = $verifyRuntimeIdleParsed
+                if ($verifyRuntimeIdleExitCode -ne 0) {
+                    $runtimeIdleCpuError = "Runtime idle CPU direct verification failed with exit code ${verifyRuntimeIdleExitCode}.`n$verifyRuntimeIdleRaw"
+                }
+            }
+            else {
+                $runtimeIdleCpuError = "Runtime idle CPU verifier is missing: $verifyRuntimeIdleScript"
+            }
+        }
     }
 
     if (-not $SkipRuntimeCpuScenarioMatrix) {
@@ -724,6 +769,9 @@ $result = [pscustomobject]@{
     msix_legacy_conflict_count = if ($msixLegacyConflicts) { [int]$msixLegacyConflicts.conflict_count } else { $null }
     msix_alias_shadowing_count = if ($msixLegacyConflicts) { [int]$msixLegacyConflicts.alias_shadowing_count } else { $null }
     runtime_idle_cpu_evidence_path = if ($SkipRuntimeIdleCpu) { $null } else { $runtimeIdleCpuEvidencePath }
+    runtime_idle_cpu_verified = if ($SkipRuntimeIdleCpu) { $null } elseif ($runtimeIdleCpuVerification) { [bool]$runtimeIdleCpuVerification.ok } else { $false }
+    runtime_idle_cpu_verification = $runtimeIdleCpuVerification
+    runtime_idle_cpu_error = $runtimeIdleCpuError
     runtime_cpu_scenario_output_root = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioOutputRoot }
     runtime_cpu_scenario_matrix_path = if ($SkipRuntimeCpuScenarioMatrix) { $null } else { $runtimeCpuScenarioMatrixPath }
     runtime_cpu_route_target = if ([string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)) { $null } else { $RuntimeCpuRouteTarget }

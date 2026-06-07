@@ -394,6 +394,27 @@ function Test-SecondPcTargetedRouteVerifierContract {
     return $true
 }
 
+function Test-SecondPcRuntimeIdleVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"verify runtime idle CPU evidence"',
+        '"write-release-go-no-go.ps1"',
+        '-VerifyRuntimeIdleCpuEvidencePath $runtimeIdleCpuEvidencePath',
+        'runtime_idle_cpu_verified',
+        'runtime_idle_cpu_verification',
+        'runtime_idle_cpu_error'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcRouteReachabilityHandoffContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -436,6 +457,30 @@ function Test-SecondPcImportRuntimeCpuSubroleContract {
         'release_check_runtime_cpu_subrole_contract_ok_missing',
         'runtime_idle_cpu_subrole_contract_failed',
         'runtime_cpu_scenario_subrole_contract_failed'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportRuntimeIdleVerifierContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'write-release-go-no-go.ps1',
+        '-VerifyRuntimeIdleCpuEvidencePath $canonicalRuntimeIdleCpuEvidence',
+        'runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified',
+        'runtime_idle_cpu_verification = $runtimeIdleCpuVerification',
+        'runtime_idle_cpu_verification_error = $runtimeIdleCpuVerificationError',
+        'release_check_runtime_idle_cpu_verified_missing',
+        'release_check_runtime_idle_cpu_not_verified',
+        'runtime_idle_cpu_evidence_not_verified',
+        'runtime_idle_cpu_verification_error:'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -2761,6 +2806,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcRuntimeIdleVerifierContractOk = Test-SecondPcRuntimeIdleVerifierContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRuntimeIdleVerifierContractOk `
+    -Message "second-PC release check must direct-verify the desktop-open runtime idle evidence and surface runtime_idle_cpu_verified"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check verifies runtime idle CPU evidence" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcRouteReachabilityHandoffOk = Test-SecondPcRouteReachabilityHandoffContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcRouteReachabilityHandoffOk `
@@ -2780,6 +2837,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC return import requires runtime CPU subrole contract" `
+    -Verifier "second-PC import source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportRuntimeIdleVerifierContractOk = Test-SecondPcImportRuntimeIdleVerifierContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportRuntimeIdleVerifierContractOk `
+    -Message "second-PC return import must direct-verify imported runtime idle CPU evidence and require runtime_idle_cpu_verified from the release-check summary"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import verifies runtime idle CPU evidence" `
     -Verifier "second-PC import source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
     -ShouldPass $true `

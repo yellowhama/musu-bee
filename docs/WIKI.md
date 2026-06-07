@@ -18260,3 +18260,78 @@ entries.
 Search terms should include `GOAL v890`, `wiki/1065`, `3103 files`,
 `2890 symbols`, `16660 ms`, `runtime idle compatibility index`, `e6b7285d`,
 `20260608-053645`, and `clean standalone idle proof index`.
+
+## 2026-06-08 Second-PC Runtime Idle Verification Hardening (wiki/1066)
+
+The second-PC evidence path now direct-verifies runtime idle CPU evidence both
+at capture time and at import time, so cross-machine release gating no longer
+relies on sampler `ok` booleans alone.
+
+Changed scripts:
+
+- `scripts\windows\run-second-pc-release-check.ps1`
+- `scripts\windows\import-second-pc-return.ps1`
+- `scripts\windows\test-release-evidence-verifiers.ps1`
+
+Behavior change:
+
+- `run-second-pc-release-check.ps1` now replays
+  `write-release-go-no-go.ps1 -VerifyRuntimeIdleCpuEvidencePath` against the
+  captured second-PC desktop-open idle artifact and records:
+  - `runtime_idle_cpu_verified`
+  - `runtime_idle_cpu_verification`
+  - `runtime_idle_cpu_error`
+- `import-second-pc-return.ps1` now independently re-verifies the imported
+  runtime idle artifact on the primary repo HEAD and records:
+  - `runtime_idle_cpu_verified`
+  - `runtime_idle_cpu_verification`
+  - `runtime_idle_cpu_verification_error`
+- release-gate import now treats these as mandatory when second-PC release
+  evidence is required, instead of trusting only:
+  - `runtime_idle_cpu_ok`
+  - subrole summaries
+  - wrapper success booleans
+
+Why this matters:
+
+- second-PC idle evidence now goes through the same direct idle gate as
+  one-machine release evidence
+- stale or shape-mismatched imported idle artifacts are much harder to smuggle
+  through the second-PC return zip path
+- the cross-machine release blocker is now more explicitly “real second-PC
+  evidence missing” rather than “the importer is too trusting”
+
+Regression:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+- result:
+  - `ok=true`
+  - `case_count=118`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-054638`
+- new source-contract cases:
+  - `second-PC release check verifies runtime idle CPU evidence`
+  - `second-PC return import verifies runtime idle CPU evidence`
+
+Search terms should include `GOAL v891`, `wiki/1066`, `118/118`,
+`runtime_idle_cpu_verified`, `second-PC release check verifies runtime idle CPU evidence`,
+and `second-PC return import verifies runtime idle CPU evidence`.
+
+## 2026-06-08 Second-PC Runtime Idle Verification Index (wiki/1067)
+
+MUSU local indexer was refreshed after wiki/1066 and GOAL v891.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3103 files`
+- `2890 symbols`
+- `18772 ms`
+
+Indexed context includes the second-PC idle verification hardening scripts, the
+green `118/118` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v892`, `wiki/1067`, `3103 files`,
+`2890 symbols`, `18772 ms`, `second-PC runtime idle verification index`,
+`118/118`, and `runtime_idle_cpu_verified`.

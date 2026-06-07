@@ -7531,4 +7531,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2890 symbols`, `16660 ms`, `runtime idle compatibility index`,
   `e6b7285d`, `20260608-053645`, and `clean standalone idle proof index`.
 
+- 2026-06-08 second-PC runtime idle verification hardening:
+  wiki/1066 records that `run-second-pc-release-check.ps1` now direct-verifies
+  captured second-PC desktop-open idle evidence, `import-second-pc-return.ps1`
+  now re-verifies imported idle evidence on primary HEAD, and release-gate
+  import now requires `runtime_idle_cpu_verified` in addition to sampler
+  success. The verifier regression stayed green at `118/118` in
+  `.local-build\release-evidence-verifier-tests\20260608-054638`. Search terms
+  should include `GOAL v891`, `wiki/1066`, `118/118`,
+  `runtime_idle_cpu_verified`, `second-PC release check verifies runtime idle CPU evidence`,
+  and `second-PC return import verifies runtime idle CPU evidence`.
+
+- 2026-06-08 second-PC runtime idle verification index:
+  wiki/1067 records the MUSU local index refresh after wiki/1066 and GOAL
+  v891. Search terms should include `GOAL v892`, `wiki/1067`, `3103 files`,
+  `2890 symbols`, `18772 ms`, `second-PC runtime idle verification index`,
+  `118/118`, and `runtime_idle_cpu_verified`.
+
 **End of WIKI_INDEX.md.**

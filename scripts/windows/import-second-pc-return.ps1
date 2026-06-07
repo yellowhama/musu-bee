@@ -358,6 +358,9 @@ $returnCard = $returnCardText | ConvertFrom-Json
 
 $routeReachabilityDiagnosticVerification = $null
 $routeReachabilityDiagnosticVerificationError = $null
+$runtimeIdleCpuVerification = $null
+$runtimeIdleCpuVerificationError = $null
+$runtimeIdleCpuVerified = $false
 $routeReachabilityTarget = $null
 $routeReachabilityDiagnosticVerified = $false
 if ($canonicalRouteReachabilityDiagnostic) {
@@ -413,6 +416,21 @@ if (-not $canonicalRuntimeIdleCpuEvidence) {
 }
 else {
     try {
+        $runtimeIdleCpuVerifyOutput = & powershell `
+            -NoProfile `
+            -ExecutionPolicy Bypass `
+            -File (Join-Path $scriptDir "write-release-go-no-go.ps1") `
+            -VerifyRuntimeIdleCpuEvidencePath $canonicalRuntimeIdleCpuEvidence `
+            -Json 2>&1
+        $runtimeIdleCpuVerifyText = ($runtimeIdleCpuVerifyOutput | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            $runtimeIdleCpuVerificationError = "Runtime idle CPU evidence did not verify.`n$runtimeIdleCpuVerifyText"
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($runtimeIdleCpuVerifyText)) {
+            $runtimeIdleCpuVerification = $runtimeIdleCpuVerifyText | ConvertFrom-Json
+            $runtimeIdleCpuVerified = [bool]$runtimeIdleCpuVerification.ok
+        }
+
         $runtimeIdleCpuJson = Get-Content -LiteralPath $canonicalRuntimeIdleCpuEvidence -Raw | ConvertFrom-Json
         $runtimeIdleCpuSubroleSummary = New-CpuSubroleSummary -Measurement $runtimeIdleCpuJson -Scenario "desktop-open" -RequireDesktopShell -RequireWebView2Helper
         if (-not [bool]$runtimeIdleCpuSubroleSummary.ok) {
@@ -465,6 +483,12 @@ else {
     elseif (-not [bool]$releaseCheck.runtime_idle_cpu_ok) {
         $releaseGateEvidenceIssues.Add("release_check_runtime_idle_cpu_not_ok") | Out-Null
     }
+    if (-not $releaseCheck.PSObject.Properties["runtime_idle_cpu_verified"]) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_idle_cpu_verified_missing") | Out-Null
+    }
+    elseif (-not [bool]$releaseCheck.runtime_idle_cpu_verified) {
+        $releaseGateEvidenceIssues.Add("release_check_runtime_idle_cpu_not_verified") | Out-Null
+    }
     if (-not $releaseCheck.PSObject.Properties["runtime_cpu_scenario_matrix_verified"]) {
         $releaseGateEvidenceIssues.Add("release_check_runtime_cpu_scenario_matrix_verified_missing") | Out-Null
     }
@@ -499,6 +523,14 @@ else {
         }
     }
 }
+if ($canonicalRuntimeIdleCpuEvidence) {
+    if (-not $runtimeIdleCpuVerified) {
+        $releaseGateEvidenceIssues.Add("runtime_idle_cpu_evidence_not_verified") | Out-Null
+    }
+    if ($runtimeIdleCpuVerificationError) {
+        $releaseGateEvidenceIssues.Add("runtime_idle_cpu_verification_error:$runtimeIdleCpuVerificationError") | Out-Null
+    }
+}
 if ($routeReachabilityDiagnosticRequired) {
     if (-not $canonicalRouteReachabilityDiagnostic) {
         $releaseGateEvidenceIssues.Add("missing_route_reachability_diagnostic") | Out-Null
@@ -527,6 +559,9 @@ $result = [pscustomobject]@{
     handoff_path = $canonicalHandoff
     msix_legacy_conflicts_path = $canonicalMsixLegacyConflicts
     runtime_idle_cpu_evidence_path = $canonicalRuntimeIdleCpuEvidence
+    runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
+    runtime_idle_cpu_verification = $runtimeIdleCpuVerification
+    runtime_idle_cpu_verification_error = $runtimeIdleCpuVerificationError
     runtime_cpu_scenario_matrix_path = $canonicalRuntimeCpuScenarioMatrix
     runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
