@@ -25,6 +25,31 @@ Open gates:
 - support mailbox proof
 - Store/Partner Center proof
 
+## 2026-06-07 Frontend Polling Inventory Gate Update
+
+The frontend interval/refetch busy-loop gate is now stricter. The release audit
+locks the exact current inventory of 29 `useLowDutyPolling` call-site files and
+go/no-go requires that inventory check for the `frontend interval/refetch`
+idle-busy-loop candidate.
+
+This does not change the release execution order below. It prevents a new UI
+polling surface from silently appearing while local CPU evidence is being
+collected on the second machine.
+
+Validation for this update:
+
+- frontend polling audit: `ok=true`, expected/actual call-site count `29/29`
+- runtime polling tests: `17/17`
+- P2P tests: `112/112`
+- typecheck: passed
+- release evidence verifier regression: `ok=True`
+- P2P env status: expected No-Go with 12 blockers
+- `git diff --check`: passed
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+
 ## Execution Order
 
 1. Regenerate operator handoff artifacts from current HEAD.

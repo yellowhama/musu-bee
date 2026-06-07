@@ -786,3 +786,24 @@ The stabilization next step is operational, not a localhost dashboard fix:
 The hosted relay work must keep the same boundary: MUSU.PRO can coordinate
 rendezvous and fallback, but local MUSU Desktop runtimes must execute the work
 and emit route/transport/payload proof.
+
+## 2026-06-07 Frontend Polling Inventory Stabilization Gate
+
+The frontend interval/refetch busy-loop gate now requires an exact inventory of
+the current 29 non-test `useLowDutyPolling` call-site files.
+
+Stabilization interpretation:
+
+- this closes a source-audit gap where a new polling surface could appear while
+  still satisfying a loose count threshold;
+- go/no-go now requires the exact inventory check for the
+  `frontend interval/refetch` idle-busy-loop candidate;
+- audit JSON reports expected, missing, and unexpected low-duty polling
+  call-site fields for operator diagnosis;
+- runtime polling contract tests now guard the explicit inventory shape;
+- this does not change runtime execution or stale local packaged evidence;
+- runtime CPU evidence remains required on two machines.
+
+Validation passed frontend polling audit `29/29`, runtime polling tests
+`17/17`, P2P tests `112/112`, typecheck, release evidence verifier regression
+`ok=True`, expected P2P env No-Go with 12 blockers, and `git diff --check`.

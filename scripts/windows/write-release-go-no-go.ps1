@@ -1749,6 +1749,7 @@ $idleBusyLoopCandidateStatuses = @(
         -RequiredChecks @(
             [pscustomobject]@{ scope = "source"; name = "no direct setInterval in non-test frontend source" },
             [pscustomobject]@{ scope = "source"; name = "visibilitychange owned only by shared poller" },
+            [pscustomobject]@{ scope = "source"; name = "low-duty polling call-site inventory" },
             [pscustomobject]@{ scope = "poller"; name = "minimum interval clamp" },
             [pscustomobject]@{ scope = "poller"; name = "cleanup aborts task" },
             [pscustomobject]@{ scope = "poller"; name = "no interval timer in shared poller" }

@@ -129,10 +129,22 @@ test("shared bounded EventSource closes failed streams and caps reconnects", () 
 test("frontend polling audit inventories all low-duty call sites", () => {
   const text = source("../scripts/windows/audit-frontend-polling-contract.ps1");
 
+  assert.match(text, /\$expectedLowDutyPollingCallSitePaths\s*=\s*@\(/);
   assert.match(text, /low_duty_polling_call_site_count/);
+  assert.match(text, /expected_low_duty_polling_call_site_count/);
+  assert.match(text, /missing_low_duty_polling_call_site_count/);
+  assert.match(text, /missing_low_duty_polling_call_sites/);
+  assert.match(text, /unexpected_low_duty_polling_call_site_count/);
+  assert.match(text, /unexpected_low_duty_polling_call_sites/);
+  assert.match(text, /Low-duty polling inventory drift found/);
   assert.match(text, /low_duty_polling_signal_gap_count/);
+  assert.match(text, /low-duty polling call-site inventory/);
   assert.match(text, /low-duty polling callbacks expose abort signals/);
   assert.match(text, /polling callback does not expose AbortSignal/);
+  assert.match(text, /musu-bee\\src\\lib\\useServiceHealth\.ts/);
+  assert.match(text, /musu-bee\\src\\components\\dashboard\\DashboardClient\.tsx/);
+  assert.match(text, /musu-bee\\views\\nodes\\NodesView\.tsx/);
+  assert.match(text, /musu-bee\\views\\tasks\\TasksView\.tsx/);
 });
 
 test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {

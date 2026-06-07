@@ -2199,3 +2199,19 @@ Next implementation order:
 4. Implement real release `quic_relay_tunnel` runtime byte transit and proof
    emission.
 5. Record support mailbox and Store/Partner Center proof.
+
+## 2026-06-07 frontend polling gate note
+
+The frontend polling inventory hardening does not change the P2P control-plane
+spec.
+
+- MUSU.PRO remains remote input, project/company room, AI meeting room,
+  presence, rendezvous, path selection, relay fallback, and evidence/control
+  plane.
+- Local MUSU Desktop/WebView refresh loops remain local runtime/UI behavior.
+- The release audit now locks the exact 29 non-test low-duty polling call-site
+  files so UI polling cannot silently expand during release evidence work.
+- Hosted P2P release proof remains blocked by the same 12 env/evidence gaps:
+  release payload endpoint, release tunnel runtime, release transport kind,
+  KV/Upstash storage, runtime login, route proof, route metadata, transport
+  proof, and payload delivery proof.

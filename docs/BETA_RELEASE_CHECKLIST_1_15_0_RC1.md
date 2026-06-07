@@ -9915,3 +9915,44 @@ Canonical report:
 
 - `docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_QUAL_AUDIT_SPEC_AND_NEXT_STEPS_2026_06_07.md`
   (wiki/947)
+
+## 2026-06-07 Frontend Polling Inventory Gate
+
+Frontend interval/refetch busy-loop gating was tightened after the current-head
+qual audit.
+
+Change:
+
+- `audit-frontend-polling-contract.ps1` now locks the exact 29 non-test
+  low-duty polling call-site files.
+- `low-duty polling call-site inventory` now fails on missing or unexpected
+  paths.
+- `write-release-go-no-go.ps1` requires that check for the
+  `frontend interval/refetch` idle-busy-loop candidate.
+
+Validation:
+
+- frontend polling audit `ok=true`, expected/actual `29/29`, missing `0`,
+  unexpected `0`
+- runtime polling tests `17/17`
+- P2P tests `112/112`
+- typecheck passed
+- release evidence verifier regression `ok=True`
+- P2P env status remains expected No-Go with 12 blockers
+- `git diff --check` passed
+
+Qualitative audit found no high or medium issue. This is source/status/test
+hardening only; public release remains blocked by second-machine evidence,
+hosted MUSU.PRO P2P/relay proof, support mailbox proof, and Store proof.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+  (wiki/949)
+
+Index refresh:
+
+- MUSU local indexer:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2884 files`, `2790 symbols`, `15020 ms`
+- wiki: `wiki/950`

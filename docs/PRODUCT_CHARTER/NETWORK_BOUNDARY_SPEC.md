@@ -1341,3 +1341,23 @@ network boundary. It clarifies it:
 The current local desktop evidence is one-machine proof only. Release still
 requires second-machine route/CPU/matrix evidence and live hosted
 owner-scoped P2P/relay evidence.
+
+## 2026-06-07 Frontend Polling Inventory Boundary
+
+Frontend polling is part of the local desktop/web surface quality contract.
+It is not MUSU.PRO execution.
+
+Boundary implications:
+
+- local MUSU Desktop/WebView surfaces may poll local/control metadata only
+  through the shared low-duty polling helper;
+- direct `setInterval` and ad hoc `visibilitychange` listeners remain banned
+  outside the shared poller;
+- the release audit now locks the exact 29 non-test low-duty polling call-site
+  files and fails on missing or unexpected paths;
+- new polling surfaces require an intentional audit update with abort-aware,
+  low-duty behavior;
+- this gate protects local idle CPU evidence but does not replace 60s runtime
+  CPU samples or second-machine proof;
+- MUSU.PRO remains remote input, meeting room, rendezvous, path selection,
+  relay fallback, and evidence/control plane.

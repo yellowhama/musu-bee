@@ -6429,4 +6429,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `078ce1c5`, `P2P env blockers 12`, `MUSU Desktop local executor`, and
   `MUSU.PRO remote input control plane`.
 
+- 2026-06-07 frontend polling inventory gate:
+  `RELEASE_1_15_0_RC1_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+  (wiki/949) records the exact low-duty polling call-site inventory gate.
+  Search terms should include `GOAL v774`, `wiki/949`,
+  `frontend polling inventory gate`,
+  `expected_low_duty_polling_call_site_count`,
+  `missing_low_duty_polling_call_sites`,
+  `unexpected_low_duty_polling_call_sites`, `29/29`,
+  `runtime polling 17/17`, `P2P tests 112/112`, and
+  `frontend interval/refetch`.
+
+- 2026-06-07 frontend polling inventory gate index refresh:
+  wiki/950 records the MUSU local index refresh after wiki/949 and GOAL v774.
+  Search terms should include `GOAL v775`, `wiki/950`, `2884 files`,
+  `2790 symbols`, `15020 ms`,
+  `frontend polling inventory gate index refresh`,
+  `expected_low_duty_polling_call_site_count`,
+  `missing_low_duty_polling_call_sites`,
+  `unexpected_low_duty_polling_call_sites`, and
+  `frontend interval/refetch`.
+
 **End of WIKI_INDEX.md.**

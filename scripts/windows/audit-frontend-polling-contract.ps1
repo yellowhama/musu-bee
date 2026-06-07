@@ -16,6 +16,38 @@ $directVisibilityListenerHits = New-Object System.Collections.Generic.List[objec
 $lowDutyPollingCallSites = New-Object System.Collections.Generic.List[object]
 $lowDutyPollingSignalGaps = New-Object System.Collections.Generic.List[object]
 
+$expectedLowDutyPollingCallSitePaths = @(
+    "musu-bee\src\app\app\screen\page.tsx",
+    "musu-bee\src\app\c\[id]\page.tsx",
+    "musu-bee\src\app\c\[id]\workflows\[wfId]\edit\RunPanel.tsx",
+    "musu-bee\src\app\dashboard\fleet\page.tsx",
+    "musu-bee\src\app\fleet\page.tsx",
+    "musu-bee\src\app\m\[id]\page.tsx",
+    "musu-bee\src\components\ApprovalsPanel.tsx",
+    "musu-bee\src\components\AppShell.tsx",
+    "musu-bee\src\components\CostsPanel.tsx",
+    "musu-bee\src\components\DoctorStatusCard.tsx",
+    "musu-bee\src\components\GoalsPanel.tsx",
+    "musu-bee\src\components\IssuesPanel.tsx",
+    "musu-bee\src\components\NodePanel.tsx",
+    "musu-bee\src\components\NodesPanel.tsx",
+    "musu-bee\src\components\ProjectsPanel.tsx",
+    "musu-bee\src\components\TasksPanel.tsx",
+    "musu-bee\src\components\canvas\useCompaniesCanvasData.ts",
+    "musu-bee\src\components\canvas\useCompanyMessageFlow.ts",
+    "musu-bee\src\components\dashboard\DashboardClient.tsx",
+    "musu-bee\src\components\onboarding\useOnboardingFlow.ts",
+    "musu-bee\src\lib\useAgentsSurface.ts",
+    "musu-bee\src\lib\useBoundedEventSource.ts",
+    "musu-bee\src\lib\useDeviceDiscovery.ts",
+    "musu-bee\src\lib\useInbox.ts",
+    "musu-bee\src\lib\useNodes.ts",
+    "musu-bee\src\lib\useProcesses.ts",
+    "musu-bee\src\lib\useServiceHealth.ts",
+    "musu-bee\views\nodes\NodesView.tsx",
+    "musu-bee\views\tasks\TasksView.tsx"
+)
+
 function Add-Check {
     param(
         [Parameter(Mandatory = $true)][string]$Scope,
@@ -357,6 +389,18 @@ foreach ($file in $sourceFiles) {
         }
     }
 
+$actualLowDutyPollingCallSitePaths = @($lowDutyPollingCallSites | ForEach-Object { [string]$_.path } | Sort-Object -Unique)
+$expectedLowDutyPollingCallSitePathsSorted = @($expectedLowDutyPollingCallSitePaths | Sort-Object -Unique)
+$missingLowDutyPollingCallSites = @($expectedLowDutyPollingCallSitePathsSorted | Where-Object { $actualLowDutyPollingCallSitePaths -notcontains $_ })
+$unexpectedLowDutyPollingCallSites = @($actualLowDutyPollingCallSitePaths | Where-Object { $expectedLowDutyPollingCallSitePathsSorted -notcontains $_ })
+$lowDutyPollingInventoryOk = (
+    $missingLowDutyPollingCallSites.Count -eq 0 -and
+    $unexpectedLowDutyPollingCallSites.Count -eq 0 -and
+    $actualLowDutyPollingCallSitePaths.Count -eq $expectedLowDutyPollingCallSitePathsSorted.Count
+)
+$lowDutyPollingMissingSummary = if ($missingLowDutyPollingCallSites.Count -eq 0) { "none" } else { $missingLowDutyPollingCallSites -join ", " }
+$lowDutyPollingUnexpectedSummary = if ($unexpectedLowDutyPollingCallSites.Count -eq 0) { "none" } else { $unexpectedLowDutyPollingCallSites -join ", " }
+
 Add-Check `
     -Scope "source" `
     -Name "no direct setInterval in non-test frontend source" `
@@ -372,9 +416,9 @@ Add-Check `
 Add-Check `
     -Scope "source" `
     -Name "low-duty polling call-site inventory" `
-    -Passed ($lowDutyPollingCallSites.Count -ge 20) `
+    -Passed $lowDutyPollingInventoryOk `
     -Path ($sourceRoots -join ", ") `
-    -Message "Found $($lowDutyPollingCallSites.Count) non-test low-duty polling call-site file(s)."
+    -Message ($(if ($lowDutyPollingInventoryOk) { "Found exact expected $($expectedLowDutyPollingCallSitePathsSorted.Count) non-test low-duty polling call-site file(s)." } else { "Low-duty polling inventory drift found. expected=$($expectedLowDutyPollingCallSitePathsSorted.Count), actual=$($actualLowDutyPollingCallSitePaths.Count), missing=$lowDutyPollingMissingSummary, unexpected=$lowDutyPollingUnexpectedSummary." }))
 Add-Check `
     -Scope "source" `
     -Name "low-duty polling callbacks expose abort signals" `
@@ -388,8 +432,13 @@ $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
     generated_at = [datetimeoffset]::Now.ToString("o")
     fail_count = $failCount
-    low_duty_polling_call_site_count = $lowDutyPollingCallSites.Count
+    low_duty_polling_call_site_count = $actualLowDutyPollingCallSitePaths.Count
+    expected_low_duty_polling_call_site_count = $expectedLowDutyPollingCallSitePathsSorted.Count
     low_duty_polling_call_sites = $lowDutyPollingCallSites.ToArray()
+    missing_low_duty_polling_call_site_count = $missingLowDutyPollingCallSites.Count
+    missing_low_duty_polling_call_sites = @($missingLowDutyPollingCallSites)
+    unexpected_low_duty_polling_call_site_count = $unexpectedLowDutyPollingCallSites.Count
+    unexpected_low_duty_polling_call_sites = @($unexpectedLowDutyPollingCallSites)
     low_duty_polling_signal_gap_count = $lowDutyPollingSignalGaps.Count
     low_duty_polling_signal_gaps = $lowDutyPollingSignalGaps.ToArray()
     direct_interval_hit_count = $directIntervalHits.Count

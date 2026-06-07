@@ -14335,3 +14335,72 @@ Search terms should include `GOAL v773`, `wiki/948`,
 `current-head qual audit index refresh`, `2881 files`, `2790 symbols`,
 `22225 ms`, `078ce1c5`, `P2P env blockers 12`,
 `MUSU Desktop local executor`, and `MUSU.PRO remote input control plane`.
+
+## 2026-06-07 Frontend Polling Inventory Gate (wiki/949)
+
+The frontend interval/refetch busy-loop release gate was hardened after the
+current-head qual audit.
+
+Code change:
+
+- `audit-frontend-polling-contract.ps1` now locks the exact current inventory
+  of 29 non-test `useLowDutyPolling` call-site files.
+- The existing `low-duty polling call-site inventory` check now requires actual
+  paths to equal expected paths.
+- Audit JSON now reports expected, missing, and unexpected call-site counts and
+  path arrays.
+- `write-release-go-no-go.ps1` requires the inventory check for the
+  `frontend interval/refetch` idle-busy-loop candidate.
+- `runtime-polling-contract.test.ts` verifies the explicit inventory contract.
+
+Validation:
+
+- frontend polling audit `ok=true`, expected/actual `29/29`, missing `0`,
+  unexpected `0`
+- runtime polling tests `17/17`
+- P2P tests `112/112`
+- typecheck passed
+- release evidence verifier regression `ok=True`
+- P2P env status remains expected No-Go with 12 blockers
+- `git diff --check` passed
+
+Qualitative audit found no high or medium issue. The low residual risk is
+intentional strictness: legitimate new polling surfaces must now update the
+expected inventory and prove low-duty, abort-aware behavior.
+
+Product boundary remains unchanged: MUSU Desktop is the local executor;
+MUSU.PRO is remote input, project/company room, AI meeting room, presence,
+rendezvous, path selection, relay fallback, and evidence/control plane.
+
+Canonical report:
+
+- `docs\RELEASE_1_15_0_RC1_FRONTEND_POLLING_INVENTORY_GATE_2026_06_07.md`
+
+Search terms should include `GOAL v774`, `wiki/949`,
+`frontend polling inventory gate`, `expected_low_duty_polling_call_site_count`,
+`missing_low_duty_polling_call_sites`,
+`unexpected_low_duty_polling_call_sites`, `29/29`, `runtime polling 17/17`,
+`P2P tests 112/112`, and `frontend interval/refetch`.
+
+## 2026-06-07 Frontend Polling Inventory Gate Index Refresh (wiki/950)
+
+MUSU local indexer was refreshed after wiki/949 and GOAL v774.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `2884 files`
+- `2790 symbols`
+- `15020 ms`
+
+Indexed context includes the frontend polling inventory gate code changes,
+runtime polling contract test update, go/no-go idle busy-loop candidate
+requirement, release verifier source-contract update, canonical report,
+next-step plan, BETA checklist, runtime stabilization spec, MUSU.PRO P2P spec,
+network boundary spec, WIKI_INDEX, GOAL, and CoS memory.
+
+Search terms should include `GOAL v775`, `wiki/950`,
+`frontend polling inventory gate index refresh`, `2884 files`,
+`2790 symbols`, `15020 ms`,
+`expected_low_duty_polling_call_site_count`,
+`missing_low_duty_polling_call_sites`,
+`unexpected_low_duty_polling_call_sites`, and `frontend interval/refetch`.

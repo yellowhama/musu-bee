@@ -591,6 +591,7 @@ function Test-IdleBusyLoopGoNoGoCandidateStatusContract {
         'health poll sleep',
         'bridge readiness backoff sleep',
         'no direct setInterval in non-test frontend source',
+        'low-duty polling call-site inventory',
         'poller cancellation-aware sleep',
         'failure backoff sleep',
         'no background telemetry flush worker primitives',
