@@ -7903,4 +7903,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `second-PC runtime CPU matrix includes packaged desktop launch`, and
   `137/137`.
 
+- 2026-06-08 second-PC release-grade scenario coverage:
+  wiki/1109 records the new `requiredReleaseRuntimeCpuScenarios` fail-fast in
+  `run-second-pc-release-check.ps1`, which now refuses subset runtime CPU
+  captures unless `-SkipRuntimeCpuScenarioMatrix` is explicitly set. Search
+  terms should include `GOAL v934`, `wiki/1109`,
+  `second-PC runtime CPU matrix requires release-grade scenario coverage`,
+  and `138/138`.
+
+- 2026-06-08 second-PC release-grade scenario coverage index:
+  wiki/1110 records the MUSU local index refresh after wiki/1109 with
+  `3104 files`, `2891 symbols`, and `30449 ms`. Search terms should include
+  `GOAL v935`, `wiki/1110`, `requiredReleaseRuntimeCpuScenarios`, and
+  `138/138`.
+
 **End of WIKI_INDEX.md.**

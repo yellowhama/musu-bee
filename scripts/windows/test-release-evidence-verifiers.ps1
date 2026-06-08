@@ -441,6 +441,25 @@ function Test-SecondPcRuntimeCpuDesktopLaunchContract {
     return $true
 }
 
+function Test-SecondPcRuntimeCpuRequiredScenarioContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[string[]]$RuntimeCpuScenario = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")',
+        '$requiredReleaseRuntimeCpuScenarios = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")',
+        'RuntimeCpuScenario for run-second-pc-release-check.ps1 must remain startup-open,runtime-started,dashboard-open,desktop-open,post-route unless -SkipRuntimeCpuScenarioMatrix is set.',
+        'Use measure-musu-runtime-cpu-scenarios.ps1 directly for ad hoc subsets.'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcTargetedRouteVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -3292,6 +3311,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC runtime CPU matrix includes packaged desktop launch" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcRequiredScenarioContractOk = Test-SecondPcRuntimeCpuRequiredScenarioContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRequiredScenarioContractOk `
+    -Message "second-PC release check must keep the release-grade runtime CPU matrix fixed to startup-open,runtime-started,dashboard-open,desktop-open,post-route unless the matrix is explicitly skipped"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC runtime CPU matrix requires release-grade scenario coverage" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
     -ShouldPass $true `

@@ -20081,3 +20081,71 @@ GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v933`, `wiki/1108`, `3104 files`,
 `2891 symbols`, `17726 ms`, `second-PC runtime CPU matrix includes packaged
 desktop launch`, and `137/137`.
+
+## 2026-06-08 Second-PC Release-Grade Scenario Coverage (wiki/1109)
+
+`run-second-pc-release-check.ps1` is not a generic profiling helper. It is the
+release-check wrapper that is supposed to produce the exact two-machine CPU
+artifact we gate on: `startup-open`, `runtime-started`, `dashboard-open`,
+`desktop-open`, then `post-route`.
+
+Until this turn, the wrapper defaulted to that sequence but still accepted a
+caller override like `-RuntimeCpuScenario runtime-started`. That meant a
+second-PC operator kit could produce a structurally valid summary from a
+subset capture, even though import later expects the full release-grade matrix.
+
+That gap is now closed directly in
+`scripts\windows\run-second-pc-release-check.ps1`.
+
+- new required sequence:
+  `$requiredReleaseRuntimeCpuScenarios = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")`
+- new fail-fast:
+  `RuntimeCpuScenario for run-second-pc-release-check.ps1 must remain startup-open,runtime-started,dashboard-open,desktop-open,post-route unless -SkipRuntimeCpuScenarioMatrix is set. Use measure-musu-runtime-cpu-scenarios.ps1 directly for ad hoc subsets.`
+
+So:
+
+- release-check wrapper = fixed release-grade 5-scenario matrix
+- ad hoc subset capture = `measure-musu-runtime-cpu-scenarios.ps1` directly
+
+`scripts\windows\test-release-evidence-verifiers.ps1` now adds:
+
+- helper:
+  `Test-SecondPcRuntimeCpuRequiredScenarioContract`
+- source-contract case:
+  `second-PC runtime CPU matrix requires release-grade scenario coverage`
+
+Validation:
+
+- targeted negative replay:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\run-second-pc-release-check.ps1 -RuntimeCpuScenario runtime-started -Json`
+  - fails immediately with the expected full-scenario requirement message
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=138`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-100254`
+
+Search terms should include `GOAL v934`, `wiki/1109`,
+`requiredReleaseRuntimeCpuScenarios`,
+`second-PC runtime CPU matrix requires release-grade scenario coverage`,
+`-SkipRuntimeCpuScenarioMatrix`, and `138/138`.
+
+## 2026-06-08 Second-PC Release-Grade Scenario Coverage Index (wiki/1110)
+
+MUSU local indexer was refreshed after wiki/1109 and GOAL v934.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `30449 ms`
+
+Indexed context includes the new `requiredReleaseRuntimeCpuScenarios`
+fail-fast, the targeted negative replay for subset runtime CPU captures, the
+green `138/138` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v935`, `wiki/1110`, `3104 files`,
+`2891 symbols`, `30449 ms`, `requiredReleaseRuntimeCpuScenarios`, and
+`138/138`.

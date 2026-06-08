@@ -44,6 +44,24 @@ else {
     "unknown"
 }
 $sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
+$requiredReleaseRuntimeCpuScenarios = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
+
+if (-not $SkipRuntimeCpuScenarioMatrix) {
+    $runtimeCpuScenarioNormalized = @($RuntimeCpuScenario | ForEach-Object { [string]$_ })
+    $runtimeCpuScenarioMatchesRequired = ($runtimeCpuScenarioNormalized.Count -eq $requiredReleaseRuntimeCpuScenarios.Count)
+    if ($runtimeCpuScenarioMatchesRequired) {
+        for ($scenarioIndex = 0; $scenarioIndex -lt $requiredReleaseRuntimeCpuScenarios.Count; $scenarioIndex++) {
+            if ($runtimeCpuScenarioNormalized[$scenarioIndex] -ne $requiredReleaseRuntimeCpuScenarios[$scenarioIndex]) {
+                $runtimeCpuScenarioMatchesRequired = $false
+                break
+            }
+        }
+    }
+
+    if (-not $runtimeCpuScenarioMatchesRequired) {
+        throw "RuntimeCpuScenario for run-second-pc-release-check.ps1 must remain startup-open,runtime-started,dashboard-open,desktop-open,post-route unless -SkipRuntimeCpuScenarioMatrix is set. Use measure-musu-runtime-cpu-scenarios.ps1 directly for ad hoc subsets."
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\second-pc-release-check"
