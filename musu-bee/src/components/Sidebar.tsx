@@ -5,6 +5,7 @@ import type { DefaultCompanyTemplate } from "@/lib/templates/defaultCompanyTempl
 import type { AgentsSurfaceSnapshot, Channel, ChannelId, Device } from "@/types";
 import CompanyPanel from "@/components/CompanyPanel";
 import NodePanel from "@/components/NodePanel";
+import BridgeManager from "@/components/BridgeManager";
 
 function _relativeTime(d: Date): string {
   const sec = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -370,6 +371,10 @@ export default function Sidebar({
 
       <div style={{ padding: "0 10px", marginBottom: 20 }}>
           <NodePanel />
+      </div>
+
+      <div style={{ padding: "0 10px", marginBottom: 20 }}>
+          <BridgeManager />
       </div>
 
       {/* Devices */}
