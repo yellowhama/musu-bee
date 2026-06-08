@@ -115,10 +115,28 @@ export default function ComingSoonPage() {
               margin: "0 auto",
             }}
           >
-            <div style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
-                <Link
-                  href="/app"
+            <form style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
+              {/* Added gap and column for mobile, but let's do responsive flex */}
+              <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 16 }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  required
+                  style={{
+                    flex: "1 1 200px",
+                    background: "var(--bg-surface)",
+                    border: "var(--neo-border)",
+                    color: "var(--fg1)",
+                    padding: "16px 24px",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: "var(--text-base)", /* 18px */
+                    outline: "none",
+                    boxShadow: "var(--neo-shadow-sm)",
+                    borderRadius: 0,
+                  }}
+                />
+                <button
+                  type="submit"
                   className="btn btn-primary"
                   data-brand-accent="emerald"
                   style={{
@@ -127,34 +145,25 @@ export default function ComingSoonPage() {
                     background: "var(--musu-color-brand-emerald)",
                     borderColor: "var(--musu-color-brand-ink)",
                     color: "var(--musu-color-brand-ink)",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                    fontSize: "var(--text-lg)",
-                    boxShadow: "var(--neo-shadow-sm)",
                   }}
                 >
-                  Go to Dashboard
-                </Link>
-                <Link
-                  href="https://github.com/yellowhama/musu"
-                  className="btn btn-secondary"
-                  style={{
-                    flex: "1 1 auto",
-                    padding: "16px 32px",
-                    background: "var(--bg-surface)",
-                    border: "var(--neo-border)",
-                    color: "var(--fg1)",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                    fontSize: "var(--text-lg)",
-                    boxShadow: "var(--neo-shadow-sm)",
-                  }}
-                >
-                  Download Agent
-                </Link>
+                  Request Access
+                </button>
               </div>
+            </form>
+            <div style={{ marginTop: 24, textAlign: "center" }}>
+              <Link
+                href="/app"
+                className="btn btn-secondary"
+                style={{
+                  display: "inline-block",
+                  padding: "12px 24px",
+                  fontSize: "var(--text-base)",
+                  textDecoration: "none",
+                }}
+              >
+                Go to App Dashboard →
+              </Link>
             </div>
           </div>
         </section>
