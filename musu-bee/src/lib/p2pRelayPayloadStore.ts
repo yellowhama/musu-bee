@@ -8,6 +8,12 @@ import {
   hasP2pKvCredentials,
   p2pKvEnvStatus,
 } from "@/lib/p2pKvEnv";
+import {
+  type KvScriptClient,
+  kvClient as sharedKvClient,
+  kvEvalJson as sharedKvEvalJson,
+  setKvScriptClientForTest,
+} from "@/lib/kvScript";
 import type { RelayRouteKind } from "@/lib/p2pRelayLeaseStore";
 
 export type RelayPayloadStatus = "queued" | "claimed" | "delivered";
@@ -89,9 +95,8 @@ export type P2pRelayPayloadStoreStatus = {
   release_grade: boolean;
 };
 
-type RelayPayloadKvClient = {
+type RelayPayloadKvClient = KvScriptClient & {
   del: (key: string) => Promise<unknown>;
-  eval?: <T = unknown>(script: string, keys: string[], args: string[]) => Promise<T>;
   lpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
   lrange: <T = unknown>(key: string, start: number, stop: number) => Promise<T[]>;
   ltrim: (key: string, start: number, stop: number) => Promise<unknown>;
@@ -229,15 +234,11 @@ return cjson.encode(result)
 `;
 
 let localLockQueue: Promise<void> = Promise.resolve();
-let kvClientForTest: RelayPayloadKvClient | null = null;
 
 export function __setP2pRelayPayloadKvClientForTest(
   client: RelayPayloadKvClient | null
 ): void {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("relay_payload_kv_test_client_forbidden");
-  }
-  kvClientForTest = client;
+  setKvScriptClientForTest(client);
 }
 
 function shouldUseKv(): boolean {
@@ -337,23 +338,11 @@ function payloadFresh(payload: StoredP2pRelayPayload): boolean {
 }
 
 async function kvClient(): Promise<RelayPayloadKvClient> {
-  if (kvClientForTest) {
-    return kvClientForTest;
-  }
-  const { kv } = await import("@vercel/kv");
-  return kv as RelayPayloadKvClient;
+  return sharedKvClient<RelayPayloadKvClient>();
 }
 
 async function kvEvalJson<T>(script: string, args: string[]): Promise<T> {
-  const kv = await kvClient();
-  if (typeof kv.eval !== "function") {
-    throw new Error("relay_payload_atomic_kv_eval_unavailable");
-  }
-  const raw = await kv.eval<unknown>(script, [KV_KEY], args);
-  if (typeof raw === "string") {
-    return JSON.parse(raw) as T;
-  }
-  return raw as T;
+  return sharedKvEvalJson<T>(script, [KV_KEY], args);
 }
 
 async function kvGetPayloads(): Promise<StoredP2pRelayPayload[]> {
