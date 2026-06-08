@@ -250,6 +250,23 @@ function Test-RuntimeCpuScenarioMatrixOutputRootHygieneContract {
     return $true
 }
 
+function Test-RuntimeCpuScenarioMatrixDesktopLaunchContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$requiresDesktopAppOpen = ($Scenario -contains "startup-open" -or $Scenario -contains "desktop-open")',
+        'startup-open and desktop-open scenarios require -OpenDesktopApp'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
     param(
         [Parameter(Mandatory = $true)][string]$MeasureScriptPath,
@@ -3110,6 +3127,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "runtime CPU matrix rejects tracked in-repo output roots" `
+    -Verifier "runtime CPU matrix source contract" `
+    -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopLaunchContractOk = Test-RuntimeCpuScenarioMatrixDesktopLaunchContract -ScriptPath $runtimeCpuMeasureScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopLaunchContractOk `
+    -Message "runtime CPU matrix capture must fail fast when startup-open or desktop-open are requested without -OpenDesktopApp"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime CPU matrix requires explicit desktop app launch for startup-open and desktop-open" `
     -Verifier "runtime CPU matrix source contract" `
     -FixturePath $runtimeCpuMeasureScript `
     -ShouldPass $true `

@@ -19957,3 +19957,62 @@ Indexed context includes:
 
 Search terms should include `GOAL v929`, `wiki/1104`, `3104 files`,
 `2891 symbols`, `78175 ms`, `20260608-093428-HUGH_SECOND`, and `135/135`.
+
+## 2026-06-08 Runtime CPU Scenario Desktop Launch Fail-Fast (wiki/1105)
+
+`measure-musu-runtime-cpu-scenarios.ps1` now refuses to run desktop-shell
+scenarios without the flag that actually launches the packaged app.
+
+Change:
+
+- after scenario normalization, the script now computes:
+  - `$requiresDesktopAppOpen = ($Scenario -contains "startup-open" -or $Scenario -contains "desktop-open")`
+- when that condition is true and `-OpenDesktopApp` was not supplied, it throws:
+  - `startup-open and desktop-open scenarios require -OpenDesktopApp so the packaged desktop shell and owned WebView2 helpers are actually launched before sampling.`
+
+Why this matters:
+
+- the failed clean matrix
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-092907-HUGH_SECOND\20260608-092907-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  proved that omitting `-OpenDesktopApp` can produce a formally valid capture
+  attempt that is semantically wrong for `startup-open` and `desktop-open`
+- those scenarios are supposed to measure the packaged desktop shell and owned
+  WebView2 helper state, not a bridge-only runtime
+- the official wrapper/packet commands already pass `-OpenDesktopApp`; this
+  hardening closes the remaining manual/operator footgun
+
+Validation:
+
+- targeted negative replay:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open -SampleSeconds 3 -Json`
+  - fails immediately with the expected `-OpenDesktopApp` requirement message
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=136`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-094541`
+- new source-contract case:
+  - `runtime CPU matrix requires explicit desktop app launch for startup-open and desktop-open`
+
+Search terms should include `GOAL v930`, `wiki/1105`,
+`requiresDesktopAppOpen`, `-OpenDesktopApp`, `20260608-092907-HUGH_SECOND`,
+and `136/136`.
+
+## 2026-06-08 Runtime CPU Desktop Launch Fail-Fast Index (wiki/1106)
+
+MUSU local indexer was refreshed after wiki/1105 and GOAL v930.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `30644 ms`
+
+Indexed context includes the `requiresDesktopAppOpen` guard, the targeted
+negative replay for missing `-OpenDesktopApp`, the green `136/136` verifier
+sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v931`, `wiki/1106`, `3104 files`,
+`2891 symbols`, `30644 ms`, `requiresDesktopAppOpen`, and `136/136`.

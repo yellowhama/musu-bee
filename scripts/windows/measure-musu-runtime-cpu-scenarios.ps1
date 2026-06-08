@@ -139,6 +139,11 @@ if ($normalizedScenarios.Count -eq 0) {
 }
 $Scenario = $normalizedScenarios.ToArray()
 
+$requiresDesktopAppOpen = ($Scenario -contains "startup-open" -or $Scenario -contains "desktop-open")
+if ($requiresDesktopAppOpen -and -not $OpenDesktopApp) {
+    throw "startup-open and desktop-open scenarios require -OpenDesktopApp so the packaged desktop shell and owned WebView2 helpers are actually launched before sampling."
+}
+
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $machine = if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) { "unknown" } else { $env:COMPUTERNAME }
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {

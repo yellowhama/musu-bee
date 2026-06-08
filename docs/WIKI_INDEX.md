@@ -7875,4 +7875,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   include `GOAL v929`, `wiki/1104`, `20260608-093428-HUGH_SECOND`, and
   `135/135`.
 
+- 2026-06-08 runtime CPU scenario desktop launch fail-fast:
+  wiki/1105 records the new `-OpenDesktopApp` requirement for
+  `startup-open`/`desktop-open`, the targeted negative replay, and the green
+  `136/136` verifier sweep. Search terms should include `GOAL v930`,
+  `wiki/1105`, `requiresDesktopAppOpen`, `20260608-092907-HUGH_SECOND`, and
+  `136/136`.
+
+- 2026-06-08 runtime CPU desktop launch fail-fast index:
+  wiki/1106 records the MUSU local index refresh after wiki/1105 with
+  `3104 files`, `2891 symbols`, and `30644 ms`. Search terms should include
+  `GOAL v931`, `wiki/1106`, `requiresDesktopAppOpen`, and `136/136`.
+
 **End of WIKI_INDEX.md.**
