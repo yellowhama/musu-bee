@@ -6,10 +6,16 @@ param(
     [string]$Architecture = "x64",
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
-    [string]$IdentityName = "Yellowhama.MUSU",
-    [string]$Publisher = "CN=Yellowhama",
+    # Store-assigned product identity (Partner Center, app 9NJ645MQ04T3).
+    # The package manifest MUST carry these exact values or Store ingestion
+    # rejects the upload. For local sideload, the packaging tool's
+    # --generate-cert derives a self-signed cert from this manifest Publisher,
+    # so manifest Publisher and cert subject stay aligned; the Store re-signs on
+    # ingestion (the self-signed package is NOT the Store-accepted signature).
+    [string]$IdentityName = "blossompark.musu",
+    [string]$Publisher = "CN=74D9382E-D574-4DD1-BEDD-9ECCBB92D36E",
     [string]$DisplayName = "MUSU",
-    [string]$PublisherDisplayName = "Yellowhama",
+    [string]$PublisherDisplayName = "blossompark",
     [string]$Description = "MUSU desktop shell for the local AI operations runtime",
     [string]$ApplicationExecutable = "musu-desktop.exe",
     [string]$RuntimeExecutable = "musu.exe",
