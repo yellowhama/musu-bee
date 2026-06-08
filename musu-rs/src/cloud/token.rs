@@ -11,6 +11,19 @@ use std::os::unix::fs::PermissionsExt;
 
 /// Loads the account token if it exists.
 pub fn load_token(musu_home: &Path) -> Option<String> {
+    for name in [
+        "MUSU_P2P_CONTROL_TOKEN",
+        "MUSU_ROUTE_EVIDENCE_TOKEN",
+        "MUSU_TOKEN",
+    ] {
+        if let Ok(token) = std::env::var(name) {
+            let token = token.trim().to_string();
+            if !token.is_empty() {
+                return Some(token);
+            }
+        }
+    }
+    
     let token_path = musu_home.join("token");
     std::fs::read_to_string(token_path)
         .ok()

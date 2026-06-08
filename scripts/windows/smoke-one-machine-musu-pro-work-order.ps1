@@ -326,6 +326,10 @@ $claimTargetNode = $TargetNode
 $accountLoggedIn = $false
 $tokenResolution = Resolve-P2pControlToken
 
+if ($tokenResolution.present) {
+    $env:MUSU_P2P_CONTROL_TOKEN = $tokenResolution.token
+}
+
 try {
     $musuExeResolution = Resolve-MusuExeForSmoke -RequestedPath $MusuExe
     $MusuExe = [string]$musuExeResolution.path
