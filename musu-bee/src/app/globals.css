@@ -58,13 +58,15 @@
   --musu-border-subtle: var(--border-strong);
   --musu-border-dim: var(--border-subtle);
 
-  /* ========== ACCENT ========== */
-  --accent: #38bdf8;
-  --accent-hover: #7dd3fc;
-  --accent-muted: rgba(56, 189, 248, 0.15);
-  --accent-tint: rgba(56, 189, 248, 0.05);
-  --accent-glow: 0 0 20px rgba(56, 189, 248, 0.3);
-  --accent-border: rgba(56, 189, 248, 0.4);
+  /* ========== ACCENT (Official Logo Colors: Emerald & Yellow) ========== */
+  --accent:        #24c8db;
+  --accent-hover:  #2de2f8;
+  --accent-muted:  rgba(36, 200, 219, 0.15);
+  --accent-tint:   rgba(36, 200, 219, 0.05);
+  --accent-glow:   0 0 20px rgba(36, 200, 219, 0.3);
+  --accent-border: rgba(36, 200, 219, 0.4);
+  
+  --brand-yellow:  #ffc131;
 
   /* ========== SEMANTIC STATUS ========== */
   --status-online:     #22C55E;

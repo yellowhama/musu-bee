@@ -24,8 +24,8 @@ export default function ComingSoonPage() {
       }}
     >
       {/* Sleek Background Glows */}
-      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "60%", height: "60%", background: "radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)", zIndex: 0, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: "20%", right: "-20%", width: "60%", height: "60%", background: "radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)", zIndex: 0, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "60%", height: "60%", background: "radial-gradient(circle, rgba(36,200,219,0.1) 0%, transparent 70%)", zIndex: 0, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: "20%", right: "-20%", width: "60%", height: "60%", background: "radial-gradient(circle, rgba(255,193,49,0.08) 0%, transparent 70%)", zIndex: 0, pointerEvents: "none" }} />
 
       {/* NAV */}
       <nav
@@ -54,10 +54,10 @@ export default function ComingSoonPage() {
               textDecoration: "none",
               borderRadius: "99px",
               padding: "10px 24px",
-              background: "linear-gradient(135deg, var(--accent) 0%, #0284c7 100%)",
+              background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
               color: "#fff",
               border: "none",
-              boxShadow: "0 4px 14px rgba(56, 189, 248, 0.3)",
+              boxShadow: "0 4px 14px rgba(36, 200, 219, 0.3)",
               fontWeight: 600,
             }}
           >
@@ -79,7 +79,7 @@ export default function ComingSoonPage() {
           <div
             style={{
               display: "inline-block",
-              background: "rgba(56, 189, 248, 0.1)",
+              background: "rgba(36, 200, 219, 0.1)",
               color: "var(--accent)",
               fontFamily: "var(--font-mono)",
               fontWeight: 600,
@@ -87,9 +87,9 @@ export default function ComingSoonPage() {
               textTransform: "uppercase",
               padding: "8px 16px",
               borderRadius: "99px",
-              border: "1px solid rgba(56, 189, 248, 0.2)",
+              border: "1px solid rgba(36, 200, 219, 0.2)",
               marginBottom: 32,
-              boxShadow: "0 0 20px rgba(56, 189, 248, 0.1)",
+              boxShadow: "0 0 20px rgba(36, 200, 219, 0.1)",
             }}
           >
             Antigravity Workspace
@@ -107,7 +107,7 @@ export default function ComingSoonPage() {
           >
             The Ultimate IDE <br />
             <span style={{ 
-              background: "linear-gradient(to right, #38bdf8, #a855f7)", 
+              background: "linear-gradient(to right, var(--accent), var(--brand-yellow))", 
               WebkitBackgroundClip: "text", 
               WebkitTextFillColor: "transparent" 
             }}>
@@ -141,6 +141,7 @@ export default function ComingSoonPage() {
                   type="email"
                   placeholder="Enter your email"
                   required
+                  className="input-premium"
                   style={{
                     flex: "1 1 200px",
                     background: "rgba(255, 255, 255, 0.03)",
@@ -151,21 +152,22 @@ export default function ComingSoonPage() {
                     fontSize: "var(--text-base)",
                     outline: "none",
                     borderRadius: "12px",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
                   }}
                 />
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-premium"
                   style={{
                     flex: "1 1 auto",
                     padding: "16px 32px",
                     borderRadius: "12px",
-                    background: "linear-gradient(135deg, var(--accent) 0%, #0284c7 100%)",
+                    background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
                     color: "#fff",
                     border: "none",
-                    boxShadow: "0 4px 14px rgba(56, 189, 248, 0.2)",
+                    boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
                     fontWeight: 600,
+                    transition: "transform 0.1s ease, filter 0.2s ease",
                   }}
                 >
                   Request Access
@@ -175,11 +177,12 @@ export default function ComingSoonPage() {
             <div style={{ marginTop: 24, textAlign: "center" }}>
               <Link
                 href="/app"
+                className="link-premium"
                 style={{
                   display: "inline-block",
                   padding: "12px 24px",
                   fontSize: "var(--text-base)",
-                  color: "var(--fg3)",
+                  color: "rgba(255, 255, 255, 0.6)",
                   textDecoration: "none",
                   fontWeight: 500,
                   transition: "color 0.2s",
@@ -194,6 +197,7 @@ export default function ComingSoonPage() {
         {/* 3-COLUMN MOCKUP SHOWCASE */}
         <section style={{ padding: "0 var(--space-3) 80px" }}>
           <div
+            className="mockup-container"
             style={{
               maxWidth: 1000,
               margin: "0 auto",
@@ -204,30 +208,28 @@ export default function ComingSoonPage() {
               borderRadius: "24px",
               boxShadow: "0 24px 48px -12px rgba(0,0,0,0.5)",
               display: "flex",
-              flexDirection: "row",
-              height: 520,
               overflow: "hidden",
             }}
           >
             {/* Left Panel - Nodes */}
-            <div style={{ width: 220, borderRight: "1px solid var(--border-subtle)", background: "rgba(9, 9, 11, 0.4)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600, color: "var(--fg3)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Devices</div>
+            <div className="mockup-sidebar mockup-sidebar-left" style={{ borderRight: "1px solid var(--border-subtle)", background: "rgba(9, 9, 11, 0.4)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Devices</div>
               <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 8px #22C55E" }} />
-                <span style={{ fontSize: "14px", fontFamily: "var(--font-ui)", fontWeight: 500 }}>MacBook-Pro</span>
+                <span style={{ fontSize: "14px", fontFamily: "var(--font-ui)", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>MacBook-Pro</span>
               </div>
               <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: "12px", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 8px #22C55E" }} />
-                <span style={{ fontSize: "14px", fontFamily: "var(--font-ui)", fontWeight: 500 }}>Cloud-A100</span>
+                <span style={{ fontSize: "14px", fontFamily: "var(--font-ui)", fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>Cloud-A100</span>
               </div>
             </div>
 
             {/* Center Panel - Town Mode / Viewport */}
-            <div style={{ flex: 1, padding: 32, position: "relative", background: "transparent" }}>
+            <div style={{ flex: 1, padding: 32, position: "relative", background: "transparent", minWidth: 300 }}>
               <div style={{ position: "absolute", top: 24, right: 24, display: "flex", gap: 8, background: "rgba(0,0,0,0.2)", padding: 4, borderRadius: "12px" }}>
-                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "var(--fg3)" }}>Dev</span>
+                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>Dev</span>
                 <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--fg1)", padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}>Town</span>
-                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "var(--fg3)" }}>Butler</span>
+                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>Butler</span>
               </div>
               
               <h3 style={{ fontSize: "24px", fontWeight: 600, fontFamily: "var(--font-display)", marginBottom: 32, marginTop: 12 }}>Agent Fleet Management</h3>
@@ -235,34 +237,34 @@ export default function ComingSoonPage() {
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {/* Agent Card */}
                 <div style={{ background: "linear-gradient(145deg, rgba(39,39,42,0.8) 0%, rgba(24,24,27,0.8) 100%)", border: "1px solid var(--border-default)", borderRadius: "16px", padding: 24, width: 220, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "16px", background: "linear-gradient(135deg, var(--accent) 0%, #0284c7 100%)", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "18px", boxShadow: "0 4px 12px rgba(56,189,248,0.3)" }}>CEO</div>
+                  <div style={{ width: 56, height: 56, borderRadius: "16px", background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "18px", boxShadow: "0 4px 12px rgba(36,200,219,0.3)" }}>CEO</div>
                   <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: 4 }}>Project Lead</div>
-                  <div style={{ fontSize: "13px", color: "var(--fg3)" }}>Claude 3.5 Sonnet</div>
+                  <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>Claude 3.5 Sonnet</div>
                 </div>
-                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-strong)", borderRadius: "16px", padding: 24, width: 220, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.2s" }}  >
-                  <span style={{ color: "var(--fg2)", fontSize: "14px", fontWeight: 500 }}>+ Add Agent</span>
+                <div className="agent-add-card" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-strong)", borderRadius: "16px", padding: 24, width: 220, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.2s" }}  >
+                  <span style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", fontWeight: 500 }}>+ Add Agent</span>
                 </div>
               </div>
             </div>
 
             {/* Right Panel - Chat Console */}
-            <div style={{ width: 340, borderLeft: "1px solid var(--border-subtle)", background: "rgba(9, 9, 11, 0.4)", display: "flex", flexDirection: "column" }}>
+            <div className="mockup-sidebar mockup-sidebar-right" style={{ borderLeft: "1px solid var(--border-subtle)", background: "rgba(9, 9, 11, 0.4)", display: "flex", flexDirection: "column" }}>
               <div style={{ padding: 20, borderBottom: "1px solid var(--border-subtle)", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--fg3)" }} /> Console
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.5)" }} /> Console
               </div>
               <div style={{ flex: 1, padding: 20, display: "flex", flexDirection: "column", gap: 16, overflowY: "hidden" }}>
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "var(--fg2)", lineHeight: 1.5 }}>
+                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
                   Checking GPU memory across nodes...
                 </div>
-                <div style={{ background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.2)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "var(--fg1)", lineHeight: 1.5, position: "relative" }}>
+                <div style={{ background: "rgba(36, 200, 219, 0.1)", border: "1px solid rgba(36, 200, 219, 0.2)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "var(--fg1)", lineHeight: 1.5, position: "relative" }}>
                   <div style={{ position: "absolute", left: -6, top: 20, width: 4, height: 16, background: "var(--accent)", borderRadius: 2 }} />
                   I've assigned the backend refactoring to Cloud-A100.
                 </div>
               </div>
               <div style={{ padding: 20, borderTop: "1px solid var(--border-subtle)" }}>
                 <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", borderRadius: "12px", padding: "12px 16px", display: "flex", alignItems: "center" }}>
-                  <span style={{ fontSize: "14px", color: "var(--fg3)", flex: 1 }}>Message CEO...</span>
-                  <div style={{ width: 28, height: 28, borderRadius: "8px", background: "rgba(56, 189, 248, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>↑</div>
+                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", flex: 1 }}>Message CEO...</span>
+                  <div style={{ width: 28, height: 28, borderRadius: "8px", background: "rgba(36, 200, 219, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>↑</div>
                 </div>
               </div>
             </div>
@@ -272,7 +274,7 @@ export default function ComingSoonPage() {
         {/* FEATURES GRID */}
         <section style={{ position: "relative", padding: "80px var(--space-3)", borderTop: "1px solid var(--border-subtle)", background: "var(--bg-base)" }}>
           {/* Subtle gradient underneath features */}
-          <div style={{ position: "absolute", top: 0, left: "20%", width: "60%", height: "100%", background: "radial-gradient(ellipse at top, rgba(56,189,248,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: "20%", width: "60%", height: "100%", background: "radial-gradient(ellipse at top, rgba(36,200,219,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
           
           <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
             <div
@@ -318,14 +320,14 @@ export default function ComingSoonPage() {
                       width: 48,
                       height: 48,
                       borderRadius: "12px",
-                      background: "rgba(56, 189, 248, 0.1)",
+                      background: "rgba(36, 200, 219, 0.1)",
                       color: "var(--accent)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: "20px",
                       marginBottom: 24,
-                      border: "1px solid rgba(56, 189, 248, 0.2)",
+                      border: "1px solid rgba(36, 200, 219, 0.2)",
                     }}
                   >
                     {feat.icon}
@@ -333,7 +335,7 @@ export default function ComingSoonPage() {
                   <h3 style={{ fontSize: "20px", fontWeight: 600, color: "var(--fg1)", marginBottom: 12 }}>
                     {feat.title}
                   </h3>
-                  <p style={{ fontSize: "15px", color: "var(--fg2)", lineHeight: 1.6 }}>
+                  <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>
                     {feat.desc}
                   </p>
                 </div>
@@ -359,14 +361,59 @@ export default function ComingSoonPage() {
         <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
           <MusuLogo size="header" variant="onDark" />
         </Link>
-        <span style={{ fontSize: "14px", color: "var(--fg3)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
+        <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
       </footer>
 
       <style dangerouslySetInnerHTML={{__html: `
-        .hover-card-premium:hover {
-          transform: translateY(-4px);
-          border-color: var(--accent-border) !important;
-          box-shadow: 0 12px 30px -10px rgba(56, 189, 248, 0.15) !important;
+        /* 1. Mobile Responsiveness */
+        .mockup-container {
+          flex-direction: row;
+          height: 520px;
+        }
+        .mockup-sidebar-left { width: 220px; }
+        .mockup-sidebar-right { width: 340px; }
+        
+        @media (max-width: 900px) {
+          .mockup-container {
+            flex-direction: column;
+            height: auto;
+            min-height: 520px;
+          }
+          .mockup-sidebar-left, .mockup-sidebar-right {
+            width: 100% !important;
+            border-right: none !important;
+            border-left: none !important;
+            border-bottom: 1px solid var(--border-subtle);
+          }
+        }
+
+        /* 2 & 3. Hover effects (Touch safe) */
+        @media (hover: hover) and (pointer: fine) {
+          .hover-card-premium:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-border) !important;
+            box-shadow: 0 12px 30px -10px rgba(36, 200, 219, 0.15) !important;
+          }
+          .agent-add-card:hover {
+            background: rgba(255,255,255,0.05) !important;
+          }
+          .link-premium:hover {
+            color: var(--fg1) !important;
+          }
+          .btn-premium:hover {
+            filter: brightness(1.1);
+          }
+        }
+        
+        /* Active states for touch feedback */
+        .hover-card-premium:active, .btn-premium:active {
+          transform: scale(0.98);
+        }
+
+        /* 4. Input focus transitions */
+        .input-premium:focus {
+          border-color: var(--accent) !important;
+          box-shadow: 0 0 0 2px rgba(36, 200, 219, 0.2) !important;
         }
       `}} />
     </div>
