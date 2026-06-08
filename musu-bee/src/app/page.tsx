@@ -153,14 +153,6 @@ export default function ComingSoonPage() {
                     borderRadius: "12px",
                     transition: "border-color 0.2s, box-shadow 0.2s",
                   }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--accent)";
-                    e.target.style.boxShadow = "0 0 0 2px rgba(56, 189, 248, 0.2)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--border-default)";
-                    e.target.style.boxShadow = "none";
-                  }}
                 />
                 <button
                   type="submit"
@@ -192,8 +184,6 @@ export default function ComingSoonPage() {
                   fontWeight: 500,
                   transition: "color 0.2s",
                 }}
-                
-                
               >
                 Go to App Dashboard →
               </Link>
@@ -321,16 +311,7 @@ export default function ComingSoonPage() {
                     transition: "transform 0.3s, border-color 0.3s, box-shadow 0.3s",
                     cursor: "default",
                   }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                    e.currentTarget.style.borderColor = "var(--accent-border)";
-                    e.currentTarget.style.boxShadow = "0 12px 30px -10px rgba(56, 189, 248, 0.15)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = "none";
-                    e.currentTarget.style.borderColor = "var(--border-default)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="hover-card-premium"
                 >
                   <div
                     style={{
@@ -380,6 +361,14 @@ export default function ComingSoonPage() {
         </Link>
         <span style={{ fontSize: "14px", color: "var(--fg3)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
       </footer>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .hover-card-premium:hover {
+          transform: translateY(-4px);
+          border-color: var(--accent-border) !important;
+          box-shadow: 0 12px 30px -10px rgba(56, 189, 248, 0.15) !important;
+        }
+      `}} />
     </div>
   );
 }
