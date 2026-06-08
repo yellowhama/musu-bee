@@ -284,6 +284,25 @@ Add-Check "desktop-shell" "warning surface" $(if ($warningSurface) { "pass" } el
         "desktop shell does not prove a visible warning surface that elevates overall status when doctor-derived warnings exist."
     })
 
+$processOwnershipSurface = (
+    $tauriLibText -match 'process_ownership_status' -and
+    $tauriLibText -match 'process_ownership_detail' -and
+    $tauriLibText -match 'runtime_process_count' -and
+    $tauriLibText -match 'owned_node_process_count' -and
+    $tauriLibText -match 'owned_webview2_process_count' -and
+    $tauriLibText -match 'summarize_process_ownership' -and
+    $tauriShellIndexText -match 'id="process-ownership-status"' -and
+    $tauriShellIndexText -match 'id="owned-helpers"' -and
+    $tauriShellMainText -match 'process-ownership-status' -and
+    $tauriShellMainText -match 'owned_node_process_count'
+)
+Add-Check "desktop-shell" "process ownership surface" $(if ($processOwnershipSurface) { "pass" } else { "fail" }) `
+    $(if ($processOwnershipSurface) {
+        "desktop shell surfaces runtime/desktop/helper ownership counts and review state for duplicate runtimes or unexpected owned helpers."
+    } else {
+        "desktop shell does not prove a packaged process-ownership status surface for runtime, desktop, node, and WebView2 counts."
+    })
+
 $msixBuildScript = Join-Path $scriptDir "build-msix.ps1"
 if (Test-Path -LiteralPath $msixBuildScript) {
     $msixBuildText = Get-Content -LiteralPath $msixBuildScript -Raw

@@ -8059,4 +8059,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v955`, `wiki/1130`, `3104 files`, `2918 symbols`,
   `doctor status surface`, `warning surface`, and `145/145`.
 
+- 2026-06-08 packaged desktop process ownership surface:
+  wiki/1131 records the packaged desktop backend/runtime-shell changes that now
+  surface runtime/desktop/helper ownership counts and review-state for duplicate
+  runtimes, duplicate desktop shells, owned Node helpers, and oversized owned
+  WebView2 sets. Search terms should include `GOAL v956`, `wiki/1131`,
+  `process ownership surface`, `runtime_process_count`,
+  `owned_node_process_count`, and `owned_webview2_process_count`.
+
+- 2026-06-08 packaged desktop process ownership surface index:
+  wiki/1132 records the MUSU local index refresh after wiki/1131 with
+  `3104 files`, `2929 symbols`, and `14440 ms`. Search terms
+  should include `GOAL v957`, `wiki/1132`, `3104 files`, `2929 symbols`,
+  `process ownership surface`, and `146/146`.
+
 **End of WIKI_INDEX.md.**

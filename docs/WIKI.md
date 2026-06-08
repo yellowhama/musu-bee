@@ -21101,3 +21101,91 @@ verifier regression.
 Search terms should include `GOAL v955`, `wiki/1130`, `3104 files`,
 `2918 symbols`, `17572 ms`, `doctor status surface`, `warning surface`, and
 `145/145`.
+
+## 2026-06-08 Packaged Desktop Process Ownership Surface (wiki/1131)
+
+The packaged desktop shell now surfaces live process-ownership counts directly
+from the desktop backend, so duplicate MUSU roots and unexpected owned helpers
+are visible in-product instead of only through release scripts.
+
+Backend changes:
+
+- `musu-bee\src-tauri\src\lib.rs`
+  - `DesktopStatus` now includes:
+    - `process_ownership_status`
+    - `process_ownership_detail`
+    - `runtime_process_count`
+    - `desktop_process_count`
+    - `machine_wide_node_process_count`
+    - `owned_node_process_count`
+    - `machine_wide_webview2_process_count`
+    - `owned_webview2_process_count`
+  - added a Windows ToolHelp-based live process snapshot for:
+    - `musu.exe`
+    - `musud.exe`
+    - `musu-desktop.exe`
+    - `node.exe`
+    - `msedgewebview2.exe`
+  - descendant traversal now computes owned helpers from live MUSU runtime and
+    desktop roots rather than from machine-wide counts alone
+  - the process summary warns when:
+    - MUSU runtime count is greater than `1`
+    - desktop shell count is greater than `1`
+    - owned `node.exe` helpers are present
+    - owned WebView2 helpers exceed `8`
+    - the bridge registry claims a runtime PID but no live runtime root exists
+  - `doctor_status_summary(...)` now preserves the process summary even if
+    `musu doctor --json` itself fails, so degraded doctor fetches still expose
+    runtime/desktop/helper ownership counts
+
+Shell changes:
+
+- `musu-bee\src-tauri-shell\index.html`
+- `musu-bee\src-tauri-shell\main.js`
+  - added a `Process Ownership` status card
+  - added an `Owned Helpers` detail row
+  - the row now renders:
+    - runtime count
+    - desktop count
+    - owned/machine-wide node count
+    - owned/machine-wide WebView2 count
+
+Verification:
+
+- `cargo fmt`
+- `cargo test --manifest-path F:\workspace\musu-bee\musu-bee\src-tauri\Cargo.toml --lib -- --nocapture`
+  - `14` tests passed
+  - includes:
+    - `process_ownership_summary_flags_duplicate_runtime_and_owned_node_helpers`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-desktop-release-readiness.ps1 -Json`
+  - new check:
+    - `process ownership surface`
+  - passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=146`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-121313`
+
+Search terms should include `GOAL v956`, `wiki/1131`,
+`process ownership surface`, `runtime_process_count`,
+`owned_node_process_count`, `owned_webview2_process_count`, and `146/146`.
+
+## 2026-06-08 Packaged Desktop Process Ownership Surface Index (wiki/1132)
+
+MUSU local indexer was refreshed after wiki/1131 and GOAL v956.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2929 symbols`
+- `14440 ms`
+
+Indexed context includes the new packaged desktop process-ownership card and
+owned-helper detail row, the ToolHelp-based runtime/desktop/helper counting
+logic, the new Tauri process-summary unit test, the passing desktop audit check
+`process ownership surface`, and the green `146/146` full verifier regression.
+
+Search terms should include `GOAL v957`, `wiki/1132`, `3104 files`,
+`2929 symbols`, `14440 ms`, `process ownership surface`, and `146/146`.

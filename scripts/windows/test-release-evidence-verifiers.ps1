@@ -2194,6 +2194,33 @@ function Test-DesktopShellDoctorWarningSurfaceContract {
     return $true
 }
 
+function Test-DesktopShellProcessOwnershipSurfaceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'process ownership surface',
+        'process_ownership_status',
+        'process_ownership_detail',
+        'runtime_process_count',
+        'owned_node_process_count',
+        'owned_webview2_process_count',
+        'summarize_process_ownership',
+        'id="process-ownership-status"',
+        'id="owned-helpers"',
+        'process-ownership-status',
+        'owned_node_process_count'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -4244,6 +4271,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "desktop shell doctor warning surface is explicit" `
+    -Verifier "desktop shell source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopShellProcessOwnershipSurfaceContractOk = Test-DesktopShellProcessOwnershipSurfaceContract -ScriptPath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopShellProcessOwnershipSurfaceContractOk `
+    -Message "desktop release readiness audit must require packaged runtime/desktop/helper ownership counts and review-state surfacing in the shell"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "desktop shell process ownership surface is explicit" `
     -Verifier "desktop shell source contract" `
     -FixturePath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1") `
     -ShouldPass $true `

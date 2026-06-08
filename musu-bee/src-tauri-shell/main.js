@@ -77,6 +77,9 @@ function renderStatus(status) {
   $("runtime-profile-status").textContent = status.runtime_profile_status || "Unknown";
   $("runtime-profile-detail").textContent =
     status.runtime_profile_detail || "No runtime profile detail.";
+  $("process-ownership-status").textContent = status.process_ownership_status || "Unknown";
+  $("process-ownership-detail").textContent =
+    status.process_ownership_detail || "No process ownership detail.";
   $("bridge-url").textContent = status.bridge_url || "-";
   $("dashboard-url").textContent = status.dashboard_url || "-";
   $("musu-home").textContent = status.musu_home || "-";
@@ -85,6 +88,11 @@ function renderStatus(status) {
     status.active_runtime_loop_candidate_keys.length > 0
       ? status.active_runtime_loop_candidate_keys.join(", ")
       : "-";
+  $("owned-helpers").textContent = `runtime ${status.runtime_process_count ?? 0}, desktop ${
+    status.desktop_process_count ?? 0
+  }, node ${status.owned_node_process_count ?? 0}/${status.machine_wide_node_process_count ?? 0}, WebView2 ${
+    status.owned_webview2_process_count ?? 0
+  }/${status.machine_wide_webview2_process_count ?? 0}`;
   renderWarnings(warnings);
 
   if (!bridgeOk && !bridgeStarting) {

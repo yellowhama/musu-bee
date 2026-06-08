@@ -47,6 +47,14 @@ struct DesktopStatus {
     auth_detail: String,
     runtime_profile_status: String,
     runtime_profile_detail: String,
+    process_ownership_status: String,
+    process_ownership_detail: String,
+    runtime_process_count: usize,
+    desktop_process_count: usize,
+    machine_wide_node_process_count: usize,
+    owned_node_process_count: usize,
+    machine_wide_webview2_process_count: usize,
+    owned_webview2_process_count: usize,
     active_runtime_loop_candidate_count: usize,
     active_runtime_loop_candidate_keys: Vec<String>,
     warnings: Vec<String>,
@@ -125,7 +133,7 @@ fn desktop_status() -> DesktopStatus {
     let home = musu_home();
     let bridge_registry = bridge_registry_status(&home);
     let runtime_start_in_progress = runtime_start_gate().is_in_progress();
-    let doctor_summary = doctor_status_summary(&musu_command_path());
+    let doctor_summary = doctor_status_summary(&musu_command_path(), bridge_registry.pid);
     let dashboard_probe = probe_dashboard();
     let bridge_probe = bridge_registry
         .url
@@ -162,6 +170,14 @@ fn desktop_status() -> DesktopStatus {
         auth_detail: doctor_summary.auth_detail,
         runtime_profile_status: doctor_summary.runtime_profile_status,
         runtime_profile_detail: doctor_summary.runtime_profile_detail,
+        process_ownership_status: doctor_summary.process_ownership_status,
+        process_ownership_detail: doctor_summary.process_ownership_detail,
+        runtime_process_count: doctor_summary.runtime_process_count,
+        desktop_process_count: doctor_summary.desktop_process_count,
+        machine_wide_node_process_count: doctor_summary.machine_wide_node_process_count,
+        owned_node_process_count: doctor_summary.owned_node_process_count,
+        machine_wide_webview2_process_count: doctor_summary.machine_wide_webview2_process_count,
+        owned_webview2_process_count: doctor_summary.owned_webview2_process_count,
         active_runtime_loop_candidate_count: doctor_summary.active_runtime_loop_candidate_count,
         active_runtime_loop_candidate_keys: doctor_summary.active_runtime_loop_candidate_keys,
         warnings: doctor_summary.warnings,
@@ -237,40 +253,55 @@ fn open_dashboard(url: String) -> Result<CommandResult, String> {
     })
 }
 
-fn doctor_status_summary(command: &std::path::Path) -> DoctorStatusSummary {
+fn doctor_status_summary(
+    command: &std::path::Path,
+    bridge_pid: Option<u32>,
+) -> DoctorStatusSummary {
+    let process_summary = summarize_process_ownership(list_process_entries(), bridge_pid);
     let result =
         match run_command_with_timeout(command, &["doctor", "--json"], DOCTOR_STATUS_TIMEOUT) {
             Ok(result) => result,
             Err(err) => {
-                return DoctorStatusSummary::unavailable(format!(
-                    "failed to run {} doctor --json: {err}",
-                    command.display()
-                ));
+                return DoctorStatusSummary::unavailable_with_process(
+                    format!("failed to run {} doctor --json: {err}", command.display()),
+                    process_summary,
+                );
             }
         };
 
     let combined = combine_command_output(&result.stdout, &result.stderr);
     if result.timed_out {
-        return DoctorStatusSummary::unavailable(format!(
-            "{} doctor --json timed out after {}s",
-            command.display(),
-            DOCTOR_STATUS_TIMEOUT.as_secs()
-        ));
+        return DoctorStatusSummary::unavailable_with_process(
+            format!(
+                "{} doctor --json timed out after {}s",
+                command.display(),
+                DOCTOR_STATUS_TIMEOUT.as_secs()
+            ),
+            process_summary,
+        );
     }
 
     if !result.status_success {
-        return DoctorStatusSummary::unavailable(format!(
-            "{} doctor --json exited with {}. {}",
-            command.display(),
-            result.status_detail,
-            combined
-        ));
+        return DoctorStatusSummary::unavailable_with_process(
+            format!(
+                "{} doctor --json exited with {}. {}",
+                command.display(),
+                result.status_detail,
+                combined
+            ),
+            process_summary,
+        );
     }
 
-    parse_doctor_status_summary(&combined).unwrap_or_else(DoctorStatusSummary::unavailable)
+    parse_doctor_status_summary(&combined, bridge_pid).unwrap_or_else(|detail| {
+        DoctorStatusSummary::unavailable_with_process(detail, process_summary.clone())
+    })
 }
 
-fn parse_doctor_status_summary(text: &str) -> Result<DoctorStatusSummary, String> {
+fn parse_doctor_status_summary(
+    text: &str,
+    bridge_pid: Option<u32>,
+) -> Result<DoctorStatusSummary, String> {
     let value: serde_json::Value =
         serde_json::from_str(text).map_err(|err| format!("doctor JSON parse failed: {err}"))?;
 
@@ -301,7 +332,8 @@ fn parse_doctor_status_summary(text: &str) -> Result<DoctorStatusSummary, String
     let active_runtime_loop_labels =
         active_runtime_loop_candidate_labels(&value, &active_runtime_loop_candidate_keys);
 
-    let mut warnings = Vec::new();
+    let process_summary = summarize_process_ownership(list_process_entries(), bridge_pid);
+    let mut warnings = process_summary.warnings.clone();
     let (package_status, package_detail) = if let Some(shadowed_by) = alias_shadowed_by {
         warnings.push(format!(
             "PATH `musu.exe` resolves to {shadowed_by}; use the packaged WindowsApps alias for release evidence."
@@ -360,6 +392,14 @@ fn parse_doctor_status_summary(text: &str) -> Result<DoctorStatusSummary, String
         auth_detail,
         runtime_profile_status,
         runtime_profile_detail,
+        process_ownership_status: process_summary.status,
+        process_ownership_detail: process_summary.detail,
+        runtime_process_count: process_summary.runtime_process_count,
+        desktop_process_count: process_summary.desktop_process_count,
+        machine_wide_node_process_count: process_summary.machine_wide_node_process_count,
+        owned_node_process_count: process_summary.owned_node_process_count,
+        machine_wide_webview2_process_count: process_summary.machine_wide_webview2_process_count,
+        owned_webview2_process_count: process_summary.owned_webview2_process_count,
         active_runtime_loop_candidate_count,
         active_runtime_loop_candidate_keys,
         warnings,
@@ -402,6 +442,202 @@ fn active_runtime_loop_candidate_labels(
         }
     }
     labels
+}
+
+fn summarize_process_ownership(
+    entries: Vec<ProcessEntry>,
+    bridge_pid: Option<u32>,
+) -> ProcessOwnershipSummary {
+    use std::collections::{HashMap, HashSet};
+
+    let parent_by_pid: HashMap<u32, u32> = entries
+        .iter()
+        .map(|entry| (entry.pid, entry.parent_pid))
+        .collect();
+    let root_ids: HashSet<u32> = entries
+        .iter()
+        .filter(|entry| {
+            is_musu_runtime_process_name(&entry.exe_name)
+                || is_musu_desktop_process_name(&entry.exe_name)
+        })
+        .map(|entry| entry.pid)
+        .collect();
+
+    let runtime_process_count = entries
+        .iter()
+        .filter(|entry| is_musu_runtime_process_name(&entry.exe_name))
+        .count();
+    let desktop_process_count = entries
+        .iter()
+        .filter(|entry| is_musu_desktop_process_name(&entry.exe_name))
+        .count();
+    let machine_wide_node_process_count = entries
+        .iter()
+        .filter(|entry| is_node_process_name(&entry.exe_name))
+        .count();
+    let machine_wide_webview2_process_count = entries
+        .iter()
+        .filter(|entry| is_webview2_process_name(&entry.exe_name))
+        .count();
+    let owned_node_process_count = entries
+        .iter()
+        .filter(|entry| {
+            is_node_process_name(&entry.exe_name)
+                && is_descendant_of_roots(entry.pid, &root_ids, &parent_by_pid)
+        })
+        .count();
+    let owned_webview2_process_count = entries
+        .iter()
+        .filter(|entry| {
+            is_webview2_process_name(&entry.exe_name)
+                && is_descendant_of_roots(entry.pid, &root_ids, &parent_by_pid)
+        })
+        .count();
+
+    let mut warnings = Vec::new();
+    if runtime_process_count > 1 {
+        warnings.push(format!(
+            "Detected {runtime_process_count} MUSU runtime processes; expected at most 1 packaged runtime root."
+        ));
+    }
+    if desktop_process_count > 1 {
+        warnings.push(format!(
+            "Detected {desktop_process_count} MUSU desktop shell processes; expected at most 1 window instance."
+        ));
+    }
+    if owned_node_process_count > 0 {
+        warnings.push(format!(
+            "Detected {owned_node_process_count} node.exe helper process(es) owned by the MUSU process tree."
+        ));
+    }
+    if owned_webview2_process_count > 8 {
+        warnings.push(format!(
+            "Detected {owned_webview2_process_count} WebView2 helper process(es) owned by MUSU; expected at most 8."
+        ));
+    }
+    if bridge_pid.is_some() && runtime_process_count == 0 {
+        warnings.push(
+            "Bridge registry advertises a runtime PID, but no live MUSU runtime process was found."
+                .to_string(),
+        );
+    }
+
+    let status = if warnings.is_empty() {
+        "Stable"
+    } else {
+        "Review"
+    };
+    let detail = format!(
+        "runtime={}, desktop={}, node owned/machine-wide={}/{}, webview2 owned/machine-wide={}/{}",
+        runtime_process_count,
+        desktop_process_count,
+        owned_node_process_count,
+        machine_wide_node_process_count,
+        owned_webview2_process_count,
+        machine_wide_webview2_process_count
+    );
+
+    ProcessOwnershipSummary {
+        status: status.to_string(),
+        detail,
+        runtime_process_count,
+        desktop_process_count,
+        machine_wide_node_process_count,
+        owned_node_process_count,
+        machine_wide_webview2_process_count,
+        owned_webview2_process_count,
+        warnings,
+    }
+}
+
+fn is_descendant_of_roots(
+    pid: u32,
+    root_ids: &std::collections::HashSet<u32>,
+    parent_by_pid: &std::collections::HashMap<u32, u32>,
+) -> bool {
+    let mut current = pid;
+    let mut seen = std::collections::HashSet::new();
+    while let Some(parent_pid) = parent_by_pid.get(&current).copied() {
+        if !seen.insert(current) || parent_pid == 0 {
+            return false;
+        }
+        if root_ids.contains(&parent_pid) {
+            return true;
+        }
+        current = parent_pid;
+    }
+    false
+}
+
+fn is_musu_runtime_process_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "musu.exe" | "musu" | "musud.exe" | "musud"
+    )
+}
+
+fn is_musu_desktop_process_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "musu-desktop.exe" | "musu-desktop"
+    )
+}
+
+fn is_node_process_name(name: &str) -> bool {
+    matches!(name.to_ascii_lowercase().as_str(), "node.exe" | "node")
+}
+
+fn is_webview2_process_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "msedgewebview2.exe" | "msedgewebview2"
+    )
+}
+
+#[cfg(windows)]
+fn list_process_entries() -> Vec<ProcessEntry> {
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+        TH32CS_SNAPPROCESS,
+    };
+
+    let mut entries = Vec::new();
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return entries;
+        }
+
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        if Process32FirstW(snapshot, &mut entry) != 0 {
+            loop {
+                let len = entry
+                    .szExeFile
+                    .iter()
+                    .position(|ch| *ch == 0)
+                    .unwrap_or(entry.szExeFile.len());
+                let exe_name = String::from_utf16_lossy(&entry.szExeFile[..len]);
+                entries.push(ProcessEntry {
+                    pid: entry.th32ProcessID,
+                    parent_pid: entry.th32ParentProcessID,
+                    exe_name,
+                });
+
+                if Process32NextW(snapshot, &mut entry) == 0 {
+                    break;
+                }
+            }
+        }
+        CloseHandle(snapshot);
+    }
+    entries
+}
+
+#[cfg(not(windows))]
+fn list_process_entries() -> Vec<ProcessEntry> {
+    Vec::new()
 }
 
 fn combine_command_output(stdout: &str, stderr: &str) -> String {
@@ -467,6 +703,7 @@ struct BridgeRegistryStatus {
     url: Option<String>,
     detail: String,
     pid_running: bool,
+    pid: Option<u32>,
 }
 
 struct DoctorStatusSummary {
@@ -476,13 +713,21 @@ struct DoctorStatusSummary {
     auth_detail: String,
     runtime_profile_status: String,
     runtime_profile_detail: String,
+    process_ownership_status: String,
+    process_ownership_detail: String,
+    runtime_process_count: usize,
+    desktop_process_count: usize,
+    machine_wide_node_process_count: usize,
+    owned_node_process_count: usize,
+    machine_wide_webview2_process_count: usize,
+    owned_webview2_process_count: usize,
     active_runtime_loop_candidate_count: usize,
     active_runtime_loop_candidate_keys: Vec<String>,
     warnings: Vec<String>,
 }
 
 impl DoctorStatusSummary {
-    fn unavailable(detail: String) -> Self {
+    fn unavailable_with_process(detail: String, process_summary: ProcessOwnershipSummary) -> Self {
         Self {
             package_status: "Unknown".to_string(),
             package_detail: detail.clone(),
@@ -490,11 +735,46 @@ impl DoctorStatusSummary {
             auth_detail: detail.clone(),
             runtime_profile_status: "Unknown".to_string(),
             runtime_profile_detail: detail.clone(),
+            process_ownership_status: process_summary.status,
+            process_ownership_detail: process_summary.detail,
+            runtime_process_count: process_summary.runtime_process_count,
+            desktop_process_count: process_summary.desktop_process_count,
+            machine_wide_node_process_count: process_summary.machine_wide_node_process_count,
+            owned_node_process_count: process_summary.owned_node_process_count,
+            machine_wide_webview2_process_count: process_summary
+                .machine_wide_webview2_process_count,
+            owned_webview2_process_count: process_summary.owned_webview2_process_count,
             active_runtime_loop_candidate_count: 0,
             active_runtime_loop_candidate_keys: Vec::new(),
-            warnings: vec![format!("Doctor diagnostics unavailable: {detail}")],
+            warnings: process_summary
+                .warnings
+                .into_iter()
+                .chain(std::iter::once(format!(
+                    "Doctor diagnostics unavailable: {detail}"
+                )))
+                .collect(),
         }
     }
+}
+
+#[derive(Clone)]
+struct ProcessOwnershipSummary {
+    status: String,
+    detail: String,
+    runtime_process_count: usize,
+    desktop_process_count: usize,
+    machine_wide_node_process_count: usize,
+    owned_node_process_count: usize,
+    machine_wide_webview2_process_count: usize,
+    owned_webview2_process_count: usize,
+    warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+struct ProcessEntry {
+    pid: u32,
+    parent_pid: u32,
+    exe_name: String,
 }
 
 fn musu_home() -> std::path::PathBuf {
@@ -526,6 +806,7 @@ fn bridge_registry_status_with_pid_checker(
                 url: None,
                 detail: "bridge registry not found".to_string(),
                 pid_running: false,
+                pid: None,
             };
         }
         Err(err) => {
@@ -533,6 +814,7 @@ fn bridge_registry_status_with_pid_checker(
                 url: None,
                 detail: format!("bridge registry unreadable: {err}"),
                 pid_running: false,
+                pid: None,
             };
         }
     };
@@ -544,6 +826,7 @@ fn bridge_registry_status_with_pid_checker(
                 url: None,
                 detail: format!("bridge registry parse failed: {err}"),
                 pid_running: false,
+                pid: None,
             };
         }
     };
@@ -564,6 +847,7 @@ fn bridge_registry_status_with_pid_checker(
                 url: None,
                 detail: cleanup_detail,
                 pid_running: false,
+                pid: Some(pid),
             };
         }
     }
@@ -573,6 +857,7 @@ fn bridge_registry_status_with_pid_checker(
             url: None,
             detail: "bridge registry missing addr".to_string(),
             pid_running: false,
+            pid,
         };
     };
 
@@ -584,6 +869,7 @@ fn bridge_registry_status_with_pid_checker(
             "bridge registry missing pid".to_string()
         },
         pid_running: pid.is_some(),
+        pid,
     }
 }
 
@@ -945,7 +1231,7 @@ mod tests {
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
         can_start_runtime, developer_dashboard_surface_enabled_for, is_local_dashboard_url,
         musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
-        RuntimeStartGate,
+        summarize_process_ownership, ProcessEntry, RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -1137,6 +1423,7 @@ mod tests {
                     "note": "Background work is in the low-duty default profile."
                 }
             }"#,
+            Some(32192),
         )
         .expect("doctor JSON should parse");
 
@@ -1178,6 +1465,7 @@ mod tests {
                     "note": "Background work is active."
                 }
             }"#,
+            Some(32192),
         )
         .expect("doctor JSON should parse");
 
@@ -1198,6 +1486,62 @@ mod tests {
                 .contains("Cloud heartbeat, Relay target polling"),
             "{}",
             summary.runtime_profile_detail
+        );
+    }
+
+    #[test]
+    fn process_ownership_summary_flags_duplicate_runtime_and_owned_node_helpers() {
+        let summary = summarize_process_ownership(
+            vec![
+                ProcessEntry {
+                    pid: 10,
+                    parent_pid: 1,
+                    exe_name: "musu.exe".to_string(),
+                },
+                ProcessEntry {
+                    pid: 11,
+                    parent_pid: 1,
+                    exe_name: "musud.exe".to_string(),
+                },
+                ProcessEntry {
+                    pid: 20,
+                    parent_pid: 1,
+                    exe_name: "musu-desktop.exe".to_string(),
+                },
+                ProcessEntry {
+                    pid: 30,
+                    parent_pid: 10,
+                    exe_name: "node.exe".to_string(),
+                },
+                ProcessEntry {
+                    pid: 31,
+                    parent_pid: 20,
+                    exe_name: "msedgewebview2.exe".to_string(),
+                },
+            ],
+            Some(10),
+        );
+
+        assert_eq!(summary.status, "Review");
+        assert_eq!(summary.runtime_process_count, 2);
+        assert_eq!(summary.desktop_process_count, 1);
+        assert_eq!(summary.owned_node_process_count, 1);
+        assert_eq!(summary.owned_webview2_process_count, 1);
+        assert!(
+            summary
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("runtime processes")),
+            "{:?}",
+            summary.warnings
+        );
+        assert!(
+            summary
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("node.exe helper")),
+            "{:?}",
+            summary.warnings
         );
     }
 
