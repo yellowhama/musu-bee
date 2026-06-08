@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "evidence-integrity.ps1")
 
 if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
     $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -4494,6 +4495,27 @@ Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
 Add-CaseResult -Cases $cases -Name "p2p accepts release-grade hosted control-plane evidence" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+# H9: integrity sidecar cases. Valid evidence + matching sidecar passes even
+# under -RequireIntegrity; a sidecar that no longer matches the file (tamper)
+# is rejected; missing sidecar is tolerated by default but rejected under
+# -RequireIntegrity.
+$fixture = Write-Fixture -Name "p2p-integrity-valid" -Object $validP2p
+Write-EvidenceIntegritySidecar -EvidencePath $fixture | Out-Null
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-RequireIntegrity", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p accepts evidence with a matching integrity sidecar under -RequireIntegrity" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "p2p-integrity-tampered" -Object $validP2p
+Write-EvidenceIntegritySidecar -EvidencePath $fixture | Out-Null
+$tamperedP2p = Copy-JsonObject -Object $validP2p
+@($tamperedP2p.relay_route_evidence.records)[0].evidence.peer_identity_verified = $false
+$tamperedP2p | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $fixture -Encoding UTF8
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects evidence tampered after its integrity sidecar was recorded" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
+
+$fixture = Write-Fixture -Name "p2p-integrity-missing-sidecar" -Object $validP2p
+$invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-RequireIntegrity", "-Json")
+Add-CaseResult -Cases $cases -Name "p2p rejects evidence without an integrity sidecar under -RequireIntegrity" -Verifier "verify-p2p-control-plane-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation
 
 $badP2pRelayTransportKind = Copy-JsonObject -Object $validP2p
 $badP2pRelayTransportKind.relay_transport.relay_transport_kind = "websocket_tunnel"

@@ -25,6 +25,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 . (Join-Path $scriptDir "release-config.ps1")
+. (Join-Path $scriptDir "evidence-integrity.ps1")
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $supportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
@@ -316,6 +317,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/configure-musu-pro-p2p-env.ps1",
         "scripts/windows/import-second-pc-return.ps1",
         "scripts/windows/measure-musu-runtime-cpu-scenarios.ps1",
+        "scripts/windows/evidence-integrity.ps1",
         "scripts/windows/msix-common.ps1",
         "scripts/windows/prepare-final-operator-gate-packet.ps1",
         "scripts/windows/prepare-multidevice-test-kit.ps1",
@@ -1837,6 +1839,7 @@ if ($storeReleaseEvidenceCandidate) {
 $p2pControlPlaneVerified = $false
 $p2pControlPlaneEvidence = $null
 $p2pControlPlaneEvidenceCandidate = $null
+$p2pControlPlaneEvidenceIntegrity = $null
 $p2pControlPlaneEvidenceRoots = @(
     [pscustomobject]@{
         path = (Join-Path $repoRoot ("docs\evidence\p2p-control-plane\{0}" -f $version))
@@ -1861,11 +1864,14 @@ foreach ($root in $p2pControlPlaneEvidenceRoots) {
 }
 
 if ($p2pControlPlaneEvidenceCandidate) {
+    # H9: detect tampering of the evidence file between recording and trust by
+    # recomputing its SHA256 and comparing against the integrity sidecar.
+    $p2pControlPlaneEvidenceIntegrity = Test-EvidenceIntegritySidecar -EvidencePath $p2pControlPlaneEvidenceCandidate.FullName
     $p2pControlPlaneEvidenceResult = Invoke-JsonScript `
         -FilePath $p2pControlPlaneVerifierScript `
         -Arguments @("-EvidencePath", $p2pControlPlaneEvidenceCandidate.FullName, "-ExpectedVersion", $version, "-ExpectedBaseUrl", $PublicMetadataBaseUrl, "-Json") `
         -AllowFailure
-    if ($p2pControlPlaneEvidenceResult.json -and [bool]$p2pControlPlaneEvidenceResult.json.ok) {
+    if ($p2pControlPlaneEvidenceResult.json -and [bool]$p2pControlPlaneEvidenceResult.json.ok -and ($p2pControlPlaneEvidenceIntegrity.status -ne "tampered" -and $p2pControlPlaneEvidenceIntegrity.status -ne "malformed")) {
         $p2pControlPlaneVerified = $true
         $p2pControlPlaneEvidence = $p2pControlPlaneEvidenceResult.json
     }
@@ -2218,6 +2224,20 @@ if (-not $p2pControlPlaneVerified) {
     }
     Add-Blocker -List $blockers -Area "p2p-control-plane" -Message "Live $PublicMetadataBaseUrl P2P control-plane evidence has not verified owner-scoped release-grade relay lease storage, relay_default_data_path=false, relay status/transport descriptor and payload endpoint wired=true, and owner-scoped release-grade relay route evidence with relay_payload_transport_proven=true, count > 0, relay_route_metadata_valid_count > 0, relay_route_transport_proof_valid_count > 0, and relay_payload_delivery_proof present.$p2pEnvBlockerSummary"
 }
+if ($p2pControlPlaneEvidenceIntegrity) {
+    # H9: a tampered or malformed integrity sidecar is a hard blocker (the
+    # evidence file no longer matches the hash recorded when it was written).
+    # A missing sidecar is only a warning so pre-H9 evidence still drains.
+    if ($p2pControlPlaneEvidenceIntegrity.status -eq "tampered" -or $p2pControlPlaneEvidenceIntegrity.status -eq "malformed") {
+        Add-Blocker -List $blockers -Area "p2p-control-plane-integrity" -Message "P2P control-plane evidence failed integrity verification ($($p2pControlPlaneEvidenceIntegrity.status)): $($p2pControlPlaneEvidenceIntegrity.message). Re-record evidence with scripts/windows/record-p2p-control-plane-evidence.ps1; do not edit evidence files by hand."
+    }
+    elseif ($p2pControlPlaneEvidenceIntegrity.status -eq "missing") {
+        $warnings.Add([pscustomobject]@{
+            area = "p2p-control-plane-integrity"
+            message = "P2P control-plane evidence has no integrity sidecar (.sha256). Re-record with the current recorder to enable tamper detection."
+        }) | Out-Null
+    }
+}
 if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
 }
@@ -2423,6 +2443,8 @@ $result = [pscustomobject]@{
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
     p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
+    p2p_control_plane_evidence_integrity_status = if ($p2pControlPlaneEvidenceIntegrity) { [string]$p2pControlPlaneEvidenceIntegrity.status } else { "none" }
+    p2p_control_plane_evidence_integrity_ok = if ($p2pControlPlaneEvidenceIntegrity) { [bool]$p2pControlPlaneEvidenceIntegrity.ok } else { $false }
     p2p_control_plane_env_ready = [bool]$p2pEnvStatusReady
     p2p_control_plane_env_blockers = @($p2pEnvStatusBlockers)
     p2p_control_plane_env_status = $p2pEnvStatus
@@ -2465,6 +2487,9 @@ if (-not [string]::IsNullOrWhiteSpace($outputParent)) {
 $tempPath = "$goNoGoOutputPath.tmp"
 $resultJson | Set-Content -LiteralPath $tempPath -Encoding UTF8
 Move-Item -LiteralPath $tempPath -Destination $goNoGoOutputPath -Force
+# H9: record an integrity sidecar for the go/no-go manifest so downstream
+# consumers can detect tampering of the final release decision artifact.
+Write-EvidenceIntegritySidecar -EvidencePath $goNoGoOutputPath | Out-Null
 
 if ($Json) {
     $resultJson
@@ -2501,6 +2526,7 @@ else {
     "support_mailbox_verified: $($result.support_mailbox_verified)"
     "store_release_verified: $($result.store_release_verified)"
     "p2p_control_plane_verified: $($result.p2p_control_plane_verified)"
+    "p2p_control_plane_evidence_integrity_status: $($result.p2p_control_plane_evidence_integrity_status)"
     "p2p_control_plane_env_ready: $($result.p2p_control_plane_env_ready)"
     "p2p_control_plane_env_blockers: $((@($result.p2p_control_plane_env_blockers) -join ', '))"
     "p2p_owner_scope_verified: $($result.p2p_owner_scope_verified)"
