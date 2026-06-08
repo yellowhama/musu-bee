@@ -217,6 +217,37 @@ else {
     Add-Check "desktop-shell" "Tauri shell source" "fail" "Missing Tauri shell source files: $($missingShellSources -join ', ')."
 }
 
+$tauriShellMainPath = Join-Path $shellSourceRoot "main.js"
+$tauriShellMainText = if (Test-Path -LiteralPath $tauriShellMainPath) { Get-Content -LiteralPath $tauriShellMainPath -Raw } else { "" }
+$tauriLibPath = Join-Path $tauriRoot "src\lib.rs"
+$tauriLibText = if (Test-Path -LiteralPath $tauriLibPath) { Get-Content -LiteralPath $tauriLibPath -Raw } else { "" }
+
+$runtimeStartButtonGated = (
+    $tauriShellMainText -match 'state\.status\?\.can_start_runtime' -and
+    $tauriShellMainText -match 'start-runtime"\)\.disabled = state\.busy \|\| !canStartRuntime'
+)
+Add-Check "desktop-shell" "runtime start button gate" $(if ($runtimeStartButtonGated) { "pass" } else { "fail" }) `
+    $(if ($runtimeStartButtonGated) {
+        "desktop shell disables Start Runtime unless backend can_start_runtime allows it."
+    } else {
+        "desktop shell does not gate Start Runtime on backend can_start_runtime state."
+    })
+
+$runtimeStartConcurrencyGate = (
+    $tauriLibText -match 'struct RuntimeStartGate' -and
+    $tauriLibText -match 'runtime_start_gate\(\)' -and
+    $tauriLibText -match 'bridge_status_label' -and
+    $tauriLibText -match 'can_start_runtime\(' -and
+    $tauriLibText -match 'runtime start already in progress' -and
+    $tauriLibText -match 'runtime start already pending'
+)
+Add-Check "desktop-shell" "runtime start concurrency gate" $(if ($runtimeStartConcurrencyGate) { "pass" } else { "fail" }) `
+    $(if ($runtimeStartConcurrencyGate) {
+        "desktop shell backend exposes a shared runtime-start gate, starting bridge status, and duplicate-start suppression."
+    } else {
+        "desktop shell backend does not prove a shared runtime-start gate with starting-state and duplicate-start suppression."
+    })
+
 $msixBuildScript = Join-Path $scriptDir "build-msix.ps1"
 if (Test-Path -LiteralPath $msixBuildScript) {
     $msixBuildText = Get-Content -LiteralPath $msixBuildScript -Raw

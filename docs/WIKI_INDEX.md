@@ -7999,4 +7999,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v947`, `wiki/1122`, `20260608-104757-HUGH_SECOND`, and
   `active_runtime_loop_candidate_count=0`.
 
+- 2026-06-08 packaged desktop runtime start concurrency gate:
+  wiki/1123 records the new `RuntimeStartGate` backend ownership path, the
+  `can_start_runtime` truth table, Start Runtime button gating in the Tauri
+  shell, `bridge_status === "starting"` surfacing, the green `11/11` Tauri lib
+  tests, and the green `144/144` verifier regression. Search terms should
+  include `GOAL v948`, `wiki/1123`, `RuntimeStartGate`,
+  `runtime start already pending`, `can_start_runtime`, and `144/144`.
+
+- 2026-06-08 packaged desktop runtime start concurrency gate index:
+  wiki/1124 records the MUSU local index refresh after wiki/1123 with
+  `3104 files`, `2904 symbols`, and `126554 ms`. Search terms
+  should include `GOAL v949`, `wiki/1124`, `RuntimeStartGate`,
+  `can_start_runtime`, `3104 files`, `2904 symbols`, and `144/144`.
+
 **End of WIKI_INDEX.md.**

@@ -2139,6 +2139,29 @@ function Test-OneMachineMusuProWorkOrderSmokeContract {
     )
 }
 
+function Test-DesktopShellRuntimeStartGateContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'runtime start button gate',
+        'state\.status\?\.can_start_runtime',
+        'start-runtime"\)\.disabled = state\.busy \|\| !canStartRuntime',
+        'runtime start concurrency gate',
+        'struct RuntimeStartGate',
+        'runtime start already in progress',
+        'runtime start already pending'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -4167,6 +4190,18 @@ Add-CaseResult `
     -Name "one-machine MUSU.PRO work-order smoke contract is explicit" `
     -Verifier "one-machine MUSU.PRO work-order source contract" `
     -FixturePath $oneMachineMusuProWorkOrderSmoke `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopShellRuntimeStartGateContractOk = Test-DesktopShellRuntimeStartGateContract -ScriptPath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopShellRuntimeStartGateContractOk `
+    -Message "desktop release readiness audit must require backend-gated Start Runtime UX and shared runtime-start concurrency suppression in the packaged shell"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "desktop shell runtime start gate is explicit" `
+    -Verifier "desktop shell source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

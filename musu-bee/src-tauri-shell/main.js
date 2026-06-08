@@ -19,9 +19,10 @@ function setBusy(value) {
 function syncActionState() {
   const dashboardAvailable =
     state.status?.dashboard_status === "ok" && Boolean(state.status?.dashboard_url);
+  const canStartRuntime = Boolean(state.status?.can_start_runtime);
 
   $("refresh").disabled = state.busy;
-  $("start-runtime").disabled = state.busy;
+  $("start-runtime").disabled = state.busy || !canStartRuntime;
   $("open-dashboard").disabled = state.busy || !dashboardAvailable;
   $("copy-diagnostics").disabled = state.busy;
 }
@@ -43,9 +44,10 @@ function setPill(kind, text) {
 function renderStatus(status) {
   state.status = status;
   const bridgeOk = status.bridge_status === "ok";
+  const bridgeStarting = status.bridge_status === "starting";
   const dashboardOk = status.dashboard_status === "ok";
 
-  $("bridge-status").textContent = bridgeOk ? "Online" : "Offline";
+  $("bridge-status").textContent = bridgeOk ? "Online" : (bridgeStarting ? "Starting" : "Offline");
   $("bridge-detail").textContent = status.bridge_detail || "No bridge detail.";
   $("dashboard-status").textContent = dashboardOk ? "Online" : "Optional";
   $("dashboard-detail").textContent = status.dashboard_detail || "No dashboard detail.";
@@ -57,6 +59,8 @@ function renderStatus(status) {
     setPill("ok", "Ready");
   } else if (bridgeOk) {
     setPill("ok", "Ready");
+  } else if (bridgeStarting) {
+    setPill("warn", "Starting");
   } else if (dashboardOk) {
     setPill("warn", "Runtime Off");
   } else {

@@ -20674,3 +20674,106 @@ entries.
 Search terms should include `GOAL v947`, `wiki/1122`, `3104 files`,
 `2891 symbols`, `37515 ms`, `20260608-104757-HUGH_SECOND`, and
 `active_runtime_loop_candidate_count=0`.
+
+## 2026-06-08 Packaged Desktop Runtime Start Concurrency Gate (wiki/1123)
+
+The packaged Tauri desktop shell now treats runtime startup as a single-flight
+operation shared by autostart and the Start Runtime button.
+
+Before this change:
+
+- `musu-bee\src-tauri\src\lib.rs` always returned
+  `can_start_runtime: true` from `desktop_status()`.
+- the shell in `musu-bee\src-tauri-shell\main.js` only disabled Start Runtime
+  while `state.busy` was true.
+- Tauri already had `tauri-plugin-single-instance`, but that only prevented
+  duplicate desktop windows; it did not stop two concurrent `musu up --json`
+  launches coming from the same shell process.
+- the autostart thread in `spawn_runtime_autostart()` and the manual
+  `start_runtime()` command could both try to start the bridge runtime without a
+  shared ownership gate.
+
+`musu-bee\src-tauri\src\lib.rs` now adds:
+
+- `RuntimeStartGate` backed by `AtomicBool`
+- `RuntimeStartGuard` with `Drop`-based release
+- global accessor `runtime_start_gate()`
+- helper `can_start_runtime(bridge_ok, bridge_pid_running, runtime_start_in_progress)`
+- helper `bridge_status_label(...)` that returns `ok`, `starting`, or `offline`
+
+Behavioral changes in the backend:
+
+- `desktop_status()` now computes `runtime_start_in_progress`, includes
+  `bridge_registry.pid_running`, returns `bridge_status = "starting"` while a
+  runtime start is in flight or a bridge PID is already registered, and only
+  returns `can_start_runtime=true` when the bridge is offline, no bridge PID is
+  running, and no start is already in progress.
+- `start_runtime()` now exits early with:
+  - `runtime already running`
+  - `runtime start already pending`
+  - `runtime start already in progress`
+  before attempting `musu up --json`.
+- `spawn_runtime_autostart()` now uses the same gate and bridge-registry
+  suppression path, so autostart cannot race the manual Start Runtime command.
+- `BridgeRegistryStatus` now carries `pid_running`, and the registry parser
+  marks it `false` for missing, unreadable, stale, or missing-addr cases and
+  `true` when the registered PID is still live.
+
+Behavioral changes in the shell:
+
+- `musu-bee\src-tauri-shell\main.js` now reads
+  `state.status?.can_start_runtime`
+- `#start-runtime` is disabled when `state.busy || !canStartRuntime`
+- `bridge_status === "starting"` now renders as `Starting`
+  in both the bridge text and the status pill
+
+Tests and audits:
+
+- `cargo test --manifest-path F:\workspace\musu-bee\musu-bee\src-tauri\Cargo.toml --lib -- --nocapture`
+  passed with `11` tests green
+- new Tauri unit tests cover:
+  - gate re-entry blocking until guard drop
+  - `can_start_runtime` truth table
+  - `bridge_status_label` reporting `starting`
+  - live bridge-registry PID reporting
+- `scripts\windows\audit-desktop-release-readiness.ps1 -Json`
+  now reports `runtime start button gate = pass` and
+  `runtime start concurrency gate = pass`
+- `scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  returned `ok=true`, `case_count=144`, `failed_case_count=0`,
+  output root
+  `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-110817`
+
+One verifier bug was fixed during the work: the new desktop-shell source
+contract originally used regex matching against the audit script source, which
+incorrectly failed on escaped regex needles already present in
+`audit-desktop-release-readiness.ps1`. The contract now uses literal
+substring checks for those audit-source markers.
+
+This closes a real packaged-shell correctness gap: one desktop shell process can
+no longer quietly own two overlapping runtime-start attempts just because
+autostart and a user click happened close together.
+
+Search terms should include `GOAL v948`, `wiki/1123`, `RuntimeStartGate`,
+`can_start_runtime`, `runtime start already pending`,
+`bridge_status starting`, and `144/144`.
+
+## 2026-06-08 Packaged Desktop Runtime Start Concurrency Gate Index (wiki/1124)
+
+MUSU local indexer was refreshed after wiki/1123 and GOAL v948.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2904 symbols`
+- `126554 ms`
+
+Indexed context includes the new `RuntimeStartGate` backend ownership path, the
+Tauri shell `can_start_runtime` button gating, the `starting` bridge-status
+surface, the green `11/11` Tauri lib test run, the desktop readiness audit
+checks for runtime-start gating, the green `144/144` verifier regression, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v949`, `wiki/1124`, `3104 files`,
+`2904 symbols`, `126554 ms`, `RuntimeStartGate`,
+`can_start_runtime`, and `144/144`.

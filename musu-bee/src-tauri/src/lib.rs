@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -52,11 +53,68 @@ struct CommandResult {
 
 const START_RUNTIME_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
 
+#[derive(Default)]
+struct RuntimeStartGate {
+    in_progress: AtomicBool,
+}
+
+struct RuntimeStartGuard<'a> {
+    gate: &'a RuntimeStartGate,
+}
+
+impl RuntimeStartGate {
+    fn try_acquire(&self) -> Option<RuntimeStartGuard<'_>> {
+        self.in_progress
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| RuntimeStartGuard { gate: self })
+    }
+
+    fn is_in_progress(&self) -> bool {
+        self.in_progress.load(Ordering::Acquire)
+    }
+}
+
+impl Drop for RuntimeStartGuard<'_> {
+    fn drop(&mut self) {
+        self.gate.in_progress.store(false, Ordering::Release);
+    }
+}
+
+static RUNTIME_START_GATE: std::sync::OnceLock<RuntimeStartGate> = std::sync::OnceLock::new();
+
+fn runtime_start_gate() -> &'static RuntimeStartGate {
+    RUNTIME_START_GATE.get_or_init(RuntimeStartGate::default)
+}
+
+fn can_start_runtime(
+    bridge_ok: bool,
+    bridge_pid_running: bool,
+    runtime_start_in_progress: bool,
+) -> bool {
+    !bridge_ok && !bridge_pid_running && !runtime_start_in_progress
+}
+
+fn bridge_status_label(
+    bridge_ok: bool,
+    bridge_pid_running: bool,
+    runtime_start_in_progress: bool,
+) -> &'static str {
+    if bridge_ok {
+        "ok"
+    } else if bridge_pid_running || runtime_start_in_progress {
+        "starting"
+    } else {
+        "offline"
+    }
+}
+
 #[tauri::command]
 fn desktop_status() -> DesktopStatus {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let home = musu_home();
     let bridge_registry = bridge_registry_status(&home);
+    let runtime_start_in_progress = runtime_start_gate().is_in_progress();
     let dashboard_probe = probe_dashboard();
     let bridge_probe = bridge_registry
         .url
@@ -66,22 +124,60 @@ fn desktop_status() -> DesktopStatus {
             ok: false,
             detail: bridge_registry.detail,
         });
+    let bridge_ok = bridge_probe.ok;
+    let can_start_runtime = can_start_runtime(
+        bridge_ok,
+        bridge_registry.pid_running,
+        runtime_start_in_progress,
+    );
 
     DesktopStatus {
         version,
         musu_home: home.display().to_string(),
-        bridge_status: if bridge_probe.ok { "ok" } else { "offline" }.to_string(),
+        bridge_status: bridge_status_label(
+            bridge_ok,
+            bridge_registry.pid_running,
+            runtime_start_in_progress,
+        )
+        .to_string(),
         bridge_url: bridge_registry.url,
         bridge_detail: bridge_probe.detail,
         dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
         dashboard_url: dashboard_probe.url,
         dashboard_detail: dashboard_probe.detail,
-        can_start_runtime: true,
+        can_start_runtime,
     }
 }
 
 #[tauri::command]
 fn start_runtime() -> Result<CommandResult, String> {
+    let home = musu_home();
+    if bridge_is_healthy(&home) {
+        return Ok(CommandResult {
+            ok: true,
+            message: "runtime already running".to_string(),
+            output: "local bridge already reports healthy /health".to_string(),
+        });
+    }
+
+    let bridge_registry = bridge_registry_status(&home);
+    if bridge_registry.pid_running {
+        return Ok(CommandResult {
+            ok: true,
+            message: "runtime start already pending".to_string(),
+            output: bridge_registry.detail,
+        });
+    }
+
+    let Some(_guard) = runtime_start_gate().try_acquire() else {
+        return Ok(CommandResult {
+            ok: true,
+            message: "runtime start already in progress".to_string(),
+            output: "packaged desktop already owns an in-flight `musu up --json` command"
+                .to_string(),
+        });
+    };
+
     let command = musu_command_path();
     let result = run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
         .map_err(|err| format!("failed to run {} up --json: {err}", command.display()))?;
@@ -141,6 +237,7 @@ struct DashboardProbe {
 struct BridgeRegistryStatus {
     url: Option<String>,
     detail: String,
+    pid_running: bool,
 }
 
 fn musu_home() -> std::path::PathBuf {
@@ -171,12 +268,14 @@ fn bridge_registry_status_with_pid_checker(
             return BridgeRegistryStatus {
                 url: None,
                 detail: "bridge registry not found".to_string(),
+                pid_running: false,
             };
         }
         Err(err) => {
             return BridgeRegistryStatus {
                 url: None,
                 detail: format!("bridge registry unreadable: {err}"),
+                pid_running: false,
             };
         }
     };
@@ -187,6 +286,7 @@ fn bridge_registry_status_with_pid_checker(
             return BridgeRegistryStatus {
                 url: None,
                 detail: format!("bridge registry parse failed: {err}"),
+                pid_running: false,
             };
         }
     };
@@ -206,6 +306,7 @@ fn bridge_registry_status_with_pid_checker(
             return BridgeRegistryStatus {
                 url: None,
                 detail: cleanup_detail,
+                pid_running: false,
             };
         }
     }
@@ -214,6 +315,7 @@ fn bridge_registry_status_with_pid_checker(
         return BridgeRegistryStatus {
             url: None,
             detail: "bridge registry missing addr".to_string(),
+            pid_running: false,
         };
     };
 
@@ -224,6 +326,7 @@ fn bridge_registry_status_with_pid_checker(
         } else {
             "bridge registry missing pid".to_string()
         },
+        pid_running: pid.is_some(),
     }
 }
 
@@ -389,6 +492,18 @@ fn spawn_runtime_autostart() {
             if bridge_is_healthy(&home) {
                 return;
             }
+            let bridge_registry = bridge_registry_status(&home);
+            if bridge_registry.pid_running {
+                eprintln!(
+                    "MUSU runtime autostart skipped because bridge registry already points at a running PID: {}",
+                    bridge_registry.detail
+                );
+                return;
+            }
+            let Some(_guard) = runtime_start_gate().try_acquire() else {
+                eprintln!("MUSU runtime autostart skipped because another runtime start is already in progress.");
+                return;
+            };
 
             let command = musu_command_path();
             match run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT) {
@@ -570,9 +685,9 @@ fn open_url(url: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        bridge_is_healthy, bridge_registry_status_with_pid_checker,
-        developer_dashboard_surface_enabled_for, is_local_dashboard_url,
-        musu_command_path_for_current_exe, run_command_with_timeout,
+        bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
+        can_start_runtime, developer_dashboard_surface_enabled_for, is_local_dashboard_url,
+        musu_command_path_for_current_exe, run_command_with_timeout, RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -710,7 +825,36 @@ mod tests {
 
         assert_eq!(status.url.as_deref(), Some("http://127.0.0.1:6677"));
         assert!(status.detail.contains("pid 32192 is running"));
+        assert!(status.pid_running);
         let _ = std::fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn runtime_start_gate_blocks_reentry_until_guard_drop() {
+        let gate = RuntimeStartGate::default();
+        let first = gate.try_acquire();
+        assert!(first.is_some());
+        assert!(gate.is_in_progress());
+        assert!(gate.try_acquire().is_none());
+        drop(first);
+        assert!(!gate.is_in_progress());
+        assert!(gate.try_acquire().is_some());
+    }
+
+    #[test]
+    fn can_start_runtime_requires_offline_bridge_and_no_pending_start() {
+        assert!(can_start_runtime(false, false, false));
+        assert!(!can_start_runtime(true, false, false));
+        assert!(!can_start_runtime(false, true, false));
+        assert!(!can_start_runtime(false, false, true));
+    }
+
+    #[test]
+    fn bridge_status_surfaces_starting_state_while_start_is_pending() {
+        assert_eq!(bridge_status_label(true, false, false), "ok");
+        assert_eq!(bridge_status_label(false, true, false), "starting");
+        assert_eq!(bridge_status_label(false, false, true), "starting");
+        assert_eq!(bridge_status_label(false, false, false), "offline");
     }
 
     fn make_temp_home(name: &str) -> std::path::PathBuf {
