@@ -8013,4 +8013,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v949`, `wiki/1124`, `RuntimeStartGate`,
   `can_start_runtime`, `3104 files`, `2904 symbols`, and `144/144`.
 
+- 2026-06-08 current-HEAD packaged single-instance evidence refresh:
+  wiki/1125 records the rebuilt local-sideload MSIX, explicit WindowsApps alias
+  install verification, the green startup single-instance artifact
+  `musu-startup-single-instance-20260608-112529.json`, the green packaged
+  desktop repeated-activation artifact
+  `musu-desktop-single-instance-20260608-112543-HUGH_SECOND.json`, and the
+  process-ownership counts embedded in the startup audit. Search terms should
+  include `GOAL v950`, `wiki/1125`, `repeated_spawn_count=0`,
+  `after_desktop_shell=1`, and `9b31dec5`.
+
+- 2026-06-08 current-HEAD packaged single-instance evidence index:
+  wiki/1126 records the MUSU local index refresh after wiki/1125 with
+  `3104 files`, `2904 symbols`, and `88217 ms`. Search terms
+  should include `GOAL v951`, `wiki/1126`, `3104 files`, `2904 symbols`,
+  `musu-startup-single-instance-20260608-112529`, and
+  `musu-desktop-single-instance-20260608-112543-HUGH_SECOND`.
+
 **End of WIKI_INDEX.md.**

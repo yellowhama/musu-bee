@@ -20777,3 +20777,106 @@ the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v949`, `wiki/1124`, `3104 files`,
 `2904 symbols`, `126554 ms`, `RuntimeStartGate`,
 `can_start_runtime`, and `144/144`.
+
+## 2026-06-08 Current-HEAD Packaged Single-Instance Evidence Refresh (wiki/1125)
+
+The packaged single-instance release gates were refreshed on current HEAD after
+the `RuntimeStartGate` desktop-shell hardening landed.
+
+First, the local-sideload artifact was rebuilt and reinstalled:
+
+- build command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\build-msix.ps1 -Configuration release -Architecture x64 -StartupContract local-sideload-manual`
+- rebuilt artifact:
+  `F:\workspace\musu-bee\.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix`
+- install/verify command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`
+
+Installed-package verification confirmed:
+
+- package full name:
+  `Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6`
+- `MatchesArtifactContract=True`
+- execution alias exists and the explicit WindowsApps invocation is:
+  `& "C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe"`
+- PATH still resolves `C:\Users\empty\.cargo\bin\musu.exe` first, so the
+  packaged alias must continue to be called explicitly in release evidence and
+  audits
+
+Startup single-instance evidence:
+
+- artifact:
+  `F:\workspace\musu-bee\.local-build\startup-single-instance\musu-startup-single-instance-20260608-112529.json`
+- schema:
+  `musu.startup_single_instance_audit.v1`
+- `ok=true`
+- `git_commit=9b31dec58926dcd8e6cea77c5617c7ef6769a09e`
+- `repeat_count=3`
+- stable bridge PID:
+  `11656`
+- `repeated_spawn_count=0`
+- `failed_invocation_count=0`
+- repeated invocations 2 and 3 reported `bridge_started=false` and reused the
+  same bridge PID instead of spawning a second runtime
+
+The embedded process-ownership audit in that startup artifact also passed:
+
+- process ownership artifact:
+  `F:\workspace\musu-bee\.local-build\startup-single-instance\musu-startup-single-instance-20260608-112529.process-ownership.json`
+- `musu_runtime=1`
+- `desktop_shell=1`
+- `owned_node=0`
+- `owned_webview2=6`
+- `orphan_repo_helpers=0`
+- bridge registry PID `11656` was alive and `/health` returned `HTTP 200`
+
+Packaged desktop repeated-activation evidence:
+
+- artifact:
+  `F:\workspace\musu-bee\.local-build\desktop-single-instance\musu-desktop-single-instance-20260608-112543-HUGH_SECOND.json`
+- schema:
+  `musu.desktop_single_instance_audit.v1`
+- `ok=true`
+- `git_commit=9b31dec58926dcd8e6cea77c5617c7ef6769a09e`
+- `git_dirty=false`
+- `repeat_count=3`
+- `after_desktop_shell=1`
+- `new_desktop_shell=1`
+- `activation_failure_count=0`
+- all three AppsFolder activations resolved to the same desktop PID:
+  `37388`
+
+Why this matters:
+
+- the startup gate is no longer just a code-level contract; repeated packaged
+  `musu up` calls now have current-HEAD evidence that they reuse one live
+  runtime
+- the desktop shell also has current-HEAD evidence that repeated Start menu /
+  AppsFolder activation does not multiply `musu-desktop.exe`
+- together, these two artifacts close part of the startup/process-ownership
+  blocker with evidence instead of inference
+
+Search terms should include `GOAL v950`, `wiki/1125`,
+`musu-startup-single-instance-20260608-112529`,
+`musu-desktop-single-instance-20260608-112543-HUGH_SECOND`,
+`repeated_spawn_count=0`, `after_desktop_shell=1`, and `9b31dec5`.
+
+## 2026-06-08 Current-HEAD Packaged Single-Instance Evidence Index (wiki/1126)
+
+MUSU local indexer was refreshed after wiki/1125 and GOAL v950.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2904 symbols`
+- `88217 ms`
+
+Indexed context includes the rebuilt local-sideload artifact, the explicit
+WindowsApps alias install verification, the green startup single-instance
+artifact, the green packaged desktop repeated-activation artifact, and the
+updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v951`, `wiki/1126`, `3104 files`,
+`2904 symbols`, `88217 ms`,
+`musu-startup-single-instance-20260608-112529`, and
+`musu-desktop-single-instance-20260608-112543-HUGH_SECOND`.
