@@ -81,6 +81,7 @@ export function useBoundedEventSource({
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempts = 0;
     let generation = 0;
+    let reconnectExhausted = false;
 
     const clearReconnectTimer = () => {
       if (reconnectTimer) {
@@ -118,6 +119,7 @@ export function useBoundedEventSource({
       es.onopen = (event) => {
         if (cancelled || generation !== connectionGeneration) return;
         reconnectAttempts = 0;
+        reconnectExhausted = false;
         onOpenRef.current?.(event);
       };
 
@@ -140,7 +142,10 @@ export function useBoundedEventSource({
         if (source === es) {
           source = null;
         }
-        if (maxRetries >= 0 && reconnectAttempts >= maxRetries) return;
+        if (maxRetries >= 0 && reconnectAttempts >= maxRetries) {
+          reconnectExhausted = true;
+          return;
+        }
         reconnectAttempts += 1;
         const delayMs = nextReconnectDelay();
         clearReconnectTimer();
@@ -153,8 +158,7 @@ export function useBoundedEventSource({
     };
 
     reconnectWhenVisibleRef.current = () => {
-      if (cancelled || source) return;
-      reconnectAttempts = 0;
+      if (cancelled || source || reconnectExhausted) return;
       connect();
     };
 

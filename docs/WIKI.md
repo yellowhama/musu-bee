@@ -20478,3 +20478,83 @@ handoff-status script, the source-contract coverage for that check, the green
 Search terms should include `GOAL v943`, `wiki/1118`, `3104 files`,
 `2891 symbols`, `14111 ms`, `verify-final-operator-gate-packet.ps1`, and
 `143/143`.
+
+## 2026-06-08 Bounded EventSource Retry Exhaustion Is Real Again (wiki/1119)
+
+`musu-bee\src\lib\useBoundedEventSource.ts` had a real low-duty infinite
+reconnect loophole even after the SSE path was nominally "bounded."
+
+Before this change, the hook used `useLowDutyPolling` with
+`BOUNDED_SSE_VISIBILITY_RECONNECT_CHECK_MS = 10_000` to reconnect when the tab
+became visible again. But `reconnectWhenVisibleRef.current` also did this:
+
+- return only when `cancelled` or `source` existed
+- then unconditionally run `reconnectAttempts = 0`
+- then call `connect()`
+
+So after `es.onerror` had already burned through `BOUNDED_SSE_MAX_RETRIES = 5`,
+visible tabs would still re-arm the shared EventSource every 10 seconds
+whenever `source` was null. The retry cap existed in the immediate reconnect
+path, but not in the visibility reconnect path.
+
+The fix is now explicit:
+
+- `let reconnectExhausted = false`
+- `es.onerror` sets `reconnectExhausted = true` once `maxRetries` is reached
+- `es.onopen` clears exhaustion
+- `reconnectWhenVisibleRef.current` returns early when
+  `reconnectExhausted` is true
+- the old `reconnectAttempts = 0; connect();` visibility re-arm pattern is gone
+
+That turns the shared bounded EventSource back into an actually bounded retry
+mechanism instead of a low-duty forever-loop in visible tabs.
+
+Contract coverage was raised at both layers:
+
+- `musu-bee\src\app\runtime-polling-contract.test.ts`
+  now requires:
+  - `let reconnectExhausted = false`
+  - `reconnectExhausted = true`
+  - `if (cancelled || source || reconnectExhausted) return`
+  - and rejects `reconnectAttempts = 0; connect();`
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+  now requires the same exhaustion markers and rejects visibility reconnect
+  logic that silently clears the retry counter before reconnecting
+
+Validation:
+
+- runtime polling contract:
+  - `npm run test:runtime-polling`
+  - `17` tests passed
+  - `0` failed
+  - `duration_ms 2192.2182`
+- frontend polling audit:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-frontend-polling-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+  - `low_duty_polling_call_site_count=29`
+  - `expected_low_duty_polling_call_site_count=29`
+
+Search terms should include `GOAL v944`, `wiki/1119`,
+`reconnectExhausted`, `bounded SSE visibility reconnect respects exhaustion`,
+`shared bounded EventSource closes failed streams and caps reconnects`, and
+`17 tests passed`.
+
+## 2026-06-08 Bounded EventSource Retry Exhaustion Index (wiki/1120)
+
+MUSU local indexer was refreshed after wiki/1119 and GOAL v944.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `19849 ms`
+
+Indexed context includes the `reconnectExhausted` guard in
+`useBoundedEventSource.ts`, the strengthened TypeScript runtime polling
+contract, the strengthened PowerShell frontend polling audit, the green `17/17`
+runtime polling test run, and the green low-duty polling inventory audit across
+`29` call sites.
+
+Search terms should include `GOAL v945`, `wiki/1120`, `3104 files`,
+`2891 symbols`, `19849 ms`, `reconnectExhausted`, and `17/17`.

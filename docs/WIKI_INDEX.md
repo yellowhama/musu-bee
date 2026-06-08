@@ -7973,4 +7973,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v943`, `wiki/1118`, `verify-final-operator-gate-packet.ps1`, and
   `143/143`.
 
+- 2026-06-08 bounded EventSource retry exhaustion is real again:
+  wiki/1119 records the fix in `useBoundedEventSource.ts` that stops the
+  visibility reconnect poller from resetting the SSE retry cap after
+  exhaustion. Search terms should include `GOAL v944`, `wiki/1119`,
+  `reconnectExhausted`, `bounded SSE visibility reconnect respects exhaustion`,
+  and `17 tests passed`.
+
+- 2026-06-08 bounded EventSource retry exhaustion index:
+  wiki/1120 records the MUSU local index refresh after wiki/1119 with
+  `3104 files`, `2891 symbols`, and `19849 ms`. Search terms should include
+  `GOAL v945`, `wiki/1120`, `reconnectExhausted`, and `17/17`.
+
 **End of WIKI_INDEX.md.**
