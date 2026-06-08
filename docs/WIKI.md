@@ -20880,3 +20880,125 @@ Search terms should include `GOAL v951`, `wiki/1126`, `3104 files`,
 `2904 symbols`, `88217 ms`,
 `musu-startup-single-instance-20260608-112529`, and
 `musu-desktop-single-instance-20260608-112543-HUGH_SECOND`.
+
+## 2026-06-08 Current-HEAD Packaged CPU Evidence Refresh After MSIX Reinstall (wiki/1127)
+
+After rebuilding and reinstalling the local-sideload MSIX on current HEAD, the
+one-machine packaged CPU evidence was refreshed again so the idle/budget gates
+rest on current package bits instead of older runtime captures.
+
+Fresh 4-scenario matrix:
+
+- artifact:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-113104-HUGH_SECOND\20260608-113104-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- commit:
+  `1651c2345212e265e43ba3e9b23c9f85cd87f7d8`
+- packaged alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- scenarios:
+  - `startup-open`
+  - `runtime-started`
+  - `dashboard-open`
+  - `desktop-open`
+- matrix status:
+  - `ok=true`
+  - `git_dirty=false`
+  - `doctor_schema_complete=true`
+  - `active_runtime_loop_candidate_count=0`
+
+Scenario peaks:
+
+- `startup-open` WebView2 `0.36%`
+- `runtime-started` WebView2 `0.16%`
+- `dashboard-open` WebView2 `0.05%`
+- `desktop-open` WebView2 `0.08%`
+
+Across all four scenarios:
+
+- MUSU role CPU stayed `0%`
+- owned node helpers stayed `0`
+- owned WebView2 helpers stayed `6`
+- `hot_process_count=0`
+- working set stayed around `372.75MB` to `373.3MB`
+- the embedded doctor snapshot showed:
+  - `mdns_enabled=false`
+  - `clipboard_sync_enabled=false`
+  - `cloud_registration_enabled=false`
+  - `relay_payload_poller_enabled=false`
+  - `planner_enabled=false`
+  - `auto_update_supervise_enabled=false`
+  - no active runtime loop candidates
+
+Dedicated matrix verifier replay:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-113104-HUGH_SECOND\20260608-113104-HUGH_SECOND.runtime-cpu-scenario-matrix.json -RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open -MinSampleSeconds 60 -MaxOneCorePercent 5 -Json`
+- result:
+  - `ok=true`
+  - `fail_count=0`
+
+Fresh direct desktop-open idle evidence:
+
+- artifact:
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-113749.json`
+- capture flags:
+  - `-Scenario desktop-open`
+  - `-IncludeNode`
+  - `-IncludeWebView2`
+  - `-RequireOwnedWebView2`
+- result:
+  - `ok=true`
+  - `git_dirty=false`
+  - `sample_seconds=60.069`
+  - `max_one_core_cpu=0.1`
+
+Direct idle evidence details:
+
+- `node machine_wide=22`
+- `owned_by_musu_process_tree=0`
+- `repo_related_unowned=0`
+- `unowned_other=22`
+- `webview2 machine_wide=18`
+- `owned_by_musu_process_tree=6`
+- `unowned_other=12`
+- total working set:
+  `372.23MB`
+- no resource budget violations
+
+Direct idle verifier replay:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\write-release-go-no-go.ps1 -VerifyRuntimeIdleCpuEvidencePath F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-113749.json -Json`
+- result:
+  - `ok=true`
+  - `fail_count=0`
+
+One failed attempt happened during the refresh: an earlier idle capture
+`musu-idle-cpu-20260608-113552.json` omitted `-IncludeNode`, and the direct
+idle verifier correctly rejected it with `Node.js budget included = fail`. The
+rerun with `-IncludeNode` restored release-grade direct idle evidence. That is
+useful because it proves the direct gate is not being papered over.
+
+Search terms should include `GOAL v952`, `wiki/1127`,
+`20260608-113104-HUGH_SECOND`, `musu-idle-cpu-20260608-113749`,
+`active_runtime_loop_candidate_count=0`, `startup-open 0.36`, and
+`desktop-open 0.08`.
+
+## 2026-06-08 Current-HEAD Packaged CPU Evidence Refresh Index (wiki/1128)
+
+MUSU local indexer was refreshed after wiki/1127 and GOAL v952.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2904 symbols`
+- `19679 ms`
+
+Indexed context includes the fresh current-HEAD packaged 4-scenario runtime CPU
+matrix, the fresh direct desktop-open idle evidence with `-IncludeNode`, the
+green dedicated matrix verifier replay, the green direct idle verifier replay,
+and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v953`, `wiki/1128`, `3104 files`,
+`2904 symbols`, `19679 ms`, `20260608-113104-HUGH_SECOND`, and
+`musu-idle-cpu-20260608-113749`.

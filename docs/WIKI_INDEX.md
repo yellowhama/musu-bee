@@ -8030,4 +8030,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-startup-single-instance-20260608-112529`, and
   `musu-desktop-single-instance-20260608-112543-HUGH_SECOND`.
 
+- 2026-06-08 current-HEAD packaged CPU evidence refresh after MSIX reinstall:
+  wiki/1127 records the fresh current-HEAD 4-scenario packaged runtime CPU
+  matrix `20260608-113104-HUGH_SECOND`, the fresh direct idle artifact
+  `musu-idle-cpu-20260608-113749.json`, the green matrix verifier replay, the
+  green direct idle verifier replay, and the failed intermediate idle capture
+  that proved the `-IncludeNode` gate is real. Search terms should include
+  `GOAL v952`, `wiki/1127`, `active_runtime_loop_candidate_count=0`,
+  `startup-open 0.36`, and `desktop-open 0.08`.
+
+- 2026-06-08 current-HEAD packaged CPU evidence refresh index:
+  wiki/1128 records the MUSU local index refresh after wiki/1127 with
+  `3104 files`, `2904 symbols`, and `19679 ms`. Search terms
+  should include `GOAL v953`, `wiki/1128`, `3104 files`, `2904 symbols`,
+  `20260608-113104-HUGH_SECOND`, and `musu-idle-cpu-20260608-113749`.
+
 **End of WIKI_INDEX.md.**
