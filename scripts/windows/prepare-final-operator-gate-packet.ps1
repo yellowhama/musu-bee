@@ -334,22 +334,23 @@ Expected result: `support_mailbox_verified=true`.
 ## Gate B - Second-PC MSIX install and runtime CPU evidence
 
 Use the multi-device kit in `kits\` if this packet includes one. Copy it to the
-second Windows PC, unzip it, and follow its README. Preferred path inside the
-unzipped kit:
+second Windows PC, unzip it, and follow its README. Preferred first pass inside
+the unzipped kit before the primary peer name is known:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix
 ```
 
 If certificate trust fails, rerun from elevated PowerShell with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix
 ```
 
-If the primary PC is already registered as a peer on the second PC, pass the
-primary peer name into the wrapper so route endpoint reachability is diagnosed
-and returned with the same ZIP:
+After the primary PC is already registered as a peer on the second PC, rerun
+the wrapper with the primary peer name so release-grade `post-route` CPU
+evidence is target-bound and route endpoint reachability is returned with the
+same ZIP:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 `
@@ -357,6 +358,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-p
   -RuntimeCpuRouteTarget <PRIMARY_PEER_NAME> `
   -AllowFailedRuntimeCpuRouteProbe
 ```
+
+`run-second-pc-release-check.ps1` now refuses release-grade `post-route` CPU
+capture without `-RuntimeCpuRouteTarget`; keep `-SkipRuntimeCpuScenarioMatrix`
+only for the pre-peer install/handoff pass or other non-release helper runs.
 
 This writes `musu.route_reachability_diagnostic.v1` under
 `.local-build\route-diagnostics\`. The importer verifies the target is

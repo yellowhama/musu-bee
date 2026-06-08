@@ -126,17 +126,17 @@ No private signing key is included.
 
 Open PowerShell in this kit directory.
 
-Recommended one-command path:
+Recommended first pass before the primary peer name is known:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix
 ```
 
 If certificate trust fails, rerun the one-command check from an elevated
 PowerShell with machine trust:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix
 ```
 
 The wrapper runs the same steps below, writes
@@ -170,18 +170,18 @@ The wrapper also captures a diagnostic runtime CPU scenario matrix with
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 ```
 
-After the peer has been added or named by the primary PC, use a targeted
-post-route attempt to capture CPU behavior immediately after a bounded remote
-route attempt:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
-```
-
-The wrapper exposes the same diagnostic path:
+After the peer has been added or named by the primary PC, rerun the wrapper
+with an explicit primary peer target so release-grade `post-route` CPU evidence
+is bound to the real remote route attempt:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
+```
+
+The underlying targeted CPU matrix command remains:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
 ```
 
 If the primary PC is already registered as a peer on this second PC, also pass
@@ -215,6 +215,11 @@ prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
 Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
 diagnose CPU after a failed remote route attempt. The normal release matrix
 without that flag still requires a successful post-route probe.
+
+`run-second-pc-release-check.ps1` now refuses to run release-grade
+`post-route` CPU capture without `-RuntimeCpuRouteTarget`; use
+`-SkipRuntimeCpuScenarioMatrix` only for the pre-peer install/handoff pass or
+other non-release helper runs.
 
 This matrix is also verified by
 `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1`. It does not replace

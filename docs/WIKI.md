@@ -20227,3 +20227,94 @@ Search terms should include `GOAL v937`, `wiki/1112`, `3104 files`,
 `2891 symbols`, `17886 ms`,
 `RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture`,
 and `139/139`.
+
+## 2026-06-08 Operator-Facing Targeted Second-PC Route Flow (wiki/1113)
+
+The last wrapper hardening made `run-second-pc-release-check.ps1` refuse
+release-grade `post-route` CPU capture without `-RuntimeCpuRouteTarget`. That
+left one more cleanup job: operator-facing kit/packet/status surfaces still had
+old targetless commands that were now either invalid or misleading.
+
+This turn aligns those surfaces with the actual release flow.
+
+### 1. Multi-device kit README source
+
+`scripts\windows\prepare-multidevice-test-kit.ps1` now splits second-PC usage
+into two phases:
+
+- pre-peer install/handoff pass:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix`
+- elevated variant:
+  `...run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix`
+- release-grade rerun after the primary peer name exists:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe`
+
+The README source also now says explicitly that the wrapper refuses
+release-grade `post-route` capture without `-RuntimeCpuRouteTarget`, and that
+`-SkipRuntimeCpuScenarioMatrix` is only for the pre-peer install/handoff pass
+or other non-release helper runs.
+
+### 2. Final operator packet README template
+
+`scripts\windows\prepare-final-operator-gate-packet.ps1` now mirrors the same
+two-phase guidance in the generated `README_FINAL_OPERATOR_GATES.md`:
+
+- first pass: `-SkipRuntimeCpuScenarioMatrix`
+- targeted rerun once the second PC knows the primary peer name:
+  `-RouteReachabilityTarget <PRIMARY_PEER_NAME> -RuntimeCpuRouteTarget <PRIMARY_PEER_NAME> -AllowFailedRuntimeCpuRouteProbe`
+
+So the packet README no longer implies that targetless release-check wrapper
+runs can satisfy the second-PC runtime CPU gate.
+
+### 3. Final handoff status guidance
+
+`scripts\windows\show-final-release-handoff-status.ps1` now recommends only the
+target-bound runtime CPU matrix command:
+
+`powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json`
+
+Its operator summary also now says the matrix must run with explicit remote
+route targets.
+
+### Regression coverage
+
+`scripts\windows\test-release-evidence-verifiers.ps1` adds three new
+source-contract cases:
+
+- `second-PC kit surfaces targeted release-check flow`
+- `final operator packet surfaces targeted second-PC release-check flow`
+- `final handoff status recommends targeted runtime CPU matrix capture`
+
+Validation:
+
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=142`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-101707`
+
+Search terms should include `GOAL v938`, `wiki/1113`,
+`-SkipRuntimeCpuScenarioMatrix`,
+`second-PC kit surfaces targeted release-check flow`,
+`final handoff status recommends targeted runtime CPU matrix capture`, and
+`142/142`.
+
+## 2026-06-08 Operator-Facing Targeted Second-PC Route Flow Index (wiki/1114)
+
+MUSU local indexer was refreshed after wiki/1113 and GOAL v938.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `15808 ms`
+
+Indexed context includes the new pre-peer `-SkipRuntimeCpuScenarioMatrix`
+guidance, the targeted second-PC rerun commands, the target-bound final handoff
+status runtime CPU command, the green `142/142` verifier sweep, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v939`, `wiki/1114`, `3104 files`,
+`2891 symbols`, `15808 ms`, `-SkipRuntimeCpuScenarioMatrix`, and `142/142`.

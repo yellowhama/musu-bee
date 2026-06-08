@@ -7931,4 +7931,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture`,
   and `139/139`.
 
+- 2026-06-08 operator-facing targeted second-PC route flow:
+  wiki/1113 records the cleanup that split pre-peer `-SkipRuntimeCpuScenarioMatrix`
+  helper runs from target-bound release-grade second-PC reruns in the kit,
+  final packet README template, and final handoff status. Search terms should
+  include `GOAL v938`, `wiki/1113`,
+  `second-PC kit surfaces targeted release-check flow`,
+  `final handoff status recommends targeted runtime CPU matrix capture`, and
+  `142/142`.
+
+- 2026-06-08 operator-facing targeted second-PC route flow index:
+  wiki/1114 records the MUSU local index refresh after wiki/1113 with
+  `3104 files`, `2891 symbols`, and `15808 ms`. Search terms should include
+  `GOAL v939`, `wiki/1114`, `-SkipRuntimeCpuScenarioMatrix`, and `142/142`.
+
 **End of WIKI_INDEX.md.**

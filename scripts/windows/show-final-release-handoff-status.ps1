@@ -611,7 +611,7 @@ $commands = [pscustomobject]@{
     audit_p2p_store_forward_relay_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -FailOnProblem -Json"
     audit_secret_storage_contract = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-secret-storage-contract.ps1 -FailOnProblem -Json"
     measure_runtime_idle_cpu = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json"
-    measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json"
+    measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"
     measure_runtime_cpu_scenario_matrix_target_attempt = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"
     audit_process_ownership = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-process-ownership.ps1 -FailOnProblem -Json"
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
@@ -702,7 +702,7 @@ if (-not [bool]$goNoGo.runtime_cpu_scenario_matrix_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "runtime-cpu-scenario-matrix" `
-        -Summary "Run the 60s startup/runtime/dashboard/desktop/post-route CPU matrix on the primary and second PC, then bring both JSON files back." `
+        -Summary "Run the 60s startup/runtime/dashboard/desktop/post-route CPU matrix on the primary and second PC with explicit remote route targets, then bring both JSON files back." `
         -Command $commands.measure_runtime_cpu_scenario_matrix
 }
 if (-not [bool]$goNoGo.frontend_polling_contract_verified) {

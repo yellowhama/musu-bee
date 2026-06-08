@@ -746,6 +746,27 @@ function Test-SecondPcKitMetadataContract {
     return $true
 }
 
+function Test-SecondPcKitTargetedReleaseCheckContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix',
+        'run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix',
+        'run-second-pc-release-check.ps1 -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe',
+        'refuses to run release-grade',
+        'without `-RuntimeCpuRouteTarget`',
+        'pre-peer install/handoff pass'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcReleaseCheckGitFreshnessContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -907,6 +928,28 @@ function Test-FinalOperatorPacketMsixCommonContract {
         $source.Contains('"show-second-pc-return-card.ps1",'))
 }
 
+function Test-FinalOperatorPacketTargetedReleaseCheckContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix',
+        'run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix',
+        '-RouteReachabilityTarget <PRIMARY_PEER_NAME>',
+        '-RuntimeCpuRouteTarget <PRIMARY_PEER_NAME>',
+        'refuses release-grade `post-route` CPU',
+        'without `-RuntimeCpuRouteTarget`',
+        'pre-peer install/handoff pass'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitProcessAttributionVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -991,6 +1034,23 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
         '"-RejectSelfPostRouteTarget"',
         '"-RejectLocalPostRouteTarget"',
         'candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-FinalHandoffStatusTargetedRuntimeCpuContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"',
+        'Run the 60s startup/runtime/dashboard/desktop/post-route CPU matrix on the primary and second PC with explicit remote route targets'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -3492,6 +3552,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcKitTargetedReleaseCheckOk = Test-SecondPcKitTargetedReleaseCheckContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitTargetedReleaseCheckOk `
+    -Message "second-PC multi-device kit must distinguish pre-peer install/handoff from targeted release-grade post-route CPU capture and surface RuntimeCpuRouteTarget explicitly"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit surfaces targeted release-check flow" `
+    -Verifier "second-PC kit source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcKitProcessAttributionVerifierOk = Test-SecondPcKitProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcKitProcessAttributionVerifierOk `
@@ -3576,6 +3648,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$finalOperatorPacketTargetedReleaseCheckOk = Test-FinalOperatorPacketTargetedReleaseCheckContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketTargetedReleaseCheckOk `
+    -Message "final operator packet must distinguish pre-peer second-PC release-check runs from targeted release-grade post-route CPU capture"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet surfaces targeted second-PC release-check flow" `
+    -Verifier "final operator packet source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $finalOperatorPacketProcessAttributionVerifierOk = Test-FinalOperatorPacketProcessAttributionVerifierContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $finalOperatorPacketProcessAttributionVerifierOk `
@@ -3597,6 +3681,18 @@ Add-CaseResult `
     -Name "second-PC kit includes route reachability diagnostic handoff" `
     -Verifier "second-PC route reachability source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalHandoffStatusTargetedRuntimeCpuOk = Test-FinalHandoffStatusTargetedRuntimeCpuContract -ScriptPath (Join-Path $scriptDir "show-final-release-handoff-status.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalHandoffStatusTargetedRuntimeCpuOk `
+    -Message "final handoff status must recommend target-bound runtime CPU matrix commands once release-grade post-route evidence requires an explicit remote target"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final handoff status recommends targeted runtime CPU matrix capture" `
+    -Verifier "final handoff status source contract" `
+    -FixturePath (Join-Path $scriptDir "show-final-release-handoff-status.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 
