@@ -21627,3 +21627,6 @@ pre-existing `musu-rs\src\bridge\rendezvous.rs` dead-code warnings.
 Search terms should include `GOAL v967`, `wiki/1142`, `3104 files`,
 `2937 symbols`, `18704 ms`, `auto-update supervise cancellation`, and
 `146/146`.
+
+
+- 2026-06-08 Bridge Manager UI integration: Added `BridgeManager.tsx` to handle 1-click install/update for local bridge, polling bridge `/api/admin/node-info` and triggering update via `POST /api/bridge/system/update`. This satisfies the CEO's mandate for UI-driven 1-click update management, moving away from CLI-centric workflows. It integrates directly into the global sidebar (`Sidebar.tsx`) with status indicators (online, offline, out of date).
