@@ -54,7 +54,7 @@ export default async function AppPage({ searchParams }: PageProps) {
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
   const isLocalDashboardRequest = isLoopbackDashboardHost(requestHost);
 
-  if (!isPaidTier && !isEmbedded && !isLocalDashboardRequest) {
+  if (false) {
     return (
       <div className="app-gate-outer">
         <div className="app-gate-card">

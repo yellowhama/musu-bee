@@ -1,0 +1,472 @@
+﻿{
+    "schema":  "musu.one_machine_musu_pro_work_order.v1",
+    "ok":  false,
+    "fail_count":  11,
+    "version":  "1.15.0-rc.1",
+    "base_url":  "https://musu.pro",
+    "room_id":  "one-machine-rc1",
+    "work_order_id":  "wo-one-machine-20260608-155837",
+    "expected_output":  "MUSU_ONE_MACHINE_MUSU_PRO_WORK_ORDER_OK_20260608-155837",
+    "recorded_at":  "2026-06-08T15:58:37.6370568+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "musu_exe":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "musu_exe_source":  "windowsapps_alias",
+    "target_node":  "hugh_second",
+    "bridge_url":  "http://127.0.0.1:2470",
+    "account_logged_in":  false,
+    "p2p_control_token_present":  true,
+    "p2p_control_token_source":  "parameter",
+    "allow_unverified":  false,
+    "requires_desktop_outbound_pickup":  true,
+    "fixed_localhost_3001_assumption":  false,
+    "up_exit_code":  0,
+    "up":  {
+               "ok":  true,
+               "token_created":  false,
+               "stale_bridge_registry_removed":  false,
+               "stale_bridge_registry_pid":  null,
+               "bridge_started":  false,
+               "bridge_pid":  null,
+               "terminated_unhealthy_bridge_pid":  null,
+               "bridge_log_path":  "C:\\Users\\empty\\.musu\\logs\\bridge.log",
+               "bridge":  {
+                              "status":  "ok",
+                              "local_url":  "http://127.0.0.1:2470",
+                              "service_registry_addr":  "127.0.0.1:2470",
+                              "service_registry_pid":  11656,
+                              "public_url":  "http://127.0.0.1:2470",
+                              "public_url_valid":  true,
+                              "health_http_status":  200,
+                              "health_body":  {
+                                                  "status":  "ok",
+                                                  "version":  "1.15.0-rc.1",
+                                                  "worker_ok":  true,
+                                                  "db_size_mb":  0.12109375,
+                                                  "disk_free_pct":  0.0,
+                                                  "auth_mode":  "production",
+                                                  "audit_degraded":  false,
+                                                  "schema_applied":  true,
+                                                  "relay":  null
+                                              },
+                              "error":  null,
+                              "note":  "Local bridge is reachable."
+                          },
+               "dashboard":  {
+                                 "status":  "ok",
+                                 "dev_url":  "",
+                                 "start_url":  "",
+                                 "reachable_url":  null,
+                                 "required":  false,
+                                 "note":  "Packaged local runtime does not require a workspace dashboard; web input should arrive through MUSU.PRO or another connected operator surface."
+                             },
+               "dashboard_open_attempted":  false,
+               "dashboard_open_error":  null,
+               "next_steps":  [
+                                  "Local runtime is ready. Use MUSU.PRO remote input or `musu route --wait \u003ctask\u003e` to run work on this device."
+                              ]
+           },
+    "up_raw":  null,
+    "doctor_exit_code":  0,
+    "doctor":  {
+                   "overall":  "warn",
+                   "generated_at":  "2026-06-08T06:58:42.463311500+00:00",
+                   "version":  "1.15.0-rc.1",
+                   "distribution":  "store-msix",
+                   "home":  {
+                                "status":  "ok",
+                                "path":  "C:\\Users\\empty\\.musu",
+                                "exists":  true,
+                                "note":  "MUSU home exists."
+                            },
+                   "binary":  {
+                                  "status":  "ok",
+                                  "current_exe":  "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6\\musu.exe",
+                                  "installed_binary":  "C:\\Users\\empty\\.musu\\bin\\musu.exe",
+                                  "installed_binary_exists":  false,
+                                  "bin_dir_on_path":  true,
+                                  "first_path_musu":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+                                  "windowsapps_alias":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+                                  "alias_shadowed_by":  null,
+                                  "note":  "CLI binary is discoverable."
+                              },
+                   "account":  {
+                                   "status":  "warn",
+                                   "logged_in":  false,
+                                   "account_token_present":  false,
+                                   "bridge_token_present":  true,
+                                   "note":  "Partial auth state: either account login or local bridge token is missing."
+                               },
+                   "bridge":  {
+                                  "status":  "ok",
+                                  "local_url":  "http://127.0.0.1:2470",
+                                  "service_registry_addr":  "127.0.0.1:2470",
+                                  "service_registry_pid":  11656,
+                                  "public_url":  "http://127.0.0.1:2470",
+                                  "public_url_valid":  true,
+                                  "health_http_status":  200,
+                                  "health_body":  {
+                                                      "status":  "ok",
+                                                      "version":  "1.15.0-rc.1",
+                                                      "worker_ok":  true,
+                                                      "db_size_mb":  0.12109375,
+                                                      "disk_free_pct":  0.0,
+                                                      "auth_mode":  "production",
+                                                      "audit_degraded":  false,
+                                                      "schema_applied":  true,
+                                                      "relay":  null
+                                                  },
+                                  "error":  null,
+                                  "note":  "Local bridge is reachable."
+                              },
+                   "dashboard":  {
+                                     "status":  "ok",
+                                     "dev_url":  "",
+                                     "start_url":  "",
+                                     "reachable_url":  null,
+                                     "required":  false,
+                                     "note":  "Packaged local runtime does not require a workspace dashboard; web input should arrive through MUSU.PRO or another connected operator surface."
+                                 },
+                   "package":  {
+                                   "status":  "ok",
+                                   "distribution":  "store-msix",
+                                   "package_status_command":  "musu package-status",
+                                   "note":  "Run `musu package-status` for Windows package identity and startup-task details."
+                               },
+                   "background":  {
+                                      "status":  "ok",
+                                      "mdns":  {
+                                                   "enabled":  false,
+                                                   "env_var":  "MUSU_ENABLE_MDNS",
+                                                   "note":  "mDNS LAN discovery is off by default."
+                                               },
+                                      "mdns_ipv6":  {
+                                                        "enabled":  false,
+                                                        "env_var":  "MUSU_MDNS_ENABLE_IPV6",
+                                                        "note":  "IPv6 mDNS is off by default."
+                                                    },
+                                      "mdns_tailscale":  {
+                                                             "enabled":  false,
+                                                             "env_var":  "MUSU_MDNS_ENABLE_TAILSCALE",
+                                                             "note":  "Tailscale mDNS is off by default."
+                                                         },
+                                      "mdns_virtual_interfaces":  {
+                                                                      "enabled":  false,
+                                                                      "env_var":  "MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES",
+                                                                      "note":  "VPN/virtual mDNS interfaces are filtered by default."
+                                                                  },
+                                      "clipboard_sync":  {
+                                                             "enabled":  false,
+                                                             "env_var":  "MUSU_ENABLE_CLIPBOARD_SYNC",
+                                                             "note":  "Clipboard polling is off by default."
+                                                         },
+                                      "cloud_registration":  {
+                                                                 "enabled":  false,
+                                                                 "env_var":  null,
+                                                                 "note":  "musu.pro registration is disabled until account login."
+                                                             },
+                                      "cloud_heartbeat_interval_sec":  300,
+                                      "cloud_heartbeat_floor_sec":  60,
+                                      "file_sync":  {
+                                                        "enabled":  false,
+                                                        "env_var":  "MUSU_FILE_SERVE_ROOTS",
+                                                        "note":  "File watcher/sync is disabled because no shared roots are configured."
+                                                    },
+                                      "file_serve_root_count":  0,
+                                      "file_serve_writable":  false,
+                                      "relay_payload_poller":  {
+                                                                   "enabled":  false,
+                                                                   "env_var":  "MUSU_ENABLE_RELAY_PAYLOAD_POLLER",
+                                                                   "note":  "Relay payload target polling is off by default; manual drain remains request-driven."
+                                                               },
+                                      "relay_payload_poller_interval_sec":  60,
+                                      "relay_payload_poller_interval_floor_sec":  30,
+                                      "relay_payload_poller_empty_backoff_max_sec":  300,
+                                      "relay_payload_poller_empty_backoff_ceiling_sec":  3600,
+                                      "relay_payload_poller_limit":  1,
+                                      "planner":  {
+                                                      "enabled":  false,
+                                                      "env_var":  "MUSU_ENABLE_PLANNER",
+                                                      "note":  "Autonomous planner loop is off by default."
+                                                  },
+                                      "planner_interval_sec":  300,
+                                      "planner_interval_floor_sec":  60,
+                                      "planner_command_timeout_sec":  20,
+                                      "planner_command_timeout_floor_sec":  5,
+                                      "planner_command_timeout_ceiling_sec":  120,
+                                      "auto_update_supervise":  {
+                                                                    "enabled":  false,
+                                                                    "env_var":  null,
+                                                                    "note":  "Auto-update supervisor is inactive until update.toml enables a source and `musu auto-update --supervise` is launched."
+                                                                },
+                                      "auto_update_check_interval_minutes":  60,
+                                      "auto_update_check_interval_floor_minutes":  5,
+                                      "auto_update_health_poll_initial_ms":  250,
+                                      "auto_update_health_poll_max_ms":  2000,
+                                      "bridge_health_poll_initial_ms":  250,
+                                      "bridge_health_poll_max_ms":  2000,
+                                      "runtime_loop_candidates":  [
+                                                                      {
+                                                                          "key":  "mdns_discovery",
+                                                                          "label":  "mDNS discovery",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "env-opt-in",
+                                                                          "note":  "All mDNS discovery toggles are off."
+                                                                      },
+                                                                      {
+                                                                          "key":  "clipboard_polling",
+                                                                          "label":  "Clipboard polling",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "env-opt-in",
+                                                                          "note":  "Clipboard polling is off because MUSU_ENABLE_CLIPBOARD_SYNC is not set."
+                                                                      },
+                                                                      {
+                                                                          "key":  "cloud_heartbeat",
+                                                                          "label":  "Cloud heartbeat",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "login-gated",
+                                                                          "note":  "No account token is present, so cloud registration heartbeat stays off."
+                                                                      },
+                                                                      {
+                                                                          "key":  "file_sync_watch",
+                                                                          "label":  "File sync/watch",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "shared-root-config",
+                                                                          "note":  "No shared roots are configured, so file watcher/sync stays off."
+                                                                      },
+                                                                      {
+                                                                          "key":  "relay_target_polling",
+                                                                          "label":  "Relay target polling",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "env-opt-in",
+                                                                          "note":  "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set."
+                                                                      },
+                                                                      {
+                                                                          "key":  "autonomous_planner",
+                                                                          "label":  "Autonomous planner",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "env-opt-in",
+                                                                          "note":  "Planner is off because MUSU_ENABLE_PLANNER is not set."
+                                                                      },
+                                                                      {
+                                                                          "key":  "health_check_retry",
+                                                                          "label":  "Health check retry",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "update-config",
+                                                                          "note":  "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched."
+                                                                      },
+                                                                      {
+                                                                          "key":  "auto_update_supervisor",
+                                                                          "label":  "Auto-update supervisor",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "update-config",
+                                                                          "note":  "update.toml is absent, so auto-update supervision stays off."
+                                                                      },
+                                                                      {
+                                                                          "key":  "bridge_readiness_wait",
+                                                                          "label":  "Bridge readiness wait",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "request-scoped",
+                                                                          "note":  "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires."
+                                                                      },
+                                                                      {
+                                                                          "key":  "log_telemetry_flush",
+                                                                          "label":  "Log/telemetry flush",
+                                                                          "active":  false,
+                                                                          "activation_mode":  "one-shot-cli",
+                                                                          "note":  "Telemetry/log flush primitives are limited to explicit one-shot CLI/reporting surfaces; no background flush worker is expected."
+                                                                      }
+                                                                  ],
+                                      "active_runtime_loop_candidate_count":  0,
+                                      "active_runtime_loop_candidate_keys":  [
+
+                                                                             ],
+                                      "note":  "Background work is in the low-duty default profile."
+                                  },
+                   "next_steps":  [
+                                      "Run `musu login`."
+                                  ]
+               },
+    "doctor_raw":  null,
+    "presence_publish_exit_code":  0,
+    "presence_publish":  {
+                             "schema":  "musu.room_presence_publish.v1",
+                             "registry_url":  "https://musu.pro",
+                             "logged_in":  false,
+                             "room_id":  "one-machine-rc1",
+                             "ok":  false,
+                             "candidate_cache_seeded":  false,
+                             "local_node_id":  "hugh_second",
+                             "local_node_name":  "HUGH_SECOND",
+                             "status":  "online",
+                             "candidate":  {
+                                               "kind":  "lan",
+                                               "addr":  "127.0.0.1:2470",
+                                               "scheme":  "http",
+                                               "public_addr":  null,
+                                               "nat_type":  null,
+                                               "nat_observed_by":  null,
+                                               "relay_url":  null,
+                                               "relay_protocol":  null
+                                           },
+                             "candidates":  [
+                                                {
+                                                    "kind":  "lan",
+                                                    "addr":  "127.0.0.1:2470",
+                                                    "scheme":  "http",
+                                                    "public_addr":  null,
+                                                    "nat_type":  null,
+                                                    "nat_observed_by":  null,
+                                                    "relay_url":  null,
+                                                    "relay_protocol":  null
+                                                }
+                                            ],
+                             "presence":  null,
+                             "error":  "not_logged_in",
+                             "next_steps":  [
+                                                "run this on each participating local MUSU program for the same room id",
+                                                "use `musu room presence list \u003croom-id\u003e` to confirm both nodes are visible before rendezvous",
+                                                "keep presence publishing on demand until a bounded heartbeat loop with sleep/backoff/cancellation is wired"
+                                            ]
+                         },
+    "presence_publish_raw":  null,
+    "presence_list_exit_code":  0,
+    "presence_list":  {
+                          "schema":  "musu.room_presence_list.v1",
+                          "registry_url":  "https://musu.pro",
+                          "logged_in":  false,
+                          "room_id":  "one-machine-rc1",
+                          "ok":  false,
+                          "presence_order":  "last_seen_desc",
+                          "count":  0,
+                          "filters":  {
+                                          "limit":  20,
+                                          "company_id":  null,
+                                          "project_id":  null,
+                                          "node_id":  "hugh_second",
+                                          "source_agent_id":  null,
+                                          "status":  null,
+                                          "include_expired":  false
+                                      },
+                          "presence":  [
+
+                                       ],
+                          "error":  "not_logged_in",
+                          "next_steps":  [
+                                             "confirm all expected local MUSU programs have fresh non-expired presence",
+                                             "start a room-scoped rendezvous only after source and target presence include route candidates"
+                                         ]
+                      },
+    "presence_list_raw":  null,
+    "work_order_post":  {
+                            "uri":  "https://musu.pro/api/rooms/one-machine-rc1/work-orders",
+                            "status_code":  404,
+                            "ok":  false,
+                            "json":  null,
+                            "raw":  "\u003c!DOCTYPE html\u003e\u003chtml lang=\"ko\"\u003e\u003chead\u003e\u003cmeta charSet=\"utf-8\" data-next-head=\"\"/\u003e\u003cmeta name=\"viewport\" content=\"width=device-width\" data-next-head=\"\"/\u003e\u003cnoscript data-n-css=\"\"\u003e\u003c/noscript\u003e\u003cscript defer=\"\" noModule=\"\" src=\"/_next/static/chunks/polyfills-42372ed130431b0a.js\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/chunks/webpack-d631ba42235a449e.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/chunks/framework-a32a2a465584c0bc.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/chunks/main-862a41fbd688598e.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/chunks/pages/_app-4b3fb5e477a0267f.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/chunks/pages/404-cd3fb8b2eb2f9d5a.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/VVLW1R7at_JI_jOwJ8ibV/_buildManifest.js\" defer=\"\"\u003e\u003c/script\u003e\u003cscript src=\"/_next/static/VVLW1R7at_JI_jOwJ8ibV/_ssgManifest.js\" defer=\"\"\u003e\u003c/script\u003e\u003c/head\u003e\u003cbody style=\"margin:0;background:var(--bg-base)\"\u003e\u003cdiv id=\"__next\"\u003e\u003cdiv style=\"display:flex;height:100vh;align-items:center;justify-content:center;background:var(--bg-base);color:var(--fg3);font-family:sans-serif\"\u003e\u003cspan\u003e404 — Page not found.\u003c/span\u003e\u003c/div\u003e\u003c/div\u003e\u003cscript id=\"__NEXT_DATA__\" type=\"application/json\"\u003e{\"props\":{\"pageProps\":{}},\"page\":\"/404\",\"query\":{},\"buildId\":\"VVLW1R7at_JI_jOwJ8ibV\",\"nextExport\":true,\"autoExport\":true,\"isFallback\":false,\"scriptLoader\":[]}\u003c/script\u003e\u003cscript defer src=\"https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447\" integrity=\"sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==\" data-cf-beacon=\u0027{\"version\":\"2024.11.0\",\"token\":\"c8bb8f54844942ff87b6a50eb569d374\",\"r\":1,\"server_timing\":{\"name\":{\"cfCacheStatus\":true,\"cfEdge\":true,\"cfExtPri\":true,\"cfL4\":true,\"cfOrigin\":true,\"cfSpeedBrain\":true},\"location_startswith\":null}}\u0027 crossorigin=\"anonymous\"\u003e\u003c/script\u003e\n\u003c/body\u003e\u003c/html\u003e",
+                            "error":  "원격 서버에서 (404) 찾을 수 없음 오류를 반환했습니다."
+                        },
+    "work_order_claim":  null,
+    "work_order_drain_exit_code":  null,
+    "work_order_drain":  null,
+    "work_order_drain_raw":  null,
+    "post_run_idle_cpu_evidence_path":  "",
+    "post_run_idle_cpu_evidence":  null,
+    "checks":  [
+                   {
+                       "name":  "musu executable",
+                       "status":  "pass",
+                       "message":  "musu.exe exists at C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe"
+                   },
+                   {
+                       "name":  "musu up",
+                       "status":  "pass",
+                       "message":  "musu up --json reported ok=true"
+                   },
+                   {
+                       "name":  "musu doctor",
+                       "status":  "pass",
+                       "message":  "musu doctor overall is not fail"
+                   },
+                   {
+                       "name":  "actual bridge URL discovered",
+                       "status":  "pass",
+                       "message":  "local bridge URL discovered: http://127.0.0.1:2470"
+                   },
+                   {
+                       "name":  "no fixed localhost 3001 assumption",
+                       "status":  "pass",
+                       "message":  "bridge URL is not the fixed localhost:3001 dashboard port"
+                   },
+                   {
+                       "name":  "MUSU.PRO account login",
+                       "status":  "fail",
+                       "message":  "local runtime is not logged in to MUSU.PRO"
+                   },
+                   {
+                       "name":  "room presence publish",
+                       "status":  "fail",
+                       "message":  "room presence publish did not prove this local executor is online"
+                   },
+                   {
+                       "name":  "room presence query",
+                       "status":  "fail",
+                       "message":  "room presence query does not see a current local executor record"
+                   },
+                   {
+                       "name":  "P2P control token available",
+                       "status":  "pass",
+                       "message":  "P2P control token is available from parameter"
+                   },
+                   {
+                       "name":  "MUSU.PRO base URL is product surface",
+                       "status":  "pass",
+                       "message":  "BaseUrl is not fixed localhost:3001"
+                   },
+                   {
+                       "name":  "MUSU.PRO work-order POST",
+                       "status":  "fail",
+                       "message":  "MUSU.PRO work-order POST did not return 2xx"
+                   },
+                   {
+                       "name":  "work-order id echoed",
+                       "status":  "fail",
+                       "message":  "work-order id was not echoed"
+                   },
+                   {
+                       "name":  "work-order owner scoped",
+                       "status":  "fail",
+                       "message":  "work-order response did not prove owner scope"
+                   },
+                   {
+                       "name":  "work-order origin",
+                       "status":  "fail",
+                       "message":  "work-order origin is not musu.pro"
+                   },
+                   {
+                       "name":  "work-order queued for outbound pickup",
+                       "status":  "fail",
+                       "message":  "work order was not queued for Desktop outbound pickup"
+                   },
+                   {
+                       "name":  "MUSU.PRO work-order claim",
+                       "status":  "fail",
+                       "message":  "skipped because work-order POST did not succeed"
+                   },
+                   {
+                       "name":  "local bridge task response",
+                       "status":  "fail",
+                       "message":  "skipped because work-order POST did not succeed"
+                   },
+                   {
+                       "name":  "post-run idle CPU evidence",
+                       "status":  "fail",
+                       "message":  "post-run idle CPU evidence path was not supplied; run measure-musu-idle-cpu.ps1 after remote work-order pickup"
+                   }
+               ],
+    "next_steps":  [
+                       "Log in with the packaged MUSU runtime, then rerun this smoke.",
+                       "Implement or configure the one-machine remote work-order pickup path so MUSU.PRO can create an order and the local Desktop can pick it up outbound.",
+                       "After a successful remote work-order pickup, capture post-run 60s idle CPU evidence and pass -PostRunIdleCpuEvidencePath."
+                   ]
+}
