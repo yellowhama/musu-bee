@@ -28,6 +28,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use serde::Deserialize;
+use tokio_util::sync::CancellationToken;
 
 use super::schema_gate::write_pending_marker;
 use super::staged_swap;
@@ -228,15 +229,29 @@ async fn supervise_loop(opts: AutoUpdateOpts) -> Result<()> {
     let cfg = UpdateConfig::load(&home)?;
     let interval = Duration::from_secs(cfg.check_interval_minutes.saturating_mul(60));
     let mut ticker = tokio::time::interval(interval);
+    let cancellation_token = CancellationToken::new();
+    let ctrl_c_token = cancellation_token.clone();
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            ctrl_c_token.cancel();
+        }
+    });
     // Skip the first immediate tick so we don't auto-update at musud boot
     // (operator may be mid-edit).
     ticker.tick().await;
     loop {
-        ticker.tick().await;
+        tokio::select! {
+            _ = cancellation_token.cancelled() => {
+                tracing::info!("supervise: auto-update loop cancelled");
+                break;
+            }
+            _ = ticker.tick() => {}
+        }
         if let Err(e) = run_once(&opts).await {
             tracing::error!(error = %e, "supervise: auto-update iteration failed");
         }
     }
+    Ok(())
 }
 
 // ── github-release path ───────────────────────────────────────────────────

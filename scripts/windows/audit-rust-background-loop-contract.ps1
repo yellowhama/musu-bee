@@ -206,7 +206,9 @@ Add-RegexCheck -Scope "mdns" -Name "discover command scoped dispatch" -Text $mai
 $autoUpdatePath = "musu-rs\src\install\auto_update.rs"
 $autoUpdateText = Get-RepoText $autoUpdatePath
 Add-RegexCheck -Scope "auto-update" -Name "config minimum interval" -Text $autoUpdateText -Pattern 'check_interval_minutes\s*<\s*(AUTO_UPDATE_MIN_INTERVAL_MINUTES|5)' -Path $autoUpdatePath -Message "Auto-update supervise interval refuses values below 5 minutes."
-Add-RegexCheck -Scope "auto-update" -Name "first tick skipped" -Text $autoUpdateText -Pattern 'ticker\.tick\(\)\.await;[\s\S]*loop\s*\{[\s\S]*ticker\.tick\(\)\.await;' -Path $autoUpdatePath -Message "Auto-update supervise loop skips immediate boot-time update and then waits on interval ticks."
+Add-RegexCheck -Scope "auto-update" -Name "first tick skipped" -Text $autoUpdateText -Pattern 'ticker\.tick\(\)\.await;[\s\S]*loop\s*\{[\s\S]*(ticker\.tick\(\)\.await|tokio::select!\s*\{[\s\S]*ticker\.tick\(\))' -Path $autoUpdatePath -Message "Auto-update supervise loop skips immediate boot-time update and then waits on interval ticks."
+Add-RegexCheck -Scope "auto-update" -Name "supervise loop ctrl-c watcher" -Text $autoUpdateText -Pattern 'let cancellation_token = CancellationToken::new\(\)[\s\S]*tokio::spawn\(async move \{[\s\S]*tokio::signal::ctrl_c\(\)\.await\.is_ok\(\)[\s\S]*ctrl_c_token\.cancel\(\)' -Path $autoUpdatePath -Message "Auto-update supervise loop owns a Ctrl-C cancellation token and watcher."
+Add-RegexCheck -Scope "auto-update" -Name "supervise loop cancellation-aware tick" -Text $autoUpdateText -Pattern 'tokio::select!\s*\{[\s\S]*cancellation_token\.cancelled\(\)[\s\S]*ticker\.tick\(\)' -Path $autoUpdatePath -Message "Auto-update supervise loop waits on either cancellation or the next interval tick."
 Add-RegexCheck -Scope "auto-update" -Name "health poll initial backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_INITIAL_MS:\s*u64\s*=\s*250' -Path $autoUpdatePath -Message "Auto-update health poll starts with a bounded delay."
 Add-RegexCheck -Scope "auto-update" -Name "health poll max backoff" -Text $autoUpdateText -Pattern 'HEALTH_POLL_MAX_MS:\s*u64\s*=\s*2_000' -Path $autoUpdatePath -Message "Auto-update health poll delay is capped."
 Add-RegexCheck -Scope "auto-update" -Name "health poll sleep" -Text $autoUpdateText -Pattern 'let delay = health_poll_delay\(attempt\)\.min\(remaining\);[\s\S]*tokio::time::sleep\(delay\)\.await' -Path $autoUpdatePath -Message "Auto-update health polling sleeps between attempts."
@@ -435,6 +437,7 @@ else {
         "musu-rs\src\bridge\route_evidence.rs",
         "musu-rs\src\control\mod.rs",
         "musu-rs\src\indexer\sync.rs",
+        "musu-rs\src\install\auto_update.rs",
         "musu-rs\src\io\clipboard.rs",
         "musu-rs\src\io\webrtc.rs",
         "musu-rs\src\peer\mdns.rs",

@@ -8129,4 +8129,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v965`, `wiki/1140`, `3104 files`, `2937 symbols`,
   `relay visibility listener lifecycle`, `relayNextReconnectAt`, and `146/146`.
 
+- 2026-06-08 auto-update supervise cancellation hardening:
+  wiki/1141 records the `musu-rs\src\install\auto_update.rs` change that now
+  gives `supervise_loop(...)` a `CancellationToken`, a Ctrl-C watcher, and a
+  `tokio::select!` wait between cancellation and the next interval tick so the
+  long-lived auto-update loop can stop cleanly instead of waiting forever
+  between checks. Search terms should include `GOAL v966`, `wiki/1141`,
+  `auto-update supervise cancellation`, `CancellationToken::new`,
+  `tokio::signal::ctrl_c`, and `146/146`.
+
+- 2026-06-08 auto-update supervise cancellation hardening index:
+  wiki/1142 records the MUSU local index refresh after wiki/1141 with
+  `3104 files`, `2937 symbols`, and `18704 ms`. Search terms
+  should include `GOAL v967`, `wiki/1142`, `3104 files`, `2937 symbols`,
+  `18704 ms`, `auto-update supervise cancellation`, and `146/146`.
+
 **End of WIKI_INDEX.md.**

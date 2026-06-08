@@ -1413,6 +1413,8 @@ function Test-RustBackgroundNetworkWatcherScopeContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         'discover command scoped dispatch',
+        'supervise loop ctrl-c watcher',
+        'supervise loop cancellation-aware tick',
         '$allowedNetworkWatcherFiles',
         'poll_device_token\(|discover_peers\(|auto_register_peers\(|query_relay_payloads\(',
         'claim_relay_payloads\(|mark_relay_payload_delivered\(|run_relay_payload_poller\(',
