@@ -19815,3 +19815,145 @@ the updated GOAL/WIKI/WIKI_INDEX entries.
 
 Search terms should include `GOAL v926`, `wiki/1101`, `3104 files`,
 `2891 symbols`, `17914 ms`, `log_telemetry_flush`, and `134/134`.
+
+## 2026-06-08 CPU Sampler Doctor Schema Hardening (wiki/1102)
+
+The CPU samplers now use the same 10-key doctor runtime-loop vocabulary as the
+release gates, so stale packaged MUSU builds show up as incomplete evidence
+instead of looking current.
+
+Changes:
+
+- `scripts\windows\measure-musu-idle-cpu.ps1` and
+  `scripts\windows\measure-musu-runtime-cpu-scenarios.ps1` now both require:
+  - `mdns_discovery`
+  - `clipboard_polling`
+  - `cloud_heartbeat`
+  - `file_sync_watch`
+  - `relay_target_polling`
+  - `autonomous_planner`
+  - `health_check_retry`
+  - `auto_update_supervisor`
+  - `bridge_readiness_wait`
+  - `log_telemetry_flush`
+- missing any of those keys now flips
+  `runtime_loop_candidate_fallback_used=true` and
+  `doctor_schema_complete=false`
+- `scripts\windows\test-release-evidence-verifiers.ps1` adds source coverage:
+  - new case:
+    `runtime idle CPU captures full doctor runtime loop candidate summary`
+  - existing runtime CPU matrix doctor-snapshot contract now also requires
+    `log_telemetry_flush`
+
+Proof:
+
+- before reinstall, the short diagnostic artifact
+  `F:\workspace\musu-bee\.local-build\runtime-idle-cpu\musu-idle-cpu-20260608-090919.json`
+  showed:
+  - `doctor_schema_complete=false`
+  - `runtime_loop_candidate_fallback_used=true`
+  - `missing_runtime_loop_candidate_keys=["log_telemetry_flush"]`
+- that was the expected failure mode for a stale packaged WindowsApps MUSU that
+  still emitted only 9 runtime-loop candidates
+
+Validation:
+
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=135`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-091257`
+
+Search terms should include `GOAL v927`, `wiki/1102`,
+`doctor_schema_complete=false`, `missing_runtime_loop_candidate_keys`,
+`log_telemetry_flush`, and `135/135`.
+
+## 2026-06-08 Refreshed Clean One-Machine Packaged CPU Evidence (wiki/1103)
+
+The local-sideload MSIX was refreshed to current HEAD, and clean one-machine
+packaged CPU evidence is green again for `startup-open`, `runtime-started`,
+`dashboard-open`, and `desktop-open`.
+
+Package refresh:
+
+- release build:
+  `cargo build --manifest-path F:/workspace/musu-bee/musu-rs/Cargo.toml --bin musu --release`
+- package:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\build-msix.ps1 -Configuration release -StartupContract local-sideload-manual -SkipBuild`
+- install:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\install-and-verify-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`
+
+After reinstall:
+
+- explicit WindowsApps alias
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" doctor --json`
+  exposed the full 10-candidate runtime-loop summary, including
+  `log_telemetry_flush`
+
+Operational finding:
+
+- the first clean matrix rerun
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-092907-HUGH_SECOND\20260608-092907-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  failed only because `measure-musu-runtime-cpu-scenarios.ps1` had been run
+  without `-OpenDesktopApp`
+- that meant `startup-open` and `desktop-open` measured only the bridge runtime,
+  not the packaged desktop shell/WebView2 state
+- the fix was invocation-level, not code-level
+
+Authoritative clean matrix:
+
+- path:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-093428-HUGH_SECOND\20260608-093428-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- current HEAD:
+  `26cd33943ff1dfbe9589b6ae657efb621169184d`
+- flags:
+  `-Scenario startup-open,runtime-started,dashboard-open,desktop-open -OpenDesktopApp -SampleSeconds 60 -Json`
+- result:
+  - `ok=true`
+  - `git_dirty=false`
+  - `doctor_schema_complete=true`
+  - `fail_count=0`
+  - `hot_process_count=0` throughout
+  - owned Node `0`
+  - owned WebView2 `6`
+  - working set `375.33MB-376.24MB`
+
+Per-scenario peaks:
+
+- `startup-open`: WebView2 `0.65%`, working set `375.78MB`
+- `runtime-started`: WebView2 `0.08%`, working set `376.24MB`
+- `dashboard-open`: WebView2 `0.05%`, working set `376.01MB`
+- `desktop-open`: WebView2 `0.03%`, working set `375.33MB`
+
+Verifier replay:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-093428-HUGH_SECOND\20260608-093428-HUGH_SECOND.runtime-cpu-scenario-matrix.json -ExpectedVersion 1.15.0-rc.1 -RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open -MinSampleSeconds 60 -MaxOneCorePercent 5 -Json`
+- `ok=true`
+- `fail_count=0`
+
+Search terms should include `GOAL v928`, `wiki/1103`,
+`20260608-093428-HUGH_SECOND`, `-OpenDesktopApp`,
+`doctor_schema_complete=true`, and `0.65%`.
+
+## 2026-06-08 Sampler Hardening + Refreshed One-Machine Evidence Index (wiki/1104)
+
+MUSU local indexer was refreshed after wiki/1102 and wiki/1103.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `78175 ms`
+
+Indexed context includes:
+
+- the 10-key sampler doctor-schema hardening
+- the green `135/135` verifier sweep
+- the local-sideload package refresh
+- the clean `20260608-093428-HUGH_SECOND` four-scenario matrix
+- the dedicated runtime matrix verifier replay
+
+Search terms should include `GOAL v929`, `wiki/1104`, `3104 files`,
+`2891 symbols`, `78175 ms`, `20260608-093428-HUGH_SECOND`, and `135/135`.

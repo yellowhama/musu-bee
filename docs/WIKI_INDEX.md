@@ -7851,4 +7851,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   v925. Search terms should include `GOAL v926`, `wiki/1101`, `3104 files`,
   `2891 symbols`, `17914 ms`, `log_telemetry_flush`, and `134/134`.
 
+- 2026-06-08 CPU sampler doctor schema hardening:
+  wiki/1102 records the sampler-side upgrade to the 10-key doctor runtime-loop
+  vocabulary and the proof artifact that a stale packaged MUSU now shows
+  `doctor_schema_complete=false` instead of passing with fallback defaults.
+  Regression stayed green at `135/135` in
+  `.local-build\release-evidence-verifier-tests\20260608-091257`. Search terms
+  should include `GOAL v927`, `wiki/1102`,
+  `missing_runtime_loop_candidate_keys`, `log_telemetry_flush`, and `135/135`.
+
+- 2026-06-08 refreshed clean one-machine packaged CPU evidence:
+  wiki/1103 records the local-sideload refresh to current HEAD, the failed
+  first clean rerun caused by omitting `-OpenDesktopApp`, and the authoritative
+  clean 4-scenario matrix rerun at
+  `.local-build\runtime-cpu-scenarios\20260608-093428-HUGH_SECOND` with
+  `ok=true`, `doctor_schema_complete=true`, and per-scenario WebView2 peaks
+  `0.65% / 0.08% / 0.05% / 0.03%`. Search terms should include `GOAL v928`,
+  `wiki/1103`, `-OpenDesktopApp`, `20260608-093428-HUGH_SECOND`, and `0.65%`.
+
+- 2026-06-08 sampler hardening and refreshed one-machine evidence index:
+  wiki/1104 records the MUSU local index refresh after wiki/1102 and wiki/1103
+  with `3104 files`, `2891 symbols`, and `78175 ms`. Search terms should
+  include `GOAL v929`, `wiki/1104`, `20260608-093428-HUGH_SECOND`, and
+  `135/135`.
+
 **End of WIKI_INDEX.md.**
