@@ -20016,3 +20016,68 @@ sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
 
 Search terms should include `GOAL v931`, `wiki/1106`, `3104 files`,
 `2891 symbols`, `30644 ms`, `requiresDesktopAppOpen`, and `136/136`.
+
+## 2026-06-08 Second-PC Desktop Launch Source Contract (wiki/1107)
+
+`run-second-pc-release-check.ps1` already launched the packaged desktop shell
+before capturing runtime CPU matrices, but until now that guarantee lived only
+in the wrapper source and not in the regression suite. After GOAL v930 added
+the fail-fast inside `measure-musu-runtime-cpu-scenarios.ps1`, there was still
+one remaining risk: a future wrapper edit could stop passing
+`-OpenDesktopApp`, and the breakage would only show up when an operator ran the
+second-PC flow for real.
+
+That gap is now closed in
+`scripts\windows\test-release-evidence-verifiers.ps1`.
+
+- new helper:
+  `Test-SecondPcRuntimeCpuDesktopLaunchContract`
+- new source-contract case:
+  `second-PC runtime CPU matrix includes packaged desktop launch`
+
+The contract requires `run-second-pc-release-check.ps1` to retain all of the
+runtime CPU matrix launch wiring:
+
+- `$matrixArgs = @(`
+- `"-Scenario"`
+- `@($RuntimeCpuScenario)`
+- `"-OpenDesktopApp"`
+- `"measure runtime CPU scenario matrix"`
+
+That means second-PC runtime CPU capture can no longer regress from packaged
+desktop-shell sampling back to bridge-only sampling without immediately
+breaking verifier regression.
+
+Validation:
+
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=137`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-095615`
+
+Search terms should include `GOAL v932`, `wiki/1107`,
+`second-PC runtime CPU matrix includes packaged desktop launch`,
+`Test-SecondPcRuntimeCpuDesktopLaunchContract`, `-OpenDesktopApp`, and
+`137/137`.
+
+## 2026-06-08 Second-PC Desktop Launch Source Contract Index (wiki/1108)
+
+MUSU local indexer was refreshed after wiki/1107 and GOAL v932.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `17726 ms`
+
+Indexed context includes the new
+`second-PC runtime CPU matrix includes packaged desktop launch` source
+contract, the still-green `137/137` verifier sweep, and the updated
+GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v933`, `wiki/1108`, `3104 files`,
+`2891 symbols`, `17726 ms`, `second-PC runtime CPU matrix includes packaged
+desktop launch`, and `137/137`.

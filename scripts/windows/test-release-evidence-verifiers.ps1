@@ -421,6 +421,26 @@ function Test-SecondPcRuntimeCpuRouteWaitTimeoutPassThrough {
     return $true
 }
 
+function Test-SecondPcRuntimeCpuDesktopLaunchContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$matrixArgs = @(',
+        '"-Scenario"',
+        '@($RuntimeCpuScenario)',
+        '"-OpenDesktopApp"',
+        '"measure runtime CPU scenario matrix"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcTargetedRouteVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -3260,6 +3280,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC runtime CPU route wait timeout pass-through" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcDesktopLaunchContractOk = Test-SecondPcRuntimeCpuDesktopLaunchContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcDesktopLaunchContractOk `
+    -Message "second-PC release check must always launch the packaged desktop shell before runtime CPU matrix capture so startup-open and desktop-open evidence cannot silently degrade into bridge-only sampling"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC runtime CPU matrix includes packaged desktop launch" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
     -ShouldPass $true `

@@ -7887,4 +7887,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `3104 files`, `2891 symbols`, and `30644 ms`. Search terms should include
   `GOAL v931`, `wiki/1106`, `requiresDesktopAppOpen`, and `136/136`.
 
+- 2026-06-08 second-PC desktop launch source contract:
+  wiki/1107 records the new verifier source-contract case
+  `second-PC runtime CPU matrix includes packaged desktop launch`, which now
+  requires `run-second-pc-release-check.ps1` to keep passing
+  `-OpenDesktopApp` into runtime CPU matrix capture. Search terms should
+  include `GOAL v932`, `wiki/1107`,
+  `Test-SecondPcRuntimeCpuDesktopLaunchContract`, `-OpenDesktopApp`, and
+  `137/137`.
+
+- 2026-06-08 second-PC desktop launch source-contract index:
+  wiki/1108 records the MUSU local index refresh after wiki/1107 with
+  `3104 files`, `2891 symbols`, and `17726 ms`. Search terms should include
+  `GOAL v933`, `wiki/1108`,
+  `second-PC runtime CPU matrix includes packaged desktop launch`, and
+  `137/137`.
+
 **End of WIKI_INDEX.md.**
