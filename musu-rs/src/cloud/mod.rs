@@ -993,13 +993,18 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
-    /// GET /api/v1/auth/device?device_code=... to poll for completion.
+    /// POST /api/v1/auth/device with `{device_code}` in the body to poll for
+    /// completion. H-2: the device_code is the poll secret and the response
+    /// carries the real control token, so it must NOT travel in the query string
+    /// (query strings leak to CDN/proxy/access logs). Send it in the JSON body.
     pub async fn poll_device_token(&self, device_code: &str) -> Result<Option<String>> {
-        let url = format!(
-            "{}/api/v1/auth/device?device_code={}",
-            self.base_url, device_code
-        );
-        let resp = self.client.get(&url).send().await?;
+        let url = format!("{}/api/v1/auth/device", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .json(&serde_json::json!({ "device_code": device_code }))
+            .send()
+            .await?;
 
         if resp.status() == reqwest::StatusCode::GONE {
             return Err(anyhow!("Code expired"));
