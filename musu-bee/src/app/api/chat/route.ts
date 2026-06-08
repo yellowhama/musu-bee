@@ -1,6 +1,6 @@
 import { getBridgeUrl } from '../../../lib/bridge-config';
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "child_process";
+import { spawnAiCli } from "@/lib/aiCliSpawn";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 import { getBridgeToken } from "@/lib/bridge-token";
@@ -333,13 +333,17 @@ async function tryAiCli(
     }
 
     const timer = setTimeout(() => {
-      child.kill();
+      child?.kill();
       settle({ ok: false, error: "AI CLI timeout" });
     }, MUSU_AI_CLI_TIMEOUT_MS);
 
-    const child = spawn(MUSU_AI_CLI, [...MUSU_AI_CLI_ARGS, fullMessage], {
-      env: { ...process.env },
-    });
+    const spawned = spawnAiCli(MUSU_AI_CLI, [...MUSU_AI_CLI_ARGS, fullMessage]);
+    if (!spawned.ok) {
+      clearTimeout(timer);
+      resolve({ ok: false, error: spawned.error });
+      return;
+    }
+    const child = spawned.child;
 
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
