@@ -4,9 +4,11 @@ const nextConfig = {
   outputFileTracingRoot: process.cwd(),
   // Only use App Router, suppress Pages Router error page generation
   typescript: { ignoreBuildErrors: false },
-  // `npm run lint -- --quiet` remains the lint gate. Avoid duplicating the
-  // noisy warning-only ESLint pass inside `next build`.
-  eslint: { ignoreDuringBuilds: true },
+  // Next 16 removed the `next lint` command and dropped the `eslint` key from
+  // next.config; `next build` no longer runs ESLint. The lint gate is now solely
+  // `npm run lint` (eslint .). See https://nextjs.org/docs/messages/invalid-next-config
+  // Build pinned to the webpack builder (`next build --webpack`) so the
+  // production cache-disable below keeps working; Turbopack is default in 16.
   webpack: (config, { dev }) => {
     if (!dev) {
       config.cache = false;
