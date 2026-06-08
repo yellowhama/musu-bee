@@ -7837,4 +7837,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   v923. Search terms should include `GOAL v924`, `wiki/1099`, `3104 files`,
   `2891 symbols`, `14243 ms`, `primary_route_target`, and `134/134`.
 
+- 2026-06-08 doctor runtime loop candidate vocabulary alignment:
+  wiki/1100 records the addition of `log_telemetry_flush` to packaged
+  `musu doctor --json` runtime-loop candidate summaries and the matching
+  10-key expected-candidate alignment in both the release gate and runtime
+  matrix verifier. Regression stayed green at `134/134` in
+  `.local-build\release-evidence-verifier-tests\20260608-090213`. Search terms
+  should include `GOAL v925`, `wiki/1100`, `log_telemetry_flush`,
+  `runtime_loop_candidates.len() == 10`, and `134/134`.
+
+- 2026-06-08 doctor runtime loop candidate vocabulary alignment index:
+  wiki/1101 records the MUSU local index refresh after wiki/1100 and GOAL
+  v925. Search terms should include `GOAL v926`, `wiki/1101`, `3104 files`,
+  `2891 symbols`, `17914 ms`, `log_telemetry_flush`, and `134/134`.
+
 **End of WIKI_INDEX.md.**

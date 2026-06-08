@@ -605,7 +605,8 @@ if ($matrix) {
                     "autonomous_planner",
                     "health_check_retry",
                     "auto_update_supervisor",
-                    "bridge_readiness_wait"
+                    "bridge_readiness_wait",
+                    "log_telemetry_flush"
                 )
                 $runtimeLoopCandidates = @($doctorBackground.runtime_loop_candidates)
                 $runtimeLoopCandidateKeys = @(

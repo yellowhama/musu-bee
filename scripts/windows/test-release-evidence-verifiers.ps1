@@ -2601,7 +2601,7 @@ function New-RuntimeIdleCpuEvidence {
             doctor_schema_complete = $true
             background_field_fallback_used = $false
             runtime_loop_candidate_fallback_used = $false
-            expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait")
+            expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait", "log_telemetry_flush")
             missing_background_fields = @()
             missing_runtime_loop_candidate_keys = @()
             account_logged_in = $true
@@ -2649,7 +2649,8 @@ function New-RuntimeIdleCpuEvidence {
                     [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
                     [pscustomobject]@{ key = "health_check_retry"; label = "Health check retry"; active = $false; activation_mode = "update-config"; note = "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched." },
                     [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." },
-                    [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." }
+                    [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." },
+                    [pscustomobject]@{ key = "log_telemetry_flush"; label = "Log/telemetry flush"; active = $false; activation_mode = "one-shot-cli"; note = "Telemetry/log flush primitives are limited to explicit one-shot CLI/reporting surfaces; no background flush worker is expected." }
                 )
                 active_runtime_loop_candidate_count = 1
                 active_runtime_loop_candidate_keys = @("cloud_heartbeat")
@@ -2791,7 +2792,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         doctor_schema_complete = $true
         background_field_fallback_used = $false
         runtime_loop_candidate_fallback_used = $false
-        expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait")
+        expected_runtime_loop_candidate_keys = @("mdns_discovery", "clipboard_polling", "cloud_heartbeat", "file_sync_watch", "relay_target_polling", "autonomous_planner", "health_check_retry", "auto_update_supervisor", "bridge_readiness_wait", "log_telemetry_flush")
         missing_background_fields = @()
         missing_runtime_loop_candidate_keys = @()
         account_logged_in = $true
@@ -2839,7 +2840,8 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
                 [pscustomobject]@{ key = "autonomous_planner"; label = "Autonomous planner"; active = $false; activation_mode = "env-opt-in"; note = "Planner is off because MUSU_ENABLE_PLANNER is not set." },
                 [pscustomobject]@{ key = "health_check_retry"; label = "Health check retry"; active = $false; activation_mode = "update-config"; note = "Health check retry stays off until update.toml enables a source and `musu auto-update --supervise` is launched." },
                 [pscustomobject]@{ key = "auto_update_supervisor"; label = "Auto-update supervisor"; active = $false; activation_mode = "update-config"; note = "update.toml is absent, so auto-update supervision stays off." },
-                [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." }
+                [pscustomobject]@{ key = "bridge_readiness_wait"; label = "Bridge readiness wait"; active = $false; activation_mode = "request-scoped"; note = "CLI bridge readiness waits only run during commands like `musu up`/`musu bridge`, using bounded 250-2000ms backoff until the caller timeout expires." },
+                [pscustomobject]@{ key = "log_telemetry_flush"; label = "Log/telemetry flush"; active = $false; activation_mode = "one-shot-cli"; note = "Telemetry/log flush primitives are limited to explicit one-shot CLI/reporting surfaces; no background flush worker is expected." }
             )
             active_runtime_loop_candidate_count = 1
             active_runtime_loop_candidate_keys = @("cloud_heartbeat")

@@ -4260,6 +4260,13 @@ fn check_background_features(
                 BRIDGE_HEALTH_POLL_MAX_MS
             ),
         },
+        DoctorBackgroundLoopCandidate {
+            key: "log_telemetry_flush",
+            label: "Log/telemetry flush",
+            active: false,
+            activation_mode: "one-shot-cli",
+            note: "Telemetry/log flush primitives are limited to explicit one-shot CLI/reporting surfaces; no background flush worker is expected.".into(),
+        },
     ];
     let active_runtime_loop_candidate_keys = runtime_loop_candidates
         .iter()
@@ -6132,7 +6139,7 @@ mod tests {
             background.bridge_health_poll_max_ms,
             BRIDGE_HEALTH_POLL_MAX_MS
         );
-        assert_eq!(background.runtime_loop_candidates.len(), 9);
+        assert_eq!(background.runtime_loop_candidates.len(), 10);
         assert_eq!(background.active_runtime_loop_candidate_count, 0);
         assert!(background.active_runtime_loop_candidate_keys.is_empty());
     }

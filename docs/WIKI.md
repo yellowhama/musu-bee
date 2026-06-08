@@ -19737,3 +19737,81 @@ entries.
 
 Search terms should include `GOAL v924`, `wiki/1099`, `3104 files`,
 `2891 symbols`, `14243 ms`, `primary_route_target`, and `134/134`.
+
+## 2026-06-08 Doctor Runtime Loop Candidate Vocabulary Alignment (wiki/1100)
+
+Packaged `musu doctor --json` and the release verifiers now use the same
+10-candidate runtime idle-loop vocabulary.
+
+Changes:
+
+- `musu-rs\src\install\cli_commands.rs` adds a tenth
+  `DoctorBackgroundLoopCandidate`:
+  - `key = "log_telemetry_flush"`
+  - `label = "Log/telemetry flush"`
+  - `active = false`
+  - `activation_mode = "one-shot-cli"`
+  - note explains telemetry/log flush stays scoped to explicit one-shot
+    CLI/reporting surfaces and that no background flush worker is expected.
+- the doctor/runtime summary test now expects
+  `background.runtime_loop_candidates.len() == 10`
+- `scripts\windows\write-release-go-no-go.ps1` and
+  `scripts\windows\verify-runtime-cpu-scenario-matrix.ps1` now both require the
+  same expected runtime loop keys:
+  - `mdns_discovery`
+  - `clipboard_polling`
+  - `cloud_heartbeat`
+  - `file_sync_watch`
+  - `relay_target_polling`
+  - `autonomous_planner`
+  - `health_check_retry`
+  - `auto_update_supervisor`
+  - `bridge_readiness_wait`
+  - `log_telemetry_flush`
+- `scripts\windows\test-release-evidence-verifiers.ps1` updated both the
+  runtime-idle and runtime-matrix fixtures plus their embedded
+  `expected_runtime_loop_candidate_keys` arrays to match the 10-key set.
+
+Why this matters:
+
+- the human-facing idle busy-loop candidate summary already treated
+  `log/telemetry flush loop` as part of the release vocabulary
+- doctor/runtime loop summaries and runtime matrix verification were still at 9
+  keys
+- this closes that mismatch, so CPU evidence, doctor snapshots, and release
+  gates now describe the same packaged-loop surface
+
+Validation:
+
+- `cargo fmt`
+- `cargo check --manifest-path F:/workspace/musu-bee/musu-rs/Cargo.toml --bin musu`
+  - passed
+  - warnings remained in `src\bridge\rendezvous.rs` for unused relay-tunnel
+    constants/functions; unrelated to this change
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=134`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-090213`
+
+Search terms should include `GOAL v925`, `wiki/1100`,
+`log_telemetry_flush`, `runtime_loop_candidates.len() == 10`, and `134/134`.
+
+## 2026-06-08 Doctor Runtime Loop Candidate Vocabulary Alignment Index (wiki/1101)
+
+MUSU local indexer was refreshed after wiki/1100 and GOAL v925.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `17914 ms`
+
+Indexed context includes the new `log_telemetry_flush` doctor candidate, the
+10-key runtime-loop verifier alignment, the green `134/134` verifier sweep, and
+the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v926`, `wiki/1101`, `3104 files`,
+`2891 symbols`, `17914 ms`, `log_telemetry_flush`, and `134/134`.
