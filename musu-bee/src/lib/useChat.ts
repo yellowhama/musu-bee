@@ -41,6 +41,10 @@ const SSE_RECONNECT_MAX_MS = 10_000;
 const SSE_RECONNECT_MULTIPLIER = 2;
 const SSE_MAX_RETRIES = 5;
 
+function chatDocumentIsVisible() {
+  return typeof document === "undefined" || document.visibilityState === "visible";
+}
+
 // ── History localStorage cache ─────────────────────────────────────────────
 // Restores the last 50 messages per channel when musu-bridge is unreachable.
 
@@ -131,6 +135,11 @@ export function useChat(
   const reconnectDelay = useRef(SSE_RECONNECT_INITIAL_MS);
   const reconnectAttempts = useRef(0);
   const reconnectGenerationRef = useRef(0);
+  const connectRef = useRef<(() => void) | null>(null);
+  const reconnectPendingWhenVisible = useRef(false);
+  const reconnectPendingGeneration = useRef(0);
+  const nextReconnectAt = useRef(0);
+  const visibilityListenerInstalled = useRef(false);
   const oldestHistoryId = useRef<string | null>(null);
   const seenTaskUpdates = useRef<Set<string>>(new Set());
   const isAgentChannel = AGENT_CHANNELS.includes(channel);
@@ -247,11 +256,15 @@ export function useChat(
       clearTimeout(reconnectTimer.current);
       reconnectTimer.current = null;
     }
+    nextReconnectAt.current = 0;
   }, []);
 
   const resetReconnectState = useCallback(() => {
     reconnectDelay.current = SSE_RECONNECT_INITIAL_MS;
     reconnectAttempts.current = 0;
+    reconnectPendingWhenVisible.current = false;
+    reconnectPendingGeneration.current = 0;
+    nextReconnectAt.current = 0;
   }, []);
 
   const closeEventSource = useCallback(() => {
@@ -259,6 +272,62 @@ export function useChat(
     esRef.current = null;
     setIsConnected(false);
   }, []);
+
+  const armReconnectTimer = useCallback((reconnectGeneration: number, delayMs: number) => {
+    nextReconnectAt.current = Date.now() + delayMs;
+    reconnectTimer.current = setTimeout(() => {
+      reconnectTimer.current = null;
+      if (reconnectGenerationRef.current !== reconnectGeneration) return;
+      if (!chatDocumentIsVisible()) {
+        reconnectPendingWhenVisible.current = true;
+        reconnectPendingGeneration.current = reconnectGeneration;
+        return;
+      }
+      reconnectDelay.current = Math.min(
+        reconnectDelay.current * SSE_RECONNECT_MULTIPLIER,
+        SSE_RECONNECT_MAX_MS,
+      );
+      nextReconnectAt.current = 0;
+      connectRef.current?.();
+    }, delayMs);
+  }, []);
+
+  const reconnectWhenVisible = useCallback(() => {
+    if (!reconnectPendingWhenVisible.current) return;
+    if (!chatDocumentIsVisible()) return;
+    const reconnectGeneration = reconnectPendingGeneration.current;
+    reconnectPendingWhenVisible.current = false;
+    reconnectPendingGeneration.current = 0;
+    if (reconnectGenerationRef.current !== reconnectGeneration) return;
+    const remainingDelayMs = Math.max(0, nextReconnectAt.current - Date.now());
+    if (remainingDelayMs > 0) {
+      armReconnectTimer(reconnectGeneration, remainingDelayMs);
+      return;
+    }
+    reconnectDelay.current = Math.min(
+      reconnectDelay.current * SSE_RECONNECT_MULTIPLIER,
+      SSE_RECONNECT_MAX_MS,
+    );
+    nextReconnectAt.current = 0;
+    connectRef.current?.();
+  }, [armReconnectTimer]);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (!chatDocumentIsVisible()) return;
+    reconnectWhenVisible();
+  }, [reconnectWhenVisible]);
+
+  const ensureVisibilityListener = useCallback(() => {
+    if (typeof document === "undefined" || visibilityListenerInstalled.current) return;
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    visibilityListenerInstalled.current = true;
+  }, [handleVisibilityChange]);
+
+  const removeVisibilityListener = useCallback(() => {
+    if (typeof document === "undefined" || !visibilityListenerInstalled.current) return;
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    visibilityListenerInstalled.current = false;
+  }, [handleVisibilityChange]);
 
   const connect = useCallback(() => {
     if (!isAgentChannel) return;
@@ -268,6 +337,7 @@ export function useChat(
       esRef.current?.readyState === EventSource.CONNECTING
     ) return;
     clearReconnectTimer();
+    ensureVisibilityListener();
 
     const es = new EventSource(SSE_URL);
     esRef.current = es;
@@ -286,15 +356,7 @@ export function useChat(
       if (reconnectAttempts.current >= SSE_MAX_RETRIES) return;
       const delayMs = reconnectDelay.current;
       reconnectAttempts.current += 1;
-      reconnectTimer.current = setTimeout(() => {
-        reconnectTimer.current = null;
-        if (reconnectGenerationRef.current !== reconnectGeneration) return;
-        reconnectDelay.current = Math.min(
-          reconnectDelay.current * SSE_RECONNECT_MULTIPLIER,
-          SSE_RECONNECT_MAX_MS,
-        );
-        connect();
-      }, delayMs);
+      armReconnectTimer(reconnectGeneration, delayMs);
     };
 
     es.addEventListener("task_update", (event) => {
@@ -336,13 +398,16 @@ export function useChat(
         // ignore malformed messages
       }
     });
-  }, [appendChatMessage, channel, clearReconnectTimer, isAgentChannel, isEmbedded, resetReconnectState]);
+  }, [appendChatMessage, armReconnectTimer, channel, clearReconnectTimer, ensureVisibilityListener, isAgentChannel, isEmbedded, resetReconnectState]);
+
+  connectRef.current = connect;
 
   useEffect(() => {
     if (!isAgentChannel) {
       reconnectGenerationRef.current += 1;
       clearReconnectTimer();
       closeEventSource();
+      removeVisibilityListener();
       resetReconnectState();
       setIsAgentTyping(false);
       return;
@@ -353,9 +418,10 @@ export function useChat(
       reconnectGenerationRef.current += 1;
       clearReconnectTimer();
       closeEventSource();
+      removeVisibilityListener();
       resetReconnectState();
     };
-  }, [clearReconnectTimer, closeEventSource, connect, isAgentChannel, resetReconnectState]);
+  }, [clearReconnectTimer, closeEventSource, connect, isAgentChannel, removeVisibilityListener, resetReconnectState]);
 
   // Reconnect SSE when activeNode changes (LOCAL ↔ REMOTE)
   useEffect(() => {

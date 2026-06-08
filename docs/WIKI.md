@@ -21368,3 +21368,88 @@ the green `146/146` full verifier regression.
 Search terms should include `GOAL v961`, `wiki/1136`, `3104 files`,
 `2935 symbols`, `18882 ms`, `fleetReconnectPendingWhenVisible`, and
 `146/146`.
+
+## 2026-06-08 Chat SSE Hidden-Tab Reconnect Hardening (wiki/1137)
+
+`musu-bee\src\lib\useChat.ts` now pauses agent-channel SSE reconnect work
+while the document is hidden and resumes with the remaining scheduled backoff
+instead of spending retry budget off-screen.
+
+What changed:
+
+- added `chatDocumentIsVisible()` plus reconnect state refs:
+  - `reconnectPendingWhenVisible`
+  - `reconnectPendingGeneration`
+  - `nextReconnectAt`
+  - `visibilityListenerInstalled`
+- reconnect scheduling now flows through `armReconnectTimer(...)`
+- when the reconnect timer fires while hidden, chat SSE now marks the reconnect
+  as pending-visible instead of immediately calling `connect()`
+- `reconnectWhenVisible()` now computes
+  `Math.max(0, nextReconnectAt.current - Date.now())` and reuses the remaining
+  delay budget before reconnecting
+- cleanup now removes the paired `visibilitychange` listener
+
+Why this matters:
+
+- hidden chat tabs no longer keep burning SSE retries
+- visibility churn no longer erases the scheduled reconnect delay
+- this removes another custom frontend reconnect owner that could contribute
+  low-duty idle churn outside the shared poller surfaces
+
+Contract updates:
+
+- `musu-bee\src\app\runtime-polling-contract.test.ts`
+  - chat SSE test now asserts:
+    - hidden-tab reconnect pause
+    - paired add/remove visibility listener lifecycle
+    - remaining-delay reuse on visibility resume
+    - no `setInterval`
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+  - new chat checks:
+    - `chat SSE hidden-tab reconnect pause`
+    - `chat SSE visibility listener lifecycle`
+    - `chat SSE visibility resume respects scheduled backoff`
+  - the direct `visibilitychange` owner inventory now explicitly allows chat
+    SSE in addition to the shared pollers and bounded fleet SSE owner
+
+Verification:
+
+- `npm run test:runtime-polling`
+  - `18` tests passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-frontend-polling-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+  - `low_duty_polling_call_site_count=29`
+- `npx tsc --noEmit --pretty false`
+  - passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=146`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-124219`
+
+Search terms should include `GOAL v962`, `wiki/1137`,
+`reconnectPendingWhenVisible`, `nextReconnectAt`,
+`chat SSE hidden-tab reconnect pause`, and `146/146`.
+
+## 2026-06-08 Chat SSE Hidden-Tab Reconnect Hardening Index (wiki/1138)
+
+MUSU local indexer was refreshed after wiki/1137 and GOAL v962.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2936 symbols`
+- `20847 ms`
+
+Indexed context should include the chat SSE hidden-tab reconnect pause/resume
+logic, the new runtime polling contract assertions for chat visibility resume,
+the passing frontend polling audit with chat added to the approved direct
+visibility owner set, the passing typecheck, and the green `146/146` full
+verifier regression.
+
+Search terms should include `GOAL v963`, `wiki/1138`, `3104 files`,
+`2936 symbols`, `20847 ms`, `chat SSE visibility listener lifecycle`,
+`nextReconnectAt`, and `146/146`.

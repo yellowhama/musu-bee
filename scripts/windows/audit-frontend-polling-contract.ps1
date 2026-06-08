@@ -251,6 +251,10 @@ Add-RegexCheck -Scope "sse" -Name "chat SSE stale generation guard" -Text $chatT
 Add-RegexCheck -Scope "sse" -Name "chat SSE clears timer" -Text $chatText -Pattern 'clearReconnectTimer' -Path $chatPath -Message "Chat SSE reconnect timers are cleared."
 Add-RegexCheck -Scope "sse" -Name "chat SSE resets reconnect state" -Text $chatText -Pattern 'resetReconnectState' -Path $chatPath -Message "Chat SSE resets reconnect counters on successful connect or lifecycle reset."
 Add-RegexCheck -Scope "sse" -Name "chat SSE connecting state guarded" -Text $chatText -Pattern 'EventSource\.CONNECTING' -Path $chatPath -Message "Chat SSE avoids duplicate reconnects while EventSource is connecting."
+Add-RegexCheck -Scope "sse" -Name "chat SSE hidden-tab reconnect pause" -Text $chatText -Pattern 'if \(!chatDocumentIsVisible\(\)\)\s*\{[\s\S]*reconnectPendingWhenVisible\.current = true' -Path $chatPath -Message "Chat SSE pauses reconnect attempts while the document is hidden."
+Add-RegexCheck -Scope "sse" -Name "chat SSE visibility listener lifecycle" -Text $chatText -Pattern 'document\.addEventListener\("visibilitychange", handleVisibilityChange\)[\s\S]*document\.removeEventListener\("visibilitychange", handleVisibilityChange\)' -Path $chatPath -Message "Chat SSE owns a paired visibility listener for reconnect resume."
+Add-RegexCheck -Scope "sse" -Name "chat SSE visibility resume respects scheduled backoff" -Text $chatText -Pattern 'const remainingDelayMs = Math\.max\(0,\s*nextReconnectAt\.current - Date\.now\(\)\)[\s\S]*if \(remainingDelayMs > 0\)[\s\S]*armReconnectTimer\(reconnectGeneration,\s*remainingDelayMs\)' -Path $chatPath -Message "Chat SSE resumes reconnects with the remaining scheduled delay instead of forcing an immediate retry."
+Add-NoRegexCheck -Scope "sse" -Name "chat SSE no interval" -Text $chatText -Pattern 'setInterval\s*\(' -Path $chatPath -Message "Chat SSE does not use setInterval."
 
 $fleetStorePath = "musu-bee\src\store\useFleetStore.ts"
 $fleetStoreText = Get-RepoText $fleetStorePath
@@ -300,7 +304,7 @@ $contractTestText = Get-RepoText $contractTestPath
 foreach ($marker in @(
     "dashboard refresh loop stays on shared low-duty polling",
     "dashboard relay reconnect stays bounded with capped backoff",
-    "chat SSE reconnect is capped and ignores stale generations",
+    "chat SSE reconnect is capped, visibility-aware, and ignores stale generations",
     "fleet store SSE reconnect is bounded and explicitly closed",
     "shared bounded EventSource closes failed streams and caps reconnects",
     "dashboard axis pages use bounded EventSource instead of browser auto-retry",
@@ -396,7 +400,7 @@ foreach ($file in $sourceFiles) {
     if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
         $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
     }
-    if ($relative -notin @($pollerPath, $viewsPollerPath, $fleetStorePath) -and $text.Contains('addEventListener("visibilitychange"')) {
+    if ($relative -notin @($pollerPath, $viewsPollerPath, $fleetStorePath, $chatPath) -and $text.Contains('addEventListener("visibilitychange"')) {
         $directVisibilityListenerHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
     }
@@ -424,7 +428,7 @@ Add-Check `
     -Name "visibilitychange owned only by shared poller" `
     -Passed ($directVisibilityListenerHits.Count -eq 0) `
     -Path ($sourceRoots -join ", ") `
-    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers and the bounded fleet SSE owner." } else { "Direct visibilitychange listeners found outside shared pollers and the bounded fleet SSE owner: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
+    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, and chat SSE." } else { "Direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, and chat SSE: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
 Add-Check `
     -Scope "source" `
     -Name "low-duty polling call-site inventory" `

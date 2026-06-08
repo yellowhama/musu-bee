@@ -8101,4 +8101,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v961`, `wiki/1136`, `3104 files`, `2935 symbols`,
   `fleetReconnectPendingWhenVisible`, and `146/146`.
 
+- 2026-06-08 chat SSE hidden-tab reconnect hardening:
+  wiki/1137 records the `useChat.ts` reconnect change that now pauses
+  hidden-tab SSE reconnects, tracks `nextReconnectAt`, and resumes with the
+  remaining scheduled delay on visibility instead of forcing an immediate
+  reconnect. Search terms should include `GOAL v962`, `wiki/1137`,
+  `reconnectPendingWhenVisible`, `nextReconnectAt`,
+  `chat SSE hidden-tab reconnect pause`, and `146/146`.
+
+- 2026-06-08 chat SSE hidden-tab reconnect hardening index:
+  wiki/1138 records the MUSU local index refresh after wiki/1137 with
+  `3104 files`, `2936 symbols`, and `20847 ms`. Search terms
+  should include `GOAL v963`, `wiki/1138`, `3104 files`, `2936 symbols`,
+  `chat SSE visibility listener lifecycle`, `nextReconnectAt`, and `146/146`.
+
 **End of WIKI_INDEX.md.**

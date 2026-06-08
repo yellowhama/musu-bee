@@ -72,7 +72,7 @@ test("dashboard relay reconnect stays bounded with capped backoff", () => {
   assert.doesNotMatch(text, /const RETRY_DELAY_MS\s*=/);
 });
 
-test("chat SSE reconnect is capped and ignores stale generations", () => {
+test("chat SSE reconnect is capped, visibility-aware, and ignores stale generations", () => {
   const text = source("src/lib/useChat.ts");
 
   assert.match(text, /SSE_RECONNECT_INITIAL_MS\s*=\s*1_000/);
@@ -86,6 +86,14 @@ test("chat SSE reconnect is capped and ignores stale generations", () => {
   assert.match(text, /resetReconnectState/);
   assert.match(text, /reconnectGenerationRef\.current !== reconnectGeneration/);
   assert.match(text, /EventSource\.CONNECTING/);
+  assert.match(text, /reconnectPendingWhenVisible/);
+  assert.match(text, /nextReconnectAt/);
+  assert.match(text, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+  assert.match(text, /document\.removeEventListener\("visibilitychange", handleVisibilityChange\)/);
+  assert.match(text, /if \(!chatDocumentIsVisible\(\)\)\s*\{\s*reconnectPendingWhenVisible\.current = true/);
+  assert.match(text, /const remainingDelayMs = Math\.max\(0,\s*nextReconnectAt\.current - Date\.now\(\)\)/);
+  assert.match(text, /if \(remainingDelayMs > 0\)\s*\{\s*armReconnectTimer\(reconnectGeneration,\s*remainingDelayMs\)/);
+  assert.doesNotMatch(text, /setInterval\s*\(/);
 });
 
 test("fleet store SSE reconnect is bounded and explicitly closed", () => {
