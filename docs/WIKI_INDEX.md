@@ -8045,4 +8045,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v953`, `wiki/1128`, `3104 files`, `2904 symbols`,
   `20260608-113104-HUGH_SECOND`, and `musu-idle-cpu-20260608-113749`.
 
+- 2026-06-08 packaged desktop doctor warning surface:
+  wiki/1129 records the Tauri desktop-shell status expansion that now surfaces
+  doctor-derived package, connection, runtime-profile, and warning state,
+  including PATH alias shadowing and active runtime loop candidates. Search
+  terms should include `GOAL v954`, `wiki/1129`, `doctor status surface`,
+  `warning surface`, `alias_shadowed_by`,
+  and `active_runtime_loop_candidate_count`.
+
+- 2026-06-08 packaged desktop doctor warning surface index:
+  wiki/1130 records the MUSU local index refresh after wiki/1129 with
+  `3104 files`, `2918 symbols`, and `17572 ms`. Search terms
+  should include `GOAL v955`, `wiki/1130`, `3104 files`, `2918 symbols`,
+  `doctor status surface`, `warning surface`, and `145/145`.
+
 **End of WIKI_INDEX.md.**

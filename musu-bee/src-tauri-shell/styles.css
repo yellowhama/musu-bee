@@ -154,6 +154,7 @@ button:disabled {
 }
 
 .status-grid article,
+.warnings-panel,
 .details,
 .log-panel {
   border: 1px solid var(--line);
@@ -191,6 +192,36 @@ dd {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 18px 0;
+}
+
+.warnings-panel {
+  margin-top: 18px;
+  border-color: #f3d08a;
+  background: #fffaf0;
+}
+
+.warnings-panel[hidden] {
+  display: none;
+}
+
+.warnings-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3e1b2;
+}
+
+.warnings-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.warnings-panel ul {
+  margin: 0;
+  padding: 12px 18px 16px 34px;
+  color: #7a4b00;
+}
+
+.warnings-panel li + li {
+  margin-top: 8px;
 }
 
 .details {

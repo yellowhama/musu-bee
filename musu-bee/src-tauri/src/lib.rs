@@ -41,6 +41,15 @@ struct DesktopStatus {
     dashboard_status: String,
     dashboard_url: Option<String>,
     dashboard_detail: String,
+    package_status: String,
+    package_detail: String,
+    auth_status: String,
+    auth_detail: String,
+    runtime_profile_status: String,
+    runtime_profile_detail: String,
+    active_runtime_loop_candidate_count: usize,
+    active_runtime_loop_candidate_keys: Vec<String>,
+    warnings: Vec<String>,
     can_start_runtime: bool,
 }
 
@@ -52,6 +61,7 @@ struct CommandResult {
 }
 
 const START_RUNTIME_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+const DOCTOR_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 #[derive(Default)]
 struct RuntimeStartGate {
@@ -115,6 +125,7 @@ fn desktop_status() -> DesktopStatus {
     let home = musu_home();
     let bridge_registry = bridge_registry_status(&home);
     let runtime_start_in_progress = runtime_start_gate().is_in_progress();
+    let doctor_summary = doctor_status_summary(&musu_command_path());
     let dashboard_probe = probe_dashboard();
     let bridge_probe = bridge_registry
         .url
@@ -145,6 +156,15 @@ fn desktop_status() -> DesktopStatus {
         dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
         dashboard_url: dashboard_probe.url,
         dashboard_detail: dashboard_probe.detail,
+        package_status: doctor_summary.package_status,
+        package_detail: doctor_summary.package_detail,
+        auth_status: doctor_summary.auth_status,
+        auth_detail: doctor_summary.auth_detail,
+        runtime_profile_status: doctor_summary.runtime_profile_status,
+        runtime_profile_detail: doctor_summary.runtime_profile_detail,
+        active_runtime_loop_candidate_count: doctor_summary.active_runtime_loop_candidate_count,
+        active_runtime_loop_candidate_keys: doctor_summary.active_runtime_loop_candidate_keys,
+        warnings: doctor_summary.warnings,
         can_start_runtime,
     }
 }
@@ -182,13 +202,7 @@ fn start_runtime() -> Result<CommandResult, String> {
     let result = run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
         .map_err(|err| format!("failed to run {} up --json: {err}", command.display()))?;
 
-    let stdout = result.stdout.trim().to_string();
-    let stderr = result.stderr.trim().to_string();
-    let combined = if stderr.is_empty() {
-        stdout
-    } else {
-        format!("{stdout}\n{stderr}").trim().to_string()
-    };
+    let combined = combine_command_output(&result.stdout, &result.stderr);
 
     Ok(CommandResult {
         ok: result.status_success,
@@ -223,6 +237,221 @@ fn open_dashboard(url: String) -> Result<CommandResult, String> {
     })
 }
 
+fn doctor_status_summary(command: &std::path::Path) -> DoctorStatusSummary {
+    let result =
+        match run_command_with_timeout(command, &["doctor", "--json"], DOCTOR_STATUS_TIMEOUT) {
+            Ok(result) => result,
+            Err(err) => {
+                return DoctorStatusSummary::unavailable(format!(
+                    "failed to run {} doctor --json: {err}",
+                    command.display()
+                ));
+            }
+        };
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if result.timed_out {
+        return DoctorStatusSummary::unavailable(format!(
+            "{} doctor --json timed out after {}s",
+            command.display(),
+            DOCTOR_STATUS_TIMEOUT.as_secs()
+        ));
+    }
+
+    if !result.status_success {
+        return DoctorStatusSummary::unavailable(format!(
+            "{} doctor --json exited with {}. {}",
+            command.display(),
+            result.status_detail,
+            combined
+        ));
+    }
+
+    parse_doctor_status_summary(&combined).unwrap_or_else(DoctorStatusSummary::unavailable)
+}
+
+fn parse_doctor_status_summary(text: &str) -> Result<DoctorStatusSummary, String> {
+    let value: serde_json::Value =
+        serde_json::from_str(text).map_err(|err| format!("doctor JSON parse failed: {err}"))?;
+
+    let distribution =
+        json_string(&value, &["distribution"]).unwrap_or_else(|| "unknown".to_string());
+    let binary_note = json_string(&value, &["binary", "note"])
+        .or_else(|| json_string(&value, &["package", "note"]))
+        .unwrap_or_else(|| "Packaged runtime diagnostics are unavailable.".to_string());
+    let current_exe = json_string(&value, &["binary", "current_exe"]);
+    let alias_shadowed_by =
+        json_string(&value, &["binary", "alias_shadowed_by"]).filter(|s| !s.is_empty());
+    let logged_in = json_bool(&value, &["account", "logged_in"]).unwrap_or(false);
+    let bridge_token_present =
+        json_bool(&value, &["account", "bridge_token_present"]).unwrap_or(false);
+    let account_note = json_string(&value, &["account", "note"])
+        .unwrap_or_else(|| "Account diagnostics are unavailable.".to_string());
+    let background_note = json_string(&value, &["background", "note"])
+        .unwrap_or_else(|| "Background loop diagnostics are unavailable.".to_string());
+    let active_runtime_loop_candidate_count = json_usize(
+        &value,
+        &["background", "active_runtime_loop_candidate_count"],
+    )
+    .unwrap_or(0);
+    let active_runtime_loop_candidate_keys = json_string_array(
+        &value,
+        &["background", "active_runtime_loop_candidate_keys"],
+    );
+    let active_runtime_loop_labels =
+        active_runtime_loop_candidate_labels(&value, &active_runtime_loop_candidate_keys);
+
+    let mut warnings = Vec::new();
+    let (package_status, package_detail) = if let Some(shadowed_by) = alias_shadowed_by {
+        warnings.push(format!(
+            "PATH `musu.exe` resolves to {shadowed_by}; use the packaged WindowsApps alias for release evidence."
+        ));
+        (
+            "Shadowed".to_string(),
+            match current_exe {
+                Some(current_exe) => format!(
+                    "PATH resolves `musu.exe` to {shadowed_by}. Packaged desktop still uses {current_exe}. {binary_note}"
+                ),
+                None => format!("PATH resolves `musu.exe` to {shadowed_by}. {binary_note}"),
+            },
+        )
+    } else {
+        let detail = match current_exe {
+            Some(current_exe) => format!("{distribution} runtime at {current_exe}. {binary_note}"),
+            None => binary_note,
+        };
+        ("Packaged".to_string(), detail)
+    };
+
+    let (auth_status, auth_detail) = if logged_in {
+        ("Connected".to_string(), account_note)
+    } else if bridge_token_present {
+        (
+            "Local Only".to_string(),
+            format!("Cloud login is absent, but the local bridge token is present. {account_note}"),
+        )
+    } else {
+        ("Offline".to_string(), account_note)
+    };
+
+    let (runtime_profile_status, runtime_profile_detail) = if active_runtime_loop_candidate_count
+        > 0
+    {
+        let active_summary = if active_runtime_loop_labels.is_empty() {
+            active_runtime_loop_candidate_keys.join(", ")
+        } else {
+            active_runtime_loop_labels.join(", ")
+        };
+        warnings.push(format!(
+                "{active_runtime_loop_candidate_count} runtime loop candidates are active: {active_summary}."
+            ));
+        (
+            "Active".to_string(),
+            format!("Active runtime loop candidates: {active_summary}."),
+        )
+    } else {
+        ("Quiet".to_string(), background_note)
+    };
+
+    Ok(DoctorStatusSummary {
+        package_status,
+        package_detail,
+        auth_status,
+        auth_detail,
+        runtime_profile_status,
+        runtime_profile_detail,
+        active_runtime_loop_candidate_count,
+        active_runtime_loop_candidate_keys,
+        warnings,
+    })
+}
+
+fn active_runtime_loop_candidate_labels(
+    value: &serde_json::Value,
+    active_keys: &[String],
+) -> Vec<String> {
+    let Some(candidates) = json_get(value, &["background", "runtime_loop_candidates"])
+        .and_then(|value| value.as_array())
+    else {
+        return active_keys.to_vec();
+    };
+
+    let mut labels = Vec::new();
+    for candidate in candidates {
+        let active = candidate
+            .get("active")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false);
+        if !active {
+            continue;
+        }
+        if let Some(label) = candidate
+            .get("label")
+            .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
+        {
+            labels.push(label.to_string());
+            continue;
+        }
+        if let Some(key) = candidate
+            .get("key")
+            .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
+        {
+            labels.push(key.to_string());
+        }
+    }
+    labels
+}
+
+fn combine_command_output(stdout: &str, stderr: &str) -> String {
+    let stdout = stdout.trim();
+    let stderr = stderr.trim();
+    if stderr.is_empty() {
+        stdout.to_string()
+    } else if stdout.is_empty() {
+        stderr.to_string()
+    } else {
+        format!("{stdout}\n{stderr}").trim().to_string()
+    }
+}
+
+fn json_get<'a>(value: &'a serde_json::Value, path: &[&str]) -> Option<&'a serde_json::Value> {
+    let mut current = value;
+    for segment in path {
+        current = current.get(*segment)?;
+    }
+    Some(current)
+}
+
+fn json_string(value: &serde_json::Value, path: &[&str]) -> Option<String> {
+    json_get(value, path)
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+}
+
+fn json_bool(value: &serde_json::Value, path: &[&str]) -> Option<bool> {
+    json_get(value, path).and_then(|value| value.as_bool())
+}
+
+fn json_usize(value: &serde_json::Value, path: &[&str]) -> Option<usize> {
+    json_get(value, path)
+        .and_then(|value| value.as_u64())
+        .and_then(|value| usize::try_from(value).ok())
+}
+
+fn json_string_array(value: &serde_json::Value, path: &[&str]) -> Vec<String> {
+    json_get(value, path)
+        .and_then(|value| value.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 struct ProbeResult {
     ok: bool,
     detail: String,
@@ -238,6 +467,34 @@ struct BridgeRegistryStatus {
     url: Option<String>,
     detail: String,
     pid_running: bool,
+}
+
+struct DoctorStatusSummary {
+    package_status: String,
+    package_detail: String,
+    auth_status: String,
+    auth_detail: String,
+    runtime_profile_status: String,
+    runtime_profile_detail: String,
+    active_runtime_loop_candidate_count: usize,
+    active_runtime_loop_candidate_keys: Vec<String>,
+    warnings: Vec<String>,
+}
+
+impl DoctorStatusSummary {
+    fn unavailable(detail: String) -> Self {
+        Self {
+            package_status: "Unknown".to_string(),
+            package_detail: detail.clone(),
+            auth_status: "Unknown".to_string(),
+            auth_detail: detail.clone(),
+            runtime_profile_status: "Unknown".to_string(),
+            runtime_profile_detail: detail.clone(),
+            active_runtime_loop_candidate_count: 0,
+            active_runtime_loop_candidate_keys: Vec::new(),
+            warnings: vec![format!("Doctor diagnostics unavailable: {detail}")],
+        }
+    }
 }
 
 fn musu_home() -> std::path::PathBuf {
@@ -687,7 +944,8 @@ mod tests {
     use super::{
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
         can_start_runtime, developer_dashboard_surface_enabled_for, is_local_dashboard_url,
-        musu_command_path_for_current_exe, run_command_with_timeout, RuntimeStartGate,
+        musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
+        RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -855,6 +1113,92 @@ mod tests {
         assert_eq!(bridge_status_label(false, true, false), "starting");
         assert_eq!(bridge_status_label(false, false, true), "starting");
         assert_eq!(bridge_status_label(false, false, false), "offline");
+    }
+
+    #[test]
+    fn doctor_status_summary_flags_alias_shadowing_and_local_only_mode() {
+        let summary = parse_doctor_status_summary(
+            r#"{
+                "distribution": "store-msix",
+                "binary": {
+                    "current_exe": "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU\\musu.exe",
+                    "alias_shadowed_by": "C:\\Users\\empty\\.cargo\\bin\\musu.exe",
+                    "note": "WindowsApps package alias is shadowed by another musu.exe earlier on PATH."
+                },
+                "account": {
+                    "logged_in": false,
+                    "bridge_token_present": true,
+                    "note": "Partial auth state: either account login or local bridge token is missing."
+                },
+                "background": {
+                    "active_runtime_loop_candidate_count": 0,
+                    "active_runtime_loop_candidate_keys": [],
+                    "runtime_loop_candidates": [],
+                    "note": "Background work is in the low-duty default profile."
+                }
+            }"#,
+        )
+        .expect("doctor JSON should parse");
+
+        assert_eq!(summary.package_status, "Shadowed");
+        assert_eq!(summary.auth_status, "Local Only");
+        assert_eq!(summary.runtime_profile_status, "Quiet");
+        assert_eq!(summary.active_runtime_loop_candidate_count, 0);
+        assert!(
+            summary
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("packaged WindowsApps alias")),
+            "{:?}",
+            summary.warnings
+        );
+    }
+
+    #[test]
+    fn doctor_status_summary_surfaces_active_runtime_loop_candidates() {
+        let summary = parse_doctor_status_summary(
+            r#"{
+                "distribution": "store-msix",
+                "binary": {
+                    "current_exe": "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU\\musu.exe",
+                    "note": "Packaged runtime is active."
+                },
+                "account": {
+                    "logged_in": true,
+                    "bridge_token_present": true,
+                    "note": "Account token is present."
+                },
+                "background": {
+                    "active_runtime_loop_candidate_count": 2,
+                    "active_runtime_loop_candidate_keys": ["cloud_heartbeat", "relay_target_polling"],
+                    "runtime_loop_candidates": [
+                        { "key": "cloud_heartbeat", "label": "Cloud heartbeat", "active": true },
+                        { "key": "relay_target_polling", "label": "Relay target polling", "active": true }
+                    ],
+                    "note": "Background work is active."
+                }
+            }"#,
+        )
+        .expect("doctor JSON should parse");
+
+        assert_eq!(summary.package_status, "Packaged");
+        assert_eq!(summary.auth_status, "Connected");
+        assert_eq!(summary.runtime_profile_status, "Active");
+        assert_eq!(summary.active_runtime_loop_candidate_count, 2);
+        assert_eq!(
+            summary.active_runtime_loop_candidate_keys,
+            vec![
+                "cloud_heartbeat".to_string(),
+                "relay_target_polling".to_string()
+            ]
+        );
+        assert!(
+            summary
+                .runtime_profile_detail
+                .contains("Cloud heartbeat, Relay target polling"),
+            "{}",
+            summary.runtime_profile_detail
+        );
     }
 
     fn make_temp_home(name: &str) -> std::path::PathBuf {

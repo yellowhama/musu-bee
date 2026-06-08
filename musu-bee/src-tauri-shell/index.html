@@ -45,6 +45,23 @@
             <strong id="package-status">Desktop shell</strong>
             <small id="package-detail">Version __MUSU_VERSION__</small>
           </article>
+          <article>
+            <span>Connection</span>
+            <strong id="auth-status">Unknown</strong>
+            <small id="auth-detail">Waiting for status.</small>
+          </article>
+          <article>
+            <span>Runtime Profile</span>
+            <strong id="runtime-profile-status">Unknown</strong>
+            <small id="runtime-profile-detail">Waiting for status.</small>
+          </article>
+        </section>
+
+        <section id="warnings-panel" class="warnings-panel" aria-label="Warnings" hidden>
+          <div class="warnings-head">
+            <h3>Warnings</h3>
+          </div>
+          <ul id="warning-list"></ul>
         </section>
 
         <section class="actions" aria-label="Runtime actions">
@@ -67,6 +84,10 @@
             <div>
               <dt>MUSU home</dt>
               <dd id="musu-home">-</dd>
+            </div>
+            <div>
+              <dt>Active Loop Candidates</dt>
+              <dd id="active-loops">-</dd>
             </div>
           </dl>
         </section>

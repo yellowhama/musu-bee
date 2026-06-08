@@ -219,6 +219,10 @@ else {
 
 $tauriShellMainPath = Join-Path $shellSourceRoot "main.js"
 $tauriShellMainText = if (Test-Path -LiteralPath $tauriShellMainPath) { Get-Content -LiteralPath $tauriShellMainPath -Raw } else { "" }
+$tauriShellIndexPath = Join-Path $shellSourceRoot "index.html"
+$tauriShellIndexText = if (Test-Path -LiteralPath $tauriShellIndexPath) { Get-Content -LiteralPath $tauriShellIndexPath -Raw } else { "" }
+$tauriShellStylesPath = Join-Path $shellSourceRoot "styles.css"
+$tauriShellStylesText = if (Test-Path -LiteralPath $tauriShellStylesPath) { Get-Content -LiteralPath $tauriShellStylesPath -Raw } else { "" }
 $tauriLibPath = Join-Path $tauriRoot "src\lib.rs"
 $tauriLibText = if (Test-Path -LiteralPath $tauriLibPath) { Get-Content -LiteralPath $tauriLibPath -Raw } else { "" }
 
@@ -246,6 +250,38 @@ Add-Check "desktop-shell" "runtime start concurrency gate" $(if ($runtimeStartCo
         "desktop shell backend exposes a shared runtime-start gate, starting bridge status, and duplicate-start suppression."
     } else {
         "desktop shell backend does not prove a shared runtime-start gate with starting-state and duplicate-start suppression."
+    })
+
+$doctorStatusSurface = (
+    $tauriLibText -match 'package_status' -and
+    $tauriLibText -match 'auth_status' -and
+    $tauriLibText -match 'runtime_profile_status' -and
+    $tauriLibText -match 'active_runtime_loop_candidate_count' -and
+    $tauriLibText -match 'warnings: Vec<String>' -and
+    $tauriLibText -match 'doctor_status_summary' -and
+    $tauriShellIndexText -match 'id="auth-status"' -and
+    $tauriShellIndexText -match 'id="runtime-profile-status"' -and
+    $tauriShellMainText -match 'renderWarnings'
+)
+Add-Check "desktop-shell" "doctor status surface" $(if ($doctorStatusSurface) { "pass" } else { "fail" }) `
+    $(if ($doctorStatusSurface) {
+        "desktop shell surfaces package, connection, runtime-profile, and warning data derived from `musu doctor --json`."
+    } else {
+        "desktop shell does not prove a packaged `musu doctor --json` status surface for package, connection, runtime-profile, and warnings."
+    })
+
+$warningSurface = (
+    $tauriShellIndexText -match 'id="warnings-panel"' -and
+    $tauriShellIndexText -match 'id="warning-list"' -and
+    $tauriShellStylesText -match '\.warnings-panel' -and
+    $tauriShellMainText -match 'warnings\.length > 0' -and
+    $tauriShellMainText -match 'setPill\("warn", "Review"\)'
+)
+Add-Check "desktop-shell" "warning surface" $(if ($warningSurface) { "pass" } else { "fail" }) `
+    $(if ($warningSurface) {
+        "desktop shell surfaces warning rows and elevates the overall pill to Review when doctor-derived warnings are present."
+    } else {
+        "desktop shell does not prove a visible warning surface that elevates overall status when doctor-derived warnings exist."
     })
 
 $msixBuildScript = Join-Path $scriptDir "build-msix.ps1"

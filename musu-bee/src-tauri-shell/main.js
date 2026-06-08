@@ -41,30 +41,64 @@ function setPill(kind, text) {
   pill.textContent = text;
 }
 
+function renderWarnings(warnings) {
+  const items = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
+  const panel = $("warnings-panel");
+  const list = $("warning-list");
+  list.textContent = "";
+  if (items.length === 0) {
+    panel.hidden = true;
+    return;
+  }
+
+  for (const warning of items) {
+    const item = document.createElement("li");
+    item.textContent = warning;
+    list.appendChild(item);
+  }
+  panel.hidden = false;
+}
+
 function renderStatus(status) {
   state.status = status;
   const bridgeOk = status.bridge_status === "ok";
   const bridgeStarting = status.bridge_status === "starting";
   const dashboardOk = status.dashboard_status === "ok";
+  const warnings = Array.isArray(status.warnings) ? status.warnings.filter(Boolean) : [];
 
   $("bridge-status").textContent = bridgeOk ? "Online" : (bridgeStarting ? "Starting" : "Offline");
   $("bridge-detail").textContent = status.bridge_detail || "No bridge detail.";
   $("dashboard-status").textContent = dashboardOk ? "Online" : "Optional";
   $("dashboard-detail").textContent = status.dashboard_detail || "No dashboard detail.";
+  $("package-status").textContent = status.package_status || "Unknown";
+  $("package-detail").textContent = status.package_detail || "No package detail.";
+  $("auth-status").textContent = status.auth_status || "Unknown";
+  $("auth-detail").textContent = status.auth_detail || "No connection detail.";
+  $("runtime-profile-status").textContent = status.runtime_profile_status || "Unknown";
+  $("runtime-profile-detail").textContent =
+    status.runtime_profile_detail || "No runtime profile detail.";
   $("bridge-url").textContent = status.bridge_url || "-";
   $("dashboard-url").textContent = status.dashboard_url || "-";
   $("musu-home").textContent = status.musu_home || "-";
+  $("active-loops").textContent =
+    Array.isArray(status.active_runtime_loop_candidate_keys) &&
+    status.active_runtime_loop_candidate_keys.length > 0
+      ? status.active_runtime_loop_candidate_keys.join(", ")
+      : "-";
+  renderWarnings(warnings);
 
-  if (bridgeOk && dashboardOk) {
+  if (!bridgeOk && !bridgeStarting) {
+    setPill("bad", "Offline");
+  } else if (bridgeStarting) {
+    setPill("warn", "Starting");
+  } else if (warnings.length > 0) {
+    setPill("warn", "Review");
+  } else if (bridgeOk && dashboardOk) {
     setPill("ok", "Ready");
   } else if (bridgeOk) {
     setPill("ok", "Ready");
-  } else if (bridgeStarting) {
-    setPill("warn", "Starting");
-  } else if (dashboardOk) {
-    setPill("warn", "Runtime Off");
   } else {
-    setPill("bad", "Offline");
+    setPill("warn", "Review");
   }
 
   syncActionState();

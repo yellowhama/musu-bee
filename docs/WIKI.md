@@ -21002,3 +21002,102 @@ and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v953`, `wiki/1128`, `3104 files`,
 `2904 symbols`, `19679 ms`, `20260608-113104-HUGH_SECOND`, and
 `musu-idle-cpu-20260608-113749`.
+
+## 2026-06-08 Packaged Desktop Doctor Warning Surface (wiki/1129)
+
+The packaged desktop shell now exposes the same high-signal packaged/runtime
+warnings that were previously only visible by manually reading
+`musu doctor --json`.
+
+Backend changes:
+
+- `musu-bee\src-tauri\src\lib.rs`
+  - `DesktopStatus` now includes:
+    - `package_status`
+    - `package_detail`
+    - `auth_status`
+    - `auth_detail`
+    - `runtime_profile_status`
+    - `runtime_profile_detail`
+    - `active_runtime_loop_candidate_count`
+    - `active_runtime_loop_candidate_keys`
+    - `warnings`
+  - packaged desktop status now runs bounded
+    `musu doctor --json`
+    using the packaged sibling/runtime path and a `10s` timeout.
+  - doctor parsing now explicitly surfaces:
+    - `binary.alias_shadowed_by`
+    - `account.logged_in`
+    - `account.bridge_token_present`
+    - `background.active_runtime_loop_candidate_count`
+    - `background.active_runtime_loop_candidate_keys`
+  - alias-shadowing is translated into a human warning instead of staying buried
+    in copied JSON text.
+  - active runtime-loop candidates now elevate the runtime profile to `Active`
+    and emit a warning list row.
+
+Shell changes:
+
+- `musu-bee\src-tauri-shell\index.html`
+- `musu-bee\src-tauri-shell\main.js`
+- `musu-bee\src-tauri-shell\styles.css`
+  - added `Connection` and `Runtime Profile` cards
+  - added a warnings panel that stays hidden when empty
+  - added `Active Loop Candidates` to the details list
+  - the overall pill now moves to `Review` when doctor-derived warnings are
+    present, while keeping a healthy bridge in `Ready`
+
+Important runtime behavior:
+
+- if PATH resolves `musu.exe` to a Cargo/dev binary first, packaged desktop now
+  shows that explicitly as `Package = Shadowed`
+- if account login is missing but the local bridge token exists, desktop shows
+  `Connection = Local Only`
+- if doctor reports no active runtime loop candidates, desktop shows
+  `Runtime Profile = Quiet`
+
+Verification:
+
+- `cargo fmt`
+- `cargo test --manifest-path F:\workspace\musu-bee\musu-bee\src-tauri\Cargo.toml --lib -- --nocapture`
+  - `13` tests passed
+  - new coverage includes:
+    - alias-shadow/local-only doctor summary parsing
+    - active runtime-loop doctor summary parsing
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-desktop-release-readiness.ps1 -Json`
+  - new checks:
+    - `doctor status surface`
+    - `warning surface`
+  - both passed
+  - overall audit stayed `ok=false` only because the older one-machine and
+    multi-device release blockers remain open
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=145`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-115840`
+
+Search terms should include `GOAL v954`, `wiki/1129`,
+`doctor status surface`, `warning surface`, `alias_shadowed_by`,
+`active_runtime_loop_candidate_count`, and `145/145`.
+
+## 2026-06-08 Packaged Desktop Doctor Warning Surface Index (wiki/1130)
+
+MUSU local indexer was refreshed after wiki/1129 and GOAL v954.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2918 symbols`
+- `17572 ms`
+
+Indexed context includes the new Tauri desktop-shell doctor/warning surface,
+the added package/connection/runtime-profile cards and warnings panel, the new
+doctor-summary parsing tests, the passing desktop audit checks
+`doctor status surface` and `warning surface`, and the green `145/145` full
+verifier regression.
+
+Search terms should include `GOAL v955`, `wiki/1130`, `3104 files`,
+`2918 symbols`, `17572 ms`, `doctor status surface`, `warning surface`, and
+`145/145`.

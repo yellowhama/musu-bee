@@ -2162,6 +2162,38 @@ function Test-DesktopShellRuntimeStartGateContract {
     return $true
 }
 
+function Test-DesktopShellDoctorWarningSurfaceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'doctor status surface',
+        'package_status',
+        'auth_status',
+        'runtime_profile_status',
+        'active_runtime_loop_candidate_count',
+        'warnings: Vec<String>',
+        'doctor_status_summary',
+        'id="auth-status"',
+        'id="runtime-profile-status"',
+        'renderWarnings',
+        'warning surface',
+        'id="warnings-panel"',
+        'id="warning-list"',
+        '\.warnings-panel',
+        'warnings\.length > 0',
+        'setPill\("warn", "Review"\)'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 $now = [datetimeoffset]::Now
 $currentGitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
@@ -4200,6 +4232,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "desktop shell runtime start gate is explicit" `
+    -Verifier "desktop shell source contract" `
+    -FixturePath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopShellDoctorWarningSurfaceContractOk = Test-DesktopShellDoctorWarningSurfaceContract -ScriptPath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopShellDoctorWarningSurfaceContractOk `
+    -Message "desktop release readiness audit must require packaged doctor-derived package, connection, runtime-profile, and warning surfaces in the shell"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "desktop shell doctor warning surface is explicit" `
     -Verifier "desktop shell source contract" `
     -FixturePath (Join-Path $scriptDir "audit-desktop-release-readiness.ps1") `
     -ShouldPass $true `
