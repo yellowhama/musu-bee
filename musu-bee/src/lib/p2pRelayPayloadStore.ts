@@ -611,7 +611,7 @@ export async function claimRelayPayloads(
   const claimant = input.claimant_node_id?.trim() || input.target_node_id;
 
   if (shouldUseKv()) {
-    return kvEvalJson<StoredP2pRelayPayload[]>(KV_CLAIM_PAYLOADS_SCRIPT, [
+    const claimed = await kvEvalJson<unknown[]>(KV_CLAIM_PAYLOADS_SCRIPT, [
       String(maxPayloads()),
       now,
       input.owner_key,
@@ -623,6 +623,11 @@ export async function claimRelayPayloads(
       String(limit),
       claimant,
     ]);
+    // Re-validate Lua-returned payloads with the same guard the file path uses,
+    // so KV/script corruption cannot leak malformed payloads to callers.
+    return (Array.isArray(claimed) ? claimed : [])
+      .map(coerceStoredRelayPayload)
+      .filter((p): p is StoredP2pRelayPayload => p !== null);
   }
 
   return withLocalLock(async () => {
@@ -705,7 +710,15 @@ export async function markRelayPayloadDelivered(
     if (result.status === "requires_claim") {
       throw new Error("relay_payload_delivery_requires_claim");
     }
-    return result.status === "delivered" ? result.payload : null;
+    if (result.status !== "delivered") {
+      return null;
+    }
+    // Re-validate the Lua-returned payload; corrupt data must not pass silently.
+    const delivered = coerceStoredRelayPayload(result.payload);
+    if (delivered === null) {
+      throw new Error("relay_payload_delivery_malformed");
+    }
+    return delivered;
   }
 
   return withLocalLock(async () => {

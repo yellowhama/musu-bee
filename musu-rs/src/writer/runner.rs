@@ -963,11 +963,9 @@ impl<'a> TaskUpdate<'a> {
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown");
 
-                    let summary = if prompt.len() > 100 {
-                        &prompt[..100]
-                    } else {
-                        prompt
-                    };
+                    // UTF-8 safe truncation: byte slicing `&prompt[..100]` panics when
+                    // byte 100 lands mid-codepoint (trivially true for Korean/emoji).
+                    let summary: String = prompt.chars().take(100).collect();
                     let safe_summary = summary.replace('\n', " ").replace('"', "\\\"");
 
                     let md_content = format!(
