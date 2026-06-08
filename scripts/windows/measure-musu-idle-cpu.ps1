@@ -121,7 +121,8 @@ function Get-DoctorBackgroundSnapshot {
         "autonomous_planner",
         "health_check_retry",
         "auto_update_supervisor",
-        "bridge_readiness_wait"
+        "bridge_readiness_wait",
+        "log_telemetry_flush"
     )
     $doctorCliPath = Get-DoctorCliPath
     if ([string]::IsNullOrWhiteSpace($doctorCliPath)) {

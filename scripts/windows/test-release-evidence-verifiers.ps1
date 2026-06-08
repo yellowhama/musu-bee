@@ -264,7 +264,8 @@ function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
         'runtime_loop_candidates = $runtimeLoopCandidates',
         'active_runtime_loop_candidate_count = $activeRuntimeLoopCandidateCount',
         'active_runtime_loop_candidate_keys = $activeRuntimeLoopCandidateKeys',
-        'doctor_background_snapshot = $doctorBackgroundSnapshot'
+        'doctor_background_snapshot = $doctorBackgroundSnapshot',
+        '"log_telemetry_flush"'
     )
     $verifierNeedles = @(
         'doctor background snapshot present',
@@ -284,6 +285,27 @@ function Test-RuntimeCpuScenarioMatrixDoctorSnapshotContract {
     }
     foreach ($needle in $verifierNeedles) {
         if (-not $verifier.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-RuntimeIdleCpuDoctorSnapshotMeasureContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Get-DoctorBackgroundSnapshot',
+        'schema = "musu.runtime_cpu_background_snapshot.v1"',
+        'runtime_loop_candidate_fallback_used = $runtimeLoopCandidateFallbackUsed',
+        'expected_runtime_loop_candidate_keys = $expectedRuntimeLoopCandidateKeys',
+        'doctor_background_snapshot = Get-DoctorBackgroundSnapshot',
+        '"log_telemetry_flush"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
             return $false
         }
     }
@@ -3066,6 +3088,7 @@ foreach ($classifierScript in $freshnessClassifierScripts) {
         -Invocation $invocation
 }
 
+$runtimeIdleMeasureScript = Join-Path $scriptDir "measure-musu-idle-cpu.ps1"
 $runtimeCpuMeasureScript = Join-Path $scriptDir "measure-musu-runtime-cpu-scenarios.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeProbeContractOk = Test-RuntimeCpuScenarioMatrixRouteProbeContract -ScriptPath $runtimeCpuMeasureScript
@@ -3103,6 +3126,18 @@ Add-CaseResult `
     -Name "runtime CPU matrix captures doctor background feature snapshot" `
     -Verifier "runtime CPU matrix source contract" `
     -FixturePath $runtimeCpuMeasureScript `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$runtimeIdleMeasureDoctorSnapshotOk = Test-RuntimeIdleCpuDoctorSnapshotMeasureContract -ScriptPath $runtimeIdleMeasureScript
+$invocation = New-StaticVerifierInvocation `
+    -Ok $runtimeIdleMeasureDoctorSnapshotOk `
+    -Message "runtime idle CPU capture must record the full doctor runtime-loop candidate summary, including log/telemetry flush"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "runtime idle CPU captures full doctor runtime loop candidate summary" `
+    -Verifier "runtime idle CPU source contract" `
+    -FixturePath $runtimeIdleMeasureScript `
     -ShouldPass $true `
     -Invocation $invocation
 
