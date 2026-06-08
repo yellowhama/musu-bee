@@ -72,10 +72,13 @@ export default function ComingSoonPage() {
           style={{
             maxWidth: 1000,
             margin: "0 auto",
-            padding: "80px var(--space-3) 60px",
+            padding: "60px var(--space-3) 60px",
             textAlign: "center",
           }}
         >
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}>
+            <MusuLogo size="hero" />
+          </div>
           <div
             style={{
               display: "inline-block",
