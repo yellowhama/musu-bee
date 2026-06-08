@@ -7917,4 +7917,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `GOAL v935`, `wiki/1110`, `requiredReleaseRuntimeCpuScenarios`, and
   `138/138`.
 
+- 2026-06-08 second-PC explicit route-target requirement:
+  wiki/1111 records the new fail-fast that blocks release-grade second-PC
+  `post-route` CPU capture unless `-RuntimeCpuRouteTarget` is explicitly set.
+  Search terms should include `GOAL v936`, `wiki/1111`,
+  `second-PC runtime CPU matrix requires explicit remote route target`, and
+  `139/139`.
+
+- 2026-06-08 second-PC explicit route-target requirement index:
+  wiki/1112 records the MUSU local index refresh after wiki/1111 with
+  `3104 files`, `2891 symbols`, and `17886 ms`. Search terms should include
+  `GOAL v937`, `wiki/1112`,
+  `RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture`,
+  and `139/139`.
+
 **End of WIKI_INDEX.md.**

@@ -20149,3 +20149,81 @@ green `138/138` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
 Search terms should include `GOAL v935`, `wiki/1110`, `3104 files`,
 `2891 symbols`, `30449 ms`, `requiredReleaseRuntimeCpuScenarios`, and
 `138/138`.
+
+## 2026-06-08 Second-PC Explicit Route-Target Requirement (wiki/1111)
+
+The second-PC release-check wrapper is now strict about something the product
+already needed semantically: a release-grade `post-route` CPU matrix is not
+useful unless the route attempt is aimed at a real remote machine.
+
+Before this turn, `run-second-pc-release-check.ps1` already enforced:
+
+- packaged desktop launch
+- full 5-scenario release-grade coverage
+
+But it could still run the full matrix with `-RunRuntimeCpuRouteProbe` enabled
+and no `-RuntimeCpuRouteTarget`. In that case the underlying
+`measure-musu-runtime-cpu-scenarios.ps1` would fall back to untargeted
+`musu route --wait`, which is weaker than the actual two-machine release gate.
+
+That gap is now closed directly in
+`scripts\windows\run-second-pc-release-check.ps1`.
+
+- new fail-fast condition:
+  - runtime CPU matrix is not skipped
+  - release-grade scenario list still includes `post-route`
+  - `-RunRuntimeCpuRouteProbe` is enabled
+  - `-RuntimeCpuRouteTarget` is blank
+- new error:
+  `RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture when -RunRuntimeCpuRouteProbe is enabled. Use a remote primary target, or set -SkipRuntimeCpuScenarioMatrix for non-release helper runs.`
+
+This means:
+
+- release-grade second-PC CPU capture must be target-bound
+- targetless route probing is still available only through non-release helper
+  paths, not through the release-check wrapper
+
+`scripts\windows\test-release-evidence-verifiers.ps1` now adds:
+
+- helper:
+  `Test-SecondPcRuntimeCpuRouteTargetRequirementContract`
+- source-contract case:
+  `second-PC runtime CPU matrix requires explicit remote route target`
+
+Validation:
+
+- targeted negative replay:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\run-second-pc-release-check.ps1 -Json`
+  - fails immediately with the expected `RuntimeCpuRouteTarget` requirement
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=139`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-100834`
+
+Search terms should include `GOAL v936`, `wiki/1111`,
+`RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture`,
+`second-PC runtime CPU matrix requires explicit remote route target`, and
+`139/139`.
+
+## 2026-06-08 Second-PC Explicit Route-Target Requirement Index (wiki/1112)
+
+MUSU local indexer was refreshed after wiki/1111 and GOAL v936.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `17886 ms`
+
+Indexed context includes the new `RuntimeCpuRouteTarget` fail-fast for
+release-grade second-PC `post-route` capture, the targeted negative replay for
+targetless wrapper execution, the green `139/139` verifier sweep, and the
+updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v937`, `wiki/1112`, `3104 files`,
+`2891 symbols`, `17886 ms`,
+`RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture`,
+and `139/139`.

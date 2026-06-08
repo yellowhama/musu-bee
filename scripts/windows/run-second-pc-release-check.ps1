@@ -61,6 +61,14 @@ if (-not $SkipRuntimeCpuScenarioMatrix) {
     if (-not $runtimeCpuScenarioMatchesRequired) {
         throw "RuntimeCpuScenario for run-second-pc-release-check.ps1 must remain startup-open,runtime-started,dashboard-open,desktop-open,post-route unless -SkipRuntimeCpuScenarioMatrix is set. Use measure-musu-runtime-cpu-scenarios.ps1 directly for ad hoc subsets."
     }
+
+    if (
+        ($runtimeCpuScenarioNormalized -contains "post-route") -and
+        $RunRuntimeCpuRouteProbe -and
+        [string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)
+    ) {
+        throw "RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture when -RunRuntimeCpuRouteProbe is enabled. Use a remote primary target, or set -SkipRuntimeCpuScenarioMatrix for non-release helper runs."
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {

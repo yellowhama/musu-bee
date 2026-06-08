@@ -460,6 +460,26 @@ function Test-SecondPcRuntimeCpuRequiredScenarioContract {
     return $true
 }
 
+function Test-SecondPcRuntimeCpuRouteTargetRequirementContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '($runtimeCpuScenarioNormalized -contains "post-route") -and',
+        '$RunRuntimeCpuRouteProbe -and',
+        '[string]::IsNullOrWhiteSpace($RuntimeCpuRouteTarget)',
+        'RuntimeCpuRouteTarget is required for release-grade second-PC post-route CPU capture when -RunRuntimeCpuRouteProbe is enabled.',
+        'Use a remote primary target, or set -SkipRuntimeCpuScenarioMatrix for non-release helper runs.'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcTargetedRouteVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -3323,6 +3343,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC runtime CPU matrix requires release-grade scenario coverage" `
+    -Verifier "second-PC release check source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcRouteTargetRequirementContractOk = Test-SecondPcRuntimeCpuRouteTargetRequirementContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcRouteTargetRequirementContractOk `
+    -Message "second-PC release check must require a remote RuntimeCpuRouteTarget whenever release-grade post-route CPU capture runs with the route probe enabled"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC runtime CPU matrix requires explicit remote route target" `
     -Verifier "second-PC release check source contract" `
     -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
     -ShouldPass $true `
