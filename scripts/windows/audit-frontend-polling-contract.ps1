@@ -260,6 +260,9 @@ Add-RegexCheck -Scope "sse" -Name "fleet SSE retry cap" -Text $fleetStoreText -P
 Add-RegexCheck -Scope "sse" -Name "fleet SSE stale generation guard" -Text $fleetStoreText -Pattern 'fleetReconnectGeneration\s*!==\s*reconnectGeneration' -Path $fleetStorePath -Message "Fleet SSE ignores stale reconnect generations."
 Add-RegexCheck -Scope "sse" -Name "fleet SSE clears timer" -Text $fleetStoreText -Pattern 'clearFleetReconnectTimer' -Path $fleetStorePath -Message "Fleet SSE reconnect timers are cleared."
 Add-RegexCheck -Scope "sse" -Name "fleet SSE close helper" -Text $fleetStoreText -Pattern 'closeSSE' -Path $fleetStorePath -Message "Fleet SSE exposes explicit close/cleanup."
+Add-RegexCheck -Scope "sse" -Name "fleet SSE hidden-tab reconnect pause" -Text $fleetStoreText -Pattern 'if \(!fleetDocumentIsVisible\(\)\)\s*\{[\s\S]*fleetReconnectPendingWhenVisible = true' -Path $fleetStorePath -Message "Fleet SSE pauses reconnect attempts while the document is hidden."
+Add-RegexCheck -Scope "sse" -Name "fleet SSE visibility listener lifecycle" -Text $fleetStoreText -Pattern 'document\.addEventListener\("visibilitychange", handleFleetVisibilityChange\)[\s\S]*document\.removeEventListener\("visibilitychange", handleFleetVisibilityChange\)' -Path $fleetStorePath -Message "Fleet SSE owns a paired visibility listener for reconnect resume."
+Add-RegexCheck -Scope "sse" -Name "fleet SSE visibility resume respects scheduled backoff" -Text $fleetStoreText -Pattern 'const remainingDelayMs = Math\.max\(0,\s*fleetNextReconnectAt - Date\.now\(\)\)[\s\S]*if \(remainingDelayMs > 0\)[\s\S]*armFleetReconnectTimer\(reconnectGeneration,\s*remainingDelayMs\)' -Path $fleetStorePath -Message "Fleet SSE resumes reconnects with the remaining scheduled delay instead of forcing an immediate retry."
 Add-NoRegexCheck -Scope "sse" -Name "fleet SSE no interval" -Text $fleetStoreText -Pattern 'setInterval\s*\(' -Path $fleetStorePath -Message "Fleet SSE does not use setInterval."
 
 $fleetPagePath = "musu-bee\src\app\dashboard\fleet\page.tsx"
@@ -393,7 +396,7 @@ foreach ($file in $sourceFiles) {
     if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
         $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
     }
-    if ($relative -notin @($pollerPath, $viewsPollerPath) -and $text.Contains('addEventListener("visibilitychange"')) {
+    if ($relative -notin @($pollerPath, $viewsPollerPath, $fleetStorePath) -and $text.Contains('addEventListener("visibilitychange"')) {
         $directVisibilityListenerHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
     }
@@ -421,7 +424,7 @@ Add-Check `
     -Name "visibilitychange owned only by shared poller" `
     -Passed ($directVisibilityListenerHits.Count -eq 0) `
     -Path ($sourceRoots -join ", ") `
-    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers." } else { "Direct visibilitychange listeners found outside shared pollers: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
+    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers and the bounded fleet SSE owner." } else { "Direct visibilitychange listeners found outside shared pollers and the bounded fleet SSE owner: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
 Add-Check `
     -Scope "source" `
     -Name "low-duty polling call-site inventory" `

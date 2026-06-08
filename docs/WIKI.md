@@ -21280,3 +21280,91 @@ regression.
 
 Search terms should include `GOAL v959`, `wiki/1134`, `3104 files`,
 `2929 symbols`, `17701 ms`, `nextAllowedRunAt`, and `146/146`.
+
+## 2026-06-08 Fleet SSE Hidden-Tab Reconnect Hardening (wiki/1135)
+
+The fleet dashboard still had one custom reconnect path outside the shared
+poller helpers: `musu-bee\src\store\useFleetStore.ts` owned a global
+EventSource plus exponential reconnect timers. Before this change, that loop
+would keep spending reconnect attempts while the tab was hidden.
+
+Code changes:
+
+- `musu-bee\src\store\useFleetStore.ts`
+  - added:
+    - `fleetReconnectPendingWhenVisible`
+    - `fleetReconnectPendingGeneration`
+    - `fleetNextReconnectAt`
+    - `fleetVisibilityListenerInstalled`
+  - added helpers:
+    - `fleetDocumentIsVisible()`
+    - `armFleetReconnectTimer(...)`
+    - `reconnectFleetWhenVisible()`
+    - `ensureFleetVisibilityListener()`
+    - `removeFleetVisibilityListener()`
+  - reconnect timers now record the next allowed reconnect time
+  - if a reconnect timer fires while the tab is hidden, the store now marks the
+    reconnect as pending-visible instead of attempting a hidden-tab reconnect
+  - when the tab becomes visible again, the store resumes with the remaining
+    scheduled delay instead of forcing an immediate reconnect
+
+Why this matters:
+
+- hidden tabs no longer keep burning fleet SSE reconnect attempts
+- the fleet store now behaves more like the bounded shared SSE helper:
+  visibility can resume work, but it does not erase the backoff budget
+- this directly reduces idle background churn in one of the few remaining
+  custom frontend reconnect owners
+
+Contract updates:
+
+- `musu-bee\src\app\runtime-polling-contract.test.ts`
+  - fleet SSE test now asserts:
+    - hidden-tab reconnect pause
+    - paired add/remove visibility listener lifecycle
+    - remaining-delay reuse on visibility resume
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+  - new fleet checks:
+    - `fleet SSE hidden-tab reconnect pause`
+    - `fleet SSE visibility listener lifecycle`
+    - `fleet SSE visibility resume respects scheduled backoff`
+  - the visibility-listener inventory now explicitly allows the bounded fleet
+    SSE owner in addition to the shared poller helpers
+
+Verification:
+
+- `npm run test:runtime-polling`
+  - `18` tests passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-frontend-polling-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+  - `low_duty_polling_call_site_count=29`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=146`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-123357`
+
+Search terms should include `GOAL v960`, `wiki/1135`,
+`fleetReconnectPendingWhenVisible`, `fleetNextReconnectAt`,
+`fleet SSE hidden-tab reconnect pause`, and `146/146`.
+
+## 2026-06-08 Fleet SSE Hidden-Tab Reconnect Hardening Index (wiki/1136)
+
+MUSU local indexer was refreshed after wiki/1135 and GOAL v960.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2935 symbols`
+- `18882 ms`
+
+Indexed context includes the fleet SSE hidden-tab reconnect pause/resume logic,
+the new runtime polling contract assertions for fleet visibility resume, the
+passing frontend polling audit with the bounded fleet SSE visibility owner, and
+the green `146/146` full verifier regression.
+
+Search terms should include `GOAL v961`, `wiki/1136`, `3104 files`,
+`2935 symbols`, `18882 ms`, `fleetReconnectPendingWhenVisible`, and
+`146/146`.

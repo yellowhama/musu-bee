@@ -103,6 +103,13 @@ test("fleet store SSE reconnect is bounded and explicitly closed", () => {
   assert.match(storeText, /fleetReconnectAttempts\s*>=\s*FLEET_SSE_MAX_RETRIES/);
   assert.match(storeText, /fleetReconnectGeneration !== reconnectGeneration/);
   assert.match(storeText, /EventSource\.CONNECTING/);
+  assert.match(storeText, /fleetReconnectPendingWhenVisible/);
+  assert.match(storeText, /fleetNextReconnectAt/);
+  assert.match(storeText, /document\.addEventListener\("visibilitychange", handleFleetVisibilityChange\)/);
+  assert.match(storeText, /document\.removeEventListener\("visibilitychange", handleFleetVisibilityChange\)/);
+  assert.match(storeText, /if \(!fleetDocumentIsVisible\(\)\)\s*\{\s*fleetReconnectPendingWhenVisible = true/);
+  assert.match(storeText, /const remainingDelayMs = Math\.max\(0,\s*fleetNextReconnectAt - Date\.now\(\)\)/);
+  assert.match(storeText, /if \(remainingDelayMs > 0\)\s*\{\s*armFleetReconnectTimer\(reconnectGeneration,\s*remainingDelayMs\)/);
   assert.doesNotMatch(storeText, /setInterval\s*\(/);
   assert.match(fleetPageText, /return \(\) => closeSSE\(\)/);
   assert.match(agentPageText, /return \(\) => closeSSE\(\)/);

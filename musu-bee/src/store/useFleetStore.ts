@@ -6,12 +6,20 @@ let fleetReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let fleetReconnectDelayMs = 1_000;
 let fleetReconnectAttempts = 0;
 let fleetReconnectGeneration = 0;
+let fleetReconnectPendingWhenVisible = false;
+let fleetReconnectPendingGeneration = 0;
+let fleetNextReconnectAt = 0;
+let fleetVisibilityListenerInstalled = false;
 const seenFinalTaskIds = new Set<string>();
 
 const FLEET_SSE_RECONNECT_INITIAL_MS = 1_000;
 const FLEET_SSE_RECONNECT_MAX_MS = 10_000;
 const FLEET_SSE_RECONNECT_MULTIPLIER = 2;
 const FLEET_SSE_MAX_RETRIES = 5;
+
+function fleetDocumentIsVisible() {
+  return typeof document === "undefined" || document.visibilityState !== "hidden";
+}
 
 export interface ChatMessage {
   id: string;
@@ -102,6 +110,9 @@ function clearFleetReconnectTimer() {
 function resetFleetReconnectState() {
   fleetReconnectDelayMs = FLEET_SSE_RECONNECT_INITIAL_MS;
   fleetReconnectAttempts = 0;
+  fleetReconnectPendingWhenVisible = false;
+  fleetReconnectPendingGeneration = 0;
+  fleetNextReconnectAt = 0;
 }
 
 function closeFleetEventSource() {
@@ -111,22 +122,67 @@ function closeFleetEventSource() {
   }
 }
 
+function armFleetReconnectTimer(reconnectGeneration: number, delayMs: number) {
+  clearFleetReconnectTimer();
+  fleetNextReconnectAt = Date.now() + delayMs;
+
+  fleetReconnectTimer = setTimeout(() => {
+    fleetReconnectTimer = null;
+    if (fleetReconnectGeneration !== reconnectGeneration) return;
+    if (!fleetDocumentIsVisible()) {
+      fleetReconnectPendingWhenVisible = true;
+      fleetReconnectPendingGeneration = reconnectGeneration;
+      return;
+    }
+    useFleetStore.getState().initSSE();
+  }, delayMs);
+}
+
+function reconnectFleetWhenVisible() {
+  if (!fleetDocumentIsVisible() || fleetEvents || fleetReconnectTimer || !fleetReconnectPendingWhenVisible) {
+    return;
+  }
+  const reconnectGeneration = fleetReconnectPendingGeneration;
+  if (fleetReconnectGeneration !== reconnectGeneration) {
+    fleetReconnectPendingWhenVisible = false;
+    return;
+  }
+  const remainingDelayMs = Math.max(0, fleetNextReconnectAt - Date.now());
+  fleetReconnectPendingWhenVisible = false;
+  fleetReconnectPendingGeneration = 0;
+  if (remainingDelayMs > 0) {
+    armFleetReconnectTimer(reconnectGeneration, remainingDelayMs);
+    return;
+  }
+  useFleetStore.getState().initSSE();
+}
+
+function handleFleetVisibilityChange() {
+  reconnectFleetWhenVisible();
+}
+
+function ensureFleetVisibilityListener() {
+  if (fleetVisibilityListenerInstalled || typeof document === "undefined") return;
+  document.addEventListener("visibilitychange", handleFleetVisibilityChange);
+  fleetVisibilityListenerInstalled = true;
+}
+
+function removeFleetVisibilityListener() {
+  if (!fleetVisibilityListenerInstalled || typeof document === "undefined") return;
+  document.removeEventListener("visibilitychange", handleFleetVisibilityChange);
+  fleetVisibilityListenerInstalled = false;
+}
+
 function scheduleFleetReconnect(reconnectGeneration: number) {
   if (fleetReconnectAttempts >= FLEET_SSE_MAX_RETRIES) return;
 
-  clearFleetReconnectTimer();
   const delayMs = fleetReconnectDelayMs;
   fleetReconnectAttempts += 1;
   fleetReconnectDelayMs = Math.min(
     FLEET_SSE_RECONNECT_MAX_MS,
     fleetReconnectDelayMs * FLEET_SSE_RECONNECT_MULTIPLIER,
   );
-
-  fleetReconnectTimer = setTimeout(() => {
-    fleetReconnectTimer = null;
-    if (fleetReconnectGeneration !== reconnectGeneration) return;
-    useFleetStore.getState().initSSE();
-  }, delayMs);
+  armFleetReconnectTimer(reconnectGeneration, delayMs);
 }
 
 export const useFleetStore = create<FleetStore>((set) => ({
@@ -171,6 +227,7 @@ export const useFleetStore = create<FleetStore>((set) => ({
 
   initSSE: () => {
     if (typeof window === "undefined") return;
+    ensureFleetVisibilityListener();
     if (
       fleetEvents &&
       (fleetEvents.readyState === EventSource.CONNECTING ||
@@ -305,5 +362,6 @@ export const useFleetStore = create<FleetStore>((set) => ({
     clearFleetReconnectTimer();
     closeFleetEventSource();
     resetFleetReconnectState();
+    removeFleetVisibilityListener();
   }
 }));

@@ -8087,4 +8087,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v959`, `wiki/1134`, `3104 files`, `2929 symbols`,
   `nextAllowedRunAt`, and `146/146`.
 
+- 2026-06-08 fleet SSE hidden-tab reconnect hardening:
+  wiki/1135 records the `useFleetStore` reconnect change that now pauses hidden
+  tab reconnects, tracks `fleetNextReconnectAt`, and resumes with the remaining
+  scheduled delay on visibility instead of forcing an immediate reconnect.
+  Search terms should include `GOAL v960`, `wiki/1135`,
+  `fleetReconnectPendingWhenVisible`, `fleetNextReconnectAt`,
+  `fleet SSE hidden-tab reconnect pause`, and `146/146`.
+
+- 2026-06-08 fleet SSE hidden-tab reconnect hardening index:
+  wiki/1136 records the MUSU local index refresh after wiki/1135 with
+  `3104 files`, `2935 symbols`, and `18882 ms`. Search terms
+  should include `GOAL v961`, `wiki/1136`, `3104 files`, `2935 symbols`,
+  `fleetReconnectPendingWhenVisible`, and `146/146`.
+
 **End of WIKI_INDEX.md.**
