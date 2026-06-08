@@ -127,7 +127,12 @@ export function useChat(
     return onlineNode?.name ?? availableNodes[0]?.name ?? "local";
   }, [availableNodes]);
 
-  const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? getDefaultNode());
+  // H8: initialize hydration-safe. getDefaultNode() depends on availableNodes,
+  // which is empty during SSR but populated after the client fetches — using it
+  // as the initial value caused a server("local")/client(other node) hydration
+  // mismatch. Start from a deterministic value and resolve the real default in
+  // an effect after mount (see below).
+  const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? "local");
   const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
 
   const esRef = useRef<EventSource | null>(null);
