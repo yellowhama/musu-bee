@@ -175,7 +175,7 @@ $surfaceChecks = @(
     [pscustomobject]@{
         path = "musu-bee\src\components\dashboard\DashboardClient.tsx"
         required = @('useLowDutyPolling', 'intervalMs:\s*DASHBOARD_REFRESH_VISIBLE_MS', 'maxBackoffMs:\s*DASHBOARD_REFRESH_HIDDEN_MS', 'taskTimeoutMs:\s*DASHBOARD_REFRESH_TIMEOUT_MS')
-        disallowed = @('setInterval\s*\(', 'document\.addEventListener\("visibilitychange"')
+        disallowed = @('setInterval\s*\(')
         description = "dashboard aggregate polling"
     },
     [pscustomobject]@{
@@ -238,6 +238,9 @@ Add-RegexCheck -Scope "relay" -Name "relay max reconnect cap" -Text $dashboardTe
 Add-RegexCheck -Scope "relay" -Name "relay multiplier" -Text $dashboardText -Pattern 'RELAY_RECONNECT_MULTIPLIER\s*=\s*2' -Path $dashboardPath -Message "Relay reconnect uses bounded exponential backoff."
 Add-RegexCheck -Scope "relay" -Name "relay retry count cap" -Text $dashboardText -Pattern 'MAX_RETRIES\s*=\s*5' -Path $dashboardPath -Message "Relay reconnect attempts are capped."
 Add-RegexCheck -Scope "relay" -Name "relay retry cleanup" -Text $dashboardText -Pattern 'clearRetry' -Path $dashboardPath -Message "Relay reconnect timers have a cleanup path."
+Add-RegexCheck -Scope "relay" -Name "relay hidden-tab reconnect pause" -Text $dashboardText -Pattern 'if \(!relayDocumentIsVisible\(\)\)\s*\{[\s\S]*relayReconnectPendingWhenVisible\.current = true' -Path $dashboardPath -Message "Relay reconnect pauses while the document is hidden."
+Add-RegexCheck -Scope "relay" -Name "relay visibility listener lifecycle" -Text $dashboardText -Pattern 'document\.addEventListener\("visibilitychange", handleRelayVisibilityChange\)[\s\S]*document\.removeEventListener\("visibilitychange", handleRelayVisibilityChange\)' -Path $dashboardPath -Message "Relay reconnect owns a paired visibility listener for reconnect resume."
+Add-RegexCheck -Scope "relay" -Name "relay visibility resume respects scheduled backoff" -Text $dashboardText -Pattern 'const remainingDelayMs = Math\.max\(0,\s*relayNextReconnectAt\.current - Date\.now\(\)\)[\s\S]*if \(remainingDelayMs > 0\)[\s\S]*armRelayReconnectTimer\(reconnectGeneration,\s*remainingDelayMs,\s*relayInfoArg,\s*node\)' -Path $dashboardPath -Message "Relay reconnect resumes with the remaining scheduled delay instead of forcing an immediate retry."
 Add-NoRegexCheck -Scope "relay" -Name "no legacy fixed retry delay" -Text $dashboardText -Pattern 'const RETRY_DELAY_MS\s*=' -Path $dashboardPath -Message "Relay reconnect does not use an uncapped fixed retry loop."
 
 $chatPath = "musu-bee\src\lib\useChat.ts"
@@ -304,6 +307,7 @@ $contractTestText = Get-RepoText $contractTestPath
 foreach ($marker in @(
     "dashboard refresh loop stays on shared low-duty polling",
     "dashboard relay reconnect stays bounded with capped backoff",
+    "dashboard relay reconnect pauses while hidden and resumes with remaining backoff",
     "chat SSE reconnect is capped, visibility-aware, and ignores stale generations",
     "fleet store SSE reconnect is bounded and explicitly closed",
     "shared bounded EventSource closes failed streams and caps reconnects",
@@ -400,7 +404,7 @@ foreach ($file in $sourceFiles) {
     if ([regex]::IsMatch($text, 'setInterval\s*\(')) {
         $directIntervalHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
     }
-    if ($relative -notin @($pollerPath, $viewsPollerPath, $fleetStorePath, $chatPath) -and $text.Contains('addEventListener("visibilitychange"')) {
+    if ($relative -notin @($pollerPath, $viewsPollerPath, $fleetStorePath, $chatPath, $dashboardPath) -and $text.Contains('addEventListener("visibilitychange"')) {
         $directVisibilityListenerHits.Add([pscustomobject]@{ path = $relative }) | Out-Null
         }
     }
@@ -428,7 +432,7 @@ Add-Check `
     -Name "visibilitychange owned only by shared poller" `
     -Passed ($directVisibilityListenerHits.Count -eq 0) `
     -Path ($sourceRoots -join ", ") `
-    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, and chat SSE." } else { "Direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, and chat SSE: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
+    -Message ($(if ($directVisibilityListenerHits.Count -eq 0) { "No direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, chat SSE, and dashboard relay reconnect." } else { "Direct visibilitychange listeners found outside shared pollers, the bounded fleet SSE owner, chat SSE, and dashboard relay reconnect: $(@($directVisibilityListenerHits | ForEach-Object { $_.path }) -join ', ')." }))
 Add-Check `
     -Scope "source" `
     -Name "low-duty polling call-site inventory" `

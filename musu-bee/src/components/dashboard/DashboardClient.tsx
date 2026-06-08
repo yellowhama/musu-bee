@@ -50,6 +50,10 @@ function boundedAbortSignal(signal: AbortSignal | undefined, timeoutMs: number) 
   return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 }
 
+function relayDocumentIsVisible() {
+  return typeof document === "undefined" || document.visibilityState === "visible";
+}
+
 // ---- Section label ----
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -136,8 +140,16 @@ export default function DashboardClient({ nodes }: Props) {
   const [wsError, setWsError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectRelayRef = useRef<((relayInfoArg: RelayTokenResponse, node: string) => void) | null>(null);
   const relayTokenControllerRef = useRef<AbortController | null>(null);
   const retryCountRef = useRef(0);
+  const relayReconnectGenerationRef = useRef(0);
+  const relayReconnectPendingWhenVisible = useRef(false);
+  const relayReconnectPendingGeneration = useRef(0);
+  const relayReconnectInfoRef = useRef<RelayTokenResponse | null>(null);
+  const relayReconnectNodeRef = useRef<string | null>(null);
+  const relayNextReconnectAt = useRef(0);
+  const relayVisibilityListenerInstalled = useRef(false);
   const [relayRetryDelayMs, setRelayRetryDelayMs] = useState<number | null>(null);
   const MAX_RETRIES = 5;
 
@@ -151,11 +163,76 @@ export default function DashboardClient({ nodes }: Props) {
 
   const clearRetry = useCallback(() => {
     if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
+    relayNextReconnectAt.current = 0;
     setRelayRetryDelayMs(null);
   }, []);
 
+  const resetRelayReconnectState = useCallback(() => {
+    relayReconnectPendingWhenVisible.current = false;
+    relayReconnectPendingGeneration.current = 0;
+    relayReconnectInfoRef.current = null;
+    relayReconnectNodeRef.current = null;
+    relayNextReconnectAt.current = 0;
+    setRelayRetryDelayMs(null);
+  }, []);
+
+  const armRelayReconnectTimer = useCallback((reconnectGeneration: number, delayMs: number, relayInfoArg: RelayTokenResponse, node: string) => {
+    relayReconnectInfoRef.current = relayInfoArg;
+    relayReconnectNodeRef.current = node;
+    relayNextReconnectAt.current = Date.now() + delayMs;
+    setRelayRetryDelayMs(delayMs);
+    retryRef.current = setTimeout(() => {
+      retryRef.current = null;
+      if (relayReconnectGenerationRef.current !== reconnectGeneration) return;
+      if (!relayDocumentIsVisible()) {
+        relayReconnectPendingWhenVisible.current = true;
+        relayReconnectPendingGeneration.current = reconnectGeneration;
+        return;
+      }
+      relayNextReconnectAt.current = 0;
+      connectRelayRef.current?.(relayInfoArg, node);
+    }, delayMs);
+  }, []);
+
+  const reconnectRelayWhenVisible = useCallback(() => {
+    if (!relayReconnectPendingWhenVisible.current) return;
+    if (!relayDocumentIsVisible()) return;
+    const reconnectGeneration = relayReconnectPendingGeneration.current;
+    relayReconnectPendingWhenVisible.current = false;
+    relayReconnectPendingGeneration.current = 0;
+    if (relayReconnectGenerationRef.current !== reconnectGeneration) return;
+    const relayInfoArg = relayReconnectInfoRef.current;
+    const node = relayReconnectNodeRef.current;
+    if (!relayInfoArg || !node) return;
+    const remainingDelayMs = Math.max(0, relayNextReconnectAt.current - Date.now());
+    if (remainingDelayMs > 0) {
+      armRelayReconnectTimer(reconnectGeneration, remainingDelayMs, relayInfoArg, node);
+      return;
+    }
+    relayNextReconnectAt.current = 0;
+    connectRelayRef.current?.(relayInfoArg, node);
+  }, [armRelayReconnectTimer]);
+
+  const handleRelayVisibilityChange = useCallback(() => {
+    if (!relayDocumentIsVisible()) return;
+    reconnectRelayWhenVisible();
+  }, [reconnectRelayWhenVisible]);
+
+  const ensureRelayVisibilityListener = useCallback(() => {
+    if (typeof document === "undefined" || relayVisibilityListenerInstalled.current) return;
+    document.addEventListener("visibilitychange", handleRelayVisibilityChange);
+    relayVisibilityListenerInstalled.current = true;
+  }, [handleRelayVisibilityChange]);
+
+  const removeRelayVisibilityListener = useCallback(() => {
+    if (typeof document === "undefined" || !relayVisibilityListenerInstalled.current) return;
+    document.removeEventListener("visibilitychange", handleRelayVisibilityChange);
+    relayVisibilityListenerInstalled.current = false;
+  }, [handleRelayVisibilityChange]);
+
   const connectRelay = useCallback((relayInfoArg: RelayTokenResponse, node: string) => {
     if (typeof window === "undefined") return;
+    ensureRelayVisibilityListener();
     if (wsRef.current) {
       wsRef.current.onclose = null;
       wsRef.current.close();
@@ -170,7 +247,7 @@ export default function DashboardClient({ nodes }: Props) {
       wsRef.current = ws;
       ws.onopen = () => {
         retryCountRef.current = 0;
-        setRelayRetryDelayMs(null);
+        resetRelayReconnectState();
         setWsStatus("connected");
         setWsError(null);
       };
@@ -188,8 +265,7 @@ export default function DashboardClient({ nodes }: Props) {
           const nextRetryCount = retryCountRef.current + 1;
           retryCountRef.current = nextRetryCount;
           const delayMs = relayReconnectDelayMs(nextRetryCount);
-          setRelayRetryDelayMs(delayMs);
-          retryRef.current = setTimeout(() => connectRelay(relayInfoArg, node), delayMs);
+          armRelayReconnectTimer(relayReconnectGenerationRef.current, delayMs, relayInfoArg, node);
         }
       };
     } catch (err) {
@@ -197,13 +273,18 @@ export default function DashboardClient({ nodes }: Props) {
       setWsStatus("error");
       setWsError("Connection failed");
     }
-  }, [clearRetry]);
+  }, [armRelayReconnectTimer, clearRetry, ensureRelayVisibilityListener, resetRelayReconnectState]);
+
+  connectRelayRef.current = connectRelay;
 
   const disconnectRelay = useCallback(() => {
     if (typeof window === "undefined") return;
+    relayReconnectGenerationRef.current += 1;
     relayTokenControllerRef.current?.abort();
     relayTokenControllerRef.current = null;
     clearRetry();
+    resetRelayReconnectState();
+    removeRelayVisibilityListener();
     retryCountRef.current = MAX_RETRIES; // prevent auto-reconnect
     if (wsRef.current) {
       wsRef.current.onclose = null;
@@ -213,16 +294,21 @@ export default function DashboardClient({ nodes }: Props) {
     setRelayLoading(false);
     setWsStatus("idle");
     setWsError(null);
-  }, [clearRetry]);
+  }, [clearRetry, removeRelayVisibilityListener, resetRelayReconnectState]);
 
   useEffect(() => {
+    relayReconnectGenerationRef.current += 1;
     setRelayLoading(false);
     setWsStatus("idle");
     setWsError(null);
+    resetRelayReconnectState();
     return () => {
+      relayReconnectGenerationRef.current += 1;
       relayTokenControllerRef.current?.abort();
       relayTokenControllerRef.current = null;
       clearRetry();
+      resetRelayReconnectState();
+      removeRelayVisibilityListener();
       retryCountRef.current = MAX_RETRIES;
       if (wsRef.current) {
         wsRef.current.onclose = null;
@@ -230,7 +316,7 @@ export default function DashboardClient({ nodes }: Props) {
         wsRef.current = null;
       }
     };
-  }, [clearRetry, selectedNode]);
+  }, [clearRetry, removeRelayVisibilityListener, resetRelayReconnectState, selectedNode]);
 
   const handleRelayConnect = useCallback(async () => {
     if (!selectedNode || relayLoading) return;
@@ -248,6 +334,8 @@ export default function DashboardClient({ nodes }: Props) {
         setRelayInfo(info);
       } catch {
         if (!controller.signal.aborted) {
+          relayReconnectGenerationRef.current += 1;
+          resetRelayReconnectState();
           retryCountRef.current = MAX_RETRIES;
           setWsStatus("error");
           setWsError("Relay unavailable");
@@ -260,9 +348,11 @@ export default function DashboardClient({ nodes }: Props) {
         setRelayLoading(false);
       }
     }
+    relayReconnectGenerationRef.current += 1;
+    resetRelayReconnectState();
     retryCountRef.current = 0;
     connectRelay(info, selectedNode);
-  }, [connectRelay, fetchRelayToken, relayInfo, relayLoading, selectedNode]);
+  }, [connectRelay, fetchRelayToken, relayInfo, relayLoading, resetRelayReconnectState, selectedNode]);
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     // Agents: fetch from selected node, try company-scoped first

@@ -46,7 +46,6 @@ test("dashboard refresh loop stays on shared low-duty polling", () => {
   const text = source("src/components/dashboard/DashboardClient.tsx");
 
   assert.match(text, /useLowDutyPolling/);
-  assert.doesNotMatch(text, /document\.addEventListener\("visibilitychange"/);
   assert.match(text, /intervalMs:\s*DASHBOARD_REFRESH_VISIBLE_MS/);
   assert.match(text, /maxBackoffMs:\s*DASHBOARD_REFRESH_HIDDEN_MS/);
   assert.match(text, /taskTimeoutMs:\s*DASHBOARD_REFRESH_TIMEOUT_MS/);
@@ -70,6 +69,19 @@ test("dashboard relay reconnect stays bounded with capped backoff", () => {
   assert.match(text, /relayReconnectDelayMs/);
   assert.match(text, /Math\.min\(\s*RELAY_RECONNECT_MAX_MS/);
   assert.doesNotMatch(text, /const RETRY_DELAY_MS\s*=/);
+});
+
+test("dashboard relay reconnect pauses while hidden and resumes with remaining backoff", () => {
+  const text = source("src/components/dashboard/DashboardClient.tsx");
+
+  assert.match(text, /relayReconnectPendingWhenVisible/);
+  assert.match(text, /relayNextReconnectAt/);
+  assert.match(text, /document\.addEventListener\("visibilitychange", handleRelayVisibilityChange\)/);
+  assert.match(text, /document\.removeEventListener\("visibilitychange", handleRelayVisibilityChange\)/);
+  assert.match(text, /if \(!relayDocumentIsVisible\(\)\)\s*\{\s*relayReconnectPendingWhenVisible\.current = true/);
+  assert.match(text, /const remainingDelayMs = Math\.max\(0,\s*relayNextReconnectAt\.current - Date\.now\(\)\)/);
+  assert.match(text, /if \(remainingDelayMs > 0\)\s*\{\s*armRelayReconnectTimer\(reconnectGeneration,\s*remainingDelayMs,\s*relayInfoArg,\s*node\)/);
+  assert.doesNotMatch(text, /setInterval\s*\(/);
 });
 
 test("chat SSE reconnect is capped, visibility-aware, and ignores stale generations", () => {

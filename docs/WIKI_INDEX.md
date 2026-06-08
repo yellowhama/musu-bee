@@ -8115,4 +8115,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v963`, `wiki/1138`, `3104 files`, `2936 symbols`,
   `chat SSE visibility listener lifecycle`, `nextReconnectAt`, and `146/146`.
 
+- 2026-06-08 dashboard relay hidden-tab reconnect hardening:
+  wiki/1139 records the `DashboardClient.tsx` relay reconnect change that now
+  pauses hidden-tab WebSocket reconnects, tracks `relayNextReconnectAt`, and
+  resumes with the remaining scheduled delay on visibility instead of forcing
+  an immediate reconnect. Search terms should include `GOAL v964`,
+  `wiki/1139`, `relayReconnectPendingWhenVisible`, `relayNextReconnectAt`,
+  `relay visibility resume respects scheduled backoff`, and `146/146`.
+
+- 2026-06-08 dashboard relay hidden-tab reconnect hardening index:
+  wiki/1140 records the MUSU local index refresh after wiki/1139 with
+  `3104 files`, `2937 symbols`, and `28582 ms`. Search terms
+  should include `GOAL v965`, `wiki/1140`, `3104 files`, `2937 symbols`,
+  `relay visibility listener lifecycle`, `relayNextReconnectAt`, and `146/146`.
+
 **End of WIKI_INDEX.md.**

@@ -21453,3 +21453,98 @@ verifier regression.
 Search terms should include `GOAL v963`, `wiki/1138`, `3104 files`,
 `2936 symbols`, `20847 ms`, `chat SSE visibility listener lifecycle`,
 `nextReconnectAt`, and `146/146`.
+
+## 2026-06-08 Dashboard Relay Hidden-Tab Reconnect Hardening (wiki/1139)
+
+`musu-bee\src\components\dashboard\DashboardClient.tsx` now pauses
+dashboard relay reconnect work while the document is hidden and resumes with
+the remaining scheduled backoff instead of repeatedly attempting off-screen
+WebSocket reconnects.
+
+What changed:
+
+- added `relayDocumentIsVisible()` plus relay reconnect state:
+  - `relayReconnectGenerationRef`
+  - `relayReconnectPendingWhenVisible`
+  - `relayReconnectPendingGeneration`
+  - `relayReconnectInfoRef`
+  - `relayReconnectNodeRef`
+  - `relayNextReconnectAt`
+  - `relayVisibilityListenerInstalled`
+- relay reconnect scheduling now flows through `armRelayReconnectTimer(...)`
+- when the relay retry timer fires while hidden, the reconnect is marked
+  pending-visible instead of immediately calling `connectRelay(...)`
+- `reconnectRelayWhenVisible()` now computes
+  `Math.max(0, relayNextReconnectAt.current - Date.now())` and reuses the
+  remaining delay budget before reconnecting
+- relay cleanup and selected-node teardown now invalidate reconnect
+  generations, clear pending reconnect state, and remove the paired
+  `visibilitychange` listener
+
+Why this matters:
+
+- hidden dashboard tabs no longer keep burning relay reconnect attempts
+- visibility churn no longer erases the relay backoff budget
+- this removes another custom frontend reconnect owner from the idle churn
+  surface while preserving bounded reconnect behavior
+
+Contract updates:
+
+- `musu-bee\src\app\runtime-polling-contract.test.ts`
+  - new relay test asserts:
+    - hidden-tab reconnect pause
+    - paired add/remove visibility listener lifecycle
+    - remaining-delay reuse on visibility resume
+    - no `setInterval`
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+  - new relay checks:
+    - `relay hidden-tab reconnect pause`
+    - `relay visibility listener lifecycle`
+    - `relay visibility resume respects scheduled backoff`
+  - dashboard aggregate polling no longer treats any direct
+    `visibilitychange` listener in `DashboardClient.tsx` as a failure because
+    relay reconnect now owns a bounded, explicitly-audited visibility listener
+  - the direct `visibilitychange` owner inventory now explicitly allows the
+    dashboard relay reconnect owner beside the shared pollers, bounded fleet
+    SSE owner, and chat SSE owner
+
+Verification:
+
+- `npm run test:runtime-polling`
+  - `19` tests passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-frontend-polling-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+  - `low_duty_polling_call_site_count=29`
+- `npx tsc --noEmit --pretty false`
+  - passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=146`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-125138`
+
+Search terms should include `GOAL v964`, `wiki/1139`,
+`relayReconnectPendingWhenVisible`, `relayNextReconnectAt`,
+`relay visibility resume respects scheduled backoff`, and `146/146`.
+
+## 2026-06-08 Dashboard Relay Hidden-Tab Reconnect Hardening Index (wiki/1140)
+
+MUSU local indexer was refreshed after wiki/1139 and GOAL v964.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2937 symbols`
+- `28582 ms`
+
+Indexed context should include the relay hidden-tab reconnect pause/resume
+logic, the new runtime polling contract assertions for relay visibility resume,
+the passing frontend polling audit with dashboard relay added to the approved
+direct visibility owner set, the passing typecheck, and the green `146/146`
+full verifier regression.
+
+Search terms should include `GOAL v965`, `wiki/1140`, `3104 files`,
+`2937 symbols`, `28582 ms`, `relay visibility listener lifecycle`,
+`relayNextReconnectAt`, and `146/146`.
