@@ -151,21 +151,10 @@ fn room_work_order_delegate_body(order: &crate::cloud::RoomWorkOrderRecord) -> s
 }
 
 fn room_work_order_control_token(home: &std::path::Path) -> Option<String> {
-    for name in [
-        "MUSU_P2P_CONTROL_TOKEN",
-        "MUSU_ROUTE_EVIDENCE_TOKEN",
-        "MUSU_TOKEN",
-    ] {
-        if let Ok(token) = std::env::var(name) {
-            let token = token.trim().to_string();
-            if !token.is_empty() {
-                return Some(token);
-            }
-        }
-    }
-    crate::cloud::token::load_token(home)
-        .map(|token| token.trim().to_string())
-        .filter(|token| !token.is_empty())
+    // Audit H3: control-token precedence now lives in the canonical resolver
+    // (`install::token::read_control_token`) instead of being duplicated here,
+    // so it cannot silently diverge from the bridge-token chain.
+    crate::install::token::read_control_token(home)
 }
 
 fn room_work_order_delivery_request(

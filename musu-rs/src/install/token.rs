@@ -43,6 +43,37 @@ pub fn read_bridge_token(home: &Path) -> Option<String> {
     None
 }
 
+/// Resolve the cloud **control-plane** token (distinct from the bridge bearer
+/// token above). Per audit H3: this precedence was duplicated inline in
+/// `room_work_orders.rs`, diverging from the bridge chain and making auth
+/// failures path-dependent and hard to debug. Single canonical chain:
+///
+///   1. `MUSU_P2P_CONTROL_TOKEN` (non-empty), THEN
+///   2. `MUSU_ROUTE_EVIDENCE_TOKEN`, THEN
+///   3. `MUSU_TOKEN`, THEN
+///   4. `crate::cloud::token::load_token(home)` (account token on disk)
+///
+/// Returns `None` when no source yields a non-empty value. This is the control
+/// token used for owner-scoped room work-order claim/delivery; it is NOT the
+/// bridge bearer token — keep the two resolvers separate on purpose.
+pub fn read_control_token(home: &Path) -> Option<String> {
+    for name in [
+        "MUSU_P2P_CONTROL_TOKEN",
+        "MUSU_ROUTE_EVIDENCE_TOKEN",
+        "MUSU_TOKEN",
+    ] {
+        if let Ok(token) = std::env::var(name) {
+            let token = token.trim().to_string();
+            if !token.is_empty() {
+                return Some(token);
+            }
+        }
+    }
+    crate::cloud::token::load_token(home)
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty())
+}
+
 /// Ensure a valid `bridge.env` exists under `home` and return the token.
 ///
 /// Used by packaged startup paths where no prior `musu install` bootstrap may
@@ -166,5 +197,59 @@ mod tests {
         let token = ensure_bridge_token(&home).expect("ensure token");
         assert_eq!(token.len(), 64);
         assert_eq!(read_bridge_token(&home), Some(token));
+    }
+
+    /// Control-token chain (audit H3). Serialized under the same ENV_LOCK
+    /// because it touches the shared control-token env vars.
+    fn clear_control_env() {
+        std::env::remove_var("MUSU_P2P_CONTROL_TOKEN");
+        std::env::remove_var("MUSU_ROUTE_EVIDENCE_TOKEN");
+        std::env::remove_var("MUSU_TOKEN");
+    }
+
+    /// `MUSU_P2P_CONTROL_TOKEN` wins over the other control sources.
+    #[test]
+    fn control_token_prefers_p2p_control() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        clear_control_env();
+        std::env::set_var("MUSU_P2P_CONTROL_TOKEN", "p2p-wins");
+        std::env::set_var("MUSU_ROUTE_EVIDENCE_TOKEN", "route-loses");
+        std::env::set_var("MUSU_TOKEN", "generic-loses");
+        let home = std::env::temp_dir().join("musu-rs-control-test-p2p");
+        std::fs::create_dir_all(&home).ok();
+        let result = read_control_token(&home);
+        clear_control_env();
+        assert_eq!(result, Some("p2p-wins".into()));
+    }
+
+    /// Falls through P2P -> ROUTE_EVIDENCE -> MUSU_TOKEN in order.
+    #[test]
+    fn control_token_falls_through_to_route_then_generic() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        clear_control_env();
+        std::env::set_var("MUSU_ROUTE_EVIDENCE_TOKEN", "route-wins");
+        std::env::set_var("MUSU_TOKEN", "generic-loses");
+        let home = std::env::temp_dir().join("musu-rs-control-test-route");
+        std::fs::create_dir_all(&home).ok();
+        let route = read_control_token(&home);
+        std::env::remove_var("MUSU_ROUTE_EVIDENCE_TOKEN");
+        let generic = read_control_token(&home);
+        clear_control_env();
+        assert_eq!(route, Some("route-wins".into()));
+        assert_eq!(generic, Some("generic-loses".into()));
+    }
+
+    /// Blank env values are skipped, not returned as empty tokens.
+    #[test]
+    fn control_token_skips_blank_env() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        clear_control_env();
+        std::env::set_var("MUSU_P2P_CONTROL_TOKEN", "   ");
+        std::env::set_var("MUSU_ROUTE_EVIDENCE_TOKEN", "real");
+        let home = std::env::temp_dir().join("musu-rs-control-test-blank");
+        std::fs::create_dir_all(&home).ok();
+        let result = read_control_token(&home);
+        clear_control_env();
+        assert_eq!(result, Some("real".into()));
     }
 }
