@@ -20318,3 +20318,93 @@ GOAL/WIKI/WIKI_INDEX entries.
 
 Search terms should include `GOAL v939`, `wiki/1114`, `3104 files`,
 `2891 symbols`, `15808 ms`, `-SkipRuntimeCpuScenarioMatrix`, and `142/142`.
+
+## 2026-06-08 Operator Artifact Verifiers Enforce Targeted Second-PC Flow (wiki/1115)
+
+The previous turn fixed the operator-facing sources: kit README source, final
+packet README template, and handoff status guidance all moved to the two-phase
+second-PC flow.
+
+This turn pushes that rule one layer deeper by making the artifact verifiers
+themselves reject stale operator artifacts that still describe targetless
+release-check usage.
+
+### 1. Operator action pack README generation
+
+`scripts\windows\prepare-operator-action-pack.ps1` now generates
+`OPERATOR_ACTION_PACK_README_CURRENT.md` with:
+
+- pre-peer helper pass:
+  `run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix`
+- elevated variant:
+  `run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix`
+- targeted rerun after the primary peer exists:
+  `run-second-pc-release-check.ps1 -RouteReachabilityTarget PRIMARY-PC -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe`
+- explicit warning that release-grade `post-route` CPU capture is refused
+  without `-RuntimeCpuRouteTarget`
+
+So the action pack README itself now matches the wrapper contract rather than
+the old targetless one-command path.
+
+### 2. Operator action pack verifier
+
+`scripts\windows\verify-operator-action-pack.ps1` now rejects action packs
+whose top-level README or nested multi-device kit README omit:
+
+- `-SkipRuntimeCpuScenarioMatrix`
+- `-RuntimeCpuRouteTarget PRIMARY-PC`
+- the refusal boundary for targetless release-grade `post-route` CPU capture
+
+This means the action pack can no longer pass verification while still telling
+operators to run an obsolete second-PC flow.
+
+### 3. Final operator packet verifier
+
+`scripts\windows\verify-final-operator-gate-packet.ps1` now enforces the same
+targeted-flow requirements in two places:
+
+- top-level `README_FINAL_OPERATOR_GATES.md`
+- nested `README_MULTI_DEVICE_TEST_KIT.md` inside packet `kits\*.zip`
+
+The packet verifier now specifically requires:
+
+- pre-peer `-SkipRuntimeCpuScenarioMatrix`
+- target-bound rerun with `-RuntimeCpuRouteTarget <PRIMARY_PEER_NAME>` or
+  `PRIMARY-PC`
+- refusal text for targetless release-grade `post-route` CPU capture
+
+So the verifier now guards the actual handoff artifact, not only the source
+scripts that generated it.
+
+Validation:
+
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=142`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-102442`
+
+Search terms should include `GOAL v940`, `wiki/1115`,
+`verify-final-operator-gate-packet.ps1`,
+`verify-operator-action-pack.ps1`,
+`-SkipRuntimeCpuScenarioMatrix`,
+`-RuntimeCpuRouteTarget PRIMARY-PC`, and `142/142`.
+
+## 2026-06-08 Operator Artifact Verifier Index (wiki/1116)
+
+MUSU local indexer was refreshed after wiki/1115 and GOAL v940.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `18975 ms`
+
+Indexed context includes the action-pack README generator fix, the packet and
+action-pack verifier checks for targeted second-PC flow, the unchanged green
+`142/142` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v941`, `wiki/1116`, `3104 files`,
+`2891 symbols`, `18975 ms`, `verify-operator-action-pack.ps1`, and `142/142`.

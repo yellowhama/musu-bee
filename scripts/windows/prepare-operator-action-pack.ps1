@@ -153,14 +153,19 @@ Important runtime boundary:
 On the second PC:
 1. Extract $($kitZip.Name) into a normal writable folder, for example Downloads\musu-multidevice.
 2. Open PowerShell in the extracted folder.
-3. Run this one-command release check:
+3. Run this pre-peer install/handoff pass first:
 
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -SkipRuntimeCpuScenarioMatrix
 
-If the primary PC is already registered as a peer on this second PC, use the
-targeted form so the return zip includes route endpoint reachability diagnostics:
+4. After the primary PC is registered as a peer on this second PC, rerun the
+release check with an explicit primary peer target so release-grade `post-route`
+CPU capture is target-bound:
 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget PRIMARY-PC -RuntimeCpuRouteTarget PRIMARY-PC -AllowFailedRuntimeCpuRouteProbe
+
+`run-second-pc-release-check.ps1` now refuses release-grade `post-route` CPU
+capture without `-RuntimeCpuRouteTarget`; keep `-SkipRuntimeCpuScenarioMatrix`
+only for the pre-peer install/handoff pass or other non-release helper runs.
 
 The route targets above must be the primary peer name registered on the second
 PC. Do not use the second PC's own machine name, `localhost`, `127.0.0.1`, or a
@@ -169,7 +174,7 @@ targeted route-attempt CPU evidence.
 
 If certificate trust fails, rerun the one-command check from elevated PowerShell with -MachineTrust:
 
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -MachineTrust -SkipRuntimeCpuScenarioMatrix
 
 Manual fallback:
 

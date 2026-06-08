@@ -7945,4 +7945,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `3104 files`, `2891 symbols`, and `15808 ms`. Search terms should include
   `GOAL v939`, `wiki/1114`, `-SkipRuntimeCpuScenarioMatrix`, and `142/142`.
 
+- 2026-06-08 operator artifact verifiers enforce targeted second-PC flow:
+  wiki/1115 records the action-pack README generator update and the new packet
+  / action-pack verifier checks that require pre-peer `-SkipRuntimeCpuScenarioMatrix`
+  plus targeted reruns with `-RuntimeCpuRouteTarget`. Search terms should
+  include `GOAL v940`, `wiki/1115`, `verify-final-operator-gate-packet.ps1`,
+  `verify-operator-action-pack.ps1`, and `142/142`.
+
+- 2026-06-08 operator artifact verifier index:
+  wiki/1116 records the MUSU local index refresh after wiki/1115 with
+  `3104 files`, `2891 symbols`, and `18975 ms`. Search terms should include
+  `GOAL v941`, `wiki/1116`, `verify-operator-action-pack.ps1`, and `142/142`.
+
 **End of WIKI_INDEX.md.**
