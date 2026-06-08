@@ -20408,3 +20408,73 @@ action-pack verifier checks for targeted second-PC flow, the unchanged green
 
 Search terms should include `GOAL v941`, `wiki/1116`, `3104 files`,
 `2891 symbols`, `18975 ms`, `verify-operator-action-pack.ps1`, and `142/142`.
+
+## 2026-06-08 Final Packet Verifier Checks Shipped Handoff-Status Runtime CPU Guidance (wiki/1117)
+
+`scripts\windows\verify-final-operator-gate-packet.ps1` now inspects the
+embedded `show-final-release-handoff-status.ps1` that ships inside the final
+operator packet, instead of trusting only the packet README and nested kit
+README boundaries.
+
+The verifier adds check `handoff status targeted runtime cpu guidance` and
+requires the shipped status script to contain all of the following:
+
+- `measure_runtime_cpu_scenario_matrix =`
+- `-RouteTarget <PEER_NAME>`
+- `-AllowFailedRouteProbe`
+- `explicit remote route targets`
+
+The pass/fail messages are now:
+
+- `packet handoff status script recommends target-bound runtime CPU matrix capture`
+- `packet handoff status script does not recommend target-bound runtime CPU matrix capture`
+
+This closes a packet-level gap left after wiki/1115. Before this change, the
+packet verifier guaranteed that the README surfaces used the new two-phase
+second-PC flow, but it still could have shipped a stale handoff-status helper
+whose next-step command drifted back toward weaker targetless runtime CPU
+follow-up guidance. With the new check, the final packet only verifies if the
+embedded operator status helper itself still points users at target-bound
+runtime CPU matrix capture.
+
+`scripts\windows\test-release-evidence-verifiers.ps1` now adds helper
+`Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract` and source
+contract case
+`final operator packet verifier requires targeted handoff-status runtime CPU guidance`.
+That contract requires the packet verifier source to keep the new check name,
+the `measure_runtime_cpu_scenario_matrix =` needle, the explicit
+`-RouteTarget <PEER_NAME>` and `-AllowFailedRouteProbe` requirements, the
+`explicit remote route targets` wording, and the new pass message.
+
+Validation:
+
+- full verifier regression:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=143`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-103330`
+
+Search terms should include `GOAL v942`, `wiki/1117`,
+`handoff status targeted runtime cpu guidance`,
+`final operator packet verifier requires targeted handoff-status runtime CPU guidance`,
+`-RouteTarget <PEER_NAME>`, and `143/143`.
+
+## 2026-06-08 Final Packet Handoff-Status Runtime CPU Guidance Index (wiki/1118)
+
+MUSU local indexer was refreshed after wiki/1117 and GOAL v942.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `14111 ms`
+
+Indexed context includes the new packet verifier check for the shipped
+handoff-status script, the source-contract coverage for that check, the green
+`143/143` verifier sweep, and the updated GOAL/WIKI/WIKI_INDEX entries.
+
+Search terms should include `GOAL v943`, `wiki/1118`, `3104 files`,
+`2891 symbols`, `14111 ms`, `verify-final-operator-gate-packet.ps1`, and
+`143/143`.

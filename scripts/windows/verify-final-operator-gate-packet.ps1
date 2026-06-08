@@ -250,6 +250,11 @@ try {
             "packet handoff status script reports action-pack verification" `
             "packet handoff status script does not report action-pack verification or second-PC return import"
         Add-CheckFromCondition `
+            "handoff status targeted runtime cpu guidance" `
+            ($handoffStatusScript -like "*measure_runtime_cpu_scenario_matrix =*" -and $handoffStatusScript -like "*-RouteTarget <PEER_NAME>*" -and $handoffStatusScript -like "*-AllowFailedRouteProbe*" -and $handoffStatusScript -like "*explicit remote route targets*") `
+            "packet handoff status script recommends target-bound runtime CPU matrix capture" `
+            "packet handoff status script does not recommend target-bound runtime CPU matrix capture"
+        Add-CheckFromCondition `
             "handoff status process ownership gate" `
             ($handoffStatusScript -like "*audit-musu-process-ownership.ps1*" -and $handoffStatusScript -like "*process_ownership_verified*" -and $handoffStatusScript -like "*process_ownership = Get-EvidenceRootStatus*" -and $handoffStatusScript -like "*repair-packaged-local-runtime-state.ps1*") `
             "packet handoff status script reports process ownership evidence" `

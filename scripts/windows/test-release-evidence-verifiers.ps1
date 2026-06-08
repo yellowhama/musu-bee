@@ -950,6 +950,27 @@ function Test-FinalOperatorPacketTargetedReleaseCheckContract {
     return $true
 }
 
+function Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"handoff status targeted runtime cpu guidance"',
+        '*measure_runtime_cpu_scenario_matrix =*',
+        '*-RouteTarget <PEER_NAME>*',
+        '*-AllowFailedRouteProbe*',
+        '*explicit remote route targets*',
+        'packet handoff status script recommends target-bound runtime CPU matrix capture'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitProcessAttributionVerifierContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -3657,6 +3678,18 @@ Add-CaseResult `
     -Name "final operator packet surfaces targeted second-PC release-check flow" `
     -Verifier "final operator packet source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalOperatorPacketHandoffStatusTargetedRuntimeCpuOk = Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract -ScriptPath (Join-Path $scriptDir "verify-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketHandoffStatusTargetedRuntimeCpuOk `
+    -Message "final operator packet verifier must check that the shipped handoff-status script recommends target-bound runtime CPU matrix capture"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet verifier requires targeted handoff-status runtime CPU guidance" `
+    -Verifier "final operator packet source contract" `
+    -FixturePath (Join-Path $scriptDir "verify-final-operator-gate-packet.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
 

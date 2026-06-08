@@ -7957,4 +7957,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `3104 files`, `2891 symbols`, and `18975 ms`. Search terms should include
   `GOAL v941`, `wiki/1116`, `verify-operator-action-pack.ps1`, and `142/142`.
 
+- 2026-06-08 final packet verifier checks shipped handoff-status runtime CPU guidance:
+  wiki/1117 records the new `verify-final-operator-gate-packet.ps1` check
+  `handoff status targeted runtime cpu guidance`, which now requires the
+  packet's embedded `show-final-release-handoff-status.ps1` to recommend
+  `measure_runtime_cpu_scenario_matrix = ... -RouteTarget <PEER_NAME>
+  -AllowFailedRouteProbe` and to keep the `explicit remote route targets`
+  wording. Search terms should include `GOAL v942`, `wiki/1117`,
+  `final operator packet verifier requires targeted handoff-status runtime CPU guidance`,
+  `-RouteTarget <PEER_NAME>`, and `143/143`.
+
+- 2026-06-08 final packet handoff-status runtime CPU guidance index:
+  wiki/1118 records the MUSU local index refresh after wiki/1117 with
+  `3104 files`, `2891 symbols`, and `14111 ms`. Search terms should include
+  `GOAL v943`, `wiki/1118`, `verify-final-operator-gate-packet.ps1`, and
+  `143/143`.
+
 **End of WIKI_INDEX.md.**
