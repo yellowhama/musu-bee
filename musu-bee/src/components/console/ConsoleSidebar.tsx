@@ -8,6 +8,7 @@ import { Inbox, Building2, ListTodo, BookOpen, BarChart3, Settings, ScreenShare,
 import { SidebarNavItem } from "./SidebarNavItem";
 import { useConsoleShell } from "./ConsoleShellContext";
 import ThemeToggle from "../ThemeToggle";
+import { MusuLogo } from "@/components/brand/MusuLogo";
 
 const NAV_ITEMS = [
   { id: "home",      href: "/home",      icon: Inbox,       label: "Home" },
@@ -74,26 +75,16 @@ export function ConsoleSidebar({ contextPanel, onNavigate, activePanel }: Consol
           flexShrink: 0,
         }}
       >
-        <Link href="/home" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          {collapsed ? (
+        <Link href="/home" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "12px" }}>
+          <MusuLogo size="header" />
+          {!collapsed && (
             <span
               style={{
-                color: "var(--accent-primary)",
-                fontWeight: 900,
+                color: "var(--fg1)",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 800,
                 fontSize: "24px",
                 letterSpacing: "-0.02em",
-              }}
-            >
-              M
-            </span>
-          ) : (
-            <span
-              style={{
-                color: "var(--accent-primary)",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 900,
-                fontSize: "32px",
-                letterSpacing: "-1px",
               }}
             >
               MUSU

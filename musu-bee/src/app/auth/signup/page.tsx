@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import OAuthButtons from "@/components/OAuthButtons";
+import { MusuLogo } from "@/components/brand/MusuLogo";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -69,15 +70,18 @@ export default function SignupPage() {
         <Link
           href="/"
           style={{
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 800,
             color: "var(--fg1)",
             textDecoration: "none",
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
             marginBottom: 32,
             letterSpacing: "-0.02em",
           }}
         >
+          <MusuLogo size="header" />
           MUSU
         </Link>
 

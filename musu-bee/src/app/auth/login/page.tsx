@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import OAuthButtons from "@/components/OAuthButtons";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";import { MusuLogo } from "@/components/brand/MusuLogo";
 
 function safeReturnPath(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -75,15 +75,18 @@ function LoginPageContent() {
         <Link
           href="/"
           style={{
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 800,
             color: "var(--fg1)",
             textDecoration: "none",
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
             marginBottom: 32,
             letterSpacing: "-0.02em",
           }}
         >
+          <MusuLogo size="header" />
           MUSU
         </Link>
 
