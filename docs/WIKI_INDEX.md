@@ -8073,4 +8073,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v957`, `wiki/1132`, `3104 files`, `2929 symbols`,
   `process ownership surface`, and `146/146`.
 
+- 2026-06-08 shared low-duty poller visibility backoff hardening:
+  wiki/1133 records the shared `useLowDutyPolling` and
+  `views\shared\useLowDutyPolling` change that now tracks
+  `nextAllowedRunAt` and reuses `remainingDelayMs` on visibility wakes instead
+  of bypassing scheduled backoff. Search terms should include `GOAL v958`,
+  `wiki/1133`, `nextAllowedRunAt`, `remainingDelayMs`,
+  `visibility wake respects scheduled backoff`, and `18/18`.
+
+- 2026-06-08 shared low-duty poller visibility backoff hardening index:
+  wiki/1134 records the MUSU local index refresh after wiki/1133 with
+  `3104 files`, `2929 symbols`, and `17701 ms`. Search terms
+  should include `GOAL v959`, `wiki/1134`, `3104 files`, `2929 symbols`,
+  `nextAllowedRunAt`, and `146/146`.
+
 **End of WIKI_INDEX.md.**

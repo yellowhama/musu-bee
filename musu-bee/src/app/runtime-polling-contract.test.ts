@@ -228,5 +228,20 @@ test("shared low-duty polling clamps accidental tight intervals", () => {
   assert.match(text, /effectiveIntervalMs\s*=\s*Math\.max\(intervalMs,\s*MIN_LOW_DUTY_POLL_INTERVAL_MS\)/);
   assert.match(text, /effectiveMaxBackoffMs\s*=\s*Math\.max\(maxBackoffMs,\s*effectiveIntervalMs\)/);
   assert.match(text, /MAX_FAILURE_BACKOFF_EXPONENT\s*=\s*8/);
+  assert.match(text, /let nextAllowedRunAt = 0/);
+  assert.match(text, /nextAllowedRunAt = Date\.now\(\) \+ delayMs/);
+  assert.match(text, /const remainingDelayMs = Math\.max\(0,\s*nextAllowedRunAt - Date\.now\(\)\)/);
+  assert.match(text, /if \(remainingDelayMs > 0\)\s*\{\s*schedule\(remainingDelayMs\)/);
+  assert.doesNotMatch(text, /clearTimer\(\);\s*void run\(\);/);
   assert.match(text, /typeof document !== "undefined"/);
+});
+
+test("MCP app low-duty polling visibility wake respects scheduled backoff", () => {
+  const text = source("views/shared/useLowDutyPolling.ts");
+
+  assert.match(text, /let nextAllowedRunAt = 0/);
+  assert.match(text, /nextAllowedRunAt = Date\.now\(\) \+ delayMs/);
+  assert.match(text, /const remainingDelayMs = Math\.max\(0,\s*nextAllowedRunAt - Date\.now\(\)\)/);
+  assert.match(text, /if \(remainingDelayMs > 0\)\s*\{\s*schedule\(remainingDelayMs\)/);
+  assert.doesNotMatch(text, /clearTimer\(\);\s*void run\(\);/);
 });

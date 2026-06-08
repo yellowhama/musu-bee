@@ -45,6 +45,7 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     let failures = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let controller: AbortController | null = null;
+    let nextAllowedRunAt = 0;
 
     const clearTimer = () => {
       if (timer) {
@@ -64,6 +65,7 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     const schedule = (delayMs = nextDelay()) => {
       if (cancelled) return;
       clearTimer();
+      nextAllowedRunAt = Date.now() + delayMs;
       timer = setTimeout(() => {
         void run();
       }, delayMs);
@@ -100,6 +102,11 @@ export function useLowDutyPolling(task: PollTask, options: LowDutyPollingOptions
     const handleVisibilityChange = () => {
       if (!visibleOnly || !isDocumentVisible()) return;
       clearTimer();
+      const remainingDelayMs = Math.max(0, nextAllowedRunAt - Date.now());
+      if (remainingDelayMs > 0) {
+        schedule(remainingDelayMs);
+        return;
+      }
       void run();
     };
 

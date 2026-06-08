@@ -21189,3 +21189,94 @@ logic, the new Tauri process-summary unit test, the passing desktop audit check
 
 Search terms should include `GOAL v957`, `wiki/1132`, `3104 files`,
 `2929 symbols`, `14440 ms`, `process ownership surface`, and `146/146`.
+
+## 2026-06-08 Shared Low-Duty Poller Visibility Backoff Hardening (wiki/1133)
+
+The shared frontend low-duty poller had one remaining loophole: a visibility
+wake could bypass an already-scheduled failure or hidden-tab backoff.
+
+Before this change, both shared poller copies used this shape:
+
+- `clearTimer();`
+- `void run();`
+
+inside `handleVisibilityChange()`. That meant a failing backend could still be
+retried immediately whenever the tab was refocused, even if the poller had
+already scheduled a longer delay because of repeated failures or hidden-tab
+backoff.
+
+Code changes:
+
+- `musu-bee\src\lib\useLowDutyPolling.ts`
+- `musu-bee\views\shared\useLowDutyPolling.ts`
+  - added `let nextAllowedRunAt = 0`
+  - `schedule(delayMs)` now records
+    `nextAllowedRunAt = Date.now() + delayMs`
+  - `handleVisibilityChange()` now computes
+    `remainingDelayMs = Math.max(0, nextAllowedRunAt - Date.now())`
+  - if a backoff window is still open, the visibility wake reschedules the
+    remaining delay instead of forcing an immediate retry
+  - only when the existing delay has elapsed does the visibility wake call
+    `run()` immediately
+
+Why this matters:
+
+- a hidden tab still wakes promptly when it becomes visible again after its
+  existing low-duty delay has already elapsed
+- a failing backend no longer gets immediate retries just because the operator
+  alt-tabs back and forth
+- the behavior now matches the bounded-SSE hardening done earlier: visibility
+  can resume work, but it cannot silently erase the retry budget
+
+Contract updates:
+
+- `musu-bee\src\app\runtime-polling-contract.test.ts`
+  - new checks for:
+    - `nextAllowedRunAt`
+    - `remainingDelayMs`
+    - rescheduling the remaining delay
+    - absence of the old `clearTimer(); void run();` bypass pattern
+  - app poller and MCP views poller are both covered
+- `scripts\windows\audit-frontend-polling-contract.ps1`
+  - new checks:
+    - `visibility wake tracks next allowed run`
+    - `visibility wake respects scheduled backoff`
+    - `visibility wake does not bypass backoff`
+  - applied to both shared poller copies
+
+Verification:
+
+- `npm run test:runtime-polling`
+  - `18` tests passed
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\audit-frontend-polling-contract.ps1 -Json`
+  - `ok=true`
+  - `fail_count=0`
+  - `low_duty_polling_call_site_count=29`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\test-release-evidence-verifiers.ps1 -Json`
+  - `ok=true`
+  - `case_count=146`
+  - `failed_case_count=0`
+  - output root:
+    `F:\workspace\musu-bee\.local-build\release-evidence-verifier-tests\20260608-122437`
+
+Search terms should include `GOAL v958`, `wiki/1133`, `nextAllowedRunAt`,
+`remainingDelayMs`, `visibility wake respects scheduled backoff`, and `18/18`.
+
+## 2026-06-08 Shared Low-Duty Poller Visibility Backoff Hardening Index (wiki/1134)
+
+MUSU local indexer was refreshed after wiki/1133 and GOAL v958.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2929 symbols`
+- `17701 ms`
+
+Indexed context includes the shared `useLowDutyPolling` and
+`views\shared\useLowDutyPolling` visibility-backoff hardening, the new runtime
+polling contract assertions for `nextAllowedRunAt` and remaining-delay reuse,
+the passing frontend polling audit, and the green `146/146` full verifier
+regression.
+
+Search terms should include `GOAL v959`, `wiki/1134`, `3104 files`,
+`2929 symbols`, `17701 ms`, `nextAllowedRunAt`, and `146/146`.
