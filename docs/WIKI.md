@@ -20558,3 +20558,119 @@ runtime polling test run, and the green low-duty polling inventory audit across
 
 Search terms should include `GOAL v945`, `wiki/1120`, `3104 files`,
 `2891 symbols`, `19849 ms`, `reconnectExhausted`, and `17/17`.
+
+## 2026-06-08 Refreshed One-Machine Packaged Runtime CPU Evidence After SSE Loop Fix (wiki/1121)
+
+After landing the `reconnectExhausted` fix in
+`musu-bee\src\lib\useBoundedEventSource.ts`, current HEAD packaged runtime CPU
+evidence was re-captured to prove the one-machine desktop/runtime surfaces
+still stay under the release idle budget.
+
+Fresh artifact:
+
+- matrix:
+  `F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-104757-HUGH_SECOND\20260608-104757-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Capture facts:
+
+- commit:
+  `1ce8f9b4f1f681f69bc7ec10eaf7a08e28764e7d`
+- `git_dirty=false`
+- packaged MUSU alias:
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`
+- `-OpenDesktopApp`
+- sampled scenarios:
+  - `startup-open`
+  - `runtime-started`
+  - `dashboard-open`
+  - `desktop-open`
+- `sample_seconds=60`
+
+The matrix itself reports:
+
+- `ok=true`
+- `doctor_schema_complete=true`
+- `background_field_fallback_used=false`
+- `runtime_loop_candidate_fallback_used=false`
+- `active_runtime_loop_candidate_count=0`
+- no missing runtime loop candidate keys
+
+The packaged `musu doctor --json` snapshot embedded in the matrix shows all
+runtime loop candidates inactive at capture time:
+
+- `mdns_discovery`
+- `clipboard_polling`
+- `cloud_heartbeat`
+- `file_sync_watch`
+- `relay_target_polling`
+- `autonomous_planner`
+- `health_check_retry`
+- `auto_update_supervisor`
+- `bridge_readiness_wait`
+- `log_telemetry_flush`
+
+Scenario summary:
+
+- `startup-open`
+  - MUSU `0%`
+  - WebView2 `0.05%`
+  - owned node `0`
+  - owned WebView2 `6`
+  - `hot_process_count=0`
+  - working set `376.71MB`
+- `runtime-started`
+  - MUSU `0%`
+  - WebView2 `0.16%`
+  - owned node `0`
+  - owned WebView2 `6`
+  - `hot_process_count=0`
+  - working set `376.92MB`
+- `dashboard-open`
+  - MUSU `0%`
+  - WebView2 `0.03%`
+  - owned node `0`
+  - owned WebView2 `6`
+  - `hot_process_count=0`
+  - working set `376.85MB`
+- `desktop-open`
+  - MUSU `0%`
+  - WebView2 `0.05%`
+  - owned node `0`
+  - owned WebView2 `6`
+  - `hot_process_count=0`
+  - working set `376.87MB`
+
+Dedicated verifier replay:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File F:\workspace\musu-bee\scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath F:\workspace\musu-bee\.local-build\runtime-cpu-scenarios\20260608-104757-HUGH_SECOND\20260608-104757-HUGH_SECOND.runtime-cpu-scenario-matrix.json -RequiredScenarios startup-open,runtime-started,dashboard-open,desktop-open -MinSampleSeconds 60 -MaxOneCorePercent 5 -Json`
+- result:
+  - `ok=true`
+  - `fail_count=0`
+
+This keeps the one-machine packaged evidence green after the frontend SSE loop
+hardening, and it narrows the remaining CPU blocker back down to second-PC /
+two-machine evidence rather than a current local regression.
+
+Search terms should include `GOAL v946`, `wiki/1121`,
+`20260608-104757-HUGH_SECOND`, `active_runtime_loop_candidate_count=0`,
+`runtime-started 0.16`, and `desktop-open 0.05`.
+
+## 2026-06-08 Refreshed One-Machine Packaged Runtime CPU Evidence Index (wiki/1122)
+
+MUSU local indexer was refreshed after wiki/1121 and GOAL v946.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3104 files`
+- `2891 symbols`
+- `37515 ms`
+
+Indexed context includes the fresh current-HEAD packaged 60s runtime CPU
+matrix, the embedded doctor snapshot with `active_runtime_loop_candidate_count=0`,
+the green dedicated verifier replay, and the updated GOAL/WIKI/WIKI_INDEX
+entries.
+
+Search terms should include `GOAL v947`, `wiki/1122`, `3104 files`,
+`2891 symbols`, `37515 ms`, `20260608-104757-HUGH_SECOND`, and
+`active_runtime_loop_candidate_count=0`.

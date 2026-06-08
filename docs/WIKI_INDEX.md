@@ -7985,4 +7985,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `3104 files`, `2891 symbols`, and `19849 ms`. Search terms should include
   `GOAL v945`, `wiki/1120`, `reconnectExhausted`, and `17/17`.
 
+- 2026-06-08 refreshed one-machine packaged runtime CPU evidence after SSE loop fix:
+  wiki/1121 records the fresh current-HEAD packaged 60s matrix
+  `20260608-104757-HUGH_SECOND`, including `startup-open`,
+  `runtime-started`, `dashboard-open`, and `desktop-open`, plus the embedded
+  doctor snapshot with `active_runtime_loop_candidate_count=0`. Search terms
+  should include `GOAL v946`, `wiki/1121`, `runtime-started 0.16`,
+  `desktop-open 0.05`, and `20260608-104757-HUGH_SECOND`.
+
+- 2026-06-08 refreshed one-machine packaged runtime CPU evidence index:
+  wiki/1122 records the MUSU local index refresh after wiki/1121 with
+  `3104 files`, `2891 symbols`, and `37515 ms`. Search terms should include
+  `GOAL v947`, `wiki/1122`, `20260608-104757-HUGH_SECOND`, and
+  `active_runtime_loop_candidate_count=0`.
+
 **End of WIKI_INDEX.md.**
