@@ -3687,6 +3687,39 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         next_steps
             .push("Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into());
     }
+    // Onboarding Phase B: if this machine is not yet signed in to musu.pro,
+    // auto-start the device-flow so the user doesn't have to discover and run
+    // `musu login` separately. Guarded by 3 AND conditions so we never hang a
+    // non-interactive caller:
+    //   1. no account token (not logged in), AND
+    //   2. not --json (JSON callers must stay pure machine output), AND
+    //   3. an interactive TTY (scripts / pipes / CI are excluded).
+    // NOTE: the bridge service (musud / musu-startup) calls `bridge::run()`
+    // directly, NOT run_up, so this auto-login can never fire on service boot.
+    let account_logged_in = crate::cloud::token::load_token(&home).is_some();
+    if !account_logged_in {
+        use std::io::IsTerminal;
+        let interactive = std::io::stdin().is_terminal();
+        if !opts.json && interactive {
+            // Interactive sign-in: run_login prints the code + approval URL and
+            // polls (up to its own timeout). A timeout/error must NOT fail `up`
+            // — downgrade to a warning and let the user retry later.
+            println!("\nThis machine is not yet connected to your musu.pro account.");
+            if let Err(err) = run_login().await {
+                tracing::warn!(error = %err, "auto sign-in during `musu up` did not complete");
+                next_steps.push(
+                    "Sign-in not completed. Run `musu login` to connect this machine to musu.pro."
+                        .into(),
+                );
+            }
+        } else {
+            // Non-interactive or --json: never block; just surface the step.
+            next_steps.push(
+                "This machine is not signed in. Run `musu login` to connect to musu.pro.".into(),
+            );
+        }
+    }
+
     if next_steps.is_empty() {
         if dashboard.reachable_url.is_some() {
             next_steps.push("Open the dashboard and run a first agent task.".into());
