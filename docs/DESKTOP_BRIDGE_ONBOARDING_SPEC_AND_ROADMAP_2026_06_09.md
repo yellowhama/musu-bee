@@ -227,11 +227,23 @@ musu-desktop.exe, runtime alias=musu.exe, startupTask=musu-startup.exe) — NO
 change needed there. Verified: `cargo check` + `cargo test` in src-tauri exit 0,
 16 tests pass incl. the two new startup-sibling tests.
 
+**[2] musu-bee packaged-runtime REBUILD — DONE 2026-06-10 (install pending).**
+`scripts/windows/build-msix.ps1 -GenerateCert` ran a full release build —
+`cargo build --release --bin musu --bin musu-startup` + `npm run tauri -- build
+--no-bundle` (musu-desktop.exe with this session's rewired `spawn_runtime_
+autostart`) — then `winapp pack` + a self-signed cert. Output:
+`.local-build/msix/output/musu_1.15.0.0_x64_local-sideload-manual.msix` (26.5MB,
+signed), cert `blossompark.musu_cert.pfx`. Identity verified = `blossompark.musu`
+/ `CN=74D9382E...` (Store app 9NJ645MQ04T3). This is the LOCAL SIDELOAD package
+(self-signed); the Store re-signs on ingestion. **REINSTALL on a real PC is a
+separate manual step** (`Add-AppxPackage`, after trusting the cert) and was NOT
+done here — it changes the running machine, so it is owner-driven. Artifacts live
+under `.local-build/` (gitignored — never committed).
+
 **Still open (next):**
-- **[2] musu-bee packaged-runtime rebuild/reinstall** — Phase B + desktop
-  unification + blossompark identity (`build-msix.ps1`). Not started. NOW also
-  needs to bundle the rebuilt `musu-startup.exe` + the rewired `musu-desktop.exe`
-  so [3]'s wiring actually runs on a real PC.
+- **[2-install] Sideload onto a real PC + one-machine E2E** — install the .msix,
+  launch MUSU Desktop, confirm `musu-startup open` fires device-flow, approve at
+  musu.pro, see the node connect. Owner-driven.
 - **SetupWizard `/device?code=` prefill** (musu-pro front) — minor, deferred.
 - **§10.1 cockpit GUI** — the native fleet-cockpit window (this session's GUI
   direction) is design-only so far; the shell currently still loads the web UI.
