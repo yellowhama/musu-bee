@@ -1,27 +1,14 @@
-import { getBridgeUrl } from '../../../lib/bridge-config';
-import { NextRequest, NextResponse } from "next/server";
-import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
-import { getBridgeToken } from "@/lib/bridge-token";
+import { NextRequest } from "next/server";
 
-const ALLOWED_PARAMS = new Set(["status", "limit", "before_id", "channel", "company_id"]);
+import { proxyToBridge } from "@/lib/bridge-proxy";
 
-function bridgeUrl(): string {
-  return getBridgeUrl().replace(/\/+$/, "");
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const url = new URL(`${bridgeUrl()}/api/tasks`);
-    req.nextUrl.searchParams.forEach((value, key) => {
-      if (ALLOWED_PARAMS.has(key)) url.searchParams.set(key, value);
-    });
-    const res = await fetch(url.toString(), {
-      headers: buildBridgeHeaders(await getBridgeToken()),
-      cache: "no-store",
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch {
-    return NextResponse.json({ error: "musu-bridge unavailable" }, { status: 503 });
-  }
-}
+// Migrated onto the shared proxyToBridge helper (TS SDK phase 0).
+// Behavior-preserving: json parse mode (original `res.json()` → malformed
+// upstream → 503), forwards only the ALLOWED_PARAMS allowlist, no-store
+// cache + "musu-bridge unavailable" 503 message are the helper defaults.
+export const GET = (req: NextRequest) =>
+  proxyToBridge(req, {
+    targetPath: "/api/tasks",
+    allowedParams: ["status", "limit", "before_id", "channel", "company_id"],
+    parse: "json",
+  });
