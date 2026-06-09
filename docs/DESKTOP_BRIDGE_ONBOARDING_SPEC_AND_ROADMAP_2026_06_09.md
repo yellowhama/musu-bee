@@ -207,11 +207,32 @@ moved; do not re-derive them from the older sections.
 - musu-bee Rust changes (Phase B + Phase 1 desktop-unification + login extract):
   ⏳ still need a packaged-runtime rebuild/reinstall to take effect on a real PC.
 
+**[3] MSIX Tauri shell wiring — DONE 2026-06-10.** Correction: the Tauri shell
+is NOT outside this checkout (§9 was wrong) — it lives at
+`musu-bee/musu-bee/src-tauri/` (a separate Cargo crate `musu-desktop`). Found the
+real gap: on launch the shell ran `musu.exe up --json`, and `--json` is exactly
+the non-interactive guard that SKIPS device-flow — so the "desktop unification"
+device-flow never fired from the GUI. Fixed in `src-tauri/src/lib.rs`:
+`spawn_runtime_autostart` now spawns `musu-startup.exe open` fire-and-forget
+(detached: musu-startup holds the bridge in its own foreground and runs
+device-flow as a detached task, so waiting on it with a 45s timeout would block
+the GUI thread for the whole 900s poll). Added `musu_startup_path()` +
+`sibling_exe_for_current_exe()` (resolves `musu-startup.exe` next to the desktop
+binary, same packaging layout as `musu.exe`). Legacy `musu up --json` kept as a
+fallback when `musu-startup.exe` is missing (non-packaged dev runs). The MSIX
+`windows.startupTask` STAYS argless (= Service / bridge-only) — only the desktop-
+window launch path uses `open`, so logon/service boot never triggers interactive
+device-flow. `build-msix.ps1` already maps all three exes (Application=
+musu-desktop.exe, runtime alias=musu.exe, startupTask=musu-startup.exe) — NO
+change needed there. Verified: `cargo check` + `cargo test` in src-tauri exit 0,
+16 tests pass incl. the two new startup-sibling tests.
+
 **Still open (next):**
 - **[2] musu-bee packaged-runtime rebuild/reinstall** — Phase B + desktop
-  unification + blossompark identity (`build-msix.ps1`). Not started.
-- **[3] MSIX Tauri shell wiring** — `musu-desktop.exe` (Tauri shell, OUTSIDE this
-  checkout — find `src-tauri/` first) must invoke `musu-startup.exe open`;
-  `windows.startupTask` stays argless. This now also grows into the §10.1 cockpit
-  GUI rather than a bare launcher. Not started.
+  unification + blossompark identity (`build-msix.ps1`). Not started. NOW also
+  needs to bundle the rebuilt `musu-startup.exe` + the rewired `musu-desktop.exe`
+  so [3]'s wiring actually runs on a real PC.
 - **SetupWizard `/device?code=` prefill** (musu-pro front) — minor, deferred.
+- **§10.1 cockpit GUI** — the native fleet-cockpit window (this session's GUI
+  direction) is design-only so far; the shell currently still loads the web UI.
+  Building the cockpit is a separate, larger piece.

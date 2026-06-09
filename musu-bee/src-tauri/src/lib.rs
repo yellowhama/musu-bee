@@ -1048,24 +1048,67 @@ fn spawn_runtime_autostart() {
                 return;
             };
 
-            let command = musu_command_path();
-            match run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT) {
-                Ok(result) if result.status_success => {
-                    eprintln!("MUSU runtime autostart completed.");
-                }
-                Ok(result) => {
+            // User launch (the desktop app window opened) == the UserOpen path:
+            // hand off to `musu-startup open`, which (per DESKTOP_BRIDGE_ONBOARDING
+            // _SPEC §10) ensures the bridge AND, if there is no account token,
+            // starts the device-flow that opens the approval page. This is
+            // fire-and-forget: musu-startup holds the bridge in its OWN
+            // foreground and runs device-flow as a detached task, so we must NOT
+            // wait on it with run_command_with_timeout — a 900s device-flow poll
+            // would otherwise block this thread for the full timeout. We spawn
+            // detached and return; the UI polls bridge health independently.
+            //
+            // NOTE: bare/`--service` startup (the MSIX windows.startupTask) stays
+            // bridge-only by design; only this desktop-window launch path uses
+            // `open`, so service boot never triggers an interactive device-flow.
+            let startup = musu_startup_path();
+            match std::process::Command::new(&startup)
+                .arg("open")
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+            {
+                Ok(_child) => {
+                    // Hold the gate only until the handoff is launched; drop it so
+                    // a later manual "start runtime" is not permanently blocked by
+                    // a long-lived musu-startup process.
                     eprintln!(
-                        "MUSU runtime autostart failed: {}; timed_out={}; stderr={}",
-                        result.status_detail,
-                        result.timed_out,
-                        result.stderr.trim()
+                        "MUSU desktop launch: handed off to `{} open` (device-flow + bridge).",
+                        startup.display()
                     );
                 }
                 Err(err) => {
+                    // Fall back to the legacy synchronous `musu up --json` so the
+                    // bridge still comes up even if musu-startup is missing
+                    // (e.g. non-packaged dev run). Device-flow auto-login is
+                    // skipped in this fallback (--json guard), matching prior
+                    // behavior.
                     eprintln!(
-                        "MUSU runtime autostart failed to spawn {}: {err}",
-                        command.display()
+                        "MUSU desktop launch: `{} open` spawn failed ({err}); falling back to `musu up --json`.",
+                        startup.display()
                     );
+                    let command = musu_command_path();
+                    match run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
+                    {
+                        Ok(result) if result.status_success => {
+                            eprintln!("MUSU runtime autostart completed (fallback).");
+                        }
+                        Ok(result) => {
+                            eprintln!(
+                                "MUSU runtime autostart failed (fallback): {}; timed_out={}; stderr={}",
+                                result.status_detail,
+                                result.timed_out,
+                                result.stderr.trim()
+                            );
+                        }
+                        Err(err) => {
+                            eprintln!(
+                                "MUSU runtime autostart failed to spawn {} (fallback): {err}",
+                                command.display()
+                            );
+                        }
+                    }
                 }
             }
         });
@@ -1092,14 +1135,38 @@ fn musu_command_path_for_current_exe(
     current_exe: &std::path::Path,
     exists: impl Fn(&std::path::Path) -> bool,
 ) -> std::path::PathBuf {
-    let runtime_name = musu_runtime_exe_name();
+    sibling_exe_for_current_exe(current_exe, musu_runtime_exe_name(), exists)
+}
+
+/// Resolve `musu-startup.exe` next to the running desktop binary, falling back to
+/// the bare name (rely on PATH) when no packaged sibling exists. Mirrors
+/// [`musu_command_path`] but for the device-flow startup binary the MSIX package
+/// ships alongside `musu.exe` (see `scripts/windows/build-msix.ps1`
+/// `StartupExecutable`).
+fn musu_startup_path() -> std::path::PathBuf {
+    let startup_name = musu_startup_exe_name();
+    match std::env::current_exe() {
+        Ok(current_exe) => {
+            sibling_exe_for_current_exe(&current_exe, startup_name, |path| path.exists())
+        }
+        Err(_) => std::path::PathBuf::from(startup_name),
+    }
+}
+
+/// Shared sibling-resolution: prefer `<dir of current exe>/<exe_name>`, else the
+/// bare name. Used for both `musu.exe` and `musu-startup.exe`.
+fn sibling_exe_for_current_exe(
+    current_exe: &std::path::Path,
+    exe_name: &str,
+    exists: impl Fn(&std::path::Path) -> bool,
+) -> std::path::PathBuf {
     if let Some(parent) = current_exe.parent() {
-        let sibling = parent.join(runtime_name);
+        let sibling = parent.join(exe_name);
         if exists(&sibling) {
             return sibling;
         }
     }
-    std::path::PathBuf::from(runtime_name)
+    std::path::PathBuf::from(exe_name)
 }
 
 fn musu_runtime_exe_name() -> &'static str {
@@ -1107,6 +1174,14 @@ fn musu_runtime_exe_name() -> &'static str {
         "musu.exe"
     } else {
         "musu"
+    }
+}
+
+fn musu_startup_exe_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "musu-startup.exe"
+    } else {
+        "musu-startup"
     }
 }
 
@@ -1231,7 +1306,7 @@ mod tests {
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
         can_start_runtime, developer_dashboard_surface_enabled_for, is_local_dashboard_url,
         musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
-        summarize_process_ownership, ProcessEntry, RuntimeStartGate,
+        sibling_exe_for_current_exe, summarize_process_ownership, ProcessEntry, RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -1329,6 +1404,54 @@ mod tests {
                 "musu.exe"
             } else {
                 "musu"
+            })
+        );
+    }
+
+    #[test]
+    fn startup_command_prefers_packaged_sibling() {
+        let desktop_exe = if cfg!(target_os = "windows") {
+            std::path::PathBuf::from(
+                r"C:\Program Files\WindowsApps\Yellowhama.MUSU\musu-desktop.exe",
+            )
+        } else {
+            std::path::PathBuf::from("/opt/musu/musu-desktop")
+        };
+        let expected_startup = desktop_exe
+            .parent()
+            .unwrap()
+            .join(if cfg!(target_os = "windows") {
+                "musu-startup.exe"
+            } else {
+                "musu-startup"
+            });
+
+        let resolved = sibling_exe_for_current_exe(
+            &desktop_exe,
+            super::musu_startup_exe_name(),
+            |path| path == expected_startup,
+        );
+
+        assert_eq!(resolved, expected_startup);
+    }
+
+    #[test]
+    fn startup_command_falls_back_to_path_name_when_sibling_missing() {
+        let desktop_exe = if cfg!(target_os = "windows") {
+            std::path::PathBuf::from(r"C:\Temp\musu-desktop.exe")
+        } else {
+            std::path::PathBuf::from("/tmp/musu-desktop")
+        };
+
+        let resolved =
+            sibling_exe_for_current_exe(&desktop_exe, super::musu_startup_exe_name(), |_| false);
+
+        assert_eq!(
+            resolved,
+            std::path::PathBuf::from(if cfg!(target_os = "windows") {
+                "musu-startup.exe"
+            } else {
+                "musu-startup"
             })
         );
     }
