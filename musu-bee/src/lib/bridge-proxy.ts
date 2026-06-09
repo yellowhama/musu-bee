@@ -30,6 +30,13 @@ export interface ProxyOptions {
   cache?: "no-store" | "default";
   /** Error body message on the 503 fallback. Default "musu-bridge unavailable". */
   errorMessage?: string;
+  /**
+   * When true, a 204 upstream returns an empty `NextResponse(null, 204)` rather
+   * than a JSON-wrapped empty body. Off by default to keep existing callers
+   * byte-identical; routes that proxy DELETE/PATCH (which legitimately 204)
+   * opt in.
+   */
+  emptyOn204?: boolean;
 }
 
 function bridgeBase(): string {
@@ -67,6 +74,10 @@ export async function proxyToBridge(
       body,
       cache: opts.cache ?? "no-store",
     });
+
+    if (opts.emptyOn204 && res.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
 
     if (parse === "json") {
       // Throws on malformed body → caught below → 503 (dedicated-route contract).
