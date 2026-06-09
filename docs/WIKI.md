@@ -21650,3 +21650,15 @@ Extracted the catch-all's bridge-proxy logic into `src/lib/bridge-proxy.ts` (`pr
 ## wiki/1147 — 2026-06-09 session code-audit + re-index (GOAL v972)
 
 Post-session audit of the new code found HIGH 0 (device-flow security controls all verified correct; adapters + SDK clean). Fixed 3 MEDIUM node-registry defense-in-depth items (created_at race → atomic Lua; cross-owner isolation filter on getOwnerNodes; length-limit tests). Re-indexed: 3138 files, 3100 symbols, 90921 ms.
+
+## wiki/1148 — 2026-06-09 `musu login` live + musu.pro deployed (GOAL v973)
+
+`musu login` worked end-to-end on live musu.pro for the first time, removing the device-flow blocker. Root cause of the prior 404: live musu.pro served an OLD pages-router build (no device-flow) AND `MUSU_SITE_DISABLED` defaulted true → proxy 503'd everything. Deploy repo is `F:\Aisaak\Projects\musu-pro` (Vercel `vibecode-town`), not musu-bee. Fix: `vercel --prod` + `MUSU_SITE_DISABLED=false` + redeploy. Verified: POST /api/v1/auth/device → 200; user approved at /device; CLI completed login + node register + `~/.musu/token`. musu-pro device-flow is DB-based (account_tokens), no raw control-token env needed.
+
+## wiki/1149 — 2026-06-09 onboarding discoverability: `musu up` everywhere (GOAL v974)
+
+install.ps1/.sh + SetupWizard now lead with `musu up` for sign-in (Phase A musu-pro b055eee, Phase C musu-pro 3296fed); `musu up` auto-starts device-flow when unlogged, guarded by not-logged-in AND !--json AND TTY (Phase B musu-bee c2487700). Service boot (bridge::run) never triggers device-flow.
+
+## wiki/1150 — 2026-06-09 MUSU Desktop unification Phase 1 (GOAL v975)
+
+musu-startup now folds bridge + login into one "open the app" sequence: `musu-startup open` (user launch) runs ensure-bridge → token check → device-flow (opens browser to approve) with the 900s poll as a detached task so the bridge stays up in foreground; bare/`--service` (logon task) stays bridge-only. run_login decomposed (DeviceFlow + initiate + poll_and_finalize + run_desktop_login). NO Tauri — browser /device + dashboard are the UI. Remaining: MSIX Tauri shell must invoke `musu-startup.exe open`. Spec: DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md.
