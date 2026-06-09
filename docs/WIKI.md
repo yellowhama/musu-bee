@@ -21630,3 +21630,23 @@ Search terms should include `GOAL v967`, `wiki/1142`, `3104 files`,
 
 
 - 2026-06-08 Bridge Manager UI integration: Added `BridgeManager.tsx` to handle 1-click install/update for local bridge, polling bridge `/api/admin/node-info` and triggering update via `POST /api/bridge/system/update`. This satisfies the CEO's mandate for UI-driven 1-click update management, moving away from CLI-centric workflows. It integrates directly into the global sidebar (`Sidebar.tsx`) with status indicators (online, offline, out of date).
+
+## wiki/1143 — 2026-06-09 Full-codebase audit + 10 HIGH fixes (GOAL v968)
+
+A 9-domain adversarial audit (79 raw → 59 verified: HIGH 11 / MED 23 / LOW 19 / INFO 6) drove fixes for all 10 actionable HIGH findings on branch `fix/audit-findings-2026-06-08` (PR #9): UTF-8 panic, KV result validation, evidence SHA256 integrity, control-token consolidation, work-order claim/delivery atomicity (Lua + `kvScript.ts`), AI-CLI spawn hardening (`aiCliSpawn.ts`), Next.js 16 CVE clearance, EventSource/hydration fixes. H2 (relay-path source identity) deferred as a known-issue (`docs/AUDIT_H2_KNOWN_ISSUE_PEER_IDENTITY_2026_06_09.md`) — the obvious server-stamping fix gives false assurance because the stamped key is node-self-asserted; a real fix needs TOFU/proof-of-possession node identity first.
+
+## wiki/1144 — 2026-06-09 `musu login` unblocked: device-flow + node-registry endpoints (GOAL v969)
+
+`musu login` was 404ing because `https://musu.pro/api/v1/auth/device` was never implemented server-side — no P2P control token was ever issued, blocking the entire one-machine MUSU.PRO E2E. Implemented an RFC-8628 device authorization flow (`api/v1/auth/device` start+poll, `/approve`, `/link` page, `deviceCodeStore.ts`) plus the `POST /api/v1/nodes/register` + `GET /api/v1/nodes` owner-scoped registry the Rust client auto-calls after login. Hardened: KV-atomic brute-force counter, device_code in POST body (not URL), fail-closed `MUSU_DEVICE_APPROVER_USER_IDS` allowlist, CSRF Origin check, owner from server `getUser()` only. Remaining gate: operator sets `MUSU_P2P_CONTROL_TOKEN` + approver ids and deploys musu.pro.
+
+## wiki/1145 — 2026-06-09 codex/gemini CLI adapters (GOAL v970)
+
+Recon correction: `musu-rs/src/adapter/` already had a committed trait-based adapter system (claude + OpenAI-compat HTTP). codex/gemini are JSONL CLI subprocesses (confirmed by real spike), so they got dedicated adapters (`cli_common.rs`, `codex.rs`, `gemini.rs`) on the existing registry. Operator-env-only binary resolution; claude + writer hot path byte-identical. Wiring into the writer hot path is the deferred M3/W12 unification.
+
+## wiki/1146 — 2026-06-09 internal TS SDK: proxyToBridge (GOAL v971)
+
+Extracted the catch-all's bridge-proxy logic into `src/lib/bridge-proxy.ts` (`proxyToBridge`) and migrated 7 routes onto it. `parse: "text"|"json"` is an explicit option because the two conventions differ in error contract (text=raw fallback never 503; json=throw→503) — preventing silent contract flips. Routes with graceful 200-on-error or transform logic (cos-synthesis, nodes/discovered, agents, chat, device-status, history, wiki) excluded.
+
+## wiki/1147 — 2026-06-09 session code-audit + re-index (GOAL v972)
+
+Post-session audit of the new code found HIGH 0 (device-flow security controls all verified correct; adapters + SDK clean). Fixed 3 MEDIUM node-registry defense-in-depth items (created_at race → atomic Lua; cross-owner isolation filter on getOwnerNodes; length-limit tests). Re-indexed: 3138 files, 3100 symbols, 90921 ms.
