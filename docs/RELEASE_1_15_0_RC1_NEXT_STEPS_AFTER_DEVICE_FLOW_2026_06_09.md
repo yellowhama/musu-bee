@@ -30,6 +30,42 @@ Branch: `fix/audit-findings-2026-06-08` (PR #9)
    current single-owner / few-PCs scale; must be closed (TOFU pinning or
    proof-of-possession) before any multi-owner or untrusted-peer deployment.
 
+## ⛔ DEPLOY BLOCKER — resolve before any musu.pro deploy (2026-06-09 investigation)
+
+A pre-deploy investigation found a **3-way codebase mismatch** that must be
+resolved by the owner before this session's device-flow can reach musu.pro:
+
+- **Live musu.pro** currently serves an OLD **pages-router** build (response
+  shows `pages/404`, `_buildManifest`) with NO device-flow endpoint — this is
+  the real reason `musu login` got a 404, independent of env. Deployed via the
+  Vercel project `musu-pro` (team `team_rx99...`), pushed manually by CLI
+  (yellowhama) — preview deploys as recent as minutes ago, so the project is
+  active, NOT offline.
+- **`F:/Aisaak/Projects/musu-pro`** (App Router) has a DB/Supabase-based
+  device-flow (`device_codes.repo`), is on a different GitHub repo
+  (`yellowhama/musu-pro`), git last commit 2026-05-27 "take site offline during
+  migration". This is NOT the same code as what's live, and NOT the same as
+  musu-bee.
+- **`F:/workspace/musu-bee`** (this session's work) has a KV-based device-flow
+  (`deviceCodeStore.ts`), is the `yellowhama/musu-bee` repo, and has **no Vercel
+  link and no env configured**.
+
+**SWOT verdict: do NOT auto-deploy.** The threat (deploying the wrong codebase
+to production musu.pro, or deploying musu-bee with zero env → Supabase auth
+crash at runtime) outweighs the benefit. Which codebase IS the canonical
+musu.pro is a product-architecture decision for the owner, not an autonomous
+call. Required owner decisions before deploy:
+
+1. **Which repo is canonical musu.pro?** musu-bee (then: link the `musu-pro`
+   Vercel project to musu-bee code + migrate ALL env) or musu-pro (then: this
+   session's musu-bee device-flow is not the deploy target — musu-pro already
+   has its own).
+2. If musu-bee: provision env on the Vercel project (Supabase URL/anon/service,
+   relay url/secret, AND the device-flow secrets MUSU_P2P_CONTROL_TOKEN +
+   MUSU_DEVICE_APPROVER_USER_IDS). None are set today.
+3. Deploy **preview first** (`vercel` without `--prod`) to validate device-flow
+   live before touching production.
+
 ## The remaining critical path to one-machine MUSU.PRO E2E
 
 These are now the ordered blockers (all server-side code exists; the rest is
