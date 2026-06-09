@@ -37,18 +37,38 @@ Run the installation command. This sets up your `~/.musu/` directory and creates
 ./target/release/musu install
 ```
 
-### 3. Login to musu.pro (Required for Auto-Discovery)
+### 3. Connect this machine (`musu up`)
 
-To enable mDNS local discovery and cloud routing, you must authenticate your node.
+To enable mDNS local discovery and cloud routing, this machine must be linked to
+your MUSU account. The recommended path starts the bridge **and** the sign-in in
+one step:
 
 ```bash
-musu login
+musu up
 ```
-*Follow the OAuth prompt in your browser. This will save a secure token to `~/.musu/token`.*
 
-### 4. Start the Bridge
+When this machine has no account token yet, `musu up` (on an interactive
+terminal) starts the device-flow login automatically: it prints a code and opens
+`https://musu.pro/device?code=...`. **Approve it in the browser** (you must
+already be signed in to musu.pro), and the token is saved to `~/.musu/token` and
+the node is registered. The MUSU Desktop app does the same on launch (no terminal
+needed) — see
+[`DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md`](DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md).
 
-Start the local bridge. The bridge automatically assigns a dynamic port (saved in `~/.musu/services/bridge.json`) and begins broadcasting its presence via mDNS to other local nodes.
+> Device-flow (RFC 8628), not OAuth-redirect: the code originates on THIS
+> machine because the token must land on this machine; the browser only approves.
+> The poll is a `POST /api/v1/auth/device` with the `device_code` in the body
+> (the legacy `GET ?device_code=` form is deprecated). Login is live on musu.pro.
+
+If you prefer to sign in without starting the bridge, run `musu login` instead;
+in non-interactive contexts (CI, service/systemd, `--json`) auto-login is skipped
+by design and you must run `musu login` explicitly.
+
+### 4. Start the Bridge (if you didn't use `musu up`)
+
+`musu up` already starts the bridge. To run it standalone: the bridge
+automatically assigns a dynamic port (saved in `~/.musu/services/bridge.json`)
+and broadcasts its presence via mDNS to other local nodes.
 
 ```bash
 musu bridge

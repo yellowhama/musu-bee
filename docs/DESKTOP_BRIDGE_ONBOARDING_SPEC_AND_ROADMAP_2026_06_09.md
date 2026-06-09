@@ -143,10 +143,19 @@ Two tracks landed on `fix/audit-findings-2026-06-08`:
   `poll_and_finalize(quiet)` + `run_desktop_login`; CLI `run_login` unchanged.
 - **No native GUI added** (no Tauri) — browser `/device` + dashboard are the UI.
 
-**GUI decision (recorded):** NO native window now. Rationale: the approval UI
-(`LinkApprovalForm` at musu.pro/device) and status (`/dashboard/fleet`) already
-exist in the browser; adding Tauri/egui is YAGNI at single-user / few-PCs scale.
-Tray/window deferred to a future phase if demand is proven.
+**GUI decision (SUPERSEDED 2026-06-10):** The earlier "NO native window, browser
+is the UI" call has been reversed by product direction. See §10.
+
+> ~~NO native window now. Rationale: the approval UI (`LinkApprovalForm` at
+> musu.pro/device) and status (`/dashboard/fleet`) already exist in the browser;
+> adding Tauri/egui is YAGNI at single-user / few-PCs scale.~~ — superseded.
+
+Why reversed: the product's identity is "other AI desktops connect to *their*
+company's servers; MUSU connects to *your* computers." Like Claude/Codex
+Desktop, everything should happen **inside the desktop app** — see your fleet,
+give orders — not in a separate browser tab. The browser (musu.pro) becomes the
+*fallback* surface for machines that can't install the desktop app, not the
+primary one. This is not GUI-for-GUI's-sake: it is the product's core framing.
 
 ## 9. Remaining work (NOT done this session)
 
@@ -160,5 +169,49 @@ Tray/window deferred to a future phase if demand is proven.
 - **SetupWizard `/device?code=` prefill** (Phase 2, musu-pro front): have
   `LinkApprovalForm` read the `code` query param so the deep link pre-fills.
 - **Phase 2 status panel / Phase 3 tray** — deferred.
-- **Deploy**: musu-pro Phase A/C changes need a musu.pro redeploy; musu-bee
-  Rust changes need a packaged-runtime rebuild/reinstall.
+
+## 10. Session update 2026-06-10 (what changed since §8)
+
+**READ THIS FIRST if you are a new agent picking up desktop work.** Three things
+moved; do not re-derive them from the older sections.
+
+1. **GUI direction REVERSED (see §8 supersede note).** The desktop app IS getting
+   a native shell: **tray-resident + opens into a "fleet cockpit" window.** It is
+   the primary surface (everything happens in-app: see your computers, give
+   orders); musu.pro web is the *fallback* for machines without the desktop app.
+   Full direction recorded in memory `decision-musu-desktop-gui-direction`.
+   The plumbing (connection path LAN/Tailscale/relay, latency, tokens,
+   device-flow stages) stays HIDDEN — "the user just wants it to work." Surface a
+   problem only when there is one, paired with a fix button.
+
+2. **device-flow poll contract FIXED (live).** A cross-repo bug was found and
+   fixed: the musu-rs client polls via `POST /api/v1/auth/device` with
+   `{device_code}` in the BODY (H-2: secret must not be in the query string), but
+   the musu.pro server only accepted the legacy `GET ?device_code=`. A POST poll
+   was misread as a fresh START, so login could never complete. Fixed in
+   musu-pro `8644484`: POST now disambiguates by body shape (device_code = poll,
+   else = start), poll logic shared with the deprecated GET. **Deployed + live-
+   verified**: POST+body poll returns 202 `{status:"pending"}` (was 200 start).
+   New clients MUST POST; the GET form is deprecated-but-kept.
+
+3. **login family EXTRACTED.** The login code (`DeviceFlow`,
+   `initiate_device_flow`, `poll_and_finalize`, `run_login`, `run_desktop_login`,
+   logout/whoami + tests) moved OUT of the 6481-line `cli_commands.rs` into
+   `install/cli_commands/device_login.rs` (a child module; `pub use` re-exports
+   keep call sites unchanged). musu-bee `61ed33b5`. If you are looking for login
+   code, it is NO LONGER in cli_commands.rs — look in device_login.rs.
+
+**Deploy status (updated):**
+- musu-pro Phase A/C + migration: ✅ DEPLOYED to musu.pro (`dpl_4Py9...`).
+- musu-pro poll-fix: ✅ DEPLOYED + verified (`dpl_4PAYo...`).
+- musu-bee Rust changes (Phase B + Phase 1 desktop-unification + login extract):
+  ⏳ still need a packaged-runtime rebuild/reinstall to take effect on a real PC.
+
+**Still open (next):**
+- **[2] musu-bee packaged-runtime rebuild/reinstall** — Phase B + desktop
+  unification + blossompark identity (`build-msix.ps1`). Not started.
+- **[3] MSIX Tauri shell wiring** — `musu-desktop.exe` (Tauri shell, OUTSIDE this
+  checkout — find `src-tauri/` first) must invoke `musu-startup.exe open`;
+  `windows.startupTask` stays argless. This now also grows into the §10.1 cockpit
+  GUI rather than a bare launcher. Not started.
+- **SetupWizard `/device?code=` prefill** (musu-pro front) — minor, deferred.
