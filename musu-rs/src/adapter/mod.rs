@@ -118,6 +118,9 @@ pub trait Adapter: Send + Sync {
 }
 
 pub mod claude;
+pub mod cli_common;
+pub mod codex;
+pub mod gemini;
 pub mod openai_compat;
 pub mod registry;
 
