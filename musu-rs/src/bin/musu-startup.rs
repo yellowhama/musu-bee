@@ -209,6 +209,13 @@ mod tests {
 /// If this machine has no account token yet, spawn the device-flow login as a
 /// detached background task. Fast path: if already logged in, this is a no-op
 /// (idempotent re-launch, per spec §4 / §6).
+///
+/// Login failure is intentionally NON-FATAL: the detached task records the
+/// outcome into `startup-marker.json` (`device-flow-failed` + the error string)
+/// and exits, while `bridge::run()` keeps the foreground. An operator debugging
+/// a stuck login must read the marker — there is no terminal to print to. This
+/// is a deliberate tradeoff (DESKTOP_BRIDGE_ONBOARDING_SPEC §4, MEDIUM-1): the
+/// bridge coming up must never depend on the cloud round-trip succeeding.
 fn spawn_desktop_login_if_needed(musu_home: &Path) {
     if musu_rs::cloud::token::load_token(musu_home).is_some() {
         tracing::info!("desktop launch: account token present, skipping device-flow");
