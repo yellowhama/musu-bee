@@ -173,6 +173,55 @@ test("POST ignores client-supplied user_id/owner_key (strict schema 400)", async
   });
 });
 
+test("POST rejects oversized node_name with 400 (no silent truncation)", async () => {
+  await withRegistryEnv(async () => {
+    const { POST } = await loadRegister("oversized-name");
+    // 129 chars > MAX_NODE_NAME_CHARS (128): must be REJECTED at the Zod layer,
+    // not silently sliced to 128 (which could miss an existing-node match).
+    const res = await POST(
+      postReq({ node_name: "n".repeat(129), public_url: "https://a" })
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_register_node_request");
+    assert.ok(
+      body.issues.some((issue) => issue.path === "node_name"),
+      "the rejected field is node_name"
+    );
+  });
+});
+
+test("POST accepts a node_name at the 128-char limit (boundary, valid)", async () => {
+  await withRegistryEnv(async () => {
+    const { POST } = await loadRegister("max-name");
+    const name = "n".repeat(128);
+    const res = await POST(postReq({ node_name: name, public_url: "https://a" }));
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as { node_name: string };
+    assert.equal(body.node_name, name, "exactly-128 name is preserved unchanged");
+  });
+});
+
+test("POST rejects oversized public_url with 400", async () => {
+  await withRegistryEnv(async () => {
+    const { POST } = await loadRegister("oversized-url");
+    // 513 chars > MAX_URL_CHARS (512): rejected, not truncated.
+    const res = await POST(
+      postReq({ node_name: "alpha", public_url: "https://" + "a".repeat(513) })
+    );
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.error, "invalid_register_node_request");
+    assert.ok(body.issues.some((issue) => issue.path === "public_url"));
+  });
+});
+
 test("GET without bearer is rejected (401)", async () => {
   await withRegistryEnv(async () => {
     const { GET } = await loadList("list-no-token");

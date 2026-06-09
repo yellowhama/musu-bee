@@ -112,6 +112,14 @@ async function kvGet<T>(key: string): Promise<T | null> {
 //
 // UPSERT: drop any existing row with the same node_name, prepend the new row,
 // keep only still-fresh rows up to max_records, and refresh the key TTL.
+//
+// created_at preservation is done HERE, under the EVAL lock, not by an
+// out-of-lock pre-read: when the current array already holds a row with the
+// same node_name, copy ITS created_at onto the incoming node before insert.
+// This is atomic — a concurrent re-register cannot clobber a newer created_at
+// with a stale one read outside the lock. Each EVAL runs single-threaded, so
+// the last writer always sees the canonical existing created_at and carries it
+// forward unchanged.
 const KV_UPSERT_NODE_SCRIPT = `
 -- musu_node_registry_upsert_v1
 local key = KEYS[1]
@@ -130,6 +138,19 @@ if raw then
   end
 end
 
+-- Atomically preserve the existing row's created_at for this node_name. The
+-- incoming node's created_at (built by buildStoredNode) is treated as the
+-- default for a brand-new node only.
+for _, item in ipairs(current) do
+  if type(item) == "table"
+    and item.node_name == node.node_name
+    and type(item.created_at) == "string"
+    and #item.created_at > 0 then
+    node.created_at = item.created_at
+    break
+  end
+end
+
 local next_nodes = {}
 table.insert(next_nodes, node)
 for _, item in ipairs(current) do
@@ -144,7 +165,9 @@ for _, item in ipairs(current) do
 end
 
 redis.call("SET", key, cjson.encode(next_nodes), "EX", ex_seconds)
-return cjson.encode({ ok = true })
+-- Return the canonical stored node (with its preserved created_at) so the
+-- caller reports exactly what was persisted, not its pre-EVAL guess.
+return cjson.encode({ ok = true, node = node })
 `;
 
 function shouldUseKv(): boolean {
@@ -441,15 +464,13 @@ export async function registerNode(input: RegisterNodeInput): Promise<StoredNode
   assertStoreConfigured();
 
   if (shouldUseKv()) {
-    // Preserve created_at across re-register by reading the current owner array
-    // first; the atomic upsert below still re-reads under the EVAL lock so the
-    // write itself cannot race. created_at is cosmetic (not used for scoping),
-    // so this best-effort read is safe even under concurrency.
-    const existing = (await getOwnerNodes(input.owner_key)).find(
-      (node) => node.node_name === normalizeNodeName(input.node_name)
-    );
-    const node = buildStoredNode(input, existing ?? null);
-    await kvEvalJson<{ ok: true }>(
+    // created_at preservation now happens INSIDE the Lua upsert (under the EVAL
+    // lock), so no out-of-lock pre-read is needed: buildStoredNode supplies a
+    // default created_at for a brand-new node, and the script overwrites it with
+    // the existing row's created_at when a same-named row is present. The script
+    // returns the canonical stored node so we report exactly what was persisted.
+    const node = buildStoredNode(input, null);
+    const result = await kvEvalJson<{ ok: true; node?: unknown }>(
       KV_UPSERT_NODE_SCRIPT,
       [ownerKey(input.owner_key)],
       [
@@ -459,6 +480,11 @@ export async function registerNode(input: RegisterNodeInput): Promise<StoredNode
         JSON.stringify(node),
       ]
     );
+    // Trust the locally-built node only as a fallback; prefer the script's
+    // canonical row (re-validated so a corrupt EVAL result can never leak — H6).
+    if (isStoredNode(result.node) && result.node.owner_key === input.owner_key) {
+      return result.node;
+    }
     return node;
   }
 
@@ -484,14 +510,19 @@ export async function registerNode(input: RegisterNodeInput): Promise<StoredNode
 async function getOwnerNodes(owner: string): Promise<StoredNode[]> {
   if (shouldUseKv()) {
     // Re-validate every row with isStoredNode so corrupt KV data never leaks to
-    // callers (H6 lesson).
+    // callers (H6 lesson), then scope strictly to owner_key. The owner_key ===
+    // owner filter is defense-in-depth: even if a KV mispartition placed another
+    // owner's row under this key, it can never leak. Owner-scoping no longer
+    // relies solely on the KV key being correct.
     const raw = await kvGet<unknown>(ownerKey(owner));
     if (!Array.isArray(raw)) {
       return [];
     }
-    return raw.filter(isStoredNode);
+    return raw.filter(isStoredNode).filter((node) => node.owner_key === owner);
   }
-  return (fileGet().nodes_by_owner[owner] ?? []).filter(isStoredNode);
+  return (fileGet().nodes_by_owner[owner] ?? [])
+    .filter(isStoredNode)
+    .filter((node) => node.owner_key === owner);
 }
 
 /**

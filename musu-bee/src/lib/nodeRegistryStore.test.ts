@@ -56,6 +56,20 @@ function fakeNodeRegistryKv() {
           const maxRecords = Number.parseInt(args[1]!, 10);
           const node = JSON.parse(args[3]!) as Record<string, unknown>;
           const current = readArray(key);
+          // Mirror the Lua script: atomically preserve an existing same-named
+          // row's created_at onto the incoming node before insert.
+          for (const item of current) {
+            if (
+              item &&
+              typeof item === "object" &&
+              item.node_name === node.node_name &&
+              typeof item.created_at === "string" &&
+              item.created_at.length > 0
+            ) {
+              node.created_at = item.created_at;
+              break;
+            }
+          }
           const next: Array<Record<string, unknown>> = [node];
           for (const item of current) {
             if (
@@ -71,7 +85,8 @@ function fakeNodeRegistryKv() {
             }
           }
           store.set(key, JSON.stringify(next));
-          return JSON.stringify({ ok: true }) as T;
+          // Mirror the Lua script: return the canonical stored node.
+          return JSON.stringify({ ok: true, node }) as T;
         }
 
         throw new Error(`unexpected script: ${script.slice(0, 64)}`);
@@ -159,6 +174,91 @@ test("re-register same node_name upserts: one row, same id, last_seen refreshed"
   assert.equal(nodes[0]!.public_url, "https://alpha-2.example.com", "public_url updated");
   assert.notEqual(second.last_seen, first.last_seen, "last_seen refreshed");
   assert.equal(second.created_at, first.created_at, "created_at preserved across re-register");
+});
+
+test("concurrent-ish re-register preserves the original created_at (Lua-atomic)", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  const first = await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha-1.example.com",
+  });
+
+  // Ensure wall-clock advances so a naive (non-atomic) implementation would
+  // build a NEWER created_at on the second call.
+  await new Promise((resolve) => setTimeout(resolve, 5));
+
+  // Fire two re-registers without awaiting between them. The fake KV `eval`
+  // runs each script start-to-finish against shared state (mirroring Redis
+  // single-threaded EVAL), so created_at preservation must come from the Lua
+  // script reading the existing row — not from an out-of-lock pre-read.
+  const [second, third] = await Promise.all([
+    registerNode({
+      owner_key: OWNER_A,
+      node_name: "alpha",
+      public_url: "https://alpha-2.example.com",
+    }),
+    registerNode({
+      owner_key: OWNER_A,
+      node_name: "alpha",
+      public_url: "https://alpha-3.example.com",
+    }),
+  ]);
+
+  assert.equal(second.created_at, first.created_at, "created_at preserved (call 2)");
+  assert.equal(third.created_at, first.created_at, "created_at preserved (call 3)");
+
+  const nodes = await listNodes(OWNER_A);
+  assert.equal(nodes.length, 1, "still a single row after concurrent re-register");
+  assert.equal(nodes[0]!.id, first.id, "same deterministic id");
+  assert.equal(
+    nodes[0]!.created_at,
+    first.created_at,
+    "persisted created_at is the original, never clobbered by a stale read"
+  );
+});
+
+test("getOwnerNodes/listNodes scope by owner_key (KV mispartition can't leak)", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  // Owner A registers normally.
+  const a = await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha.example.com",
+  });
+
+  // Simulate a KV mispartition: a row whose owner_key is OWNER_B is somehow
+  // stored under OWNER_A's key. owner_key-scoping must drop it so it never
+  // leaks to OWNER_A, even though it passes isStoredNode.
+  const ownerAKey = "musu:node-registry:v1:" + encodeURIComponent(OWNER_A);
+  const leaked: StoredNode = {
+    schema: "musu.registry_node.v1",
+    id: nodeRegistryId(OWNER_B, "beta"),
+    owner_key: OWNER_B,
+    node_name: "beta",
+    public_url: "https://beta.example.com",
+    cert_fingerprint: null,
+    machine_group: null,
+    mac_address: null,
+    broadcast_ip: null,
+    meta: null,
+    last_seen: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  };
+  fake.store.set(ownerAKey, JSON.stringify([a, leaked]));
+
+  const nodes = await listNodes(OWNER_A);
+  assert.equal(nodes.length, 1, "mispartitioned cross-owner row is filtered out");
+  assert.equal(nodes[0]!.node_name, "alpha");
+  assert.ok(
+    !nodes.some((node) => node.owner_key === OWNER_B),
+    "no OWNER_B row ever surfaces under OWNER_A"
+  );
 });
 
 test("two different owner_keys are isolated", async () => {
