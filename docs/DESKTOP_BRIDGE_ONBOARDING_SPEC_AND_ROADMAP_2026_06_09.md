@@ -254,9 +254,19 @@ under `.local-build/` (gitignored — never committed).
   NOT lib-depend on musu-rs — deliberate, see the SWOT in
   `PRODUCT_CRITIQUE_AND_REALIGN_2026_06_11.md`). Full build/critique trail:
   `PRODUCT_CRITIQUE_AND_REALIGN_2026_06_11.md` (incl. Review round 2) +
-  `NEXT_STEPS_AFTER_COCKPIT_REALIGN_2026_06_11.md`. **Caveat: verified by
-  cargo-check + mocked-IPC render only — not yet run as a real Tauri app (next
-  step #1).** this-PC shows honest "online" (no real task feed until Phase 2a).
+  `NEXT_STEPS_AFTER_COCKPIT_REALIGN_2026_06_11.md`.
+  - **UPDATE 2026-06-11 (GOAL v982): single-binary integration.** The mentions of
+    `musu-startup.exe open` / `musu_startup_path` above (§9 remaining work, §10 [3])
+    are SUPERSEDED: musu-startup.exe was absorbed into `musu startup` (one runtime
+    binary). The cockpit now spawns `musu.exe startup open` (CREATE_NO_WINDOW, no
+    console flicker). A ~10-line `musu-startup.exe` STUB remains ONLY because the
+    MSIX windows.startupTask is exe-path-only; it calls `run_startup(Service)` and
+    nothing else. Architecture: `ARCHITECTURE_BINARIES_PROCESSES_PACKAGING_2026_06_11.md`.
+  - **Real Tauri E2E happened (and found version-skew + flicker bugs from the
+    3-exe split, now fixed by the integration). Phase 0 (unbreak the build) is
+    CLOSED: real signed MSIX builds.** STILL NOT DONE: the real-PC install→order→
+    execute E2E (master plan Phase A, owner-gated). this-PC shows honest "online"
+    (no real task feed until Phase 2a/C).
 
 ## 11. Thermo-nuclear + critic review (2026-06-10)
 
