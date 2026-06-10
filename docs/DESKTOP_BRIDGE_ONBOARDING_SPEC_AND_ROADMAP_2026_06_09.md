@@ -248,3 +248,48 @@ under `.local-build/` (gitignored — never committed).
 - **§10.1 cockpit GUI** — the native fleet-cockpit window (this session's GUI
   direction) is design-only so far; the shell currently still loads the web UI.
   Building the cockpit is a separate, larger piece.
+
+## 11. Thermo-nuclear + critic review (2026-06-10)
+
+A maintainability review (refactoring-expert) and an adversarial critic
+(system-architect) went over the session's code. Thermo: **no blockers**, code is
+clean. Critic: **RESHAPE_NEEDED** — three real findings. What was fixed this pass
+and what remains:
+
+**Fixed this pass:**
+- **(critic HIGH 1b) Client looped 15 min on a non-retryable poll error.**
+  `musu-rs/src/cloud/mod.rs` `poll_device_token` treated EVERY non-success
+  (400/429/5xx) as "pending" and re-polled until the 900s expiry. Now: 202 +
+  408/429/5xx are retryable (`Ok(None)`), every other 4xx (esp. 400 malformed) is
+  terminal (`Err` → login fails fast). The server already distinguished these;
+  the client was flattening them.
+- **(critic HIGH 3a) Site copy understated the cert-trust step.** The self-signed
+  MSIX cannot be "double-click, no terminal" — Windows blocks it until the cert is
+  trusted (admin). `SetupWizard.tsx` now states "developer preview", makes cert
+  trust a first-class numbered step with the exact `Import-Certificate` command +
+  a cert download link, and reserves "no terminal" for *after* setup. The Store
+  build (no cert step) is named as the real fix.
+- **(thermo STRONG) Download URL duplicated 4×; page.tsx had a double download
+  CTA.** Hoisted to `musu-pro/src/lib/constants/install.ts`
+  (`DESKTOP_DOWNLOAD_URL` / `CERT_DOWNLOAD_URL` / `CLI_INSTALL_COMMAND`), imported
+  everywhere; removed the redundant hero CTA so `<InstallCommand>` is the single
+  source.
+
+**Deferred (recorded, not fixed — see handoff):**
+- **(critic HIGH→MEDIUM 2b) Double-bridge race under a dynamic port.** If the
+  manual `start_runtime` Tauri command runs in the window after
+  `spawn_runtime_autostart` hands off `musu-startup open` but before the bridge
+  registers, two bridges can start — and `BRIDGE_PORT` defaults to `0` (OS-dynamic),
+  so the `AddrInUse` backstop never trips. **Currently LATENT: `start_runtime` has
+  no caller in the loaded web UI (verified — no `invoke("start_runtime")`).** It
+  becomes live the moment the cockpit GUI wires a "start" button. Fix when building
+  the cockpit: either hold `runtime_start_gate` until `bridge_is_healthy`, or make
+  `start_runtime` reuse the single `musu-startup open` entry point. Do not add a
+  start button to the cockpit without this.
+- **(critic MEDIUM 4) "Open MUSU and see your fleet" over-promises** vs a shell
+  that still loads the web UI (no in-app fleet view yet). The onboarding copy that
+  says "connects this PC" is accurate; the aspirational "see your fleet in-app" must
+  wait for the cockpit. Tighten copy if it drifts further before the cockpit ships.
+- **(critic LOW 1a) Poll/start disambiguation is by `device_code` key-presence,
+  not an explicit `action` discriminator.** Robust today; add a discriminator only
+  if the start payload ever needs a field named `device_code`.

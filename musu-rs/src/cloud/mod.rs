@@ -1006,12 +1006,29 @@ impl MusuCloud {
             .send()
             .await?;
 
-        if resp.status() == reqwest::StatusCode::GONE {
+        let status = resp.status();
+
+        if status == reqwest::StatusCode::GONE {
             return Err(anyhow!("Code expired"));
         }
 
-        if !resp.status().is_success() {
-            return Ok(None); // e.g. 202 Accepted (pending)
+        // Distinguish retryable from terminal non-success. The server returns 202
+        // while the device is unapproved (the common poll case), 410 when the code
+        // is expired/consumed (handled above), and 400 when the device_code is
+        // malformed — which retrying can never fix. Previously EVERY non-success
+        // collapsed to Ok(None) "pending", so a 400 (or a misrouted request) would
+        // silently spin for the whole 900s expiry before failing with a generic
+        // timeout. Treat 202 + transient 408/429/5xx as retryable; treat other 4xx
+        // (esp. 400) as terminal so login fails fast and actionably.
+        if !status.is_success() {
+            if status == reqwest::StatusCode::ACCEPTED
+                || status == reqwest::StatusCode::REQUEST_TIMEOUT
+                || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+                || status.is_server_error()
+            {
+                return Ok(None); // still pending / transient — keep polling
+            }
+            return Err(anyhow!("Login poll rejected with HTTP {}", status.as_u16()));
         }
 
         let body: DevicePollResponse = resp.json().await?;
