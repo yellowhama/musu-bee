@@ -245,9 +245,18 @@ under `.local-build/` (gitignored — never committed).
   launch MUSU Desktop, confirm `musu-startup open` fires device-flow, approve at
   musu.pro, see the node connect. Owner-driven.
 - **SetupWizard `/device?code=` prefill** (musu-pro front) — minor, deferred.
-- **§10.1 cockpit GUI** — the native fleet-cockpit window (this session's GUI
-  direction) is design-only so far; the shell currently still loads the web UI.
-  Building the cockpit is a separate, larger piece.
+- **§10.1 cockpit GUI — BUILT 2026-06-11** (was "design-only"). The shell
+  (`src-tauri-shell/`) is now the fleet cockpit, NOT the engineer launcher: fleet
+  list (online/offline + this-PC badge), connecting/device-code screen, an order
+  box that submits work (`submit_order` → `musu route`), and a "Having trouble?"
+  diagnostics drawer. Backed by Tauri commands `list_fleet` / `submit_order` /
+  `read_startup_marker` / `desktop_status` (all spawn `musu.exe`; the crate does
+  NOT lib-depend on musu-rs — deliberate, see the SWOT in
+  `PRODUCT_CRITIQUE_AND_REALIGN_2026_06_11.md`). Full build/critique trail:
+  `PRODUCT_CRITIQUE_AND_REALIGN_2026_06_11.md` (incl. Review round 2) +
+  `NEXT_STEPS_AFTER_COCKPIT_REALIGN_2026_06_11.md`. **Caveat: verified by
+  cargo-check + mocked-IPC render only — not yet run as a real Tauri app (next
+  step #1).** this-PC shows honest "online" (no real task feed until Phase 2a).
 
 ## 11. Thermo-nuclear + critic review (2026-06-10)
 

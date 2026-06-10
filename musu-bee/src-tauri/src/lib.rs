@@ -71,6 +71,12 @@ struct CommandResult {
 }
 
 const DOCTOR_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+// submit_order's outer timeout MUST exceed `musu route`'s internal HTTP submit
+// timeout (10s, cli_commands.rs). If they were equal, an order the bridge queued
+// at ~9.9s could be killed at 10.0s before run_route finished — reporting failure
+// for an order that actually went through (a false "not sent"). Give the inner
+// path room to return its real success/failure.
+const SUBMIT_ORDER_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 
 #[derive(Default)]
 struct RuntimeStartGate {
@@ -214,22 +220,25 @@ fn start_runtime() -> Result<CommandResult, String> {
         });
     };
 
-    // C1 (2b double-bridge race fix): route the manual start through the SAME
-    // single entry point as autostart — `musu-startup.exe open` — instead of a
-    // separate `musu up --json`. Previously the two paths could each spawn a
-    // bridge in the window after autostart dropped the gate but before the bridge
-    // registered; with BRIDGE_PORT defaulting to 0 (OS-dynamic) the AddrInUse
-    // backstop never tripped, so two bridges could come up. Funnelling both
-    // through musu-startup means its own token/bridge idempotency guards
-    // (spawn_desktop_login_if_needed + bridge registry checks) prevent a second
-    // bridge. Fire-and-forget: musu-startup holds the bridge in its own
-    // foreground, so we must NOT await it (a 900s device-flow poll would block
-    // the UI). The UI polls bridge health to learn when it's up.
+    // C1 (2b double-bridge race): route the manual start through the SAME single
+    // entry point as autostart — `musu-startup.exe open` — instead of a separate
+    // `musu up --json`. Fire-and-forget: musu-startup holds the bridge in its own
+    // foreground, so we must NOT await it (a 900s device-flow poll would block the
+    // UI). The UI polls bridge health to learn when it's up.
+    //
+    // HONEST NOTE on what actually prevents a double-bridge (audit 2026-06-11):
+    // it is the pre-checks ABOVE in this fn — `bridge_is_healthy` + registry
+    // `pid_running` — plus the fact that `start_runtime` has NO caller in the
+    // shipped UI today, so the autostart-vs-manual race is not reachable. It is
+    // NOT musu-startup idempotency: `spawn_desktop_login_if_needed` guards only
+    // the device-flow login (then `bridge::run()` runs unconditionally), and with
+    // BRIDGE_PORT defaulting to 0 (OS-dynamic) two racing binds get different
+    // ports so AddrInUse never trips. ⚠️ Before wiring a manual-start BUTTON into
+    // the cockpit, add a real registry/health guard inside the bridge-start path —
+    // the pre-checks here do NOT serialize across the bridge-registration window.
     let outcome = spawn_musu_startup_open();
-    // Drop the gate right after the handoff launches: holding it across
-    // musu-startup's whole lifetime would permanently block a later retry. The
-    // race the gate used to (fail to) guard is now closed by single-entry-point
-    // + musu-startup idempotency, not by gate duration.
+    // Drop the gate right after the handoff launches; holding it across
+    // musu-startup's whole lifetime would permanently block a later retry.
     drop(_guard);
 
     match outcome {
@@ -366,7 +375,7 @@ fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
     args.push("--");
     args.push(text);
 
-    let result = run_command_with_timeout(&command, &args, DOCTOR_STATUS_TIMEOUT)
+    let result = run_command_with_timeout(&command, &args, SUBMIT_ORDER_TIMEOUT)
         .map_err(|err| format!("failed to run {} route: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} route timed out accepting the order", command.display()));
