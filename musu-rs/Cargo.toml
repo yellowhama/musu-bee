@@ -9,10 +9,6 @@ license = "PROPRIETARY"
 name = "musu"
 path = "src/main.rs"
 
-[[bin]]
-name = "musu-startup"
-path = "src/bin/musu-startup.rs"
-
 # V26-W1 Commit 3 (wiki/509): library target so out-of-bin integration tests
 # (e.g. `tests/agent_record_backward_compat.rs`) can `use musu_rs::core::...`.
 # The binary still owns the runtime entry point; lib.rs only re-exports the

@@ -252,20 +252,38 @@ fn start_runtime() -> Result<CommandResult, String> {
     }
 }
 
-/// Spawn `musu-startup.exe open` detached (no wait). The single entry point both
+/// Apply CREATE_NO_WINDOW (0x08000000) on Windows so spawning the console-subsystem
+/// `musu`/`musu-startup` runtime does NOT pop a console window. The GUI app
+/// spawning a CLI child was the source of the launch flicker; this suppresses it.
+/// No-op on non-Windows.
+fn no_window(cmd: &mut std::process::Command) -> &mut std::process::Command {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
+/// Spawn `musu startup open` detached (no wait). The single entry point both
 /// the manual `start_runtime` command and `spawn_runtime_autostart` use, so there
-/// is exactly one way a bridge gets started from the desktop app. musu-startup
-/// owns bridge lifetime + device-flow; we only launch it.
+/// is exactly one way a bridge gets started from the desktop app. Single-binary
+/// integration (2026-06-11): this is now `musu.exe startup open` — the former
+/// musu-startup.exe was absorbed into `musu`, so there is ONE runtime binary and
+/// no version skew between what the cockpit calls and what runs. CREATE_NO_WINDOW
+/// keeps the console-subsystem child from flashing a window.
 fn spawn_musu_startup_open() -> Result<(), String> {
-    let startup = musu_startup_path();
-    std::process::Command::new(&startup)
-        .arg("open")
+    let command = musu_command_path();
+    let mut cmd = std::process::Command::new(&command);
+    cmd.args(["startup", "open"])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    no_window(&mut cmd)
         .spawn()
         .map(|_child| ())
-        .map_err(|err| format!("failed to spawn {} open: {err}", startup.display()))
+        .map_err(|err| format!("failed to spawn {} startup open: {err}", command.display()))
 }
 
 /// One machine in the fleet, as the cockpit renders it. A flattened, GUI-facing
@@ -1221,23 +1239,10 @@ fn musu_command_path_for_current_exe(
     sibling_exe_for_current_exe(current_exe, musu_runtime_exe_name(), exists)
 }
 
-/// Resolve `musu-startup.exe` next to the running desktop binary, falling back to
-/// the bare name (rely on PATH) when no packaged sibling exists. Mirrors
-/// [`musu_command_path`] but for the device-flow startup binary the MSIX package
-/// ships alongside `musu.exe` (see `scripts/windows/build-msix.ps1`
-/// `StartupExecutable`).
-fn musu_startup_path() -> std::path::PathBuf {
-    let startup_name = musu_startup_exe_name();
-    match std::env::current_exe() {
-        Ok(current_exe) => {
-            sibling_exe_for_current_exe(&current_exe, startup_name, |path| path.exists())
-        }
-        Err(_) => std::path::PathBuf::from(startup_name),
-    }
-}
-
 /// Shared sibling-resolution: prefer `<dir of current exe>/<exe_name>`, else the
-/// bare name. Used for both `musu.exe` and `musu-startup.exe`.
+/// bare name. (Single-binary integration: there's now one runtime exe, `musu`,
+/// so this is only used for `musu_command_path` — `musu startup` replaced the
+/// separate musu-startup.exe.)
 fn sibling_exe_for_current_exe(
     current_exe: &std::path::Path,
     exe_name: &str,
@@ -1257,14 +1262,6 @@ fn musu_runtime_exe_name() -> &'static str {
         "musu.exe"
     } else {
         "musu"
-    }
-}
-
-fn musu_startup_exe_name() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "musu-startup.exe"
-    } else {
-        "musu-startup"
     }
 }
 
@@ -1294,11 +1291,12 @@ fn run_command_with_timeout(
     let stderr_file = std::fs::File::create(&stderr_path)
         .map_err(|err| format!("failed to create stderr capture file: {err}"))?;
 
-    let mut child = std::process::Command::new(command)
-        .args(args)
+    let mut cmd = std::process::Command::new(command);
+    cmd.args(args)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::from(stdout_file))
-        .stderr(std::process::Stdio::from(stderr_file))
+        .stderr(std::process::Stdio::from(stderr_file));
+    let mut child = no_window(&mut cmd)
         .spawn()
         .map_err(|err| format!("spawn failed: {err}"))?;
 
@@ -1441,54 +1439,6 @@ mod tests {
                 "musu.exe"
             } else {
                 "musu"
-            })
-        );
-    }
-
-    #[test]
-    fn startup_command_prefers_packaged_sibling() {
-        let desktop_exe = if cfg!(target_os = "windows") {
-            std::path::PathBuf::from(
-                r"C:\Program Files\WindowsApps\Yellowhama.MUSU\musu-desktop.exe",
-            )
-        } else {
-            std::path::PathBuf::from("/opt/musu/musu-desktop")
-        };
-        let expected_startup = desktop_exe
-            .parent()
-            .unwrap()
-            .join(if cfg!(target_os = "windows") {
-                "musu-startup.exe"
-            } else {
-                "musu-startup"
-            });
-
-        let resolved = sibling_exe_for_current_exe(
-            &desktop_exe,
-            super::musu_startup_exe_name(),
-            |path| path == expected_startup,
-        );
-
-        assert_eq!(resolved, expected_startup);
-    }
-
-    #[test]
-    fn startup_command_falls_back_to_path_name_when_sibling_missing() {
-        let desktop_exe = if cfg!(target_os = "windows") {
-            std::path::PathBuf::from(r"C:\Temp\musu-desktop.exe")
-        } else {
-            std::path::PathBuf::from("/tmp/musu-desktop")
-        };
-
-        let resolved =
-            sibling_exe_for_current_exe(&desktop_exe, super::musu_startup_exe_name(), |_| false);
-
-        assert_eq!(
-            resolved,
-            std::path::PathBuf::from(if cfg!(target_os = "windows") {
-                "musu-startup.exe"
-            } else {
-                "musu-startup"
             })
         );
     }

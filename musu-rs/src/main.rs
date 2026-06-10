@@ -158,6 +158,15 @@ enum Cmd {
     Doctor(DoctorOpts),
     /// First-run helper: seed token, start bridge, and hand off to dashboard.
     Up(UpOpts),
+    /// Packaged-runtime bridge entry point (absorbed from musu-startup.exe).
+    /// `musu startup open` = user launch (bridge + device-flow); `musu startup`
+    /// / `--service` = unattended logon/service boot (bridge only).
+    Startup {
+        /// Launch-mode args: `open` (user launch, full onboarding) or `--service`
+        /// / bare (service boot, bridge only). Unknown args default to service.
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
     /// Stop the local bridge runtime registered in ~/.musu/services/bridge.json.
     Stop(StopOpts),
     /// Alias for `musu stop`.
@@ -363,6 +372,13 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Up(opts) => {
             init_tracing_default();
             install::cli_commands::run_up(opts).await
+        }
+        Cmd::Startup { args } => {
+            // Bridge runtime entry point: logs to stderr (stdout stays clean for
+            // any framing), classifies launch mode from the args after `startup`.
+            init_tracing_control();
+            let mode = install::startup::LaunchMode::from_args(args);
+            install::startup::run_startup(mode).await
         }
         Cmd::Stop(opts) | Cmd::Down(opts) => {
             init_tracing_default();
