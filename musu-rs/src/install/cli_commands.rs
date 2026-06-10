@@ -576,15 +576,9 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
         }
     };
 
-    // Resolve THIS machine's node name the same way the login/register path does
-    // (MUSU_NODE_NAME override, else hostname), so the cockpit can badge the
-    // current PC without re-deriving it.
-    let this_pc = std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
-        hostname::get()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string()
-    });
+    // Resolve THIS machine's node name (shared helper) so the cockpit can badge
+    // the current PC — same derivation route uses to detect a self-target.
+    let this_pc = this_node_name();
 
     if opts.json {
         let projected: Vec<_> = nodes
@@ -705,6 +699,12 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     let addr = if let Some(ref target) = opts.target {
         if let Some(peer) = selected_peer.as_ref() {
             peer.addr.clone()
+        } else if target.as_str() == this_node_name() {
+            // Targeting THIS machine by name: it is not a peer (a node is never its
+            // own peer), it's the local bridge. Without this, `musu route --target
+            // <self>` failed with "peer not found" — breaking the most common case,
+            // giving your OWN PC work (a fleet of one). Route it to the local bridge.
+            local_bridge_addr()
         } else {
             find_peer_addr(&home, target.as_str())?
         }
@@ -3299,6 +3299,18 @@ fn parse_remote(remote: &str) -> Result<(String, String)> {
         anyhow::bail!("missing peer name in '{remote}'");
     }
     Ok((peer.to_string(), path.to_string()))
+}
+
+/// This machine's node name: `MUSU_NODE_NAME` override, else the hostname. The
+/// single source of truth for "am I the target" / "badge this row as this PC"
+/// (the login/register path and `musu nodes` use the same derivation).
+fn this_node_name() -> String {
+    std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
+        hostname::get()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    })
 }
 
 /// Resolve a peer's bridge address from `nodes.toml` or `manual_peers.toml`.

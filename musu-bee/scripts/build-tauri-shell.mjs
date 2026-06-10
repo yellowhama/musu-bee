@@ -1,4 +1,11 @@
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +22,10 @@ mkdirSync(outRoot, { recursive: true });
 for (const name of ["styles.css", "main.js"]) {
   copyFileSync(join(sourceRoot, name), join(outRoot, name));
 }
+
+// Bundled fonts (local woff2 @font-face — no Google Fonts network fetch). Copy
+// the whole fonts/ dir so the desktop shell renders offline / instantly.
+cpSync(join(sourceRoot, "fonts"), join(outRoot, "fonts"), { recursive: true });
 
 const html = readFileSync(join(sourceRoot, "index.html"), "utf8")
   .replaceAll("__MUSU_VERSION__", version);

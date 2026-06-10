@@ -13,6 +13,7 @@ pub fn run() {
         }))
         .invoke_handler(tauri::generate_handler![
             desktop_status,
+            cockpit_state,
             start_runtime,
             list_fleet,
             submit_order,
@@ -190,6 +191,96 @@ fn desktop_status() -> DesktopStatus {
         warnings: doctor_summary.warnings,
         can_start_runtime,
     }
+}
+
+/// The cheap, poll-friendly cockpit state. `desktop_status` shells out to
+/// `musu doctor --json` (≤10s) AND enumerates the entire process table every
+/// call — far too heavy to run on the 15s fleet-refresh tick, which only needs
+/// "is the bridge up?" and "what auth state am I in?". Both signals are cheap:
+/// a bridge `/health` TCP probe (already sub-second) and two direct token-file
+/// reads (no shell-out). The expensive `desktop_status` is now called only when
+/// the diagnostics drawer opens / Refresh is pressed — not 4×/min forever.
+#[derive(serde::Serialize)]
+struct CockpitState {
+    bridge_status: String,
+    bridge_url: Option<String>,
+    auth_status: String,
+}
+
+#[tauri::command]
+fn cockpit_state() -> CockpitState {
+    let home = musu_home();
+    let bridge_registry = bridge_registry_status(&home);
+    let runtime_start_in_progress = runtime_start_gate().is_in_progress();
+    let bridge_probe = bridge_registry
+        .url
+        .as_deref()
+        .map(|url| probe_http(url, "/health"))
+        .unwrap_or(ProbeResult {
+            ok: false,
+            detail: String::new(),
+        });
+    let bridge_ok = bridge_probe.ok;
+
+    // auth_status WITHOUT doctor: the Connected / Local Only / Offline rule is a
+    // pure function of two on-disk tokens (account token + bridge token). This
+    // replicates parse_doctor_status_summary's auth branch exactly, minus the
+    // shell-out. (lib.rs deliberately does NOT depend on musu-rs as a library,
+    // so the two cheap file reads are inlined here.)
+    let logged_in = account_token_present(&home);
+    let bridge_token_present = bridge_token_present(&home);
+    let auth_status = if logged_in {
+        "Connected"
+    } else if bridge_token_present {
+        "Local Only"
+    } else {
+        "Offline"
+    }
+    .to_string();
+
+    CockpitState {
+        bridge_status: bridge_status_label(
+            bridge_ok,
+            bridge_registry.pid_running,
+            runtime_start_in_progress,
+        )
+        .to_string(),
+        bridge_url: bridge_registry.url,
+        auth_status,
+    }
+}
+
+/// Account (cloud) login present == `~/.musu/token` exists and is non-empty.
+/// Mirrors `musu-rs cloud::token::load_token(...).is_some()` without the lib dep.
+fn account_token_present(home: &std::path::Path) -> bool {
+    std::fs::read_to_string(home.join("token"))
+        .map(|t| !t.trim().is_empty())
+        .unwrap_or(false)
+}
+
+/// Bridge token present == `MUSU_BRIDGE_TOKEN` env (non-empty) OR a non-empty
+/// `MUSU_BRIDGE_TOKEN=` line in `~/.musu/bridge.env`. Mirrors
+/// `musu-rs install::token::read_bridge_token(...).is_some()`.
+fn bridge_token_present(home: &std::path::Path) -> bool {
+    if std::env::var("MUSU_BRIDGE_TOKEN")
+        .map(|t| !t.is_empty())
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    let Ok(body) = std::fs::read_to_string(home.join("bridge.env")) else {
+        return false;
+    };
+    body.lines().any(|line| {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            return false;
+        }
+        let line = line.strip_prefix("export ").unwrap_or(line);
+        line.strip_prefix("MUSU_BRIDGE_TOKEN=")
+            .map(|rest| !rest.trim_matches(|c| c == '"' || c == '\'').is_empty())
+            .unwrap_or(false)
+    })
 }
 
 #[tauri::command]

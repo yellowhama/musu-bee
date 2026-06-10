@@ -4,12 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MUSU</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Sora:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- fonts are bundled locally (see @font-face in styles.css); no network fetch -->
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -18,7 +13,18 @@
       <!-- header: brand + single connection dot (the only always-visible status) -->
       <header class="top">
         <div class="brand">
-          <div class="mark"><span>M</span></div>
+          <div class="mark" aria-label="MUSU">
+            <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+              <defs>
+                <polygon id="hex" points="0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20" />
+              </defs>
+              <g transform="translate(50, 50)">
+                <use href="#hex" fill="#2D1D19" />
+                <use href="#hex" fill="#FDFCF0" transform="scale(0.65)" />
+                <use href="#hex" fill="#FFD166" transform="scale(0.55)" />
+              </g>
+            </svg>
+          </div>
           <div class="brand-text">
             <h1>MUSU</h1>
             <p>your computers</p>

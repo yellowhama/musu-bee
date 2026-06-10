@@ -168,12 +168,31 @@ function renderDiagnostics(status) {
   window.__lastStatus = status;
 }
 
-// ── refresh cycle ──────────────────────────────────────
+// ── diagnostics drawer load (EXPENSIVE — doctor + process scan) ─────────
+// Only run desktop_status when the user actually wants diagnostics: when the
+// "Having trouble?" drawer opens, or Refresh is pressed. The 15s poll uses the
+// cheap cockpit_state instead (see refresh()).
+async function loadDiagnostics() {
+  try {
+    const status = await invoke("desktop_status");
+    renderDiagnostics(status);
+  } catch (err) {
+    const wbox = $("diag-warnings");
+    if (wbox) {
+      wbox.hidden = false;
+      wbox.textContent = `Diagnostics unavailable: ${String(err)}`;
+    }
+  }
+}
+
+// ── refresh cycle (CHEAP — runs every 15s) ─────────────────────────────
+// Uses cockpit_state (bridge /health probe + two token-file reads), NOT
+// desktop_status. The expensive doctor/process-scan path is deferred to the
+// diagnostics drawer (loadDiagnostics).
 async function refresh() {
   let status = null;
   try {
-    status = await invoke("desktop_status");
-    renderDiagnostics(status);
+    status = await invoke("cockpit_state");
   } catch (err) {
     setConn("offline", "Error");
     $("connecting").hidden = false;
@@ -182,11 +201,11 @@ async function refresh() {
     return;
   }
 
-  // desktop_status.auth_status: "Connected" (cloud login), "Local Only" (bridge
-  // token, no cloud login), "Offline", "Unknown". P1: a "Local Only" machine is
-  // still a working machine — show THIS PC instead of trapping the user on the
-  // device-flow screen (self-contained-product thesis). Only "Offline"/"Unknown"
-  // with no bridge means we genuinely can't show a fleet.
+  // cockpit_state.auth_status: "Connected" (cloud login), "Local Only" (bridge
+  // token, no cloud login), "Offline". P1: a "Local Only" machine is still a
+  // working machine — show THIS PC instead of trapping the user on the
+  // device-flow screen (self-contained-product thesis). Only "Offline" with no
+  // bridge means we genuinely can't show a fleet.
   const auth = status.auth_status || "";
   const connected = auth === "Connected";
   const localOnly = auth === "Local Only";
@@ -220,8 +239,8 @@ async function refresh() {
       setConn("connected", "Connected");
     } catch (err) {
       // P3: distinguish fetch failures from an empty fleet. The cockpit still
-      // shows THIS PC (from desktop_status) so a cloud hiccup doesn't blank the
-      // screen, and the connection dot reflects the real failure.
+      // shows THIS PC (cockpit_state already told us the bridge is up) so a
+      // cloud hiccup doesn't blank the screen, and the dot reflects the failure.
       const msg = String(err);
       renderFleet(
         [{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }],
@@ -289,7 +308,17 @@ $("order-send").addEventListener("click", submitOrder);
 $("order-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitOrder();
 });
-$("d-refresh").addEventListener("click", refresh);
+// Diagnostics are lazy: only fetch the expensive desktop_status when the drawer
+// is actually opened (and again on each open, to refresh stale numbers).
+$("diagnostics").addEventListener("toggle", (e) => {
+  if (e.target.open) loadDiagnostics();
+});
+// Refresh inside the drawer refreshes BOTH the cheap cockpit view and the
+// expensive diagnostics (the user explicitly asked for fresh numbers).
+$("d-refresh").addEventListener("click", () => {
+  refresh();
+  loadDiagnostics();
+});
 $("d-copy").addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(window.__lastStatus || {}, null, 2));
