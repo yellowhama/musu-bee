@@ -143,3 +143,48 @@ on BOTH surfaces. Shipping it to the Store (A1) would publish a product whose
 headline verb doesn't work. **Input path first, then make-it-worth-opening, then
 prune the site, then integration hygiene.** Store + fleet-wide feed come after the
 product can actually be used.
+
+---
+
+## Review round 2 (thermo-nuclear + critic on the P0–P3 implementation, 2026-06-11)
+
+After P0–P3 shipped, a maintainability review + an adversarial "did-it-fix-it"
+critique went over the actual code. Both converged on the same warning: **P0 and
+P1 each shipped a new on-screen lie — the exact sin the re-align set out to kill.**
+Fixed in this round:
+
+- **HIGH (P0 success-lie) — FIXED.** `run_route` returned `Ok(())` (exit 0) even on
+  a non-2xx delegate response (incl. a 409 dedup), and `submit_order` keys success
+  off the exit code → the cockpit showed "order sent" while nothing queued. Now
+  `run_route` bails (non-zero exit) when `route_result == Failed`, so a rejected
+  order surfaces as a failure in the cockpit instead of a false "sent".
+- **HIGH (P1 activity-lie) — FIXED.** "working · N active" was derived from
+  `active_runtime_loop_candidate_count`, which counts ENABLED BACKGROUND SUBSYSTEMS
+  (mDNS, clipboard, cloud_heartbeat = token-present), not running tasks — so every
+  logged-in idle machine read "working · 1". Removed; this-PC now shows honest
+  "online" until the bridge exposes a real running-task count (Phase 2a). Don't
+  paint activity we can't measure.
+- **STRONG (P0 arg parsing) — FIXED.** An order starting with `-`/`--` was misparsed
+  by clap as a flag. submit_order now puts flags first, a `--` separator, then the
+  text as the trailing positional.
+- **STRONG (P3 error classification) — FIXED.** run_nodes classified token_expired
+  via a floating `.contains(" 401")` that a response body could trip. Now matches
+  the stable prefix `"failed with HTTP 401"`/`403`.
+- **MED (P2 dangling refs) — FIXED.** login page copy ("Your listings. Your posts.")
+  and a JsonLd SEO `url: /products/<slug>` survived the route cut (tsc can't catch
+  string/SEO refs). Reworded login; pointed JsonLd url at /how-it-works.
+
+Confirmed correct by both reviewers (no change needed):
+- P0 input path is genuinely end-to-end on the LOCAL bridge (POST /api/tasks/delegate
+  → real spawn/forward), NOT the 410'd web surface. Happy path works.
+- P2 cut is clean (no dangling imports; deletions complete).
+- P3 envelope error states ARE reachable (logged_in = local token-file presence, so
+  an expired token still enters the connected path → cloud 401 → token_expired).
+- proxy.ts is live Next-16 middleware (both confirm the earlier "dead code" claim
+  was wrong).
+
+Net after round 2: P0/P1's headline verbs now tell the truth on the failure path,
+not just the happy path. Remaining (lower priority): P1.5 poll-cost only half-landed
+(doctor + process-table snapshot still run every 15s tick, not gated on the
+diagnostics drawer being open) — split a cheap status path from the expensive
+doctor/process pass when convenient.

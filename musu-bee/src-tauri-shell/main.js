@@ -204,10 +204,14 @@ async function refresh() {
     return;
   }
 
-  // P1: derive "what THIS PC is doing" from desktop_status — the one signal only
-  // a local app has. active_runtime_loop_candidate_count > 0 == working.
-  const active = status.active_runtime_loop_candidate_count ?? 0;
-  const thisPcActivity = active > 0 ? `working · ${active} active` : "idle";
+  // THIS PC's state. NOTE (thermo/critic 2026-06-11): we previously rendered
+  // "working · N active" off active_runtime_loop_candidate_count — but that counts
+  // ENABLED BACKGROUND SUBSYSTEMS (mDNS, clipboard, cloud_heartbeat=token-present),
+  // not running tasks, so every logged-in idle machine read "working · 1". That's
+  // a false signal — exactly the kind of on-screen lie this product is trying to
+  // avoid. Until the bridge exposes a real running-task count (Phase 2a), show
+  // honest "online" and nothing more. Don't paint activity we can't measure.
+  const thisPcActivity = "online";
 
   if (connected) {
     try {

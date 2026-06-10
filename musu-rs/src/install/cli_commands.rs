@@ -548,7 +548,12 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
         Ok(nodes) => nodes,
         Err(err) => {
             let msg = err.to_string();
-            let kind = if msg.contains(" 401") || msg.contains(" 403") {
+            // Match the STABLE error prefix (`cloud_api_error` formats as
+            // "...failed with HTTP {status}: {detail}"), not a floating " 401" that
+            // a response body could contain. Only a real 401/403 status → token.
+            let kind = if msg.contains("failed with HTTP 401")
+                || msg.contains("failed with HTTP 403")
+            {
                 "token_expired"
             } else {
                 "cloud_unreachable"
@@ -901,9 +906,21 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         handshake_ms,
         elapsed_ms(route_started.elapsed()),
         route_result,
-        failure_class,
+        failure_class.clone(),
         transport_proof,
     )?;
+
+    // Honesty: the delegate response already printed ✓/✗ above, but the function
+    // used to return Ok(()) regardless — so callers keying off the exit code (the
+    // desktop cockpit's submit_order trusts exit status) saw "order sent" even on
+    // a 4xx/5xx delegate response (including a 409 dedup). Surface the failure in
+    // the exit status so an order that did NOT queue is not reported as sent.
+    if matches!(route_result, RouteAttemptEvidenceResult::Failed) {
+        anyhow::bail!(
+            "route did not complete: {}",
+            failure_class.as_deref().unwrap_or("unknown")
+        );
+    }
     Ok(())
 }
 

@@ -351,7 +351,11 @@ fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
     }
 
     let command = musu_command_path();
-    let mut args: Vec<&str> = vec!["route", text];
+    // Flags FIRST, then a `--` end-of-options separator, then the order text as
+    // the trailing positional. Without `--`, an order starting with `-`/`--`
+    // (e.g. "--fix the build") would be misparsed by clap as an unknown flag and
+    // the spawn would fail. `--` makes everything after it positional.
+    let mut args: Vec<&str> = vec!["route"];
     let target = target.trim();
     if !target.is_empty() {
         args.push("--target");
@@ -359,6 +363,8 @@ fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
     }
     args.push("--channel");
     args.push("desktop");
+    args.push("--");
+    args.push(text);
 
     let result = run_command_with_timeout(&command, &args, DOCTOR_STATUS_TIMEOUT)
         .map_err(|err| format!("failed to run {} route: {err}", command.display()))?;
