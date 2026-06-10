@@ -76,10 +76,9 @@ function showConnecting(marker) {
   }
 }
 
-function renderFleet(nodes) {
+function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   $("connecting").hidden = true;
   $("fleet-section").hidden = false;
-  setConn("connected", "Connected");
 
   const list = $("fleet-list");
   list.textContent = "";
@@ -108,7 +107,9 @@ function renderFleet(nodes) {
   }
 
   for (const n of nodes) {
-    const online = n.is_this_pc || isOnline(n.last_seen);
+    // THIS PC's liveness = the local bridge being up (not an unconditional true —
+    // if the bridge is down while the window is open, this PC is NOT online).
+    const online = n.is_this_pc ? Boolean(thisPcBridgeOk) : isOnline(n.last_seen);
     const li = document.createElement("li");
     li.className = `fleet-row ${online ? "online" : "offline"}`;
 
@@ -130,7 +131,13 @@ function renderFleet(nodes) {
 
     const meta = document.createElement("span");
     meta.className = "node-meta";
-    meta.textContent = n.is_this_pc ? "online" : online ? "online" : `seen ${relTime(n.last_seen)}`;
+    if (n.is_this_pc) {
+      // The one thing only the local app can show: what THIS PC is doing.
+      meta.textContent = online ? thisPcActivity || "idle" : "bridge down";
+      if (online && (thisPcActivity || "").startsWith("working")) meta.classList.add("working");
+    } else {
+      meta.textContent = online ? "online" : `seen ${relTime(n.last_seen)}`;
+    }
     li.appendChild(meta);
 
     list.appendChild(li);
@@ -175,12 +182,18 @@ async function refresh() {
     return;
   }
 
-  // Logged in? desktop_status.auth_status is "Connected" (cloud login present),
-  // "Local Only" (bridge token but no cloud login), "Offline", or "Unknown".
-  // Only "Connected" means we can list the fleet; everything else → connecting.
-  const loggedIn = (status.auth_status || "") === "Connected";
+  // desktop_status.auth_status: "Connected" (cloud login), "Local Only" (bridge
+  // token, no cloud login), "Offline", "Unknown". P1: a "Local Only" machine is
+  // still a working machine — show THIS PC instead of trapping the user on the
+  // device-flow screen (self-contained-product thesis). Only "Offline"/"Unknown"
+  // with no bridge means we genuinely can't show a fleet.
+  const auth = status.auth_status || "";
+  const connected = auth === "Connected";
+  const localOnly = auth === "Local Only";
+  const bridgeOk = status.bridge_status === "ok";
 
-  if (!loggedIn) {
+  if (!connected && !localOnly && !bridgeOk) {
+    // Not connected and no local bridge → show the connecting / device-flow screen.
     let marker = null;
     try {
       marker = await invoke("read_startup_marker");
@@ -191,15 +204,32 @@ async function refresh() {
     return;
   }
 
-  try {
-    const nodes = await invoke("list_fleet");
-    renderFleet(Array.isArray(nodes) ? nodes : []);
-  } catch (err) {
-    // Connected but fleet fetch failed — show fleet section empty + keep dot green.
-    renderFleet([]);
-    const wbox = $("diag-warnings");
-    wbox.hidden = false;
-    wbox.textContent = `Couldn't load fleet: ${err}`;
+  // P1: derive "what THIS PC is doing" from desktop_status — the one signal only
+  // a local app has. active_runtime_loop_candidate_count > 0 == working.
+  const active = status.active_runtime_loop_candidate_count ?? 0;
+  const thisPcActivity = active > 0 ? `working · ${active} active` : "idle";
+
+  if (connected) {
+    try {
+      const nodes = await invoke("list_fleet");
+      renderFleet(Array.isArray(nodes) ? nodes : [], thisPcActivity, bridgeOk);
+      setConn("connected", "Connected");
+    } catch (err) {
+      renderFleet([], thisPcActivity, bridgeOk);
+      setConn("connected", "Connected");
+      const wbox = $("diag-warnings");
+      wbox.hidden = false;
+      wbox.textContent = `Couldn't load fleet: ${err}`;
+    }
+  } else {
+    // Local Only: cloud-disconnected but the local bridge works. Show just THIS
+    // PC (no cloud fleet list available) and a calmer "local" connection state.
+    renderFleet(
+      [{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }],
+      thisPcActivity,
+      bridgeOk
+    );
+    setConn("connecting", "Local only");
   }
 }
 
@@ -252,4 +282,18 @@ $("d-copy").addEventListener("click", async () => {
 });
 
 refresh();
-setInterval(refresh, 5000); // light poll; fleet + connection state stay current
+// P1: 15s, not 5s. `desktop_status` shells out to `musu doctor` + enumerates the
+// whole process table each tick; 5s meant doing that 12×/min forever on an idle
+// tray app. 15s keeps connection/activity current at 1/3 the process churn; the
+// Refresh button covers on-demand freshness. Pause entirely when the window is
+// hidden — a minimized tray app polling is pure waste.
+let pollTimer = setInterval(refresh, 15000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  } else if (!pollTimer) {
+    refresh();
+    pollTimer = setInterval(refresh, 15000);
+  }
+});

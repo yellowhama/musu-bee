@@ -338,6 +338,9 @@ body {
   color: var(--ink-faint);
   text-transform: lowercase;
 }
+.fleet-row .node-meta.working {
+  color: var(--amber);
+}
 
 /* ── cards (connecting / empty) ──────────────────────── */
 .card {

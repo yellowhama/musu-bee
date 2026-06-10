@@ -14,7 +14,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             desktop_status,
             start_runtime,
-            open_dashboard,
             list_fleet,
             submit_order,
             read_startup_marker
@@ -258,23 +257,6 @@ fn spawn_musu_startup_open() -> Result<(), String> {
         .spawn()
         .map(|_child| ())
         .map_err(|err| format!("failed to spawn {} open: {err}", startup.display()))
-}
-
-#[tauri::command]
-fn open_dashboard(url: String) -> Result<CommandResult, String> {
-    if !is_allowed_dashboard_url(&url) {
-        return Err(
-            "developer dashboard is disabled unless MUSU_DESKTOP_ENABLE_DEV_DASHBOARD=1 is set, and the URL must be local http://127.0.0.1 or http://localhost"
-                .to_string(),
-        );
-    }
-
-    open_url(&url)?;
-    Ok(CommandResult {
-        ok: true,
-        message: format!("opening {url}"),
-        output: String::new(),
-    })
 }
 
 /// One machine in the fleet, as the cockpit renders it. A flattened, GUI-facing
@@ -1150,39 +1132,6 @@ fn http_get(base: &str, path: &str) -> Result<String, String> {
     Ok(response)
 }
 
-fn is_allowed_dashboard_url(url: &str) -> bool {
-    if !developer_dashboard_surface_enabled() {
-        return false;
-    }
-
-    is_local_dashboard_url(url)
-}
-
-fn is_local_dashboard_url(url: &str) -> bool {
-    let Some(rest) = url.strip_prefix("http://") else {
-        return false;
-    };
-    let authority_end = rest
-        .find(|ch| matches!(ch, '/' | '?' | '#'))
-        .unwrap_or(rest.len());
-    let authority = &rest[..authority_end];
-    if authority.contains('@') {
-        return false;
-    }
-
-    let Some((host, port)) = authority.rsplit_once(':') else {
-        return false;
-    };
-    if host != "127.0.0.1" && host != "localhost" {
-        return false;
-    }
-    if port.is_empty() || !port.chars().all(|ch| ch.is_ascii_digit()) {
-        return false;
-    }
-
-    port.parse::<u16>().is_ok_and(|value| value > 0)
-}
-
 fn spawn_runtime_autostart() {
     let _ = std::thread::Builder::new()
         .name("musu-runtime-autostart".to_string())
@@ -1382,62 +1331,16 @@ fn exit_status_after_timeout() -> std::process::ExitStatus {
     std::process::ExitStatus::from_raw(1)
 }
 
-fn open_url(url: &str) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new("cmd")
-            .args(["/C", "start", "", url])
-            .spawn()
-            .map_err(|err| format!("failed to open dashboard: {err}"))?;
-        return Ok(());
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(url)
-            .spawn()
-            .map_err(|err| format!("failed to open dashboard: {err}"))?;
-        return Ok(());
-    }
-
-    #[cfg(all(unix, not(target_os = "macos")))]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(url)
-            .spawn()
-            .map_err(|err| format!("failed to open dashboard: {err}"))?;
-        return Ok(());
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
-        can_start_runtime, developer_dashboard_surface_enabled_for, is_local_dashboard_url,
+        can_start_runtime, developer_dashboard_surface_enabled_for,
         musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
         sibling_exe_for_current_exe, summarize_process_ownership, ProcessEntry, RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
-
-    #[test]
-    fn allows_local_dashboard_urls() {
-        assert!(is_local_dashboard_url("http://127.0.0.1:3000/app"));
-        assert!(is_local_dashboard_url("http://localhost:3001"));
-    }
-
-    #[test]
-    fn rejects_non_local_or_ambiguous_dashboard_urls() {
-        assert!(!is_local_dashboard_url("https://127.0.0.1:3000/app"));
-        assert!(!is_local_dashboard_url("http://example.com:3000/app"));
-        assert!(!is_local_dashboard_url(
-            "http://localhost:3000@example.com/app"
-        ));
-        assert!(!is_local_dashboard_url("http://localhost:bad/app"));
-        assert!(!is_local_dashboard_url("http://localhost:0/app"));
-    }
 
     #[test]
     fn packaged_build_requires_dev_dashboard_opt_in() {
