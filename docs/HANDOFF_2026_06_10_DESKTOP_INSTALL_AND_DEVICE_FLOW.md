@@ -51,7 +51,14 @@ Anonymous download verified HTTP 200.
 
 ## NEXT TASKS, ranked
 
-1. **Prove the desktop E2E on a real PC (highest priority).** Owner-driven because
+> **UPDATE 2026-06-10: #1 below is DONE** — the desktop E2E was proven on a real
+> PC (hugh_second installed the MSIX after trusting the cert, launched MUSU,
+> device-flow fired, approved at musu.pro, node connected; token + bridge.json
+> written). The full ordered plan now lives in
+> **`ROADMAP_2026_06_10_POST_DESKTOP_E2E.md`** — read that for sequencing. The
+> items below remain accurate as context.
+
+1. **(DONE) Prove the desktop E2E on a real PC.** Owner-driven because
    it changes the running machine and needs admin (cert trust). Steps:
    - Trust cert: `Import-Certificate -FilePath "<repo>\.local-build\msix\output\blossompark.musu_cert.pfx" -CertStoreLocation Cert:\LocalMachine\TrustedPeople` (admin). Or download the cert from the public release.
    - Install: `Add-AppxPackage -Path "...\musu_1.15.0.0_x64_local-sideload-manual.msix"`
