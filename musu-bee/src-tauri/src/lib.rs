@@ -14,7 +14,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             desktop_status,
             start_runtime,
-            open_dashboard
+            open_dashboard,
+            list_fleet,
+            read_startup_marker
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -68,7 +70,6 @@ struct CommandResult {
     output: String,
 }
 
-const START_RUNTIME_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
 const DOCTOR_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 #[derive(Default)]
@@ -209,31 +210,53 @@ fn start_runtime() -> Result<CommandResult, String> {
         return Ok(CommandResult {
             ok: true,
             message: "runtime start already in progress".to_string(),
-            output: "packaged desktop already owns an in-flight `musu up --json` command"
-                .to_string(),
+            output: "a runtime start (`musu-startup open`) is already in flight".to_string(),
         });
     };
 
-    let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
-        .map_err(|err| format!("failed to run {} up --json: {err}", command.display()))?;
+    // C1 (2b double-bridge race fix): route the manual start through the SAME
+    // single entry point as autostart — `musu-startup.exe open` — instead of a
+    // separate `musu up --json`. Previously the two paths could each spawn a
+    // bridge in the window after autostart dropped the gate but before the bridge
+    // registered; with BRIDGE_PORT defaulting to 0 (OS-dynamic) the AddrInUse
+    // backstop never tripped, so two bridges could come up. Funnelling both
+    // through musu-startup means its own token/bridge idempotency guards
+    // (spawn_desktop_login_if_needed + bridge registry checks) prevent a second
+    // bridge. Fire-and-forget: musu-startup holds the bridge in its own
+    // foreground, so we must NOT await it (a 900s device-flow poll would block
+    // the UI). The UI polls bridge health to learn when it's up.
+    let outcome = spawn_musu_startup_open();
+    // Drop the gate right after the handoff launches: holding it across
+    // musu-startup's whole lifetime would permanently block a later retry. The
+    // race the gate used to (fail to) guard is now closed by single-entry-point
+    // + musu-startup idempotency, not by gate duration.
+    drop(_guard);
 
-    let combined = combine_command_output(&result.stdout, &result.stderr);
+    match outcome {
+        Ok(()) => Ok(CommandResult {
+            ok: true,
+            message: "runtime starting".to_string(),
+            output: "handed off to `musu-startup open`; the bridge will come up shortly"
+                .to_string(),
+        }),
+        Err(err) => Err(err),
+    }
+}
 
-    Ok(CommandResult {
-        ok: result.status_success,
-        message: if result.timed_out {
-            format!(
-                "musu up timed out after {}s",
-                START_RUNTIME_TIMEOUT.as_secs()
-            )
-        } else if result.status_success {
-            "musu up completed".to_string()
-        } else {
-            format!("musu up exited with {}", result.status_detail)
-        },
-        output: combined,
-    })
+/// Spawn `musu-startup.exe open` detached (no wait). The single entry point both
+/// the manual `start_runtime` command and `spawn_runtime_autostart` use, so there
+/// is exactly one way a bridge gets started from the desktop app. musu-startup
+/// owns bridge lifetime + device-flow; we only launch it.
+fn spawn_musu_startup_open() -> Result<(), String> {
+    let startup = musu_startup_path();
+    std::process::Command::new(&startup)
+        .arg("open")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map(|_child| ())
+        .map_err(|err| format!("failed to spawn {} open: {err}", startup.display()))
 }
 
 #[tauri::command]
@@ -251,6 +274,89 @@ fn open_dashboard(url: String) -> Result<CommandResult, String> {
         message: format!("opening {url}"),
         output: String::new(),
     })
+}
+
+/// One machine in the fleet, as the cockpit renders it. A flattened, GUI-facing
+/// projection of `cloud::RegistryNode` — only the fields the fleet list needs,
+/// plus `is_this_pc` computed against the local node name so the cockpit can
+/// badge the current machine.
+#[derive(serde::Serialize)]
+struct FleetNode {
+    node_name: String,
+    last_seen: String,
+    public_url: String,
+    is_this_pc: bool,
+}
+
+/// `list_fleet` — the cockpit's fleet list. Spawns `musu.exe nodes --json` (the
+/// same packaged-runtime-spawn pattern as `desktop_status`/`start_runtime`; this
+/// crate deliberately does NOT depend on musu-rs as a library) and parses its
+/// envelope. Returns an empty list (not an error) when not logged in yet, so the
+/// cockpit can show its empty/connecting state instead of an error.
+#[tauri::command]
+fn list_fleet() -> Result<Vec<FleetNode>, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["nodes", "--json"], DOCTOR_STATUS_TIMEOUT)
+        .map_err(|err| format!("failed to run {} nodes --json: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!(
+            "{} nodes --json timed out",
+            command.display()
+        ));
+    }
+
+    let envelope: serde_json::Value = serde_json::from_str(result.stdout.trim())
+        .map_err(|err| format!("failed to parse `musu nodes --json` output: {err}"))?;
+
+    // not_logged_in is an empty fleet, not an error (cockpit shows connecting state).
+    if envelope.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+        return Ok(Vec::new());
+    }
+
+    let nodes = envelope
+        .get("nodes")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    Ok(nodes
+        .into_iter()
+        .map(|n| FleetNode {
+            node_name: n
+                .get("node_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            last_seen: n
+                .get("last_seen")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            public_url: n
+                .get("public_url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            is_this_pc: n.get("is_this_pc").and_then(|v| v.as_bool()).unwrap_or(false),
+        })
+        .collect())
+}
+
+/// `read_startup_marker` — the desktop launch marker (`startup-marker.json`) that
+/// `musu-startup open` writes: status (logged-in / awaiting-device-approval /
+/// device-approved / device-flow-failed), and for the pending case the approval
+/// URL + user code. The cockpit reads this to render the "connecting" screen
+/// (show the code + an Approve button) and to surface a silently-failed login —
+/// which `desktop_status` alone cannot see. Returns the raw JSON value (or null
+/// when no marker exists yet).
+#[tauri::command]
+fn read_startup_marker() -> Result<serde_json::Value, String> {
+    let path = musu_home().join("startup-marker.json");
+    match std::fs::read_to_string(&path) {
+        Ok(text) => serde_json::from_str(&text)
+            .map_err(|err| format!("failed to parse startup-marker.json: {err}")),
+        Err(_) => Ok(serde_json::Value::Null), // no marker yet
+    }
 }
 
 fn doctor_status_summary(
@@ -1049,67 +1155,22 @@ fn spawn_runtime_autostart() {
             };
 
             // User launch (the desktop app window opened) == the UserOpen path:
-            // hand off to `musu-startup open`, which (per DESKTOP_BRIDGE_ONBOARDING
-            // _SPEC §10) ensures the bridge AND, if there is no account token,
-            // starts the device-flow that opens the approval page. This is
-            // fire-and-forget: musu-startup holds the bridge in its OWN
-            // foreground and runs device-flow as a detached task, so we must NOT
-            // wait on it with run_command_with_timeout — a 900s device-flow poll
-            // would otherwise block this thread for the full timeout. We spawn
-            // detached and return; the UI polls bridge health independently.
+            // hand off to the single `musu-startup open` entry point (shared with
+            // the manual start_runtime command — see spawn_musu_startup_open).
+            // musu-startup (per DESKTOP_BRIDGE_ONBOARDING_SPEC §10) ensures the
+            // bridge AND, if there is no account token, starts the device-flow
+            // that opens the approval page. Fire-and-forget: musu-startup holds
+            // the bridge in its OWN foreground, so we don't wait. The `_guard`
+            // drops at end of closure, right after the launch.
             //
             // NOTE: bare/`--service` startup (the MSIX windows.startupTask) stays
             // bridge-only by design; only this desktop-window launch path uses
             // `open`, so service boot never triggers an interactive device-flow.
-            let startup = musu_startup_path();
-            match std::process::Command::new(&startup)
-                .arg("open")
-                .stdin(std::process::Stdio::null())
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-            {
-                Ok(_child) => {
-                    // Hold the gate only until the handoff is launched; drop it so
-                    // a later manual "start runtime" is not permanently blocked by
-                    // a long-lived musu-startup process.
-                    eprintln!(
-                        "MUSU desktop launch: handed off to `{} open` (device-flow + bridge).",
-                        startup.display()
-                    );
-                }
-                Err(err) => {
-                    // Fall back to the legacy synchronous `musu up --json` so the
-                    // bridge still comes up even if musu-startup is missing
-                    // (e.g. non-packaged dev run). Device-flow auto-login is
-                    // skipped in this fallback (--json guard), matching prior
-                    // behavior.
-                    eprintln!(
-                        "MUSU desktop launch: `{} open` spawn failed ({err}); falling back to `musu up --json`.",
-                        startup.display()
-                    );
-                    let command = musu_command_path();
-                    match run_command_with_timeout(&command, &["up", "--json"], START_RUNTIME_TIMEOUT)
-                    {
-                        Ok(result) if result.status_success => {
-                            eprintln!("MUSU runtime autostart completed (fallback).");
-                        }
-                        Ok(result) => {
-                            eprintln!(
-                                "MUSU runtime autostart failed (fallback): {}; timed_out={}; stderr={}",
-                                result.status_detail,
-                                result.timed_out,
-                                result.stderr.trim()
-                            );
-                        }
-                        Err(err) => {
-                            eprintln!(
-                                "MUSU runtime autostart failed to spawn {} (fallback): {err}",
-                                command.display()
-                            );
-                        }
-                    }
-                }
+            match spawn_musu_startup_open() {
+                Ok(()) => eprintln!("MUSU desktop launch: handed off to `musu-startup open`."),
+                Err(err) => eprintln!(
+                    "MUSU desktop launch: {err}. The bridge will not auto-start; run `musu up` manually (dev) or reinstall the package."
+                ),
             }
         });
 }

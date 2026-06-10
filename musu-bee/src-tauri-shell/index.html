@@ -3,112 +3,96 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MUSU Desktop</title>
+    <title>MUSU</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Sora:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <aside class="rail">
+    <div class="grain" aria-hidden="true"></div>
+    <main class="cockpit">
+      <!-- header: brand + single connection dot (the only always-visible status) -->
+      <header class="top">
         <div class="brand">
-          <div class="mark">M</div>
-          <div>
+          <div class="mark"><span>M</span></div>
+          <div class="brand-text">
             <h1>MUSU</h1>
-            <p>Local runtime shell</p>
+            <p>your computers</p>
           </div>
         </div>
+        <div id="conn" class="conn" data-state="checking">
+          <span class="dot"></span>
+          <span id="conn-label">Checking</span>
+        </div>
+      </header>
 
-        <div class="version">__MUSU_VERSION__</div>
-      </aside>
-
-      <section class="workspace">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Local AI operations node</p>
-            <h2>Runtime Control</h2>
-          </div>
-          <div id="overall-pill" class="pill neutral">Checking</div>
-        </header>
-
-        <section class="status-grid" aria-label="Runtime status">
-          <article>
-            <span>Bridge</span>
-            <strong id="bridge-status">Unknown</strong>
-            <small id="bridge-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Debug Dashboard</span>
-            <strong id="dashboard-status">Unknown</strong>
-            <small id="dashboard-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Package</span>
-            <strong id="package-status">Desktop shell</strong>
-            <small id="package-detail">Version __MUSU_VERSION__</small>
-          </article>
-          <article>
-            <span>Connection</span>
-            <strong id="auth-status">Unknown</strong>
-            <small id="auth-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Runtime Profile</span>
-            <strong id="runtime-profile-status">Unknown</strong>
-            <small id="runtime-profile-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Process Ownership</span>
-            <strong id="process-ownership-status">Unknown</strong>
-            <small id="process-ownership-detail">Waiting for status.</small>
-          </article>
-        </section>
-
-        <section id="warnings-panel" class="warnings-panel" aria-label="Warnings" hidden>
-          <div class="warnings-head">
-            <h3>Warnings</h3>
-          </div>
-          <ul id="warning-list"></ul>
-        </section>
-
-        <section class="actions" aria-label="Runtime actions">
-          <button id="refresh" type="button">Refresh</button>
-          <button id="start-runtime" type="button">Start Runtime</button>
-          <button id="open-dashboard" type="button">Open Debug Dashboard</button>
-          <button id="copy-diagnostics" type="button">Copy Diagnostics</button>
-        </section>
-
-        <section class="details" aria-label="Runtime details">
-          <dl>
-            <div>
-              <dt>Bridge URL</dt>
-              <dd id="bridge-url">-</dd>
-            </div>
-            <div>
-              <dt>Debug Dashboard URL</dt>
-              <dd id="dashboard-url">-</dd>
-            </div>
-            <div>
-              <dt>MUSU home</dt>
-              <dd id="musu-home">-</dd>
-            </div>
-            <div>
-              <dt>Active Loop Candidates</dt>
-              <dd id="active-loops">-</dd>
-            </div>
-            <div>
-              <dt>Owned Helpers</dt>
-              <dd id="owned-helpers">-</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="log-panel" aria-label="Runtime log">
-          <div class="log-head">
-            <h3>Event Log</h3>
-            <button id="clear-log" type="button">Clear</button>
-          </div>
-          <pre id="log" aria-live="polite"></pre>
-        </section>
+      <!-- connecting state: shown when not logged in / device-flow pending -->
+      <section id="connecting" class="card connecting" hidden>
+        <div class="connecting-glyph" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <h2>Approve this computer to connect</h2>
+        <div id="connecting-code" class="code-box" hidden>
+          <span class="code-label">pairing code</span>
+          <strong id="code-value">—</strong>
+        </div>
+        <p id="connecting-detail" class="muted">Starting</p>
+        <a id="approve-link" class="btn-primary" href="#" target="_blank" rel="noopener" hidden
+          >Approve in browser <span class="arr">→</span></a
+        >
       </section>
+
+      <!-- fleet: the spine of the cockpit -->
+      <section id="fleet-section" class="fleet-section" hidden>
+        <div class="section-head">
+          <h2 class="section-title">Your machines</h2>
+          <span class="section-rule" aria-hidden="true"></span>
+        </div>
+        <ul id="fleet-list" class="fleet-list" aria-label="Your machines"></ul>
+
+        <!-- empty state (only this PC / none) -->
+        <div id="fleet-empty" class="card empty" hidden>
+          <div class="empty-glyph" aria-hidden="true">+</div>
+          <p class="empty-title">This is your only machine.</p>
+          <p class="muted">Install MUSU on another PC to build your fleet.</p>
+          <a class="btn-primary" href="https://musu.pro" target="_blank" rel="noopener"
+            >Get MUSU for another PC <span class="arr">→</span></a
+          >
+        </div>
+
+        <!-- order box: Phase 2 stub (disabled, signals what's coming) -->
+        <div class="order-box" title="Coming soon">
+          <span class="order-prompt" aria-hidden="true">›</span>
+          <input
+            id="order-input"
+            type="text"
+            placeholder="What should they do?"
+            disabled
+          />
+          <button id="order-send" disabled>Send</button>
+          <span class="order-soon">soon</span>
+        </div>
+      </section>
+
+      <!-- diagnostics: the OLD engineer view, demoted behind a disclosure -->
+      <details id="diagnostics" class="diagnostics">
+        <summary><span class="sum-tick" aria-hidden="true"></span>Having trouble?</summary>
+        <div class="diag-grid">
+          <div class="diag-row"><span>Bridge</span><strong id="d-bridge">—</strong></div>
+          <div class="diag-row"><span>Connection</span><strong id="d-conn">—</strong></div>
+          <div class="diag-row"><span>Runtime</span><strong id="d-runtime">—</strong></div>
+        </div>
+        <div id="diag-warnings" class="diag-warnings" hidden></div>
+        <div class="diag-actions">
+          <button id="d-refresh" type="button">Refresh</button>
+          <button id="d-copy" type="button">Copy diagnostics</button>
+        </div>
+        <p class="diag-version" id="version">—</p>
+      </details>
     </main>
     <script src="./main.js"></script>
   </body>

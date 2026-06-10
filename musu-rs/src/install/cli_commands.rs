@@ -20,7 +20,11 @@ use super::shares::SharesConfig;
 // V27 account-auth login flow lives in a focused child module (thermo-nuclear
 // maintainability review 2026-06-09). Re-exported flat so existing call sites
 // (`cli_commands::run_login`, `::run_desktop_login`, …) keep working unchanged.
+// `allow(unused_imports)`: this is the module's public API surface — some names
+// are consumed only by the `musu-startup` binary (e.g. run_desktop_login) or are
+// the device-flow public types, so they look unused from the `musu` bin's view.
 mod device_login;
+#[allow(unused_imports)]
 pub use device_login::{
     initiate_device_flow, poll_and_finalize, run_desktop_login, run_login, run_logout, run_whoami,
     DeviceFlow,
@@ -497,6 +501,83 @@ pub struct StatusOpts {
     /// Emit machine-readable JSON.
     #[arg(long)]
     pub json: bool,
+}
+
+/// Options for `musu nodes`.
+#[derive(Args, Debug, Clone)]
+pub struct NodesOpts {
+    /// Emit machine-readable JSON (the desktop cockpit uses this).
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// `musu nodes` — list the account's registered fleet from musu.pro
+/// (`GET /api/v1/nodes`). Unlike `musu status` (which queries the LOCAL bridge's
+/// view), this reads the cloud registry, so it works for the desktop cockpit even
+/// when this machine's bridge view is empty. `--json` emits a stable envelope the
+/// cockpit parses; without it, a short human list.
+pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
+    let home = musu_home();
+    let Some(token) = crate::cloud::token::load_token(&home) else {
+        if opts.json {
+            println!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "schema": "musu.nodes_cli.v1",
+                    "ok": false,
+                    "error": "not_logged_in",
+                    "nodes": [],
+                }))?
+            );
+        } else {
+            println!("Not logged in. Run `musu login`.");
+        }
+        return Ok(());
+    };
+
+    let base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token));
+    let nodes = cloud.list_nodes().await?;
+
+    // Resolve THIS machine's node name the same way the login/register path does
+    // (MUSU_NODE_NAME override, else hostname), so the cockpit can badge the
+    // current PC without re-deriving it.
+    let this_pc = std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
+        hostname::get()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    });
+
+    if opts.json {
+        let projected: Vec<_> = nodes
+            .iter()
+            .map(|n| {
+                serde_json::json!({
+                    "node_name": n.node_name,
+                    "public_url": n.public_url,
+                    "last_seen": n.last_seen,
+                    "is_this_pc": n.node_name == this_pc,
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string(&serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": true,
+                "nodes": projected,
+            }))?
+        );
+    } else if nodes.is_empty() {
+        println!("No registered nodes yet.");
+    } else {
+        println!("\nRegistered fleet ({} nodes):", nodes.len());
+        for n in &nodes {
+            println!("  {} — {} (last seen {})", n.node_name, n.public_url, n.last_seen);
+        }
+    }
+    Ok(())
 }
 // ── share / unshare / shares ────────────────────────────────────────────
 

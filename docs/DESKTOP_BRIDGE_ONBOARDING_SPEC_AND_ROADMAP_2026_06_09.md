@@ -275,17 +275,21 @@ and what remains:
   everywhere; removed the redundant hero CTA so `<InstallCommand>` is the single
   source.
 
-**Deferred (recorded, not fixed — see handoff):**
-- **(critic HIGH→MEDIUM 2b) Double-bridge race under a dynamic port.** If the
-  manual `start_runtime` Tauri command runs in the window after
-  `spawn_runtime_autostart` hands off `musu-startup open` but before the bridge
-  registers, two bridges can start — and `BRIDGE_PORT` defaults to `0` (OS-dynamic),
-  so the `AddrInUse` backstop never trips. **Currently LATENT: `start_runtime` has
-  no caller in the loaded web UI (verified — no `invoke("start_runtime")`).** It
-  becomes live the moment the cockpit GUI wires a "start" button. Fix when building
-  the cockpit: either hold `runtime_start_gate` until `bridge_is_healthy`, or make
-  `start_runtime` reuse the single `musu-startup open` entry point. Do not add a
-  start button to the cockpit without this.
+**Fixed (C1, 2026-06-11):**
+- **(critic HIGH→MEDIUM 2b) Double-bridge race under a dynamic port — FIXED.**
+  Both bridge-start paths now funnel through one entry point: a new
+  `spawn_musu_startup_open()` helper that the manual `start_runtime` command AND
+  `spawn_runtime_autostart` both call. `start_runtime` no longer runs its own
+  `musu up --json` — that separate spawner was the race's second half, and with
+  `BRIDGE_PORT=0` (OS-dynamic) the `AddrInUse` backstop never tripped. One entry
+  point means musu-startup's own token/bridge idempotency guards prevent a second
+  bridge. Bonus: `start_runtime` is now fire-and-forget (returns "runtime starting"
+  immediately) instead of blocking the UI for up to 45s on a synchronous `musu up`.
+  The legacy `musu up --json` fallback in autostart was also removed (the other
+  half of the race); if `musu-startup.exe` is absent (dev builds) the app logs and
+  the operator runs `musu up` manually. Unused `START_RUNTIME_TIMEOUT` removed.
+  Verified: `cargo check` exit 0, no warnings. **The cockpit may now safely surface
+  a start control** — the B1 constraint is lifted.
 - **(critic MEDIUM 4) "Open MUSU and see your fleet" over-promises** vs a shell
   that still loads the web UI (no in-app fleet view yet). The onboarding copy that
   says "connects this PC" is accurate; the aspirational "see your fleet in-app" must

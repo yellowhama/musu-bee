@@ -1,178 +1,200 @@
-const state = {
-  status: null,
-  busy: false,
-};
+// MUSU Desktop — fleet cockpit.
+// Three states: connecting (no token / device-flow pending), fleet (connected),
+// and an always-available diagnostics drawer. The plumbing the old shell put
+// front-and-center (bridge/process/runtime) now lives only in that drawer.
 
 const $ = (id) => document.getElementById(id);
 
-function log(message, detail) {
-  const time = new Date().toLocaleTimeString();
-  const text = detail ? `${time}  ${message}\n${detail}` : `${time}  ${message}`;
-  $("log").textContent = `${text}\n${$("log").textContent}`.trim();
-}
-
-function setBusy(value) {
-  state.busy = value;
-  syncActionState();
-}
-
-function syncActionState() {
-  const dashboardAvailable =
-    state.status?.dashboard_status === "ok" && Boolean(state.status?.dashboard_url);
-  const canStartRuntime = Boolean(state.status?.can_start_runtime);
-
-  $("refresh").disabled = state.busy;
-  $("start-runtime").disabled = state.busy || !canStartRuntime;
-  $("open-dashboard").disabled = state.busy || !dashboardAvailable;
-  $("copy-diagnostics").disabled = state.busy;
-}
+const LAST_SEEN_ONLINE_MS = 90_000; // a node seen within 90s counts as online
 
 async function invoke(command, args = {}) {
   const api = window.__TAURI__?.core;
   if (!api?.invoke) {
-    throw new Error("Tauri IPC is unavailable. Run this shell inside the MUSU desktop app.");
+    throw new Error("Tauri IPC unavailable. Run inside the MUSU desktop app.");
   }
   return api.invoke(command, args);
 }
 
-function setPill(kind, text) {
-  const pill = $("overall-pill");
-  pill.className = `pill ${kind}`;
-  pill.textContent = text;
+function setConn(state, label) {
+  const el = $("conn");
+  el.dataset.state = state;
+  $("conn-label").textContent = label;
 }
 
-function renderWarnings(warnings) {
-  const items = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
-  const panel = $("warnings-panel");
-  const list = $("warning-list");
+function isOnline(lastSeen) {
+  if (!lastSeen) return false;
+  const t = Date.parse(lastSeen);
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t < LAST_SEEN_ONLINE_MS;
+}
+
+function relTime(lastSeen) {
+  const t = Date.parse(lastSeen);
+  if (Number.isNaN(t)) return "unknown";
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+// ── screen switching ───────────────────────────────────
+function showConnecting(marker) {
+  $("connecting").hidden = false;
+  $("fleet-section").hidden = true;
+
+  // startup-marker.json fields (musu-startup.rs StartupMarker): the lifecycle
+  // phase is `stage`; the device-flow pair is device_user_code / device_approval_url.
+  const status = marker?.stage;
+  const code = marker?.device_user_code;
+  const url = marker?.device_approval_url;
+
+  if (code) {
+    $("connecting-code").hidden = false;
+    $("code-value").textContent = code;
+  } else {
+    $("connecting-code").hidden = true;
+  }
+  if (url) {
+    const link = $("approve-link");
+    link.href = url;
+    link.hidden = false;
+  } else {
+    $("approve-link").hidden = true;
+  }
+
+  if (status === "device-flow-failed") {
+    setConn("offline", "Connection failed");
+    $("connecting-detail").textContent =
+      "Sign-in didn't complete. Reopen MUSU to try again.";
+  } else if (status === "awaiting-device-approval") {
+    setConn("connecting", "Connecting…");
+    $("connecting-detail").textContent = "Waiting for you to approve at musu.pro…";
+  } else {
+    setConn("connecting", "Connecting…");
+    $("connecting-detail").textContent = "Starting…";
+  }
+}
+
+function renderFleet(nodes) {
+  $("connecting").hidden = true;
+  $("fleet-section").hidden = false;
+  setConn("connected", "Connected");
+
+  const list = $("fleet-list");
   list.textContent = "";
-  if (items.length === 0) {
-    panel.hidden = true;
-    return;
-  }
 
-  for (const warning of items) {
-    const item = document.createElement("li");
-    item.textContent = warning;
-    list.appendChild(item);
+  const others = nodes.filter((n) => !n.is_this_pc);
+  // empty = no nodes at all, or only this PC
+  $("fleet-empty").hidden = !(nodes.length === 0 || others.length === 0);
+
+  for (const n of nodes) {
+    const online = n.is_this_pc || isOnline(n.last_seen);
+    const li = document.createElement("li");
+    li.className = `fleet-row ${online ? "online" : "offline"}`;
+
+    const dot = document.createElement("span");
+    dot.className = "node-dot";
+    li.appendChild(dot);
+
+    const name = document.createElement("span");
+    name.className = "node-name";
+    name.textContent = n.node_name || "(unnamed)";
+    li.appendChild(name);
+
+    if (n.is_this_pc) {
+      const badge = document.createElement("span");
+      badge.className = "this-pc-badge";
+      badge.textContent = "this PC";
+      li.appendChild(badge);
+    }
+
+    const meta = document.createElement("span");
+    meta.className = "node-meta";
+    meta.textContent = n.is_this_pc ? "online" : online ? "online" : `seen ${relTime(n.last_seen)}`;
+    li.appendChild(meta);
+
+    list.appendChild(li);
   }
-  panel.hidden = false;
 }
 
-function renderStatus(status) {
-  state.status = status;
+// ── diagnostics drawer ─────────────────────────────────
+function renderDiagnostics(status) {
   const bridgeOk = status.bridge_status === "ok";
   const bridgeStarting = status.bridge_status === "starting";
-  const dashboardOk = status.dashboard_status === "ok";
+  $("d-bridge").textContent = bridgeOk
+    ? "running"
+    : bridgeStarting
+      ? "starting"
+      : "offline";
+  $("d-conn").textContent = status.auth_status || "unknown";
+  $("d-runtime").textContent = `${status.runtime_process_count ?? 0} process(es)`;
+
   const warnings = Array.isArray(status.warnings) ? status.warnings.filter(Boolean) : [];
-
-  $("bridge-status").textContent = bridgeOk ? "Online" : (bridgeStarting ? "Starting" : "Offline");
-  $("bridge-detail").textContent = status.bridge_detail || "No bridge detail.";
-  $("dashboard-status").textContent = dashboardOk ? "Online" : "Optional";
-  $("dashboard-detail").textContent = status.dashboard_detail || "No dashboard detail.";
-  $("package-status").textContent = status.package_status || "Unknown";
-  $("package-detail").textContent = status.package_detail || "No package detail.";
-  $("auth-status").textContent = status.auth_status || "Unknown";
-  $("auth-detail").textContent = status.auth_detail || "No connection detail.";
-  $("runtime-profile-status").textContent = status.runtime_profile_status || "Unknown";
-  $("runtime-profile-detail").textContent =
-    status.runtime_profile_detail || "No runtime profile detail.";
-  $("process-ownership-status").textContent = status.process_ownership_status || "Unknown";
-  $("process-ownership-detail").textContent =
-    status.process_ownership_detail || "No process ownership detail.";
-  $("bridge-url").textContent = status.bridge_url || "-";
-  $("dashboard-url").textContent = status.dashboard_url || "-";
-  $("musu-home").textContent = status.musu_home || "-";
-  $("active-loops").textContent =
-    Array.isArray(status.active_runtime_loop_candidate_keys) &&
-    status.active_runtime_loop_candidate_keys.length > 0
-      ? status.active_runtime_loop_candidate_keys.join(", ")
-      : "-";
-  $("owned-helpers").textContent = `runtime ${status.runtime_process_count ?? 0}, desktop ${
-    status.desktop_process_count ?? 0
-  }, node ${status.owned_node_process_count ?? 0}/${status.machine_wide_node_process_count ?? 0}, WebView2 ${
-    status.owned_webview2_process_count ?? 0
-  }/${status.machine_wide_webview2_process_count ?? 0}`;
-  renderWarnings(warnings);
-
-  if (!bridgeOk && !bridgeStarting) {
-    setPill("bad", "Offline");
-  } else if (bridgeStarting) {
-    setPill("warn", "Starting");
-  } else if (warnings.length > 0) {
-    setPill("warn", "Review");
-  } else if (bridgeOk && dashboardOk) {
-    setPill("ok", "Ready");
-  } else if (bridgeOk) {
-    setPill("ok", "Ready");
+  const wbox = $("diag-warnings");
+  if (warnings.length) {
+    wbox.hidden = false;
+    wbox.textContent = warnings.join(" · ");
   } else {
-    setPill("warn", "Review");
+    wbox.hidden = true;
   }
-
-  syncActionState();
+  $("version").textContent = status.version ? `MUSU ${status.version}` : "";
+  window.__lastStatus = status;
 }
 
-async function refreshStatus() {
-  setBusy(true);
+// ── refresh cycle ──────────────────────────────────────
+async function refresh() {
+  let status = null;
   try {
-    const status = await invoke("desktop_status");
-    renderStatus(status);
-    log("Status refreshed.", JSON.stringify(status, null, 2));
-  } catch (error) {
-    setPill("bad", "Error");
-    log("Status refresh failed.", String(error));
-  } finally {
-    setBusy(false);
+    status = await invoke("desktop_status");
+    renderDiagnostics(status);
+  } catch (err) {
+    setConn("offline", "Error");
+    $("connecting").hidden = false;
+    $("fleet-section").hidden = true;
+    $("connecting-detail").textContent = String(err);
+    return;
   }
-}
 
-async function startRuntime() {
-  setBusy(true);
-  try {
-    const result = await invoke("start_runtime");
-    log("Runtime start command completed.", result.output || result.message || JSON.stringify(result));
-    await refreshStatus();
-  } catch (error) {
-    log("Runtime start failed.", String(error));
-  } finally {
-    setBusy(false);
-  }
-}
+  // Logged in? desktop_status.auth_status is "Connected" (cloud login present),
+  // "Local Only" (bridge token but no cloud login), "Offline", or "Unknown".
+  // Only "Connected" means we can list the fleet; everything else → connecting.
+  const loggedIn = (status.auth_status || "") === "Connected";
 
-async function openDashboard() {
-  const url = state.status?.dashboard_url;
-  if (!url) {
-    log(
-      "Debug dashboard is not running.",
-      "This is optional. MUSU Desktop runs local work through the bridge; MUSU.PRO sends user input to that local runtime."
-    );
+  if (!loggedIn) {
+    let marker = null;
+    try {
+      marker = await invoke("read_startup_marker");
+    } catch {
+      marker = null;
+    }
+    showConnecting(marker || {});
     return;
   }
 
   try {
-    const result = await invoke("open_dashboard", { url });
-    log("Dashboard open requested.", result.message || url);
-  } catch (error) {
-    log("Dashboard open failed.", String(error));
+    const nodes = await invoke("list_fleet");
+    renderFleet(Array.isArray(nodes) ? nodes : []);
+  } catch (err) {
+    // Connected but fleet fetch failed — show fleet section empty + keep dot green.
+    renderFleet([]);
+    const wbox = $("diag-warnings");
+    wbox.hidden = false;
+    wbox.textContent = `Couldn't load fleet: ${err}`;
   }
 }
 
-async function copyDiagnostics() {
-  const payload = JSON.stringify(state.status || {}, null, 2);
+// ── wiring ─────────────────────────────────────────────
+$("d-refresh").addEventListener("click", refresh);
+$("d-copy").addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText(payload);
-    log("Diagnostics copied.");
-  } catch (error) {
-    log("Copy failed.", String(error));
+    await navigator.clipboard.writeText(JSON.stringify(window.__lastStatus || {}, null, 2));
+    $("d-copy").textContent = "Copied!";
+    setTimeout(() => ($("d-copy").textContent = "Copy diagnostics"), 1500);
+  } catch {
+    /* ignore */
   }
-}
-
-$("refresh").addEventListener("click", refreshStatus);
-$("start-runtime").addEventListener("click", startRuntime);
-$("open-dashboard").addEventListener("click", openDashboard);
-$("copy-diagnostics").addEventListener("click", copyDiagnostics);
-$("clear-log").addEventListener("click", () => {
-  $("log").textContent = "";
 });
 
-refreshStatus();
+refresh();
+setInterval(refresh, 5000); // light poll; fleet + connection state stay current

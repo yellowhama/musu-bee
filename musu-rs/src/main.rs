@@ -17,7 +17,7 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
+    DoctorOpts, GetOpts, LsOpts, NodesOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
     StatusOpts, StopOpts, UnshareOpts, UpOpts,
 };
 
@@ -114,6 +114,10 @@ enum Cmd {
         #[arg(long, default_value = "5")]
         timeout: u64,
     },
+
+    /// List the account's registered fleet nodes from musu.pro (machine-readable
+    /// with `--json`). Used by the desktop cockpit to render the fleet list.
+    Nodes(NodesOpts),
 
     /// Show fleet status across all connected nodes.
     Status(StatusOpts),
@@ -303,6 +307,10 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
+        Cmd::Nodes(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_nodes(opts).await
+        }
         Cmd::Status(opts) => {
             init_tracing_default();
             install::cli_commands::run_status(opts).await
