@@ -71,29 +71,61 @@ collapse auth/network/empty all into "empty list."
 6. **Drop dead `open_dashboard`** from the IPC handler.
 
 **P2 — Prune the site to its honest job (marketing + auth + device + docs + ONE status view).**
-7. **Cut scope sprawl**: `market*`, `community*`, `products*`, `insights`, `wiki`
-   (+ their services/repos). Unrelated to "connect your computers."
-8. **Collapse 5 consoles → 1**: delete `/home` (dead redirect), merge
-   `tasks`/`workspace` into `dashboard` tabs, keep `screen` if real. With the
-   desktop app becoming the cockpit, decide if the web needs a fleet console at
-   all or just a read-only status page.
-9. **Fix the switches**: flip `MUSU_SITE_DISABLED` default to false (fail-open
-   marketing site); either wire `BRIDGE_SURFACE_ENABLED` real or strip the dead
-   console nav until it is.
+7. **Cut scope sprawl** — ✅ DONE 2026-06-11. Deleted `market*`, `community*`,
+   `products/[slug]*` routes + `listings`/`posts` services/repos/types/APIs +
+   nav/MCP/rss/sitemap refs. tsc clean. **Kept `wiki` and `insights/[id]`** —
+   investigation showed both are load-bearing for the fleet console (wiki renders
+   in ConsoleShell from connected-node markdown; insights is the dashboard's
+   AI-artifact viewer), not marketplace sprawl. (insights carries a stored-XSS
+   liability via dangerouslySetInnerHTML — flagged for a separate security fix.)
+8. **Collapse 5 consoles → 1** — DEFERRED (not safe to do now). `/home` is the
+   console's primary entry point (Header logo, MobileTabBar, Sidebar,
+   CommandPalette all route to it; it redirects to /dashboard), so deleting it
+   means rewiring all console nav. AND dashboard/workspace/screen/tasks are ALL
+   currently 410'd behind `BRIDGE_SURFACE_ENABLED=false` — they're dead screens,
+   so merging them has little upside and real breakage risk. **Do the console
+   collapse together with the bridge-surface revival**, not before. Until then the
+   dead console nav stays (it 410s gracefully).
+9. **Fix the switches** — ✅ PARTIAL: flipped `MUSU_SITE_DISABLED` default to
+   false (fail-open marketing site). `BRIDGE_SURFACE_ENABLED` stays false
+   deliberately (web console input paused, Desktop is executor); stripping the
+   dead console nav is bundled into #8's deferred console-collapse.
 10. **Reconcile landing copy**: desktop-first hero (demote CLI to mac/linux),
     single pricing block, honest "local execution + cloud coordination" framing
     (not "zero cloud").
 
 **P3 — Integration hygiene.**
-11. **Delete or wire `proxy.ts`/`SITE_DISABLED`** (orphaned gate misleads).
-12. **Stop calling the data path "P2P/relay"** in docs/copy until the route
-    selector lands; document the real path (registry-addressed HTTP-bearer,
-    unverified peer) and prioritize **peer identity verification** as the real
-    security boundary.
-13. **`musu nodes --json` envelope**: distinguish not_logged_in / token_expired /
-    cloud_unreachable / empty; derive `last_seen` liveness in the cockpit.
-14. **Disambiguate the three "fleet" concepts** by name; retire the unused web
-    `/fleet` page or rename.
+11. **`proxy.ts`/`SITE_DISABLED`** — ✅ INVESTIGATED; the integration critique was
+    WRONG here. It claimed `proxy.ts` is orphaned dead code ("no middleware.ts, no
+    importer"). But this is a **Next.js 16** app, and Next 16 renamed the
+    middleware convention `middleware.ts`→`proxy.ts` (`export function middleware`
+    → `export function proxy`). So `src/proxy.ts` (with `export async function
+    proxy` + `export const config`) IS the live middleware — Next auto-detects it.
+    It does CSP nonce, Supabase auth refresh, legacy redirects, AND the
+    SITE_DISABLED gate. **Do NOT delete it.** Because it's live, `SITE_DISABLED`
+    genuinely gates the site — which makes flipping its default to `false` (P2.9)
+    *more* important, not less (a live gate defaulting to "disabled" is a real
+    foot-gun, now fixed).
+12. **Stop calling the data path "P2P/relay"** — ✅ DONE. Landing copy (page.tsx)
+    softened: "P2P QUIC Encryption / Military-grade tunnel" → "Direct
+    machine-to-machine / authenticated bridge"; "Zero cloud dependency, code never
+    leaves" FAQ → honest "AI runs on your machines (local execution); musu.pro is a
+    coordination layer that never executes code or stores files"; "P2P QUIC
+    Tunnels" card + "P2P encrypted" chip reworded. The real data path today is
+    registry-addressed HTTP-bearer with `peer_identity_verified=false`; the
+    `#[allow(dead_code)]` P2P/relay route selector is not wired. **Open security
+    work (not copy): peer identity verification** is the real boundary to harden —
+    tracked separately, not in this re-align.
+13. **`musu nodes --json` envelope** — ✅ DONE. run_nodes no longer bails on a
+    fetch error; it emits a classified envelope (`not_logged_in` /
+    `token_expired` / `cloud_unreachable`). The cockpit's list_fleet maps these:
+    not_logged_in → connecting screen, token_expired → "Sign in again",
+    cloud_unreachable → "musu.pro unreachable" + shows THIS PC only (never a
+    silent empty list). `last_seen` liveness derivation already lands in P1.
+14. **Disambiguate the three "fleet" concepts** — DEFERRED (naming cleanup, low
+    risk/low urgency): cockpit fleet = cloud node registry; web `/fleet` page =
+    a single bridge's paired-machine capacity view (not in the desktop bundle);
+    they share the word "fleet". Rename when the web `/fleet` is next touched.
 
 **Deferred (was roadmap-high, now correctly lower):**
 - A1 Store submit (owner) — still valuable (kills cert wall) but it ships a

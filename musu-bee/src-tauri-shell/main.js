@@ -215,11 +215,26 @@ async function refresh() {
       renderFleet(Array.isArray(nodes) ? nodes : [], thisPcActivity, bridgeOk);
       setConn("connected", "Connected");
     } catch (err) {
-      renderFleet([], thisPcActivity, bridgeOk);
-      setConn("connected", "Connected");
+      // P3: distinguish fetch failures from an empty fleet. The cockpit still
+      // shows THIS PC (from desktop_status) so a cloud hiccup doesn't blank the
+      // screen, and the connection dot reflects the real failure.
+      const msg = String(err);
+      renderFleet(
+        [{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }],
+        thisPcActivity,
+        bridgeOk
+      );
+      if (msg.includes("token_expired")) {
+        setConn("connecting", "Sign in again");
+      } else {
+        setConn("connecting", "musu.pro unreachable");
+      }
       const wbox = $("diag-warnings");
       wbox.hidden = false;
-      wbox.textContent = `Couldn't load fleet: ${err}`;
+      wbox.textContent =
+        msg.includes("token_expired")
+          ? "Your sign-in expired — reopen MUSU to reconnect."
+          : `Couldn't reach musu.pro to list your fleet (${msg}). Showing this machine only.`;
     }
   } else {
     // Local Only: cloud-disconnected but the local bridge works. Show just THIS

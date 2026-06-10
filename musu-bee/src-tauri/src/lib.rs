@@ -291,9 +291,17 @@ fn list_fleet() -> Result<Vec<FleetNode>, String> {
     let envelope: serde_json::Value = serde_json::from_str(result.stdout.trim())
         .map_err(|err| format!("failed to parse `musu nodes --json` output: {err}"))?;
 
-    // not_logged_in is an empty fleet, not an error (cockpit shows connecting state).
+    // P3: distinguish "empty fleet" from failure. not_logged_in → empty Vec (the
+    // cockpit shows the connecting/device-flow screen). token_expired /
+    // cloud_unreachable → Err so the cockpit can say "sign in again" / "couldn't
+    // reach musu.pro" instead of silently showing zero machines.
     if envelope.get("ok").and_then(|v| v.as_bool()) != Some(true) {
-        return Ok(Vec::new());
+        let kind = envelope.get("error").and_then(|v| v.as_str()).unwrap_or("");
+        return match kind {
+            "not_logged_in" | "" => Ok(Vec::new()),
+            "token_expired" => Err("token_expired".to_string()),
+            other => Err(format!("cloud_unreachable: {other}")),
+        };
     }
 
     let nodes = envelope

@@ -537,7 +537,39 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
 
     let base_url = crate::cloud::base_url_from_env();
     let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token));
-    let nodes = cloud.list_nodes().await?;
+
+    // P3: never let a fetch failure collapse into "empty fleet". `list_nodes`
+    // bails on both auth-expiry and network errors; catch them and emit a
+    // distinct envelope so the cockpit can show "couldn't reach musu.pro / sign
+    // in again" instead of silently rendering zero machines. We classify on the
+    // error text (cloud_api_error embeds the HTTP status): a 401/403 means the
+    // token is stale, anything else is treated as unreachable.
+    let nodes = match cloud.list_nodes().await {
+        Ok(nodes) => nodes,
+        Err(err) => {
+            let msg = err.to_string();
+            let kind = if msg.contains(" 401") || msg.contains(" 403") {
+                "token_expired"
+            } else {
+                "cloud_unreachable"
+            };
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string(&serde_json::json!({
+                        "schema": "musu.nodes_cli.v1",
+                        "ok": false,
+                        "error": kind,
+                        "detail": msg,
+                        "nodes": [],
+                    }))?
+                );
+            } else {
+                println!("Could not list fleet ({kind}): {msg}");
+            }
+            return Ok(());
+        }
+    };
 
     // Resolve THIS machine's node name the same way the login/register path does
     // (MUSU_NODE_NAME override, else hostname), so the cockpit can badge the
