@@ -19,6 +19,11 @@ param(
     [string]$Description = "MUSU desktop shell for the local AI operations runtime",
     [string]$ApplicationExecutable = "musu-desktop.exe",
     [string]$RuntimeExecutable = "musu.exe",
+    # musu-startup.exe is a logic-free Service-mode SHIM (not the bridge itself —
+    # the bridge runtime lives in `musu.exe startup`). It exists only because the
+    # MSIX windows.startupTask is exe-path-only and can't pass `startup` to
+    # musu.exe. Built from the same crate (zero version skew). See
+    # musu-rs/src/bin/musu-startup.rs + ARCHITECTURE_BINARIES_PROCESSES_PACKAGING.
     [string]$StartupExecutable = "musu-startup.exe",
     [string]$Version,
     [string]$StageDir,
