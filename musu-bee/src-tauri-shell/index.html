@@ -64,18 +64,21 @@
           >
         </div>
 
-        <!-- order box: Phase 2 stub (disabled, signals what's coming) -->
-        <div class="order-box" title="Coming soon">
+        <!-- order box: give the fleet work (P0 input path → submit_order) -->
+        <div class="order-box">
           <span class="order-prompt" aria-hidden="true">›</span>
           <input
             id="order-input"
             type="text"
             placeholder="What should they do?"
-            disabled
+            autocomplete="off"
           />
-          <button id="order-send" disabled>Send</button>
-          <span class="order-soon">soon</span>
+          <select id="order-target" aria-label="Target machine">
+            <option value="">any machine</option>
+          </select>
+          <button id="order-send">Send</button>
         </div>
+        <p id="order-status" class="order-status" hidden></p>
       </section>
 
       <!-- diagnostics: the OLD engineer view, demoted behind a disclosure -->

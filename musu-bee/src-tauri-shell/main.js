@@ -86,7 +86,26 @@ function renderFleet(nodes) {
 
   const others = nodes.filter((n) => !n.is_this_pc);
   // empty = no nodes at all, or only this PC
-  $("fleet-empty").hidden = !(nodes.length === 0 || others.length === 0);
+  const isEmpty = nodes.length === 0 || others.length === 0;
+  $("fleet-empty").hidden = !isEmpty;
+
+  // keep the order target dropdown in sync with the fleet (preserve selection)
+  const sel = $("order-target");
+  if (sel) {
+    const prev = sel.value;
+    sel.textContent = "";
+    const any = document.createElement("option");
+    any.value = "";
+    any.textContent = "any machine";
+    sel.appendChild(any);
+    for (const n of nodes) {
+      const opt = document.createElement("option");
+      opt.value = n.node_name;
+      opt.textContent = n.is_this_pc ? `${n.node_name} (this PC)` : n.node_name;
+      sel.appendChild(opt);
+    }
+    if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  }
 
   for (const n of nodes) {
     const online = n.is_this_pc || isOnline(n.last_seen);
@@ -184,7 +203,43 @@ async function refresh() {
   }
 }
 
+// ── order submission (P0 input path → submit_order) ────
+async function submitOrder() {
+  const input = $("order-input");
+  const sendBtn = $("order-send");
+  const statusEl = $("order-status");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const target = $("order-target")?.value || "";
+  input.disabled = true;
+  sendBtn.disabled = true;
+  statusEl.hidden = false;
+  statusEl.className = "order-status pending";
+  statusEl.textContent = "Sending…";
+
+  try {
+    const result = await invoke("submit_order", { text, target });
+    statusEl.className = "order-status ok";
+    statusEl.textContent = result.message || "Order sent.";
+    input.value = "";
+  } catch (err) {
+    statusEl.className = "order-status bad";
+    statusEl.textContent = String(err);
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    setTimeout(() => {
+      statusEl.hidden = true;
+    }, 4000);
+  }
+}
+
 // ── wiring ─────────────────────────────────────────────
+$("order-send").addEventListener("click", submitOrder);
+$("order-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitOrder();
+});
 $("d-refresh").addEventListener("click", refresh);
 $("d-copy").addEventListener("click", async () => {
   try {

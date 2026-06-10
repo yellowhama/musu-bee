@@ -16,6 +16,7 @@ pub fn run() {
             start_runtime,
             open_dashboard,
             list_fleet,
+            submit_order,
             read_startup_marker
         ])
         .setup(|app| {
@@ -340,6 +341,55 @@ fn list_fleet() -> Result<Vec<FleetNode>, String> {
             is_this_pc: n.get("is_this_pc").and_then(|v| v.as_bool()).unwrap_or(false),
         })
         .collect())
+}
+
+/// `submit_order` — give the fleet work (P0: the cockpit's input path). Spawns
+/// `musu route "<text>" [--target <node>] --channel desktop`, reusing the same
+/// task-delegate path the CLI already drives (`run_route` → POST
+/// /api/tasks/delegate). No `--wait`: we only need the order accepted, not its
+/// result, so the call returns as soon as delegation is acknowledged (the UI does
+/// not block on task completion). `target` empty = auto-route.
+///
+/// This closes the capability gap the migration opened: the web console input
+/// path is paused (bridge-surface 410) and this is the replacement, so the
+/// product can take orders again.
+#[tauri::command]
+fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err("order text is empty".to_string());
+    }
+
+    let command = musu_command_path();
+    let mut args: Vec<&str> = vec!["route", text];
+    let target = target.trim();
+    if !target.is_empty() {
+        args.push("--target");
+        args.push(target);
+    }
+    args.push("--channel");
+    args.push("desktop");
+
+    let result = run_command_with_timeout(&command, &args, DOCTOR_STATUS_TIMEOUT)
+        .map_err(|err| format!("failed to run {} route: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} route timed out accepting the order", command.display()));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if result.status_success {
+        Ok(CommandResult {
+            ok: true,
+            message: if target.is_empty() {
+                "order sent (auto-routed)".to_string()
+            } else {
+                format!("order sent to {target}")
+            },
+            output: combined,
+        })
+    } else {
+        Err(format!("order rejected: {}", combined.trim()))
+    }
 }
 
 /// `read_startup_marker` — the desktop launch marker (`startup-marker.json`) that
