@@ -57,20 +57,31 @@ Anonymous download verified HTTP 200.
    - Install: `Add-AppxPackage -Path "...\musu_1.15.0.0_x64_local-sideload-manual.msix"`
    - Launch MUSU from Start menu → expect `musu-startup open` to fire device-flow → browser opens musu.pro/device?code=... → approve → node connects.
    - If it works, "device-flow login is LIVE" finally holds for the desktop path, not just server-side.
-2. **Deploy the musu-pro site changes (`82bda51`) to prod.** Owner-gated. Preview
-   first (Vercel builds fine — local build only fails on sandbox Google-Fonts fetch).
-   After deploy, confirm the Windows download button on musu.pro pulls the .msix.
-3. **Decide the Tauri gate semantics (audit MEDIUM).** `runtime_start_gate` drops
-   right after the fire-and-forget spawn, leaving a narrow window where the manual
-   `start_runtime` Tauri command (`lib.rs:~208`, still uses `musu up --json`) can
-   double-spawn before `musu-startup`'s bridge registers its pid. Port-bind
-   backstops an actual double-bridge, but the UI shows "offline" during the window.
-   Either hold the gate until the bridge registers, or treat a recent handoff as
-   in-progress. Confirm the bridge port is fixed (not dynamic) — open question.
+   - NOTE: pre-release install is NOT one-click — the site now says so honestly
+     (developer-preview cert-trust step). The cert dance is the real first-PC
+     blocker; the Microsoft Store build (no cert step) is the actual fix.
+2. **(DONE) Deploy musu-pro site to prod** — Phase A/C + install rework are LIVE
+   on musu.pro (auto-deployed on push, `dpl_4PAYo`/`musu-j8tc5po26`). The
+   critic-fix commit `8faed09` (honest cert copy + URL constant) is committed but
+   **not yet pushed/deployed** — push musu-pro main to ship it.
+3. **Tauri double-bridge race — DEFERRED, currently LATENT (critic 2b).** After
+   `spawn_runtime_autostart` hands off `musu-startup open`, the gate drops before
+   the bridge registers; the manual `start_runtime` (`lib.rs:~208`, `musu up
+   --json`) could then double-spawn. The `AddrInUse` backstop does NOT save us
+   because `BRIDGE_PORT` defaults to `0` (OS-dynamic) — two binds to `:0` both
+   succeed. **It is latent because `start_runtime` has NO caller in the loaded web
+   UI (verified: no `invoke("start_runtime")`).** It goes live the moment the
+   cockpit wires a "start" button. **Do not add a start button to the cockpit
+   without first** either holding `runtime_start_gate` until `bridge_is_healthy`,
+   or routing both paths through the single `musu-startup open` entry point.
 4. **cockpit GUI is design-only.** Positioning (v978, memory
    `decision-musu-desktop-gui-direction`) promises an in-app fleet cockpit, but the
-   shell still loads the web UI. This is a separate, larger piece — scope it
-   (Phase -1 grill recommended before building) rather than drifting.
+   shell still loads the web UI. Site copy says "connects this PC" (true) but the
+   aspirational "see your fleet in-app" must wait for the cockpit (critic MEDIUM 4).
+   Separate, larger piece — scope it (Phase -1 grill recommended) rather than
+   drifting. When you build it: it must read `startup-marker.json` to surface
+   waiting→connected→failed (a silently-failed device-flow is currently invisible
+   to the GUI), and it must NOT add a runtime-start button without fixing #3.
 
 ## KNOWN DEBT (don't rediscover these)
 
