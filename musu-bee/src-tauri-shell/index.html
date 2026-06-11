@@ -50,6 +50,11 @@
         <a id="approve-link" class="btn-primary" href="#" target="_blank" rel="noopener" hidden
           >Approve in browser <span class="arr">→</span></a
         >
+        <!-- manual (re)login: shown when device-flow is idle/failed so the user
+             can start sign-in without restarting the app -->
+        <button id="signin-btn" class="btn-primary" type="button" hidden>
+          Sign in <span class="arr">→</span>
+        </button>
       </section>
 
       <!-- fleet: the spine of the cockpit -->
@@ -91,9 +96,15 @@
       <details id="diagnostics" class="diagnostics">
         <summary><span class="sum-tick" aria-hidden="true"></span>Having trouble?</summary>
         <div class="diag-grid">
+          <div class="diag-row"><span>Account</span><strong id="d-account">—</strong></div>
           <div class="diag-row"><span>Bridge</span><strong id="d-bridge">—</strong></div>
           <div class="diag-row"><span>Connection</span><strong id="d-conn">—</strong></div>
           <div class="diag-row"><span>Runtime</span><strong id="d-runtime">—</strong></div>
+        </div>
+        <!-- account actions: sign out (when signed in) / sign in (when not) -->
+        <div class="diag-actions">
+          <button id="d-signout" type="button" hidden>Sign out</button>
+          <button id="d-signin" type="button" hidden>Sign in</button>
         </div>
         <div id="diag-warnings" class="diag-warnings" hidden></div>
         <div class="diag-actions">

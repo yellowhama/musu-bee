@@ -316,3 +316,67 @@ and what remains:
 - **(critic LOW 1a) Poll/start disambiguation is by `device_code` key-presence,
   not an explicit `action` discriminator.** Robust today; add a discriminator only
   if the start payload ever needs a field named `device_code`.
+
+## 12. Login wired into the cockpit GUI (2026-06-11, GOAL v984)
+
+Until now device-flow login only auto-fired on `musu startup open` (bridge boot)
+— there was no way to (re)login from the GUI, no sign-out, and no account state.
+This pass added the full login surface to the cockpit. **Backend was ~done**
+(device-flow exists); only the GUI was missing, so this is wiring, not new auth.
+
+**New runtime entry point — `musu login --desktop`:**
+- `Cmd::Login { desktop: bool }` (main.rs). With `--desktop`: routes tracing to
+  stderr (no stdout consumer) and calls `run_login_desktop()` →
+  `install::startup::run_login_desktop_flow()`.
+- `run_login_desktop_flow` drives the SAME device-flow as boot (`run_desktop_login`
+  + `poll_and_finalize`) but writes `startup-marker.json` at each stage, so the
+  cockpit's EXISTING connecting screen surfaces the code + approval link. It is
+  deliberately NOT gated on token-absence (the user explicitly clicked Sign in)
+  and does NOT touch the bridge (it's a short-lived `musu login --desktop` process,
+  not the bridge host).
+
+**New Tauri commands (lib.rs):**
+- `start_login` — spawns `musu login --desktop` detached (`Stdio::null` ×3 +
+  `CREATE_NO_WINDOW`); the cockpit learns progress by polling the marker.
+- `account_logout` — spawns `musu logout` (deletes `~/.musu/token`), waits (fast
+  local delete), leaves the bridge untouched (logout drops cloud identity, not the
+  machine-local runtime).
+
+**Cockpit UI (index.html / main.js):**
+- Sign-in button on the connecting screen (when device-flow is idle/failed) AND in
+  the diagnostics drawer.
+- Sign-out button in the diagnostics drawer.
+- Account row: "Signed in" / "Local only (not signed in)" / "Not signed in".
+  HONEST — the cloud exposes no `/me` endpoint, so NO email/username is invented;
+  the only truthful signal is token-presence → "Signed in".
+
+**Adversarial audit caught a HIGH before commit — marker path drift:**
+- The WRITER (`install::startup::write_startup_marker`) writes
+  `~/.musu/services/startup-marker.json` (the `services/` subdir, where bridge.json
+  lives). The READER (`read_startup_marker`) read `~/.musu/startup-marker.json`
+  (NO `services/`). Result: every read returned null, so the connecting/sign-in
+  screen could never show a code and a silently-failed login was invisible. This
+  was pre-existing path drift (from the musu-startup.exe → `musu startup` absorb);
+  the login GUI was the first feature to actually DEPEND on the reader working.
+- **Fixed:** both the reader and the new `login_flow_pending` guard go through ONE
+  `startup_marker_path()` helper → `~/.musu/services/…`. Regression test
+  `startup_marker_path_is_under_services_dir` asserts the `services/` segment so
+  the two paths can never drift apart again.
+
+**Two MEDIUM auth-state races also fixed:**
+- **Double device-flow:** `start_login` no-ops when a flow is already
+  `awaiting-device-approval` (boot autostart may already be driving one; a second
+  flow would show a code whose sibling process owns a different `device_code`).
+- **Logout/login token clobber:** the cockpit hides Sign-out while the connecting
+  screen is active — logging out mid-flow would let the in-flight flow re-save the
+  token the user just deleted.
+
+**Validation:** musu-rs install tests 105/0, tauri crate tests 13/0 (incl. the new
+marker-path guard), `cargo check` clean both crates.
+
+**Auto-update DECISION (not built yet):** operator chose the `.appinstaller`
+mechanism. `auto_update.rs` REJECTS self-update in StoreMsix mode by design
+(packaged apps must let Windows deliver updates); the shipped GitHub-fetch updater
+is for non-MSIX builds only. Next step = generate an `.appinstaller` manifest
+(update URL + poll interval, hosted on musu.pro) + an AppInstaller stanza in the
+MSIX build, so installed packages self-update outside the Store. NOT in this commit.

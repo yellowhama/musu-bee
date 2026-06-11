@@ -149,7 +149,14 @@ enum Cmd {
     },
 
     /// V27 Account: Login to musu.pro to enable automatic peer discovery.
-    Login,
+    Login {
+        /// Desktop GUI mode: drive device-flow via startup-marker.json (so the
+        /// cockpit's connecting screen surfaces the code + approval link) instead
+        /// of printing to a stdout no GUI is watching. Used by the cockpit's
+        /// "Sign in" button to re-trigger login while the bridge is already up.
+        #[arg(long)]
+        desktop: bool,
+    },
     /// V27 Account: Logout from musu.pro.
     Logout,
     /// V27 Account: Show current login status.
@@ -353,9 +360,18 @@ async fn main() -> anyhow::Result<()> {
             install::cli_commands::run_mount(node.as_deref()).await
         }
 
-        Cmd::Login => {
-            init_tracing_default();
-            install::cli_commands::run_login().await
+        Cmd::Login { desktop } => {
+            if desktop {
+                // GUI re-login: log to stderr (no stdout consumer), drive the same
+                // device-flow the desktop startup path uses so the cockpit's
+                // existing connecting screen (reads startup-marker.json) surfaces
+                // the code + approval link.
+                init_tracing_control();
+                install::cli_commands::run_login_desktop().await
+            } else {
+                init_tracing_default();
+                install::cli_commands::run_login().await
+            }
         }
         Cmd::Logout => {
             init_tracing_default();

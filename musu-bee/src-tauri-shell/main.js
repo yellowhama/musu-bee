@@ -63,16 +63,24 @@ function showConnecting(marker) {
     $("approve-link").hidden = true;
   }
 
+  // Sign-in button: shown when device-flow is NOT actively pending (failed, or
+  // idle with no code) so the user can (re)start sign-in without restarting the
+  // app. Hidden while a code is live (the Approve link covers that case).
+  const signinBtn = $("signin-btn");
+  const flowPending = status === "awaiting-device-approval" && Boolean(code);
+
   if (status === "device-flow-failed") {
     setConn("offline", "Connection failed");
-    $("connecting-detail").textContent =
-      "Sign-in didn't complete. Reopen MUSU to try again.";
+    $("connecting-detail").textContent = "Sign-in didn't complete. Try again.";
+    if (signinBtn) signinBtn.hidden = false;
   } else if (status === "awaiting-device-approval") {
     setConn("connecting", "Connecting…");
     $("connecting-detail").textContent = "Waiting for you to approve at musu.pro…";
+    if (signinBtn) signinBtn.hidden = flowPending;
   } else {
     setConn("connecting", "Connecting…");
     $("connecting-detail").textContent = "Starting…";
+    if (signinBtn) signinBtn.hidden = false;
   }
 }
 
@@ -155,6 +163,26 @@ function renderDiagnostics(status) {
       : "offline";
   $("d-conn").textContent = status.auth_status || "unknown";
   $("d-runtime").textContent = `${status.runtime_process_count ?? 0} process(es)`;
+
+  // Account row + sign in/out buttons. We only have an honest binary signal
+  // (token present → "Signed in"); the cloud exposes no /me identity, so we do
+  // NOT invent an email/username. "Connected" = cloud login; "Local Only" =
+  // bridge token but no cloud account.
+  const auth = status.auth_status || "";
+  const signedIn = auth === "Connected";
+  $("d-account").textContent = signedIn
+    ? "Signed in"
+    : auth === "Local Only"
+      ? "Local only (not signed in)"
+      : "Not signed in";
+  // Suppress Sign out while the connecting screen is active (a device-flow login
+  // may be mid-poll; logging out then would let the in-flight flow re-save the
+  // token we just deleted — audit 2026-06-11 MEDIUM logout/login race).
+  const loginInProgress = !$("connecting").hidden;
+  const out = $("d-signout");
+  const inb = $("d-signin");
+  if (out) out.hidden = !signedIn || loginInProgress;
+  if (inb) inb.hidden = signedIn || loginInProgress;
 
   const warnings = Array.isArray(status.warnings) ? status.warnings.filter(Boolean) : [];
   const wbox = $("diag-warnings");
@@ -308,6 +336,44 @@ $("order-send").addEventListener("click", submitOrder);
 $("order-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitOrder();
 });
+// ── account actions (sign in / sign out) ──────────────────────────────
+async function startSignIn(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    await invoke("start_login");
+    // The connecting screen will pick up startup-marker.json on the next tick
+    // (approval code + browser link). Nudge a refresh so it shows promptly.
+    setConn("connecting", "Opening sign-in…");
+    refresh();
+  } catch (err) {
+    setConn("offline", "Sign-in failed");
+    $("connecting-detail").textContent = String(err);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function signOut(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    await invoke("account_logout");
+  } catch (err) {
+    const wbox = $("diag-warnings");
+    if (wbox) {
+      wbox.hidden = false;
+      wbox.textContent = `Sign out failed: ${String(err)}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    refresh();
+    loadDiagnostics();
+  }
+}
+
+$("signin-btn").addEventListener("click", (e) => startSignIn(e.currentTarget));
+$("d-signin").addEventListener("click", (e) => startSignIn(e.currentTarget));
+$("d-signout").addEventListener("click", (e) => signOut(e.currentTarget));
+
 // Diagnostics are lazy: only fetch the expensive desktop_status when the drawer
 // is actually opened (and again on each open, to refresh stale numbers).
 $("diagnostics").addEventListener("toggle", (e) => {

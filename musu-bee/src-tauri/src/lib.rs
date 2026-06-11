@@ -15,6 +15,8 @@ pub fn run() {
             desktop_status,
             cockpit_state,
             start_runtime,
+            start_login,
+            account_logout,
             list_fleet,
             submit_order,
             read_startup_marker
@@ -250,8 +252,93 @@ fn cockpit_state() -> CockpitState {
     }
 }
 
+/// `start_login` — the cockpit's "Sign in" button. Spawns `musu login --desktop`
+/// detached: it drives device-flow and writes `startup-marker.json`, which the
+/// cockpit's existing connecting screen already reads (via read_startup_marker)
+/// to surface the pairing code + approval link. Fire-and-forget — the cockpit
+/// polls the marker for progress, so we don't wait on the 900s device-flow.
+/// CREATE_NO_WINDOW keeps the console-subsystem child from flashing a window.
+#[tauri::command]
+fn start_login() -> Result<CommandResult, String> {
+    // Double-device-flow guard (audit 2026-06-11, MEDIUM): autostart's
+    // `musu startup open` already drives device-flow when logged out, writing an
+    // `awaiting-device-approval` marker. If the user then clicks Sign in, spawning
+    // a SECOND `musu login --desktop` starts an independent flow with a DIFFERENT
+    // user code; both write the same marker (last-writer-wins), so the cockpit may
+    // show a code whose sibling process owns a different device_code. If a flow is
+    // already pending, no-op and let the existing one surface its code.
+    if login_flow_pending() {
+        return Ok(CommandResult {
+            ok: true,
+            message: "Sign-in already in progress — approve in your browser.".to_string(),
+            output: "a device-flow login is already awaiting approval".to_string(),
+        });
+    }
+
+    let command = musu_command_path();
+    let mut cmd = std::process::Command::new(&command);
+    cmd.args(["login", "--desktop"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    no_window(&mut cmd)
+        .spawn()
+        .map(|_child| CommandResult {
+            ok: true,
+            message: "Opening sign-in…".to_string(),
+            output: "spawned `musu login --desktop`; approve in your browser".to_string(),
+        })
+        .map_err(|err| format!("failed to spawn {} login --desktop: {err}", command.display()))
+}
+
+/// True when a device-flow login is currently awaiting browser approval, per the
+/// startup marker. Used to suppress a second concurrent login spawn. Reads the
+/// SAME path as `read_startup_marker` (`~/.musu/services/startup-marker.json`).
+fn login_flow_pending() -> bool {
+    let Ok(text) = std::fs::read_to_string(startup_marker_path()) else {
+        return false;
+    };
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
+        return false;
+    };
+    value.get("stage").and_then(|v| v.as_str()) == Some("awaiting-device-approval")
+}
+
+/// `account_logout` — the cockpit's "Sign out" button. Spawns `musu logout`,
+/// which deletes the account token (`~/.musu/token`). Waits for completion (it's
+/// a fast local file delete) so the cockpit can refresh into the logged-out state
+/// immediately. The local bridge is untouched — logout drops the cloud identity,
+/// not the machine-local runtime.
+#[tauri::command]
+fn account_logout() -> Result<CommandResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["logout"], DOCTOR_STATUS_TIMEOUT)
+        .map_err(|err| format!("failed to run {} logout: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} logout timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if result.status_success {
+        Ok(CommandResult {
+            ok: true,
+            message: "Signed out.".to_string(),
+            output: combined,
+        })
+    } else {
+        Err(format!("logout failed: {}", combined.trim()))
+    }
+}
+
 /// Account (cloud) login present == `~/.musu/token` exists and is non-empty.
 /// Mirrors `musu-rs cloud::token::load_token(...).is_some()` without the lib dep.
+///
+/// KNOWN LIMITATION (audit 2026-06-11, LOW): `load_token` also honors the
+/// `MUSU_P2P_CONTROL_TOKEN` / `MUSU_ROUTE_EVIDENCE_TOKEN` / `MUSU_TOKEN` env vars
+/// before the file. This file-only check therefore reports "Offline" for a
+/// machine logged in purely via those env vars. That's a CI/automation auth
+/// pattern, not the desktop-user path (the desktop always logs in via device-flow
+/// which writes the file), so the divergence is acceptable here. The expensive
+/// `desktop_status` path (real `musu doctor`) reports such a machine correctly.
 fn account_token_present(home: &std::path::Path) -> bool {
     std::fs::read_to_string(home.join("token"))
         .map(|t| !t.trim().is_empty())
@@ -513,10 +600,21 @@ fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
 /// (show the code + an Approve button) and to surface a silently-failed login —
 /// which `desktop_status` alone cannot see. Returns the raw JSON value (or null
 /// when no marker exists yet).
+/// Path to the desktop startup marker. CRITICAL (audit 2026-06-11): the writer
+/// (`install::startup::write_startup_marker`) writes to
+/// `~/.musu/services/startup-marker.json` — the `services/` subdir, same place
+/// bridge.json lives. The reader previously read `~/.musu/startup-marker.json`
+/// (no `services/`), so EVERY read returned null and the cockpit's connecting
+/// screen never showed the approval code/link or a failed-login state. Both the
+/// reader and the login-pending guard go through this ONE helper so they can
+/// never drift apart again.
+fn startup_marker_path() -> std::path::PathBuf {
+    musu_home().join("services").join("startup-marker.json")
+}
+
 #[tauri::command]
 fn read_startup_marker() -> Result<serde_json::Value, String> {
-    let path = musu_home().join("startup-marker.json");
-    match std::fs::read_to_string(&path) {
+    match std::fs::read_to_string(startup_marker_path()) {
         Ok(text) => serde_json::from_str(&text)
             .map_err(|err| format!("failed to parse startup-marker.json: {err}")),
         Err(_) => Ok(serde_json::Value::Null), // no marker yet
@@ -1449,10 +1547,31 @@ mod tests {
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
         can_start_runtime, developer_dashboard_surface_enabled_for,
         musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
-        sibling_exe_for_current_exe, summarize_process_ownership, ProcessEntry, RuntimeStartGate,
+        sibling_exe_for_current_exe, startup_marker_path, summarize_process_ownership, ProcessEntry,
+        RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
+
+    /// Regression guard (audit 2026-06-11 HIGH): the cockpit's marker reader MUST
+    /// point at `<home>/services/startup-marker.json` — the exact path the runtime
+    /// writer (`install::startup::write_startup_marker`) uses. A mismatch makes
+    /// every read return null and silently breaks the connecting/sign-in screen.
+    #[test]
+    fn startup_marker_path_is_under_services_dir() {
+        let home = make_temp_home("marker-path");
+        std::env::set_var("MUSU_HOME", &home);
+        let path = startup_marker_path();
+        std::env::remove_var("MUSU_HOME");
+
+        assert_eq!(path, home.join("services").join("startup-marker.json"));
+        assert!(
+            path.ends_with("services/startup-marker.json")
+                || path.ends_with("services\\startup-marker.json"),
+            "marker path must be under services/: {}",
+            path.display()
+        );
+    }
 
     #[test]
     fn packaged_build_requires_dev_dashboard_opt_in() {

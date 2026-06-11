@@ -148,6 +148,57 @@ pub async fn run_startup(mode: LaunchMode) -> Result<()> {
     }
 }
 
+/// GUI re-login entry point (`musu login --desktop`): drive device-flow to
+/// completion in the FOREGROUND, writing `startup-marker.json` at each stage so
+/// the cockpit's existing connecting screen surfaces the code + approval link.
+///
+/// Unlike [`spawn_desktop_login_if_needed`], this is NOT gated on token-absence
+/// and does NOT touch the bridge — the user explicitly clicked "Sign in", so we
+/// run device-flow even if a (stale/expired) token exists, and the caller is a
+/// short-lived `musu login --desktop` process, not the bridge host. The cockpit
+/// spawns it detached and learns the outcome by polling the marker.
+pub async fn run_login_desktop_flow() -> Result<()> {
+    let musu_home = crate::install::resolve_musu_home_from_env()?;
+    let marker_home = musu_home.clone();
+    let on_pending = move |url: &str, code: &str| {
+        write_startup_marker(
+            &marker_home,
+            LaunchMode::UserOpen,
+            "awaiting-device-approval",
+            None,
+            Some(url.to_string()),
+            Some(code.to_string()),
+        );
+    };
+
+    match crate::install::cli_commands::run_desktop_login(on_pending).await {
+        Ok(()) => {
+            write_startup_marker(
+                &musu_home,
+                LaunchMode::UserOpen,
+                "device-approved",
+                None,
+                None,
+                None,
+            );
+            tracing::info!("desktop re-login completed; node connected");
+            Ok(())
+        }
+        Err(err) => {
+            write_startup_marker(
+                &musu_home,
+                LaunchMode::UserOpen,
+                "device-flow-failed",
+                Some(format!("{err:#}")),
+                None,
+                None,
+            );
+            tracing::warn!(error = %err, "desktop re-login did not complete");
+            Err(err)
+        }
+    }
+}
+
 /// If this machine has no account token yet, spawn the device-flow login as a
 /// detached background task. Fast path: already logged in → no-op (idempotent
 /// re-launch). Login failure is intentionally NON-FATAL: the detached task records

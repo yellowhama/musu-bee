@@ -30,6 +30,14 @@ pub use device_login::{
     DeviceFlow,
 };
 
+/// `musu login --desktop` — GUI re-login. Delegates to the startup module's
+/// foreground device-flow, which writes `startup-marker.json` so the cockpit's
+/// connecting screen surfaces the approval code/link. Thin wrapper kept here so
+/// `main.rs` dispatches all login variants through `cli_commands`.
+pub async fn run_login_desktop() -> anyhow::Result<()> {
+    crate::install::startup::run_login_desktop_flow().await
+}
+
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
 const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
 const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
