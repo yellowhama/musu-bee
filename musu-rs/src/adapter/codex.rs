@@ -11,10 +11,11 @@
 //!   {"type":"turn.started"}
 //!   {"type":"error","message":"..."}
 //!   {"type":"turn.failed","error":{"message":"..."}}
-//! Success path emits `item.*` (assistant message) + `turn.completed` (usage),
-//! but the exact success fields were NOT captured (usage-limited during spike),
-//! so those are ASSUMED — see `CodexSink::on_line` comments. Unknown `type`
-//! lines are tolerated (ignored), never crash.
+//! Success path (REAL, captured 2026-06-12 from `codex.cmd exec --json`):
+//!   {"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Hi."}}
+//!   {"type":"turn.completed","usage":{"input_tokens":18835,"output_tokens":76,...}}
+//! Assistant text is at `item.text` (nested) for item.type=="agent_message".
+//! Unknown `type` lines are tolerated (ignored), never crash.
 //! `--skip-git-repo-check` is a FIXED arg (codex requires a trusted/git dir).
 //! stderr emits a benign "rmcp serde error" line — drained, never parsed.
 
@@ -136,11 +137,13 @@ impl LineSink for CodexSink {
                 }
                 false
             }
-            // item.* — assistant message. ASSUMED shape (not spike-captured):
-            // try common text locations, tolerate absence. This is the
-            // success-text path; if codex's real field differs, text simply
-            // won't accumulate (no crash) and result falls back to whatever
-            // was captured.
+            // item.* — assistant message. REAL shape (captured 2026-06-12 from
+            // `codex.cmd exec --json`):
+            //   {"type":"item.completed","item":{"id":"item_0",
+            //    "type":"agent_message","text":"Hi."}}
+            // The assistant text is at `item.text` (nested), only for
+            // item.type == "agent_message". Earlier code looked at the TOP level
+            // and never found it → empty result. Now correct.
             t if t.starts_with("item") => {
                 if let Some(text) = extract_item_text(&v) {
                     self.push_text(&text);
@@ -153,10 +156,27 @@ impl LineSink for CodexSink {
     }
 }
 
-/// Extract assistant text from a codex `item.*` line. ASSUMED locations
-/// (spike did not capture success fields): `text`, `message`, `content`
-/// (string), or `content[].text`. Returns None if none present.
+/// Extract assistant text from a codex `item.*` line. REAL shape (2026-06-12
+/// capture): text lives at `item.text` when `item.type == "agent_message"`.
+/// Falls back to legacy top-level / content-array locations defensively so a
+/// future codex format tweak degrades rather than crashes.
 fn extract_item_text(v: &Value) -> Option<String> {
+    // Canonical: v.item with type=="agent_message", text=...
+    if let Some(item) = v.get("item") {
+        let is_agent_msg = item.get("type").and_then(|t| t.as_str()) == Some("agent_message");
+        if is_agent_msg {
+            if let Some(s) = item.get("text").and_then(|x| x.as_str()) {
+                if !s.is_empty() {
+                    return Some(s.to_string());
+                }
+            }
+        }
+        // Other item types (reasoning, tool calls) carry no user-facing text.
+        if item.get("type").is_some() {
+            return None;
+        }
+    }
+    // Legacy/defensive fallbacks (top-level text/message/content).
     if let Some(s) = v.get("text").and_then(|x| x.as_str()) {
         return Some(s.to_string());
     }
@@ -395,6 +415,36 @@ mod tests {
         let err = sink.on_line(r#"{"type":"thread.started","thread_id":"th-abc-123"}"#);
         assert!(!err);
         assert_eq!(sink.session_id.as_deref(), Some("th-abc-123"));
+    }
+
+    /// REAL `codex.cmd exec --json` output captured 2026-06-12: the assistant
+    /// text is at `item.text` for `item.type == "agent_message"`. This was the
+    /// "codex runs but output is empty" bug — the parser looked top-level.
+    #[test]
+    fn captures_agent_message_text_from_item_completed() {
+        let mut sink = CodexSink::default();
+        sink.on_line(r#"{"type":"thread.started","thread_id":"t1"}"#);
+        sink.on_line(r#"{"type":"turn.started"}"#);
+        sink.on_line(
+            r#"{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Hi."}}"#,
+        );
+        sink.on_line(
+            r#"{"type":"turn.completed","usage":{"input_tokens":18835,"output_tokens":76}}"#,
+        );
+        assert_eq!(sink.accumulated, "Hi.");
+        let u = sink.usage.expect("usage parsed");
+        assert_eq!(u.prompt_tokens, Some(18835));
+        assert_eq!(u.completion_tokens, Some(76));
+    }
+
+    /// A non-message item (e.g. reasoning) carries no user-facing text.
+    #[test]
+    fn ignores_non_agent_message_items() {
+        let mut sink = CodexSink::default();
+        sink.on_line(
+            r#"{"type":"item.completed","item":{"id":"r0","type":"reasoning","text":"thinking..."}}"#,
+        );
+        assert!(sink.accumulated.is_empty());
     }
 
     #[test]
