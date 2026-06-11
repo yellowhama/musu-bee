@@ -284,6 +284,34 @@ body {
   border-radius: var(--r);
   overflow: hidden;
   animation: row-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* S-tier: a fleet row is a button — click it to target that machine */
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    transform 0.12s ease,
+    background 0.12s ease;
+}
+.fleet-row:hover {
+  border-color: var(--line);
+  transform: translateY(-1px);
+}
+.fleet-row:focus-visible {
+  outline: none;
+  border-color: var(--amber);
+}
+.fleet-row.selected {
+  border-color: var(--amber);
+  box-shadow: inset 2px 0 0 var(--amber);
+}
+.fleet-row.selected::after {
+  content: "→ next order";
+  position: absolute;
+  right: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--amber);
 }
 /* staggered reveal */
 .fleet-row:nth-child(1) { animation-delay: 0.04s; }

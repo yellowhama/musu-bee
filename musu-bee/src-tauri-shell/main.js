@@ -120,6 +120,33 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     const online = n.is_this_pc ? Boolean(thisPcBridgeOk) : isOnline(n.last_seen);
     const li = document.createElement("li");
     li.className = `fleet-row ${online ? "online" : "offline"}`;
+    // S-tier (Tailscale machines-list): a fleet row is CLICKABLE — selecting a
+    // machine targets it for your next order + focuses the input. "Click a
+    // machine, give it work." Keyboard-accessible (Enter/Space).
+    li.tabIndex = 0;
+    li.setAttribute("role", "button");
+    li.setAttribute("aria-label", `Send an order to ${n.node_name || "this machine"}`);
+    li.dataset.node = n.node_name || "";
+    const selectThisMachine = () => {
+      const sel = $("order-target");
+      if (sel && [...sel.options].some((o) => o.value === li.dataset.node)) {
+        sel.value = li.dataset.node;
+      }
+      // highlight the chosen row + cue the composer
+      list.querySelectorAll(".fleet-row.selected").forEach((r) => r.classList.remove("selected"));
+      li.classList.add("selected");
+      $("order-input").focus();
+      $("order-input").placeholder = n.is_this_pc
+        ? "What should this PC do?"
+        : `What should ${n.node_name} do?`;
+    };
+    li.addEventListener("click", selectThisMachine);
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectThisMachine();
+      }
+    });
 
     const dot = document.createElement("span");
     dot.className = "node-dot";
