@@ -380,3 +380,50 @@ mechanism. `auto_update.rs` REJECTS self-update in StoreMsix mode by design
 is for non-MSIX builds only. Next step = generate an `.appinstaller` manifest
 (update URL + poll interval, hosted on musu.pro) + an AppInstaller stanza in the
 MSIX build, so installed packages self-update outside the Store. NOT in this commit.
+
+## 13. `.appinstaller` auto-update BUILT (2026-06-11, GOAL v986–v987)
+
+The decision in §12 was implemented. `build-msix.ps1` now emits `musu.appinstaller`
+beside the `.msix`; Windows App Installer polls the hosted copy and updates the app
+silently when its Version rises.
+
+**Mechanism + values:**
+- `New-AppInstallerContent` emits the AppInstaller-2021 manifest. UpdateSettings =
+  `OnLaunch` (non-blocking, 24h poll) + `AutomaticBackgroundTask` +
+  `ForceUpdateFromAnyVersion` (covers same-tag re-installs in the dev-preview).
+  Element order + `ForceUpdateFromAnyVersion`-as-element verified against current
+  MS docs (App Installer is strict about both).
+- Name/Publisher/Version/Arch come from the SAME values the package manifest uses
+  → no drift. The Publisher (= cert subject `CN=74D9382E-…`) must byte-match or App
+  Installer silently refuses the update.
+- Written UTF-8 WITHOUT BOM (App Installer rejects a leading BOM).
+- Params: `-AppInstallerBaseUrl` (default = the durable fixed-tag `desktop-latest`
+  GitHub release musu.pro links to), `-HostedMsixFileName=musu-desktop-x64.msix`
+  (matches musu-pro `DESKTOP_DOWNLOAD_URL`), `-UpdateCheckHours=24`.
+
+**Contract guard (audit HIGH):** the `.appinstaller` is emitted ONLY for the
+`local-sideload-manual` contract. Store-contract packages are re-signed + updated
+THROUGH the Store, so a sideload `.appinstaller` alongside them is a
+publisher-mismatch hazard; store builds print `(skipped — sideload-only)`.
+
+**Hosted-name copy (audit MEDIUM):** `build-msix.ps1` now writes a copy of the
+version-suffixed MSIX under the fixed hosted name `musu-desktop-x64.msix`, so the
+artifact that ships IS the one the manifest references — no manual rename that, if
+forgotten, makes App Installer 404 at update time and silently stop updating.
+
+**`audit-appinstaller-contract.ps1`** asserts: well-formed XML, BOM-free, MainPackage
+Name/Publisher/Version/Arch byte-match the packaged MSIX `<Identity>`, root Version ==
+MainPackage Version, and the hosted MSIX Uri is the fixed name (not a per-build
+artifact, any arch/contract). Verified PASS on the real artifact; a publisher-mismatch
+negative test correctly FAILs (exit 1).
+
+**REMAINING (owner-gated):**
+1. Upload `musu.appinstaller` + `musu-desktop-x64.msix` to the `desktop-latest` tag
+   (`gh release upload desktop-latest --clobber …`).
+2. Repoint musu.pro's desktop download at the `.appinstaller` (the `APPINSTALLER_URL`
+   constant is already defined in `musu-pro/src/lib/constants/install.ts`, local
+   commit, not yet wired into the UI — switch once the artifact is hosted).
+3. Prove the real-PC v1→v2 update cycle (install via `.appinstaller`, publish a bump,
+   confirm Windows updates the running app with no manual reinstall).
+
+Build spec details: `docs/NEXT_STEPS_APPINSTALLER_AUTO_UPDATE_2026_06_11.md` (gitignored).

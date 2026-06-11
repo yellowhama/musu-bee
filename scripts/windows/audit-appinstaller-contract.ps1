@@ -73,12 +73,15 @@ if ($appXml) {
         Add-Failure "root <AppInstaller Version='$aiRootVersion'> != MainPackage Version='$aiVersion'"
     }
 
-    # (5) hosted MSIX filename is the fixed name, not the version-suffixed local one
+    # (5) hosted MSIX filename is the fixed name, not the version-suffixed local
+    # artifact. The local pattern is musu_<ver>_<arch>_<contract>.msix — assert the
+    # hosted leaf does NOT match it for ANY arch/contract (not just x64), so the
+    # durable hosted URL can never point at a per-build artifact name that rots.
     $msixLeaf = ($aiMsixUri -split "/")[-1]
     if ($msixLeaf -notmatch "\.msix$") {
         Add-Failure "MainPackage Uri does not end in .msix: $aiMsixUri"
     }
-    if ($msixLeaf -match "_x64_") {
+    if ($msixLeaf -match "_(x64|x86|arm64|neutral)_(local-sideload-manual|store-reviewed-immediate-registration)\.msix$") {
         Add-Failure "MainPackage Uri points at a version-suffixed local artifact ($msixLeaf); it must be the fixed hosted name so the durable URL never rots"
     }
 
@@ -88,28 +91,41 @@ if ($appXml) {
         Add-Failure "no local-sideload MSIX found in $OutputDir to compare the .appinstaller against"
     } else {
         Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $manifestText = $null
         $zip = [System.IO.Compression.ZipFile]::OpenRead($msix)
         try {
             $entry = $zip.GetEntry("AppxManifest.xml")
             if (-not $entry) { $entry = $zip.GetEntry("appxmanifest.xml") }
-            $reader = New-Object System.IO.StreamReader($entry.Open())
-            $manifestText = $reader.ReadToEnd()
-            $reader.Dispose()
+            if (-not $entry) {
+                Add-Failure "MSIX $msix contains no AppxManifest.xml to compare against"
+            } else {
+                $reader = New-Object System.IO.StreamReader($entry.Open())
+                $manifestText = $reader.ReadToEnd()
+                $reader.Dispose()
+            }
         } finally {
             $zip.Dispose()
         }
 
-        [xml]$manifestXml = $manifestText
-        $identity = $manifestXml.Package.Identity
-        $msixName = [string]$identity.Name
-        $msixPublisher = [string]$identity.Publisher
-        $msixVersion = [string]$identity.Version
-        $msixArch = [string]$identity.ProcessorArchitecture
+        if ($manifestText) {
+            [xml]$manifestXml = $manifestText
+            $identity = $manifestXml.Package.Identity
+            $msixName = [string]$identity.Name
+            $msixPublisher = [string]$identity.Publisher
+            $msixVersion = [string]$identity.Version
+            $msixArch = [string]$identity.ProcessorArchitecture
 
-        if ($aiName -ne $msixName) { Add-Failure "Name mismatch: appinstaller='$aiName' msix='$msixName'" }
-        if ($aiPublisher -ne $msixPublisher) { Add-Failure "Publisher mismatch (BREAKS App Installer): appinstaller='$aiPublisher' msix='$msixPublisher'" }
-        if ($aiVersion -ne $msixVersion) { Add-Failure "Version mismatch: appinstaller='$aiVersion' msix='$msixVersion'" }
-        if ($aiArch -ne $msixArch) { Add-Failure "ProcessorArchitecture mismatch: appinstaller='$aiArch' msix='$msixArch'" }
+            # Guard against an empty parse masquerading as a match (LOW): a missing
+            # MSIX field must FAIL, not silently compare '' vs ''.
+            if ([string]::IsNullOrWhiteSpace($msixName)) { Add-Failure "MSIX Identity Name is empty/unparsed" }
+            if ([string]::IsNullOrWhiteSpace($msixPublisher)) { Add-Failure "MSIX Identity Publisher is empty/unparsed" }
+            if ([string]::IsNullOrWhiteSpace($msixVersion)) { Add-Failure "MSIX Identity Version is empty/unparsed" }
+
+            if ($aiName -ne $msixName) { Add-Failure "Name mismatch: appinstaller='$aiName' msix='$msixName'" }
+            if ($aiPublisher -ne $msixPublisher) { Add-Failure "Publisher mismatch (BREAKS App Installer): appinstaller='$aiPublisher' msix='$msixPublisher'" }
+            if ($aiVersion -ne $msixVersion) { Add-Failure "Version mismatch: appinstaller='$aiVersion' msix='$msixVersion'" }
+            if ($aiArch -ne $msixArch) { Add-Failure "ProcessorArchitecture mismatch: appinstaller='$aiArch' msix='$msixArch'" }
+        }
     }
 }
 

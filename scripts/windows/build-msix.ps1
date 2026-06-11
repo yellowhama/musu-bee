@@ -472,30 +472,47 @@ if (-not $DryRun -and $legacyOutputMsix -ne $outputMsix -and (Test-Path -Literal
 # the supported path). Publisher/Name/Version/Arch are taken from the SAME values
 # the manifest used, so they can never drift. Uri fields point at the durable
 # hosting base (default = the fixed-tag GitHub release musu.pro links to).
-$appInstallerUri = "$AppInstallerBaseUrl/musu.appinstaller"
-$hostedMsixUri = "$AppInstallerBaseUrl/$HostedMsixFileName"
-$appInstallerPath = Join-Path $OutputDir "musu.appinstaller"
-$appInstallerContent = New-AppInstallerContent `
-    -AppInstallerUri $appInstallerUri `
-    -MsixUri $hostedMsixUri `
-    -PackageIdentity $IdentityName `
-    -PackagePublisher $Publisher `
-    -PackageVersion $Version `
-    -PackageArchitecture $Architecture `
-    -UpdateCheckHours $UpdateCheckHours
+#
+# ONLY for the local-sideload-manual contract (audit 2026-06-11 HIGH): the
+# store-reviewed contract MSIX is re-signed by Microsoft and updated THROUGH the
+# Store — shipping an .appinstaller alongside it (or hosting it under the sideload
+# name) is a publisher/signature-mismatch hazard. Auto-update via .appinstaller is
+# a sideload-only concept here.
+$appInstallerEmitted = $false
+if ($StartupContract -eq "local-sideload-manual") {
+    $appInstallerUri = "$AppInstallerBaseUrl/musu.appinstaller"
+    $hostedMsixUri = "$AppInstallerBaseUrl/$HostedMsixFileName"
+    $appInstallerPath = Join-Path $OutputDir "musu.appinstaller"
+    # The .appinstaller references the FIXED hosted name. Emit a copy of the
+    # version-suffixed MSIX under that exact name (audit 2026-06-11 MEDIUM) so the
+    # artifact that ships IS the one referenced — no manual rename step that, if
+    # forgotten, makes App Installer 404 at update time and silently stop updating.
+    $hostedMsixPath = Join-Path $OutputDir $HostedMsixFileName
+    $appInstallerContent = New-AppInstallerContent `
+        -AppInstallerUri $appInstallerUri `
+        -MsixUri $hostedMsixUri `
+        -PackageIdentity $IdentityName `
+        -PackagePublisher $Publisher `
+        -PackageVersion $Version `
+        -PackageArchitecture $Architecture `
+        -UpdateCheckHours $UpdateCheckHours
 
-Write-Step "Writing .appinstaller auto-update manifest"
-if ($DryRun) {
-    Write-Host "[dry-run] write .appinstaller to $appInstallerPath"
-    Write-Host "[dry-run]   AppInstaller Uri: $appInstallerUri"
-    Write-Host "[dry-run]   MainPackage Uri:  $hostedMsixUri"
-} else {
-    # UTF-8 WITHOUT BOM — App Installer's XML parser rejects a leading BOM.
-    [System.IO.File]::WriteAllText(
-        $appInstallerPath,
-        $appInstallerContent,
-        (New-Object System.Text.UTF8Encoding($false))
-    )
+    Write-Step "Writing .appinstaller auto-update manifest (+ hosted-named MSIX copy)"
+    if ($DryRun) {
+        Write-Host "[dry-run] write .appinstaller to $appInstallerPath"
+        Write-Host "[dry-run]   AppInstaller Uri: $appInstallerUri"
+        Write-Host "[dry-run]   MainPackage Uri:  $hostedMsixUri"
+        Write-Host "[dry-run] copy $outputMsix -> $hostedMsixPath"
+    } else {
+        # UTF-8 WITHOUT BOM — App Installer's XML parser rejects a leading BOM.
+        [System.IO.File]::WriteAllText(
+            $appInstallerPath,
+            $appInstallerContent,
+            (New-Object System.Text.UTF8Encoding($false))
+        )
+        Copy-Item -LiteralPath $outputMsix -Destination $hostedMsixPath -Force
+    }
+    $appInstallerEmitted = $true
 }
 
 Write-Host ""
@@ -503,11 +520,18 @@ Write-Host "MSIX packaging flow prepared successfully."
 Write-Host "Stage directory: $packageDir"
 Write-Host "Manifest:        $manifestPath"
 Write-Host "Output package:  $outputMsix"
-Write-Host ".appinstaller:   $appInstallerPath"
-Write-Host "  AppInstaller URL (host here): $appInstallerUri"
-Write-Host "  MainPackage URL (host .msix as $HostedMsixFileName): $hostedMsixUri"
+if ($appInstallerEmitted) {
+    Write-Host ".appinstaller:   $appInstallerPath"
+    Write-Host "Hosted MSIX copy: $hostedMsixPath ($HostedMsixFileName)"
+    Write-Host "  AppInstaller URL (host here): $appInstallerUri"
+    Write-Host "  MainPackage URL: $hostedMsixUri"
+} else {
+    Write-Host ".appinstaller:   (skipped — auto-update is sideload-only; this is the '$StartupContract' contract)"
+}
 Write-Host "Startup contract: $StartupContract"
-Write-Host ""
-Write-Host "To publish auto-update: upload BOTH the .msix (as $HostedMsixFileName) AND"
-Write-Host "musu.appinstaller to $AppInstallerBaseUrl, then have users install via the"
-Write-Host ".appinstaller (double-click or Add-AppxPackage -AppInstallerFile <url>)."
+if ($appInstallerEmitted) {
+    Write-Host ""
+    Write-Host "To publish auto-update: upload BOTH $HostedMsixFileName AND"
+    Write-Host "musu.appinstaller to $AppInstallerBaseUrl, then have users install via the"
+    Write-Host ".appinstaller (double-click or Add-AppxPackage -AppInstallerFile <url>)."
+}
