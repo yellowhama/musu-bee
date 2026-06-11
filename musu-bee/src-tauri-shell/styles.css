@@ -709,6 +709,102 @@ body {
   display: none !important;
 }
 
+/* ── task feed (V28 P1 observation loop) ──────────────────────────────
+   Orders become trackable cards: each shows the order text, a live status
+   (pending → running → done/failed), and the result/error/artifact once
+   terminal. A status dot carries the color so the state reads at a glance. */
+.task-feed {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+  padding: 10px 12px;
+  animation: row-in 0.3s ease both;
+}
+
+.task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.task-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.task-status {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.task-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 9em;
+  overflow: auto;
+}
+
+/* per-state accent: dot + status label */
+.task-card.pending .task-dot,
+.task-card.running .task-dot {
+  background: var(--warn);
+  animation: breathe 2s ease-in-out infinite;
+}
+.task-card.running .task-status,
+.task-card.pending .task-status {
+  color: var(--warn);
+}
+.task-card.done .task-dot {
+  background: var(--online);
+}
+.task-card.done .task-status {
+  color: var(--online);
+}
+.task-card.failed .task-dot,
+.task-card.cancelled .task-dot,
+.task-card.not_found .task-dot {
+  background: var(--bad);
+}
+.task-card.failed .task-status,
+.task-card.cancelled .task-status,
+.task-card.not_found .task-status {
+  color: var(--bad);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

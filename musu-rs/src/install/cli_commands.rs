@@ -5305,6 +5305,61 @@ pub async fn run_tasks() -> Result<()> {
     Ok(())
 }
 
+/// `musu task <id> [--json]` — V28. Fetch ONE task's status + result from the
+/// local bridge (`GET /api/tasks/:id`). The cockpit polls this after submitting
+/// an order to show progress → result. `--json` emits the raw bridge envelope
+/// (task_id / status / output / error / exit_code / duration_sec) so the GUI can
+/// parse it; without it, a short human line.
+pub async fn run_task_get(task_id: &str, json: bool) -> Result<()> {
+    let token = get_token();
+    let url = format!(
+        "{}/api/tasks/{}",
+        local_bridge_base_url().trim_end_matches('/'),
+        task_id
+    );
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("cannot reach local bridge: {e}"))?;
+
+    let status = resp.status();
+    if status.as_u16() == 404 {
+        if json {
+            println!(
+                "{}",
+                serde_json::json!({"task_id": task_id, "status": "not_found"})
+            );
+        } else {
+            println!("task {task_id} not found");
+        }
+        return Ok(());
+    }
+    if !status.is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        anyhow::bail!("bridge error {status}: {body}");
+    }
+
+    let data: serde_json::Value = resp.json().await?;
+    if json {
+        println!("{}", serde_json::to_string(&data)?);
+    } else {
+        let st = data["status"].as_str().unwrap_or("?");
+        println!("task {task_id}: {st}");
+        if let Some(out) = data["output"].as_str().filter(|s| !s.is_empty()) {
+            println!("{out}");
+        }
+        if let Some(err) = data["error"].as_str().filter(|s| !s.is_empty()) {
+            println!("error: {err}");
+        }
+    }
+    Ok(())
+}
+
 // ── F5 workflow execution CLI ───────────────────────────────────────
 
 /// `musu workflow-run --id <ID>` — execute a workflow via the bridge.

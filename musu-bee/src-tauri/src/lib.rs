@@ -19,6 +19,7 @@ pub fn run() {
             account_logout,
             list_fleet,
             submit_order,
+            get_order_status,
             read_startup_marker
         ])
         .setup(|app| {
@@ -71,6 +72,32 @@ struct CommandResult {
     ok: bool,
     message: String,
     output: String,
+}
+
+/// V28 Phase 1 — what `submit_order` returns so the cockpit can TRACK the order
+/// instead of fire-and-forget. `task_id` is parsed from `musu route`'s
+/// `✓ Task queued: <id>` line; the cockpit then polls `get_order_status(task_id)`.
+#[derive(serde::Serialize)]
+struct OrderResult {
+    ok: bool,
+    message: String,
+    /// None when the route output didn't carry a task id (e.g. rejected).
+    task_id: Option<String>,
+}
+
+/// V28 Phase 1 — one task's live state for the cockpit's task feed. Mirrors the
+/// bridge `GET /api/tasks/:id` envelope. `artifact_path` is a Phase-2 field
+/// (always None until the schema carries it) so the JSON shape is stable now.
+#[derive(serde::Serialize)]
+struct TaskStatus {
+    task_id: String,
+    /// pending | running | done | failed | cancelled | not_found | unknown
+    status: String,
+    output: Option<String>,
+    error: Option<String>,
+    exit_code: Option<i64>,
+    duration_sec: Option<f64>,
+    artifact_path: Option<String>,
 }
 
 const DOCTOR_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
@@ -549,7 +576,7 @@ fn list_fleet() -> Result<Vec<FleetNode>, String> {
 /// path is paused (bridge-surface 410) and this is the replacement, so the
 /// product can take orders again.
 #[tauri::command]
-fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
+fn submit_order(text: String, target: String) -> Result<OrderResult, String> {
     let text = text.trim();
     if text.is_empty() {
         return Err("order text is empty".to_string());
@@ -579,18 +606,89 @@ fn submit_order(text: String, target: String) -> Result<CommandResult, String> {
 
     let combined = combine_command_output(&result.stdout, &result.stderr);
     if result.status_success {
-        Ok(CommandResult {
+        // V28 Phase 1: extract the task id so the cockpit can poll it. `musu
+        // route` (no --wait) prints `✓ Task queued: <id>` on success — that id is
+        // the handle for get_order_status. (route --json is explain-only, so we
+        // parse the human line rather than ask for JSON.)
+        let task_id = parse_queued_task_id(&result.stdout);
+        Ok(OrderResult {
             ok: true,
             message: if target.is_empty() {
                 "order sent (auto-routed)".to_string()
             } else {
                 format!("order sent to {target}")
             },
-            output: combined,
+            task_id,
         })
     } else {
         Err(format!("order rejected: {}", combined.trim()))
     }
+}
+
+/// Extract the task id from `musu route`'s `✓ Task queued: <id>` stdout line.
+/// Returns None if the line is absent (older runtime, or a path that didn't
+/// queue). Tolerant of surrounding whitespace and the leading check glyph.
+fn parse_queued_task_id(stdout: &str) -> Option<String> {
+    for line in stdout.lines() {
+        if let Some(idx) = line.find("Task queued:") {
+            let id = line[idx + "Task queued:".len()..].trim();
+            if !id.is_empty() && id != "unknown" {
+                return Some(id.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// V28 Phase 1 — poll one order's live status for the cockpit task feed. Spawns
+/// `musu task <id> --json` (which hits the local bridge `GET /api/tasks/:id`) and
+/// maps the envelope. The cockpit calls this on an interval after submit_order
+/// until status is terminal (done/failed/cancelled).
+#[tauri::command]
+fn get_order_status(task_id: String) -> Result<TaskStatus, String> {
+    let task_id = task_id.trim().to_string();
+    if task_id.is_empty() {
+        return Err("task_id is empty".to_string());
+    }
+    let command = musu_command_path();
+    let result =
+        run_command_with_timeout(&command, &["task", &task_id, "--json"], DOCTOR_STATUS_TIMEOUT)
+            .map_err(|err| format!("failed to run {} task: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} task timed out", command.display()));
+    }
+
+    let value: serde_json::Value = serde_json::from_str(result.stdout.trim()).map_err(|err| {
+        format!("failed to parse `musu task --json` output: {err}")
+    })?;
+
+    let status = value
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    Ok(TaskStatus {
+        task_id,
+        status,
+        output: value
+            .get("output")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string),
+        error: value
+            .get("error")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string),
+        exit_code: value.get("exit_code").and_then(|v| v.as_i64()),
+        duration_sec: value.get("duration_sec").and_then(|v| v.as_f64()),
+        // Phase 2: artifact path comes from a future schema column; None for now.
+        artifact_path: value
+            .get("artifact_path")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string),
+    })
 }
 
 /// `read_startup_marker` — the desktop launch marker (`startup-marker.json`) that
@@ -1546,12 +1644,30 @@ mod tests {
     use super::{
         bridge_is_healthy, bridge_registry_status_with_pid_checker, bridge_status_label,
         can_start_runtime, developer_dashboard_surface_enabled_for,
-        musu_command_path_for_current_exe, parse_doctor_status_summary, run_command_with_timeout,
-        sibling_exe_for_current_exe, startup_marker_path, summarize_process_ownership, ProcessEntry,
-        RuntimeStartGate,
+        musu_command_path_for_current_exe, parse_doctor_status_summary, parse_queued_task_id,
+        run_command_with_timeout, sibling_exe_for_current_exe, startup_marker_path,
+        summarize_process_ownership, ProcessEntry, RuntimeStartGate,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
+
+    /// V28 P1: submit_order parses the task id from `musu route`'s queued line so
+    /// the cockpit can poll it. Guard the parse against glyph/whitespace variance
+    /// and the absent / "unknown" cases.
+    #[test]
+    fn parse_queued_task_id_extracts_id_or_none() {
+        assert_eq!(
+            parse_queued_task_id("✓ Task queued: abc-123\n"),
+            Some("abc-123".to_string())
+        );
+        assert_eq!(
+            parse_queued_task_id("noise\n  Task queued:   def-456  \nmore"),
+            Some("def-456".to_string())
+        );
+        assert_eq!(parse_queued_task_id("✓ Task queued: unknown\n"), None);
+        assert_eq!(parse_queued_task_id("order rejected: peer not found"), None);
+        assert_eq!(parse_queued_task_id(""), None);
+    }
 
     /// Regression guard (audit 2026-06-11 HIGH): the cockpit's marker reader MUST
     /// point at `<home>/services/startup-marker.json` — the exact path the runtime

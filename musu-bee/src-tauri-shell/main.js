@@ -299,7 +299,85 @@ async function refresh() {
   }
 }
 
-// ── order submission (P0 input path → submit_order) ────
+// ── order submission + observation loop (V28 P1: task feed) ────
+// An order is no longer fire-and-forget. submit_order returns a task_id; we add
+// a card to the feed and poll get_order_status until the task is terminal, so
+// the user SEES the work go pending → running → done/failed and reads the result.
+const TASK_POLL_MS = 2500;
+const TASK_FEED_MAX = 6; // keep the most recent N orders visible
+const activePolls = new Map(); // task_id → interval handle
+
+function terminalStatus(s) {
+  return s === "done" || s === "failed" || s === "cancelled" || s === "not_found";
+}
+
+function renderTaskCard(taskId, { status, text, output, error, artifact }) {
+  const feed = $("task-feed");
+  feed.hidden = false;
+  let li = feed.querySelector(`[data-task="${taskId}"]`);
+  if (!li) {
+    li = document.createElement("li");
+    li.className = "task-card";
+    li.dataset.task = taskId;
+    li.innerHTML =
+      '<div class="task-head"><span class="task-dot"></span>' +
+      '<span class="task-text"></span><span class="task-status"></span></div>' +
+      '<div class="task-detail" hidden></div>';
+    feed.prepend(li);
+    // trim to the most recent N (and stop polling any we drop)
+    while (feed.children.length > TASK_FEED_MAX) {
+      const gone = feed.lastElementChild;
+      const id = gone?.dataset.task;
+      if (id && activePolls.has(id)) {
+        clearInterval(activePolls.get(id));
+        activePolls.delete(id);
+      }
+      gone.remove();
+    }
+  }
+  li.className = `task-card ${status}`;
+  if (text) li.querySelector(".task-text").textContent = text;
+  li.querySelector(".task-status").textContent = status;
+  const detail = li.querySelector(".task-detail");
+  const body = error
+    ? `error: ${error}`
+    : artifact
+      ? `→ ${artifact}`
+      : output || "";
+  if (body) {
+    detail.hidden = false;
+    detail.textContent = body;
+  }
+}
+
+function pollTask(taskId, text) {
+  if (activePolls.has(taskId)) return;
+  const tick = async () => {
+    let st;
+    try {
+      st = await invoke("get_order_status", { taskId });
+    } catch (err) {
+      renderTaskCard(taskId, { status: "failed", text, error: String(err) });
+      clearInterval(activePolls.get(taskId));
+      activePolls.delete(taskId);
+      return;
+    }
+    renderTaskCard(taskId, {
+      status: st.status,
+      text,
+      output: st.output,
+      error: st.error,
+      artifact: st.artifact_path,
+    });
+    if (terminalStatus(st.status)) {
+      clearInterval(activePolls.get(taskId));
+      activePolls.delete(taskId);
+    }
+  };
+  tick(); // immediate first poll
+  activePolls.set(taskId, setInterval(tick, TASK_POLL_MS));
+}
+
 async function submitOrder() {
   const input = $("order-input");
   const sendBtn = $("order-send");
@@ -319,6 +397,11 @@ async function submitOrder() {
     statusEl.className = "order-status ok";
     statusEl.textContent = result.message || "Order sent.";
     input.value = "";
+    if (result.task_id) {
+      // Seed the card immediately as "pending", then poll for real status.
+      renderTaskCard(result.task_id, { status: "pending", text });
+      pollTask(result.task_id, text);
+    }
   } catch (err) {
     statusEl.className = "order-status bad";
     statusEl.textContent = String(err);

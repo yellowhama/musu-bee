@@ -123,6 +123,15 @@ enum Cmd {
     Status(StatusOpts),
     /// List recent tasks across the fleet.
     Tasks,
+    /// V28: get a single task's status + result by id (the cockpit polls this
+    /// after submitting an order to show progress → result).
+    Task {
+        /// Task id returned when the order was submitted.
+        id: String,
+        /// Emit the raw bridge JSON (status/output/error/exit_code/duration).
+        #[arg(long)]
+        json: bool,
+    },
 
     /// V27-F5: Execute a workflow.
     WorkflowRun {
@@ -334,6 +343,10 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Tasks => {
             init_tracing_default();
             install::cli_commands::run_tasks().await
+        }
+        Cmd::Task { id, json } => {
+            init_tracing_default();
+            install::cli_commands::run_task_get(&id, json).await
         }
 
         Cmd::WorkflowRun { id } => {
