@@ -27,6 +27,10 @@ pub fn dispatch(
         // separate M3/W12 unification (out of scope here).
         "codex" => Ok(Box::new(CodexAdapter)),
         "gemini" => Ok(Box::new(GeminiAdapter)),
+        // V28: zero-dependency shell adapter — runs the prompt as a system shell
+        // command and returns stdout. No AI vendor required; runs in the hot path
+        // via run_trait_adapter (it's not "claude", so spawn_task routes it here).
+        "shell" => Ok(Box::new(super::shell::ShellAdapter)),
         //
         // Box<dyn Adapter> is intentionally chosen over enum dispatch for V27
         // adapter growth: new providers should not force every call site to

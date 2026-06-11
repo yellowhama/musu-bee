@@ -106,8 +106,11 @@ pub struct SetDefaultAdapterResponse {
 }
 
 /// Adapters MUSU can actually run, so we never persist a default that fails.
+/// `echo` (in-process) + `shell` (runs a system command) are zero-dependency;
+/// the rest need the corresponding agent CLI or a model endpoint.
 const KNOWN_ADAPTERS: &[&str] = &[
     "echo",
+    "shell",
     "codex",
     "claude",
     "gemini",

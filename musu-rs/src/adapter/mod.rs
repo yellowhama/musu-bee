@@ -123,6 +123,7 @@ pub mod codex;
 pub mod gemini;
 pub mod openai_compat;
 pub mod registry;
+pub mod shell;
 
 #[cfg(test)]
 mod tests {
