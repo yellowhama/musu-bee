@@ -161,6 +161,7 @@ pub async fn run_company(
                         .unwrap_or_else(crate::bridge::handlers::tasks::default_adapter_type),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;

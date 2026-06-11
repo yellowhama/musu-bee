@@ -610,11 +610,15 @@ struct FleetNode {
 #[tauri::command]
 fn list_fleet() -> Result<Vec<FleetNode>, String> {
     let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["nodes", "--json"], DOCTOR_STATUS_TIMEOUT)
-        .map_err(|err| format!("failed to run {} nodes --json: {err}", command.display()))?;
+    // `--local`: read the LIVE local mesh (this bridge's /api/fleet/status, with
+    // real health + manually-added peers) so the cockpit shows the true
+    // fleet-as-one-device view without depending on cloud login.
+    let result =
+        run_command_with_timeout(&command, &["nodes", "--json", "--local"], DOCTOR_STATUS_TIMEOUT)
+            .map_err(|err| format!("failed to run {} nodes --json --local: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!(
-            "{} nodes --json timed out",
+            "{} nodes --json --local timed out",
             command.display()
         ));
     }
@@ -629,7 +633,9 @@ fn list_fleet() -> Result<Vec<FleetNode>, String> {
     if envelope.get("ok").and_then(|v| v.as_bool()) != Some(true) {
         let kind = envelope.get("error").and_then(|v| v.as_str()).unwrap_or("");
         return match kind {
-            "not_logged_in" | "" => Ok(Vec::new()),
+            // not_logged_in / bridge_unreachable → empty (cockpit shows its
+            // connecting/empty state rather than an error toast).
+            "not_logged_in" | "bridge_unreachable" | "" => Ok(Vec::new()),
             "token_expired" => Err("token_expired".to_string()),
             other => Err(format!("cloud_unreachable: {other}")),
         };

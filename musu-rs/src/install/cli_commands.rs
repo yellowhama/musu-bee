@@ -517,6 +517,13 @@ pub struct NodesOpts {
     /// Emit machine-readable JSON (the desktop cockpit uses this).
     #[arg(long)]
     pub json: bool,
+
+    /// Read the LIVE local mesh (this bridge's `/api/fleet/status`) instead of
+    /// the musu.pro cloud registry. This includes manually-added peers and uses
+    /// real health checks, so the cockpit shows the true local fleet — the
+    /// fleet-as-one-device view — without requiring cloud login.
+    #[arg(long)]
+    pub local: bool,
 }
 
 /// `musu nodes` — list the account's registered fleet from musu.pro
@@ -524,7 +531,121 @@ pub struct NodesOpts {
 /// view), this reads the cloud registry, so it works for the desktop cockpit even
 /// when this machine's bridge view is empty. `--json` emits a stable envelope the
 /// cockpit parses; without it, a short human list.
+/// `musu nodes --local` — emit the live local mesh as a `musu.nodes_cli.v1`
+/// envelope, sourced from this bridge's `/api/fleet/status` (self + peers, with
+/// real health checks). Healthy peers get a fresh `last_seen` so the cockpit's
+/// freshness check renders them online; unhealthy peers get an old one so they
+/// render offline. The cockpit's renderer already maps this envelope.
+async fn run_nodes_local(opts: NodesOpts) -> Result<()> {
+    let base_url = local_bridge_base_url();
+    let token = get_token();
+    let url = format!("{}/api/fleet/status", base_url.trim_end_matches('/'));
+
+    // no_proxy(): on Windows reqwest otherwise inherits the system/WinHTTP proxy,
+    // which can break a plain localhost call to the bridge.
+    // 12s: the bridge now probes peers concurrently (~3s worst case), but keep a
+    // generous margin so a momentarily-slow peer never collapses the cockpit's
+    // fleet read into a false "bridge unreachable".
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .map_err(|e| anyhow::anyhow!("http client: {e}"))?;
+
+    let resp = match client.get(&url).bearer_auth(&token).send().await {
+        Ok(r) if r.status().is_success() => r,
+        Ok(r) => {
+            let envelope = serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": false,
+                "error": "bridge_unreachable",
+                "detail": format!("fleet status HTTP {}", r.status()),
+                "nodes": [],
+            });
+            if opts.json {
+                println!("{}", serde_json::to_string(&envelope)?);
+            } else {
+                println!("Could not read local fleet (HTTP {}).", r.status());
+            }
+            return Ok(());
+        }
+        Err(e) => {
+            let envelope = serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": false,
+                "error": "bridge_unreachable",
+                "detail": e.to_string(),
+                "nodes": [],
+            });
+            if opts.json {
+                println!("{}", serde_json::to_string(&envelope)?);
+            } else {
+                println!("Could not reach local bridge: {e}");
+            }
+            return Ok(());
+        }
+    };
+
+    let dashboard: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("parse fleet status: {e}"))?;
+
+    let now = chrono::Utc::now();
+    let fresh = now.to_rfc3339();
+    // An old stamp so the cockpit's freshness check renders unhealthy peers offline.
+    let stale = (now - chrono::Duration::days(30)).to_rfc3339();
+
+    let mut nodes = Vec::new();
+    if let Some(this) = dashboard.get("this_node") {
+        nodes.push(serde_json::json!({
+            "node_name": this.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+            "public_url": this.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
+            "last_seen": fresh,
+            "is_this_pc": true,
+        }));
+    }
+    if let Some(peers) = dashboard.get("peers").and_then(|v| v.as_array()) {
+        for p in peers {
+            let healthy = p.get("healthy").and_then(|v| v.as_bool()).unwrap_or(false);
+            nodes.push(serde_json::json!({
+                "node_name": p.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+                "public_url": p.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
+                "last_seen": if healthy { &fresh } else { &stale },
+                "is_this_pc": false,
+            }));
+        }
+    }
+
+    let envelope = serde_json::json!({
+        "schema": "musu.nodes_cli.v1",
+        "ok": true,
+        "nodes": nodes,
+    });
+    if opts.json {
+        println!("{}", serde_json::to_string(&envelope)?);
+    } else {
+        let arr = envelope["nodes"].as_array().cloned().unwrap_or_default();
+        println!("\nLocal fleet ({} nodes):", arr.len());
+        for n in &arr {
+            println!(
+                "  {} — {}",
+                n["node_name"].as_str().unwrap_or(""),
+                n["public_url"].as_str().unwrap_or("")
+            );
+        }
+    }
+    Ok(())
+}
+
 pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
+    // `--local`: read the live local mesh from this bridge's /api/fleet/status
+    // (real health checks + manually-added peers), not the cloud registry. This
+    // is the fleet-as-one-device view and needs no cloud login.
+    if opts.local {
+        return run_nodes_local(opts).await;
+    }
+
     let home = musu_home();
     let Some(token) = crate::cloud::token::load_token(&home) else {
         if opts.json {
@@ -559,13 +680,12 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
             // Match the STABLE error prefix (`cloud_api_error` formats as
             // "...failed with HTTP {status}: {detail}"), not a floating " 401" that
             // a response body could contain. Only a real 401/403 status → token.
-            let kind = if msg.contains("failed with HTTP 401")
-                || msg.contains("failed with HTTP 403")
-            {
-                "token_expired"
-            } else {
-                "cloud_unreachable"
-            };
+            let kind =
+                if msg.contains("failed with HTTP 401") || msg.contains("failed with HTTP 403") {
+                    "token_expired"
+                } else {
+                    "cloud_unreachable"
+                };
             if opts.json {
                 println!(
                     "{}",
@@ -613,7 +733,10 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
     } else {
         println!("\nRegistered fleet ({} nodes):", nodes.len());
         for n in &nodes {
-            println!("  {} — {} (last seen {})", n.node_name, n.public_url, n.last_seen);
+            println!(
+                "  {} — {} (last seen {})",
+                n.node_name, n.public_url, n.last_seen
+            );
         }
     }
     Ok(())

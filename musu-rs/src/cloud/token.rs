@@ -23,7 +23,7 @@ pub fn load_token(musu_home: &Path) -> Option<String> {
             }
         }
     }
-    
+
     let token_path = musu_home.join("token");
     std::fs::read_to_string(token_path)
         .ok()

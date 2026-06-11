@@ -207,7 +207,14 @@ pub async fn run_login_desktop_flow() -> Result<()> {
 fn spawn_desktop_login_if_needed(musu_home: &Path) {
     if crate::cloud::token::load_token(musu_home).is_some() {
         tracing::info!("desktop launch: account token present, skipping device-flow");
-        write_startup_marker(musu_home, LaunchMode::UserOpen, "logged-in", None, None, None);
+        write_startup_marker(
+            musu_home,
+            LaunchMode::UserOpen,
+            "logged-in",
+            None,
+            None,
+            None,
+        );
         return;
     }
 

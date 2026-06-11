@@ -103,6 +103,11 @@ pub struct TaskSpec {
     pub callback_url: Option<String>,
     /// V27-F1: original task ID on the requesting node.
     pub source_task_id: Option<String>,
+    /// Shared mesh bearer token used to authenticate the result callback POST
+    /// back to the originating node. Without it the source node's
+    /// `/api/tasks/callback` rejects the result and the original task row stays
+    /// `pending` forever — the cross-machine result never reaches the cockpit.
+    pub callback_token: Option<String>,
 }
 
 /// Registry entry. Holds the cancel notifier so DELETE handler can signal.
@@ -337,6 +342,7 @@ fn fire_callback(
         Some(ref u) => u.clone(),
         None => return,
     };
+    let token = spec.callback_token.clone();
     let cb = crate::bridge::handlers::forward::TaskCallback {
         source_task_id: spec
             .source_task_id
@@ -356,13 +362,16 @@ fn fire_callback(
     tokio::spawn(async move {
         let client = reqwest::Client::new();
         for attempt in 0..3u32 {
-            match client
+            let mut builder = client
                 .post(&url)
                 .json(&cb)
-                .timeout(std::time::Duration::from_secs(10))
-                .send()
-                .await
-            {
+                .timeout(std::time::Duration::from_secs(10));
+            // Authenticate the callback with the shared mesh token; the source
+            // node's /api/tasks/callback is auth-gated and rejects it otherwise.
+            if let Some(ref t) = token {
+                builder = builder.bearer_auth(t);
+            }
+            match builder.send().await {
                 Ok(resp) if resp.status().is_success() => {
                     tracing::info!(url = %url, attempt, "callback delivered");
                     return;
@@ -455,7 +464,11 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
         finalize(
             &inner,
             &spec,
-            if ok { TaskStatus::Done } else { TaskStatus::Failed },
+            if ok {
+                TaskStatus::Done
+            } else {
+                TaskStatus::Failed
+            },
             if ok { None } else { Some(output.as_str()) },
             if ok { Some(output.as_str()) } else { None },
             Some(0),
@@ -480,7 +493,11 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
                 finalize(
                     &inner,
                     &spec,
-                    if ok { TaskStatus::Done } else { TaskStatus::Failed },
+                    if ok {
+                        TaskStatus::Done
+                    } else {
+                        TaskStatus::Failed
+                    },
                     if ok { None } else { Some(summary.as_str()) },
                     Some(summary.as_str()),
                     Some(if ok { 0 } else { 1 }),
@@ -1203,10 +1220,7 @@ fn run_inprocess_adapter(spec: &TaskSpec) -> Option<(String, bool)> {
 /// AdapterContext from the TaskSpec; the adapter self-contains spawn + stream +
 /// cancel + deadline. Errors (unknown type, spawn failure) come back as
 /// `Err(message)` so the caller finalizes Failed with a legible reason.
-async fn run_trait_adapter(
-    spec: &TaskSpec,
-    cancel: Arc<Notify>,
-) -> Result<(String, bool), String> {
+async fn run_trait_adapter(spec: &TaskSpec, cancel: Arc<Notify>) -> Result<(String, bool), String> {
     use crate::adapter::{registry, AdapterContext};
 
     let deadline_unix_ms = spec.timeout_sec.map(|s| {
@@ -1294,6 +1308,7 @@ mod tests {
             adapter_type: "echo".into(),
             callback_url: None,
             source_task_id: None,
+            callback_token: None,
         }
     }
 
@@ -1441,6 +1456,7 @@ mod tests {
                 adapter_type: "claude".into(),
                 callback_url: None,
                 source_task_id: None,
+                callback_token: None,
             })
             .await
             .unwrap();
@@ -1474,6 +1490,7 @@ exit 2"#
                 adapter_type: "claude".into(),
                 callback_url: None,
                 source_task_id: None,
+                callback_token: None,
             })
             .await
             .unwrap();
@@ -1508,6 +1525,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                 adapter_type: "claude".into(),
                 callback_url: None,
                 source_task_id: None,
+                callback_token: None,
             })
             .await
             .unwrap();
@@ -1548,6 +1566,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     adapter_type: "claude".into(),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .unwrap();
@@ -1589,6 +1608,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     adapter_type: "claude".into(),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .unwrap();
@@ -1624,6 +1644,7 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     adapter_type: "claude".into(),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .unwrap();

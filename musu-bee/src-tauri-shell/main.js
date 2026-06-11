@@ -315,13 +315,23 @@ async function refresh() {
           : `Couldn't reach musu.pro to list your fleet (${msg}). Showing this machine only.`;
     }
   } else {
-    // Local Only: cloud-disconnected but the local bridge works. Show just THIS
-    // PC (no cloud fleet list available) and a calmer "local" connection state.
-    renderFleet(
-      [{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }],
-      thisPcActivity,
-      bridgeOk
-    );
+    // Local Only: cloud-disconnected but the local bridge works. list_fleet now
+    // reads the LIVE LOCAL MESH (this bridge's /api/fleet/status — manually-added
+    // peers + real health), so the fleet-as-one-device view works WITHOUT cloud
+    // login. Fall back to this-PC-only only if even the local read fails.
+    try {
+      const nodes = await invoke("list_fleet");
+      const list = Array.isArray(nodes) && nodes.length ? nodes : [
+        { node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true },
+      ];
+      renderFleet(list, thisPcActivity, bridgeOk);
+    } catch {
+      renderFleet(
+        [{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }],
+        thisPcActivity,
+        bridgeOk
+      );
+    }
     setConn("connecting", "Local only");
   }
 }
@@ -399,7 +409,10 @@ function renderTaskCard(taskId, { status, text, output, error, artifact }) {
     list.prepend(li);
   }
   li.className = `task-card ${status}`;
-  if (text) li.querySelector(".task-text").textContent = text;
+  if (text) {
+    li.querySelector(".task-text").textContent = text;
+    li.dataset.orderText = text; // retained so Retry can resubmit the same order
+  }
   li.querySelector(".task-status").textContent = status;
 
   // Ticking elapsed clock + "esc to stop" while in flight; freeze on terminal.
@@ -428,6 +441,31 @@ function renderTaskCard(taskId, { status, text, output, error, artifact }) {
   if (body) {
     detail.hidden = false;
     detail.textContent = body;
+  }
+
+  // Failure recovery: a failed/cancelled card is never a dead end. Show the
+  // error as the "why" (above) plus a Retry that resubmits the same order, so
+  // the user acts from the card instead of retyping. Built once, idempotent.
+  const failed = status === "failed" || status === "cancelled";
+  let actions = li.querySelector(".task-actions");
+  if (failed && (text || li.dataset.orderText)) {
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "task-actions";
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "task-retry";
+      retry.textContent = "Retry";
+      retry.addEventListener("click", () => {
+        const t = li.dataset.orderText;
+        if (t) submitText(t, $("order-target")?.value || "");
+      });
+      actions.appendChild(retry);
+      li.appendChild(actions);
+    }
+    actions.hidden = false;
+  } else if (actions) {
+    actions.hidden = true; // recovered (e.g. re-rendered as running) — hide it
   }
 
   // Trim oldest across both groups (and stop their polling/timers).
@@ -507,19 +545,12 @@ async function cancelNewestRunning() {
   }
 }
 
-async function submitOrder() {
-  const input = $("order-input");
-  const text = input.value.trim();
+// Send one order's text to the fleet and track it. Shared by the composer and
+// by the Retry affordance on a failed card, so a failure is never a dead end.
+async function submitText(text, target) {
   if (!text) return;
-  const target = $("order-target")?.value || "";
-
-  // Non-blocking composer: clear the box immediately and let the user keep
-  // typing the next order. Feedback lives in the task card, not a blocking state.
-  input.value = "";
-  input.focus();
-
   try {
-    const result = await invoke("submit_order", { text, target });
+    const result = await invoke("submit_order", { text, target: target || "" });
     if (result.task_id) {
       renderTaskCard(result.task_id, { status: "pending", text });
       pollTask(result.task_id, text);
@@ -538,6 +569,20 @@ async function submitOrder() {
       error: String(err),
     });
   }
+}
+
+async function submitOrder() {
+  const input = $("order-input");
+  const text = input.value.trim();
+  if (!text) return;
+  const target = $("order-target")?.value || "";
+
+  // Non-blocking composer: clear the box immediately and let the user keep
+  // typing the next order. Feedback lives in the task card, not a blocking state.
+  input.value = "";
+  input.focus();
+
+  await submitText(text, target);
 }
 
 // ── wiring ─────────────────────────────────────────────

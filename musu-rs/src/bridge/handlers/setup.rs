@@ -62,9 +62,7 @@ pub async fn get_setup_status(State(_state): State<AppState>) -> Result<Json<Set
          real model."
             .to_string()
     } else {
-        format!(
-            "Ready. Default adapter is `{current_default}`. Recommended: `{recommended}`."
-        )
+        format!("Ready. Default adapter is `{current_default}`. Recommended: `{recommended}`.")
     };
 
     Ok(Json(SetupStatus {
@@ -146,9 +144,7 @@ pub async fn set_default_adapter(
     Ok(Json(SetDefaultAdapterResponse {
         ok: true,
         adapter: adapter.clone(),
-        note: format!(
-            "default adapter set to `{adapter}` (persisted to bridge.env, applied now)"
-        ),
+        note: format!("default adapter set to `{adapter}` (persisted to bridge.env, applied now)"),
     }))
 }
 

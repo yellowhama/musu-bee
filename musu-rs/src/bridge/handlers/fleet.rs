@@ -146,28 +146,26 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     let client = &state.http_client;
     let token = &state.config.token;
 
-    let mut peer_statuses = Vec::new();
-    let mut total_running = local_running;
-    let mut total_pending = local_pending;
-    let mut online = 1u32; // self
-
-    for peer in &peers {
+    // Probe every peer CONCURRENTLY. Serial probing made this O(peers × 3s):
+    // a few offline peers (each blocking the full 3s timeout) pushed total
+    // latency past callers' client timeouts, so the cockpit's `nodes --local`
+    // read failed with "error sending request" even though the bridge was up.
+    // join_all bounds wall-clock at the single slowest peer (~3s) regardless of
+    // fleet size.
+    let probes = peers.iter().map(|peer| {
         let url = format!("http://{}/api/fleet/node-status", peer.addr);
-        match client
-            .get(&url)
-            .bearer_auth(token)
-            .timeout(std::time::Duration::from_secs(3))
-            .send()
-            .await
-        {
-            Ok(resp) if resp.status().is_success() => {
-                if let Ok(ns) = resp.json::<FleetNodeStatus>().await {
-                    total_running += ns.tasks_running;
-                    total_pending += ns.tasks_pending;
-                    online += 1;
-                    peer_statuses.push(ns);
-                } else {
-                    peer_statuses.push(FleetNodeStatus {
+        async move {
+            match client
+                .get(&url)
+                .bearer_auth(token)
+                .timeout(std::time::Duration::from_secs(3))
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().is_success() => match resp.json::<FleetNodeStatus>().await
+                {
+                    Ok(ns) => ns,
+                    Err(_) => FleetNodeStatus {
                         name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
                         addr: peer.addr.clone(),
                         healthy: true,
@@ -176,12 +174,9 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
                         tasks_pending: 0,
                         shared_dirs: vec![],
                         version: "unknown".into(),
-                    });
-                    online += 1;
-                }
-            }
-            _ => {
-                peer_statuses.push(FleetNodeStatus {
+                    },
+                },
+                _ => FleetNodeStatus {
                     name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
                     addr: peer.addr.clone(),
                     healthy: false,
@@ -190,8 +185,20 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
                     tasks_pending: 0,
                     shared_dirs: vec![],
                     version: "unknown".into(),
-                });
+                },
             }
+        }
+    });
+    let peer_statuses: Vec<FleetNodeStatus> = futures_util::future::join_all(probes).await;
+
+    let mut total_running = local_running;
+    let mut total_pending = local_pending;
+    let mut online = 1u32; // self
+    for ns in &peer_statuses {
+        if ns.healthy {
+            online += 1;
+            total_running += ns.tasks_running;
+            total_pending += ns.tasks_pending;
         }
     }
 

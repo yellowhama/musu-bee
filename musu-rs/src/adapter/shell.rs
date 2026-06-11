@@ -26,11 +26,17 @@ pub struct ShellAdapter;
 fn shell_invocation(command_str: &str) -> (String, Vec<String>) {
     #[cfg(windows)]
     {
-        ("cmd".to_string(), vec!["/C".to_string(), command_str.to_string()])
+        (
+            "cmd".to_string(),
+            vec!["/C".to_string(), command_str.to_string()],
+        )
     }
     #[cfg(not(windows))]
     {
-        ("sh".to_string(), vec!["-c".to_string(), command_str.to_string()])
+        (
+            "sh".to_string(),
+            vec!["-c".to_string(), command_str.to_string()],
+        )
     }
 }
 
@@ -91,7 +97,9 @@ impl Adapter for ShellAdapter {
             Some(r) => r,
             None => {
                 let _ = handle.child.kill().await;
-                return Err(AdapterError::Unknown("shell child had no stdout pipe".into()));
+                return Err(AdapterError::Unknown(
+                    "shell child had no stdout pipe".into(),
+                ));
             }
         };
 
@@ -169,7 +177,10 @@ mod tests {
 
     #[tokio::test]
     async fn shell_runs_echo_and_captures_stdout() {
-        let result = ShellAdapter.execute(&ctx("echo musu-shell-ok")).await.unwrap();
+        let result = ShellAdapter
+            .execute(&ctx("echo musu-shell-ok"))
+            .await
+            .unwrap();
         assert!(result.success, "summary={}", result.summary);
         assert!(
             result.summary.contains("musu-shell-ok"),

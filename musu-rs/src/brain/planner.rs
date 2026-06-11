@@ -108,6 +108,7 @@ pub async fn run_planner_loop(runner: TaskRunnerHandle, cancellation_token: Canc
                                 adapter_type: "claude".into(),
                                 callback_url: None,
                                 source_task_id: None,
+                                callback_token: None,
                             };
 
                             if let Err(e) = runner.spawn_task(spec).await {

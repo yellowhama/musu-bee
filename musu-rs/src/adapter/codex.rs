@@ -400,8 +400,7 @@ mod tests {
         // or the bare stem if absent; either way it ends in the codex stem.
         let resolved = resolve_binary();
         assert!(
-            resolved == "codex"
-                || resolved.to_lowercase().contains("codex"),
+            resolved == "codex" || resolved.to_lowercase().contains("codex"),
             "unexpected codex resolution: {resolved}"
         );
     }

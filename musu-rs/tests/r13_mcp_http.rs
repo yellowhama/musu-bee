@@ -66,7 +66,11 @@ fn t02_tools_list_returns_19_tools() {
         "get_activity"
     ]);
     let tools: Vec<String> = serde_json::from_value(tools_json).unwrap();
-    assert_eq!(tools.len(), 19, "MCP exposes 19 shared tools (+3 HTTP-only mesh)");
+    assert_eq!(
+        tools.len(),
+        19,
+        "MCP exposes 19 shared tools (+3 HTTP-only mesh)"
+    );
 }
 
 #[test]
