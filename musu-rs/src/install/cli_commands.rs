@@ -5360,6 +5360,32 @@ pub async fn run_task_get(task_id: &str, json: bool) -> Result<()> {
     Ok(())
 }
 
+/// `musu task <id> --cancel` — V28. Cancel a task via the local bridge
+/// (`DELETE /api/tasks/:id`). Used by the cockpit's Esc-to-stop.
+pub async fn run_task_cancel(task_id: &str) -> Result<()> {
+    let token = get_token();
+    let url = format!(
+        "{}/api/tasks/{}",
+        local_bridge_base_url().trim_end_matches('/'),
+        task_id
+    );
+    let client = reqwest::Client::new();
+    let resp = client
+        .delete(&url)
+        .bearer_auth(&token)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("cannot reach local bridge: {e}"))?;
+    if resp.status().is_success() {
+        println!("cancel requested for task {task_id}");
+        Ok(())
+    } else {
+        let body = resp.text().await.unwrap_or_default();
+        anyhow::bail!("cancel failed: {body}")
+    }
+}
+
 // ── F5 workflow execution CLI ───────────────────────────────────────
 
 /// `musu workflow-run --id <ID>` — execute a workflow via the bridge.

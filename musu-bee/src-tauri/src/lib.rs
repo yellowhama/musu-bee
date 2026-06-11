@@ -11,6 +11,9 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        // S-tier: OS notifications so an order finishing taps the user even when
+        // the cockpit is backgrounded (the "walk away" keystone).
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             desktop_status,
             cockpit_state,
@@ -20,6 +23,8 @@ pub fn run() {
             list_fleet,
             submit_order,
             get_order_status,
+            notify_task_result,
+            cancel_order,
             read_startup_marker
         ])
         .setup(|app| {
@@ -30,11 +35,105 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            // S-tier: system tray — makes MUSU a RESIDENT control center, not a
+            // window you close. Left-click restores; the menu has Show + Quit.
+            build_tray(app.handle())?;
             spawn_runtime_autostart();
             Ok(())
         })
+        // Closing the window HIDES to tray (does not quit) — the app stays
+        // resident watching the fleet. Quit is explicit via the tray menu.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// S-tier tray: a tray icon with a Show / Quit menu; left-click restores the
+/// cockpit. Makes MUSU a resident product (the fleet stays watched while the
+/// window is hidden).
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+
+    let show = MenuItemBuilder::with_id("show", "Open MUSU").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+    let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
+
+    let _tray = TrayIconBuilder::with_id("musu-tray")
+        .icon(app.default_window_icon().unwrap().clone())
+        .tooltip("MUSU — your computers")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => reveal_main_window(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click { .. } = event {
+                reveal_main_window(tray.app_handle());
+            }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+fn reveal_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// S-tier: fire an OS notification when an order reaches a terminal state, so the
+/// user can leave the cockpit and still know the moment work finishes. Called
+/// from the cockpit's poll loop on done/failed. Best-effort.
+#[tauri::command]
+fn notify_task_result(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+    app.notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show()
+        .map_err(|e| format!("notify failed: {e}"))
+}
+
+/// Cancel an in-flight order (bound to Esc on the newest running card). Spawns
+/// `musu task <id>` DELETE via the bridge — reuses the cancel path the CLI uses.
+/// Best-effort: a bridge HTTP DELETE through the runtime binary.
+#[tauri::command]
+fn cancel_order(task_id: String) -> Result<CommandResult, String> {
+    let task_id = task_id.trim();
+    if task_id.is_empty() {
+        return Err("task_id is empty".to_string());
+    }
+    let command = musu_command_path();
+    // `musu route --target <self>`… no — cancel is DELETE /api/tasks/:id, exposed
+    // via the runtime's task subcommand. We spawn `musu task <id> --cancel`-style
+    // through the existing CLI surface: the bridge DELETE handler.
+    let result = run_command_with_timeout(
+        &command,
+        &["task", task_id, "--cancel"],
+        DOCTOR_STATUS_TIMEOUT,
+    )
+    .map_err(|err| format!("failed to run {} task --cancel: {err}", command.display()))?;
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(CommandResult {
+        ok: result.status_success,
+        message: if result.status_success {
+            "cancel requested".to_string()
+        } else {
+            "cancel failed".to_string()
+        },
+        output: combined,
+    })
 }
 
 #[derive(serde::Serialize)]

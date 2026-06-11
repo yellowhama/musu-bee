@@ -713,9 +713,33 @@ body {
    Orders become trackable cards: each shows the order text, a live status
    (pending → running → done/failed), and the result/error/artifact once
    terminal. A status dot carries the color so the state reads at a glance. */
+/* attention-grouped inbox: Running surfaces above Done */
 .task-feed {
-  list-style: none;
   margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-group-title {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.task-group-list {
+  list-style: none;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -736,12 +760,16 @@ body {
   gap: 8px;
 }
 
+/* status reads by SHAPE as well as color (colorblind-safe, glanceable):
+   running = breathing filled circle, done = solid filled circle,
+   failed/cancelled = hollow square (clearly "not a success" by silhouette). */
 .task-dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--ink-faint);
+  box-shadow: 0 0 0 1px transparent;
 }
 
 .task-text {
@@ -753,6 +781,15 @@ body {
   font-family: var(--mono);
   font-size: 13px;
   color: var(--ink);
+}
+
+/* the ticking elapsed clock + "esc to stop" — the liveness proof, not a bar */
+.task-elapsed {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .task-status {
@@ -778,31 +815,112 @@ body {
   overflow: auto;
 }
 
-/* per-state accent: dot + status label */
+/* RUNNING/PENDING: breathing amber circle */
 .task-card.pending .task-dot,
 .task-card.running .task-dot {
   background: var(--warn);
+  border-radius: 50%;
   animation: breathe 2s ease-in-out infinite;
 }
 .task-card.running .task-status,
 .task-card.pending .task-status {
   color: var(--warn);
 }
+/* DONE: solid green circle */
 .task-card.done .task-dot {
   background: var(--online);
+  border-radius: 50%;
 }
 .task-card.done .task-status {
   color: var(--online);
 }
+/* FAILED/CANCELLED: hollow red SQUARE — different silhouette, not just color */
 .task-card.failed .task-dot,
 .task-card.cancelled .task-dot,
 .task-card.not_found .task-dot {
-  background: var(--bad);
+  background: transparent;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 2px var(--bad);
 }
 .task-card.failed .task-status,
 .task-card.cancelled .task-status,
 .task-card.not_found .task-status {
   color: var(--bad);
+}
+
+/* ── command palette (Ctrl/Cmd+K) ─────────────────────────────────── */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 12, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 100;
+  animation: palette-fade 0.12s ease both;
+}
+
+@keyframes palette-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.palette-box {
+  width: min(520px, 90vw);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: palette-pop 0.14s ease both;
+}
+
+@keyframes palette-pop {
+  from { transform: translateY(-6px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.palette-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  outline: none;
+}
+.palette-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.palette-results {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.palette-result {
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.palette-result.active {
+  background: var(--bg-3);
+  color: var(--ink);
+  box-shadow: inset 2px 0 0 var(--amber);
+}
+.palette-result:hover {
+  background: var(--bg-3);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -91,8 +91,18 @@
         </div>
         <p id="order-status" class="order-status" hidden></p>
 
-        <!-- task feed: orders become trackable cards (V28 P1 observation loop) -->
-        <ul id="task-feed" class="task-feed" aria-label="Recent work" hidden></ul>
+        <!-- task feed: attention-grouped inbox (S-tier). Orders surface where
+             they need you first: running → done. Each group hides when empty. -->
+        <div id="task-feed" class="task-feed" aria-label="Recent work" hidden>
+          <section class="task-group" data-group="running" hidden>
+            <h3 class="task-group-title">Running</h3>
+            <ul class="task-group-list"></ul>
+          </section>
+          <section class="task-group" data-group="done" hidden>
+            <h3 class="task-group-title">Done</h3>
+            <ul class="task-group-list"></ul>
+          </section>
+        </div>
       </section>
 
       <!-- diagnostics: the OLD engineer view, demoted behind a disclosure -->
@@ -117,6 +127,21 @@
         <p class="diag-version" id="version">—</p>
       </details>
     </main>
+
+    <!-- command palette (Ctrl/Cmd+K) — keyboard-first, premium speed -->
+    <div id="palette" class="palette-backdrop" hidden>
+      <div class="palette-box" role="dialog" aria-label="Command palette">
+        <input
+          id="palette-input"
+          class="palette-input"
+          type="text"
+          placeholder="Type a command…"
+          autocomplete="off"
+        />
+        <ul id="palette-results" class="palette-results"></ul>
+      </div>
+    </div>
+
     <script src="./main.js"></script>
   </body>
 </html>

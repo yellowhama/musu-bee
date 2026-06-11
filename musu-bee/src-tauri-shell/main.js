@@ -299,55 +299,127 @@ async function refresh() {
   }
 }
 
-// ── order submission + observation loop (V28 P1: task feed) ────
-// An order is no longer fire-and-forget. submit_order returns a task_id; we add
-// a card to the feed and poll get_order_status until the task is terminal, so
-// the user SEES the work go pending → running → done/failed and reads the result.
+// ── order submission + observation loop (S-tier task inbox) ────
+// An order is a trackable card in an ATTENTION-GROUPED inbox (running → done):
+// it surfaces where it needs you. Running cards show a TICKING elapsed clock +
+// "esc to stop" (the clock is the liveness proof, not a fake bar). The composer
+// NEVER blocks — you queue the next order while one runs. Status reads by SHAPE
+// as well as color (the .task-dot CSS), so it's legible at a glance / colorblind.
 const TASK_POLL_MS = 2500;
-const TASK_FEED_MAX = 6; // keep the most recent N orders visible
+const TASK_FEED_MAX = 8; // most recent N orders kept across both groups
 const activePolls = new Map(); // task_id → interval handle
+const elapsedTimers = new Map(); // task_id → interval handle for the ticking clock
+const taskStartedAt = new Map(); // task_id → ms epoch when first seen running
 
 function terminalStatus(s) {
   return s === "done" || s === "failed" || s === "cancelled" || s === "not_found";
 }
 
-function renderTaskCard(taskId, { status, text, output, error, artifact }) {
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+// Which group a status belongs in. pending+running = "running" (in flight);
+// terminal = "done".
+function groupFor(status) {
+  return terminalStatus(status) ? "done" : "running";
+}
+
+function groupList(group) {
+  return $("task-feed").querySelector(`[data-group="${group}"] .task-group-list`);
+}
+
+// Show/hide each group section based on whether it has cards; reveal the feed.
+function refreshGroupVisibility() {
   const feed = $("task-feed");
-  feed.hidden = false;
-  let li = feed.querySelector(`[data-task="${taskId}"]`);
+  let any = false;
+  for (const group of ["running", "done"]) {
+    const section = feed.querySelector(`[data-group="${group}"]`);
+    const has = section.querySelector(".task-group-list").children.length > 0;
+    section.hidden = !has;
+    any = any || has;
+  }
+  feed.hidden = !any;
+}
+
+function stopTaskTimers(taskId) {
+  if (elapsedTimers.has(taskId)) {
+    clearInterval(elapsedTimers.get(taskId));
+    elapsedTimers.delete(taskId);
+  }
+}
+
+function renderTaskCard(taskId, { status, text, output, error, artifact }) {
+  const targetGroup = groupFor(status);
+  let li = document.querySelector(`#task-feed [data-task="${taskId}"]`);
   if (!li) {
     li = document.createElement("li");
-    li.className = "task-card";
     li.dataset.task = taskId;
     li.innerHTML =
-      '<div class="task-head"><span class="task-dot"></span>' +
-      '<span class="task-text"></span><span class="task-status"></span></div>' +
+      '<div class="task-head">' +
+      '<span class="task-dot" aria-hidden="true"></span>' +
+      '<span class="task-text"></span>' +
+      '<span class="task-elapsed"></span>' +
+      '<span class="task-status"></span></div>' +
       '<div class="task-detail" hidden></div>';
-    feed.prepend(li);
-    // trim to the most recent N (and stop polling any we drop)
-    while (feed.children.length > TASK_FEED_MAX) {
-      const gone = feed.lastElementChild;
-      const id = gone?.dataset.task;
-      if (id && activePolls.has(id)) {
-        clearInterval(activePolls.get(id));
-        activePolls.delete(id);
-      }
-      gone.remove();
-    }
+  }
+  // Move the card to the right group if its status changed group.
+  const list = groupList(targetGroup);
+  if (li.parentElement !== list) {
+    list.prepend(li);
   }
   li.className = `task-card ${status}`;
   if (text) li.querySelector(".task-text").textContent = text;
   li.querySelector(".task-status").textContent = status;
+
+  // Ticking elapsed clock + "esc to stop" while in flight; freeze on terminal.
+  const elapsedEl = li.querySelector(".task-elapsed");
+  if (status === "running" || status === "pending") {
+    if (!taskStartedAt.has(taskId)) taskStartedAt.set(taskId, Date.now());
+    if (!elapsedTimers.has(taskId)) {
+      const tick = () => {
+        elapsedEl.textContent =
+          fmtElapsed(Date.now() - taskStartedAt.get(taskId)) + " · esc to stop";
+      };
+      tick();
+      elapsedTimers.set(taskId, setInterval(tick, 1000));
+    }
+  } else {
+    stopTaskTimers(taskId);
+    if (taskStartedAt.has(taskId)) {
+      elapsedEl.textContent = fmtElapsed(Date.now() - taskStartedAt.get(taskId));
+    } else {
+      elapsedEl.textContent = "";
+    }
+  }
+
   const detail = li.querySelector(".task-detail");
-  const body = error
-    ? `error: ${error}`
-    : artifact
-      ? `→ ${artifact}`
-      : output || "";
+  const body = error ? `error: ${error}` : artifact ? `→ ${artifact}` : output || "";
   if (body) {
     detail.hidden = false;
     detail.textContent = body;
   }
+
+  // Trim oldest across both groups (and stop their polling/timers).
+  const all = $("task-feed").querySelectorAll(".task-card");
+  if (all.length > TASK_FEED_MAX) {
+    // remove from the DONE group first (terminal, least useful to keep)
+    const doneCards = groupList("done").querySelectorAll(".task-card");
+    let toRemove = all.length - TASK_FEED_MAX;
+    for (let i = doneCards.length - 1; i >= 0 && toRemove > 0; i--, toRemove--) {
+      const id = doneCards[i].dataset.task;
+      if (id && activePolls.has(id)) {
+        clearInterval(activePolls.get(id));
+        activePolls.delete(id);
+      }
+      stopTaskTimers(id);
+      doneCards[i].remove();
+    }
+  }
+  refreshGroupVisibility();
 }
 
 function pollTask(taskId, text) {
@@ -360,6 +432,7 @@ function pollTask(taskId, text) {
       renderTaskCard(taskId, { status: "failed", text, error: String(err) });
       clearInterval(activePolls.get(taskId));
       activePolls.delete(taskId);
+      stopTaskTimers(taskId);
       return;
     }
     renderTaskCard(taskId, {
@@ -372,45 +445,71 @@ function pollTask(taskId, text) {
     if (terminalStatus(st.status)) {
       clearInterval(activePolls.get(taskId));
       activePolls.delete(taskId);
+      // OS notification on terminal events (no-op if the plugin command is
+      // absent — wrapped in try/catch so a missing command can't break the UI).
+      notifyTerminal(text, st);
     }
   };
   tick(); // immediate first poll
   activePolls.set(taskId, setInterval(tick, TASK_POLL_MS));
 }
 
+// Fire an OS notification when an order finishes — so the user can walk away and
+// MUSU taps them. Best-effort: the Tauri command may not exist yet (shell-only
+// build), so swallow errors.
+async function notifyTerminal(text, st) {
+  try {
+    await invoke("notify_task_result", {
+      title: st.status === "done" ? "Order done" : `Order ${st.status}`,
+      body: (text || "") + (st.output ? `\n${st.output.slice(0, 120)}` : ""),
+    });
+  } catch {
+    /* command not available in this build — ignore */
+  }
+}
+
+// esc cancels the most recent in-flight task (the one you're watching).
+async function cancelNewestRunning() {
+  const running = groupList("running").querySelector(".task-card");
+  if (!running) return;
+  const taskId = running.dataset.task;
+  try {
+    await invoke("cancel_order", { taskId });
+  } catch {
+    /* cancel command not in this build — ignore */
+  }
+}
+
 async function submitOrder() {
   const input = $("order-input");
-  const sendBtn = $("order-send");
-  const statusEl = $("order-status");
   const text = input.value.trim();
   if (!text) return;
-
   const target = $("order-target")?.value || "";
-  input.disabled = true;
-  sendBtn.disabled = true;
-  statusEl.hidden = false;
-  statusEl.className = "order-status pending";
-  statusEl.textContent = "Sending…";
+
+  // Non-blocking composer: clear the box immediately and let the user keep
+  // typing the next order. Feedback lives in the task card, not a blocking state.
+  input.value = "";
+  input.focus();
 
   try {
     const result = await invoke("submit_order", { text, target });
-    statusEl.className = "order-status ok";
-    statusEl.textContent = result.message || "Order sent.";
-    input.value = "";
     if (result.task_id) {
-      // Seed the card immediately as "pending", then poll for real status.
       renderTaskCard(result.task_id, { status: "pending", text });
       pollTask(result.task_id, text);
+    } else {
+      // No task id (e.g. rejected) — surface as a failed card so it's visible.
+      renderTaskCard(`local-${Date.now()}`, {
+        status: "failed",
+        text,
+        error: result.message || "order not queued",
+      });
     }
   } catch (err) {
-    statusEl.className = "order-status bad";
-    statusEl.textContent = String(err);
-  } finally {
-    input.disabled = false;
-    sendBtn.disabled = false;
-    setTimeout(() => {
-      statusEl.hidden = true;
-    }, 4000);
+    renderTaskCard(`local-${Date.now()}`, {
+      status: "failed",
+      text,
+      error: String(err),
+    });
   }
 }
 
@@ -418,6 +517,106 @@ async function submitOrder() {
 $("order-send").addEventListener("click", submitOrder);
 $("order-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitOrder();
+});
+// ── command palette (Ctrl/Cmd+K) — keyboard-first premium speed ────────
+// A searchable action list. Frecency-lite: recently-run commands float up.
+const paletteCommands = [
+  { id: "focus-order", label: "Focus order input", run: () => $("order-input").focus() },
+  { id: "next-attention", label: "Jump to next task needing attention",
+    run: () => {
+      const card = $("task-feed").querySelector('[data-group="running"] .task-card');
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    } },
+  { id: "cancel-newest", label: "Cancel the newest running task", run: cancelNewestRunning },
+  { id: "clear-done", label: "Clear finished tasks",
+    run: () => {
+      const done = $("task-feed").querySelector('[data-group="done"] .task-group-list');
+      if (done) done.textContent = "";
+      refreshGroupVisibility();
+    } },
+  { id: "diagnostics", label: "Open diagnostics",
+    run: () => { const d = $("diagnostics"); d.open = true; d.scrollIntoView(); } },
+  { id: "refresh", label: "Refresh now", run: () => refresh() },
+];
+const paletteFrecency = new Map(); // id → score
+
+function rankCommands(query) {
+  const q = query.trim().toLowerCase();
+  return paletteCommands
+    .filter((c) => !q || c.label.toLowerCase().includes(q))
+    .map((c) => ({ c, score: (paletteFrecency.get(c.id) || 0) - (c.label.toLowerCase().indexOf(q) >= 0 ? 0 : 1) }))
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.c);
+}
+
+let paletteIndex = 0;
+function renderPalette(query) {
+  const list = $("palette-results");
+  const ranked = rankCommands(query);
+  paletteIndex = Math.min(paletteIndex, Math.max(0, ranked.length - 1));
+  list.innerHTML = "";
+  ranked.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.className = "palette-result" + (i === paletteIndex ? " active" : "");
+    li.textContent = c.label;
+    li.addEventListener("click", () => runPaletteCommand(c));
+    list.appendChild(li);
+  });
+  list._ranked = ranked;
+}
+
+function openPalette() {
+  const p = $("palette");
+  p.hidden = false;
+  paletteIndex = 0;
+  $("palette-input").value = "";
+  renderPalette("");
+  $("palette-input").focus();
+}
+function closePalette() {
+  $("palette").hidden = true;
+  $("order-input").focus();
+}
+function runPaletteCommand(c) {
+  paletteFrecency.set(c.id, (paletteFrecency.get(c.id) || 0) + 1);
+  closePalette();
+  try { c.run(); } catch (e) { /* command failed, non-fatal */ }
+}
+
+$("palette-input").addEventListener("input", (e) => {
+  paletteIndex = 0;
+  renderPalette(e.target.value);
+});
+$("palette-input").addEventListener("keydown", (e) => {
+  const ranked = $("palette-results")._ranked || [];
+  if (e.key === "ArrowDown") {
+    paletteIndex = Math.min(paletteIndex + 1, ranked.length - 1);
+    renderPalette(e.target.value);
+    e.preventDefault();
+  } else if (e.key === "ArrowUp") {
+    paletteIndex = Math.max(paletteIndex - 1, 0);
+    renderPalette(e.target.value);
+    e.preventDefault();
+  } else if (e.key === "Enter") {
+    if (ranked[paletteIndex]) runPaletteCommand(ranked[paletteIndex]);
+    e.preventDefault();
+  } else if (e.key === "Escape") {
+    closePalette();
+    e.preventDefault();
+  }
+});
+$("palette").addEventListener("click", (e) => {
+  if (e.target.id === "palette") closePalette(); // backdrop click
+});
+
+// Global keys: Ctrl/Cmd+K opens palette; Esc cancels newest task (when palette closed).
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    $("palette").hidden ? openPalette() : closePalette();
+    return;
+  }
+  if (e.key === "Escape" && $("palette").hidden) cancelNewestRunning();
 });
 // ── account actions (sign in / sign out) ──────────────────────────────
 async function startSignIn(btn) {

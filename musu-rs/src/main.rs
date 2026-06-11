@@ -131,6 +131,10 @@ enum Cmd {
         /// Emit the raw bridge JSON (status/output/error/exit_code/duration).
         #[arg(long)]
         json: bool,
+        /// Cancel the task (DELETE /api/tasks/:id) instead of reading it. Used by
+        /// the cockpit's Esc-to-stop on the newest running order.
+        #[arg(long)]
+        cancel: bool,
     },
 
     /// V27-F5: Execute a workflow.
@@ -344,9 +348,13 @@ async fn main() -> anyhow::Result<()> {
             init_tracing_default();
             install::cli_commands::run_tasks().await
         }
-        Cmd::Task { id, json } => {
+        Cmd::Task { id, json, cancel } => {
             init_tracing_default();
-            install::cli_commands::run_task_get(&id, json).await
+            if cancel {
+                install::cli_commands::run_task_cancel(&id).await
+            } else {
+                install::cli_commands::run_task_get(&id, json).await
+            }
         }
 
         Cmd::WorkflowRun { id } => {
