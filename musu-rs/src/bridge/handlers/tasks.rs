@@ -72,6 +72,34 @@ fn default_qa_loop_max() -> u32 {
     3
 }
 
+/// The adapter a delegated task uses when the caller does not specify one.
+///
+/// V28 (Agent SDK metering, 2026-06-15): MUSU must NOT spawn headless `claude -p`
+/// by default, because non-interactive Claude usage now draws from a separate
+/// metered Agent SDK credit. The default is operator-controlled via
+/// `MUSU_DEFAULT_ADAPTER` (e.g. `codex`, `openai_compat_local` for a local
+/// Ollama/Gemma endpoint). If unset, we fall back to `"claude"` to preserve
+/// pre-V28 behavior for existing callers — but a V28 fleet SHOULD set this to a
+/// non-metered agent so the default path never spawns `claude -p`. An empty or
+/// whitespace value is treated as unset.
+///
+/// Shared by every task-spawning entry point (delegate, forward-receive, run)
+/// so the "no headless claude by default" guarantee holds across ALL paths.
+pub(crate) fn default_adapter_type() -> String {
+    default_adapter_from(std::env::var("MUSU_DEFAULT_ADAPTER").ok().as_deref())
+}
+
+/// Pure resolution of the default adapter from an optional env value. Split out
+/// from the env read so it can be unit-tested WITHOUT touching process-global
+/// env (which is thread-unsafe and races other env-touching tests).
+fn default_adapter_from(env_value: Option<&str>) -> String {
+    env_value
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .unwrap_or("claude")
+        .to_string()
+}
+
 const AUDIT_FRAGMENT_MAX_CHARS: usize = 160;
 
 fn audit_fragment(value: &str) -> String {
@@ -228,7 +256,10 @@ pub async fn delegate(
                     cwd,
                     model: req.model.clone(),
                     timeout_sec: req.timeout_sec,
-                    adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
+                    adapter_type: req
+                        .adapter_type
+                        .clone()
+                        .unwrap_or_else(default_adapter_type),
                     callback_url: None,
                     source_task_id: None,
                 })
@@ -417,6 +448,20 @@ mod tests {
         assert!(note.len() < 512);
         assert!(!note.contains("sensitive prompt"));
         assert!(!note.contains("F:/sensitive/workspace"));
+    }
+
+    /// V28: the default adapter is operator-controlled via MUSU_DEFAULT_ADAPTER,
+    /// falling back to "claude" only when unset/blank (backward compat). A V28
+    /// fleet sets this to a non-metered agent so the default path never spawns
+    /// `claude -p`. Tested on the PURE resolver so we never touch process-global
+    /// env (which is thread-unsafe and would race other env-touching tests).
+    #[test]
+    fn default_adapter_resolves_env_then_falls_back_to_claude() {
+        assert_eq!(default_adapter_from(Some("codex")), "codex");
+        assert_eq!(default_adapter_from(Some("  openai_compat_local  ")), "openai_compat_local");
+        assert_eq!(default_adapter_from(Some("   ")), "claude");
+        assert_eq!(default_adapter_from(Some("")), "claude");
+        assert_eq!(default_adapter_from(None), "claude");
     }
 }
 

@@ -602,7 +602,10 @@ pub async fn accept_forwarded_task(
             cwd,
             model: req.model.clone(),
             timeout_sec: req.timeout_sec,
-            adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
+            adapter_type: req
+                .adapter_type
+                .clone()
+                .unwrap_or_else(crate::bridge::handlers::tasks::default_adapter_type),
             callback_url: req.callback_url.clone(),
             source_task_id: Some(req.source_task_id.clone()),
         })

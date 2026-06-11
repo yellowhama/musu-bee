@@ -189,6 +189,25 @@ impl BridgeClient {
         self.get("/api/nodes").await
     }
 
+    /// V28 — proxy to `GET /api/tasks/:task_id`. Returns the task's
+    /// status/output/error so an interactive Claude Code session can poll a
+    /// delegated task to completion and read its result.
+    pub async fn get_task_result(&self, task_id: &str) -> Result<String> {
+        if task_id.is_empty() {
+            return Ok("error: task_id required".into());
+        }
+        self.get(&format!("/api/tasks/{}", url_segment(task_id)))
+            .await
+    }
+
+    /// V28 — proxy to `GET /api/fleet/status`. Returns every fleet node with its
+    /// capabilities (gpu_present, gpu_vram_gb, cpu_cores, os) + online/active so
+    /// Claude Code can pick the right machine before delegating ("send the video
+    /// job to the GPU box, the review to the Gemma box").
+    pub async fn get_fleet_status(&self) -> Result<String> {
+        self.get("/api/fleet/status").await
+    }
+
     /// V24-R4 wiki/494 §3 — proxy to `GET /api/index-search`.
     ///
     /// Builds the query string from explicit args (rather than letting
