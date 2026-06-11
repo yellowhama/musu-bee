@@ -38,11 +38,12 @@ fn t01_initialize_returns_protocol_version() {
 }
 
 #[test]
-fn t02_tools_list_returns_17_tools() {
+fn t02_tools_list_returns_19_tools() {
     // Simulate by calling tool_definitions() directly via the module.
     // This requires the function to be pub — test via serde round-trip instead.
-    // The 17 SHARED tools (stdio + http). HTTP also has 3 mesh-only tools.
-    // V28 added get_task_result + get_fleet_status (the MCP-inversion tools).
+    // The 19 SHARED tools (stdio + http). HTTP also has 3 mesh-only tools.
+    // V28 added get_task_result + get_fleet_status (MCP-inversion) and
+    // get_setup_status + set_default_adapter (LLM-driven setup).
     let tools_json = json!([
         "list_companies",
         "get_company",
@@ -54,6 +55,8 @@ fn t02_tools_list_returns_17_tools() {
         "cancel_task",
         "list_nodes",
         "get_fleet_status",
+        "get_setup_status",
+        "set_default_adapter",
         "search_company",
         "kvm_control",
         "list_agents",
@@ -63,7 +66,7 @@ fn t02_tools_list_returns_17_tools() {
         "get_activity"
     ]);
     let tools: Vec<String> = serde_json::from_value(tools_json).unwrap();
-    assert_eq!(tools.len(), 17, "MCP exposes 17 shared tools (+3 HTTP-only mesh)");
+    assert_eq!(tools.len(), 19, "MCP exposes 19 shared tools (+3 HTTP-only mesh)");
 }
 
 #[test]
@@ -188,11 +191,11 @@ fn t13_health_endpoint_shape() {
     let health = json!({
         "status": "ok",
         "transport": "http+sse",
-        "tools_count": 20,
+        "tools_count": 22,
     });
     assert_eq!(health["status"], "ok");
     assert_eq!(health["transport"], "http+sse");
-    assert_eq!(health["tools_count"], 20);
+    assert_eq!(health["tools_count"], 22);
 }
 
 #[test]

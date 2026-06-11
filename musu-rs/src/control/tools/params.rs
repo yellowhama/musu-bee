@@ -155,6 +155,16 @@ pub struct CancelTaskParams {
     pub task_id: String,
 }
 
+/// Params for `set_default_adapter` (V28 setup).
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetDefaultAdapterParams {
+    /// Which agent a task uses by default: `echo` (zero-dependency built-in),
+    /// `codex`, `claude`, `gemini`, `openai_compat_local` (a local Ollama/Gemma
+    /// endpoint), or `openai_compat_remote`.
+    pub adapter: String,
+}
+
 // ─────────────────────── T1 R4 indexer params ───────────────────────
 
 /// V24-R4 wiki/494 §3 — params for `search_company` MCP tool.

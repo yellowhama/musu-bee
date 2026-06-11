@@ -326,6 +326,17 @@ async fn dispatch_tool(
         }
         "list_nodes" => bridge.list_nodes().await.map_err(|e| format!("{e}")),
         "get_fleet_status" => bridge.get_fleet_status().await.map_err(|e| format!("{e}")),
+        "get_setup_status" => bridge.get_setup_status().await.map_err(|e| format!("{e}")),
+        "set_default_adapter" => {
+            let adapter = args
+                .get("adapter")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "adapter required".to_string())?;
+            bridge
+                .set_default_adapter(adapter)
+                .await
+                .map_err(|e| format!("{e}"))
+        }
         "search_company" => {
             let p: SearchCompanyParams =
                 serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
@@ -507,6 +518,8 @@ fn tool_definitions() -> Vec<McpToolInfo> {
         McpToolInfo { name: "cancel_task".into(), description: "Cancel a running task on the local musu bridge writer.".into(), input_schema: serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]}) },
         McpToolInfo { name: "list_nodes".into(), description: "List musu nodes (self + peers) known to the local bridge.".into(), input_schema: empty.clone() },
         McpToolInfo { name: "get_fleet_status".into(), description: "Get every machine in your fleet with its capabilities (gpu_present, gpu_vram_gb, cpu_cores, os) and live status (online, active_tasks). Use this to pick which machine to send a task to before calling delegate_task.".into(), input_schema: empty.clone() },
+        McpToolInfo { name: "get_setup_status".into(), description: "Diagnose THIS machine's MUSU setup (installed agent CLIs, local Ollama/ComfyUI, current+recommended default adapter, login). Call first when asked to set up the computer.".into(), input_schema: empty.clone() },
+        McpToolInfo { name: "set_default_adapter".into(), description: "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env, applies now.".into(), input_schema: serde_json::json!({"type":"object","properties":{"adapter":{"type":"string"}},"required":["adapter"]}) },
         McpToolInfo { name: "search_company".into(), description: "Full-text search a company's workspace index.".into(), input_schema: serde_json::json!({"type":"object","properties":{"workspace":{"type":"string"},"q":{"type":"string"},"scope":{"type":"string"},"limit":{"type":"integer"}},"required":["workspace","q"]}) },
         McpToolInfo { name: "run_remote_command".into(), description: "Execute a command on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"}},"required":["node_id","command"]}) },
         McpToolInfo { name: "read_remote_file".into(), description: "Read a file from a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"}},"required":["node_id","path"]}) },

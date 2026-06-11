@@ -6,12 +6,12 @@
 //!   1. `main.rs` set up stderr-only `tracing` BEFORE entering this fn.
 //!   2. Eagerly construct `BridgeClient` — token-resolve failure returns Err
 //!      before any byte hits stdout.
-//!   3. Build the `ServerHandler` with all 17 tool routes pre-registered.
+//!   3. Build the `ServerHandler` with all 19 tool routes pre-registered.
 //!      (R3 shipped 13; R4 wiki/494 adds `search_company` as the 14th;
 //!      `kvm_control` is the 15th; V28 adds `get_task_result` +
-//!      `get_fleet_status` as the 16th/17th — the MCP-inversion tools an
-//!      interactive Claude Code uses to poll a delegated task and pick a
-//!      fleet machine.)
+//!      `get_fleet_status` (16th/17th — poll a task, pick a fleet machine) and
+//!      `get_setup_status` + `set_default_adapter` (18th/19th — the LLM
+//!      configures the machine: "set up my computer").)
 //!   4. `serve((stdin, stdout))` — rmcp's `AsyncRwTransport` returns on
 //!      stdin EOF, so `service.waiting()` resolves when the client closes
 //!      its stdin. C8 belt-and-suspenders: we run that `waiting()` future
@@ -47,6 +47,7 @@ use bridge_client::BridgeClient;
 use tools::params::{
     CancelTaskParams, CreateCompanyParams, DelegateTaskParams, GetAgentParams, GetCompanyParams,
     GetTaskResultParams, KvmControlParams, RunCompanyParams, SearchCompanyParams,
+    SetDefaultAdapterParams,
 };
 
 /// The MCP server. Holds the eagerly-constructed bridge client + the rmcp
@@ -201,6 +202,27 @@ impl ControlServer {
     )]
     async fn get_fleet_status(&self) -> Result<CallToolResult, ErrorData> {
         ok_text(self.bridge.get_fleet_status().await)
+    }
+
+    /// get_setup_status — V28. Proxies GET /api/setup/status.
+    #[tool(
+        name = "get_setup_status",
+        description = "Diagnose THIS machine's MUSU setup before configuring it: which agent CLIs are installed (codex/claude/gemini), whether a local Ollama/ComfyUI is running, the current and recommended default adapter, and login state. Call this first when the user asks you to set up their computer, then use set_default_adapter."
+    )]
+    async fn get_setup_status(&self) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.get_setup_status().await)
+    }
+
+    /// set_default_adapter — V28. Proxies POST /api/setup/default-adapter.
+    #[tool(
+        name = "set_default_adapter",
+        description = "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env and applies immediately. Use after get_setup_status to configure the machine — e.g. set 'codex' if codex is installed, or 'echo' as a zero-dependency floor."
+    )]
+    async fn set_default_adapter(
+        &self,
+        Parameters(p): Parameters<SetDefaultAdapterParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.set_default_adapter(&p.adapter).await)
     }
 
     // ── T1 strictly-native: R4 indexer (1 tool) ──────────────────────────

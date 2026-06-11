@@ -11,6 +11,7 @@ pub mod health;
 pub mod index_search;
 pub mod nodes;
 pub mod run;
+pub mod setup;
 pub mod sse;
 pub mod system_update;
 pub mod tasks;
@@ -65,6 +66,13 @@ pub fn native_router() -> Router<AppState> {
         )
         .route("/api/nodes", get(nodes::list))
         .route("/api/nodes/add", post(nodes::add))
+        // V28: setup endpoints so an interactive Claude Code session can
+        // configure the fleet via MUSU's MCP tools ("set up my computers").
+        .route("/api/setup/status", get(setup::get_setup_status))
+        .route(
+            "/api/setup/default-adapter",
+            post(setup::set_default_adapter),
+        )
         // V27: cross-machine task routing.
         .route("/api/tasks/forward", post(forward::receive_forwarded))
         // V27-F1: result callback from peer after forwarded task completes.
