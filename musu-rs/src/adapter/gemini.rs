@@ -30,7 +30,8 @@ const DEFAULT_GEMINI_BINARY: &str = "gemini";
 pub struct GeminiAdapter;
 
 fn resolve_binary() -> String {
-    std::env::var(GEMINI_BINARY_ENV).unwrap_or_else(|_| DEFAULT_GEMINI_BINARY.to_string())
+    std::env::var(GEMINI_BINARY_ENV)
+        .unwrap_or_else(|_| crate::writer::runner::resolve_agent_binary(DEFAULT_GEMINI_BINARY))
 }
 
 /// Build argv for `gemini -p PROMPT -o stream-json [-m MODEL]`.
@@ -295,9 +296,15 @@ mod tests {
     }
 
     #[test]
-    fn resolve_binary_defaults_to_gemini() {
+    fn resolve_binary_env_override_wins() {
+        std::env::set_var(GEMINI_BINARY_ENV, "/custom/gemini-path");
+        assert_eq!(resolve_binary(), "/custom/gemini-path");
         std::env::remove_var(GEMINI_BINARY_ENV);
-        assert_eq!(resolve_binary(), "gemini");
+        let resolved = resolve_binary();
+        assert!(
+            resolved == "gemini" || resolved.to_lowercase().contains("gemini"),
+            "unexpected gemini resolution: {resolved}"
+        );
     }
 
     // --- Spike-line parser tests (REAL captured spike lines, 2026-06-09) ---

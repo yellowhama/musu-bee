@@ -32,9 +32,13 @@ const DEFAULT_CODEX_BINARY: &str = "codex";
 
 pub struct CodexAdapter;
 
-/// Resolve the codex binary from process env only (M1). Returns owned String.
+/// Resolve the codex binary: explicit `MUSU_CODEX_BINARY` env wins (M1);
+/// otherwise resolve `codex` to a directly-runnable path on this platform
+/// (`…/codex.cmd` on Windows, where the bare `codex` npm shim is NOT
+/// CreateProcess-runnable — the cause of "model unavailable" before V28).
 fn resolve_binary() -> String {
-    std::env::var(CODEX_BINARY_ENV).unwrap_or_else(|_| DEFAULT_CODEX_BINARY.to_string())
+    std::env::var(CODEX_BINARY_ENV)
+        .unwrap_or_else(|_| crate::writer::runner::resolve_agent_binary(DEFAULT_CODEX_BINARY))
 }
 
 /// Build argv for `codex exec --json --skip-git-repo-check [-m MODEL]`.
@@ -367,10 +371,19 @@ mod tests {
     }
 
     #[test]
-    fn resolve_binary_defaults_to_codex() {
-        // Operator-env-only (M1). With env unset, default applies.
+    fn resolve_binary_env_override_wins() {
+        // Explicit MUSU_CODEX_BINARY wins verbatim (M1).
+        std::env::set_var(CODEX_BINARY_ENV, "/custom/codex-path");
+        assert_eq!(resolve_binary(), "/custom/codex-path");
         std::env::remove_var(CODEX_BINARY_ENV);
-        assert_eq!(resolve_binary(), "codex");
+        // Fallback resolves to a runnable codex on PATH (…/codex.cmd on Windows)
+        // or the bare stem if absent; either way it ends in the codex stem.
+        let resolved = resolve_binary();
+        assert!(
+            resolved == "codex"
+                || resolved.to_lowercase().contains("codex"),
+            "unexpected codex resolution: {resolved}"
+        );
     }
 
     // --- Spike-line parser tests (REAL captured spike lines, 2026-06-09) ---

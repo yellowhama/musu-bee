@@ -177,17 +177,25 @@ impl ServiceRegistry {
     ///
     /// Services that crash without cleaning up leave stale JSON behind.
     /// Call this at bridge boot or on a periodic timer.
+    ///
+    /// V28 H3: a record with `pid: None` is ALSO removed. Previously it was
+    /// skipped, so a null-pid record (we saw one live) was un-cleanable and
+    /// permanently bricked discovery — the cockpit kept dialing a dead dynamic
+    /// port with no fallback. A record we can't prove is alive is treated as
+    /// stale; the live bridge re-registers itself on boot anyway.
     pub fn cleanup_stale(&self) {
         for rec in self.list() {
-            if let Some(pid) = rec.pid {
-                if !is_pid_alive(pid) {
-                    tracing::debug!(
-                        name = %rec.name,
-                        pid = pid,
-                        "removing stale service record (pid dead)"
-                    );
-                    let _ = self.deregister(&rec.name);
-                }
+            let remove = match rec.pid {
+                Some(pid) => !is_pid_alive(pid),
+                None => true, // can't prove alive → stale
+            };
+            if remove {
+                tracing::debug!(
+                    name = %rec.name,
+                    pid = ?rec.pid,
+                    "removing stale service record"
+                );
+                let _ = self.deregister(&rec.name);
             }
         }
     }
@@ -810,6 +818,23 @@ mod tests {
         assert!(
             reg.discover("self").is_some(),
             "live record should survive cleanup"
+        );
+    }
+
+    /// V28 H3: a null-pid record can't be proven alive, so cleanup removes it
+    /// (previously it survived forever and bricked discovery).
+    #[test]
+    fn cleanup_stale_removes_null_pid() {
+        let (_tmp, reg) = temp_registry();
+        let mut rec = sample_record("ghost");
+        rec.pid = None;
+        reg.register(&rec).unwrap();
+
+        reg.cleanup_stale();
+
+        assert!(
+            reg.discover("ghost").is_none(),
+            "null-pid record should be cleaned up"
         );
     }
 

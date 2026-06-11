@@ -173,6 +173,58 @@ fn find_on_path(file_name: &str) -> Option<String> {
     None
 }
 
+/// Default wall-clock task timeout (V28 H2) when a caller omits `timeout_sec`.
+/// 300s, overridable via `MUSU_TASK_DEFAULT_TIMEOUT_SEC`. Prevents a hung adapter
+/// from leaving a task "running" forever.
+fn default_task_timeout() -> Duration {
+    let secs = std::env::var("MUSU_TASK_DEFAULT_TIMEOUT_SEC")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|s| *s > 0)
+        .unwrap_or(300);
+    Duration::from_secs(secs)
+}
+
+/// Platform executable-name candidates for an agent CLI `stem`. On Windows an
+/// npm-installed CLI like `codex` ships as `codex` (bash shim, NOT directly
+/// runnable by CreateProcess) PLUS `codex.cmd` (the real Windows entry). So we
+/// must resolve to the `.cmd`/`.exe`/`.bat` form, not the bare name.
+#[cfg(windows)]
+fn agent_binary_candidates(stem: &str) -> Vec<String> {
+    vec![
+        format!("{stem}.cmd"),
+        format!("{stem}.exe"),
+        format!("{stem}.bat"),
+        stem.to_string(),
+    ]
+}
+#[cfg(not(windows))]
+fn agent_binary_candidates(stem: &str) -> Vec<String> {
+    vec![stem.to_string()]
+}
+
+/// V28 — is an agent CLI (`codex`, `claude`, …) installed on PATH? Used by
+/// `bridge::handlers::tasks::detect_default_adapter`.
+pub(crate) fn adapter_binary_on_path(stem: &str) -> bool {
+    agent_binary_candidates(stem)
+        .iter()
+        .any(|n| find_on_path(n).is_some())
+}
+
+/// V28 — resolve an agent CLI `stem` to a directly-runnable path on this
+/// platform (`codex` → `…/codex.cmd` on Windows), or the bare stem if not found
+/// (so the caller still gets a sensible spawn target / NotFound error). Fixes
+/// codex/gemini "model unavailable" on Windows where the bare `codex` shim is
+/// not CreateProcess-runnable. Used by the codex/gemini adapters.
+pub fn resolve_agent_binary(stem: &str) -> String {
+    for name in agent_binary_candidates(stem) {
+        if let Some(path) = find_on_path(&name) {
+            return path;
+        }
+    }
+    stem.to_string()
+}
+
 impl TaskRunnerHandle {
     /// Construct + run boot-orphan recovery (Critic C4).
     pub async fn new(pool: SqlitePool, sse: SseBroadcaster) -> Self {
@@ -389,13 +441,75 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
         }
     }
 
+    let start = Instant::now();
+
+    // V28 "make it actually work": in-process adapters that need NO subprocess
+    // (echo today; mock/shell can join) finalize immediately without entering
+    // the spawn → stream loop. This gives a fresh single-machine install a
+    // working order→result path with ZERO external CLI (no claude, no Ollama).
+    // Must run BEFORE claude_dispatch_spawn so `adapter_type="echo"` never tries
+    // to spawn a binary. Returns Some(result) when it handled the task.
+    if let Some((output, ok)) = run_inprocess_adapter(&spec) {
+        let duration = start.elapsed().as_secs_f64();
+        release_admission(&inner, &channel).await;
+        finalize(
+            &inner,
+            &spec,
+            if ok { TaskStatus::Done } else { TaskStatus::Failed },
+            if ok { None } else { Some(output.as_str()) },
+            if ok { Some(output.as_str()) } else { None },
+            Some(0),
+            Some(duration),
+        )
+        .await;
+        return;
+    }
+
+    // V28 C3 fix: codex / gemini / openai_compat_* run via the trait surface
+    // (`registry::dispatch` → `Adapter::execute`), which self-contains spawn +
+    // stream + finalize and returns an AdapterResult. Previously the runner hot
+    // path executed ONLY "claude", so auto-detecting/selecting codex failed with
+    // "not yet wired". This unifies them: any registry adapter that isn't claude
+    // runs here. claude stays on its byte-identical narrow path below.
+    if spec.adapter_type != "claude" {
+        let outcome = run_trait_adapter(&spec, cancel.clone()).await;
+        let duration = start.elapsed().as_secs_f64();
+        release_admission(&inner, &channel).await;
+        match outcome {
+            Ok((summary, ok)) => {
+                finalize(
+                    &inner,
+                    &spec,
+                    if ok { TaskStatus::Done } else { TaskStatus::Failed },
+                    if ok { None } else { Some(summary.as_str()) },
+                    Some(summary.as_str()),
+                    Some(if ok { 0 } else { 1 }),
+                    Some(duration),
+                )
+                .await;
+            }
+            Err(msg) => {
+                finalize(
+                    &inner,
+                    &spec,
+                    TaskStatus::Failed,
+                    Some(msg.as_str()),
+                    None,
+                    Some(1),
+                    Some(duration),
+                )
+                .await;
+            }
+        }
+        return;
+    }
+
     // Spawn via the V26-W1 Commit 3 (wiki/509 §7) narrow dispatch helper.
     // For `adapter_type="claude"` it builds the V24-R5 SpawnSpec and calls
     // `claude::spawn` — preserving runner.rs's existing stream loop,
     // admission accounting, SSE publish, and finalize bit-for-bit. For
     // non-claude adapter_type it returns `ErrorKind::Unsupported` so the
     // existing Err arm below surfaces a clear message; M3 (W12) unifies.
-    let start = Instant::now();
     let mut child = match claude_dispatch_spawn(&inner, &spec, &task_id).await {
         Ok(c) => c,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -484,7 +598,15 @@ async fn run_one(inner: Arc<Inner>, mut spec: TaskSpec, cancel: Arc<Notify>) {
     let mut result_text: Option<String> = None;
     let mut had_error: bool = false;
 
-    let timeout = spec.timeout_sec.map(|s| Duration::from_secs(s as u64));
+    // V28 "make it actually work" (H2): apply a default wall-clock timeout when
+    // the caller didn't set one, so a hung adapter (the live E2E saw a task run
+    // 86s with no cap) self-fails into Failed(timeout) instead of spinning
+    // "running" forever in the cockpit. Operator override: MUSU_TASK_DEFAULT_TIMEOUT_SEC.
+    let timeout = Some(
+        spec.timeout_sec
+            .map(|s| Duration::from_secs(s as u64))
+            .unwrap_or_else(default_task_timeout),
+    );
     let outcome = stream_until_done(
         &mut reader,
         &cancel,
@@ -1061,6 +1183,63 @@ fn _bc_typeref() -> Option<broadcast::Receiver<TaskEvent>> {
 /// adapters dispatch through `adapter::registry::dispatch(...)` and run via
 /// `Adapter::execute(...)`, not via this hot path. M3 (W12) unifies both
 /// surfaces once deadline+cancel propagation lands.
+/// V28 "make it actually work" — in-process adapters that produce a result
+/// WITHOUT spawning any external program. Returns `Some((output, ok))` if this
+/// adapter_type is handled here; `None` to fall through to the spawn path.
+///
+/// `echo` is the zero-dependency floor: it lets a fresh single-machine install
+/// demonstrate the full order → running → done → result loop with no claude CLI,
+/// no Ollama, no login. It is the SAFE default the installer points at so the
+/// product never silently requires a (soon-metered) external agent just to run.
+fn run_inprocess_adapter(spec: &TaskSpec) -> Option<(String, bool)> {
+    match spec.adapter_type.as_str() {
+        "echo" => Some((format!("echo: {}", spec.prompt.trim()), true)),
+        _ => None,
+    }
+}
+
+/// V28 C3 fix — run a registry/trait adapter (codex / gemini / openai_compat_*)
+/// to completion via `Adapter::execute`, returning `(summary, ok)`. Builds the
+/// AdapterContext from the TaskSpec; the adapter self-contains spawn + stream +
+/// cancel + deadline. Errors (unknown type, spawn failure) come back as
+/// `Err(message)` so the caller finalizes Failed with a legible reason.
+async fn run_trait_adapter(
+    spec: &TaskSpec,
+    cancel: Arc<Notify>,
+) -> Result<(String, bool), String> {
+    use crate::adapter::{registry, AdapterContext};
+
+    let deadline_unix_ms = spec.timeout_sec.map(|s| {
+        let now_ms = chrono::Utc::now().timestamp_millis().max(0) as u64;
+        now_ms + (s as u64) * 1000
+    });
+
+    let ctx = AdapterContext {
+        run_id: spec.task_id.clone(),
+        prompt: spec.prompt.clone(),
+        agent_id: spec.sender_id.clone(),
+        adapter_type: spec.adapter_type.clone(),
+        config_json: spec
+            .model
+            .as_ref()
+            .map(|m| serde_json::json!({ "model": m }))
+            .unwrap_or(serde_json::Value::Null),
+        session_id: None,
+        cwd: Some(spec.cwd.clone()),
+        deadline_unix_ms,
+        cancel: Some(cancel),
+        extra: serde_json::Value::Null,
+    };
+
+    let adapter = registry::dispatch(&spec.adapter_type, &ctx)
+        .map_err(|e| format!("adapter {:?}: {e}", spec.adapter_type))?;
+
+    match adapter.execute(&ctx).await {
+        Ok(result) => Ok((result.summary, result.success)),
+        Err(e) => Err(format!("{:?} failed: {e}", spec.adapter_type)),
+    }
+}
+
 async fn claude_dispatch_spawn(
     inner: &Inner,
     spec: &TaskSpec,
@@ -1100,6 +1279,43 @@ mod tests {
     use crate::core::schema::SCHEMA_V1_STATEMENTS;
     use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
     use std::str::FromStr;
+
+    fn echo_spec(prompt: &str) -> TaskSpec {
+        TaskSpec {
+            task_id: "t-echo".into(),
+            company_id: None,
+            channel: "desktop".into(),
+            sender_id: "op".into(),
+            prompt: prompt.into(),
+            expected_output: None,
+            cwd: std::path::PathBuf::from("."),
+            model: None,
+            timeout_sec: None,
+            adapter_type: "echo".into(),
+            callback_url: None,
+            source_task_id: None,
+        }
+    }
+
+    /// V28 "make it actually work": the built-in echo adapter produces a result
+    /// in-process (no subprocess), so a fresh install with no external CLI still
+    /// completes an order. Unknown types fall through (None → spawn path).
+    #[test]
+    fn echo_adapter_runs_in_process() {
+        let (out, ok) = run_inprocess_adapter(&echo_spec("hello world")).unwrap();
+        assert!(ok);
+        assert_eq!(out, "echo: hello world");
+        let mut claude = echo_spec("x");
+        claude.adapter_type = "claude".into();
+        assert!(run_inprocess_adapter(&claude).is_none());
+    }
+
+    /// adapter_binary_on_path returns false for a clearly-absent binary (so
+    /// detect_default_adapter falls through to echo on a bare machine).
+    #[test]
+    fn adapter_binary_on_path_false_for_absent() {
+        assert!(!adapter_binary_on_path("definitely-not-a-real-cli-xyz123"));
+    }
 
     async fn mem_pool() -> SqlitePool {
         let opts = SqliteConnectOptions::from_str("sqlite::memory:")
