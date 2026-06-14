@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { MusuLogo } from "@/components/brand/MusuLogo";
+import {
+  DESKTOP_APPINSTALLER_URL,
+  PUBLIC_RELEASE_VERSION,
+} from "@/lib/publicRelease";
 
 export const metadata = {
   title: "MUSU | The Antigravity Workspace",
@@ -177,7 +181,46 @@ export default function ComingSoonPage() {
                 </button>
               </div>
             </form>
+            {/* Desktop download: the .appinstaller installs MUSU for Windows and
+                registers it for auto-update. Self-signed today, so /download
+                carries the trust-the-cert step. */}
             <div style={{ marginTop: 24, textAlign: "center" }}>
+              <a
+                href={DESKTOP_APPINSTALLER_URL}
+                className="btn btn-primary btn-premium"
+                data-testid="hero-download-windows"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "16px 32px",
+                  borderRadius: "12px",
+                  background:
+                    "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
+                  transition: "transform 0.1s ease, filter 0.2s ease",
+                }}
+              >
+                <span aria-hidden="true">⊞</span> Download for Windows
+              </a>
+              <div style={{ marginTop: 12 }}>
+                <Link
+                  href="/download"
+                  className="link-premium"
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Install instructions &amp; certificate (v{PUBLIC_RELEASE_VERSION}) →
+                </Link>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, textAlign: "center" }}>
               <Link
                 href="/app"
                 className="link-premium"
