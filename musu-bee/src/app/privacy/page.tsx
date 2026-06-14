@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import PublicSiteShell from "@/components/PublicSiteShell";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
+import { PUBLIC_RELEASE_METADATA_TEXT } from "@/lib/publicRelease";
 
 export const metadata: Metadata = {
   title: "MUSU Privacy",
@@ -12,6 +13,7 @@ export default function PrivacyPage() {
   return (
     <PublicSiteShell>
       <main style={pageStyle}>
+        <p style={releaseMetadataStyle}>{PUBLIC_RELEASE_METADATA_TEXT}</p>
         <div style={eyebrowStyle}>PRIVACY</div>
         <h1 style={titleStyle}>MUSU Privacy Policy</h1>
         <p style={descStyle}>
@@ -158,4 +160,16 @@ const listStyle: CSSProperties = {
 const linkStyle: CSSProperties = {
   color: "var(--musu-color-brand-accent)",
   fontWeight: 800,
+};
+
+const releaseMetadataStyle: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
 };

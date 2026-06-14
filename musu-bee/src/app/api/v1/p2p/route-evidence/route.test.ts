@@ -249,11 +249,15 @@ function relayPayloadDeliveryProof(payload: StoredP2pRelayPayload) {
     target_node_id: payload.target_node_id,
     relay_url: payload.relay_url,
     tunnel_id: payload.tunnel_id,
+    payload_kind: payload.payload_kind,
     transport_kind: payload.transport_kind,
     relay_default_data_path: payload.relay_default_data_path,
     release_grade: payload.release_grade,
     payload_sha256: payload.payload_sha256,
     payload_bytes: payload.payload_bytes,
+    claimed_by: payload.claimed_by ?? "",
+    claimed_at: payload.claimed_at ?? "",
+    created_at: payload.created_at,
     delivered_at: payload.delivered_at ?? "",
   };
 }
@@ -273,11 +277,15 @@ function staleRelayPayloadDeliveryProof(
     target_node_id: hardenedEvidence.target_node_id,
     relay_url: "wss://relay.musu.pro/connect",
     tunnel_id: "relay-tunnel-test",
+    payload_kind: "forwarded_task_envelope",
     transport_kind: "quic_relay_tunnel",
     relay_default_data_path: false,
     release_grade: true,
     payload_sha256: payloadSha256,
     payload_bytes: 128,
+    claimed_by: hardenedEvidence.target_node_id,
+    claimed_at: "2026-06-01T01:00:03Z",
+    created_at: "2026-06-01T01:00:00Z",
     delivered_at: "2026-06-01T01:00:04Z",
     ...overrides,
   };
@@ -727,11 +735,15 @@ test("keeps payload delivery proof non release grade unless it is backed by the 
         target_node_id: hardenedEvidence.target_node_id,
         relay_url: "wss://relay.musu.pro/connect",
         tunnel_id: "relay-tunnel-test",
+        payload_kind: "forwarded_task_envelope",
         transport_kind: "quic_relay_tunnel",
         relay_default_data_path: false,
         release_grade: true,
         payload_sha256: "sha256:missing",
         payload_bytes: 128,
+        claimed_by: hardenedEvidence.target_node_id,
+        claimed_at: "2026-06-01T01:00:01Z",
+        created_at: "2026-06-01T01:00:00Z",
         delivered_at: "2026-06-01T01:00:02Z",
       },
     })));
@@ -764,6 +776,8 @@ test("accepts stored delivered relay payload proof while keeping file-store proo
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_missing/);
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_not_stored/);
     assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_sha256_mismatch/);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_claimant_mismatch/);
+    assert.doesNotMatch(blockers, /relay_fallback_payload_delivery_proof_payload_kind_mismatch/);
     assert.match(blockers, /relay_fallback_payload_delivery_proof_transport_kind_not_release_grade/);
     assert.match(blockers, /relay_fallback_payload_delivery_proof_not_release_grade/);
     assert.match(
@@ -773,6 +787,30 @@ test("accepts stored delivered relay payload proof while keeping file-store proo
     assert.match(blockers, /relay_fallback_payload_delivery_proof_stored_not_release_grade/);
     assert.match(blockers, /relay_fallback_payload_store_backend_not_release_grade/);
     assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
+  });
+});
+
+test("rejects stored relay payload proof when the claimant custody field is forged", async () => {
+  await withRouteEvidenceToken(async () => {
+    const { POST } = await loadModule("relay-route-payload-proof-claimant-mismatch");
+    const lease = await seedRelayLeaseForEvidence();
+    await seedRelayTransportProofForEvidence(lease);
+    const deliveredPayload = await seedDeliveredRelayPayloadForEvidence(lease);
+
+    const res = await POST(postReq(relayRouteEvidenceForLease(lease, {
+      relay_payload_delivery_proof: {
+        ...relayPayloadDeliveryProof(deliveredPayload),
+        claimed_by: "other-node",
+      },
+    })));
+    assert.equal(res.status, 202);
+
+    const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
+    assert.equal(body.release_grade, false);
+    assert.match(
+      body.blockers.join(","),
+      /relay_fallback_payload_delivery_proof_claimant_mismatch/
+    );
   });
 });
 

@@ -8,6 +8,12 @@ import {
   hasP2pKvCredentials,
   p2pKvEnvStatus,
 } from "@/lib/p2pKvEnv";
+import {
+  type KvScriptClient,
+  kvClient as sharedKvClient,
+  kvEvalJson as sharedKvEvalJson,
+  setKvScriptClientForTest,
+} from "@/lib/kvScript";
 import type { RelayRouteKind } from "@/lib/p2pRelayLeaseStore";
 
 export type RelayPayloadStatus = "queued" | "claimed" | "delivered";
@@ -47,11 +53,15 @@ export type RelayPayloadDeliveryProof = {
   target_node_id: string;
   relay_url: string;
   tunnel_id: string;
+  payload_kind: string;
   transport_kind: "http_store_forward_preview" | "quic_relay_tunnel";
   relay_default_data_path: boolean;
   release_grade: boolean;
   payload_sha256: string;
   payload_bytes: number;
+  claimed_by: string;
+  claimed_at: string;
+  created_at: string;
   delivered_at: string;
 };
 
@@ -89,9 +99,8 @@ export type P2pRelayPayloadStoreStatus = {
   release_grade: boolean;
 };
 
-type RelayPayloadKvClient = {
+type RelayPayloadKvClient = KvScriptClient & {
   del: (key: string) => Promise<unknown>;
-  eval?: <T = unknown>(script: string, keys: string[], args: string[]) => Promise<T>;
   lpush: (key: string, payload: StoredP2pRelayPayload) => Promise<unknown>;
   lrange: <T = unknown>(key: string, start: number, stop: number) => Promise<T[]>;
   ltrim: (key: string, start: number, stop: number) => Promise<unknown>;
@@ -229,15 +238,11 @@ return cjson.encode(result)
 `;
 
 let localLockQueue: Promise<void> = Promise.resolve();
-let kvClientForTest: RelayPayloadKvClient | null = null;
 
 export function __setP2pRelayPayloadKvClientForTest(
   client: RelayPayloadKvClient | null
 ): void {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("relay_payload_kv_test_client_forbidden");
-  }
-  kvClientForTest = client;
+  setKvScriptClientForTest(client);
 }
 
 function shouldUseKv(): boolean {
@@ -337,23 +342,11 @@ function payloadFresh(payload: StoredP2pRelayPayload): boolean {
 }
 
 async function kvClient(): Promise<RelayPayloadKvClient> {
-  if (kvClientForTest) {
-    return kvClientForTest;
-  }
-  const { kv } = await import("@vercel/kv");
-  return kv as RelayPayloadKvClient;
+  return sharedKvClient<RelayPayloadKvClient>();
 }
 
 async function kvEvalJson<T>(script: string, args: string[]): Promise<T> {
-  const kv = await kvClient();
-  if (typeof kv.eval !== "function") {
-    throw new Error("relay_payload_atomic_kv_eval_unavailable");
-  }
-  const raw = await kv.eval<unknown>(script, [KV_KEY], args);
-  if (typeof raw === "string") {
-    return JSON.parse(raw) as T;
-  }
-  return raw as T;
+  return sharedKvEvalJson<T>(script, [KV_KEY], args);
 }
 
 async function kvGetPayloads(): Promise<StoredP2pRelayPayload[]> {
@@ -611,7 +604,7 @@ export async function claimRelayPayloads(
   const claimant = input.claimant_node_id?.trim() || input.target_node_id;
 
   if (shouldUseKv()) {
-    return kvEvalJson<StoredP2pRelayPayload[]>(KV_CLAIM_PAYLOADS_SCRIPT, [
+    const claimed = await kvEvalJson<unknown[]>(KV_CLAIM_PAYLOADS_SCRIPT, [
       String(maxPayloads()),
       now,
       input.owner_key,
@@ -623,6 +616,11 @@ export async function claimRelayPayloads(
       String(limit),
       claimant,
     ]);
+    // Re-validate Lua-returned payloads with the same guard the file path uses,
+    // so KV/script corruption cannot leak malformed payloads to callers.
+    return (Array.isArray(claimed) ? claimed : [])
+      .map(coerceStoredRelayPayload)
+      .filter((p): p is StoredP2pRelayPayload => p !== null);
   }
 
   return withLocalLock(async () => {
@@ -705,7 +703,15 @@ export async function markRelayPayloadDelivered(
     if (result.status === "requires_claim") {
       throw new Error("relay_payload_delivery_requires_claim");
     }
-    return result.status === "delivered" ? result.payload : null;
+    if (result.status !== "delivered") {
+      return null;
+    }
+    // Re-validate the Lua-returned payload; corrupt data must not pass silently.
+    const delivered = coerceStoredRelayPayload(result.payload);
+    if (delivered === null) {
+      throw new Error("relay_payload_delivery_malformed");
+    }
+    return delivered;
   }
 
   return withLocalLock(async () => {
@@ -728,7 +734,9 @@ export function relayPayloadDeliveryProofFromDeliveredPayload(
     return null;
   }
   const deliveredAt = payload.delivered_at?.trim();
-  if (!deliveredAt) {
+  const claimedBy = payload.claimed_by?.trim();
+  const claimedAt = payload.claimed_at?.trim();
+  if (!deliveredAt || !claimedBy || !claimedAt) {
     return null;
   }
   return {
@@ -740,11 +748,15 @@ export function relayPayloadDeliveryProofFromDeliveredPayload(
     target_node_id: payload.target_node_id,
     relay_url: payload.relay_url,
     tunnel_id: payload.tunnel_id,
+    payload_kind: payload.payload_kind,
     transport_kind: payload.transport_kind,
     relay_default_data_path: payload.relay_default_data_path,
     release_grade: payload.release_grade,
     payload_sha256: payload.payload_sha256,
     payload_bytes: payload.payload_bytes,
+    claimed_by: claimedBy,
+    claimed_at: claimedAt,
+    created_at: payload.created_at,
     delivered_at: deliveredAt,
   };
 }

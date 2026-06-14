@@ -1,67 +1,30 @@
+//! musu-startup — a logic-free Service-mode shim.
+//!
+//! The runtime bridge entry point lives in `musu startup` (the `musu` binary).
+//! This stub exists ONLY because the MSIX `windows.startupTask` extension is
+//! exe-path-only — it cannot pass `startup` as an argument to `musu.exe`. So the
+//! logon startupTask names THIS exe, which does exactly one thing: run the bridge
+//! in Service mode (bridge only, NEVER device-flow — a 900s blocking poll on a
+//! headless logon would be a severe regression).
+//!
+//! It is built from the SAME crate as `musu`, so there is zero version skew with
+//! the runtime it shares (`musu_rs::install::startup::run_startup`). It emits
+//! nothing on stdout (keeps the `r3_stdout_clean` invariant green). "One app"
+//! stays true as a packaging/perception claim; this shim is invisible to the user
+//! (no window, no Start-menu entry) — see ARCHITECTURE_BINARIES_PROCESSES_PACKAGING.
+//!
+//! User-facing launches (Start menu / cockpit) go through `musu-desktop.exe` →
+//! `musu.exe startup open`, NOT this stub. This stub is the logon path only.
+
 use anyhow::Result;
-use chrono::Utc;
-use serde::Serialize;
+use musu_rs::install::startup::{run_startup, LaunchMode};
 
-#[derive(Serialize)]
-struct StartupMarker<'a> {
-    version: &'static str,
-    distribution: String,
-    stage: &'a str,
-    timestamp_utc: String,
-    pid: u32,
-    exe: String,
-    detail: Option<String>,
-}
-
-fn write_startup_marker(home: &std::path::Path, stage: &str, detail: Option<String>) {
-    let services_dir = home.join("services");
-    let _ = std::fs::create_dir_all(&services_dir);
-    let marker = StartupMarker {
-        version: env!("CARGO_PKG_VERSION"),
-        distribution: musu_rs::install::distribution::DistributionMode::current()
-            .as_str()
-            .to_string(),
-        stage,
-        timestamp_utc: Utc::now().to_rfc3339(),
-        pid: std::process::id(),
-        exe: std::env::current_exe()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|_| "<unknown>".to_string()),
-        detail,
-    };
-    if let Ok(body) = serde_json::to_vec_pretty(&marker) {
-        let _ = std::fs::write(services_dir.join("startup-marker.json"), body);
-    }
-}
-
-fn init_tracing() {
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Log to stderr so stdout stays clean; bridge runtime, service mode only.
     let _ = tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .try_init();
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    init_tracing();
-    if std::env::var_os("MUSU_DISTRIBUTION").is_none() {
-        std::env::set_var("MUSU_DISTRIBUTION", "store-msix");
-    }
-    let musu_home = musu_rs::install::resolve_musu_home_from_env()?;
-    let _token = musu_rs::install::token::ensure_bridge_token(&musu_home)?;
-    write_startup_marker(&musu_home, "launching", None);
-    tracing::info!(
-        version = env!("CARGO_PKG_VERSION"),
-        "musu-startup launching packaged bridge runtime"
-    );
-    match musu_rs::bridge::run().await {
-        Ok(()) => {
-            write_startup_marker(&musu_home, "bridge-exited-cleanly", None);
-            Ok(())
-        }
-        Err(err) => {
-            write_startup_marker(&musu_home, "bridge-run-failed", Some(format!("{err:#}")));
-            Err(err)
-        }
-    }
+    run_startup(LaunchMode::Service).await
 }

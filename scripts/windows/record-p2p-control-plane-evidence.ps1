@@ -13,6 +13,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "evidence-integrity.ps1")
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -202,6 +203,8 @@ $evidence = [pscustomobject]@{
 }
 
 $evidence | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $evidencePath -Encoding UTF8
+# H9: record an integrity sidecar so the verifier can detect post-write tampering.
+$evidenceSidecarPath = Write-EvidenceIntegritySidecar -EvidencePath $evidencePath
 
 $verifyScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $verifyText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $verifyScript -EvidencePath $evidencePath -ExpectedVersion $Version -ExpectedBaseUrl $BaseUrl -Json 2>&1 | Out-String).Trim()
@@ -281,6 +284,7 @@ $result = [pscustomobject]@{
     output_root = (Resolve-Path -LiteralPath $OutputRoot).Path
     evidence_path = (Resolve-Path -LiteralPath $evidencePath).Path
     evidence_sha256 = $evidenceHash.Hash.ToLowerInvariant()
+    evidence_integrity_sidecar_path = (Resolve-Path -LiteralPath $evidenceSidecarPath).Path
     verification_path = (Resolve-Path -LiteralPath $verificationPath).Path
     verification_sha256 = $verificationHash.Hash.ToLowerInvariant()
     summary_path = (Resolve-Path -LiteralPath $summaryPath).Path

@@ -72,6 +72,55 @@ fn default_qa_loop_max() -> u32 {
     3
 }
 
+/// The adapter a delegated task uses when the caller does not specify one.
+///
+/// V28 (Agent SDK metering, 2026-06-15): MUSU must NOT spawn headless `claude -p`
+/// by default. The default is operator-controlled via `MUSU_DEFAULT_ADAPTER`
+/// (e.g. `codex`, `openai_compat_local` for a local Ollama/Gemma endpoint,
+/// `echo` for the zero-dependency floor). If unset, we AUTO-DETECT what's
+/// actually installed: `codex` (panel load-bearing, official headless) →
+/// `claude` (if present) → `echo` (the built-in zero-dep adapter, so a fresh
+/// install with NO external CLI still produces a real order→result). This is the
+/// "make it actually work" fix: a bare machine never silently requires software
+/// it doesn't have. An empty/whitespace env value is treated as unset.
+///
+/// Shared by every task-spawning entry point (delegate, forward-receive, run)
+/// so the guarantee holds across ALL paths.
+pub(crate) fn default_adapter_type() -> String {
+    default_adapter_from(
+        std::env::var("MUSU_DEFAULT_ADAPTER").ok().as_deref(),
+        detect_default_adapter,
+    )
+}
+
+/// Auto-detect the best available default adapter by what's on PATH.
+///
+/// Auto-detect the best available default by what's on PATH and runnable.
+/// codex > claude > echo. ALL of these now execute in the runner hot path
+/// (codex/gemini/openai_compat via `run_trait_adapter` → Adapter::execute;
+/// claude via its narrow path; echo in-process), so detection can't pick an
+/// adapter that fails. codex is first (panel's load-bearing, non-metered,
+/// official headless); echo is the always-works zero-dependency floor.
+pub(crate) fn detect_default_adapter() -> &'static str {
+    if crate::writer::runner::adapter_binary_on_path("codex") {
+        "codex"
+    } else if crate::writer::runner::adapter_binary_on_path("claude") {
+        "claude"
+    } else {
+        "echo"
+    }
+}
+
+/// Pure resolution: an explicit env value wins; otherwise the injected detector
+/// decides. Split this way so it can be unit-tested WITHOUT touching
+/// process-global env (thread-unsafe) or the real filesystem PATH.
+fn default_adapter_from(env_value: Option<&str>, detect: impl Fn() -> &'static str) -> String {
+    match env_value.map(str::trim).filter(|v| !v.is_empty()) {
+        Some(v) => v.to_string(),
+        None => detect().to_string(),
+    }
+}
+
 const AUDIT_FRAGMENT_MAX_CHARS: usize = 160;
 
 fn audit_fragment(value: &str) -> String {
@@ -228,9 +277,13 @@ pub async fn delegate(
                     cwd,
                     model: req.model.clone(),
                     timeout_sec: req.timeout_sec,
-                    adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
+                    adapter_type: req
+                        .adapter_type
+                        .clone()
+                        .unwrap_or_else(default_adapter_type),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
@@ -418,6 +471,27 @@ mod tests {
         assert!(!note.contains("sensitive prompt"));
         assert!(!note.contains("F:/sensitive/workspace"));
     }
+
+    /// V28: an explicit MUSU_DEFAULT_ADAPTER wins; otherwise the injected
+    /// detector decides (real one is codex>claude>echo). Tested on the PURE
+    /// resolver with a stub detector so we never touch process-global env
+    /// (thread-unsafe) or the real PATH.
+    #[test]
+    fn default_adapter_env_wins_else_detector() {
+        let detect_echo = || "echo";
+        // explicit env value wins, trimmed
+        assert_eq!(default_adapter_from(Some("codex"), detect_echo), "codex");
+        assert_eq!(
+            default_adapter_from(Some("  openai_compat_local  "), detect_echo),
+            "openai_compat_local"
+        );
+        // blank/absent → detector
+        assert_eq!(default_adapter_from(Some("   "), detect_echo), "echo");
+        assert_eq!(default_adapter_from(Some(""), detect_echo), "echo");
+        assert_eq!(default_adapter_from(None, detect_echo), "echo");
+        // a different detector result flows through
+        assert_eq!(default_adapter_from(None, || "claude"), "claude");
+    }
 }
 
 /// GET /api/tasks/:task_id — get task status and result.
@@ -437,6 +511,12 @@ pub async fn get_task(
     match row {
         Some(row) => {
             use sqlx::Row;
+            let musu_home = state
+                .config
+                .nodes_toml_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            let route_proof = crate::bridge::route_evidence::task_route_proof(musu_home, &task_id);
             Ok(Json(serde_json::json!({
                 "task_id": row.try_get::<String, _>("task_id").unwrap_or_default(),
                 "status": row.try_get::<String, _>("status").unwrap_or_default(),
@@ -444,8 +524,112 @@ pub async fn get_task(
                 "error": row.try_get::<Option<String>, _>("error").unwrap_or(None),
                 "exit_code": row.try_get::<Option<i32>, _>("exit_code").unwrap_or(None),
                 "duration_sec": row.try_get::<Option<f64>, _>("duration_sec").unwrap_or(None),
+                "route_proof": route_proof,
             })))
         }
         None => Err(MusuError::NotFound(format!("task {} not found", task_id))),
+    }
+}
+
+#[cfg(test)]
+mod get_task_tests {
+    use super::*;
+    use axum::extract::{Path, State};
+    use std::sync::Arc;
+    use tempfile::TempDir;
+
+    async fn test_state(pool: sqlx::SqlitePool, musu_home: &std::path::Path) -> AppState {
+        let cfg = Arc::new(crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 0,
+            python_facade_port: 0,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        });
+        let sse_broadcaster = crate::writer::SseBroadcaster::from_env();
+        let task_runner =
+            crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
+        AppState {
+            config: cfg,
+            pool: pool.clone(),
+            http_client: reqwest::Client::new(),
+            audit: crate::bridge::audit::AuditState::new(pool),
+            dedup: crate::bridge::dedup::DedupCache::new(),
+            task_runner,
+            sse_broadcaster,
+            pairing: crate::bridge::handlers::pair::PairingStore::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_task_returns_terminal_output_and_error_fields() {
+        let tmp = TempDir::new().unwrap();
+        let musu_home = tmp.path().join(".musu");
+        std::fs::create_dir_all(&musu_home).unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE route_executions (
+                task_id TEXT PRIMARY KEY,
+                company_id TEXT,
+                channel TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                input_hash TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                output TEXT,
+                error TEXT,
+                exit_code INTEGER,
+                duration_sec REAL,
+                started_at INTEGER,
+                updated_at INTEGER
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "INSERT INTO route_executions (
+                task_id, company_id, channel, sender_id, input_hash, status,
+                created_at, output, error, exit_code, duration_sec, updated_at
+            ) VALUES (?, NULL, 'cto', 'user', 'hash', 'done', 10, ?, NULL, 0, 1.25, 12)",
+        )
+        .bind("task-1")
+        .bind("agent output")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let state = test_state(pool, &musu_home).await;
+        let Json(body) = get_task(State(state), Path("task-1".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(body["task_id"], "task-1");
+        assert_eq!(body["status"], "done");
+        assert_eq!(body["output"], "agent output");
+        assert_eq!(body["error"], serde_json::Value::Null);
+        assert_eq!(body["exit_code"], 0);
+        assert_eq!(body["duration_sec"], 1.25);
     }
 }

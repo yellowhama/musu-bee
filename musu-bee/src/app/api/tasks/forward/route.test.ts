@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { NextRequest } from "next/server";
 
 type Module = {
@@ -77,6 +78,12 @@ test("POST forwards MUSU.PRO work-order context to the local bridge", async () =
       });
     },
     async () => {
+      // The route maps workspace_uri → cwd via fileURLToPath, which is
+      // OS-dependent (F:\... on Windows, /F:/... on Linux). Derive the expected
+      // cwd the SAME way so this asserts the forwarding contract, not the host's
+      // path style (which previously broke the Linux CI build).
+      const workspaceUri = "file:///F:/workspace/musu-bee";
+      const expectedCwd = fileURLToPath(workspaceUri);
       const res = await POST(
         req({
           instruction: "Run the release smoke locally",
@@ -84,7 +91,7 @@ test("POST forwards MUSU.PRO work-order context to the local bridge", async () =
           sender_id: "operator-1",
           target_node: "local",
           adapter_type: "claude",
-          workspace_uri: "file:///F:/workspace/musu-bee",
+          workspace_uri: workspaceUri,
           company_id: "company-1",
           project_id: "project-rc1",
           room_id: "release-room",
@@ -100,7 +107,7 @@ test("POST forwards MUSU.PRO work-order context to the local bridge", async () =
         sender_id: "operator-1",
         text: "Run the release smoke locally",
         adapter_type: "claude",
-        cwd: "F:\\workspace\\musu-bee",
+        cwd: expectedCwd,
         company_id: "company-1",
         project_id: "project-rc1",
         room_id: "release-room",

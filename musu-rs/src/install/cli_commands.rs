@@ -17,6 +17,27 @@ use crate::bridge::route_evidence::{
 
 use super::shares::SharesConfig;
 
+// V27 account-auth login flow lives in a focused child module (thermo-nuclear
+// maintainability review 2026-06-09). Re-exported flat so existing call sites
+// (`cli_commands::run_login`, `::run_desktop_login`, …) keep working unchanged.
+// `allow(unused_imports)`: this is the module's public API surface — some names
+// are consumed only by the `musu-startup` binary (e.g. run_desktop_login) or are
+// the device-flow public types, so they look unused from the `musu` bin's view.
+mod device_login;
+#[allow(unused_imports)]
+pub use device_login::{
+    initiate_device_flow, poll_and_finalize, run_desktop_login, run_login, run_logout, run_whoami,
+    DeviceFlow,
+};
+
+/// `musu login --desktop` — GUI re-login. Delegates to the startup module's
+/// foreground device-flow, which writes `startup-marker.json` so the cockpit's
+/// connecting screen surfaces the approval code/link. Thin wrapper kept here so
+/// `main.rs` dispatches all login variants through `cli_commands`.
+pub async fn run_login_desktop() -> anyhow::Result<()> {
+    crate::install::startup::run_login_desktop_flow().await
+}
+
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
 const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
 const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
@@ -58,6 +79,12 @@ pub struct RouteOpts {
     /// Channel name.
     #[arg(long, default_value = "cli")]
     pub channel: String,
+    /// Adapter model override for this route.
+    #[arg(long)]
+    pub model: Option<String>,
+    /// Adapter override for this route (for example codex, claude, echo).
+    #[arg(long)]
+    pub adapter: Option<String>,
     /// Wait for the task to complete and print the result.
     #[arg(long, short = 'w')]
     pub wait: bool,
@@ -489,6 +516,249 @@ pub struct StatusOpts {
     #[arg(long)]
     pub json: bool,
 }
+
+/// Options for `musu nodes`.
+#[derive(Args, Debug, Clone)]
+pub struct NodesOpts {
+    /// Emit machine-readable JSON (the desktop cockpit uses this).
+    #[arg(long)]
+    pub json: bool,
+
+    /// Read the LIVE local mesh (this bridge's `/api/fleet/status`) instead of
+    /// the musu.pro cloud registry. This includes manually-added peers and uses
+    /// real health checks, so the cockpit shows the true local fleet — the
+    /// fleet-as-one-device view — without requiring cloud login.
+    #[arg(long)]
+    pub local: bool,
+}
+
+/// `musu nodes` — list the account's registered fleet from musu.pro
+/// (`GET /api/v1/nodes`). Unlike `musu status` (which queries the LOCAL bridge's
+/// view), this reads the cloud registry, so it works for the desktop cockpit even
+/// when this machine's bridge view is empty. `--json` emits a stable envelope the
+/// cockpit parses; without it, a short human list.
+/// `musu nodes --local` — emit the live local mesh as a `musu.nodes_cli.v1`
+/// envelope, sourced from this bridge's `/api/fleet/status` (self + peers, with
+/// real health checks). `last_seen` is projected from bridge evidence: live
+/// probes get the probe time, unreachable peers keep their persisted last health
+/// or registry heartbeat if one exists. Unknown is left empty instead of faked.
+async fn run_nodes_local(opts: NodesOpts) -> Result<()> {
+    let base_url = local_bridge_base_url();
+    let token = get_token();
+    let url = format!("{}/api/fleet/status", base_url.trim_end_matches('/'));
+
+    // no_proxy(): on Windows reqwest otherwise inherits the system/WinHTTP proxy,
+    // which can break a plain localhost call to the bridge.
+    // 12s: the bridge now probes peers concurrently (~3s worst case), but keep a
+    // generous margin so a momentarily-slow peer never collapses the cockpit's
+    // fleet read into a false "bridge unreachable".
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .map_err(|e| anyhow::anyhow!("http client: {e}"))?;
+
+    let resp = match client.get(&url).bearer_auth(&token).send().await {
+        Ok(r) if r.status().is_success() => r,
+        Ok(r) => {
+            let envelope = serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": false,
+                "error": "bridge_unreachable",
+                "detail": format!("fleet status HTTP {}", r.status()),
+                "nodes": [],
+            });
+            if opts.json {
+                println!("{}", serde_json::to_string(&envelope)?);
+            } else {
+                println!("Could not read local fleet (HTTP {}).", r.status());
+            }
+            return Ok(());
+        }
+        Err(e) => {
+            let envelope = serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": false,
+                "error": "bridge_unreachable",
+                "detail": e.to_string(),
+                "nodes": [],
+            });
+            if opts.json {
+                println!("{}", serde_json::to_string(&envelope)?);
+            } else {
+                println!("Could not reach local bridge: {e}");
+            }
+            return Ok(());
+        }
+    };
+
+    let dashboard: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| anyhow::anyhow!("parse fleet status: {e}"))?;
+
+    let mut nodes = Vec::new();
+    if let Some(this) = dashboard.get("this_node") {
+        nodes.push(serde_json::json!({
+            "node_name": this.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+            "public_url": this.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
+            "last_seen": this.get("last_seen").and_then(|v| v.as_str()).unwrap_or(""),
+            "status_error": this.get("status_error").and_then(|v| v.as_str()).unwrap_or(""),
+            "tailscale_ip": this.get("tailscale_ip").and_then(|v| v.as_str()).unwrap_or(""),
+            "mesh_mode": this.get("mesh_mode").and_then(|v| v.as_str()).unwrap_or(""),
+            "route_label": this.get("route_label").and_then(|v| v.as_str()).unwrap_or(""),
+            "control_server_url": this.get("control_server_url").and_then(|v| v.as_str()).unwrap_or(""),
+            "control_server_verified": this.get("control_server_verified").and_then(|v| v.as_bool()).unwrap_or(false),
+            "is_this_pc": true,
+        }));
+    }
+    if let Some(peers) = dashboard.get("peers").and_then(|v| v.as_array()) {
+        for p in peers {
+            nodes.push(serde_json::json!({
+                "node_name": p.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+                "public_url": p.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
+                "last_seen": p.get("last_seen").and_then(|v| v.as_str()).unwrap_or(""),
+                "status_error": p.get("status_error").and_then(|v| v.as_str()).unwrap_or(""),
+                "tailscale_ip": p.get("tailscale_ip").and_then(|v| v.as_str()).unwrap_or(""),
+                "mesh_mode": p.get("mesh_mode").and_then(|v| v.as_str()).unwrap_or(""),
+                "route_label": p.get("route_label").and_then(|v| v.as_str()).unwrap_or(""),
+                "control_server_url": p.get("control_server_url").and_then(|v| v.as_str()).unwrap_or(""),
+                "control_server_verified": p.get("control_server_verified").and_then(|v| v.as_bool()).unwrap_or(false),
+                "is_this_pc": false,
+            }));
+        }
+    }
+
+    let envelope = serde_json::json!({
+        "schema": "musu.nodes_cli.v1",
+        "ok": true,
+        "nodes": nodes,
+    });
+    if opts.json {
+        println!("{}", serde_json::to_string(&envelope)?);
+    } else {
+        let arr = envelope["nodes"].as_array().cloned().unwrap_or_default();
+        println!("\nLocal fleet ({} nodes):", arr.len());
+        for n in &arr {
+            println!(
+                "  {} — {}",
+                n["node_name"].as_str().unwrap_or(""),
+                n["public_url"].as_str().unwrap_or("")
+            );
+        }
+    }
+    Ok(())
+}
+
+pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
+    // `--local`: read the live local mesh from this bridge's /api/fleet/status
+    // (real health checks + manually-added peers), not the cloud registry. This
+    // is the fleet-as-one-device view and needs no cloud login.
+    if opts.local {
+        return run_nodes_local(opts).await;
+    }
+
+    let home = musu_home();
+    let Some(token) = crate::cloud::token::load_token(&home) else {
+        if opts.json {
+            println!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "schema": "musu.nodes_cli.v1",
+                    "ok": false,
+                    "error": "not_logged_in",
+                    "nodes": [],
+                }))?
+            );
+        } else {
+            println!("Not logged in. Run `musu login`.");
+        }
+        return Ok(());
+    };
+
+    let base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token));
+
+    // P3: never let a fetch failure collapse into "empty fleet". `list_nodes`
+    // bails on both auth-expiry and network errors; catch them and emit a
+    // distinct envelope so the cockpit can show "couldn't reach musu.pro / sign
+    // in again" instead of silently rendering zero machines. We classify on the
+    // error text (cloud_api_error embeds the HTTP status): a 401/403 means the
+    // token is stale, anything else is treated as unreachable.
+    let nodes = match cloud.list_nodes().await {
+        Ok(nodes) => nodes,
+        Err(err) => {
+            let msg = err.to_string();
+            // Match the STABLE error prefix (`cloud_api_error` formats as
+            // "...failed with HTTP {status}: {detail}"), not a floating " 401" that
+            // a response body could contain. Only a real 401/403 status → token.
+            let kind =
+                if msg.contains("failed with HTTP 401") || msg.contains("failed with HTTP 403") {
+                    "token_expired"
+                } else {
+                    "cloud_unreachable"
+                };
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string(&serde_json::json!({
+                        "schema": "musu.nodes_cli.v1",
+                        "ok": false,
+                        "error": kind,
+                        "detail": msg,
+                        "nodes": [],
+                    }))?
+                );
+            } else {
+                println!("Could not list fleet ({kind}): {msg}");
+            }
+            return Ok(());
+        }
+    };
+
+    // Resolve THIS machine's node name (shared helper) so the cockpit can badge
+    // the current PC — same derivation route uses to detect a self-target.
+    let this_pc = this_node_name();
+
+    if opts.json {
+        let projected: Vec<_> = nodes
+            .iter()
+            .map(|n| {
+                let meta = n.meta.as_ref();
+                serde_json::json!({
+                    "node_name": n.node_name,
+                    "public_url": n.public_url,
+                    "last_seen": n.last_seen,
+                    "tailscale_ip": meta.and_then(|m| m.get("tailscale_ip")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "mesh_mode": meta.and_then(|m| m.get("mesh_mode")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "route_label": meta.and_then(|m| m.get("route_label")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "control_server_url": meta.and_then(|m| m.get("control_server_url")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "control_server_verified": meta.and_then(|m| m.get("control_server_verified")).and_then(|v| v.as_bool()).unwrap_or(false),
+                    "is_this_pc": n.node_name == this_pc,
+                })
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string(&serde_json::json!({
+                "schema": "musu.nodes_cli.v1",
+                "ok": true,
+                "nodes": projected,
+            }))?
+        );
+    } else if nodes.is_empty() {
+        println!("No registered nodes yet.");
+    } else {
+        println!("\nRegistered fleet ({} nodes):", nodes.len());
+        for n in &nodes {
+            println!(
+                "  {} — {} (last seen {})",
+                n.node_name, n.public_url, n.last_seen
+            );
+        }
+    }
+    Ok(())
+}
 // ── share / unshare / shares ────────────────────────────────────────────
 
 /// `musu share <path>` — register a directory in `shares.toml`.
@@ -578,6 +848,12 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     let addr = if let Some(ref target) = opts.target {
         if let Some(peer) = selected_peer.as_ref() {
             peer.addr.clone()
+        } else if target.as_str() == this_node_name() {
+            // Targeting THIS machine by name: it is not a peer (a node is never its
+            // own peer), it's the local bridge. Without this, `musu route --target
+            // <self>` failed with "peer not found" — breaking the most common case,
+            // giving your OWN PC work (a fleet of one). Route it to the local bridge.
+            local_bridge_addr()
         } else {
             find_peer_addr(&home, target.as_str())?
         }
@@ -632,6 +908,8 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         "channel": opts.channel,
         "sender_id": "cli",
         "text": opts.text,
+        "model": opts.model,
+        "adapter_type": opts.adapter,
         "target_node": opts.target,
         "needs_gpu": opts.gpu,
     });
@@ -779,9 +1057,21 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         handshake_ms,
         elapsed_ms(route_started.elapsed()),
         route_result,
-        failure_class,
+        failure_class.clone(),
         transport_proof,
     )?;
+
+    // Honesty: the delegate response already printed ✓/✗ above, but the function
+    // used to return Ok(()) regardless — so callers keying off the exit code (the
+    // desktop cockpit's submit_order trusts exit status) saw "order sent" even on
+    // a 4xx/5xx delegate response (including a 409 dedup). Surface the failure in
+    // the exit status so an order that did NOT queue is not reported as sent.
+    if matches!(route_result, RouteAttemptEvidenceResult::Failed) {
+        anyhow::bail!(
+            "route did not complete: {}",
+            failure_class.as_deref().unwrap_or("unknown")
+        );
+    }
     Ok(())
 }
 
@@ -859,6 +1149,9 @@ fn write_route_evidence_if_requested(
             .map(|proof| proof.encryption.clone())
             .unwrap_or_else(|| "none_http_bearer".to_string()),
         transport_verified_by: peer_identity.map(|proof| proof.transport_verified_by.clone()),
+        private_mesh_mode: None,
+        private_mesh_control_server_url: None,
+        private_mesh_control_server_verified: None,
         relay_fallback: None,
         relay_transport_proof: None,
         relay_payload_delivery_proof: None,
@@ -3162,6 +3455,18 @@ fn parse_remote(remote: &str) -> Result<(String, String)> {
     Ok((peer.to_string(), path.to_string()))
 }
 
+/// This machine's node name: `MUSU_NODE_NAME` override, else the hostname. The
+/// single source of truth for "am I the target" / "badge this row as this PC"
+/// (the login/register path and `musu nodes` use the same derivation).
+fn this_node_name() -> String {
+    std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
+        hostname::get()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    })
+}
+
 /// Resolve a peer's bridge address from `nodes.toml` or `manual_peers.toml`.
 fn find_peer_addr(home: &std::path::Path, peer_name: &str) -> Result<String> {
     // Try nodes.toml first.
@@ -3687,6 +3992,42 @@ pub async fn run_up(opts: UpOpts) -> Result<()> {
         next_steps
             .push("Start the dashboard from `musu-bee`: `npm run dev` or `npm start`.".into());
     }
+    // Onboarding Phase B: if this machine is not yet signed in to musu.pro,
+    // auto-start the device-flow so the user doesn't have to discover and run
+    // `musu login` separately. Guarded by 3 AND conditions so we never hang a
+    // non-interactive caller:
+    //   1. no account token (not logged in), AND
+    //   2. not --json (JSON callers must stay pure machine output), AND
+    //   3. an interactive TTY (scripts / pipes / CI are excluded).
+    // NOTE: the bridge service / logon startupTask (musud / `musu-startup`
+    // bare or `--service`) calls `bridge::run()` directly, NOT run_up, so this
+    // auto-login can never fire on service boot. The only paths that drive
+    // device-flow are this interactive `musu up` branch and the explicit
+    // user-launch `musu-startup open` path (its own TTY-independent guard).
+    let account_logged_in = crate::cloud::token::load_token(&home).is_some();
+    if !account_logged_in {
+        use std::io::IsTerminal;
+        let interactive = std::io::stdin().is_terminal();
+        if !opts.json && interactive {
+            // Interactive sign-in: run_login prints the code + approval URL and
+            // polls (up to its own timeout). A timeout/error must NOT fail `up`
+            // — downgrade to a warning and let the user retry later.
+            println!("\nThis machine is not yet connected to your musu.pro account.");
+            if let Err(err) = run_login().await {
+                tracing::warn!(error = %err, "auto sign-in during `musu up` did not complete");
+                next_steps.push(
+                    "Sign-in not completed. Run `musu login` to connect this machine to musu.pro."
+                        .into(),
+                );
+            }
+        } else {
+            // Non-interactive or --json: never block; just surface the step.
+            next_steps.push(
+                "This machine is not signed in. Run `musu login` to connect to musu.pro.".into(),
+            );
+        }
+    }
+
     if next_steps.is_empty() {
         if dashboard.reachable_url.is_some() {
             next_steps.push("Open the dashboard and run a first agent task.".into());
@@ -5110,6 +5451,87 @@ pub async fn run_tasks() -> Result<()> {
     Ok(())
 }
 
+/// `musu task <id> [--json]` — V28. Fetch ONE task's status + result from the
+/// local bridge (`GET /api/tasks/:id`). The cockpit polls this after submitting
+/// an order to show progress → result. `--json` emits the raw bridge envelope
+/// (task_id / status / output / error / exit_code / duration_sec) so the GUI can
+/// parse it; without it, a short human line.
+pub async fn run_task_get(task_id: &str, json: bool) -> Result<()> {
+    let token = get_token();
+    let url = format!(
+        "{}/api/tasks/{}",
+        local_bridge_base_url().trim_end_matches('/'),
+        task_id
+    );
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("cannot reach local bridge: {e}"))?;
+
+    let status = resp.status();
+    if status.as_u16() == 404 {
+        if json {
+            println!(
+                "{}",
+                serde_json::json!({"task_id": task_id, "status": "not_found"})
+            );
+        } else {
+            println!("task {task_id} not found");
+        }
+        return Ok(());
+    }
+    if !status.is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        anyhow::bail!("bridge error {status}: {body}");
+    }
+
+    let data: serde_json::Value = resp.json().await?;
+    if json {
+        println!("{}", serde_json::to_string(&data)?);
+    } else {
+        let st = data["status"].as_str().unwrap_or("?");
+        println!("task {task_id}: {st}");
+        if let Some(out) = data["output"].as_str().filter(|s| !s.is_empty()) {
+            println!("{out}");
+        }
+        if let Some(err) = data["error"].as_str().filter(|s| !s.is_empty()) {
+            println!("error: {err}");
+        }
+    }
+    Ok(())
+}
+
+/// `musu task <id> --cancel` — V28. Cancel a task via the local bridge
+/// (`DELETE /api/tasks/:id`). Used by the cockpit's Esc-to-stop.
+pub async fn run_task_cancel(task_id: &str) -> Result<()> {
+    let token = get_token();
+    let url = format!(
+        "{}/api/tasks/{}",
+        local_bridge_base_url().trim_end_matches('/'),
+        task_id
+    );
+    let client = reqwest::Client::new();
+    let resp = client
+        .delete(&url)
+        .bearer_auth(&token)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("cannot reach local bridge: {e}"))?;
+    if resp.status().is_success() {
+        println!("cancel requested for task {task_id}");
+        Ok(())
+    } else {
+        let body = resp.text().await.unwrap_or_default();
+        anyhow::bail!("cancel failed: {body}")
+    }
+}
+
 // ── F5 workflow execution CLI ───────────────────────────────────────
 
 /// `musu workflow-run --id <ID>` — execute a workflow via the bridge.
@@ -5332,113 +5754,6 @@ pub async fn run_mount(node: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-// ── V27 Account Auth CLI ────────────────────────────────────────────
-
-/// `musu login` — start the device code login flow.
-fn login_connection_checklist() -> [&'static str; 3] {
-    [
-        "Run `musu doctor` to verify local state.",
-        "Start the bridge with `musu bridge` if it is not already running.",
-        "Open MUSU Desktop or a MUSU.PRO workspace; localhost dashboards are optional developer surfaces only.",
-    ]
-}
-
-pub async fn run_login() -> Result<()> {
-    let home = musu_home();
-    let my_name = std::env::var("MUSU_NODE_NAME").unwrap_or_else(|_| {
-        hostname::get()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string()
-    });
-
-    println!("\u{1f511} Initiating login to musu.pro...");
-
-    let cloud_base_url = crate::cloud::base_url_from_env();
-    let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, None);
-    let flow = cloud.initiate_device_login(&my_name).await?;
-
-    println!("\n🔗 Open this URL in your browser to approve:");
-    println!("   {}", flow.verification_uri);
-    println!("   Code: {}", flow.user_code);
-    println!(
-        "\n⏳ Waiting for approval (timeout {}s, poll {}s)...",
-        flow.expires_in,
-        flow.poll_interval_secs()
-    );
-
-    let start = std::time::Instant::now();
-    let timeout = std::time::Duration::from_secs(flow.expires_in as u64);
-
-    loop {
-        if start.elapsed() > timeout {
-            anyhow::bail!("Login timed out.");
-        }
-
-        tokio::time::sleep(flow.poll_interval()).await;
-
-        match cloud.poll_device_token(&flow.device_code).await {
-            Ok(Some(token)) => {
-                crate::cloud::token::save_token(&home, &token)?;
-                println!("\nAccount login succeeded.");
-
-                // V27: Automatically register this node in the mesh
-                println!("Registering node to your fleet...");
-                let authed_cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token));
-                let public_url = resolve_public_bridge_url();
-                let req = crate::cloud::RegisterNodeRequest {
-                    node_name: my_name.clone(),
-                    public_url: public_url.clone(),
-                    ..Default::default()
-                };
-                if let Err(e) = authed_cloud.register_node(req).await {
-                    println!("Node registration failed.");
-                    println!("  reason: {}", e);
-                    println!("  computed public_url: {}", public_url);
-                    println!(
-                        "This machine is logged in, but is not yet fully registered in your fleet."
-                    );
-                } else {
-                    println!("Node registered successfully.");
-                    println!("This machine is connected to your MUSU account.");
-                }
-
-                println!();
-                println!("Connection checklist:");
-                for (index, step) in login_connection_checklist().iter().enumerate() {
-                    println!("  {}. {}", index + 1, step);
-                }
-                return Ok(());
-            }
-            Ok(None) => {
-                // still pending
-            }
-            Err(e) => {
-                anyhow::bail!("Login failed: {}", e);
-            }
-        }
-    }
-}
-
-/// `musu logout` — remove the account token.
-pub async fn run_logout() -> Result<()> {
-    let home = musu_home();
-    crate::cloud::token::delete_token(&home)?;
-    println!("✅ Logged out.");
-    Ok(())
-}
-
-/// `musu whoami` — check if logged in.
-pub async fn run_whoami() -> Result<()> {
-    let home = musu_home();
-    if let Some(_token) = crate::cloud::token::load_token(&home) {
-        println!("✅ You are logged in.");
-    } else {
-        println!("❌ Not logged in. Run `musu login`.");
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5483,16 +5798,6 @@ mod tests {
         let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, true, true);
 
         assert!(steps.iter().any(|step| step.contains("npm run dev")));
-    }
-
-    #[test]
-    fn login_connection_checklist_does_not_open_fixed_localhost_dashboard() {
-        let checklist = login_connection_checklist().join("\n");
-
-        assert!(checklist.contains("MUSU Desktop"));
-        assert!(checklist.contains("MUSU.PRO"));
-        assert!(!checklist.contains("127.0.0.1:3001"));
-        assert!(!checklist.contains("localhost:3001"));
     }
 
     #[test]
@@ -6025,6 +6330,8 @@ mod tests {
             text: "test".to_string(),
             target: Some("remote".to_string()),
             channel: "cli".to_string(),
+            model: None,
+            adapter: None,
             wait: false,
             wait_timeout_sec: ROUTE_WAIT_DEFAULT_TIMEOUT_SECS,
             gpu: false,

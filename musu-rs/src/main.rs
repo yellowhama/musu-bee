@@ -17,9 +17,10 @@ mod writer;
 // V27: re-export CLI option structs from their canonical home in
 // `install::cli_commands` so the `Cmd` enum can reference them.
 use install::cli_commands::{
-    DoctorOpts, GetOpts, LsOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
+    DoctorOpts, GetOpts, LsOpts, NodesOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
     StatusOpts, StopOpts, UnshareOpts, UpOpts,
 };
+use install::private_mesh::PrivateMeshAction;
 
 #[derive(Parser)]
 #[command(name = "musu", version, about = "musu control plane (Rust)")]
@@ -96,6 +97,11 @@ enum Cmd {
         #[command(subcommand)]
         action: RelayAction,
     },
+    /// Inspect and diagnose MUSU Private Mesh enrollment.
+    Mesh {
+        #[command(subcommand)]
+        action: PrivateMeshAction,
+    },
     /// Publish/query MUSU.PRO project-room control-plane state.
     Room {
         #[command(subcommand)]
@@ -115,10 +121,27 @@ enum Cmd {
         timeout: u64,
     },
 
+    /// List the account's registered fleet nodes from musu.pro (machine-readable
+    /// with `--json`). Used by the desktop cockpit to render the fleet list.
+    Nodes(NodesOpts),
+
     /// Show fleet status across all connected nodes.
     Status(StatusOpts),
     /// List recent tasks across the fleet.
     Tasks,
+    /// V28: get a single task's status + result by id (the cockpit polls this
+    /// after submitting an order to show progress → result).
+    Task {
+        /// Task id returned when the order was submitted.
+        id: String,
+        /// Emit the raw bridge JSON (status/output/error/exit_code/duration).
+        #[arg(long)]
+        json: bool,
+        /// Cancel the task (DELETE /api/tasks/:id) instead of reading it. Used by
+        /// the cockpit's Esc-to-stop on the newest running order.
+        #[arg(long)]
+        cancel: bool,
+    },
 
     /// V27-F5: Execute a workflow.
     WorkflowRun {
@@ -145,7 +168,14 @@ enum Cmd {
     },
 
     /// V27 Account: Login to musu.pro to enable automatic peer discovery.
-    Login,
+    Login {
+        /// Desktop GUI mode: drive device-flow via startup-marker.json (so the
+        /// cockpit's connecting screen surfaces the code + approval link) instead
+        /// of printing to a stdout no GUI is watching. Used by the cockpit's
+        /// "Sign in" button to re-trigger login while the bridge is already up.
+        #[arg(long)]
+        desktop: bool,
+    },
     /// V27 Account: Logout from musu.pro.
     Logout,
     /// V27 Account: Show current login status.
@@ -154,6 +184,15 @@ enum Cmd {
     Doctor(DoctorOpts),
     /// First-run helper: seed token, start bridge, and hand off to dashboard.
     Up(UpOpts),
+    /// Packaged-runtime bridge entry point (absorbed from musu-startup.exe).
+    /// `musu startup open` = user launch (bridge + device-flow); `musu startup`
+    /// / `--service` = unattended logon/service boot (bridge only).
+    Startup {
+        /// Launch-mode args: `open` (user launch, full onboarding) or `--service`
+        /// / bare (service boot, bridge only). Unknown args default to service.
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
     /// Stop the local bridge runtime registered in ~/.musu/services/bridge.json.
     Stop(StopOpts),
     /// Alias for `musu stop`.
@@ -270,6 +309,10 @@ async fn main() -> anyhow::Result<()> {
             init_tracing_default();
             install::cli_commands::run_relay(action).await
         }
+        Cmd::Mesh { action } => {
+            init_tracing_default();
+            install::private_mesh::run(action).await
+        }
         Cmd::Room { action } => {
             init_tracing_default();
             install::cli_commands::run_room(action).await
@@ -303,6 +346,10 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
 
+        Cmd::Nodes(opts) => {
+            init_tracing_default();
+            install::cli_commands::run_nodes(opts).await
+        }
         Cmd::Status(opts) => {
             init_tracing_default();
             install::cli_commands::run_status(opts).await
@@ -310,6 +357,14 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Tasks => {
             init_tracing_default();
             install::cli_commands::run_tasks().await
+        }
+        Cmd::Task { id, json, cancel } => {
+            init_tracing_default();
+            if cancel {
+                install::cli_commands::run_task_cancel(&id).await
+            } else {
+                install::cli_commands::run_task_get(&id, json).await
+            }
         }
 
         Cmd::WorkflowRun { id } => {
@@ -336,9 +391,18 @@ async fn main() -> anyhow::Result<()> {
             install::cli_commands::run_mount(node.as_deref()).await
         }
 
-        Cmd::Login => {
-            init_tracing_default();
-            install::cli_commands::run_login().await
+        Cmd::Login { desktop } => {
+            if desktop {
+                // GUI re-login: log to stderr (no stdout consumer), drive the same
+                // device-flow the desktop startup path uses so the cockpit's
+                // existing connecting screen (reads startup-marker.json) surfaces
+                // the code + approval link.
+                init_tracing_control();
+                install::cli_commands::run_login_desktop().await
+            } else {
+                init_tracing_default();
+                install::cli_commands::run_login().await
+            }
         }
         Cmd::Logout => {
             init_tracing_default();
@@ -355,6 +419,13 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Up(opts) => {
             init_tracing_default();
             install::cli_commands::run_up(opts).await
+        }
+        Cmd::Startup { args } => {
+            // Bridge runtime entry point: logs to stderr (stdout stays clean for
+            // any framing), classifies launch mode from the args after `startup`.
+            init_tracing_control();
+            let mode = install::startup::LaunchMode::from_args(args);
+            install::startup::run_startup(mode).await
         }
         Cmd::Stop(opts) | Cmd::Down(opts) => {
             init_tracing_default();

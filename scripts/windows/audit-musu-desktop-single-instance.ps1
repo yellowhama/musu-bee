@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$AppUserModelId,
-    [string]$PackageName = "Yellowhama.MUSU",
+    [string]$PackageName = "blossompark.musu",
     [string]$ApplicationId = "MUSU",
     [int]$RepeatCount = 3,
     [int]$ActivationDelaySec = 4,

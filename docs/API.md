@@ -195,7 +195,7 @@ List all mesh nodes with live health status.
 
 ### `POST /api/nodes/add`
 Add a node to the mesh. Performs health check + token exchange.
-**Request:** `{"name": "4060", "tailscale_ip": "100.x.x.x", "agents": ["mgr-4060"]}`
+**Request:** `{"name": "4060", "tailnet_ip": "100.x.x.x", "agents": ["mgr-4060"]}`
 **Response:** `{"name": "4060", "url": "http://100.x.x.x:8070", "healthy": true, "token_exchanged": true}`
 
 ### `POST /api/nodes/join`

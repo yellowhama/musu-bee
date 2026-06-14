@@ -267,6 +267,40 @@ function Invoke-MusuOptionalProbe {
     }
 }
 
+function Convert-MusuScheduledTaskState {
+    param([AllowNull()]$State)
+
+    if ($null -eq $State) {
+        return "Unknown"
+    }
+
+    if ($State -is [string]) {
+        return $State
+    }
+
+    switch ([int]$State) {
+        1 { return "Disabled" }
+        2 { return "Queued" }
+        3 { return "Ready" }
+        4 { return "Running" }
+        default { return "Unknown" }
+    }
+}
+
+function Get-MusuScheduledTaskConflictsFast {
+    $tasks = @(Get-CimInstance -Namespace "root/Microsoft/Windows/TaskScheduler" -ClassName "MSFT_ScheduledTask" -ErrorAction Stop | Where-Object {
+        $_.TaskName -like "*musu*" -or $_.TaskPath -like "*Musu*"
+    })
+
+    @($tasks | ForEach-Object {
+        [pscustomobject]@{
+            TaskName = $_.TaskName
+            TaskPath = $_.TaskPath
+            State    = Convert-MusuScheduledTaskState -State $_.State
+        }
+    })
+}
+
 function Get-MusuLegacyWindowsConflicts() {
     $startupDir = [Environment]::GetFolderPath("Startup")
     $startupHelpers = @()
@@ -283,10 +317,37 @@ function Get-MusuLegacyWindowsConflicts() {
     $disabledScheduledTasks = @()
     $scheduledTaskProbeTimedOut = $false
     $scheduledTaskProbeError = $null
-    $scheduledTaskProbe = Invoke-MusuOptionalProbe -Name "scheduled task conflict scan" -TimeoutSeconds 5 -ScriptBlock {
-        @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
-            $_.TaskName -like "*musu*" -or $_.TaskPath -like "*Musu*"
-        })
+    $scheduledTaskProbeMethod = "cim"
+    try {
+        $scheduledTaskProbe = [pscustomobject]@{
+            TimedOut = $false
+            Error    = $null
+            Value    = @(Get-MusuScheduledTaskConflictsFast)
+        }
+    }
+    catch {
+        $scheduledTaskProbeMethod = "scheduledtasks-job"
+        $scheduledTaskProbe = Invoke-MusuOptionalProbe -Name "scheduled task conflict scan" -TimeoutSeconds 5 -ScriptBlock {
+            function Convert-MusuScheduledTaskStateInJob {
+                param([AllowNull()]$State)
+
+                if ($null -eq $State) {
+                    return "Unknown"
+                }
+
+                return [string]$State
+            }
+
+            @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
+                $_.TaskName -like "*musu*" -or $_.TaskPath -like "*Musu*"
+            } | ForEach-Object {
+                [pscustomobject]@{
+                    TaskName = $_.TaskName
+                    TaskPath = $_.TaskPath
+                    State    = Convert-MusuScheduledTaskStateInJob -State $_.State
+                }
+            })
+        }
     }
     $scheduledTaskProbeTimedOut = [bool]$scheduledTaskProbe.TimedOut
     $scheduledTaskProbeError = $scheduledTaskProbe.Error
@@ -328,6 +389,7 @@ function Get-MusuLegacyWindowsConflicts() {
         DisabledScheduledTasks = $disabledScheduledTasks
         ScheduledTaskProbeTimedOut = $scheduledTaskProbeTimedOut
         ScheduledTaskProbeError = $scheduledTaskProbeError
+        ScheduledTaskProbeMethod = $scheduledTaskProbeMethod
         LegacyBins             = $legacyBins
         AliasSources           = $aliasSources
         WindowsAppsAlias       = $windowsAppsAliasPath

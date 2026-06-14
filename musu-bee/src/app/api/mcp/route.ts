@@ -3,10 +3,16 @@ import { TOOLS } from "./tools";
 import { handleGetDevices } from "./handlers/devices";
 import { handleGetTasks, handleCreateTask, handleUpdateTask } from "./handlers/tasks";
 import { handleSendMessage } from "./handlers/messaging";
-import { handleRunCommand } from "./handlers/runner";
 import { handleGetServiceHealth } from "./handlers/health";
 import { handleListChannels } from "./handlers/channels";
 import { handleSearchWiki } from "./handlers/wiki";
+import { handleGetNetworkRunbook } from "./handlers/network";
+import {
+  handleGetConnectorPolicy,
+  handleGetConnectorProofPlan,
+  handleListConnectors,
+  handleRunConnectorHealthCheck,
+} from "./handlers/connectors";
 
 // ── JSON-RPC 2.0 types ───────────────────────────────────────────────────────
 
@@ -23,6 +29,14 @@ function rpcError(id: string | number | null, code: number, message: string) {
 
 function rpcResult(id: string | number | null, result: unknown) {
   return { jsonrpc: "2.0", id, result };
+}
+
+function isJsonRpcId(value: unknown): value is string | number | null {
+  return value === null || typeof value === "string" || typeof value === "number";
+}
+
+function isObjectParams(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 async function dispatch(req: JsonRpcRequest): Promise<unknown> {
@@ -42,12 +56,24 @@ async function dispatch(req: JsonRpcRequest): Promise<unknown> {
       return rpcResult(req.id, await handleSendMessage(params));
     case "musu_search_wiki":
       return rpcResult(req.id, handleSearchWiki(params));
-    case "musu_run_command":
+    case "musu_run_command": {
+      const { handleRunCommand } = await import("./handlers/runner");
       return rpcResult(req.id, await handleRunCommand(params));
+    }
     case "musu_get_service_health":
       return rpcResult(req.id, await handleGetServiceHealth());
     case "musu_list_channels":
       return rpcResult(req.id, handleListChannels());
+    case "musu_get_network_runbook":
+      return rpcResult(req.id, handleGetNetworkRunbook());
+    case "musu_get_connector_policy":
+      return rpcResult(req.id, handleGetConnectorPolicy(params));
+    case "musu_list_connectors":
+      return rpcResult(req.id, handleListConnectors(params));
+    case "musu_get_connector_proof_plan":
+      return rpcResult(req.id, handleGetConnectorProofPlan(params));
+    case "musu_run_connector_health_check":
+      return rpcResult(req.id, await handleRunConnectorHealthCheck(params));
     default:
       return rpcError(req.id, -32601, `Method not found: ${req.method}`);
   }
@@ -79,8 +105,15 @@ export async function POST(req: NextRequest) {
   }
 
   const rpc = body as JsonRpcRequest;
-  if (rpc.jsonrpc !== "2.0" || typeof rpc.method !== "string") {
-    return NextResponse.json(rpcError(rpc.id ?? null, -32600, "Invalid Request"), { status: 400 });
+  const hasId = Object.prototype.hasOwnProperty.call(rpc, "id");
+  const invalidId = hasId && !isJsonRpcId(rpc.id);
+  if (
+    rpc.jsonrpc !== "2.0" ||
+    typeof rpc.method !== "string" ||
+    invalidId ||
+    (Object.prototype.hasOwnProperty.call(rpc, "params") && !isObjectParams(rpc.params))
+  ) {
+    return NextResponse.json(rpcError(invalidId ? null : rpc.id ?? null, -32600, "Invalid Request"), { status: 400 });
   }
 
   const response = await dispatch(rpc);

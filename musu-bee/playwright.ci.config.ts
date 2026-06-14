@@ -26,7 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npx next dev -p 3101",
+    command: "npx next dev --webpack -p 3101",
     url: "http://localhost:3101",
     reuseExistingServer: false,
     timeout: 120_000,

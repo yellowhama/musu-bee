@@ -125,6 +125,13 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
     ]);
 
     es.onmessage = (msg) => {
+      // H7: ignore messages from a stale stream. If this runId was re-subscribed
+      // (a newer EventSource replaced `es` in the map), this handler must not
+      // mutate state for the new stream.
+      if (runStreamsRef.current.get(runId) !== es) {
+        es.close();
+        return;
+      }
       const data = JSON.parse(msg.data) as RunEvent | RunSummary;
 
       if ("event_type" in data) {
@@ -171,7 +178,11 @@ export default function CeoChatClient({ companyId, userId, userEmail }: Props) {
     };
 
     es.onerror = () => {
+      // H7: a stale stream erroring out must not flip the new stream's line to
+      // an error state.
+      const isCurrent = runStreamsRef.current.get(runId) === es;
       closeCurrentStream();
+      if (!isCurrent) return;
       setLines((prev) =>
         prev.map((l) =>
           l.kind === "run" && l.runId === runId && l.status === "streaming"

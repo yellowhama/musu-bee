@@ -4,6 +4,7 @@ param(
     [string]$ExpectedVersion,
     [string]$ExpectedBaseUrl = "https://musu.pro",
     [int]$MaxAgeDays = 14,
+    [switch]$RequireIntegrity,
     [switch]$Json
 )
 
@@ -12,6 +13,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "evidence-integrity.ps1")
 
 if ([string]::IsNullOrWhiteSpace($ExpectedVersion)) {
     $ExpectedVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -120,6 +122,17 @@ function Try-ParseDateTimeOffset {
 if (-not (Test-Path -LiteralPath $EvidencePath)) {
     throw "P2P control-plane evidence file not found: $EvidencePath"
 }
+
+# H9: verify the evidence file has not been tampered with after recording by
+# recomputing its SHA256 and comparing against the integrity sidecar. A tampered
+# or malformed sidecar always fails. A missing sidecar fails only with
+# -RequireIntegrity so existing (pre-H9) evidence keeps verifying by default.
+$integrity = Test-EvidenceIntegritySidecar -EvidencePath $EvidencePath
+$integrityCondition = (
+    $integrity.status -eq "verified" -or
+    ($integrity.status -eq "missing" -and -not $RequireIntegrity)
+)
+Add-CheckFromCondition "evidence integrity" $integrityCondition "evidence integrity sidecar verifies ($($integrity.status))" "evidence integrity check failed ($($integrity.status)): $($integrity.message)"
 
 $evidence = Get-Content -LiteralPath $EvidencePath -Raw | ConvertFrom-Json
 $schema = Get-StringProperty -Object $evidence -Name "schema"
@@ -437,6 +450,8 @@ $result = [pscustomobject]@{
     ok = ($failCount -eq 0)
     evidence_path = (Resolve-Path -LiteralPath $EvidencePath).Path
     fail_count = $failCount
+    evidence_integrity_status = [string]$integrity.status
+    evidence_integrity_ok = [bool]$integrity.ok
     version = $version
     base_url = $baseUrl
     recorded_at = if ($recordedAt) { $recordedAt.ToString("o") } else { $null }

@@ -55,6 +55,7 @@ $policyPath = "musu-bee\src\lib\p2pRelayPolicy.ts"
 $releaseConnectPreflightRoutePath = "musu-bee\src\app\api\v1\relay\connect\route.ts"
 $releaseConnectPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\connect\route.test.ts"
 $releaseRelayLeaseValidationPath = "musu-bee\src\lib\p2pReleaseRelayLeaseValidation.ts"
+$payloadStorePath = "musu-bee\src\lib\p2pRelayPayloadStore.ts"
 $payloadRoutePath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.ts"
 $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts"
 $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
@@ -90,6 +91,7 @@ $policy = Get-RepoText $policyPath
 $releaseConnectPreflightRoute = Get-RepoText $releaseConnectPreflightRoutePath
 $releaseConnectPreflightRouteTest = Get-RepoText $releaseConnectPreflightRouteTestPath
 $releaseRelayLeaseValidation = Get-RepoText $releaseRelayLeaseValidationPath
+$payloadStore = Get-RepoText $payloadStorePath
 $payloadRoute = Get-RepoText $payloadRoutePath
 $payloadRouteTest = Get-RepoText $payloadRouteTestPath
 $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
@@ -177,6 +179,26 @@ Add-Check `
     ) `
     -Path $payloadRoutePath `
     -Message "Hosted payload queue can store, claim, mark delivered, and return delivery proof for lease-bound payloads."
+
+Add-Check `
+    -Scope "web-payload-queue" `
+    -Name "delivery proof preserves custody metadata" `
+    -Passed (
+        Test-ContainsAll -Text $payloadStore -Needles @(
+            "payload_kind: string",
+            "claimed_by: string",
+            "claimed_at: string",
+            "created_at: string",
+            "claimedBy = payload.claimed_by?.trim()",
+            "claimedAt = payload.claimed_at?.trim()",
+            "payload_kind: payload.payload_kind",
+            "claimed_by: claimedBy",
+            "claimed_at: claimedAt",
+            "created_at: payload.created_at"
+        )
+    ) `
+    -Path $payloadStorePath `
+    -Message "Relay payload delivery proof binds payload kind, claimant, claim time, creation time, digest, and delivery time."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -491,6 +513,28 @@ Add-Check `
     ) `
     -Path $routeEvidencePath `
     -Message "Route evidence requires relay payload delivery proof to be release-grade tunnel metadata, not preview store-forward queue metadata."
+
+Add-Check `
+    -Scope "route-evidence" `
+    -Name "relay payload delivery proof verifies custody fields" `
+    -Passed (
+        (Test-ContainsAll -Text $routeEvidence -Needles @(
+            'payload_kind: z.literal("forwarded_task_envelope")',
+            "claimed_by: z.string().min(1)",
+            "claimed_at: z.string().min(1)",
+            "created_at: z.string().min(1)",
+            "relay_fallback_payload_delivery_proof_payload_kind_mismatch",
+            "relay_fallback_payload_delivery_proof_claimant_mismatch",
+            "relay_fallback_payload_delivery_proof_claimed_at_mismatch",
+            "relay_fallback_payload_delivery_proof_created_at_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidenceTest -Needles @(
+            "rejects stored relay payload proof when the claimant custody field is forged",
+            "relay_fallback_payload_delivery_proof_claimant_mismatch"
+        ))
+    ) `
+    -Path $routeEvidencePath `
+    -Message "Route evidence verifies delivery proof custody fields against the stored relay payload record."
 
 Add-Check `
     -Scope "route-evidence" `

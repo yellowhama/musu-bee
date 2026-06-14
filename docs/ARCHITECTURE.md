@@ -1,5 +1,18 @@
 # MUSU System Architecture
 
+> ⚠️ **STALE — READ BEFORE TRUSTING THIS DOC (flagged 2026-06-10).**
+> The diagrams below describe the OLD Python 3.12 + FastAPI `musu-bridge` (:8070)
+> architecture. **The backend was locked to RUST on 2026-05-20** (tokio + axum +
+> sqlx); the Python stack (`musu-bridge`/`musu-core`/`musu-control`/indexer/
+> writer, ~25k LOC) is a *deprecation target*, not the current design. All recent
+> work (device-flow, desktop unification, bridge) lives in `musu-rs/` (Rust), NOT
+> in the Python files named here. Do NOT go looking for `handlers.py` /
+> FastAPI routes to extend current behavior — start from `musu-rs/src/`.
+> Authoritative current sources: memory `decision-musu-backend-rust`,
+> `docs/GOAL.md` (latest `v9xx` rows), and
+> `docs/DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md` §10.
+> The sections below are kept only as historical reference for the Python era.
+
 ## 1. System Overview
 
 ```

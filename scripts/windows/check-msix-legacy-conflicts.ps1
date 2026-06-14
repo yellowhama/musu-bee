@@ -172,6 +172,7 @@ $result = [pscustomobject]@{
     disabled_scheduled_task_count = $disabledTaskCount
     scheduled_task_probe_timed_out = [bool]$conflicts.ScheduledTaskProbeTimedOut
     scheduled_task_probe_error = $conflicts.ScheduledTaskProbeError
+    scheduled_task_probe_method = if ($conflicts.PSObject.Properties["ScheduledTaskProbeMethod"]) { $conflicts.ScheduledTaskProbeMethod } else { $null }
     legacy_bin_count = $legacyBinCount
     alias_shadowing_count = $aliasShadowingCount
     alternate_alias_count = $alternateAliasCount
@@ -231,6 +232,7 @@ if ($Json) {
     WindowsAppsAliasPresent    = $windowsAppsAliasPresent
     ScheduledTaskProbeTimedOut = [bool]$conflicts.ScheduledTaskProbeTimedOut
     ScheduledTaskProbeError    = $conflicts.ScheduledTaskProbeError
+    ScheduledTaskProbeMethod   = if ($conflicts.PSObject.Properties["ScheduledTaskProbeMethod"]) { $conflicts.ScheduledTaskProbeMethod } else { $null }
 } | Format-List
 
 if (-not [string]::IsNullOrWhiteSpace([string]$windowsAppsAliasInvocation)) {

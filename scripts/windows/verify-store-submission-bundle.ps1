@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$BundleDir,
+    [switch]$SkipDesktopEntrypoint,
     [switch]$Json
 )
 
@@ -160,7 +161,10 @@ try {
         Add-CheckFromCondition "verify-msix-package" ($LASTEXITCODE -eq 0) "verify-msix-package.ps1 passed" "verify-msix-package.ps1 failed: $($verifyOutput | Out-String)"
 
         $desktopEntrypointScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
-        if (Test-Path -LiteralPath $desktopEntrypointScript) {
+        if ($SkipDesktopEntrypoint) {
+            Add-Check "MSIX desktop entrypoint" "pass" "MSIX desktop entrypoint audit skipped because caller already verified the Store-reviewed MSIX desktop entrypoint."
+        }
+        elseif (Test-Path -LiteralPath $desktopEntrypointScript) {
             $entrypointOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $desktopEntrypointScript -PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -Json 2>&1
             if ($LASTEXITCODE -eq 0) {
                 try {

@@ -47,6 +47,17 @@ async function loadGetHandler(cacheBust: string): Promise<GetHandler> {
   return mod.GET;
 }
 
+function expectedPublicMetadata(appUrl = "https://musu.pro") {
+  return {
+    schema: "musu.public_config.v1",
+    releaseVersion: "1.15.0-rc.1",
+    publicReleaseMetadata: "MUSU public release metadata: 1.15.0-rc.1",
+    supportEmail: "musu@musu.pro",
+    privacyUrl: `${appUrl}/privacy`,
+    supportUrl: `${appUrl}/support`,
+  };
+}
+
 test("public-config returns every allowed key when all are set", async () => {
   const env = snapshotEnv(TRACKED_ENV_KEYS);
   try {
@@ -68,6 +79,7 @@ test("public-config returns every allowed key when all are set", async () => {
       appUrl: "https://musu.pro",
       paddleClientToken: "live_pdl_123",
       paddleEnv: "production",
+      ...expectedPublicMetadata(),
     });
   } finally {
     restoreEnv(env);
@@ -91,8 +103,17 @@ test("public-config never includes server-only secrets even when they are set", 
     const body = (await res.json()) as Record<string, string>;
     const serialized = JSON.stringify(body);
 
-    // Direct shape check — only public keys appear.
-    const expectedPublicKeys = new Set(["supabaseUrl", "supabaseAnonKey"]);
+    // Direct shape check — only allowed public config and public metadata keys appear.
+    const expectedPublicKeys = new Set([
+      "schema",
+      "supabaseUrl",
+      "supabaseAnonKey",
+      "releaseVersion",
+      "publicReleaseMetadata",
+      "supportEmail",
+      "privacyUrl",
+      "supportUrl",
+    ]);
     assert.deepEqual(new Set(Object.keys(body)), expectedPublicKeys);
 
     // Belt-and-suspenders — even if a later refactor adds the wrong key
@@ -127,14 +148,34 @@ test("public-config omits keys whose env value is unset", async () => {
     const body = (await res.json()) as Record<string, string>;
 
     assert.equal(res.status, 200);
-    assert.deepEqual(Object.keys(body).sort(), ["appUrl", "supabaseUrl"]);
+    assert.deepEqual(Object.keys(body).sort(), [
+      "appUrl",
+      "privacyUrl",
+      "publicReleaseMetadata",
+      "releaseVersion",
+      "schema",
+      "supabaseUrl",
+      "supportEmail",
+      "supportUrl",
+    ]);
     assert.equal(body.supabaseAnonKey, undefined);
+    assert.deepEqual(
+      {
+        schema: body.schema,
+        releaseVersion: body.releaseVersion,
+        publicReleaseMetadata: body.publicReleaseMetadata,
+        supportEmail: body.supportEmail,
+        privacyUrl: body.privacyUrl,
+        supportUrl: body.supportUrl,
+      },
+      expectedPublicMetadata(),
+    );
   } finally {
     restoreEnv(env);
   }
 });
 
-test("public-config returns empty object when no public env is set", async () => {
+test("public-config still returns release/support metadata when no public env is set", async () => {
   const env = snapshotEnv(TRACKED_ENV_KEYS);
   try {
     clearEnv(TRACKED_ENV_KEYS);
@@ -144,7 +185,7 @@ test("public-config returns empty object when no public env is set", async () =>
     const body = (await res.json()) as Record<string, string>;
 
     assert.equal(res.status, 200);
-    assert.deepEqual(body, {});
+    assert.deepEqual(body, expectedPublicMetadata());
   } finally {
     restoreEnv(env);
   }
@@ -180,8 +221,28 @@ test("public-config trims whitespace from env values", async () => {
     const body = (await res.json()) as Record<string, string>;
 
     assert.equal(body.supabaseUrl, "https://example.supabase.co");
+    assert.equal(body.privacyUrl, "https://musu.pro/privacy");
     // Whitespace-only treated as empty.
     assert.equal(body.supabaseAnonKey, undefined);
+  } finally {
+    restoreEnv(env);
+  }
+});
+
+test("public-config falls back when NEXT_PUBLIC_APP_URL is invalid", async () => {
+  const env = snapshotEnv(TRACKED_ENV_KEYS);
+  try {
+    clearEnv(TRACKED_ENV_KEYS);
+    process.env.NEXT_PUBLIC_APP_URL = "not a url";
+
+    const GET = await loadGetHandler("invalid-app-url");
+    const res = await GET();
+    const body = (await res.json()) as Record<string, string>;
+
+    assert.equal(res.status, 200);
+    assert.equal(body.appUrl, "https://musu.pro");
+    assert.equal(body.privacyUrl, "https://musu.pro/privacy");
+    assert.equal(body.supportUrl, "https://musu.pro/support");
   } finally {
     restoreEnv(env);
   }

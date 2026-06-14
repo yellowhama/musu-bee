@@ -2,6 +2,30 @@
 
 **Scope**: Partner Center metadata for the MUSU Windows desktop submission.
 
+## Assigned Product Identity (confirmed 2026-06-09)
+
+The Store reserved the product and assigned its identity. These PUBLIC values
+are wired into `scripts/windows/build-msix.ps1` defaults (the package manifest
+must carry them verbatim or ingestion is rejected):
+
+| Field | Value |
+|---|---|
+| Package Identity Name | `blossompark.musu` |
+| Publisher | `CN=74D9382E-D574-4DD1-BEDD-9ECCBB92D36E` |
+| Publisher Display Name | `blossompark` |
+| Package Family Name (PFN) | `blossompark.musu_f5h38pf4yt4gc` |
+| Store ID | `9NJ645MQ04T3` |
+| Store URL | `https://apps.microsoft.com/detail/9NJ645MQ04T3` |
+
+SENSITIVE (never commit — kept in `.env`, see `.env.example` Store section):
+the MSA App ID and the Store Submission API credentials (Tenant/Client/Secret,
+not yet issued — pending Partner Center > Manage API access). Package SID is
+PFN-derived and generated at install; it is not a secret to store.
+
+Signing note: local sideload self-signs a cert whose subject matches the
+Publisher CN above; the Store re-signs on ingestion. A self-signed package with
+this CN sideloads for local test but is NOT the Store-accepted signature.
+
 ## Current Decision
 
 Use the Microsoft Store as the trusted Windows install channel, but do not claim

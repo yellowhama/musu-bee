@@ -488,7 +488,9 @@ if ($matrix) {
         (
             $musuExeLower.Contains("\microsoft\windowsapps\musu.exe") -or
             $musuExeLower.Contains("\windowsapps\yellowhama.musu_") -or
-            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_")
+            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_") -or
+            $musuExeLower.Contains("\windowsapps\blossompark.musu_") -or
+            $musuExeLower.Contains("\program files\windowsapps\blossompark.musu_")
         )
     )
     Add-CheckFromCondition `

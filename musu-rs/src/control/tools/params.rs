@@ -116,6 +116,35 @@ pub struct DelegateTaskParams {
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
+    /// V28: route this task to a SPECIFIC fleet machine by node name. Omit to
+    /// run locally / auto-route. This is how an interactive Claude Code session
+    /// sends work to a chosen box ("run this on the 5070 machine").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_node: Option<String>,
+    /// V28: require a GPU-capable machine. The bridge router filters the fleet
+    /// to nodes reporting a GPU before selecting a target.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub needs_gpu: bool,
+    /// V28: prefer a machine running this OS (e.g. `"windows"`, `"linux"`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prefer_os: Option<String>,
+    /// V28: which local agent executes this task on the target machine —
+    /// `"claude"` (default), `"codex"`, `"gemini"`, or `"openai_compat_local"`
+    /// (a local Ollama/Gemma endpoint). Omit for the bridge default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter_type: Option<String>,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// Params for `get_task_result` (V28) — poll a delegated task's status/result.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GetTaskResultParams {
+    /// Task id returned by `delegate_task`.
+    pub task_id: String,
 }
 
 /// Params for `cancel_task`.
@@ -124,6 +153,16 @@ pub struct DelegateTaskParams {
 pub struct CancelTaskParams {
     /// Task id returned by `delegate_task` (R5).
     pub task_id: String,
+}
+
+/// Params for `set_default_adapter` (V28 setup).
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetDefaultAdapterParams {
+    /// Which agent a task uses by default: `echo` (zero-dependency built-in),
+    /// `codex`, `claude`, `gemini`, `openai_compat_local` (a local Ollama/Gemma
+    /// endpoint), or `openai_compat_remote`.
+    pub adapter: String,
 }
 
 // ─────────────────────── T1 R4 indexer params ───────────────────────

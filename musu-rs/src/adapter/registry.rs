@@ -1,4 +1,6 @@
 use super::claude::ClaudeAdapter;
+use super::codex::CodexAdapter;
+use super::gemini::GeminiAdapter;
 use super::openai_compat::OpenAICompatAdapter;
 use super::{Adapter, AdapterContext, AdapterError};
 
@@ -16,6 +18,19 @@ pub fn dispatch(
         // narrow `claude_dispatch_spawn()` helper (returns `Child`, keeps
         // SSE/admission/finalize byte-identical). M3 (W12) unifies both.
         "claude" => Ok(Box::new(ClaudeAdapter)),
+        // V26-W? (additive): codex + gemini CLI subprocess adapters. Both
+        // drive `adapter/cli_common.rs` generic spawn/JSONL plumbing, mirror
+        // ClaudeAdapter's stream-loop (per-iter cancel + timeout + deadline).
+        // Operator-env-only binary resolution (MUSU_CODEX_BINARY /
+        // MUSU_GEMINI_BINARY); they live on the trait/registry surface used by
+        // workflow/llm_dag_builder.rs. Wiring into the writer hot path is the
+        // separate M3/W12 unification (out of scope here).
+        "codex" => Ok(Box::new(CodexAdapter)),
+        "gemini" => Ok(Box::new(GeminiAdapter)),
+        // V28: zero-dependency shell adapter — runs the prompt as a system shell
+        // command and returns stdout. No AI vendor required; runs in the hot path
+        // via run_trait_adapter (it's not "claude", so spawn_task routes it here).
+        "shell" => Ok(Box::new(super::shell::ShellAdapter)),
         //
         // Box<dyn Adapter> is intentionally chosen over enum dispatch for V27
         // adapter growth: new providers should not force every call site to
@@ -75,5 +90,21 @@ mod tests {
                 .map(|e| e.to_string())
                 .unwrap_or_else(|| "<no err>".into())
         );
+    }
+
+    /// V26-W? (additive): codex + gemini CLI adapters must dispatch ok.
+    #[test]
+    fn dispatch_codex_and_gemini_return_adapters() {
+        for ty in ["codex", "gemini"] {
+            let ctx = ctx(ty);
+            let res = dispatch(ty, &ctx);
+            assert!(
+                res.is_ok(),
+                "{ty} dispatch should succeed; got Err: {}",
+                res.err()
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "<no err>".into())
+            );
+        }
     }
 }

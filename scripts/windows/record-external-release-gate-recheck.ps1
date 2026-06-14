@@ -576,6 +576,9 @@ foreach ($blocker in $goNoGoBlockers) {
 if (-not $secondPcReachable) {
     [void]$blockers.Add("second_pc_unreachable")
 }
+if ($goNoGo.json -and -not (Get-BoolProperty -Object $goNoGo.json -Name "private_mesh_packaged_release_proof_verified")) {
+    [void]$blockers.Add("private_mesh_packaged_release_proof_missing")
+}
 if (-not $p2pEnvOk) {
     [void]$blockers.Add("p2p_env_not_ready")
 }
@@ -631,6 +634,8 @@ $result = [pscustomobject]@{
     runtime_cpu_scenario_matrix_verified = if ($goNoGo.json) { [bool]$goNoGo.json.runtime_cpu_scenario_matrix_verified } else { $false }
     runtime_cpu_scenario_matrix_valid_machine_count = if ($goNoGo.json) { $goNoGo.json.runtime_cpu_scenario_matrix_valid_machine_count } else { $null }
     multi_device_verified = if ($goNoGo.json) { [bool]$goNoGo.json.multi_device_verified } else { $false }
+    private_mesh_packaged_release_proof_verified = if ($goNoGo.json) { Get-BoolProperty -Object $goNoGo.json -Name "private_mesh_packaged_release_proof_verified" } else { $false }
+    private_mesh_packaged_release_proof_evidence = if ($goNoGo.json -and $goNoGo.json.PSObject.Properties["private_mesh_packaged_release_proof_evidence"]) { $goNoGo.json.private_mesh_packaged_release_proof_evidence } else { $null }
     support_mailbox_verified = if ($goNoGo.json) { [bool]$goNoGo.json.support_mailbox_verified } else { $false }
     store_release_verified = if ($goNoGo.json) { [bool]$goNoGo.json.store_release_verified } else { $false }
     p2p_control_plane_verified = if ($goNoGo.json) { [bool]$goNoGo.json.p2p_control_plane_verified } else { $false }
@@ -701,6 +706,7 @@ $summary = @"
 - Single-machine verified: $($result.single_machine_verified)
 - Runtime idle CPU: $runtimeIdleCpuText
 - Runtime CPU matrix: $runtimeCpuMatrixText
+- Private Mesh packaged desktop release proof: $($result.private_mesh_packaged_release_proof_verified)
 - Second PC: ${SecondPcHost}:${SecondPcPort}
 - Second PC ping succeeded: $($result.second_pc_ping_succeeded)
 - Second PC TCP reachable: $secondPcTcpText

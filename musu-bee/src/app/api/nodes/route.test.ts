@@ -1,12 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRequire } from "node:module";
+
+// bridge-token.ts (pulled in via @/lib/bridge-proxy) imports "server-only",
+// which throws under the node test runner. Stub it before the handler loads.
+const require = createRequire(import.meta.url);
+const serverOnlyPath = require.resolve("server-only");
+require.cache[serverOnlyPath] = {
+  id: serverOnlyPath,
+  filename: serverOnlyPath,
+  loaded: true,
+  exports: {},
+} as unknown as NodeJS.Module;
 
 // V24-R7 smoke test: confirm musu-bee /api/nodes route handler now calls
 // the Rust bridge (R1) canonical path /api/nodes, NOT the deprecated
 // Python-era /api/admin/nodes. Proves Option A path reconciliation without
 // needing a live Rust bridge running.
 
-type NodesGetHandler = () => Promise<Response>;
+// Handler now takes a NextRequest (migrated onto proxyToBridge).
+type NodesGetHandler = (req: Request) => Promise<Response>;
+
+function nodesRequest(): Request {
+  return new Request("http://app.test/api/nodes");
+}
 
 async function loadGetHandler(cacheBust: string): Promise<NodesGetHandler> {
   const moduleUrl = new URL(`./route.ts?case=${cacheBust}`, import.meta.url).href;
@@ -49,16 +66,18 @@ test("R7: nodes route calls Rust bridge /api/nodes canonical path", async () => 
     }) as typeof fetch;
 
     const GET = await loadGetHandler(`r7-${Date.now()}`);
-    const res = await GET();
+    const res = await GET(nodesRequest());
 
     assert.equal(res.status, 200, "handler returns 200 from upstream");
 
     // The critical assertion: canonical R1 path, NOT Python-era admin path.
+    // Assert on the path only — the bridge host/port comes from getBridgeUrl()
+    // (env / ~/.musu/services/bridge.json) and is machine-dependent.
     assert.equal(calledUrls.length, 1, "exactly one upstream call");
     assert.equal(
-      calledUrls[0],
-      "http://127.0.0.1:8070/api/nodes",
-      "must hit Rust canonical /api/nodes"
+      new URL(calledUrls[0]).pathname,
+      "/api/nodes",
+      "must hit Rust canonical /api/nodes path"
     );
     assert.ok(
       !calledUrls[0].includes("/api/admin/"),
@@ -100,7 +119,7 @@ test("R7: nodes route returns 503 when Rust bridge unreachable", async () => {
     }) as typeof fetch;
 
     const GET = await loadGetHandler(`r7-down-${Date.now()}`);
-    const res = await GET();
+    const res = await GET(nodesRequest());
 
     assert.equal(res.status, 503, "503 on bridge unreachable");
     const body = (await res.json()) as { error: string };

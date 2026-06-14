@@ -4,6 +4,28 @@ node_modules/
 dist/
 .next/
 
+# Editor/agent safety-backup files (e.g. foo.rs.backup.<reason>-<date> or
+# foo.ts.backup-<date>-<reason>). Working copies left by the "backup before
+# edit" rule; the real source is tracked, so backups must never be committed.
+*.backup.*
+*.backup-*
+
+# Raw external research scrape dumps (large, regenerable). The curated
+# findings are quoted inline in the docs/*.md research write-ups instead.
+_external_research/
+docs/research/
+# Vendor doc snapshots: 369MB of scraped HTML from network-mesh vendors
+# (tailscale/headscale/openziti/netbird/...). Regenerable; the research docs
+# cite the specific commits/findings that matter, so the raw dump stays local.
+docs/vendor/
+# Local Headscale bootstrap proof scratch (compose/Caddy/config); not source.
+tmp-private-mesh-bootstrap-proof/
+# Cloned external scrape tools (embedded git repos) — never vendor these in.
+/vendor/
+/research/
+/external/
+/external-research/
+
 # V23.2 B4a local-build scratch dir — Alpine WSL distro vhdx, minirootfs seed,
 # scratch runner scripts, build logs, and (transitionally) musu-backend.tar
 # before it's archived to F:\workspace\musu-archive\builds\. Never commit.
@@ -215,6 +237,8 @@ llm-wiki/
 bin/
 !musu-rs/src/bin/
 !musu-rs/src/bin/*.rs
+musu-bee/src-tauri/binaries/*
+!musu-bee/src-tauri/binaries/.gitkeep
 ~/.musu/secrets/
 _archived/
 tools/rustdesk/data/

@@ -173,9 +173,23 @@ test("frontend polling audit inventories all low-duty call sites", () => {
   assert.match(text, /low-duty polling callbacks expose abort signals/);
   assert.match(text, /polling callback does not expose AbortSignal/);
   assert.match(text, /musu-bee\\src\\lib\\useServiceHealth\.ts/);
+  assert.match(text, /musu-bee\\src\\components\\BridgeManager\.tsx/);
   assert.match(text, /musu-bee\\src\\components\\dashboard\\DashboardClient\.tsx/);
   assert.match(text, /musu-bee\\views\\nodes\\NodesView\.tsx/);
   assert.match(text, /musu-bee\\views\\tasks\\TasksView\.tsx/);
+});
+
+test("Tauri shell refresh uses one-shot low-duty scheduling", () => {
+  const auditText = source("../scripts/windows/audit-frontend-polling-contract.ps1");
+  const shellText = source("src-tauri-shell/main.js");
+
+  assert.match(auditText, /Tauri shell one-shot refresh cadence/);
+  assert.match(auditText, /Tauri shell no overlapping refresh/);
+  assert.match(auditText, /Tauri shell hidden pause/);
+  assert.doesNotMatch(shellText, /setInterval\s*\(/);
+  assert.match(shellText, /TAURI_SHELL_REFRESH_MS\s*=\s*15000/);
+  assert.match(shellText, /async function runScheduledRefresh\(\)/);
+  assert.match(shellText, /setTimeout\(runScheduledRefresh,\s*delayMs\)/);
 });
 
 test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {

@@ -159,6 +159,7 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                         adapter_type: "claude".into(),
                         callback_url: None,
                         source_task_id: None,
+                        callback_token: None,
                     })
                     .await
                 {

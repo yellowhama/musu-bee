@@ -7,6 +7,11 @@ import {
   ensureP2pKvRestEnvAliases,
   hasP2pKvCredentials,
 } from "@/lib/p2pKvEnv";
+import {
+  type KvScriptClient,
+  kvEvalJson,
+  setKvScriptClientForTest,
+} from "@/lib/kvScript";
 
 export const ROOM_WORK_ORDER_STATUSES = [
   "queued",
@@ -103,6 +108,206 @@ const MAX_PERMISSION_OBJECT_KEYS = 48;
 
 let localLockQueue: Promise<void> = Promise.resolve();
 
+export function __setRoomWorkOrderKvClientForTest(
+  client: KvScriptClient | null
+): void {
+  setKvScriptClientForTest(client);
+}
+
+// Atomic Lua scripts mirroring the JS read-modify-write logic so concurrent
+// claim/deliver requests cannot lose updates or double-claim (audit H1+H5).
+// Storage shape matches the existing room store: a single JSON-encoded array
+// of work orders stored under roomKey() with an EX expiry. Freshness uses the
+// same `now <= expires_at` comparison as workOrderFresh(); ISO-8601 UTC `Z`
+// timestamps are fixed-width and so compare correctly as strings.
+
+const KV_UPSERT_WORK_ORDER_SCRIPT = `
+-- musu_room_work_order_upsert_v1
+local key = KEYS[1]
+local now = ARGV[1]
+local max_records = tonumber(ARGV[2])
+local ex_seconds = tonumber(ARGV[3])
+local order_json = ARGV[4]
+local order = cjson.decode(order_json)
+
+local raw = redis.call("GET", key)
+local current = {}
+if raw then
+  local ok, decoded = pcall(cjson.decode, raw)
+  if ok and type(decoded) == "table" then
+    current = decoded
+  end
+end
+
+local next_orders = {}
+table.insert(next_orders, order)
+for _, item in ipairs(current) do
+  if type(item) == "table"
+    and type(item.expires_at) == "string"
+    and now <= item.expires_at
+    and item.work_order_id ~= order.work_order_id then
+    if #next_orders < max_records then
+      table.insert(next_orders, item)
+    end
+  end
+end
+
+redis.call("SET", key, cjson.encode(next_orders), "EX", ex_seconds)
+return cjson.encode({ ok = true })
+`;
+
+const KV_CLAIM_WORK_ORDERS_SCRIPT = `
+-- musu_room_work_order_claim_v1
+local key = KEYS[1]
+local now = ARGV[1]
+local max_records = tonumber(ARGV[2])
+local ex_seconds = tonumber(ARGV[3])
+local claim_limit = tonumber(ARGV[4])
+local owner_key = ARGV[5]
+local target_node = ARGV[6]
+local claimant = ARGV[7]
+local company_id = ARGV[8]
+local project_id = ARGV[9]
+local source_agent_id = ARGV[10]
+local work_order_id = ARGV[11]
+
+local raw = redis.call("GET", key)
+local current = {}
+if raw then
+  local ok, decoded = pcall(cjson.decode, raw)
+  if ok and type(decoded) == "table" then
+    current = decoded
+  end
+end
+
+local function has_value(value)
+  return value ~= nil and value ~= ""
+end
+
+local function matches_queued(order)
+  if order.status ~= "queued" then
+    return false
+  end
+  if order.owner_key ~= owner_key then
+    return false
+  end
+  if has_value(company_id) and order.company_id ~= company_id then
+    return false
+  end
+  if has_value(project_id) and order.project_id ~= project_id then
+    return false
+  end
+  if order.target_node ~= target_node then
+    return false
+  end
+  if has_value(source_agent_id) and order.source_agent_id ~= source_agent_id then
+    return false
+  end
+  if has_value(work_order_id) and order.work_order_id ~= work_order_id then
+    return false
+  end
+  return true
+end
+
+local claimed = {}
+local next_orders = {}
+for _, order in ipairs(current) do
+  if type(order) == "table"
+    and type(order.expires_at) == "string"
+    and now <= order.expires_at then
+    if #next_orders < max_records then
+      if #claimed < claim_limit and matches_queued(order) then
+        order.status = "claimed"
+        order.claimed_by = claimant
+        order.claimed_at = now
+        table.insert(claimed, order)
+      end
+      table.insert(next_orders, order)
+    end
+  end
+end
+
+redis.call("SET", key, cjson.encode(next_orders), "EX", ex_seconds)
+return cjson.encode(claimed)
+`;
+
+const KV_DELIVER_WORK_ORDER_SCRIPT = `
+-- musu_room_work_order_deliver_v1
+local key = KEYS[1]
+local now = ARGV[1]
+local max_records = tonumber(ARGV[2])
+local ex_seconds = tonumber(ARGV[3])
+local owner_key = ARGV[4]
+local room_id = ARGV[5]
+local work_order_id = ARGV[6]
+local target_node = ARGV[7]
+local status = ARGV[8]
+local delivered_at = ARGV[9]
+local has_bridge_task_id = ARGV[10] == "1"
+local bridge_task_id = ARGV[11]
+local has_bridge_status = ARGV[12] == "1"
+local bridge_status = ARGV[13]
+local has_error = ARGV[14] == "1"
+local last_error = ARGV[15]
+
+local raw = redis.call("GET", key)
+local current = {}
+if raw then
+  local ok, decoded = pcall(cjson.decode, raw)
+  if ok and type(decoded) == "table" then
+    current = decoded
+  end
+end
+
+local result = { status = "not_found" }
+local next_orders = {}
+for _, order in ipairs(current) do
+  if type(order) == "table"
+    and type(order.expires_at) == "string"
+    and now <= order.expires_at then
+    if #next_orders < max_records then
+      if order.owner_key == owner_key
+        and order.room_id == room_id
+        and order.work_order_id == work_order_id
+        and order.target_node == target_node then
+        if order.status ~= "claimed" then
+          result = { status = "requires_claim" }
+        else
+          if has_bridge_task_id then
+            order.bridge_task_id = bridge_task_id
+          else
+            order.bridge_task_id = nil
+          end
+          if has_bridge_status then
+            order.bridge_status = bridge_status
+          else
+            order.bridge_status = nil
+          end
+          if has_error then
+            order.last_error = last_error
+          else
+            order.last_error = nil
+          end
+          if status == "queued" then
+            order.status = "queued"
+            order.claimed_by = nil
+            order.claimed_at = nil
+          else
+            order.status = status
+            order.terminal_at = delivered_at
+          end
+          result = { status = "delivered", order = order }
+        end
+      end
+      table.insert(next_orders, order)
+    end
+  end
+end
+
+redis.call("SET", key, cjson.encode(next_orders), "EX", ex_seconds)
+return cjson.encode(result)
+`;
+
 function shouldUseKv(): boolean {
   ensureP2pKvRestEnvAliases();
   return hasP2pKvCredentials();
@@ -136,6 +341,10 @@ export function roomWorkOrderTtlSeconds(): number {
     return DEFAULT_TTL_SECONDS;
   }
   return Math.min(Math.max(parsed, 60), 24 * 60 * 60);
+}
+
+function roomWorkOrderExpirySeconds(): number {
+  return Math.max(roomWorkOrderTtlSeconds() * 4, 300);
 }
 
 function maxWorkOrdersPerRoom(): number {
@@ -406,15 +615,16 @@ export function publicRoomWorkOrder(order: StoredRoomWorkOrder): Omit<StoredRoom
 export async function upsertRoomWorkOrder(order: StoredRoomWorkOrder): Promise<void> {
   assertStoreConfigured();
   if (shouldUseKv()) {
-    const { kv } = await import("@vercel/kv");
-    const current = ((await kv.get<StoredRoomWorkOrder[]>(roomKey(order.room_id))) ?? [])
-      .filter(isStoredRoomWorkOrder)
-      .filter(workOrderFresh);
-    const next = [order, ...current.filter((item) => item.work_order_id !== order.work_order_id)]
-      .slice(0, maxWorkOrdersPerRoom());
-    await kv.set(roomKey(order.room_id), next, {
-      ex: Math.max(roomWorkOrderTtlSeconds() * 4, 300),
-    });
+    await kvEvalJson<{ ok: true }>(
+      KV_UPSERT_WORK_ORDER_SCRIPT,
+      [roomKey(order.room_id)],
+      [
+        new Date().toISOString(),
+        String(maxWorkOrdersPerRoom()),
+        String(roomWorkOrderExpirySeconds()),
+        JSON.stringify(order),
+      ]
+    );
     return;
   }
 
@@ -458,32 +668,26 @@ export async function claimRoomWorkOrders(
   const limit = limitFrom(input);
 
   if (shouldUseKv()) {
-    const { kv } = await import("@vercel/kv");
-    const current = ((await kv.get<StoredRoomWorkOrder[]>(roomKey(input.room_id))) ?? [])
-      .filter(isStoredRoomWorkOrder)
-      .filter(workOrderFresh);
-    const claimed: StoredRoomWorkOrder[] = [];
-    const next = current.map((order) => {
-      if (
-        claimed.length < limit &&
-        orderMatches(order, { ...input, status: "queued" }) &&
-        claimTargetMatches(order, input.target_node)
-      ) {
-        const nextOrder: StoredRoomWorkOrder = {
-          ...order,
-          status: "claimed",
-          claimed_by: claimant,
-          claimed_at: now,
-        };
-        claimed.push(nextOrder);
-        return nextOrder;
-      }
-      return order;
-    });
-    await kv.set(roomKey(input.room_id), next.slice(0, maxWorkOrdersPerRoom()), {
-      ex: Math.max(roomWorkOrderTtlSeconds() * 4, 300),
-    });
-    return claimed;
+    const claimed = await kvEvalJson<unknown[]>(
+      KV_CLAIM_WORK_ORDERS_SCRIPT,
+      [roomKey(input.room_id)],
+      [
+        now,
+        String(maxWorkOrdersPerRoom()),
+        String(roomWorkOrderExpirySeconds()),
+        String(limit),
+        input.owner_key,
+        input.target_node,
+        claimant,
+        input.company_id ?? "",
+        input.project_id ?? "",
+        input.source_agent_id ?? "",
+        input.work_order_id ?? "",
+      ]
+    );
+    // Re-validate Lua-returned orders with the same guard the file path uses,
+    // so KV/script corruption cannot leak malformed orders to callers (H6).
+    return (Array.isArray(claimed) ? claimed : []).filter(isStoredRoomWorkOrder);
   }
 
   return withLocalLock(async () => {
@@ -525,15 +729,48 @@ export async function markRoomWorkOrderDelivery(
   const deliveredAt = new Date().toISOString();
 
   if (shouldUseKv()) {
-    const { kv } = await import("@vercel/kv");
-    const current = ((await kv.get<StoredRoomWorkOrder[]>(roomKey(input.room_id))) ?? [])
-      .filter(isStoredRoomWorkOrder)
-      .filter(workOrderFresh);
-    const next = applyRoomWorkOrderDeliveryToList(current, input, deliveredAt);
-    await kv.set(roomKey(input.room_id), next.work_orders.slice(0, maxWorkOrdersPerRoom()), {
-      ex: Math.max(roomWorkOrderTtlSeconds() * 4, 300),
-    });
-    return next.delivered;
+    // Normalize the same fields applyRoomWorkOrderDeliveryToList() does, then
+    // pass presence flags so the Lua script can omit absent keys exactly like
+    // the `?? undefined` behavior of the JS path.
+    const bridgeTaskId = normalizeContextValue(input.bridge_task_id);
+    const bridgeStatus = normalizeContextValue(input.bridge_status);
+    const lastError = normalizeContextValue(input.error);
+    const result = await kvEvalJson<
+      | { status: "delivered"; order: StoredRoomWorkOrder }
+      | { status: "not_found" }
+      | { status: "requires_claim" }
+    >(
+      KV_DELIVER_WORK_ORDER_SCRIPT,
+      [roomKey(input.room_id)],
+      [
+        new Date().toISOString(),
+        String(maxWorkOrdersPerRoom()),
+        String(roomWorkOrderExpirySeconds()),
+        input.owner_key,
+        input.room_id,
+        input.work_order_id,
+        input.target_node,
+        input.status,
+        deliveredAt,
+        bridgeTaskId === null ? "0" : "1",
+        bridgeTaskId ?? "",
+        bridgeStatus === null ? "0" : "1",
+        bridgeStatus ?? "",
+        lastError === null ? "0" : "1",
+        lastError ?? "",
+      ]
+    );
+    if (result.status === "requires_claim") {
+      throw new Error("room_work_order_delivery_requires_claim");
+    }
+    if (result.status !== "delivered") {
+      return null;
+    }
+    // Re-validate the Lua-returned order; corrupt data must not pass silently (H6).
+    if (!isStoredRoomWorkOrder(result.order)) {
+      throw new Error("room_work_order_delivery_malformed");
+    }
+    return result.order;
   }
 
   return withLocalLock(async () => {

@@ -19,6 +19,7 @@ use axum::Json;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use sqlx::Row;
 
 /// A task forwarded from a peer node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -602,9 +603,14 @@ pub async fn accept_forwarded_task(
             cwd,
             model: req.model.clone(),
             timeout_sec: req.timeout_sec,
-            adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
+            adapter_type: req
+                .adapter_type
+                .clone()
+                .unwrap_or_else(crate::bridge::handlers::tasks::default_adapter_type),
             callback_url: req.callback_url.clone(),
             source_task_id: Some(req.source_task_id.clone()),
+            // Shared mesh token so the result callback to the source node authenticates.
+            callback_token: Some(state.config.token.clone()),
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn forwarded task: {e}")))?;
@@ -999,6 +1005,19 @@ pub struct TaskCallback {
     pub node: String,
 }
 
+fn route_proof_confirms_private_mesh_callback(proof: &serde_json::Value) -> bool {
+    proof.get("route_kind").and_then(|v| v.as_str()) == Some("tailscale")
+        && proof.get("result").and_then(|v| v.as_str()) == Some("success")
+        && proof
+            .get("callback_delivered")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+}
+
+fn task_callback_status_is_terminal(status: &str) -> bool {
+    matches!(status, "done" | "failed" | "cancelled")
+}
+
 /// POST /api/tasks/callback — receive task result from a peer.
 pub async fn receive_callback(
     State(state): State<AppState>,
@@ -1011,9 +1030,20 @@ pub async fn receive_callback(
         node = %cb.node,
         "received task result callback from peer"
     );
+    if !task_callback_status_is_terminal(&cb.status) {
+        tracing::warn!(
+            source_task_id = %cb.source_task_id,
+            remote_task_id = %cb.remote_task_id,
+            status = %cb.status,
+            "rejected task callback with non-terminal status"
+        );
+        return Err(MusuError::BadRequest(
+            "callback status must be done, failed, or cancelled".into(),
+        ));
+    }
 
     // Update the original route_execution row with remote result.
-    sqlx::query(
+    let update_result = sqlx::query(
         "UPDATE route_executions SET status = ?, output = ?, error = ?, \
          exit_code = ?, duration_sec = ?, updated_at = ? WHERE task_id = ?",
     )
@@ -1027,10 +1057,93 @@ pub async fn receive_callback(
     .execute(&state.pool)
     .await
     .map_err(MusuError::Sqlx)?;
+    if update_result.rows_affected() == 0 {
+        tracing::warn!(
+            source_task_id = %cb.source_task_id,
+            remote_task_id = %cb.remote_task_id,
+            "rejected task callback for unknown source task"
+        );
+        return Err(MusuError::NotFound(format!(
+            "source task {} not found",
+            cb.source_task_id
+        )));
+    }
+
+    let callback_context = sqlx::query(
+        "SELECT company_id, channel, sender_id FROM route_executions WHERE task_id = ? LIMIT 1",
+    )
+    .bind(&cb.source_task_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(MusuError::Sqlx)?;
+    let callback_company_id = callback_context
+        .as_ref()
+        .and_then(|row| row.try_get::<Option<String>, _>("company_id").ok().flatten());
+    let callback_channel = callback_context.as_ref().and_then(|row| {
+        row.try_get::<Option<String>, _>("channel")
+            .ok()
+            .flatten()
+    });
+    let callback_sender_id = callback_context.as_ref().and_then(|row| {
+        row.try_get::<Option<String>, _>("sender_id")
+            .ok()
+            .flatten()
+    });
+
+    let musu_home = state
+        .config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    match crate::bridge::route_evidence::record_task_callback_proof(
+        musu_home,
+        &cb.source_task_id,
+        &cb.remote_task_id,
+        &cb.node,
+        &cb.status,
+        cb.exit_code,
+        cb.duration_sec,
+    ) {
+        Ok(_) => {
+            if let Some(proof) =
+                crate::bridge::route_evidence::task_route_proof(musu_home, &cb.source_task_id)
+            {
+                if route_proof_confirms_private_mesh_callback(&proof) {
+                    match crate::install::private_mesh::mark_callback_verified(musu_home, &proof) {
+                        Ok(true) => tracing::info!(
+                            source_task_id = %cb.source_task_id,
+                            remote_task_id = %cb.remote_task_id,
+                            "MUSU Private Mesh callback proof marked verified"
+                        ),
+                        Ok(false) => tracing::debug!(
+                            source_task_id = %cb.source_task_id,
+                            "callback proof was not applied because Private Mesh config is absent or not Headscale mode"
+                        ),
+                        Err(err) => tracing::warn!(
+                            source_task_id = %cb.source_task_id,
+                            err = %err,
+                            "failed to mark MUSU Private Mesh callback proof verified"
+                        ),
+                    }
+                }
+            }
+        }
+        Err(err) => {
+            tracing::warn!(
+                source_task_id = %cb.source_task_id,
+                remote_task_id = %cb.remote_task_id,
+                err = %err,
+                "failed to write task callback proof"
+            );
+        }
+    }
 
     crate::writer::runner::TaskUpdate {
         task_id: &cb.source_task_id,
         status: &cb.status,
+        company_id: callback_company_id.as_deref(),
+        channel: callback_channel.as_deref(),
+        sender_id: callback_sender_id.as_deref(),
         output: cb.output.as_deref(),
         error: cb.error.as_deref(),
         assigned_pc: Some(&cb.node),
@@ -1044,6 +1157,11 @@ pub async fn receive_callback(
     // get notified.
     state.sse_broadcaster.publish(
         crate::writer::sse::TaskEvent::update(&cb.source_task_id, &cb.status)
+            .with_context(
+                callback_company_id.as_deref(),
+                callback_channel.as_deref(),
+                callback_sender_id.as_deref(),
+            )
             .with_result(
                 cb.output.as_deref(),
                 cb.error.as_deref(),
@@ -1059,7 +1177,11 @@ pub async fn receive_callback(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::extract::State;
     use crate::peer::discovery::PeerSource;
+    use std::sync::Arc;
+    use tempfile::TempDir;
+    use tokio::sync::broadcast::error::TryRecvError;
 
     fn peer(addr: &str, meta: Option<serde_json::Value>) -> ResolvedPeer {
         ResolvedPeer {
@@ -1067,6 +1189,201 @@ mod tests {
             name: Some("target-node".to_string()),
             source: PeerSource::Registry,
             meta,
+        }
+    }
+
+    async fn callback_test_state(pool: sqlx::SqlitePool, musu_home: &std::path::Path) -> AppState {
+        let cfg = Arc::new(crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 0,
+            python_facade_port: 0,
+            public_url: None,
+            node_name: "source-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: "test-token".to_string(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        });
+        let sse_broadcaster = crate::writer::SseBroadcaster::new(16);
+        let task_runner =
+            crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
+        AppState {
+            config: cfg,
+            pool: pool.clone(),
+            http_client: reqwest::Client::new(),
+            audit: crate::bridge::audit::AuditState::new(pool),
+            dedup: crate::bridge::dedup::DedupCache::new(),
+            task_runner,
+            sse_broadcaster,
+            pairing: crate::bridge::handlers::pair::PairingStore::new(),
+        }
+    }
+
+    async fn callback_test_pool() -> sqlx::SqlitePool {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE route_executions (
+                task_id TEXT PRIMARY KEY,
+                company_id TEXT,
+                channel TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                input_hash TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                output TEXT,
+                error TEXT,
+                exit_code INTEGER,
+                duration_sec REAL,
+                started_at INTEGER,
+                updated_at INTEGER
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool
+    }
+
+    #[test]
+    fn private_mesh_callback_gate_requires_tailscale_success_and_callback() {
+        assert!(route_proof_confirms_private_mesh_callback(
+            &serde_json::json!({
+                "route_kind": "tailscale",
+                "result": "success",
+                "callback_delivered": true,
+            })
+        ));
+        assert!(!route_proof_confirms_private_mesh_callback(
+            &serde_json::json!({
+                "route_kind": "lan",
+                "result": "success",
+                "callback_delivered": true,
+            })
+        ));
+        assert!(!route_proof_confirms_private_mesh_callback(
+            &serde_json::json!({
+                "route_kind": "tailscale",
+                "result": "failed",
+                "callback_delivered": true,
+            })
+        ));
+        assert!(!route_proof_confirms_private_mesh_callback(
+            &serde_json::json!({
+                "route_kind": "tailscale",
+                "result": "success",
+                "callback_delivered": false,
+            })
+        ));
+    }
+
+    #[test]
+    fn task_callback_status_accepts_only_terminal_statuses() {
+        assert!(task_callback_status_is_terminal("done"));
+        assert!(task_callback_status_is_terminal("failed"));
+        assert!(task_callback_status_is_terminal("cancelled"));
+        assert!(!task_callback_status_is_terminal("pending"));
+        assert!(!task_callback_status_is_terminal("running"));
+        assert!(!task_callback_status_is_terminal("done "));
+        assert!(!task_callback_status_is_terminal(""));
+    }
+
+    #[tokio::test]
+    async fn receive_callback_rejects_non_terminal_status_before_db_or_sse() {
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        let state = callback_test_state(pool.clone(), tmp.path()).await;
+        sqlx::query(
+            "INSERT INTO route_executions (
+                task_id, company_id, channel, sender_id, input_hash, status, created_at, updated_at
+            ) VALUES ('source-task-1', NULL, 'ceo', 'operator', 'hash', 'pending', 10, 10)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let broadcaster = state.sse_broadcaster.clone();
+        let mut events = broadcaster.subscribe();
+        while events.try_recv().is_ok() {}
+
+        let result = receive_callback(
+            State(state),
+            Json(TaskCallback {
+                source_task_id: "source-task-1".to_string(),
+                remote_task_id: "remote-task-1".to_string(),
+                status: "running".to_string(),
+                output: Some("should not persist".to_string()),
+                error: None,
+                exit_code: None,
+                duration_sec: None,
+                node: "studio-pc".to_string(),
+            }),
+        )
+        .await;
+
+        match result {
+            Err(MusuError::BadRequest(message)) => {
+                assert!(message.contains("callback status must be done"));
+            }
+            other => panic!("expected bad request, got {other:?}"),
+        }
+        let row = sqlx::query("SELECT status, output FROM route_executions WHERE task_id = ?")
+            .bind("source-task-1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(row.try_get::<String, _>("status").unwrap(), "pending");
+        assert_eq!(row.try_get::<Option<String>, _>("output").unwrap(), None);
+        assert!(matches!(events.try_recv(), Err(TryRecvError::Empty)));
+    }
+
+    #[tokio::test]
+    async fn receive_callback_rejects_unknown_source_task_before_sse() {
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        let state = callback_test_state(pool, tmp.path()).await;
+        let broadcaster = state.sse_broadcaster.clone();
+        let mut events = broadcaster.subscribe();
+        while events.try_recv().is_ok() {}
+
+        let result = receive_callback(
+            State(state),
+            Json(TaskCallback {
+                source_task_id: "missing-source-task".to_string(),
+                remote_task_id: "remote-task-1".to_string(),
+                status: "done".to_string(),
+                output: Some("should not publish".to_string()),
+                error: None,
+                exit_code: Some(0),
+                duration_sec: Some(1.0),
+                node: "studio-pc".to_string(),
+            }),
+        )
+        .await;
+
+        match result {
+            Err(MusuError::NotFound(message)) => {
+                assert!(message.contains("source task missing-source-task not found"));
+            }
+            other => panic!("expected not found, got {other:?}"),
+        }
+        match events.try_recv() {
+            Err(TryRecvError::Empty) => {}
+            Ok(event) => assert_ne!(event.task_id, "missing-source-task"),
+            Err(other) => panic!("unexpected callback event receive error: {other:?}"),
         }
     }
 

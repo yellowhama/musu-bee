@@ -24,10 +24,14 @@ pub mod distribution;
 pub mod dry_run;
 pub mod package_status;
 pub mod platform;
+pub mod private_mesh;
 pub mod room_work_orders;
 pub mod runner;
 pub mod schema_gate;
 pub mod staged_swap;
+// Packaged-runtime bridge entry point (`musu startup`), absorbed from the former
+// musu-startup.exe bin so there is ONE runtime binary (single-binary integration).
+pub mod startup;
 // V24-R3 wiki/493 Critic C4 (HIGH): shared MUSU_BRIDGE_TOKEN resolver.
 // Replaces the duplicated `read_ipc_token` impls in auto_update.rs +
 // uninstall.rs and is reused by control::bridge_client.

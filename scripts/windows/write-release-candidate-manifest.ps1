@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$OutputDir,
+    [string]$ReadinessAuditJsonPath,
     [switch]$IncludePrivateArtifacts
 )
 
@@ -156,6 +157,29 @@ function Set-TextFileAtomic {
     throw "Failed to write $Path after $Attempts attempts: $($lastError.Exception.Message)"
 }
 
+function Read-ReadinessAuditJson {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Readiness audit JSON path does not exist: $Path"
+    }
+
+    $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    foreach ($property in @(
+            "runtime_package_ready",
+            "msix_desktop_entrypoint_ready",
+            "desktop_shell_ready",
+            "single_machine_verified",
+            "multi_device_verified",
+            "public_desktop_release_ready"
+        )) {
+        if (-not $json.PSObject.Properties[$property]) {
+            throw "Readiness audit JSON is missing required property '${property}': $Path"
+        }
+    }
+    return $json
+}
+
 $msixOutput = Join-Path $repoRoot ".local-build\msix\output"
 $localMsix = Join-Path $msixOutput ("musu_{0}_x64_local-sideload-manual.msix" -f $msixVersion)
 $storeMsix = Join-Path $msixOutput ("musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $msixVersion)
@@ -181,8 +205,13 @@ if ($IncludePrivateArtifacts -and $privateCert) {
     $artifacts += Get-FileArtifact -Role "signing_private_certificate_pfx" -Path $privateCert
 }
 
-$auditText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $readinessScript -Json 2>&1 | Out-String).Trim()
-$audit = $auditText | ConvertFrom-Json
+$audit = if (-not [string]::IsNullOrWhiteSpace($ReadinessAuditJsonPath)) {
+    Read-ReadinessAuditJson -Path $ReadinessAuditJsonPath
+}
+else {
+    $auditText = (& powershell -NoProfile -ExecutionPolicy Bypass -File $readinessScript -Json 2>&1 | Out-String).Trim()
+    $auditText | ConvertFrom-Json
+}
 $gitStatus = Get-GitValue -Arguments @("status", "--short")
 
 $manifest = [ordered]@{

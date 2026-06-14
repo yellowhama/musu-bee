@@ -1,29 +1,22 @@
-import { getBridgeUrl } from '../../../../lib/bridge-config';
-import { NextRequest, NextResponse } from "next/server";
-import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
-import { getBridgeToken } from "@/lib/bridge-token";
+import { NextRequest } from "next/server";
 
-function bridgeUrl(): string {
-  return getBridgeUrl().replace(/\/+$/, "");
-}
+import { proxyToBridge } from "@/lib/bridge-proxy";
 
-export async function DELETE(
-  _req: NextRequest,
+// Migrated onto the shared proxyToBridge helper (TS SDK phase 0).
+// Behavior-preserving: json parse mode (original `res.json()` → malformed
+// upstream → 503), error message "bridge_unavailable", forwards NO query
+// params (allowedParams: []). The {name} path param extraction +
+// encodeURIComponent stays in the route; only fetch/parse goes through the
+// helper. V24-R7: canonical Rust path namespace /api/nodes/{name}.
+export const DELETE = (
+  req: NextRequest,
   { params }: { params: Promise<{ name: string }> }
-) {
-  const { name } = await params;
-  try {
-    // V24-R7: canonical Rust path namespace /api/nodes/{name} (was Python-era
-    // /api/admin/nodes/{name}). DELETE handler not yet implemented in R1
-    // Rust bridge — call will 404 against Rust :8070 until a later R-fast step
-    // adds it; behaviour matches Python-bridge legacy path layout otherwise.
-    const res = await fetch(`${bridgeUrl()}/api/nodes/${encodeURIComponent(name)}`, {
-      method: "DELETE",
-      headers: buildBridgeHeaders(await getBridgeToken()),
-    });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch {
-    return NextResponse.json({ error: "bridge_unavailable" }, { status: 503 });
-  }
-}
+) =>
+  params.then(({ name }) =>
+    proxyToBridge(req, {
+      targetPath: `/api/nodes/${encodeURIComponent(name)}`,
+      allowedParams: [],
+      parse: "json",
+      errorMessage: "bridge_unavailable",
+    })
+  );

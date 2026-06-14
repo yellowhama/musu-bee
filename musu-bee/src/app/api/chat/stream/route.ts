@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { spawn } from "child_process";
+import { spawnAiCli } from "@/lib/aiCliSpawn";
 import { checkChatRateLimit } from "@/lib/chatRateLimit";
 import { buildMusuCliPrompt } from "@/lib/musuSystemPrompt";
 import { queryWiki } from "@/lib/wiki";
@@ -100,9 +100,14 @@ export async function GET(req: NextRequest) {
         finish();
       }, MUSU_AI_CLI_TIMEOUT_MS);
 
-      const child = spawn(MUSU_AI_CLI, [...MUSU_AI_CLI_ARGS, fullMessage], {
-        env: { ...process.env },
-      });
+      const spawned = spawnAiCli(MUSU_AI_CLI, [...MUSU_AI_CLI_ARGS, fullMessage]);
+      if (!spawned.ok) {
+        clearTimeout(timer);
+        enqueue({ error: spawned.error });
+        finish();
+        return;
+      }
+      const child = spawned.child;
 
       child.stdout.on("data", (chunk: Buffer) => {
         const text = chunk.toString();

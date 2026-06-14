@@ -81,11 +81,15 @@ const RelayPayloadDeliveryProofSchema = z.object({
   target_node_id: z.string().min(1),
   relay_url: z.string().min(1),
   tunnel_id: z.string().min(1),
+  payload_kind: z.literal("forwarded_task_envelope"),
   transport_kind: z.string().min(1),
   relay_default_data_path: z.boolean(),
   release_grade: z.boolean(),
   payload_sha256: z.string().min(1),
   payload_bytes: z.number().int().positive(),
+  claimed_by: z.string().min(1),
+  claimed_at: z.string().min(1),
+  created_at: z.string().min(1),
   delivered_at: z.string().min(1),
 }).strict();
 
@@ -603,6 +607,12 @@ async function relayPayloadDeliveryProofBlockers(
   if (parseIsoTimestamp(proof.delivered_at) === null) {
     blockers.push("relay_fallback_payload_delivery_proof_delivered_at_invalid");
   }
+  if (parseIsoTimestamp(proof.claimed_at) === null) {
+    blockers.push("relay_fallback_payload_delivery_proof_claimed_at_invalid");
+  }
+  if (parseIsoTimestamp(proof.created_at) === null) {
+    blockers.push("relay_fallback_payload_delivery_proof_created_at_invalid");
+  }
 
   const storeStatus = p2pRelayPayloadStoreStatus();
   if (!storeStatus.release_grade) {
@@ -631,6 +641,9 @@ async function relayPayloadDeliveryProofBlockers(
     if (storedPayload.payload_bytes !== proof.payload_bytes) {
       blockers.push("relay_fallback_payload_delivery_proof_bytes_mismatch");
     }
+    if (storedPayload.payload_kind.trim() !== proof.payload_kind.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_payload_kind_mismatch");
+    }
     if (storedPayload.relay_url.trim() !== proof.relay_url.trim()) {
       blockers.push("relay_fallback_payload_delivery_proof_stored_relay_url_mismatch");
     }
@@ -650,6 +663,19 @@ async function relayPayloadDeliveryProofBlockers(
       blockers.push("relay_fallback_payload_delivery_proof_stored_delivery_missing");
     } else if (storedPayload.delivered_at.trim() !== proof.delivered_at.trim()) {
       blockers.push("relay_fallback_payload_delivery_proof_delivered_at_mismatch");
+    }
+    if (!storedPayload.claimed_by?.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_claimant_missing");
+    } else if (storedPayload.claimed_by.trim() !== proof.claimed_by.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_claimant_mismatch");
+    }
+    if (!storedPayload.claimed_at?.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_stored_claimed_at_missing");
+    } else if (storedPayload.claimed_at.trim() !== proof.claimed_at.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_claimed_at_mismatch");
+    }
+    if (storedPayload.created_at.trim() !== proof.created_at.trim()) {
+      blockers.push("relay_fallback_payload_delivery_proof_created_at_mismatch");
     }
   } catch (error) {
     blockers.push(

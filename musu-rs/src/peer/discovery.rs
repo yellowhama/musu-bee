@@ -194,11 +194,21 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     if let Some(cache) = CachedRegistry::load(musu_home) {
         for node in &cache.nodes {
             if seen.insert(node.addr.clone()) {
+                let mut meta = node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
+                if !meta.is_object() {
+                    meta = serde_json::json!({});
+                }
+                if let (Some(obj), Some(last_seen)) = (meta.as_object_mut(), node.last_heartbeat) {
+                    obj.insert(
+                        "last_seen".to_string(),
+                        serde_json::json!(last_seen.to_rfc3339()),
+                    );
+                }
                 result.push(ResolvedPeer {
                     addr: node.addr.clone(),
                     name: Some(node.name.clone()),
                     source: PeerSource::Cache,
-                    meta: node.meta.clone(),
+                    meta: Some(meta),
                 });
             }
         }
@@ -228,6 +238,8 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
         #[derive(Deserialize)]
         struct NodesTomlEntry {
             url: String,
+            #[serde(default)]
+            last_health_at: Option<i64>,
         }
         if let Ok(file) = toml::from_str::<NodesToml>(&text) {
             for (name, entry) in &file.nodes {
@@ -246,16 +258,22 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
                     .trim_end_matches('/')
                     .to_string();
                 if seen.insert(addr.clone()) {
+                    let mut meta = serde_json::Map::new();
+                    meta.insert("public_url".to_string(), serde_json::json!(entry.url));
+                    if let Some(scheme) = scheme {
+                        meta.insert("transport_scheme".to_string(), serde_json::json!(scheme));
+                    }
+                    if let Some(last_health_at) = entry.last_health_at {
+                        meta.insert(
+                            "last_health_at".to_string(),
+                            serde_json::json!(last_health_at),
+                        );
+                    }
                     result.push(ResolvedPeer {
                         addr,
                         name: Some(name.clone()),
                         source: PeerSource::NodesToml,
-                        meta: scheme.map(|scheme| {
-                            serde_json::json!({
-                                "public_url": entry.url,
-                                "transport_scheme": scheme,
-                            })
-                        }),
+                        meta: Some(serde_json::Value::Object(meta)),
                     });
                 }
             }
@@ -356,6 +374,67 @@ mod tests {
 
         let peers = resolve_all_peers(&dir);
         assert_eq!(peers.len(), 2); // deduped
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_all_peers_preserves_cached_last_heartbeat() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let heartbeat = Utc::now();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "n1".into(),
+                name: "cached".into(),
+                addr: "1.2.3.4:8070".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(heartbeat),
+                meta: None,
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        let heartbeat_s = heartbeat.to_rfc3339();
+        assert_eq!(
+            peers[0]
+                .meta
+                .as_ref()
+                .and_then(|m| m.get("last_seen"))
+                .and_then(|v| v.as_str()),
+            Some(heartbeat_s.as_str())
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_all_peers_preserves_nodes_toml_last_health_at() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("nodes.toml"),
+            r#"[nodes.lab]
+url = "http://10.0.0.8:8070"
+last_health_at = 1781234523
+"#,
+        )
+        .unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        assert_eq!(peers.len(), 1);
+        assert_eq!(
+            peers[0]
+                .meta
+                .as_ref()
+                .and_then(|m| m.get("last_health_at"))
+                .and_then(|v| v.as_i64()),
+            Some(1_781_234_523)
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -9,6 +9,9 @@ license = "PROPRIETARY"
 name = "musu"
 path = "src/main.rs"
 
+# Logic-free Service-mode shim — exists only because the MSIX windows.startupTask
+# is exe-path-only (can't pass `startup` to musu.exe). Built from this same crate
+# so there is zero version skew. See src/bin/musu-startup.rs.
 [[bin]]
 name = "musu-startup"
 path = "src/bin/musu-startup.rs"

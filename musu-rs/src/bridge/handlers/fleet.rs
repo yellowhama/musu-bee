@@ -7,11 +7,12 @@
 
 use axum::extract::State;
 use axum::Json;
+use chrono::{TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::bridge::error::{MusuError, Result};
 use crate::bridge::AppState;
-use crate::peer::discovery::resolve_all_peers;
+use crate::peer::discovery::{resolve_all_peers, ResolvedPeer};
 
 // ── F4 types (smart auto-routing) ───────────────────────────────────
 
@@ -86,10 +87,75 @@ pub struct FleetNodeStatus {
     pub addr: String,
     pub healthy: bool,
     pub is_self: bool,
+    pub last_seen: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tailscale_ip: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mesh_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub control_server_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub control_server_verified: Option<bool>,
     pub tasks_running: u32,
     pub tasks_pending: u32,
     pub shared_dirs: Vec<String>,
     pub version: String,
+}
+
+fn peer_meta_string(peer: &ResolvedPeer, key: &str) -> Option<String> {
+    peer.meta
+        .as_ref()
+        .and_then(|meta| meta.get(key))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+}
+
+fn peer_last_seen(peer: &ResolvedPeer) -> Option<String> {
+    peer_meta_string(peer, "last_seen").or_else(|| {
+        peer.meta
+            .as_ref()
+            .and_then(|meta| meta.get("last_health_at"))
+            .and_then(|v| v.as_i64())
+            .and_then(|ts| Utc.timestamp_opt(ts, 0).single())
+            .map(|dt| dt.to_rfc3339())
+    })
+}
+
+fn peer_meta_bool(peer: &ResolvedPeer, key: &str) -> Option<bool> {
+    peer.meta
+        .as_ref()
+        .and_then(|meta| meta.get(key))
+        .and_then(|v| v.as_bool())
+}
+
+fn peer_fallback_status(peer: &ResolvedPeer, status_error: impl Into<String>) -> FleetNodeStatus {
+    FleetNodeStatus {
+        name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
+        addr: peer.addr.clone(),
+        healthy: false,
+        is_self: false,
+        last_seen: peer_last_seen(peer),
+        status_error: Some(status_error.into()),
+        tailscale_ip: peer_meta_string(peer, "tailscale_ip"),
+        mesh_mode: peer_meta_string(peer, "mesh_mode"),
+        route_label: peer_meta_string(peer, "route_label"),
+        control_server_url: peer_meta_string(peer, "control_server_url"),
+        control_server_verified: peer_meta_bool(peer, "control_server_verified"),
+        tasks_running: 0,
+        tasks_pending: 0,
+        shared_dirs: vec![],
+        version: "unknown".into(),
+    }
+}
+
+fn local_mesh_status(
+    musu_home: &std::path::Path,
+) -> crate::install::private_mesh::PrivateMeshStatusReport {
+    crate::install::private_mesh::build_status_report(musu_home)
 }
 
 // ── F3 handlers ─────────────────────────────────────────────────────
@@ -122,6 +188,13 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     );
     let local_shares: Vec<String> = shares.shared.iter().map(|s| s.path.clone()).collect();
 
+    let musu_home = state
+        .config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let local_mesh = local_mesh_status(musu_home);
+
     let this_node = FleetNodeStatus {
         name: state.config.node_name.clone(),
         addr: crate::bridge::services::advertised_bridge_http_url(&state.config)
@@ -130,6 +203,13 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
             .to_string(),
         healthy: true,
         is_self: true,
+        last_seen: Some(Utc::now().to_rfc3339()),
+        status_error: None,
+        tailscale_ip: local_mesh.local_tailnet_ip.clone(),
+        mesh_mode: Some(local_mesh.mode.clone()),
+        route_label: Some(local_mesh.route_label.clone()),
+        control_server_url: local_mesh.control_server_url.clone(),
+        control_server_verified: Some(local_mesh.control_server_verified),
         tasks_running: local_running,
         tasks_pending: local_pending,
         shared_dirs: local_shares,
@@ -137,61 +217,50 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     };
 
     // Query peers.
-    let musu_home = state
-        .config
-        .nodes_toml_path
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("."));
     let peers = resolve_all_peers(musu_home);
     let client = &state.http_client;
     let token = &state.config.token;
 
-    let mut peer_statuses = Vec::new();
+    // Probe every peer CONCURRENTLY. Serial probing made this O(peers × 3s):
+    // a few offline peers (each blocking the full 3s timeout) pushed total
+    // latency past callers' client timeouts, so the cockpit's `nodes --local`
+    // read failed with "error sending request" even though the bridge was up.
+    // join_all bounds wall-clock at the single slowest peer (~3s) regardless of
+    // fleet size.
+    let probes = peers.iter().map(|peer| {
+        let url = format!("http://{}/api/fleet/node-status", peer.addr);
+        async move {
+            match client
+                .get(&url)
+                .bearer_auth(token)
+                .timeout(std::time::Duration::from_secs(3))
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().is_success() => {
+                    match resp.json::<FleetNodeStatus>().await {
+                        Ok(mut ns) => {
+                            ns.last_seen.get_or_insert_with(|| Utc::now().to_rfc3339());
+                            ns.status_error = None;
+                            ns
+                        }
+                        Err(_) => peer_fallback_status(peer, "node status unreadable"),
+                    }
+                }
+                _ => peer_fallback_status(peer, "node status probe failed"),
+            }
+        }
+    });
+    let peer_statuses: Vec<FleetNodeStatus> = futures_util::future::join_all(probes).await;
+
     let mut total_running = local_running;
     let mut total_pending = local_pending;
     let mut online = 1u32; // self
-
-    for peer in &peers {
-        let url = format!("http://{}/api/fleet/node-status", peer.addr);
-        match client
-            .get(&url)
-            .bearer_auth(token)
-            .timeout(std::time::Duration::from_secs(3))
-            .send()
-            .await
-        {
-            Ok(resp) if resp.status().is_success() => {
-                if let Ok(ns) = resp.json::<FleetNodeStatus>().await {
-                    total_running += ns.tasks_running;
-                    total_pending += ns.tasks_pending;
-                    online += 1;
-                    peer_statuses.push(ns);
-                } else {
-                    peer_statuses.push(FleetNodeStatus {
-                        name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
-                        addr: peer.addr.clone(),
-                        healthy: true,
-                        is_self: false,
-                        tasks_running: 0,
-                        tasks_pending: 0,
-                        shared_dirs: vec![],
-                        version: "unknown".into(),
-                    });
-                    online += 1;
-                }
-            }
-            _ => {
-                peer_statuses.push(FleetNodeStatus {
-                    name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
-                    addr: peer.addr.clone(),
-                    healthy: false,
-                    is_self: false,
-                    tasks_running: 0,
-                    tasks_pending: 0,
-                    shared_dirs: vec![],
-                    version: "unknown".into(),
-                });
-            }
+    for ns in &peer_statuses {
+        if ns.healthy {
+            online += 1;
+            total_running += ns.tasks_running;
+            total_pending += ns.tasks_pending;
         }
     }
 
@@ -228,6 +297,12 @@ pub async fn node_status(State(state): State<AppState>) -> Result<Json<FleetNode
             .parent()
             .unwrap_or_else(|| std::path::Path::new(".")),
     );
+    let musu_home = state
+        .config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let local_mesh = local_mesh_status(musu_home);
 
     Ok(Json(FleetNodeStatus {
         name: state.config.node_name.clone(),
@@ -237,6 +312,13 @@ pub async fn node_status(State(state): State<AppState>) -> Result<Json<FleetNode
             .to_string(),
         healthy: true,
         is_self: false,
+        last_seen: Some(Utc::now().to_rfc3339()),
+        status_error: None,
+        tailscale_ip: local_mesh.local_tailnet_ip.clone(),
+        mesh_mode: Some(local_mesh.mode.clone()),
+        route_label: Some(local_mesh.route_label.clone()),
+        control_server_url: local_mesh.control_server_url.clone(),
+        control_server_verified: Some(local_mesh.control_server_verified),
         tasks_running: running as u32,
         tasks_pending: pending as u32,
         shared_dirs: shares.shared.iter().map(|s| s.path.clone()).collect(),
@@ -306,14 +388,97 @@ mod tests {
         assert!(json.contains("test-node"));
     }
 
+    #[test]
+    fn peer_last_seen_prefers_registry_timestamp() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "127.0.0.1:8071".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({
+                "last_seen": "2026-06-12T01:02:03+00:00",
+            })),
+        };
+
+        assert_eq!(
+            peer_last_seen(&peer).as_deref(),
+            Some("2026-06-12T01:02:03+00:00")
+        );
+    }
+
+    #[test]
+    fn peer_last_seen_converts_nodes_toml_health_epoch() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "127.0.0.1:8072".to_string(),
+            name: Some("lab-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::NodesToml,
+            meta: Some(serde_json::json!({
+                "last_health_at": 1_781_234_523_i64,
+            })),
+        };
+
+        assert_eq!(
+            peer_last_seen(&peer).as_deref(),
+            Some("2026-06-12T03:22:03+00:00")
+        );
+    }
+
+    #[test]
+    fn peer_fallback_status_does_not_fabricate_online_or_last_seen() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "127.0.0.1:8073".to_string(),
+            name: Some("broken-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::NodesToml,
+            meta: Some(serde_json::json!({
+                "tailscale_ip": "100.64.0.73",
+                "mesh_mode": "musu_headscale",
+            })),
+        };
+
+        let status = peer_fallback_status(&peer, "node status unreadable");
+
+        assert!(!status.healthy);
+        assert_eq!(status.last_seen, None);
+        assert_eq!(
+            status.status_error.as_deref(),
+            Some("node status unreadable")
+        );
+        assert_eq!(status.tailscale_ip.as_deref(), Some("100.64.0.73"));
+    }
+
+    #[test]
+    fn peer_mesh_metadata_reads_cached_registry_fields() {
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "100.64.0.8:8070".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({
+                "tailscale_ip": "100.64.0.8",
+                "mesh_mode": "musu_headscale",
+                "route_label": "Private Mesh",
+                "control_server_url": "https://mesh.example",
+                "control_server_verified": true,
+            })),
+        };
+
+        assert_eq!(
+            peer_meta_string(&peer, "tailscale_ip").as_deref(),
+            Some("100.64.0.8")
+        );
+        assert_eq!(
+            peer_meta_string(&peer, "mesh_mode").as_deref(),
+            Some("musu_headscale")
+        );
+        assert_eq!(peer_meta_bool(&peer, "control_server_verified"), Some(true));
+    }
+
     #[tokio::test]
     async fn node_status_uses_runtime_registry_addr() {
         let tmp = TempDir::new().unwrap();
         let musu_home = tmp.path().join(".musu");
-        std::env::set_var("MUSU_HOME", &musu_home);
         std::fs::create_dir_all(musu_home.join("services")).unwrap();
 
-        let registry = crate::bridge::services::ServiceRegistry::new();
+        let registry =
+            crate::bridge::services::ServiceRegistry::with_dir(musu_home.join("services"));
         registry
             .register(&crate::bridge::services::ServiceRecord {
                 name: "bridge".to_string(),
@@ -380,7 +545,6 @@ mod tests {
 
         let Json(status) = node_status(State(state)).await.unwrap();
         assert_eq!(status.addr, "127.0.0.1:43123");
-
-        std::env::remove_var("MUSU_HOME");
+        assert!(status.last_seen.is_some());
     }
 }

@@ -26,6 +26,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
+. (Join-Path $scriptDir "evidence-integrity.ps1")
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
@@ -614,6 +615,8 @@ $evidence = [pscustomobject]@{
 }
 
 $evidence | ConvertTo-Json -Depth 18 | Set-Content -LiteralPath $EvidencePath -Encoding UTF8
+# H9: record an integrity sidecar so downstream readers can detect post-write tampering.
+$evidenceIntegritySidecarPath = Write-EvidenceIntegritySidecar -EvidencePath $EvidencePath
 
 if ($Json) {
     $evidence | ConvertTo-Json -Depth 18
@@ -623,6 +626,7 @@ else {
     "ok: $($evidence.ok)"
     "fail_count: $($evidence.fail_count)"
     "evidence_path: $EvidencePath"
+    "evidence_integrity_sidecar_path: $evidenceIntegritySidecarPath"
     "base_url: $BaseUrl"
     "room_id: $RoomId"
     "work_order_id: $WorkOrderId"

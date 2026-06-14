@@ -3,113 +3,381 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MUSU Desktop</title>
+    <title>MUSU</title>
+    <!-- fonts are bundled locally (see @font-face in styles.css); no network fetch -->
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <aside class="rail">
+    <div class="grain" aria-hidden="true"></div>
+    <main class="cockpit">
+      <!-- header: brand + single connection dot (the only always-visible status) -->
+      <header class="top">
         <div class="brand">
-          <div class="mark">M</div>
-          <div>
+          <div class="mark" aria-label="MUSU">
+            <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+              <defs>
+                <polygon id="hex" points="0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20" />
+              </defs>
+              <g transform="translate(50, 50)">
+                <use href="#hex" fill="#2D1D19" />
+                <use href="#hex" fill="#FDFCF0" transform="scale(0.65)" />
+                <use href="#hex" fill="#FFD166" transform="scale(0.55)" />
+              </g>
+            </svg>
+          </div>
+          <div class="brand-text">
             <h1>MUSU</h1>
-            <p>Local runtime shell</p>
+            <p>your computers</p>
           </div>
         </div>
+        <div id="conn" class="conn" data-state="checking">
+          <span class="dot"></span>
+          <span id="conn-label">Checking</span>
+        </div>
+      </header>
 
-        <div class="version">__MUSU_VERSION__</div>
-      </aside>
-
-      <section class="workspace">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Local AI operations node</p>
-            <h2>Runtime Control</h2>
-          </div>
-          <div id="overall-pill" class="pill neutral">Checking</div>
-        </header>
-
-        <section class="status-grid" aria-label="Runtime status">
-          <article>
-            <span>Bridge</span>
-            <strong id="bridge-status">Unknown</strong>
-            <small id="bridge-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Debug Dashboard</span>
-            <strong id="dashboard-status">Unknown</strong>
-            <small id="dashboard-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Package</span>
-            <strong id="package-status">Desktop shell</strong>
-            <small id="package-detail">Version __MUSU_VERSION__</small>
-          </article>
-          <article>
-            <span>Connection</span>
-            <strong id="auth-status">Unknown</strong>
-            <small id="auth-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Runtime Profile</span>
-            <strong id="runtime-profile-status">Unknown</strong>
-            <small id="runtime-profile-detail">Waiting for status.</small>
-          </article>
-          <article>
-            <span>Process Ownership</span>
-            <strong id="process-ownership-status">Unknown</strong>
-            <small id="process-ownership-detail">Waiting for status.</small>
-          </article>
-        </section>
-
-        <section id="warnings-panel" class="warnings-panel" aria-label="Warnings" hidden>
-          <div class="warnings-head">
-            <h3>Warnings</h3>
-          </div>
-          <ul id="warning-list"></ul>
-        </section>
-
-        <section class="actions" aria-label="Runtime actions">
-          <button id="refresh" type="button">Refresh</button>
-          <button id="start-runtime" type="button">Start Runtime</button>
-          <button id="open-dashboard" type="button">Open Debug Dashboard</button>
-          <button id="copy-diagnostics" type="button">Copy Diagnostics</button>
-        </section>
-
-        <section class="details" aria-label="Runtime details">
-          <dl>
-            <div>
-              <dt>Bridge URL</dt>
-              <dd id="bridge-url">-</dd>
-            </div>
-            <div>
-              <dt>Debug Dashboard URL</dt>
-              <dd id="dashboard-url">-</dd>
-            </div>
-            <div>
-              <dt>MUSU home</dt>
-              <dd id="musu-home">-</dd>
-            </div>
-            <div>
-              <dt>Active Loop Candidates</dt>
-              <dd id="active-loops">-</dd>
-            </div>
-            <div>
-              <dt>Owned Helpers</dt>
-              <dd id="owned-helpers">-</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="log-panel" aria-label="Runtime log">
-          <div class="log-head">
-            <h3>Event Log</h3>
-            <button id="clear-log" type="button">Clear</button>
-          </div>
-          <pre id="log" aria-live="polite"></pre>
-        </section>
+      <!-- connecting state: shown when not logged in / device-flow pending -->
+      <section id="connecting" class="card connecting" hidden>
+        <div class="connecting-glyph" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <h2>Approve this computer to connect</h2>
+        <div id="connecting-code" class="code-box" hidden>
+          <span class="code-label">pairing code</span>
+          <strong id="code-value">—</strong>
+        </div>
+        <p id="connecting-detail" class="muted">Starting</p>
+        <a id="approve-link" class="btn-primary" href="#" target="_blank" rel="noopener" hidden
+          >Approve in browser <span class="arr">→</span></a
+        >
+        <!-- manual (re)login: shown when device-flow is idle/failed so the user
+             can start sign-in without restarting the app -->
+        <button id="signin-btn" class="btn-primary" type="button" hidden>
+          Sign in <span class="arr">→</span>
+        </button>
       </section>
+
+      <!-- fleet: the spine of the cockpit -->
+      <section id="fleet-section" class="fleet-section" hidden>
+        <div class="section-head">
+          <h2 class="section-title">Your machines</h2>
+          <span class="section-rule" aria-hidden="true"></span>
+          <button
+            id="add-pc-toggle"
+            class="section-action"
+            type="button"
+            aria-expanded="false"
+            aria-controls="add-pc-panel"
+          >
+            Add PC
+          </button>
+        </div>
+        <div id="fleet-filters" class="fleet-filters" aria-label="Filter machines">
+          <button type="button" data-fleet-filter="all" aria-pressed="true">
+            All <span data-fleet-count="all">0</span>
+          </button>
+          <button type="button" data-fleet-filter="online" aria-pressed="false">
+            Online <span data-fleet-count="online">0</span>
+          </button>
+          <button type="button" data-fleet-filter="targetable" aria-pressed="false">
+            Targetable <span data-fleet-count="targetable">0</span>
+          </button>
+          <button type="button" data-fleet-filter="this-pc" aria-pressed="false">
+            This PC <span data-fleet-count="this-pc">0</span>
+          </button>
+          <button type="button" data-fleet-filter="stale" aria-pressed="false">
+            Stale <span data-fleet-count="stale">0</span>
+          </button>
+          <button type="button" data-fleet-filter="offline" aria-pressed="false">
+            Offline <span data-fleet-count="offline">0</span>
+          </button>
+        </div>
+        <div id="mesh-proof-strip" class="mesh-proof-strip" data-state="checking" hidden>
+          <span class="mesh-status-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="mesh-proof-strip-title">Private Mesh proof</strong>
+            <p id="mesh-proof-strip-detail">Waiting for local mesh evidence.</p>
+            <p id="mesh-proof-strip-proof" class="mesh-status-proof" hidden></p>
+            <p id="mesh-proof-strip-diagnostic" class="mesh-status-diagnostic" hidden></p>
+          </div>
+          <button type="button" data-mesh-copy-proof disabled>Copy proof</button>
+        </div>
+        <div id="release-evidence-strip" class="release-evidence-strip" data-state="idle" hidden>
+          <span class="mesh-status-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="release-evidence-title">Release evidence</strong>
+            <p id="release-evidence-detail">Run proof on a Private Mesh peer to generate evidence.</p>
+            <p id="release-evidence-readiness" class="release-evidence-readiness" hidden></p>
+            <p id="release-evidence-next" class="release-evidence-next" hidden></p>
+            <ul id="release-evidence-checks" class="release-evidence-checks" hidden></ul>
+            <code id="release-evidence-path"></code>
+            <label class="release-evidence-input" for="physical-peer-evidence-path">
+              <span>Target PC physical evidence JSON</span>
+              <input
+                id="physical-peer-evidence-path"
+                type="text"
+                placeholder="Paste copied target-pc physical-peer-evidence.json path; keep .sha256 next to it"
+                autocomplete="off"
+              />
+            </label>
+            <div class="release-evidence-input-actions">
+              <button id="physical-peer-evidence-latest" type="button">Use latest</button>
+              <button id="physical-peer-evidence-check" type="button">Check evidence</button>
+            </div>
+            <p id="physical-peer-evidence-status" class="release-evidence-input-status" hidden></p>
+          </div>
+          <div class="release-evidence-actions">
+            <button type="button" data-open-release-evidence disabled>Open folder</button>
+            <button type="button" data-copy-release-evidence disabled>Copy evidence</button>
+            <button type="button" data-copy-release-next-action disabled>Copy next</button>
+          </div>
+        </div>
+        <div id="add-pc-panel" class="add-pc-panel" aria-label="Add another PC" hidden>
+          <div class="add-pc-head">
+            <span>No Tailscale.com signup required.</span>
+            <strong>MUSU Private Mesh</strong>
+          </div>
+          <div id="mesh-status-card" class="mesh-status-card" data-state="checking">
+            <span class="mesh-status-dot" aria-hidden="true"></span>
+            <div>
+              <strong id="mesh-status-title">Checking mesh status</strong>
+              <p id="mesh-status-detail">Looking for local Private Mesh evidence.</p>
+              <p id="mesh-status-proof" class="mesh-status-proof" hidden></p>
+              <p id="mesh-status-next" class="mesh-status-next" hidden></p>
+              <div class="mesh-status-actions">
+                <button id="mesh-doctor" type="button">Run local check</button>
+                <button type="button" data-mesh-copy-proof disabled>Copy proof</button>
+                <button
+                  type="button"
+                  data-copy-text="musu mesh doctor --json"
+                >
+                  Copy doctor command
+                </button>
+              </div>
+            </div>
+          </div>
+          <ol class="add-pc-steps">
+            <li>
+              <span class="step-kicker">Control host</span>
+              <p>Generate your self-hosted Headscale + Caddy HTTPS + embedded DERP bundle. No command to copy — give it your mesh host and click.</p>
+              <div class="bootstrap-row">
+                <input
+                  id="bootstrap-server-url"
+                  type="url"
+                  inputmode="url"
+                  autocomplete="off"
+                  placeholder="https://mesh.your-domain"
+                  aria-label="Mesh control server URL"
+                />
+                <button id="bootstrap-generate" type="button">Generate bundle</button>
+              </div>
+              <p id="bootstrap-result" class="bootstrap-result" hidden></p>
+              <ul id="bootstrap-files" class="bootstrap-files" hidden></ul>
+            </li>
+            <li>
+              <span class="step-kicker">Start control host</span>
+              <p>Bring the control plane online from here — MUSU runs docker compose and confirms Headscale is healthy. (Requires Docker on this machine.)</p>
+              <div class="device-add-actions">
+                <button id="start-control-host" type="button">Start control host</button>
+              </div>
+              <p id="start-control-host-result" class="device-add-pass-result" hidden></p>
+              <p class="add-pc-hint">
+                For a public mesh, point your domain at this host and confirm
+                HTTPS before adding remote PCs:
+                <code>scripts/check-public-endpoint.ps1</code>.
+              </p>
+            </li>
+            <li>
+              <span class="step-kicker">Device-add pass</span>
+              <p>With the control host running, issue a one-use MUSU device-add pass from this cockpit. MUSU writes the secret-bearing pass under <code>device-add-passes/</code> and only shows the file path to copy to the target PC.</p>
+              <div class="device-add-pass">
+                <strong>Pass schema</strong>
+                <code>musu.device_add.v1</code>
+              </div>
+              <div class="device-add-actions">
+                <button id="device-add-pass-generate" type="button">Issue pass</button>
+                <button id="device-add-pass-copy" type="button" data-copy-text="" hidden>Copy path</button>
+              </div>
+              <p id="device-add-pass-result" class="device-add-pass-result" hidden></p>
+            </li>
+            <li>
+              <span class="step-kicker">Every PC</span>
+              <p>Copy that generated pass file to each target PC, then join with the pass path. MUSU rechecks the public /health endpoint before marking the control server verified and consumes the secret-bearing file after a successful join.</p>
+              <div class="command-row">
+                <code>musu mesh join --device-add-pass &lt;musu.device_add.v1.json&gt;</code>
+                <button
+                  type="button"
+                  data-copy-text="musu mesh join --device-add-pass &lt;musu.device_add.v1.json&gt;"
+                >
+                  Copy
+                </button>
+              </div>
+              <div class="command-row">
+                <code>musu mesh verify --target-ip &lt;peer-100.x.y.z&gt;</code>
+                <button
+                  type="button"
+                  data-copy-text="musu mesh verify --target-ip &lt;peer-100.x.y.z&gt;"
+                >
+                  Copy
+                </button>
+              </div>
+              <div class="command-row">
+                <code>musu mesh physical-peer-evidence --json</code>
+                <button
+                  type="button"
+                  data-copy-text="musu mesh physical-peer-evidence --json"
+                >
+                  Copy
+                </button>
+              </div>
+            </li>
+            <li>
+              <span class="step-kicker">Release proof</span>
+              <p>Copy the physical-peer evidence JSON and its `.sha256` sidecar from the target PC to the same folder on the source PC, then run release proof. Without that target-generated pair, MUSU shows only software route proof, not final release trust.</p>
+              <div class="command-row">
+                <code>musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100.x.y.z&gt; --expected-control-server-url https://mesh.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence.json&gt; --json</code>
+                <button
+                  type="button"
+                  data-copy-text="musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100.x.y.z&gt; --expected-control-server-url https://mesh.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence.json&gt; --json"
+                >
+                  Copy
+                </button>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <ul id="fleet-list" class="fleet-list" aria-label="Your machines"></ul>
+        <p id="fleet-filter-empty" class="fleet-filter-empty" hidden>No machines match.</p>
+
+        <!-- empty state (only this PC / none) -->
+        <div id="fleet-empty" class="card empty" hidden>
+          <div class="empty-glyph" aria-hidden="true">+</div>
+          <p class="empty-title">This is your only machine.</p>
+          <p class="muted">Install MUSU on another PC to build your fleet.</p>
+          <button id="empty-add-pc" class="btn-secondary" type="button">Show Add PC guide</button>
+          <a class="btn-primary" href="https://musu.pro" target="_blank" rel="noopener"
+            >Get MUSU for another PC <span class="arr">→</span></a
+          >
+        </div>
+
+        <section id="connector-policy" class="connector-policy" data-policy="idle">
+          <div class="connector-policy-copy">
+            <span class="connector-kicker">Connector gate</span>
+            <strong>External APIs are reviewed before MUSU uses them.</strong>
+            <p>
+              Source, license, secrets, data egress, cost, proof, and retry payload must be known.
+              Random API marketplaces and scraping catalogs stay discovery-only.
+            </p>
+          </div>
+          <form id="connector-review-form" class="connector-review-form">
+            <label for="connector-review-input">Review an API/MCP/scraper</label>
+            <div class="connector-review-row">
+              <input
+                id="connector-review-input"
+                type="text"
+                placeholder="Paste connector name, URL, or description"
+                autocomplete="off"
+              />
+              <button id="connector-review-button" type="submit">Review</button>
+            </div>
+            <p id="connector-review-result" class="connector-review-result" hidden></p>
+          </form>
+          <div class="connector-policy-chips" aria-label="Connector trust rules">
+            <span>Local built-ins first</span>
+            <span>Official APIs need scoped keys</span>
+            <span>Scraping/lead/download gets blocked or warned</span>
+          </div>
+          <div class="connector-registry-head">
+            <strong>Curated connector runway</strong>
+            <span>review-ready, not marketplace import</span>
+          </div>
+          <ul id="connector-registry" class="connector-registry" aria-label="Curated connectors"></ul>
+        </section>
+
+        <!-- order box: give the fleet work (P0 input path → submit_order) -->
+        <div class="order-box">
+          <span class="order-prompt" aria-hidden="true">›</span>
+          <input
+            id="order-input"
+            type="text"
+            placeholder="What should they do?"
+            autocomplete="off"
+          />
+          <select id="order-target" aria-label="Target machine">
+            <option value="">any machine</option>
+          </select>
+          <button id="order-send">Send</button>
+        </div>
+        <p id="order-target-disclosure" class="order-target-disclosure" data-boundary="auto">
+          Auto-route: MUSU will choose an online target when you send.
+        </p>
+        <p id="order-status" class="order-status" hidden></p>
+
+        <!-- task feed: attention-grouped inbox (S-tier). Orders surface where
+             they need you first: running → done. Each group hides when empty. -->
+        <div id="task-feed" class="task-feed" aria-label="Recent work" hidden>
+          <section class="task-group" data-group="running" hidden>
+            <h3 class="task-group-title">Running</h3>
+            <ul class="task-group-list"></ul>
+          </section>
+          <section class="task-group" data-group="done" hidden>
+            <h3 class="task-group-title">Done</h3>
+            <ul class="task-group-list"></ul>
+          </section>
+        </div>
+      </section>
+
+      <!-- diagnostics: the OLD engineer view, demoted behind a disclosure -->
+      <details id="diagnostics" class="diagnostics">
+        <summary><span class="sum-tick" aria-hidden="true"></span>Having trouble?</summary>
+        <div class="diag-grid">
+          <div class="diag-row"><span>Account</span><strong id="d-account">—</strong></div>
+          <div class="diag-row"><span>Bridge</span><strong id="d-bridge">—</strong></div>
+          <div class="diag-row"><span>Connection</span><strong id="d-conn">—</strong></div>
+          <div class="diag-row"><span>Runtime</span><strong id="d-runtime">—</strong></div>
+          <div class="diag-row"><span>Dashboard</span><strong id="d-dashboard">—</strong></div>
+          <div class="diag-row"><span>Package</span><strong id="package-status">—</strong></div>
+          <div class="diag-row"><span>Auth</span><strong id="auth-status">—</strong></div>
+          <div class="diag-row"><span>Runtime profile</span><strong id="runtime-profile-status">—</strong></div>
+          <div class="diag-row">
+            <span>Process ownership</span><strong id="process-ownership-status">—</strong>
+          </div>
+          <div class="diag-row"><span>Owned helpers</span><strong id="owned-helpers">—</strong></div>
+        </div>
+        <!-- account actions: sign out (when signed in) / sign in (when not) -->
+        <div class="diag-actions">
+          <button id="d-signout" type="button" hidden>Sign out</button>
+          <button id="d-signin" type="button" hidden>Sign in</button>
+        </div>
+        <div id="warnings-panel" class="warnings-panel" hidden>
+          <strong>Needs review</strong>
+          <ul id="warning-list"></ul>
+        </div>
+        <div id="diag-warnings" class="diag-warnings" hidden></div>
+        <div class="diag-actions">
+          <button id="start-runtime" type="button" disabled>Start Runtime</button>
+          <button id="open-dashboard" type="button" hidden>Open dashboard</button>
+          <button id="d-refresh" type="button">Refresh</button>
+          <button id="d-copy" type="button">Copy diagnostics</button>
+        </div>
+        <p class="diag-version" id="version">—</p>
+      </details>
     </main>
+
+    <!-- command palette (Ctrl/Cmd+K) — keyboard-first, premium speed -->
+    <div id="palette" class="palette-backdrop" hidden>
+      <div class="palette-box" role="dialog" aria-label="Command palette">
+        <input
+          id="palette-input"
+          class="palette-input"
+          type="text"
+          placeholder="Type a command…"
+          autocomplete="off"
+        />
+        <ul id="palette-results" class="palette-results"></ul>
+      </div>
+    </div>
+
     <script src="./main.js"></script>
   </body>
 </html>

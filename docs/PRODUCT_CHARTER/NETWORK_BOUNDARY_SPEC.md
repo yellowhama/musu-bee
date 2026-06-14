@@ -119,6 +119,31 @@ This reinforces the boundary: MUSU.PRO may coordinate and relay only when
 properly proven, but local MUSU Desktop remains the executor and the preview
 queue cannot be marketed or treated as release-grade remote transport.
 
+## 2026-06-14 Private Mesh no-signup and desktop process boundary update
+
+The default multi-machine product boundary is now explicit:
+
+- MUSU Core works on localhost and LAN without a third-party account.
+- MUSU Private Mesh is the default cross-network path, using a
+  Tailscale-compatible client pointed at MUSU-managed or operator-managed
+  Headscale through a MUSU `musu.device_add.v1` pass.
+- Tailscale.com is not required setup. It remains only an explicit external
+  tailnet opt-in or low-level protocol comparison.
+- Public user docs should say `tailnet_ip` / `MUSU Private Mesh`; legacy
+  `tailscale_ip` may remain as an accepted compatibility field and protocol
+  evidence detail.
+- Passive desktop refresh must not spawn recurring CLI children. The cockpit
+  fleet list reads the local bridge `/api/fleet/status` endpoint directly, and
+  Private Mesh status refresh is cached/deduplicated.
+- Local bridge auth failures are not an empty fleet. `401` and `403` are
+  `local_fleet_auth_failed` so the cockpit can show Review instead of hiding a
+  broken trust boundary behind a local fallback row.
+
+Current evidence and qualitative status are tracked in:
+
+- `docs/RELEASE_1_15_0_RC1_DESKTOP_CONSOLE_FLICKER_AND_FLEET_REFRESH_HARDENING_2026_06_14.md`
+- `docs/RELEASE_1_15_0_RC1_PRIVATE_MESH_CONSOLE_FLICKER_DOC_SYNC_AND_AUDIT_2026_06_14.md`
+
 ## 2026-06-06 Relay Proof Identity Boundary Update
 
 Hosted relay proof must bind peer identity to the relay transport proof itself,

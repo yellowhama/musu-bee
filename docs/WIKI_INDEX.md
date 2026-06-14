@@ -8144,4 +8144,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `GOAL v967`, `wiki/1142`, `3104 files`, `2937 symbols`,
   `18704 ms`, `auto-update supervise cancellation`, and `146/146`.
 
+- 2026-06-14 Private Mesh console flicker, no-signup docs, and auth-boundary
+  audit:
+  wiki/1152 records the installed MSIX `1.15.0.2` passive refresh process
+  proof, local bridge fleet refresh without `musu.exe nodes`, cached
+  Private Mesh status refresh, public setup docs using MUSU Private Mesh and
+  `musu.device_add.v1`, and the `local_fleet_auth_failed` fix for bridge
+  `401`/`403`. Search terms should include `wiki/1152`,
+  `local_fleet_auth_failed`, `musu.device_add.v1`, `tailnet_ip`,
+  `nodes_processes=0`, `mesh_status_processes=0`,
+  `other_child_cli_processes=0`, and `No Tailscale.com account`.
+
+- 2026-06-14 Private Mesh console flicker doc sync index refresh:
+  wiki/1153 records the MUSU local index refresh after wiki/1152 with
+  `3189 files`, `3471 symbols`, and `94475 ms`. Search terms should include
+  `wiki/1153`, `local_fleet_auth_failed`, `musu.device_add.v1`,
+  `tailnet_ip`, `Private Mesh console flicker`, and
+  `No Tailscale.com account`.
+
 **End of WIKI_INDEX.md.**

@@ -339,9 +339,9 @@ fn fixtures() -> Vec<Fixture> {
     ]
 }
 
-/// Acceptance #4 (initialize) + #5 (14 tools per C-R4-3) + #8 (T2 suffix).
+/// Acceptance #4 (initialize) + #5 (19 tools) + #8 (T2 suffix).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn r3_mcp_initialize_lists_14_tools_with_t2_suffix() {
+async fn r3_mcp_initialize_lists_19_tools_with_t2_suffix() {
     let harness = boot().await;
 
     let listed = harness
@@ -349,10 +349,12 @@ async fn r3_mcp_initialize_lists_14_tools_with_t2_suffix() {
         .list_all_tools()
         .await
         .expect("list_all_tools");
+    // R3 13 + search_company (14) + kvm_control (15) + V28 get_task_result &
+    // get_fleet_status (17) + get_setup_status & set_default_adapter (19).
     assert_eq!(
         listed.len(),
-        14,
-        "expected 14 tools (R3 13 + R4 search_company); got: {:?}",
+        19,
+        "expected 19 tools (+ V28 setup tools get_setup_status/set_default_adapter); got: {:?}",
         listed.iter().map(|t| t.name.as_ref()).collect::<Vec<_>>()
     );
 

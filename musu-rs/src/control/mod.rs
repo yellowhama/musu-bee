@@ -6,9 +6,12 @@
 //!   1. `main.rs` set up stderr-only `tracing` BEFORE entering this fn.
 //!   2. Eagerly construct `BridgeClient` — token-resolve failure returns Err
 //!      before any byte hits stdout.
-//!   3. Build the `ServerHandler` with all 14 tool routes pre-registered.
-//!      (R3 shipped 13; R4 wiki/494 adds `search_company` as the 14th —
-//!      see Critic C-R4-3.)
+//!   3. Build the `ServerHandler` with all 19 tool routes pre-registered.
+//!      (R3 shipped 13; R4 wiki/494 adds `search_company` as the 14th;
+//!      `kvm_control` is the 15th; V28 adds `get_task_result` +
+//!      `get_fleet_status` (16th/17th — poll a task, pick a fleet machine) and
+//!      `get_setup_status` + `set_default_adapter` (18th/19th — the LLM
+//!      configures the machine: "set up my computer").)
 //!   4. `serve((stdin, stdout))` — rmcp's `AsyncRwTransport` returns on
 //!      stdin EOF, so `service.waiting()` resolves when the client closes
 //!      its stdin. C8 belt-and-suspenders: we run that `waiting()` future
@@ -35,14 +38,16 @@ use rmcp::{tool, tool_handler, tool_router, ErrorData, ServerHandler, ServiceExt
 use tokio_util::sync::CancellationToken;
 
 pub mod bridge_client;
-// V26-W13 wiki/513: MCP HTTP+SSE server (same 14 tools over HTTP).
+// V26-W13 wiki/513: MCP HTTP+SSE server (the 17 stdio tools + 3 HTTP-only mesh
+// tools over HTTP — see http_server.rs::tool_definitions()).
 pub mod http_server;
 pub mod tools;
 
 use bridge_client::BridgeClient;
 use tools::params::{
     CancelTaskParams, CreateCompanyParams, DelegateTaskParams, GetAgentParams, GetCompanyParams,
-    KvmControlParams, RunCompanyParams, SearchCompanyParams,
+    GetTaskResultParams, KvmControlParams, RunCompanyParams, SearchCompanyParams,
+    SetDefaultAdapterParams,
 };
 
 /// The MCP server. Holds the eagerly-constructed bridge client + the rmcp
@@ -145,7 +150,7 @@ impl ControlServer {
     /// delegate_task — proxies POST /api/tasks/delegate.
     #[tool(
         name = "delegate_task",
-        description = "Delegate a task to an agent via the local musu bridge writer."
+        description = "Send a task to a machine in your fleet. Set target_node to choose a specific machine, or needs_gpu/prefer_os to auto-route by capability. Returns a task_id; poll it with get_task_result."
     )]
     async fn delegate_task(
         &self,
@@ -153,6 +158,18 @@ impl ControlServer {
     ) -> Result<CallToolResult, ErrorData> {
         let body = serde_json::to_value(&p).map_err(serialize_err)?;
         ok_text(self.bridge.delegate_task(&body).await)
+    }
+
+    /// get_task_result — V28. Proxies GET /api/tasks/:task_id.
+    #[tool(
+        name = "get_task_result",
+        description = "Get a task's status and result (output/error) by task_id. Poll this after delegate_task to see when work on a machine finished and read what it produced."
+    )]
+    async fn get_task_result(
+        &self,
+        Parameters(p): Parameters<GetTaskResultParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.get_task_result(&p.task_id).await)
     }
 
     /// cancel_task — proxies DELETE /api/tasks/:task_id (R5).
@@ -176,6 +193,36 @@ impl ControlServer {
     )]
     async fn list_nodes(&self) -> Result<CallToolResult, ErrorData> {
         ok_text(self.bridge.list_nodes().await)
+    }
+
+    /// get_fleet_status — V28. Proxies GET /api/fleet/status.
+    #[tool(
+        name = "get_fleet_status",
+        description = "Get every machine in your fleet with its capabilities (gpu_present, gpu_vram_gb, cpu_cores, os) and live status (online, active_tasks). Use this to pick which machine to send a task to before calling delegate_task."
+    )]
+    async fn get_fleet_status(&self) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.get_fleet_status().await)
+    }
+
+    /// get_setup_status — V28. Proxies GET /api/setup/status.
+    #[tool(
+        name = "get_setup_status",
+        description = "Diagnose THIS machine's MUSU setup before configuring it: which agent CLIs are installed (codex/claude/gemini), whether a local Ollama/ComfyUI is running, the current and recommended default adapter, and login state. Call this first when the user asks you to set up their computer, then use set_default_adapter."
+    )]
+    async fn get_setup_status(&self) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.get_setup_status().await)
+    }
+
+    /// set_default_adapter — V28. Proxies POST /api/setup/default-adapter.
+    #[tool(
+        name = "set_default_adapter",
+        description = "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env and applies immediately. Use after get_setup_status to configure the machine — e.g. set 'codex' if codex is installed, or 'echo' as a zero-dependency floor."
+    )]
+    async fn set_default_adapter(
+        &self,
+        Parameters(p): Parameters<SetDefaultAdapterParams>,
+    ) -> Result<CallToolResult, ErrorData> {
+        ok_text(self.bridge.set_default_adapter(&p.adapter).await)
     }
 
     // ── T1 strictly-native: R4 indexer (1 tool) ──────────────────────────

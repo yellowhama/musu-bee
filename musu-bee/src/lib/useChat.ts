@@ -127,7 +127,12 @@ export function useChat(
     return onlineNode?.name ?? availableNodes[0]?.name ?? "local";
   }, [availableNodes]);
 
-  const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? getDefaultNode());
+  // H8: initialize hydration-safe. getDefaultNode() depends on availableNodes,
+  // which is empty during SSR but populated after the client fetches — using it
+  // as the initial value caused a server("local")/client(other node) hydration
+  // mismatch. Start from a deterministic value and resolve the real default in
+  // an effect after mount (see below).
+  const [activeNode, setActiveNode] = useState<string>(selectedNodeId ?? "local");
   const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
 
   const esRef = useRef<EventSource | null>(null);
@@ -365,12 +370,15 @@ export function useChat(
           type?: string;
           task_id?: string;
           status?: string;
+          channel?: string | null;
           output?: string | null;
           error?: string | null;
           assigned_pc?: string | null;
           duration_sec?: number | null;
         };
         if (data.type !== "task_update" || !data.task_id) return;
+        const eventChannel = data.channel?.trim();
+        if (eventChannel && eventChannel !== channel) return;
         if (data.status === "running" || data.status === "pending") {
           setIsAgentTyping(true);
           return;
@@ -431,8 +439,7 @@ export function useChat(
     closeEventSource();
     resetReconnectState();
     connect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeNode, clearReconnectTimer, closeEventSource, resetReconnectState]);
+  }, [activeNode, clearReconnectTimer, closeEventSource, connect, isAgentChannel, resetReconnectState]);
 
   // ── musu-bridge agent route ────────────────────────────────────────────────
 
@@ -516,7 +523,7 @@ export function useChat(
         setIsAgentTyping(false);
       }
     },
-    [appendChatMessage, channel],
+    [appendChatMessage, channel, selectedAdapter],
   );
 
   // ── Command handlers ───────────────────────────────────────────────────────

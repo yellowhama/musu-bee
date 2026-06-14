@@ -1,6 +1,10 @@
 //! MCP HTTP+SSE server — wiki/513 V26-W13.
 //!
-//! Exposes the same 14 tools as `musu control` (stdio MCP) over HTTP+SSE.
+//! Exposes the 17 stdio `musu control` tools PLUS 3 HTTP-only mesh tools
+//! (run_remote_command / read_remote_file / write_remote_file) = 20 total.
+//! (V28 added get_task_result + get_fleet_status — keep the SHARED tools in
+//! lock-step with `mod.rs`: both `dispatch()` and `tool_definitions()` mirror
+//! the stdio set, plus the 3 mesh tools that are HTTP-only today.)
 //! Mount point: `/mcp/v1/*` on the single musu port (8070 default).
 //!
 //! Architecture:
@@ -302,6 +306,16 @@ async fn dispatch_tool(
                 .map_err(|e| format!("{e}"))
         }
         "delegate_task" => bridge.delegate_task(args).await.map_err(|e| format!("{e}")),
+        "get_task_result" => {
+            let task_id = args
+                .get("task_id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "task_id required".to_string())?;
+            bridge
+                .get_task_result(task_id)
+                .await
+                .map_err(|e| format!("{e}"))
+        }
         "cancel_task" => {
             let p: CancelTaskParams =
                 serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
@@ -311,6 +325,18 @@ async fn dispatch_tool(
                 .map_err(|e| format!("{e}"))
         }
         "list_nodes" => bridge.list_nodes().await.map_err(|e| format!("{e}")),
+        "get_fleet_status" => bridge.get_fleet_status().await.map_err(|e| format!("{e}")),
+        "get_setup_status" => bridge.get_setup_status().await.map_err(|e| format!("{e}")),
+        "set_default_adapter" => {
+            let adapter = args
+                .get("adapter")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "adapter required".to_string())?;
+            bridge
+                .set_default_adapter(adapter)
+                .await
+                .map_err(|e| format!("{e}"))
+        }
         "search_company" => {
             let p: SearchCompanyParams =
                 serde_json::from_value(args.clone()).map_err(|e| format!("invalid params: {e}"))?;
@@ -487,9 +513,13 @@ fn tool_definitions() -> Vec<McpToolInfo> {
         McpToolInfo { name: "create_company".into(), description: "Create a new company on the local musu bridge.".into(), input_schema: serde_json::json!({"type":"object","properties":{"name":{"type":"string"},"purpose":{"type":"string"},"work_dir":{"type":"string"}}}) },
         McpToolInfo { name: "activate_company".into(), description: "Activate (set status=active) a company on the local musu bridge.".into(), input_schema: serde_json::json!({"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}) },
         McpToolInfo { name: "run_company".into(), description: "Start a run for a company on the local musu bridge.".into(), input_schema: serde_json::json!({"type":"object","properties":{"id":{"type":"string"},"body":{"type":"object"}},"required":["id"]}) },
-        McpToolInfo { name: "delegate_task".into(), description: "Delegate a task to an agent via the local musu bridge writer.".into(), input_schema: serde_json::json!({"type":"object","properties":{"channel":{"type":"string"},"sender_id":{"type":"string"},"text":{"type":"string"}}}) },
+        McpToolInfo { name: "delegate_task".into(), description: "Send a task to a machine in your fleet. Set target_node to choose a specific machine, or needs_gpu/prefer_os to auto-route by capability. Returns a task_id; poll it with get_task_result.".into(), input_schema: serde_json::json!({"type":"object","properties":{"channel":{"type":"string"},"sender_id":{"type":"string"},"text":{"type":"string"},"target_node":{"type":"string"},"needs_gpu":{"type":"boolean"},"prefer_os":{"type":"string"},"adapter_type":{"type":"string"}},"required":["channel","sender_id","text"]}) },
+        McpToolInfo { name: "get_task_result".into(), description: "Get a task's status and result (output/error) by task_id. Poll this after delegate_task to see when work on a machine finished and read what it produced.".into(), input_schema: serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]}) },
         McpToolInfo { name: "cancel_task".into(), description: "Cancel a running task on the local musu bridge writer.".into(), input_schema: serde_json::json!({"type":"object","properties":{"task_id":{"type":"string"}},"required":["task_id"]}) },
         McpToolInfo { name: "list_nodes".into(), description: "List musu nodes (self + peers) known to the local bridge.".into(), input_schema: empty.clone() },
+        McpToolInfo { name: "get_fleet_status".into(), description: "Get every machine in your fleet with its capabilities (gpu_present, gpu_vram_gb, cpu_cores, os) and live status (online, active_tasks). Use this to pick which machine to send a task to before calling delegate_task.".into(), input_schema: empty.clone() },
+        McpToolInfo { name: "get_setup_status".into(), description: "Diagnose THIS machine's MUSU setup (installed agent CLIs, local Ollama/ComfyUI, current+recommended default adapter, login). Call first when asked to set up the computer.".into(), input_schema: empty.clone() },
+        McpToolInfo { name: "set_default_adapter".into(), description: "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env, applies now.".into(), input_schema: serde_json::json!({"type":"object","properties":{"adapter":{"type":"string"}},"required":["adapter"]}) },
         McpToolInfo { name: "search_company".into(), description: "Full-text search a company's workspace index.".into(), input_schema: serde_json::json!({"type":"object","properties":{"workspace":{"type":"string"},"q":{"type":"string"},"scope":{"type":"string"},"limit":{"type":"integer"}},"required":["workspace","q"]}) },
         McpToolInfo { name: "run_remote_command".into(), description: "Execute a command on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"}},"required":["node_id","command"]}) },
         McpToolInfo { name: "read_remote_file".into(), description: "Read a file from a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"}},"required":["node_id","path"]}) },

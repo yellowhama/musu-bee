@@ -155,9 +155,13 @@ pub async fn run_company(
                     cwd,
                     model: req.model.clone(),
                     timeout_sec: req.timeout_sec,
-                    adapter_type: req.adapter_type.clone().unwrap_or_else(|| "claude".into()),
+                    adapter_type: req
+                        .adapter_type
+                        .clone()
+                        .unwrap_or_else(crate::bridge::handlers::tasks::default_adapter_type),
                     callback_url: None,
                     source_task_id: None,
+                    callback_token: None,
                 })
                 .await
                 .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;

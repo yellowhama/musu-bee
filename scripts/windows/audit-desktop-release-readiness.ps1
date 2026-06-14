@@ -409,7 +409,7 @@ if ($latestBundle) {
     Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
     $bundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
     if (Test-Path -LiteralPath $bundleVerifier) {
-        $bundleVerifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -Json 2>&1
+        $bundleVerifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -SkipDesktopEntrypoint -Json 2>&1
         if ($LASTEXITCODE -eq 0) {
             $bundleVerify = ($bundleVerifyOutput | Out-String).Trim() | ConvertFrom-Json
             if ([bool]$bundleVerify.ok) {
@@ -497,6 +497,10 @@ $playwrightCiConfig = Join-Path $appRoot "playwright.ci.config.ts"
 
 if (Test-Path -LiteralPath $privacyPage) {
     Add-Check "store-metadata" "privacy policy route" "pass" "Public privacy route exists at /privacy."
+    $privacyText = Get-Content -LiteralPath $privacyPage -Raw
+    Add-Check "store-metadata" "privacy policy required text" `
+        ($(if ($privacyText.Contains("MUSU Privacy Policy") -and $privacyText.Contains("Data MUSU may process") -and $privacyText.Contains("SUPPORT_EMAIL")) { "pass" } else { "fail" })) `
+        ($(if ($privacyText.Contains("MUSU Privacy Policy") -and $privacyText.Contains("Data MUSU may process") -and $privacyText.Contains("SUPPORT_EMAIL")) { "Privacy source contains Partner Center required text and support email binding." } else { "Privacy source is missing Partner Center required text or support email binding." }))
 }
 else {
     Add-Check "store-metadata" "privacy policy route" "fail" "Public privacy route is missing."
@@ -504,6 +508,10 @@ else {
 
 if (Test-Path -LiteralPath $supportPage) {
     Add-Check "store-metadata" "support route" "pass" "Public support route exists at /support."
+    $supportText = Get-Content -LiteralPath $supportPage -Raw
+    Add-Check "store-metadata" "support required text" `
+        ($(if ($supportText.Contains("MUSU Support") -and $supportText.Contains("Include this diagnostic evidence") -and $supportText.Contains("SUPPORT_EMAIL")) { "pass" } else { "fail" })) `
+        ($(if ($supportText.Contains("MUSU Support") -and $supportText.Contains("Include this diagnostic evidence") -and $supportText.Contains("SUPPORT_EMAIL")) { "Support source contains Partner Center required text and support email binding." } else { "Support source is missing Partner Center required text or support email binding." }))
 }
 else {
     Add-Check "store-metadata" "support route" "fail" "Public support route is missing."
