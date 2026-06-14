@@ -32,6 +32,7 @@ pub fn run() {
             private_mesh_bootstrap,
             private_mesh_start_control_host,
             private_mesh_create_join_key,
+            private_mesh_join,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -278,6 +279,17 @@ struct PrivateMeshStartControlHostDesktopResult {
     output: String,
 }
 
+/// Result of `private_mesh_join` — the cockpit's "Join this PC to a mesh"
+/// action on a NEW machine. Takes the device-add pass file copied from the
+/// control host and runs `mesh join`, so a fresh PC joins the fleet from a
+/// button + paste instead of a typed `musu mesh join` command.
+#[derive(serde::Serialize)]
+struct PrivateMeshJoinDesktopResult {
+    ok: bool,
+    error: Option<String>,
+    output: String,
+}
+
 #[derive(serde::Serialize)]
 struct PrivateMeshReleaseProofDesktopResult {
     ok: bool,
@@ -383,6 +395,12 @@ struct TaskStatus {
 const DOCTOR_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const PRIVATE_MESH_DOCTOR_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
 const RELEASE_PROOF_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(150);
+const ADD_PC_BOOTSTRAP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
+const ADD_PC_CREATE_JOIN_KEY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+const ADD_PC_START_CONTROL_HOST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(180);
+// `mesh join` runs `tailscale up` + a control-server /health re-check; give the
+// handshake the same headroom as create-join-key.
+const ADD_PC_JOIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 // submit_order's outer timeout MUST exceed `musu route`'s internal HTTP submit
 // timeout (10s, cli_commands.rs). If they were equal, an order the bridge queued
 // at ~9.9s could be killed at 10.0s before run_route finished — reporting failure
@@ -889,7 +907,7 @@ fn private_mesh_bootstrap(
     let result = run_command_with_timeout(
         &command,
         &["mesh", "bootstrap", "--server-url", &server_url, "--json"],
-        DOCTOR_STATUS_TIMEOUT,
+        ADD_PC_BOOTSTRAP_TIMEOUT,
     )
     .map_err(|err| {
         format!(
@@ -959,12 +977,12 @@ fn private_mesh_bootstrap(
 #[tauri::command]
 fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResult, String> {
     let command = musu_command_path();
-    // Minting a key talks to a container (docker exec) and can take a few
-    // seconds; give it the same headroom as a doctor run.
+    // Minting a key talks to Headscale through a generated helper; the CLI has
+    // its own 45s helper timeout, so the desktop parent gets a little headroom.
     let result = run_command_with_timeout(
         &command,
         &["mesh", "create-join-key", "--json"],
-        PRIVATE_MESH_DOCTOR_TIMEOUT,
+        ADD_PC_CREATE_JOIN_KEY_TIMEOUT,
     )
     .map_err(|err| {
         format!(
@@ -1025,12 +1043,13 @@ fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResul
 #[tauri::command]
 fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDesktopResult, String> {
     let command = musu_command_path();
-    // `docker compose up -d` plus a health-retry loop can take ~30s on a cold
-    // image pull; give it a minute.
+    // `docker compose up -d` plus image pulls and a health-retry loop can exceed
+    // a minute on a cold host; keep the desktop wrapper above the CLI's bounded
+    // docker steps so it can return the real stage/error.
     let result = run_command_with_timeout(
         &command,
         &["mesh", "start-control-host", "--json"],
-        std::time::Duration::from_secs(60),
+        ADD_PC_START_CONTROL_HOST_TIMEOUT,
     )
     .map_err(|err| {
         format!(
@@ -1069,6 +1088,56 @@ fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDeskto
             .get("error")
             .and_then(|v| v.as_str())
             .map(str::to_string),
+        output: combined,
+    })
+}
+
+/// `private_mesh_join` — join THIS machine to a MUSU Private Mesh from the
+/// cockpit, using the device-add pass file copied from the control host.
+/// Proxies `musu mesh join --device-add-pass <path> --json` so a new PC joins
+/// the fleet from a button, not a typed command. The pass file path must be a
+/// real, readable path (the pass carries the secret; we never inline it).
+#[tauri::command]
+fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, String> {
+    let pass_path = pass_path.trim().to_string();
+    if pass_path.is_empty() {
+        return Err("Paste the path to the device-add pass file copied from the control host.".to_string());
+    }
+    if !std::path::Path::new(&pass_path).is_file() {
+        return Ok(PrivateMeshJoinDesktopResult {
+            ok: false,
+            error: Some(format!(
+                "No file at {pass_path}. Copy the musu.device_add.v1.json from the control host first."
+            )),
+            output: String::new(),
+        });
+    }
+
+    let command = musu_command_path();
+    // join runs `tailscale up` and re-checks the control server /health; allow
+    // generous time for the handshake.
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "join", "--device-add-pass", &pass_path, "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh join --device-add-pass: {err}",
+            command.display()
+        )
+    })?;
+    if result.timed_out {
+        return Err(format!(
+            "{} mesh join timed out (control server handshake)",
+            command.display()
+        ));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
         output: combined,
     })
 }

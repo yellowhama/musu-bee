@@ -2454,6 +2454,56 @@ async function runMeshBootstrap() {
   }
 }
 
+// Add PC final step on the NEW PC: paste the copied device-add pass file path
+// and join the fleet from a button (private_mesh_join) instead of typing
+// `musu mesh join`. The join runs tailscale up + control-server health re-check.
+async function runMeshJoin() {
+  const btn = $("join-run");
+  const input = $("join-pass-path");
+  const resultEl = $("join-result");
+  if (!btn || !input) return;
+  const passPath = input.value.trim();
+  if (!passPath) {
+    if (resultEl) {
+      resultEl.hidden = false;
+      resultEl.dataset.state = "error";
+      resultEl.textContent = "Paste the path to the device-add pass file copied from the control host.";
+    }
+    input.focus();
+    return;
+  }
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  input.disabled = true;
+  btn.textContent = "Joining…";
+  if (resultEl) {
+    resultEl.hidden = false;
+    resultEl.dataset.state = "running";
+    resultEl.textContent = "Joining the mesh (tailscale up + control-server health re-check)…";
+  }
+  try {
+    const r = await invoke("private_mesh_join", { passPath });
+    if (resultEl) {
+      if (r && r.ok) {
+        resultEl.dataset.state = "ok";
+        resultEl.textContent = "Joined the MUSU Private Mesh. This PC is now part of the fleet — refresh to see it.";
+      } else {
+        resultEl.dataset.state = "error";
+        resultEl.textContent = (r && r.error) || "Join failed. Check the pass file path and that the control host is online.";
+      }
+    }
+  } catch (err) {
+    if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = `Join failed: ${String(err)}`;
+    }
+  } finally {
+    btn.disabled = false;
+    input.disabled = false;
+    btn.textContent = oldText || "Join this PC";
+  }
+}
+
 // Add PC step 2 as a product action: bring the control plane online (docker
 // compose up + Headscale health) from the cockpit instead of a copied docker
 // command. Long-running (image pull / boot), so the button reflects progress.
@@ -3934,6 +3984,13 @@ document.querySelectorAll("[data-copy-text]").forEach((btn) => {
 $("mesh-doctor")?.addEventListener("click", runPrivateMeshDoctor);
 $("bootstrap-generate")?.addEventListener("click", runMeshBootstrap);
 $("start-control-host")?.addEventListener("click", runStartControlHost);
+$("join-run")?.addEventListener("click", runMeshJoin);
+$("join-pass-path")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    runMeshJoin();
+  }
+});
 $("device-add-pass-generate")?.addEventListener("click", runDeviceAddPassIssue);
 $("bootstrap-server-url")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {

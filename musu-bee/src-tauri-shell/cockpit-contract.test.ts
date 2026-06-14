@@ -478,6 +478,31 @@ test("desktop child CLI commands are hidden, and fleet refresh avoids child proc
   assert.match(main, /\$\("open-dashboard"\)\.addEventListener\("click", \(e\) => openDashboard\(e\.currentTarget\)\)/);
 });
 
+test("Add PC native commands use named outer timeouts aligned to bounded CLI work", () => {
+  const tauri = source("src-tauri/src/lib.rs");
+
+  assert.match(tauri, /const ADD_PC_BOOTSTRAP_TIMEOUT:[\s\S]*from_secs\(25\)/);
+  assert.match(tauri, /const ADD_PC_CREATE_JOIN_KEY_TIMEOUT:[\s\S]*from_secs\(60\)/);
+  assert.match(tauri, /const ADD_PC_START_CONTROL_HOST_TIMEOUT:[\s\S]*from_secs\(180\)/);
+
+  const bootstrap =
+    tauri.match(/fn private_mesh_bootstrap\([\s\S]*?\n}\n\n\/\/\/ `private_mesh_create_join_key`/)?.[0] ||
+    "";
+  const createJoinKey =
+    tauri.match(/fn private_mesh_create_join_key\([\s\S]*?\n}\n\n\/\/\/ `private_mesh_start_control_host`/)?.[0] ||
+    "";
+  const startControlHost =
+    tauri.match(/fn private_mesh_start_control_host\([\s\S]*?\n}\n\n#\[tauri::command\]/)?.[0] ||
+    "";
+
+  assert.match(bootstrap, /ADD_PC_BOOTSTRAP_TIMEOUT/);
+  assert.match(createJoinKey, /ADD_PC_CREATE_JOIN_KEY_TIMEOUT/);
+  assert.match(createJoinKey, /own 45s helper timeout/);
+  assert.match(startControlHost, /ADD_PC_START_CONTROL_HOST_TIMEOUT/);
+  assert.match(startControlHost, /above the CLI's bounded/);
+  assert.doesNotMatch(startControlHost, /std::time::Duration::from_secs\(60\)/);
+});
+
 test("Private Mesh release proof bundle is bound to the current contract and toolchain", () => {
   const tauri = source("src-tauri/src/lib.rs");
   const runner = source("../scripts/windows/run-private-mesh-release-proof.ps1");
@@ -619,12 +644,15 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /id="device-add-pass-generate"[^>]*>Issue pass</);
   assert.match(html, /id="device-add-pass-copy"/);
   assert.match(html, /id="device-add-pass-result"/);
-  assert.match(html, /Copy that generated pass file to each target PC/);
-  assert.match(html, /consumes the secret-bearing file after a successful join/);
+  assert.match(html, /Install MUSU on the target PC from musu\.pro/);
+  assert.match(html, /consumes the secret file after a successful join/);
   assert.doesNotMatch(html, /Save the printed device-add pass/);
   assert.doesNotMatch(html, /prints a one-use MUSU device-add pass/);
   assert.doesNotMatch(html, /scripts\\create-join-key\.ps1/);
-  assert.match(html, /musu mesh join --device-add-pass &lt;musu\.device_add\.v1\.json&gt;/);
+  // The new-PC join is an in-app action now (paste the pass path + Join button
+  // driving private_mesh_join), not a copied `musu mesh join` command.
+  assert.match(html, /id="join-pass-path"/);
+  assert.match(html, /id="join-run"[^>]*>Join this PC</);
   assert.match(html, /musu mesh verify --target-ip/);
   assert.match(html, /musu mesh physical-peer-evidence --json/);
   assert.match(html, /Release proof/);
@@ -663,8 +691,7 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /id="open-dashboard"[^>]*>Open dashboard</);
   // Add PC steps 1 and 2 are in-app button actions now (asserted above), so the
   // old copy-the-docker-command affordances are intentionally gone.
-  assert.match(html, /data-copy-text="musu mesh join --device-add-pass &lt;musu\.device_add\.v1\.json&gt;"/);
-  assert.match(html, /data-copy-text="musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100\.x\.y\.z&gt; --expected-control-server-url https:\/\/mesh\.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence\.json&gt; --json"/);
+  // new-PC join is a button now (asserted above), so the join copy-command is gone.
   assert.match(html, /id="connector-policy"/);
   assert.match(html, /Connector gate/);
   assert.match(html, /External APIs are reviewed before MUSU uses them/);
@@ -891,6 +918,13 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /event\?\.currentTarget \|\| document\.querySelector\("\[data-mesh-copy-proof\]"\)/);
   assert.match(text, /function setAddPcPanelOpen\(open,/);
   assert.match(text, /function openAddPcGuide\(\)/);
+  assert.match(text, /function runMeshBootstrap\(\)/);
+  assert.match(text, /Use a full mesh host URL such as https:\/\/mesh\.your-domain/);
+  assert.match(text, /invoke\("private_mesh_bootstrap", \{ serverUrl \}\)/);
+  assert.match(text, /\$\("bootstrap-generate"\)\?\.addEventListener\("click", runMeshBootstrap\)/);
+  assert.match(text, /function runStartControlHost\(\)/);
+  assert.match(text, /invoke\("private_mesh_start_control_host"\)/);
+  assert.match(text, /\$\("start-control-host"\)\?\.addEventListener\("click", runStartControlHost\)/);
   assert.match(text, /function runDeviceAddPassIssue\(\)/);
   assert.match(text, /invoke\("private_mesh_create_join_key"\)/);
   assert.match(text, /\$\("device-add-pass-generate"\)\?\.addEventListener\("click", runDeviceAddPassIssue\)/);

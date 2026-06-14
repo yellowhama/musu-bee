@@ -216,17 +216,19 @@
               <p id="device-add-pass-result" class="device-add-pass-result" hidden></p>
             </li>
             <li>
-              <span class="step-kicker">Every PC</span>
-              <p>Copy that generated pass file to each target PC, then join with the pass path. MUSU rechecks the public /health endpoint before marking the control server verified and consumes the secret-bearing file after a successful join.</p>
-              <div class="command-row">
-                <code>musu mesh join --device-add-pass &lt;musu.device_add.v1.json&gt;</code>
-                <button
-                  type="button"
-                  data-copy-text="musu mesh join --device-add-pass &lt;musu.device_add.v1.json&gt;"
-                >
-                  Copy
-                </button>
+              <span class="step-kicker">On the new PC</span>
+              <p>Install MUSU on the target PC from musu.pro, copy the generated pass file over, then paste its path here and join — no command to type. MUSU re-checks the control server /health and consumes the secret file after a successful join.</p>
+              <div class="bootstrap-row">
+                <input
+                  id="join-pass-path"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Path to the copied musu.device_add.v1.json"
+                  aria-label="Device-add pass file path"
+                />
+                <button id="join-run" type="button">Join this PC</button>
               </div>
+              <p id="join-result" class="bootstrap-result" hidden></p>
               <div class="command-row">
                 <code>musu mesh verify --target-ip &lt;peer-100.x.y.z&gt;</code>
                 <button
