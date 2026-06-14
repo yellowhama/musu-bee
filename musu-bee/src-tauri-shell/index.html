@@ -175,26 +175,17 @@
               <ul id="bootstrap-files" class="bootstrap-files" hidden></ul>
             </li>
             <li>
-              <span class="step-kicker">Start + checks</span>
-              <p>On the control host, validate Compose, start it, then prove the public HTTPS endpoint works.</p>
-              <div class="command-row">
-                <code>docker compose config --quiet &amp;&amp; docker compose up -d &amp;&amp; docker compose exec headscale headscale health</code>
-                <button
-                  type="button"
-                  data-copy-text="docker compose config --quiet && docker compose up -d && docker compose exec headscale headscale health"
-                >
-                  Copy
-                </button>
+              <span class="step-kicker">Start control host</span>
+              <p>Bring the control plane online from here — MUSU runs docker compose and confirms Headscale is healthy. (Requires Docker on this machine.)</p>
+              <div class="device-add-actions">
+                <button id="start-control-host" type="button">Start control host</button>
               </div>
-              <div class="command-row">
-                <code>powershell -ExecutionPolicy Bypass -File .\scripts\check-public-endpoint.ps1</code>
-                <button
-                  type="button"
-                  data-copy-text="powershell -ExecutionPolicy Bypass -File .\scripts\check-public-endpoint.ps1"
-                >
-                  Copy
-                </button>
-              </div>
+              <p id="start-control-host-result" class="device-add-pass-result" hidden></p>
+              <p class="add-pc-hint">
+                For a public mesh, point your domain at this host and confirm
+                HTTPS before adding remote PCs:
+                <code>scripts/check-public-endpoint.ps1</code>.
+              </p>
             </li>
             <li>
               <span class="step-kicker">Device-add pass</span>

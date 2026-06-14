@@ -450,6 +450,7 @@ test("desktop child CLI commands are hidden, and fleet refresh avoids child proc
   assert.doesNotMatch(listFleet, /musu_command_path\(/);
   assert.match(tauri, /fn submit_order\([\s\S]*?run_command_with_timeout\(/);
   assert.match(tauri, /fn desktop_status\(\)[\s\S]*?run_command_with_timeout\(/);
+  assert.match(tauri, /fn open_dashboard\(\) -> Result<CommandResult, String>/);
   assert.match(tauri, /fn http_get_with_bearer\(base: &str,\s*path: &str,\s*token: &str\)/);
   assert.match(tauri, /fn bearer_authorization_header\(token: &str\) -> Result<String, String>/);
   assert.match(tauri, /token\.bytes\(\)\.any\(\|byte\| byte <= 0x1f \|\| byte == 0x7f\)/);
@@ -471,6 +472,10 @@ test("desktop child CLI commands are hidden, and fleet refresh avoids child proc
     /if \(privateMeshStatusRefreshInFlight\) \{[\s\S]*?return privateMeshStatusRefreshInFlight;/
   );
   assert.match(main, /refreshPrivateMeshStatus\(\{ force: true \}\)/);
+  assert.match(main, /function renderDiagnostics\(status\)[\s\S]*?status\.dashboard_url/);
+  assert.match(main, /async function openDashboard\(btn\)/);
+  assert.match(main, /invoke\("open_dashboard"\)/);
+  assert.match(main, /\$\("open-dashboard"\)\.addEventListener\("click", \(e\) => openDashboard\(e\.currentTarget\)\)/);
 });
 
 test("Private Mesh release proof bundle is bound to the current contract and toolchain", () => {
@@ -603,18 +608,22 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   // the private_mesh_bootstrap IPC), not a copied `musu mesh bootstrap` command.
   assert.match(html, /id="bootstrap-server-url"/);
   assert.match(html, /id="bootstrap-generate"[^>]*>Generate bundle</);
-  assert.match(html, /docker compose config --quiet/);
+  // Add PC step 2 is an in-app action now (Start control host button driving the
+  // private_mesh_start_control_host IPC), not a copied docker compose command.
+  assert.match(html, /id="start-control-host"[^>]*>Start control host</);
   assert.match(html, /check-public-endpoint\.ps1/);
   assert.match(html, /Device-add pass/);
   assert.match(html, /musu\.device_add\.v1/);
-  assert.match(html, /writes a one-use MUSU device-add pass file/);
+  assert.match(html, /issue a one-use MUSU device-add pass from this cockpit/);
   assert.match(html, /device-add-passes\//);
-  assert.match(html, /prints only the file path plus the target join command/);
-  assert.match(html, /scripts\\create-join-key\.ps1/);
+  assert.match(html, /id="device-add-pass-generate"[^>]*>Issue pass</);
+  assert.match(html, /id="device-add-pass-copy"/);
+  assert.match(html, /id="device-add-pass-result"/);
   assert.match(html, /Copy that generated pass file to each target PC/);
   assert.match(html, /consumes the secret-bearing file after a successful join/);
   assert.doesNotMatch(html, /Save the printed device-add pass/);
   assert.doesNotMatch(html, /prints a one-use MUSU device-add pass/);
+  assert.doesNotMatch(html, /scripts\\create-join-key\.ps1/);
   assert.match(html, /musu mesh join --device-add-pass &lt;musu\.device_add\.v1\.json&gt;/);
   assert.match(html, /musu mesh verify --target-ip/);
   assert.match(html, /musu mesh physical-peer-evidence --json/);
@@ -650,10 +659,10 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /id="mesh-doctor"/);
   assert.match(html, /Run local check/);
   assert.match(html, /data-copy-text="musu mesh doctor --json"/);
-  // bootstrap step is now an in-app input+button action (asserted above), so the
-  // old copy-the-command affordance is intentionally gone.
-  assert.match(html, /data-copy-text="docker compose config --quiet && docker compose up -d && docker compose exec headscale headscale health"/);
-  assert.match(html, /data-copy-text="powershell -ExecutionPolicy Bypass -File \.\\scripts\\check-public-endpoint\.ps1"/);
+  assert.match(html, /id="d-dashboard"/);
+  assert.match(html, /id="open-dashboard"[^>]*>Open dashboard</);
+  // Add PC steps 1 and 2 are in-app button actions now (asserted above), so the
+  // old copy-the-docker-command affordances are intentionally gone.
   assert.match(html, /data-copy-text="musu mesh join --device-add-pass &lt;musu\.device_add\.v1\.json&gt;"/);
   assert.match(html, /data-copy-text="musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100\.x\.y\.z&gt; --expected-control-server-url https:\/\/mesh\.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence\.json&gt; --json"/);
   assert.match(html, /id="connector-policy"/);
@@ -882,6 +891,9 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /event\?\.currentTarget \|\| document\.querySelector\("\[data-mesh-copy-proof\]"\)/);
   assert.match(text, /function setAddPcPanelOpen\(open,/);
   assert.match(text, /function openAddPcGuide\(\)/);
+  assert.match(text, /function runDeviceAddPassIssue\(\)/);
+  assert.match(text, /invoke\("private_mesh_create_join_key"\)/);
+  assert.match(text, /\$\("device-add-pass-generate"\)\?\.addEventListener\("click", runDeviceAddPassIssue\)/);
   assert.match(text, /setAddPcPanelOpen\(isEmpty\)/);
   assert.match(text, /\$\("add-pc-toggle"\)\?\.addEventListener\("click"/);
   assert.match(text, /\$\("empty-add-pc"\)\?\.addEventListener\("click", openAddPcGuide\)/);

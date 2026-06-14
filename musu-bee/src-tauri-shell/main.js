@@ -2387,6 +2387,43 @@ async function runMeshBootstrap() {
   }
 }
 
+// Add PC step 2 as a product action: bring the control plane online (docker
+// compose up + Headscale health) from the cockpit instead of a copied docker
+// command. Long-running (image pull / boot), so the button reflects progress.
+async function runStartControlHost() {
+  const btn = $("start-control-host");
+  const resultEl = $("start-control-host-result");
+  if (!btn) return;
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Starting…";
+  if (resultEl) {
+    resultEl.hidden = false;
+    resultEl.dataset.state = "running";
+    resultEl.textContent = "Running docker compose and waiting for Headscale to report healthy…";
+  }
+  try {
+    const r = await invoke("private_mesh_start_control_host");
+    if (r && r.ok) {
+      if (resultEl) {
+        resultEl.dataset.state = "ok";
+        resultEl.textContent = "Control host is up and Headscale is healthy. Next: issue a device-add pass below.";
+      }
+    } else if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = (r && r.error) || "Could not start the control host. Is Docker installed and running on this machine?";
+    }
+  } catch (err) {
+    if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = `Could not start the control host: ${String(err)}`;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText || "Start control host";
+  }
+}
+
 async function runDeviceAddPassIssue() {
   const btn = $("device-add-pass-generate");
   const copyBtn = $("device-add-pass-copy");
@@ -3829,6 +3866,7 @@ document.querySelectorAll("[data-copy-text]").forEach((btn) => {
 
 $("mesh-doctor")?.addEventListener("click", runPrivateMeshDoctor);
 $("bootstrap-generate")?.addEventListener("click", runMeshBootstrap);
+$("start-control-host")?.addEventListener("click", runStartControlHost);
 $("device-add-pass-generate")?.addEventListener("click", runDeviceAddPassIssue);
 $("bootstrap-server-url")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {

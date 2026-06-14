@@ -22,6 +22,10 @@ pub enum PrivateMeshAction {
     Doctor(PrivateMeshStatusOpts),
     /// Generate a self-hosted Headscale control-plane deployment bundle.
     Bootstrap(PrivateMeshBootstrapOpts),
+    /// Start the generated control-plane bundle (docker compose up) and confirm
+    /// Headscale is healthy, so the cockpit's "Start control host" button can
+    /// bring the mesh online without the operator running docker by hand.
+    StartControlHost(PrivateMeshStartControlHostOpts),
     /// Mint a one-use device-add pass (Headscale preauth key) from a running
     /// control-plane bundle, so the cockpit's "Add PC" button can issue a pass
     /// without the operator running scripts/create-join-key by hand.
@@ -99,6 +103,20 @@ pub struct PrivateMeshCreateJoinKeyOpts {
     #[arg(long)]
     pub bundle_dir: Option<PathBuf>,
     /// Emit machine-readable JSON (the cockpit Add PC button uses this).
+    #[arg(long)]
+    pub json: bool,
+    /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshStartControlHostOpts {
+    /// Control-plane bundle directory (the one `mesh bootstrap` wrote). Defaults
+    /// to `~/.musu/private-mesh-control-plane`.
+    #[arg(long)]
+    pub bundle_dir: Option<PathBuf>,
+    /// Emit machine-readable JSON (the cockpit Start control host button uses this).
     #[arg(long)]
     pub json: bool,
     /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
@@ -419,6 +437,7 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::Status(opts) => run_status(opts, false).await,
         PrivateMeshAction::Doctor(opts) => run_status(opts, true).await,
         PrivateMeshAction::Bootstrap(opts) => run_bootstrap(opts).await,
+        PrivateMeshAction::StartControlHost(opts) => run_start_control_host(opts).await,
         PrivateMeshAction::CreateJoinKey(opts) => run_create_join_key(opts).await,
         PrivateMeshAction::Join(opts) => run_join(opts).await,
         PrivateMeshAction::Verify(opts) => run_verify(opts).await,
@@ -605,6 +624,115 @@ fn list_device_add_passes(bundle_dir: &std::path::Path) -> Vec<PathBuf> {
         .collect();
     out.sort();
     out
+}
+
+/// Bring the generated control-plane bundle online: `docker compose up -d` then
+/// confirm Headscale is healthy. This is what the cockpit's "Start control host"
+/// button calls, so the operator never has to run docker by hand.
+async fn run_start_control_host(opts: PrivateMeshStartControlHostOpts) -> Result<()> {
+    let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let bundle_dir = opts
+        .bundle_dir
+        .clone()
+        .unwrap_or_else(|| home.join("private-mesh-control-plane"));
+
+    if !bundle_dir.is_dir() {
+        anyhow::bail!(
+            "control-plane bundle not found at {}. Generate it first (Add PC → Generate bundle / `musu mesh bootstrap`).",
+            bundle_dir.display()
+        );
+    }
+
+    // Run a `docker compose` step in the bundle dir, returning (success, output).
+    async fn compose_step(bundle_dir: &std::path::Path, args: &[&str]) -> (bool, String) {
+        match tokio::process::Command::new("docker")
+            .arg("compose")
+            .args(args)
+            .current_dir(bundle_dir)
+            .output()
+            .await
+        {
+            Ok(out) => {
+                let mut combined = String::from_utf8_lossy(&out.stdout).into_owned();
+                combined.push_str(&String::from_utf8_lossy(&out.stderr));
+                (out.status.success(), combined.trim().to_string())
+            }
+            Err(err) => (false, format!("failed to run docker compose: {err}")),
+        }
+    }
+
+    // 1) Validate the compose file before starting anything.
+    let (config_ok, config_out) = compose_step(&bundle_dir, &["config", "--quiet"]).await;
+    if !config_ok {
+        let result = serde_json::json!({
+            "schema": "musu.start_control_host.v1",
+            "ok": false,
+            "stage": "config",
+            "error": format!("docker compose config failed. Is Docker installed and running?\n{config_out}"),
+        });
+        emit_start_control_host(opts.json, &bundle_dir, &result);
+        return Ok(());
+    }
+
+    // 2) Start the stack detached.
+    let (up_ok, up_out) = compose_step(&bundle_dir, &["up", "-d"]).await;
+    if !up_ok {
+        let result = serde_json::json!({
+            "schema": "musu.start_control_host.v1",
+            "ok": false,
+            "stage": "up",
+            "error": format!("docker compose up -d failed.\n{up_out}"),
+        });
+        emit_start_control_host(opts.json, &bundle_dir, &result);
+        return Ok(());
+    }
+
+    // 3) Confirm Headscale is healthy. Give the container a few seconds to boot
+    //    before the first probe, then retry briefly.
+    let mut health_ok = false;
+    let mut health_out = String::new();
+    for attempt in 0..6 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+        let (ok, out) = compose_step(&bundle_dir, &["exec", "headscale", "headscale", "health"]).await;
+        health_out = out;
+        if ok {
+            health_ok = true;
+            break;
+        }
+    }
+
+    let result = serde_json::json!({
+        "schema": "musu.start_control_host.v1",
+        "ok": health_ok,
+        "stage": if health_ok { "healthy" } else { "health" },
+        "bundle_dir": bundle_dir.to_string_lossy(),
+        "error": if health_ok { serde_json::Value::Null } else {
+            serde_json::Value::String(format!(
+                "Headscale started but did not report healthy yet.\n{health_out}"
+            ))
+        },
+    });
+    emit_start_control_host(opts.json, &bundle_dir, &result);
+    Ok(())
+}
+
+fn emit_start_control_host(json: bool, bundle_dir: &std::path::Path, result: &serde_json::Value) {
+    if json {
+        if let Ok(s) = serde_json::to_string_pretty(result) {
+            println!("{s}");
+        }
+    } else if result.get("ok").and_then(|v| v.as_bool()) == Some(true) {
+        println!("MUSU Private Mesh control host is up and healthy.");
+        println!("  bundle: {}", bundle_dir.display());
+        println!("  next: Add PC → Issue device-add pass.");
+    } else {
+        println!("Could not bring the control host up.");
+        if let Some(err) = result.get("error").and_then(|v| v.as_str()) {
+            println!("{err}");
+        }
+    }
 }
 
 fn resolve_join_inputs(opts: &PrivateMeshJoinOpts) -> Result<ResolvedJoinInputs> {

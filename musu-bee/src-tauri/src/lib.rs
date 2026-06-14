@@ -30,6 +30,7 @@ pub fn run() {
             private_mesh_doctor,
             private_mesh_verify_target,
             private_mesh_bootstrap,
+            private_mesh_start_control_host,
             private_mesh_create_join_key,
             private_mesh_release_proof_target,
             latest_release_evidence,
@@ -262,6 +263,17 @@ struct PrivateMeshCreateJoinKeyDesktopResult {
     tailnet: String,
     expires_after_seconds: i64,
     join_command: String,
+    error: Option<String>,
+    output: String,
+}
+
+/// Result of `private_mesh_start_control_host` — the cockpit's "Start control
+/// host" action. Brings the generated bundle online (docker compose up) and
+/// reports whether Headscale came up healthy, so step 2 of Add PC is a button.
+#[derive(serde::Serialize)]
+struct PrivateMeshStartControlHostDesktopResult {
+    ok: bool,
+    stage: String,
     error: Option<String>,
     output: String,
 }
@@ -1002,6 +1014,61 @@ fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResul
             .unwrap_or(0),
         join_command: str_field("join_command"),
         error: None,
+        output: combined,
+    })
+}
+
+/// `private_mesh_start_control_host` — bring the control-plane bundle online from
+/// the cockpit (docker compose up + Headscale health). Proxies
+/// `musu mesh start-control-host --json` so step 2 of Add PC is a button, not a
+/// copied docker command.
+#[tauri::command]
+fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDesktopResult, String> {
+    let command = musu_command_path();
+    // `docker compose up -d` plus a health-retry loop can take ~30s on a cold
+    // image pull; give it a minute.
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "start-control-host", "--json"],
+        std::time::Duration::from_secs(60),
+    )
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh start-control-host --json: {err}",
+            command.display()
+        )
+    })?;
+    if result.timed_out {
+        return Err(format!(
+            "{} mesh start-control-host --json timed out (docker compose may still be pulling the image)",
+            command.display()
+        ));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if !result.status_success {
+        return Ok(PrivateMeshStartControlHostDesktopResult {
+            ok: false,
+            stage: "error".to_string(),
+            error: Some(combined.clone()),
+            output: combined,
+        });
+    }
+
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
+        .map_err(|err| format!("failed to parse `musu mesh start-control-host --json` output: {err}"))?;
+    let ok = report.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+    Ok(PrivateMeshStartControlHostDesktopResult {
+        ok,
+        stage: report
+            .get("stage")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        error: report
+            .get("error")
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
         output: combined,
     })
 }

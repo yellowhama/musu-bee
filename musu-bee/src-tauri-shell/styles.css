@@ -1246,6 +1246,22 @@ body {
   max-height: 9em;
   overflow: auto;
 }
+/* Secondary guidance under an Add PC step (e.g. the optional public-endpoint
+   check) — muted so it doesn't compete with the primary button. */
+.add-pc-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+.add-pc-hint code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-0);
+  font-family: var(--mono);
+  font-size: 11px;
+}
 
 /* ── connecting state ────────────────────────────────── */
 .connecting {
