@@ -511,6 +511,12 @@ pub async fn get_task(
     match row {
         Some(row) => {
             use sqlx::Row;
+            let musu_home = state
+                .config
+                .nodes_toml_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            let route_proof = crate::bridge::route_evidence::task_route_proof(musu_home, &task_id);
             Ok(Json(serde_json::json!({
                 "task_id": row.try_get::<String, _>("task_id").unwrap_or_default(),
                 "status": row.try_get::<String, _>("status").unwrap_or_default(),
@@ -518,8 +524,112 @@ pub async fn get_task(
                 "error": row.try_get::<Option<String>, _>("error").unwrap_or(None),
                 "exit_code": row.try_get::<Option<i32>, _>("exit_code").unwrap_or(None),
                 "duration_sec": row.try_get::<Option<f64>, _>("duration_sec").unwrap_or(None),
+                "route_proof": route_proof,
             })))
         }
         None => Err(MusuError::NotFound(format!("task {} not found", task_id))),
+    }
+}
+
+#[cfg(test)]
+mod get_task_tests {
+    use super::*;
+    use axum::extract::{Path, State};
+    use std::sync::Arc;
+    use tempfile::TempDir;
+
+    async fn test_state(pool: sqlx::SqlitePool, musu_home: &std::path::Path) -> AppState {
+        let cfg = Arc::new(crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 0,
+            python_facade_port: 0,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        });
+        let sse_broadcaster = crate::writer::SseBroadcaster::from_env();
+        let task_runner =
+            crate::writer::TaskRunnerHandle::new(pool.clone(), sse_broadcaster.clone()).await;
+        AppState {
+            config: cfg,
+            pool: pool.clone(),
+            http_client: reqwest::Client::new(),
+            audit: crate::bridge::audit::AuditState::new(pool),
+            dedup: crate::bridge::dedup::DedupCache::new(),
+            task_runner,
+            sse_broadcaster,
+            pairing: crate::bridge::handlers::pair::PairingStore::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_task_returns_terminal_output_and_error_fields() {
+        let tmp = TempDir::new().unwrap();
+        let musu_home = tmp.path().join(".musu");
+        std::fs::create_dir_all(&musu_home).unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE route_executions (
+                task_id TEXT PRIMARY KEY,
+                company_id TEXT,
+                channel TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                input_hash TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                output TEXT,
+                error TEXT,
+                exit_code INTEGER,
+                duration_sec REAL,
+                started_at INTEGER,
+                updated_at INTEGER
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "INSERT INTO route_executions (
+                task_id, company_id, channel, sender_id, input_hash, status,
+                created_at, output, error, exit_code, duration_sec, updated_at
+            ) VALUES (?, NULL, 'cto', 'user', 'hash', 'done', 10, ?, NULL, 0, 1.25, 12)",
+        )
+        .bind("task-1")
+        .bind("agent output")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let state = test_state(pool, &musu_home).await;
+        let Json(body) = get_task(State(state), Path("task-1".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(body["task_id"], "task-1");
+        assert_eq!(body["status"], "done");
+        assert_eq!(body["output"], "agent output");
+        assert_eq!(body["error"], serde_json::Value::Null);
+        assert_eq!(body["exit_code"], 0);
+        assert_eq!(body["duration_sec"], 1.25);
     }
 }

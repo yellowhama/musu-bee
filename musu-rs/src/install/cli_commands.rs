@@ -79,6 +79,12 @@ pub struct RouteOpts {
     /// Channel name.
     #[arg(long, default_value = "cli")]
     pub channel: String,
+    /// Adapter model override for this route.
+    #[arg(long)]
+    pub model: Option<String>,
+    /// Adapter override for this route (for example codex, claude, echo).
+    #[arg(long)]
+    pub adapter: Option<String>,
     /// Wait for the task to complete and print the result.
     #[arg(long, short = 'w')]
     pub wait: bool,
@@ -533,9 +539,9 @@ pub struct NodesOpts {
 /// cockpit parses; without it, a short human list.
 /// `musu nodes --local` — emit the live local mesh as a `musu.nodes_cli.v1`
 /// envelope, sourced from this bridge's `/api/fleet/status` (self + peers, with
-/// real health checks). Healthy peers get a fresh `last_seen` so the cockpit's
-/// freshness check renders them online; unhealthy peers get an old one so they
-/// render offline. The cockpit's renderer already maps this envelope.
+/// real health checks). `last_seen` is projected from bridge evidence: live
+/// probes get the probe time, unreachable peers keep their persisted last health
+/// or registry heartbeat if one exists. Unknown is left empty instead of faked.
 async fn run_nodes_local(opts: NodesOpts) -> Result<()> {
     let base_url = local_bridge_base_url();
     let token = get_token();
@@ -591,27 +597,33 @@ async fn run_nodes_local(opts: NodesOpts) -> Result<()> {
         .await
         .map_err(|e| anyhow::anyhow!("parse fleet status: {e}"))?;
 
-    let now = chrono::Utc::now();
-    let fresh = now.to_rfc3339();
-    // An old stamp so the cockpit's freshness check renders unhealthy peers offline.
-    let stale = (now - chrono::Duration::days(30)).to_rfc3339();
-
     let mut nodes = Vec::new();
     if let Some(this) = dashboard.get("this_node") {
         nodes.push(serde_json::json!({
             "node_name": this.get("name").and_then(|v| v.as_str()).unwrap_or(""),
             "public_url": this.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
-            "last_seen": fresh,
+            "last_seen": this.get("last_seen").and_then(|v| v.as_str()).unwrap_or(""),
+            "status_error": this.get("status_error").and_then(|v| v.as_str()).unwrap_or(""),
+            "tailscale_ip": this.get("tailscale_ip").and_then(|v| v.as_str()).unwrap_or(""),
+            "mesh_mode": this.get("mesh_mode").and_then(|v| v.as_str()).unwrap_or(""),
+            "route_label": this.get("route_label").and_then(|v| v.as_str()).unwrap_or(""),
+            "control_server_url": this.get("control_server_url").and_then(|v| v.as_str()).unwrap_or(""),
+            "control_server_verified": this.get("control_server_verified").and_then(|v| v.as_bool()).unwrap_or(false),
             "is_this_pc": true,
         }));
     }
     if let Some(peers) = dashboard.get("peers").and_then(|v| v.as_array()) {
         for p in peers {
-            let healthy = p.get("healthy").and_then(|v| v.as_bool()).unwrap_or(false);
             nodes.push(serde_json::json!({
                 "node_name": p.get("name").and_then(|v| v.as_str()).unwrap_or(""),
                 "public_url": p.get("addr").and_then(|v| v.as_str()).unwrap_or(""),
-                "last_seen": if healthy { &fresh } else { &stale },
+                "last_seen": p.get("last_seen").and_then(|v| v.as_str()).unwrap_or(""),
+                "status_error": p.get("status_error").and_then(|v| v.as_str()).unwrap_or(""),
+                "tailscale_ip": p.get("tailscale_ip").and_then(|v| v.as_str()).unwrap_or(""),
+                "mesh_mode": p.get("mesh_mode").and_then(|v| v.as_str()).unwrap_or(""),
+                "route_label": p.get("route_label").and_then(|v| v.as_str()).unwrap_or(""),
+                "control_server_url": p.get("control_server_url").and_then(|v| v.as_str()).unwrap_or(""),
+                "control_server_verified": p.get("control_server_verified").and_then(|v| v.as_bool()).unwrap_or(false),
                 "is_this_pc": false,
             }));
         }
@@ -712,10 +724,16 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
         let projected: Vec<_> = nodes
             .iter()
             .map(|n| {
+                let meta = n.meta.as_ref();
                 serde_json::json!({
                     "node_name": n.node_name,
                     "public_url": n.public_url,
                     "last_seen": n.last_seen,
+                    "tailscale_ip": meta.and_then(|m| m.get("tailscale_ip")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "mesh_mode": meta.and_then(|m| m.get("mesh_mode")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "route_label": meta.and_then(|m| m.get("route_label")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "control_server_url": meta.and_then(|m| m.get("control_server_url")).and_then(|v| v.as_str()).unwrap_or(""),
+                    "control_server_verified": meta.and_then(|m| m.get("control_server_verified")).and_then(|v| v.as_bool()).unwrap_or(false),
                     "is_this_pc": n.node_name == this_pc,
                 })
             })
@@ -890,6 +908,8 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         "channel": opts.channel,
         "sender_id": "cli",
         "text": opts.text,
+        "model": opts.model,
+        "adapter_type": opts.adapter,
         "target_node": opts.target,
         "needs_gpu": opts.gpu,
     });
@@ -1129,6 +1149,9 @@ fn write_route_evidence_if_requested(
             .map(|proof| proof.encryption.clone())
             .unwrap_or_else(|| "none_http_bearer".to_string()),
         transport_verified_by: peer_identity.map(|proof| proof.transport_verified_by.clone()),
+        private_mesh_mode: None,
+        private_mesh_control_server_url: None,
+        private_mesh_control_server_verified: None,
         relay_fallback: None,
         relay_transport_proof: None,
         relay_payload_delivery_proof: None,
@@ -6307,6 +6330,8 @@ mod tests {
             text: "test".to_string(),
             target: Some("remote".to_string()),
             channel: "cli".to_string(),
+            model: None,
+            adapter: None,
             wait: false,
             wait_timeout_sec: ROUTE_WAIT_DEFAULT_TIMEOUT_SECS,
             gpu: false,

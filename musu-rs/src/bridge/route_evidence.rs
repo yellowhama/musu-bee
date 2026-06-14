@@ -15,6 +15,8 @@ pub const RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE: &str = "Target-side relay 
 pub const RELEASE_RELAY_PAYLOAD_DELIVERY_ROUTE_EVIDENCE_NOTE: &str = "Release-grade relay payload delivery evidence. This requires a bound quic_relay_tunnel transport proof, quic_tls_1_3 encryption proof, peer identity proof, and payload delivery proof.";
 pub const HTTPS_FINGERPRINT_TRANSPORT_VERIFIER: &str =
     "musu_bridge_forward_fingerprint_pinned_client";
+pub const PRIVATE_MESH_TAILNET_TRANSPORT_VERIFIER: &str = "musu_private_mesh_tailnet_route";
+pub const PRIVATE_MESH_TAILNET_ENCRYPTION: &str = "tailscale_wireguard_overlay";
 #[allow(dead_code)]
 pub const QUIC_TLS_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 pub const RELAY_PAYLOAD_DRAIN_PREVIEW_VERIFIER: &str = "musu_relay_payload_drain_preview";
@@ -86,11 +88,15 @@ pub struct RouteRelayPayloadDeliveryProof {
     pub target_node_id: String,
     pub relay_url: String,
     pub tunnel_id: String,
+    pub payload_kind: String,
     pub transport_kind: String,
     pub relay_default_data_path: bool,
     pub release_grade: bool,
     pub payload_sha256: String,
     pub payload_bytes: u64,
+    pub claimed_by: String,
+    pub claimed_at: String,
+    pub created_at: String,
     pub delivered_at: String,
 }
 
@@ -136,6 +142,12 @@ pub struct RouteAttemptEvidence {
     encryption: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     transport_verified_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    private_mesh_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    private_mesh_control_server_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    private_mesh_control_server_verified: Option<bool>,
     payload_transited_musu_infra: bool,
     result: RouteAttemptEvidenceResult,
     failure_class: Option<String>,
@@ -164,6 +176,9 @@ pub struct RouteAttemptEvidenceInput {
     pub peer_public_key: Option<String>,
     pub encryption: String,
     pub transport_verified_by: Option<String>,
+    pub private_mesh_mode: Option<String>,
+    pub private_mesh_control_server_url: Option<String>,
+    pub private_mesh_control_server_verified: Option<bool>,
     pub relay_fallback: Option<RouteRelayFallbackEvidence>,
     pub relay_transport_proof: Option<RouteRelayTransportProof>,
     pub relay_payload_delivery_proof: Option<RouteRelayPayloadDeliveryProof>,
@@ -196,6 +211,9 @@ pub fn build_route_attempt_evidence(input: RouteAttemptEvidenceInput) -> RouteAt
         peer_public_key: input.peer_public_key,
         encryption: input.encryption,
         transport_verified_by: input.transport_verified_by,
+        private_mesh_mode: input.private_mesh_mode,
+        private_mesh_control_server_url: input.private_mesh_control_server_url,
+        private_mesh_control_server_verified: input.private_mesh_control_server_verified,
         payload_transited_musu_infra: false,
         result: input.result,
         failure_class: input.failure_class,
@@ -251,11 +269,15 @@ fn cloud_relay_payload_delivery_proof(
         target_node_id: evidence.target_node_id.clone(),
         relay_url: evidence.relay_url.clone(),
         tunnel_id: evidence.tunnel_id.clone(),
+        payload_kind: evidence.payload_kind.clone(),
         transport_kind: evidence.transport_kind.clone(),
         relay_default_data_path: evidence.relay_default_data_path,
         release_grade: evidence.release_grade,
         payload_sha256: evidence.payload_sha256.clone(),
         payload_bytes: evidence.payload_bytes,
+        claimed_by: evidence.claimed_by.clone(),
+        claimed_at: evidence.claimed_at.clone(),
+        created_at: evidence.created_at.clone(),
         delivered_at: evidence.delivered_at.clone(),
     }
 }
@@ -447,6 +469,89 @@ pub fn route_evidence_path(musu_home: &Path, task_id: &str) -> PathBuf {
         .join(format!("{safe_task_id}.route-evidence.json"))
 }
 
+fn safe_task_id(task_id: &str) -> String {
+    task_id
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+}
+
+pub fn callback_proof_path(musu_home: &Path, task_id: &str) -> PathBuf {
+    musu_home
+        .join("route-evidence")
+        .join(format!("{}.callback-proof.json", safe_task_id(task_id)))
+}
+
+pub fn record_task_callback_proof(
+    musu_home: &Path,
+    source_task_id: &str,
+    remote_task_id: &str,
+    node: &str,
+    status: &str,
+    exit_code: Option<i32>,
+    duration_sec: Option<f64>,
+) -> Result<PathBuf> {
+    let path = callback_proof_path(musu_home, source_task_id);
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let proof = serde_json::json!({
+        "schema": "musu.callback_proof.v1",
+        "source_task_id": source_task_id,
+        "remote_task_id": remote_task_id,
+        "node": node,
+        "status": status,
+        "exit_code": exit_code,
+        "duration_sec": duration_sec,
+        "received_at": chrono::Utc::now().to_rfc3339(),
+    });
+    let mut json = serde_json::to_string_pretty(&proof)?;
+    json.push('\n');
+    std::fs::write(&path, json)?;
+    Ok(path)
+}
+
+pub fn task_route_proof(musu_home: &Path, task_id: &str) -> Option<serde_json::Value> {
+    let path = route_evidence_path(musu_home, task_id);
+    let text = std::fs::read_to_string(path).ok()?;
+    let evidence: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let callback: Option<serde_json::Value> =
+        std::fs::read_to_string(callback_proof_path(musu_home, task_id))
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok());
+    Some(serde_json::json!({
+        "schema": evidence.get("schema").and_then(|v| v.as_str()).unwrap_or(""),
+        "route_kind": evidence.get("route_kind").and_then(|v| v.as_str()).unwrap_or(""),
+        "source_node_id": evidence.get("source_node_id").and_then(|v| v.as_str()).unwrap_or(""),
+        "target_node_id": evidence.get("target_node_id").and_then(|v| v.as_str()).unwrap_or(""),
+        "candidate_addr": evidence.get("candidate_addr").and_then(|v| v.as_str()).unwrap_or(""),
+        "result": evidence.get("result").and_then(|v| v.as_str()).unwrap_or(""),
+        "peer_identity_verified": evidence.get("peer_identity_verified").and_then(|v| v.as_bool()).unwrap_or(false),
+        "peer_identity_method": evidence.get("peer_identity_method").and_then(|v| v.as_str()).unwrap_or(""),
+        "encryption": evidence.get("encryption").and_then(|v| v.as_str()).unwrap_or(""),
+        "transport_verified_by": evidence.get("transport_verified_by").and_then(|v| v.as_str()).unwrap_or(""),
+        "payload_transited_musu_infra": evidence.get("payload_transited_musu_infra").and_then(|v| v.as_bool()).unwrap_or(false),
+        "failure_class": evidence.get("failure_class").and_then(|v| v.as_str()).unwrap_or(""),
+        "session_id": evidence.get("session_id").and_then(|v| v.as_str()).unwrap_or(""),
+        "recorded_at": evidence.get("recorded_at").and_then(|v| v.as_str()).unwrap_or(""),
+        "note": evidence.get("note").and_then(|v| v.as_str()).unwrap_or(""),
+        "callback_delivered": callback.is_some(),
+        "callback_remote_task_id": callback.as_ref().and_then(|v| v.get("remote_task_id")).and_then(|v| v.as_str()).unwrap_or(""),
+        "callback_node": callback.as_ref().and_then(|v| v.get("node")).and_then(|v| v.as_str()).unwrap_or(""),
+        "callback_status": callback.as_ref().and_then(|v| v.get("status")).and_then(|v| v.as_str()).unwrap_or(""),
+        "callback_received_at": callback.as_ref().and_then(|v| v.get("received_at")).and_then(|v| v.as_str()).unwrap_or(""),
+    }))
+}
+
 pub fn target_node_id(peer: &ResolvedPeer) -> String {
     peer.name.clone().unwrap_or_else(|| peer.addr.clone())
 }
@@ -457,6 +562,9 @@ struct PeerIdentityEvidence {
     public_key: Option<String>,
     encryption: String,
     transport_verified_by: Option<String>,
+    private_mesh_mode: Option<String>,
+    private_mesh_control_server_url: Option<String>,
+    private_mesh_control_server_verified: Option<bool>,
 }
 
 fn peer_identity_meta(
@@ -470,6 +578,9 @@ fn peer_identity_meta(
             public_key: Some(proof.peer_public_key.clone()),
             encryption: proof.encryption.clone(),
             transport_verified_by: Some(proof.transport_verified_by.clone()),
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
         };
     }
 
@@ -480,6 +591,9 @@ fn peer_identity_meta(
             public_key: None,
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
         };
     };
     let public_key = meta
@@ -490,6 +604,18 @@ fn peer_identity_meta(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string);
+    if let Some(control_server_url) = private_mesh_tailnet_control_server_url(peer, meta) {
+        return PeerIdentityEvidence {
+            verified: false,
+            method: Some("private_mesh_release_peer_identity".to_string()),
+            public_key,
+            encryption: PRIVATE_MESH_TAILNET_ENCRYPTION.to_string(),
+            transport_verified_by: Some(PRIVATE_MESH_TAILNET_TRANSPORT_VERIFIER.to_string()),
+            private_mesh_mode: Some("musu_headscale".to_string()),
+            private_mesh_control_server_url: Some(control_server_url),
+            private_mesh_control_server_verified: Some(true),
+        };
+    }
     PeerIdentityEvidence {
         verified: false,
         method: public_key
@@ -498,7 +624,54 @@ fn peer_identity_meta(
         public_key,
         encryption: "none_http_bearer".to_string(),
         transport_verified_by: None,
+        private_mesh_mode: None,
+        private_mesh_control_server_url: None,
+        private_mesh_control_server_verified: None,
     }
+}
+
+fn private_mesh_tailnet_control_server_url(
+    peer: &ResolvedPeer,
+    meta: &serde_json::Value,
+) -> Option<String> {
+    if route_evidence_kind_for_addr(&peer.addr) != "tailscale" {
+        return None;
+    }
+    if meta_string(meta, "mesh_mode")?.trim() != "musu_headscale" {
+        return None;
+    }
+    if !meta_bool(meta, "control_server_verified") {
+        return None;
+    }
+    let control_server_url = meta_string(meta, "control_server_url")?;
+    let candidate_host = host_from_addr(&peer.addr)?;
+    let tailnet_ip =
+        meta_string(meta, "tailscale_ip").or_else(|| meta_string(meta, "tailnet_ip"))?;
+    if tailnet_ip.trim() != candidate_host {
+        return None;
+    }
+    Some(control_server_url)
+}
+
+fn meta_string(meta: &serde_json::Value, key: &str) -> Option<String> {
+    meta.get(key)
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn meta_bool(meta: &serde_json::Value, key: &str) -> bool {
+    meta.get(key)
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false)
+}
+
+fn host_from_addr(addr: &str) -> Option<&str> {
+    addr.split(':')
+        .next()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
 }
 
 pub fn record_bridge_forward_route_evidence(
@@ -531,6 +704,9 @@ pub fn record_bridge_forward_route_evidence(
         peer_public_key: peer_identity.public_key,
         encryption: peer_identity.encryption,
         transport_verified_by: peer_identity.transport_verified_by,
+        private_mesh_mode: peer_identity.private_mesh_mode,
+        private_mesh_control_server_url: peer_identity.private_mesh_control_server_url,
+        private_mesh_control_server_verified: peer_identity.private_mesh_control_server_verified,
         relay_fallback,
         relay_transport_proof: None,
         relay_payload_delivery_proof: None,
@@ -566,6 +742,9 @@ pub fn record_relay_payload_delivery_route_evidence(
         peer_public_key: None,
         encryption: payload.transport_kind.clone(),
         transport_verified_by: Some(RELAY_PAYLOAD_DRAIN_PREVIEW_VERIFIER.to_string()),
+        private_mesh_mode: None,
+        private_mesh_control_server_url: None,
+        private_mesh_control_server_verified: None,
         payload_transited_musu_infra: true,
         result: RouteAttemptEvidenceResult::Success,
         failure_class: None,
@@ -690,6 +869,9 @@ pub fn record_release_relay_payload_delivery_route_evidence(
         peer_public_key: Some(transport_proof.peer_public_key.clone()),
         encryption: transport_proof.encryption.clone(),
         transport_verified_by: Some(transport_proof.transport_verified_by.clone()),
+        private_mesh_mode: None,
+        private_mesh_control_server_url: None,
+        private_mesh_control_server_verified: None,
         payload_transited_musu_infra: true,
         result: RouteAttemptEvidenceResult::Success,
         failure_class: None,
@@ -747,6 +929,9 @@ mod tests {
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
             relay_fallback: None,
             relay_transport_proof: None,
             relay_payload_delivery_proof: None,
@@ -783,6 +968,9 @@ mod tests {
             peer_public_key: None,
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
             relay_fallback: None,
             relay_transport_proof: None,
             relay_payload_delivery_proof: None,
@@ -801,6 +989,72 @@ mod tests {
     fn route_evidence_path_sanitizes_task_id() {
         let path = route_evidence_path(Path::new("/tmp/musu"), "task:bad/slash");
         assert!(path.ends_with("route-evidence/task_bad_slash.route-evidence.json"));
+    }
+
+    #[test]
+    fn task_route_proof_returns_public_summary_only() {
+        let dir = std::env::temp_dir().join(format!("musu-route-proof-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let peer = ResolvedPeer {
+            addr: "100.64.0.5:8070".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({
+                "cert_fingerprint": "sha256:advertised",
+            })),
+        };
+
+        record_bridge_forward_route_evidence(
+            &dir,
+            "task-1",
+            "this-laptop",
+            &peer,
+            Some("rv-1".to_string()),
+            Some(17),
+            42,
+            RouteAttemptEvidenceResult::Success,
+            None,
+            Some(https_fingerprint_transport_proof("sha256:verified")),
+            None,
+        )
+        .unwrap();
+
+        let proof = task_route_proof(&dir, "task-1").unwrap();
+        assert_eq!(proof["schema"], "musu.route_evidence.v1");
+        assert_eq!(proof["route_kind"], "tailscale");
+        assert_eq!(proof["target_node_id"], "studio-pc");
+        assert_eq!(proof["candidate_addr"], "100.64.0.5:8070");
+        assert_eq!(proof["result"], "success");
+        assert_eq!(proof["peer_identity_verified"], true);
+        assert_eq!(proof["peer_identity_method"], "tls_cert_fingerprint_pin");
+        assert_eq!(proof["encryption"], "https_tls_fingerprint_pin");
+        assert_eq!(
+            proof["transport_verified_by"],
+            HTTPS_FINGERPRINT_TRANSPORT_VERIFIER
+        );
+        assert_eq!(proof["callback_delivered"], false);
+
+        record_task_callback_proof(
+            &dir,
+            "task-1",
+            "remote-task-9",
+            "studio-pc",
+            "done",
+            Some(0),
+            Some(2.4),
+        )
+        .unwrap();
+        let proof = task_route_proof(&dir, "task-1").unwrap();
+        assert_eq!(proof["callback_delivered"], true);
+        assert_eq!(proof["callback_remote_task_id"], "remote-task-9");
+        assert_eq!(proof["callback_node"], "studio-pc");
+        assert_eq!(proof["callback_status"], "done");
+        assert!(proof["callback_received_at"]
+            .as_str()
+            .unwrap()
+            .contains('T'));
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -840,6 +1094,100 @@ mod tests {
         assert_eq!(value["peer_public_key"], "sha256:test");
         assert_eq!(value["peer_identity_verified"], false);
         assert_eq!(value["encryption"], "none_http_bearer");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn bridge_route_evidence_marks_private_tailnet_overlay_transport() {
+        let dir =
+            std::env::temp_dir().join(format!("musu-route-evidence-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let peer = ResolvedPeer {
+            addr: "100.64.0.11:8070".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Registry,
+            meta: Some(serde_json::json!({
+                "peer_public_key": "nodekey:test",
+                "mesh_mode": "musu_headscale",
+                "control_server_url": "https://mesh.example",
+                "control_server_verified": true,
+                "tailscale_ip": "100.64.0.11",
+            })),
+        };
+
+        let record = record_bridge_forward_route_evidence(
+            &dir,
+            "task-id",
+            "source-node",
+            &peer,
+            Some("rv_test".to_string()),
+            Some(15),
+            31,
+            RouteAttemptEvidenceResult::Success,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        let value = serde_json::to_value(record.evidence).unwrap();
+
+        assert_eq!(value["route_kind"], "tailscale");
+        assert_eq!(value["peer_identity_verified"], false);
+        assert_eq!(
+            value["peer_identity_method"],
+            "private_mesh_release_peer_identity"
+        );
+        assert_eq!(value["peer_public_key"], "nodekey:test");
+        assert_eq!(value["encryption"], PRIVATE_MESH_TAILNET_ENCRYPTION);
+        assert_eq!(
+            value["transport_verified_by"],
+            PRIVATE_MESH_TAILNET_TRANSPORT_VERIFIER
+        );
+        assert_eq!(value["private_mesh_mode"], "musu_headscale");
+        assert_eq!(
+            value["private_mesh_control_server_url"],
+            "https://mesh.example"
+        );
+        assert_eq!(value["private_mesh_control_server_verified"], true);
+        assert_eq!(value["payload_transited_musu_infra"], false);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn bridge_route_evidence_does_not_infer_private_mesh_from_tailnet_addr_only() {
+        let dir =
+            std::env::temp_dir().join(format!("musu-route-evidence-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let peer = ResolvedPeer {
+            addr: "100.64.0.11:8070".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Manual,
+            meta: None,
+        };
+
+        let record = record_bridge_forward_route_evidence(
+            &dir,
+            "task-id",
+            "source-node",
+            &peer,
+            Some("rv_test".to_string()),
+            Some(15),
+            31,
+            RouteAttemptEvidenceResult::Success,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        let value = serde_json::to_value(record.evidence).unwrap();
+
+        assert_eq!(value["route_kind"], "tailscale");
+        assert_eq!(value["peer_identity_verified"], false);
+        assert_eq!(value["encryption"], "none_http_bearer");
+        assert!(value.get("transport_verified_by").is_none());
+        assert!(value.get("private_mesh_control_server_url").is_none());
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -949,6 +1297,9 @@ mod tests {
             peer_public_key: Some("sha256:test".to_string()),
             encryption: "none_http_bearer".to_string(),
             transport_verified_by: None,
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
             relay_fallback: Some(RouteRelayFallbackEvidence {
                 direct_path_failed: true,
                 lease_requested: true,
@@ -1035,6 +1386,9 @@ mod tests {
             peer_public_key: Some("sha256:test".to_string()),
             encryption: "quic_tls_1_3".to_string(),
             transport_verified_by: Some(QUIC_TLS_TRANSPORT_VERIFIER.to_string()),
+            private_mesh_mode: None,
+            private_mesh_control_server_url: None,
+            private_mesh_control_server_verified: None,
             relay_fallback: None,
             relay_transport_proof: Some(RouteRelayTransportProof {
                 schema: "musu.relay_transport_proof.v1".to_string(),
@@ -1065,11 +1419,15 @@ mod tests {
                 target_node_id: "target-node".to_string(),
                 relay_url: "wss://relay.musu.pro/connect".to_string(),
                 tunnel_id: "relay-tunnel-1".to_string(),
+                payload_kind: "forwarded_task_envelope".to_string(),
                 transport_kind: "quic_relay_tunnel".to_string(),
                 relay_default_data_path: false,
                 release_grade: true,
                 payload_sha256: "abc123".to_string(),
                 payload_bytes: 128,
+                claimed_by: "target-node".to_string(),
+                claimed_at: "2026-06-04T00:00:01Z".to_string(),
+                created_at: "2026-06-04T00:00:00Z".to_string(),
                 delivered_at: "2026-06-04T00:00:02Z".to_string(),
             }),
         });
@@ -1169,11 +1527,15 @@ mod tests {
             target_node_id: payload.target_node_id.clone(),
             relay_url: payload.relay_url.clone(),
             tunnel_id: payload.tunnel_id.clone(),
+            payload_kind: payload.payload_kind.clone(),
             transport_kind: payload.transport_kind.clone(),
             relay_default_data_path: payload.relay_default_data_path,
             release_grade: payload.release_grade,
             payload_sha256: payload.payload_sha256.clone(),
             payload_bytes: payload.payload_bytes,
+            claimed_by: payload.claimed_by.clone().unwrap(),
+            claimed_at: payload.claimed_at.clone().unwrap(),
+            created_at: payload.created_at.clone(),
             delivered_at: payload.delivered_at.clone().unwrap(),
         };
 
@@ -1291,11 +1653,15 @@ mod tests {
             target_node_id: payload.target_node_id.clone(),
             relay_url: payload.relay_url.clone(),
             tunnel_id: payload.tunnel_id.clone(),
+            payload_kind: payload.payload_kind.clone(),
             transport_kind: payload.transport_kind.clone(),
             relay_default_data_path: payload.relay_default_data_path,
             release_grade: payload.release_grade,
             payload_sha256: payload.payload_sha256.clone(),
             payload_bytes: payload.payload_bytes,
+            claimed_by: payload.claimed_by.clone().unwrap(),
+            claimed_at: payload.claimed_at.clone().unwrap(),
+            created_at: payload.created_at.clone(),
             delivered_at: payload.delivered_at.clone().unwrap(),
         }
     }

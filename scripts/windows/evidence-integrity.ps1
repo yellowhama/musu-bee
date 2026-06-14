@@ -131,6 +131,51 @@ function Test-EvidenceIntegritySidecar {
         $expected = ""
     }
 
+    if (
+        -not $sidecar -or
+        -not $sidecar.PSObject.Properties["schema"] -or
+        [string]$sidecar.schema -ne $script:EvidenceIntegritySidecarSchema
+    ) {
+        return [pscustomobject]@{
+            status = "malformed"
+            ok = $false
+            expected = $expected
+            actual = $actual
+            sidecar_path = $sidecarPath
+            message = "integrity sidecar schema is malformed or missing"
+        }
+    }
+
+    if (
+        -not $sidecar.PSObject.Properties["algorithm"] -or
+        [string]$sidecar.algorithm -ne "sha256"
+    ) {
+        return [pscustomobject]@{
+            status = "malformed"
+            ok = $false
+            expected = $expected
+            actual = $actual
+            sidecar_path = $sidecarPath
+            message = "integrity sidecar algorithm must be sha256"
+        }
+    }
+
+    $expectedFileName = [System.IO.Path]::GetFileName($EvidencePath)
+    $sidecarFileName = ""
+    if ($sidecar.PSObject.Properties["evidence_file"] -and $null -ne $sidecar.evidence_file) {
+        $sidecarFileName = [string]$sidecar.evidence_file
+    }
+    if ($sidecarFileName -ne $expectedFileName) {
+        return [pscustomobject]@{
+            status = "malformed"
+            ok = $false
+            expected = $expected
+            actual = $actual
+            sidecar_path = $sidecarPath
+            message = "integrity sidecar evidence_file mismatch: expected $expectedFileName"
+        }
+    }
+
     if ([string]::IsNullOrWhiteSpace($expected) -or $expected -notmatch "^[0-9a-f]{64}$") {
         return [pscustomobject]@{
             status = "malformed"

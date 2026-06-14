@@ -18,6 +18,32 @@ interface NodesConfig {
   };
 }
 
+function bridgeRoutePayload(input: {
+  channel: string;
+  sender_id: string;
+  text: string;
+  node?: string;
+  adapter_override?: string;
+  cost_optimized?: boolean;
+}) {
+  const targetNode = input.node?.trim();
+  const adapterType = input.adapter_override?.trim();
+  return {
+    channel: input.channel,
+    sender_id: input.sender_id,
+    text: input.text.trim(),
+    ...(targetNode && targetNode !== "local" ? { target_node: targetNode } : {}),
+    ...(adapterType
+      ? {
+          adapter_type: adapterType,
+          // Kept for legacy bridges that still read the Python-era field.
+          adapter_override: adapterType,
+        }
+      : {}),
+    cost_optimized: input.cost_optimized,
+  };
+}
+
 async function readNodesConfig(): Promise<NodesConfig> {
   try {
     const configPath = join(homedir(), ".musu", "nodes.toml");
@@ -124,6 +150,18 @@ const MUSU_BRIDGE_REMOTE_URL = process.env.MUSU_BRIDGE_REMOTE_URL
   : null;
 
 const AGENT_ROUTE_TIMEOUT_MS = 300_000; // 5 min — matches claude_local default
+const AGENT_ROUTE_POLL_INTERVAL_MS = 500;
+const TERMINAL_TASK_STATUSES = new Set(["done", "failed", "cancelled"]);
+
+type BridgeTaskStatus = {
+  task_id?: string;
+  status?: string;
+  output?: string | null;
+  error?: string | null;
+  exit_code?: number | null;
+  duration_sec?: number | null;
+  route_proof?: unknown;
+};
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -160,9 +198,10 @@ export async function POST(req: NextRequest) {
     const nodesConfig = await readNodesConfig();
     const selectedNode = nodesConfig.mesh.nodes.find(n => n.name === node);
 
-    if (selectedNode?.url) {
+    const selectedNodeUrl = selectedNode?.url ? validateBridgeUrl(selectedNode.url) : null;
+    if (selectedNodeUrl) {
       // Use the node's configured URL (e.g., https://musu.pro)
-      targetUrl = selectedNode.url.replace(/\/+$/, "");
+      targetUrl = selectedNodeUrl;
     } else if (node === "remote" && MUSU_BRIDGE_REMOTE_URL) {
       // Fallback to MUSU_BRIDGE_REMOTE_URL for legacy "remote" node
       targetUrl = MUSU_BRIDGE_REMOTE_URL;
@@ -170,26 +209,27 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // TODO: Pass node parameter to musu-bridge once RouteRequest supports it
-    const upstream = await fetch(`${targetUrl}/api/route`, {
+    const delegate = await fetch(`${targetUrl}/api/tasks/delegate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...buildBridgeHeaders(await getBridgeToken()),
       },
       body: JSON.stringify({
-        channel,
-        sender_id,
-        text: text.trim(),
-        adapter_override,
-        cost_optimized,
+        ...bridgeRoutePayload({
+          channel,
+          sender_id,
+          text,
+          node,
+          adapter_override,
+          cost_optimized,
+        }),
+        allow_duplicate: true,
       }),
       signal: controller.signal,
     });
 
-    clearTimeout(timer);
-
-    if (!upstream.ok) {
+    if (!delegate.ok) {
       // V23.5 H-2: parse JSON error envelope from bridge if available
       // (uniform DB-write errors surface {error, detail, site}); preserve
       // "bridge_error" string as fallback for non-JSON / legacy responses.
@@ -203,7 +243,7 @@ export async function POST(req: NextRequest) {
         site?: string;
       } = { error: "bridge_error" };
       try {
-        const data = (await upstream.json()) as {
+        const data = (await delegate.json()) as {
           error?: unknown;
           detail?: unknown;
           site?: unknown;
@@ -221,29 +261,76 @@ export async function POST(req: NextRequest) {
         // Bridge returned non-JSON (e.g. proxy error, gateway timeout HTML).
         // Keep the bridge_error fallback so consumer matchers stay stable.
       }
-      return NextResponse.json(errorPayload, { status: upstream.status });
+      clearTimeout(timer);
+      return NextResponse.json(errorPayload, { status: delegate.status });
     }
 
-    const data = (await upstream.json()) as {
-      response?: string;
-      agent_id?: string;
-      agent_name?: string;
-      adapter_type?: string;
-      error?: string;
+    const delegated = (await delegate.json()) as {
+      task_id?: string;
+      status?: string;
     };
 
-    if (data.error) {
-      return NextResponse.json({ error: data.error }, { status: 502 });
+    const taskId = delegated.task_id?.trim();
+    if (!taskId) {
+      clearTimeout(timer);
+      return NextResponse.json({ error: "bridge_task_id_missing" }, { status: 502 });
     }
 
-    const responseText = data.response ?? "";
+    let data: BridgeTaskStatus | null = null;
+
+    while (!controller.signal.aborted) {
+      const statusRes = await fetch(`${targetUrl}/api/tasks/${encodeURIComponent(taskId)}`, {
+        method: "GET",
+        headers: buildBridgeHeaders(await getBridgeToken()),
+        signal: controller.signal,
+      });
+
+      if (!statusRes.ok) {
+        clearTimeout(timer);
+        return NextResponse.json(
+          { error: "bridge_task_status_unavailable", task_id: taskId },
+          { status: statusRes.status }
+        );
+      }
+
+      data = (await statusRes.json()) as BridgeTaskStatus;
+      const status = data?.status?.trim() ?? "";
+      if (TERMINAL_TASK_STATUSES.has(status)) break;
+
+      await new Promise((resolve) => setTimeout(resolve, AGENT_ROUTE_POLL_INTERVAL_MS));
+    }
+
+    clearTimeout(timer);
+
+    if (!data || controller.signal.aborted) {
+      return NextResponse.json({ error: "agent_timeout", task_id: taskId }, { status: 504 });
+    }
+
+    const task = data;
+
+    if (task.status === "failed" || task.status === "cancelled" || task.error) {
+      return NextResponse.json(
+        {
+          error: task.error || `task_${task.status}`,
+          task_id: taskId,
+          exit_code: task.exit_code ?? null,
+        },
+        { status: 502 }
+      );
+    }
+
+    const responseText = task.output ?? "";
     const chain = parseDelegationChain(channel, responseText);
 
     return NextResponse.json({
       response: responseText,
-      agent_id: data.agent_id ?? null,
-      agent_name: data.agent_name ?? channel,
-      adapter_type: data.adapter_type ?? "",
+      agent_id: taskId,
+      agent_name: channel,
+      adapter_type: adapter_override ?? "",
+      task_id: taskId,
+      status: task.status ?? "",
+      duration_sec: task.duration_sec ?? undefined,
+      route_proof: task.route_proof ?? undefined,
       chain,
     });
   } catch (err) {

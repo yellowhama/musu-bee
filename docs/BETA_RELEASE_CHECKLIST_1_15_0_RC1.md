@@ -11091,3 +11091,1715 @@ Release status:
 - this does not reproduce a local one-machine idle busy-loop;
 - one-machine packaged CPU evidence is currently healthy;
 - remaining CPU gate is second-PC `post-route` / two-machine runtime capture.
+
+## 2026-06-14 Frontend And Rust Background Loop Gate Recheck
+
+Two local source-contract blockers were removed without weakening release proof
+requirements.
+
+Frontend polling:
+
+- Tauri shell cockpit refresh now uses one-shot `setTimeout` scheduling instead
+  of `setInterval`;
+- refresh is rearmed only after the current `refresh()` completes;
+- hidden windows clear the scheduled refresh;
+- visibility wake now calls `runScheduledRefresh()` so the wake path also stays
+  non-overlapping;
+- low-duty polling inventory includes `BridgeManager.tsx`.
+
+Rust background loops:
+
+- `cli_commands/device_login.rs` is now audited as the real device-flow polling
+  owner after the CLI split;
+- `adapter/cli_common.rs` is audited for kill-on-drop, one-shot stdin write,
+  stderr drain exit, 500ms per-iteration read timeout, cancel-aware select, and
+  hard deadline exit;
+- `install/private_mesh.rs` is audited for bounded release-task polling and
+  timeout-bounded `tailscale` command waits;
+- `install/startup.rs` is audited so device-flow login is spawned only from
+  explicit `startup open`, skipped when an account token exists, and delegated
+  to the bounded device-flow finalizer.
+
+Validation:
+
+- `npm run test:tauri-shell`: `35/35`
+- `npm run test:runtime-polling`: `20/20`
+- `npm exec -- tsx --test src/app/api/mcp/route.test.ts`: `41/41`
+- `audit-frontend-polling-contract.ps1 -Json`: `ok=true`, `fail_count=0`
+- `audit-rust-background-loop-contract.ps1 -Json`: `ok=true`, `fail_count=0`
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`
+- `git diff --check` on touched files: pass
+
+Go/no-go after recheck:
+
+- `local_artifacts_ready=true`
+- `frontend_polling_contract_verified=true`
+- `rust_background_loop_contract_verified=true`
+- blocker count reduced from `17` to `15`
+- remaining blockers:
+  `single-machine`, `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `runtime-cpu-second-pc-route-attempt`, `crash-recovery`,
+  `process-ownership`, `startup-single-instance`,
+  `desktop-single-instance`, `store-public-metadata`, `support-mailbox`,
+  `store-release`, `p2p-control-plane`, `git`.
+
+No-Go remains correct until the packaged MUSU desktop app proves a real
+two-physical-PC private-mesh route/callback archive with
+`desktop_runtime_packaged=true`.
+
+## 2026-06-14 Crash-Recovery Registry Cleanup Recheck
+
+The crash-recovery source-contract blocker was removed.
+
+Change:
+
+- `ServiceRegistry::cleanup_stale()` now keeps the stale-record handling
+  explicit: dead PID records log `removing stale service record (pid dead)` and
+  are deregistered, while null-PID records remain treated as stale because no
+  live process ownership can be proven.
+
+Validation:
+
+- `audit-musu-crash-recovery-contract.ps1 -Json`: `ok=true`, `fail_count=0`
+- `cargo test -p musu-rs cleanup_stale --lib`: `3/3`
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`
+- `write-release-go-no-go.ps1 -SkipPublicMetadata -ScriptTimeoutSeconds 300
+  -Json`: `ready_for_public_desktop_release=false`,
+  `local_artifacts_ready=true`
+
+Evidence files:
+
+- `.local-build/crash-audit-after-services.json`
+- `.local-build/release-verifiers-after-crash-recovery.json`
+- `.local-build/go-no-go/latest.json`
+
+Go/no-go after recheck:
+
+- blocker count reduced from `15` to `14`
+- `crash-recovery` is no longer present
+- remaining blockers:
+  `single-machine`, `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `runtime-cpu-second-pc-route-attempt`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`,
+  `store-public-metadata`, `support-mailbox`, `store-release`,
+  `p2p-control-plane`, `git`.
+
+No-Go remains correct. The release still needs packaged desktop proof on two
+physical PCs with the private-mesh route/callback archive and
+`desktop_runtime_packaged=true`.
+
+## 2026-06-14 Packaged Identity, Process Ownership, And Startup Recheck
+
+Two local packaged-runtime blockers were removed.
+
+Finding:
+
+- The installed MSIX runtime is `blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc`,
+  matching the current `build-msix.ps1` default identity `blossompark.musu`.
+- The process/startup/CPU evidence scripts still treated only
+  `yellowhama.musu_` as a packaged WindowsApps runtime, so a real packaged
+  `musu.exe bridge` process was misclassified as non-packaged.
+
+Change:
+
+- `audit-musu-process-ownership.ps1`,
+  `audit-musu-startup-single-instance.ps1`, and
+  `measure-musu-runtime-cpu-scenarios.ps1` now accept both historical
+  `yellowhama.musu_` and current `blossompark.musu_` WindowsApps package
+  identities.
+
+Validation:
+
+- Packaged runtime repair started `C:\Program Files\WindowsApps\...\musu.exe
+  bridge`.
+- `audit-musu-process-ownership.ps1 -Json`: `ok=true`, `fail_count=0`,
+  runtime `1`, packaged runtime `1`, non-packaged runtime `0`, owned Node `0`,
+  owned WebView2 `0`, orphan repo helpers `0`.
+- `audit-musu-startup-single-instance.ps1 -Json`: `ok=true`, `fail_count=0`,
+  nested process ownership `ok=true`.
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`.
+- `write-release-go-no-go.ps1 -SkipPublicMetadata -ScriptTimeoutSeconds 300
+  -Json`: `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`.
+
+Evidence files:
+
+- `.local-build/process-ownership/musu-process-ownership-20260614-092715.json`
+- `.local-build/startup-single-instance/musu-startup-single-instance-20260614-092753.json`
+- `.local-build/release-verifiers-after-process-identity.json`
+- `.local-build/go-no-go/latest.json`
+
+Go/no-go after recheck:
+
+- blocker count reduced from `14` to `12`
+- `process-ownership` is no longer present
+- `startup-single-instance` is no longer present
+- remaining blockers:
+  `single-machine`, `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `runtime-cpu-second-pc-route-attempt`, `desktop-single-instance`,
+  `store-public-metadata`, `support-mailbox`, `store-release`,
+  `p2p-control-plane`, `git`.
+
+No-Go remains correct. The release still needs real packaged desktop UX and
+two-physical-PC private-mesh route/callback proof before it can be called
+public-release ready.
+
+## 2026-06-14 Desktop Single-Instance Packaged Identity Recheck
+
+The packaged desktop repeated-activation blocker was removed.
+
+Finding:
+
+- The installed desktop package is `blossompark.musu` with AppUserModelId
+  `blossompark.musu_f5h38pf4yt4gc!MUSU`.
+- `audit-musu-desktop-single-instance.ps1` still defaulted to the historical
+  `Yellowhama.MUSU` package name, and
+  `measure-musu-runtime-cpu-scenarios.ps1` still defaulted to the historical
+  `Yellowhama.MUSU_ygcjq669as2b6!MUSU` AppUserModelId.
+- `write-release-go-no-go.ps1` also had a historical package identity check
+  that did not recognize `blossompark.musu_` when a startup evidence command
+  records the concrete installed WindowsApps path instead of the alias.
+
+Change:
+
+- Desktop single-instance audit now defaults to `blossompark.musu`.
+- Runtime CPU scenario measurement now defaults to
+  `blossompark.musu_f5h38pf4yt4gc!MUSU`.
+- Go/no-go startup executable identity checks now recognize both historical
+  `yellowhama.musu_` and current `blossompark.musu_` WindowsApps paths.
+
+Validation:
+
+- `audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -Json`:
+  `ok=true`, `fail_count=0`, before desktop shell `0`, after repeated
+  activation `1`, new desktop shell `1`, activation failures `0`.
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`.
+- `write-release-go-no-go.ps1 -SkipPublicMetadata -ScriptTimeoutSeconds 300
+  -Json`: `desktop_single_instance_verified=true`.
+
+Evidence files:
+
+- `.local-build/desktop-single-instance/musu-desktop-single-instance-20260614-093652-HUGH_SECOND.json`
+- `.local-build/release-verifiers-after-desktop-identity.json`
+- `.local-build/go-no-go/latest.json`
+
+Go/no-go after recheck:
+
+- blocker count reduced from `12` to `11`
+- `desktop-single-instance` is no longer present
+- remaining blockers:
+  `single-machine`, `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `runtime-cpu-second-pc-route-attempt`, `store-public-metadata`,
+  `support-mailbox`, `store-release`, `p2p-control-plane`, `git`.
+
+No-Go remains correct. The next local evidence target is fresh single-machine
+smoke and current packaged runtime CPU evidence; the product still cannot be
+called S-grade until real two-PC private-mesh route/callback proof exists.
+
+## 2026-06-14 Single-Machine Smoke Route Model Fix
+
+Fresh single-machine smoke was attempted and exposed a real user-facing failure.
+
+Finding:
+
+- `smoke-single-machine-beta.ps1` passed packaged `musu up` and `doctor`.
+- The installed package reported a bridge-only local runtime surface at
+  `http://127.0.0.1:14097`.
+- The CLI route smoke queued task
+  `65166312-2f2a-4693-9ec7-8d16b8a0def9`, but execution failed because Claude
+  CLI selected an unavailable default model:
+  `There's an issue with the selected model (claude-fable-5).`
+- `claude --model claude-sonnet-4-5 -p "Reply exactly: MUSU_MODEL_PROBE_OK"`
+  succeeded, proving the failure was not missing Claude CLI auth or routing; it
+  was an unusable default model with no `musu route` escape hatch.
+
+Change:
+
+- `musu route` now accepts `--model <MODEL>`.
+- The route delegate JSON body includes `model`, using the bridge handler field
+  that already exists and is forwarded to the runner.
+- `smoke-single-machine-beta.ps1` now has `-CliModel`, defaulting to
+  `claude-sonnet-4-5`; it only sends `--model` when the invoked `musu route
+  --help` advertises support, so old installed packages keep their old behavior.
+
+Validation:
+
+- `claude --model claude-sonnet-4-5 -p ...`: returned
+  `MUSU_MODEL_PROBE_OK`.
+- `cargo test -p musu-rs
+  cli_route_evidence_records_successful_fingerprint_pinned_transport --lib`:
+  `1/1`.
+- `cargo build --bin musu`: success.
+- `target/debug/musu.exe route --help`: shows `--model <MODEL>`.
+- `target/debug/musu.exe route --wait --model claude-sonnet-4-5 ...` against
+  the live packaged bridge completed and returned
+  `MUSU_CLI_MODEL_OVERRIDE_OK`.
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`.
+
+Evidence:
+
+- failed installed-package smoke log:
+  `.local-build/single-machine-smoke-current.log`
+- failed task:
+  `%USERPROFILE%\.musu\tasks\65166312-2f2a-4693-9ec7-8d16b8a0def9.json`
+- successful model-override task:
+  `%USERPROFILE%\.musu\tasks\521f35bf-99ee-4d18-b8dd-4045df0c1f21.json`
+- verifier:
+  `.local-build/release-verifiers-after-route-model.json`
+
+Release status:
+
+- `single-machine` remains No-Go because the currently installed packaged
+  `musu.exe` does not yet contain `musu route --model`.
+- Next required step is to rebuild/reinstall the packaged desktop runtime from
+  this source, then rerun `smoke-single-machine-beta.ps1` and
+  `record-single-machine-evidence.ps1`.
+
+## 2026-06-14 Adapter-Aware Packaged Single-Machine Smoke
+
+The single-machine release blocker was removed.
+
+Follow-up finding:
+
+- Rebuilding and installing the `--model` package exposed a second correctness
+  bug in the smoke harness: the local bridge's effective default adapter was
+  `codex`, but the smoke script forced the Claude model
+  `claude-sonnet-4-5`.
+- `codex` correctly rejected that Claude model with
+  `The 'claude-sonnet-4-5' model is not supported when using Codex with a
+  ChatGPT account.`
+- A plain packaged route without a model override completed and returned
+  `MUSU_DEFAULT_ADAPTER_ROUTE_OK_20260614`, proving the route path was healthy
+  and the failure was an adapter/model mismatch introduced by the test harness.
+
+Change:
+
+- `musu route` now accepts `--adapter <ADAPTER>` in addition to `--model
+  <MODEL>`, so operators and MCP-driven setup can explicitly bind both sides of
+  the adapter/model pair when needed.
+- The route delegate JSON body now includes `adapter_type` when `--adapter` is
+  passed.
+- `smoke-single-machine-beta.ps1` no longer hardcodes a Claude model. Its
+  default `-CliModel` is empty, so the installed bridge's effective default
+  adapter chooses its own model. Optional `-CliAdapter` remains available for
+  explicit adapter-bound smoke runs.
+
+Validation:
+
+- `cargo build --bin musu`: success.
+- `cargo test -p musu-rs
+  cli_route_evidence_records_successful_fingerprint_pinned_transport --lib`:
+  `1/1`.
+- `target/debug/musu.exe route --help`: shows both `--model <MODEL>` and
+  `--adapter <ADAPTER>`.
+- `build-msix.ps1 -StartupContract local-sideload-manual`: success, package
+  `.local-build/msix/output/musu_1.15.0.0_x64_local-sideload-manual.msix`.
+- `install-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`:
+  installed `blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc`.
+- `verify-installed-msix-package.ps1 -StartupContract local-sideload-manual
+  -CheckAlias`: alias resolves to
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`, no alias
+  shadowing, no legacy conflicts.
+- Installed `musu.exe route --help`: shows both `--model <MODEL>` and
+  `--adapter <ADAPTER>`.
+- `smoke-single-machine-beta.ps1`: passed against packaged WindowsApps alias,
+  `allow_developer_runtime=false`, `single_machine_surface=local-bridge-only`,
+  bridge `http://127.0.0.1:4989`, CLI route checked, no adapter/model override,
+  output contained `MUSU_CLI_ROUTE_OK_20260614_110100`.
+- `record-single-machine-evidence.ps1`: copied evidence to
+  `docs/evidence/single-machine/1.15.0-rc.1/20260614-110147-HUGH_SECOND.evidence.json`.
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=161`,
+  `failed_case_count=0`.
+- `write-release-go-no-go.ps1 -SkipPublicMetadata -ScriptTimeoutSeconds 300
+  -Json`: `single_machine_verified=true`.
+
+Evidence:
+
+- smoke log:
+  `.local-build/single-machine-smoke-after-adapter-aware-route.log`
+- raw smoke evidence:
+  `.local-build/single-machine/20260614-110100-HUGH_SECOND.evidence.json`
+- recorded release evidence:
+  `docs/evidence/single-machine/1.15.0-rc.1/20260614-110147-HUGH_SECOND.evidence.json`
+- evidence SHA256:
+  `b7b0df1ac58da0613cc7f15423cc90e111952a61f925d01b133adc6e4d5783e9`
+- verification:
+  `docs/evidence/single-machine/1.15.0-rc.1/20260614-110147-HUGH_SECOND.verification.json`
+- summary:
+  `docs/evidence/single-machine/1.15.0-rc.1/20260614-110147-HUGH_SECOND.summary.md`
+- latest go/no-go:
+  `.local-build/go-no-go/latest.json`
+
+Go/no-go after recheck:
+
+- `local_artifacts_ready=true`
+- `single_machine_verified=true`
+- `ready_for_public_desktop_release=false`
+- blocker count reduced from `11` to `10`
+- `single-machine` is no longer present
+- remaining blockers:
+  `multi-device`, `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+  `store-public-metadata`, `support-mailbox`, `store-release`,
+  `p2p-control-plane`, `git`.
+
+No-Go remains correct. The next proof target is still a current packaged desktop
+Private Mesh release archive from two separate physical PCs with
+`desktop_runtime_kind=packaged_desktop` and `desktop_runtime_packaged=true`,
+plus the two-machine CPU scenario evidence.
+
+## 2026-06-14 Packaged Desktop Low-Power Ambient Motion Fix
+
+The installed desktop shell had a real runtime-idle CPU issue after the fresh
+single-machine package pass.
+
+Finding:
+
+- `desktop-open` idle CPU measured against the packaged MSIX shell failed even
+  after a 30s settle period.
+- The hot processes were WebView2 renderer/GPU helpers, not the Rust bridge:
+  before fix, `webview2_helper` reached `32.51%` and `23.02%` of one logical
+  CPU in the first 60s sample, then `29.99%` and `23.54%` after settle.
+- Root cause: persistent ambient CSS animation in the cockpit shell. Connection
+  dots, online fleet pings, status glyphs, and release/proof indicators were
+  infinite compositor loops, so an otherwise idle desktop app kept WebView2 hot.
+
+Change:
+
+- `src-tauri-shell/styles.css` now disables ambient infinite motion by default
+  for persistent status signals:
+  connected/connecting dots, online node pings, connecting glyph spans, mesh
+  status dots, running task dots, and running release-evidence dots.
+- One-shot entrance animations remain. The product keeps visual hierarchy, but
+  idle status no longer consumes a continuous GPU/render loop.
+
+Validation:
+
+- `npm run test:tauri-shell`: `35/35` passed.
+- `npm run test:runtime-polling`: `20/20` passed.
+- `build-msix.ps1 -StartupContract local-sideload-manual`: success.
+- `install-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`:
+  installed `blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc`.
+- Packaged `desktop-open` idle CPU after reinstall:
+  `.local-build/runtime-idle-cpu/current-packaged-desktop-open-low-motion-20260614.json`
+  reports `ok=true`, `hot_process_count=0`, `webview2=0.62%`,
+  `desktop_shell=0.08%`, `bridge_runtime=0.05%`, working set `407.33MB`.
+- Full packaged runtime CPU scenario matrix:
+  `.local-build/runtime-cpu-scenarios/20260614-112638-HUGH_SECOND/20260614-112638-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  reports `ok=true`, all five scenarios present, successful post-route probe,
+  zero hot processes, and every role/subrole below `5%` one-core:
+  `startup-open webview2=0.91%`, `runtime-started webview2=1.07%`,
+  `dashboard-open webview2=0.73%`, `desktop-open webview2=0.62%`,
+  `post-route webview2=0.70%`.
+- `verify-runtime-cpu-scenario-matrix.ps1` structurally passed the matrix:
+  CPU budgets, process attribution, doctor background snapshot, route probe,
+  route token binding, route evidence path, and resource budgets all passed.
+  Its `fail_count=6` is only because the matrix and per-scenario evidence were
+  captured from a dirty worktree.
+
+Release status:
+
+- This removes a real S-tier product defect: the packaged cockpit no longer
+  burns WebView2 CPU at idle.
+- `runtime-idle-cpu` and `runtime-cpu-scenario-matrix` remain go/no-go blockers
+  until the same evidence is recaptured from a clean committed tree and a second
+  physical PC contributes matching release-grade evidence.
+- No-Go remains correct.
+
+## 2026-06-14 Live Public Metadata Regression Recheck
+
+The public Store metadata gate was re-run against the live production base URL,
+not skipped:
+
+- command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`
+- result: `ok=false`, `fail_count=3`
+- `https://musu.pro/privacy`: HTTP `200`, contains `musu@musu.pro`, but does
+  not contain the required `MUSU Privacy Policy` or
+  `Data MUSU may process` text.
+- `https://musu.pro/support`: HTTP `404`.
+
+Important distinction:
+
+- Source routes are present and still contain the verifier-required strings:
+  `musu-bee/src/app/privacy/page.tsx` and
+  `musu-bee/src/app/support/page.tsx`.
+- `npm run typecheck` passed after this recheck, so the current source pages are
+  type-valid.
+- The failure is therefore a live deployment/content mismatch, not a missing
+  local source route.
+
+Release status after running `write-release-go-no-go.ps1` without
+`-SkipPublicMetadata`:
+
+- `ready_for_public_desktop_release=false`
+- `public_metadata_checked=true`
+- `public_metadata_ok=false`
+- `store-public-metadata` remains a blocker with the concrete message:
+  `Public privacy/support metadata verification failed for https://musu.pro.`
+- current go/no-go evidence:
+  `.local-build/go-no-go-after-live-metadata-recheck-20260614.json`
+
+Required next action: redeploy the current `musu-bee/src/app/privacy/page.tsx`
+and `musu-bee/src/app/support/page.tsx` source to `https://musu.pro`, then rerun
+`verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` and
+`write-release-go-no-go.ps1 -Json`. Do not claim Store metadata readiness from
+the local source alone.
+
+## 2026-06-14 Public Metadata Gate Hardening
+
+The local public metadata regression path was tightened so Store readiness does
+not rely on a file-exists check or a broken Playwright startup command.
+
+Defect found:
+
+- `playwright.ci.config.ts` started Next with `npx next dev -p 3101`.
+- Under Next 16, that defaults to Turbopack. Because this app has a webpack
+  config in `next.config.mjs`, the Store metadata e2e server failed before it
+  could test `/privacy` and `/support`.
+
+Change:
+
+- `playwright.ci.config.ts` now starts the CI server with
+  `npx next dev --webpack -p 3101`.
+- `scripts/windows/audit-desktop-release-readiness.ps1` now checks required
+  source text for both public metadata pages, not only route file existence:
+  `MUSU Privacy Policy`, `Data MUSU may process`, `MUSU Support`,
+  `Include this diagnostic evidence`, and the `SUPPORT_EMAIL` binding.
+
+Validation:
+
+- `npx playwright test --config=playwright.ci.config.ts`: `2/2` passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/audit-desktop-release-readiness.ps1 -Json`:
+  new `store-metadata / privacy policy required text` and
+  `store-metadata / support required text` checks passed. Overall audit remains
+  `ok=false` because the existing `multi-device` evidence is still failed/stale.
+- `npm run typecheck`: passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/test-release-evidence-verifiers.ps1 -Json`:
+  `ok=true`, `161/161` verifier cases passed.
+
+Release status:
+
+- This closes a release-gate weakness: local public metadata regression now
+  actually starts and audits the required page content.
+- This does not close the live `store-public-metadata` blocker. `https://musu.pro`
+  still needs to be redeployed and verified by the live metadata verifier.
+
+## 2026-06-14 Retry Target And Honest Offline Peer Contract
+
+Two user-facing claims from the S-tier verdict were rechecked against source and
+locked with regression coverage.
+
+Finding:
+
+- The current cockpit source stores both `dataset.orderText` and
+  `dataset.orderTarget` on task cards. Retry now calls `submitText(t, target)`,
+  not the current target dropdown value.
+- The current fleet status source no longer fabricates `now - 30 days` for
+  unreachable peers. Unknown peer presence stays empty, while real registry
+  `last_seen` or persisted `last_health_at` is preserved when available.
+
+Test hardening:
+
+- `src-tauri-shell/cockpit-browser.spec.ts` now records every mocked
+  `submit_order` payload and proves a failed card retries the same text and the
+  same original target even after the dropdown is changed back to auto-route.
+- The browser suite now includes an unknown offline peer with no `last_seen` and
+  asserts it renders as `offline`, not `seen 30d ago`, and does not increment
+  the stale count.
+- The release-grade proof fixture was updated to match the current strict
+  readiness contract: packaged desktop runtime, route transport binding, and
+  archive verifier evidence are present. The visual snapshots were regenerated
+  from that stricter UI.
+
+Validation:
+
+- `npx playwright test --config=playwright.tauri-shell.config.ts src-tauri-shell/cockpit-browser.spec.ts -g "retry resubmits|unknown offline"`:
+  `2/2` passed.
+- `npm run test:tauri-shell:browser`: `6/6` passed.
+- `npm run typecheck`: passed.
+- `cargo test peer_fallback_status_does_not_fabricate_online_or_last_seen --lib`
+  from `musu-rs`: `1/1` passed.
+- `cargo test peer_last_seen --lib` from `musu-rs`: `2/2` passed.
+- `git diff --check` on the touched shell test and snapshot files: passed.
+
+Release status:
+
+- This removes two trust gaps from the qualitative S-tier claim: Retry now has a
+  regression test for exact target preservation, and offline peer age is no
+  longer allowed to be silently invented in UI proof.
+- No-Go remains correct. This does not replace the still-required live
+  two-physical-PC private-mesh release archive, live public metadata redeploy,
+  support mailbox proof, Store submission proof, P2P control-plane completion,
+  or clean committed evidence.
+
+## 2026-06-14 Relay Payload Delivery Proof Custody Hardening
+
+The preview store-forward relay delivery proof was tightened so it cannot be
+treated as a credible custody record when the claim identity or claim time is
+missing or forged.
+
+Finding:
+
+- The relay payload delivery proof already carried digest, byte count,
+  payload id, lease id, source/target, and delivered time.
+- It did not preserve the full custody chain from the stored payload record:
+  payload kind, claimant, claim time, and creation time.
+- That meant a later evidence record could prove "some delivered payload with
+  this digest" more strongly than it proved "the intended target claimed this
+  exact forwarded-task envelope before delivery."
+
+Change:
+
+- `RelayPayloadDeliveryProof` now includes `payload_kind`, `claimed_by`,
+  `claimed_at`, and `created_at`.
+- Delivery proof generation now refuses to emit proof unless the payload was
+  claimed and delivered.
+- Route evidence validation now compares those custody fields against the
+  stored delivered relay payload record and rejects mismatches, including a
+  forged claimant.
+- Rust bridge/cloud DTOs now preserve the same custody fields when target-side
+  relay drain records route evidence.
+- The P2P store-forward relay contract audit now checks that delivery proof
+  preserves custody metadata and that route evidence verifies it.
+
+Validation:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json`:
+  `ok=true`, `fail_count=0`.
+- `npx tsx --test src/app/api/v1/p2p/relay/payload/route.test.ts src/app/api/v1/p2p/route-evidence/route.test.ts`:
+  `47/47` passed, including forged-claimant rejection.
+- `npm run typecheck`: passed.
+- `cargo test relay_payload_delivery --lib` from `musu-rs`: `8/8` passed.
+
+Release status:
+
+- This closes a relay evidence integrity gap in the preview store-forward path.
+- This still does not make the queue a release-grade payload transport.
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remain correct until real QUIC/TLS
+  byte-path relay transport is implemented and proven.
+- Public release remains No-Go on the live two-physical-PC private-mesh release
+  archive, hosted MUSU.PRO P2P/relay proof, live public metadata redeploy,
+  support mailbox proof, Store submission proof, and clean committed evidence.
+
+## 2026-06-14 Agent Route Target And Adapter Preservation
+
+The web chat agent route was checked against the "one cockpit controls the
+fleet" product promise, then moved off the legacy response-oriented bridge
+route and onto the canonical Rust task contract.
+
+Finding:
+
+- `useChat` sends the selected node to `/api/agent-route` as `node`.
+- `agent-route` used that value only to choose a configured bridge URL, then
+  dropped it from the bridge request body.
+- The same route passed `adapter_override`, while current Rust bridge task APIs
+  use the canonical `adapter_type` field.
+- This meant a user could believe they selected `studio-pc` and `codex`, while
+  downstream bridge routing had no canonical `target_node` or `adapter_type`
+  proof in the payload.
+- The same path still called the legacy `/api/route` bridge endpoint even though
+  the current Rust bridge execution contract is `/api/tasks/delegate` followed
+  by `GET /api/tasks/:task_id`.
+
+Change:
+
+- `agent-route` now includes `target_node` whenever `node` is non-empty and not
+  `local`.
+- `agent-route` now maps `adapter_override` to canonical `adapter_type` while
+  still preserving `adapter_override` for legacy bridge compatibility.
+- Configured peer URLs from `nodes.toml` are now normalized through the existing
+  bridge URL validator before use.
+- `agent-route` now calls `POST /api/tasks/delegate`, sets
+  `allow_duplicate=true` for chat sends, then polls `GET /api/tasks/:task_id`
+  until `done`, `failed`, or `cancelled`.
+- Successful chat responses now come from the Rust task row `output`; failure
+  responses preserve the `task_id`, `error`, and `exit_code`.
+- Rust `GET /api/tasks/:task_id` now has direct regression coverage proving it
+  returns terminal `output`, `error`, `exit_code`, and `duration_sec`.
+- Regression coverage proves that `studio-pc` survives into the bridge payload
+  as `target_node`, and that `local` is not falsely sent as a remote target.
+- Client-side coverage now proves the `useChat` agent-route callback depends on
+  `selectedAdapter`; without that dependency, `/model` changes could leave
+  `adapter_override` stale even though the server preserves the field.
+- The active-node SSE reconnect effect no longer suppresses exhaustive-deps and
+  now depends on the current `connect` callback, so machine switching does not
+  reconnect through a stale channel/embed/message handler closure.
+- Chat `task_update` handling is now channel-scoped when the SSE event carries a
+  channel, so a task finishing in `qa` or `worker` cannot be appended into the
+  currently open `ceo` chat. Legacy channel-less events are still accepted.
+- Remote task result callbacks now recover the source task's
+  `company_id/channel/sender_id` from `route_executions` before saving and
+  broadcasting the callback SSE event, so source-machine chat filtering does not
+  drop legitimate remote results.
+- Remote task result callbacks now fail closed when `source_task_id` does not
+  match an existing source task row. Unknown callbacks return `not_found` before
+  callback proof recording, local TaskUpdate persistence, or SSE broadcast.
+- Remote task result callbacks now also reject non-terminal statuses. Only
+  `done`, `failed`, and `cancelled` are allowed to mutate the source task row or
+  emit chat-visible SSE.
+
+Validation:
+
+- `npx tsx --test src/app/api/agent-route/route.test.ts`: `3/3` passed.
+- `npx tsx --test src/lib/useChat.agent-route-contract.test.ts`: `5/5`
+  passed.
+- `npm run test:runtime-polling`: `20/20` passed.
+- `npm run typecheck`: passed.
+- `cargo test private_mesh_callback_gate_requires_tailscale_success_and_callback
+  --lib` from `musu-rs`: `1/1` passed.
+- `cargo test task_callback_status_accepts_only_terminal_statuses --lib` from
+  `musu-rs`: `1/1` passed.
+- `cargo test receive_callback_rejects --lib` from `musu-rs`: `2/2`
+  passed.
+- `cargo test --lib` from `musu-rs`: `442/442` passed.
+- `cargo test get_task_returns_terminal_output_and_error_fields --lib` from
+  `musu-rs`: `1/1` passed.
+- `npx tsx --test src/app/api/mcp/route.test.ts`: `41/41` passed,
+  including the generated marketplace catalog block for
+  `github.com/cporter202/scraping-apis-for-devs`.
+- `git diff --check` on the touched web-chat files: passed.
+
+Release status:
+
+- This closes a concrete target-preservation and execution-contract bug in a
+  user-facing chat path: web chat now delegates work through the same Rust task
+  API used by the fleet/MCP path and reads the same result record.
+- This still does not close release readiness because it is single-path local
+  contract hardening, not live two-physical-PC private-mesh proof.
+- Public release remains No-Go on real second-PC private-mesh proof, two-machine
+  runtime CPU/matrix, hosted MUSU.PRO P2P/relay proof, live public metadata,
+  support mailbox proof, Store submission proof, and clean committed evidence.
+
+## 2026-06-14 Public Metadata Deployment Drift Evidence
+
+The live Store metadata gate was rerun against `https://musu.pro` after the
+connector-catalog and callback hardening work. The gate still fails, but the
+failure is now classified as live deployment drift instead of a generic public
+metadata failure.
+
+Change:
+
+- `scripts/windows/verify-store-public-metadata.ps1` now emits
+  `musu.store_public_metadata_verification.v2`.
+- The verifier records `checked_at`, `failure_kinds`, and one `pages[]` evidence
+  row per checked public URL.
+- Each page row records `status_code`, `content_length`, `content_sha256`,
+  `required_text`, `missing_text`, `matched_text`, and a short
+  `content_snippet`.
+- HTTP failures with a real response, such as `404`, are classified as
+  `http_not_success` with the status code instead of collapsing into an
+  opaque request failure.
+- The verifier still exits non-zero and keeps `ok=false` when required Store
+  metadata is missing. This does not make the release gate easier to pass.
+
+Live result from
+`scripts/windows/verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`:
+
+- `ok=false`, `fail_count=3`
+- `failure_kinds=["content_mismatch","http_not_success"]`
+- `privacy`: HTTP `200`, `content_sha256` recorded in JSON, missing
+  `MUSU Privacy Policy` and `Data MUSU may process`, matched `musu@musu.pro`
+- `support`: HTTP `404`, missing `MUSU Support`,
+  `Include this diagnostic evidence`, and `musu@musu.pro`
+
+Release status:
+
+- `store-public-metadata` remains a public release blocker.
+- The local source already contains the required privacy/support page text, so
+  the current failure points to stale or incomplete deployment of `musu.pro`.
+- The next release action is to deploy the current public site and rerun the
+  verifier until both `/privacy` and `/support` pass with the expected support
+  address.
+
+Follow-up hardening:
+
+- `scripts/windows/write-release-go-no-go.ps1` now summarizes the v2 public
+  metadata failure directly in the `store-public-metadata` blocker.
+- The latest blocker message is:
+  `Public privacy/support metadata verification failed for https://musu.pro:
+  failure_kinds=content_mismatch,http_not_success,public_config_mismatch;
+  privacy HTTP 200 content_mismatch missing=[MUSU Privacy Policy, Data MUSU may
+  process, MUSU public release metadata: 1.15.0-rc.1]; support HTTP 404
+  http_not_success missing=[MUSU Support, Include this diagnostic evidence,
+  musu@musu.pro, MUSU public release metadata: 1.15.0-rc.1]; public-config HTTP
+  200 public_config_mismatch missing_fields=[releaseVersion, privacyUrl,
+  publicReleaseMetadata, supportEmail, supportUrl].`
+- `scripts/windows/test-release-evidence-verifiers.ps1` now includes a source
+  contract proving the go/no-go writer reads `failure_kinds`, page
+  `status_code`, `failure_kind`, `missing_text`, and public-config
+  `missing_fields` instead of falling back to a generic metadata failure.
+
+Validation:
+
+- `scripts/windows/verify-store-public-metadata.ps1 -BaseUrl https://musu.pro
+  -Json`: expected failure with `musu.store_public_metadata_verification.v2`,
+  `failure_kinds=["content_mismatch","http_not_success","public_config_mismatch"]`,
+  privacy HTTP `200`, support HTTP `404`, and public-config HTTP `200` with
+  required release/support/privacy fields missing.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`:
+  expected No-Go; `store-public-metadata` blocker includes page-level failure
+  detail.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `162/162`
+  passed.
+- `git diff --check` on the touched release verifier/checklist files: passed.
+
+Release marker hardening:
+
+- `musu-bee/src/lib/publicRelease.ts` defines
+  `PUBLIC_RELEASE_VERSION="1.15.0-rc.1"` and
+  `PUBLIC_RELEASE_METADATA_TEXT`.
+- `/privacy` and `/support` now render
+  `MUSU public release metadata: 1.15.0-rc.1` as visually hidden text, so the
+  public metadata verifier can prove the deployed pages came from the current
+  release build and not merely any page containing a support address.
+- `verify-store-public-metadata.ps1` now derives the expected release marker
+  from the repository `VERSION` file and requires it on both public pages.
+- `write-release-go-no-go.ps1` now includes the release marker in the
+  page-level `missing=[...]` summary when the live deployment is stale.
+- `/api/public-config` now always returns schema `musu.public_config.v1`,
+  `releaseVersion`,
+  `publicReleaseMetadata`, `supportEmail`, `privacyUrl`, and `supportUrl` in
+  addition to the existing allowlisted public environment values. These values
+  are public by design and let installers/diagnostics verify the deployed site
+  without scraping HTML first.
+- `/api/public-config` now treats malformed `NEXT_PUBLIC_APP_URL` as a
+  fail-safe configuration error, not a public endpoint crash: `appUrl`,
+  `privacyUrl`, and `supportUrl` fall back to `https://musu.pro` when the env
+  value is not a valid `http` or `https` URL.
+- `verify-store-public-metadata.ps1` now verifies `/api/public-config` as well
+  as `/privacy` and `/support`, and records a `public_config` evidence object
+  with `missing_fields`, `mismatched_fields`, `matched_fields`, HTTP status,
+  content hash, and snippet.
+- `write-release-go-no-go.ps1` now includes `public-config` missing/mismatched
+  fields in the `store-public-metadata` blocker.
+
+Latest live result after release marker hardening:
+
+- `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`:
+  expected failure with `fail_count=10`.
+- `privacy`: HTTP `200`, missing `MUSU Privacy Policy`,
+  `Data MUSU may process`, and
+  `MUSU public release metadata: 1.15.0-rc.1`.
+- `support`: HTTP `404`, missing `MUSU Support`,
+  `Include this diagnostic evidence`, `musu@musu.pro`, and
+  `MUSU public release metadata: 1.15.0-rc.1`.
+- `public-config`: HTTP `200`, but missing `releaseVersion`,
+  `publicReleaseMetadata`, `supportEmail`, `privacyUrl`, `supportUrl`, and
+  `schema`.
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`: expected No-Go;
+  `store-public-metadata` blocker includes the release marker and
+  public-config gaps.
+- `npx tsx --test src/app/api/public-config/route.test.ts
+  src/app/public-metadata-contract.test.ts`: `9/9` passed.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `163/163`
+  passed.
+- `npm run typecheck`: passed.
+- `git diff --check` on the touched public metadata/release verifier files:
+  passed.
+
+## 2026-06-14 KST Go/No-Go Blocker Next Actions
+
+The release go/no-go output now includes blocker-specific `next_actions` in
+addition to `blockers`. Each action carries:
+
+- `area`: the blocker area it resolves.
+- `summary`: the operator-facing reason for the action.
+- `action_type`: `command`, `manual_then_command`, or `manual`.
+- `command`: the exact executable command to start evidence capture,
+  inspection, import, or verification. This field must not contain prose-only
+  manual instructions.
+- `command_is_executable`: whether `command` can be copied into a shell after
+  placeholders are replaced.
+- `command_ready`: whether `command` can be copied into a shell now without
+  replacing command placeholders.
+- `verification_command_ready`: whether `verification_command` can be copied
+  into a shell now without replacing verification placeholders.
+- `evidence_path_ready`: whether `evidence_path` contains no unresolved
+  placeholder tokens.
+- `manual_steps_ready`: whether any manual steps contain no unresolved
+  placeholder tokens.
+- `automation_ready`: whether the whole action can be completed by automation
+  now: command ready, verification ready, evidence path ready, no unresolved
+  placeholders, and no manual steps.
+- `command_placeholders`, `verification_placeholders`, `evidence_placeholders`,
+  and `manual_placeholders`: placeholder tokens grouped by field.
+- `placeholders`: every placeholder token found anywhere in the action.
+- `manual_steps`: ordered human steps for actions that cannot be fully
+  represented as a shell command.
+- `evidence_path`: where the expected proof should appear.
+- `verification_command`: the command that re-checks or imports that proof.
+- `elapsed_ms`, `invocation_count`, and `go_no_go_invocations`: the go/no-go
+  script now profiles its own child script calls so slow release checks are
+  visible in the JSON and in the non-JSON `Slow invocations` table.
+
+This is an operator UX gate, not a readiness bypass. The current release result
+is still expected No-Go, but the No-Go report now tells the operator exactly how
+to move each remaining blocker forward instead of only reporting why the release
+is blocked.
+
+Current dirty-tree go/no-go smoke:
+
+- `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`: expected No-Go.
+- `ready_for_public_desktop_release=false`.
+- `blockers=10`.
+- `next_actions=10`.
+- `go_no_go_invocations` records each child script's `script`, `arguments`,
+  `elapsed_ms`, `timed_out`, `exit_code`, `expect_json`, `json_returned`, and
+  `failure_kind`, making slow Go/No-Go runs diagnosable without rerunning under
+  an external profiler. Non-JSON success calls such as release manifest
+  generation are marked `expect_json=false` so they do not appear as parse
+  failures.
+- Runtime CPU matrix Go/No-Go verification now prefilters selected candidates
+  before invoking `verify-runtime-cpu-scenario-matrix.ps1`: the full matrix gate
+  only verifies candidates containing every required scenario, and the
+  second-PC route-attempt gate only verifies candidates that already contain a
+  targeted post-route probe shape. This avoids spending seconds on candidates
+  that cannot satisfy the gate while preserving the same release requirements.
+- Dirty-tree profiling after the prefilter showed runtime matrix verifier calls
+  reduced from `38` to `26` (`selected_candidate_count=19`,
+  full-matrix `verifier_candidate_count=14`, route-attempt
+  `verifier_candidate_count=12`). Total wall time remained noisy in this run
+  because other audits varied, so the current claim is narrower: impossible
+  runtime matrix verifier invocations were removed, and the remaining slow
+  scripts are now visible in `go_no_go_invocations`.
+- The generated `next_actions` cover `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+  `store-public-metadata`, `support-mailbox`, `store-release`,
+  `p2p-control-plane`, and `git`.
+- The `private-mesh-packaged-release-proof` action intentionally matches final
+  handoff status: run Release proof from the installed MUSU desktop app on real
+  hardware, then import the latest packaged archive with
+  `import-private-mesh-release-proof-archive.ps1 -LatestFromMusuHome -Json`.
+  Standalone `run-private-mesh-release-proof.ps1` output is diagnostic only and
+  must not be presented as the final packaged desktop proof path.
+- The `private-mesh-packaged-release-proof` action is now
+  `action_type=manual_then_command`: desktop-app clicks and physical-peer paste
+  steps live in `manual_steps[]`, while `command` contains only the executable
+  archive importer command. This prevents MCP/LLM operators from treating prose
+  as a shell command.
+- Placeholder detection is now part of the `next_actions` contract. Commands
+  with tokens such as `<PEER_NAME>`, `<MATRIX_JSON>`, or `<operator-name>` report
+  those tokens in `command_placeholders` / `verification_placeholders`; legacy
+  `REPLACE_WITH_*` tokens are detected the same way. Actions keep
+  `command_ready=false` until the command itself has no unresolved placeholder.
+  Actions keep `automation_ready=false` until all command, verification,
+  evidence, and manual placeholders are resolved and no manual-only step remains.
+- The runtime CPU actions also intentionally match final handoff status. The
+  idle CPU action includes owned WebView2/process/resource budgets and
+  `-FailOnHot`; the scenario matrix actions include the explicit
+  `startup-open,runtime-started,dashboard-open,desktop-open,post-route` scenario
+  set, `-OpenDesktopApp`, a 60s sample, and `-RouteTarget <PEER_NAME>`. Shorter
+  diagnostic commands must not be presented as release evidence commands.
+- Runtime `evidence_path` now shows both the immediate capture location and the
+  accepted release evidence location. Idle CPU capture writes
+  `.local-build\runtime-idle-cpu\musu-idle-cpu-*.json`; matrix capture writes
+  `.local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json`.
+  Verified artifacts may then be promoted under
+  `docs\evidence\runtime-idle-cpu\1.15.0-rc.1\` or
+  `docs\evidence\runtime-cpu-scenarios\1.15.0-rc.1\`.
+
+Validation:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `164/164`
+  passed.
+- `git diff --check` on the touched go/no-go, verifier, and checklist files:
+  passed.
+
+Follow-up Go/No-Go manifest/readiness reuse hardening:
+
+- `write-release-candidate-manifest.ps1` now accepts
+  `-ReadinessAuditJsonPath`. When present, it validates and reuses that JSON
+  instead of running `audit-desktop-release-readiness.ps1` again. Standalone
+  manifest generation still runs the readiness audit itself.
+- `write-release-go-no-go.ps1` writes its already computed readiness audit to
+  `.local-build\go-no-go\readiness-audit-for-manifest.json` and invokes the
+  manifest writer with `-ReadinessAuditJsonPath`.
+- Dirty-tree Go/No-Go smoke after the change preserved the expected No-Go
+  state: `ready=false`, `blockers=10`, `elapsed_ms=140704`,
+  `invocation_count=48`.
+- The same smoke proved the duplicated readiness audit was removed from the
+  Go/No-Go manifest path: `audit-desktop-release-readiness.ps1` invocation
+  count `1`, manifest invocation count `1`, manifest arguments included
+  `-ReadinessAuditJsonPath
+  F:\workspace\musu-bee\.local-build\go-no-go\readiness-audit-for-manifest.json`.
+- Slowest remaining measured invocations were readiness audit `13205ms`,
+  frontend polling audit `7342ms`, manifest `6033ms`, MSIX legacy conflict
+  check `5534ms`, public metadata verifier `3707ms`, and MSIX entrypoint audit
+  `3247ms`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `165/165`
+  passed after adding the readiness-audit-reuse source contract.
+
+Follow-up frontend polling audit dependency-scan hardening:
+
+- `audit-frontend-polling-contract.ps1` now enumerates frontend source files
+  through `Get-FrontendSourceFiles`, skipping dependency/build output
+  directories during traversal: `node_modules`, `.next`, `dist`, `build`,
+  `coverage`, `.turbo`, and `.vite`.
+- This keeps dependency TypeScript sources out of the release polling contract.
+  Before the change, the recursive source scan included `274`
+  `musu-bee\views\node_modules` `.ts/.tsx` files in the filtered scan set.
+- Standalone frontend polling audit after the change: `ok=true`,
+  `fail_count=0`, `low_duty_polling_call_site_count=30`,
+  `expected_low_duty_polling_call_site_count=30`, measured `2219ms`.
+- Dirty-tree Go/No-Go smoke after the change preserved the expected No-Go
+  state: `ready=false`, `blockers=10`, `elapsed_ms=118026`,
+  `invocation_count=48`.
+- The same smoke measured `audit-frontend-polling-contract.ps1` at `1891ms`
+  instead of the prior `7342ms` profiled run.
+- Slowest remaining measured invocations in that smoke were readiness audit
+  `12792ms`, MSIX legacy conflict check `5587ms`, public metadata verifier
+  `3435ms`, MSIX entrypoint audit `3234ms`, P2P env status `2884ms`, Rust
+  background-loop audit `2359ms`, and manifest `2322ms`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `166/166`
+  passed after adding the dependency-scan exclusion source contract.
+
+Follow-up readiness Store bundle entrypoint reuse hardening:
+
+- `audit-desktop-release-readiness.ps1` already verifies both the local
+  sideload MSIX and Store-reviewed MSIX desktop entrypoints before invoking the
+  Store submission bundle verifier.
+- `verify-store-submission-bundle.ps1` now keeps its standalone default strict:
+  without extra flags it still runs `audit-msix-desktop-entrypoint.ps1` for the
+  Store-reviewed package.
+- Readiness audit now invokes the bundle verifier with
+  `-SkipDesktopEntrypoint`, so the Store-reviewed MSIX desktop entrypoint is
+  not audited twice in the same readiness pass.
+- Standalone bundle verifier default path: `ok=true`, `fail_count=0`,
+  measured `5909ms`, entrypoint message `MSIX application entrypoint launches
+  musu-desktop.exe`.
+- Readiness skip path: `ok=true`, `fail_count=0`, measured `4160ms`,
+  entrypoint message `MSIX desktop entrypoint audit skipped because caller
+  already verified the Store-reviewed MSIX desktop entrypoint.`
+- Standalone readiness audit after the change: runtime package ready, desktop
+  shell ready, single-machine verified, multi-device still false, measured
+  `12296ms`.
+- Dirty-tree Go/No-Go smoke after the change preserved the expected No-Go
+  state: `ready=false`, `blockers=10`, `elapsed_ms=115561`,
+  `invocation_count=48`, readiness audit `11409ms`.
+- Slowest remaining measured invocations in that smoke were readiness audit
+  `11409ms`, MSIX legacy conflict check `5923ms`, public metadata verifier
+  `3533ms`, MSIX entrypoint audit `2941ms`, P2P env status `2804ms`, manifest
+  `2425ms`, and Rust background-loop audit `2305ms`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `167/167`
+  passed after adding the Store bundle entrypoint reuse source contract.
+
+Follow-up MSIX legacy scheduled-task probe hardening:
+
+- `msix-common.ps1` now probes legacy MUSU scheduled tasks through the
+  in-process CIM Task Scheduler provider first:
+  `root/Microsoft/Windows/TaskScheduler` / `MSFT_ScheduledTask`.
+- The existing timeout-bounded `Get-ScheduledTask` job path remains as the
+  fallback when CIM is unavailable or fails, so the release check still detects
+  active/disabled MUSU scheduled tasks without depending on the faster provider.
+- CIM numeric task states are normalized back to the existing string contract
+  (`Disabled`, `Queued`, `Ready`, `Running`, `Unknown`) before downstream
+  pass/fail logic splits active and disabled tasks.
+- `check-msix-legacy-conflicts.ps1` now reports
+  `scheduled_task_probe_method` / `ScheduledTaskProbeMethod` for operator
+  diagnosis. Current dirty-tree probe reports `method=cim`, no timeout, no
+  error.
+- Standalone legacy conflict check after the change: repeated runs measured
+  `3711ms`, `2889ms`, and `2874ms`; all returned `ok=true`,
+  `scheduled_task_probe_timed_out=false`, and `scheduled_task_probe_method=cim`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `168/168`
+  passed after adding the fast scheduled-task probe source contract.
+- Dirty-tree Go/No-Go smoke after the change preserved the expected No-Go
+  state: `ready_for_public_desktop_release=false`, blockers `10`,
+  `elapsed_ms=179624`, `invocation_count=48`, and current MSIX legacy
+  conflicts `ok=true` with `scheduled_task_probe_method=cim`.
+- The same smoke measured `check-msix-legacy-conflicts.ps1` at `2854ms`;
+  the slowest remaining measured invocations were readiness audit `14635ms`,
+  frontend polling audit `10079ms`, manifest `9394ms`, Rust background-loop
+  audit `6412ms`, local sideload MSIX entrypoint audit `3874ms`, public
+  metadata verifier `3525ms`, and P2P env status `2661ms`.
+
+Follow-up runtime CPU matrix Go/No-Go cheap prefilter:
+
+- The previous dirty-tree Go/No-Go spent about `49909ms` across `26`
+  `verify-runtime-cpu-scenario-matrix.ps1` subprocesses. Those candidates were
+  already fail-deterministic before full verification: the newest local matrix
+  was captured with `git_dirty=true`, and the older docs matrices had
+  runtime-affecting git deltas from their recorded commit to current HEAD.
+- `write-release-go-no-go.ps1` now performs a cheap matrix preflight before
+  spawning the full runtime matrix verifier. The preflight only rejects
+  conditions that the verifier already rejects: parse/schema/version mismatch,
+  `ok=false`, missing/invalid git commit, dirty capture, sample duration below
+  the required threshold, missing required scenarios/target post-route shape,
+  or a git delta that is not documentation/status/evidence/tooling-only per the
+  same freshness allowlist used by the verifier.
+- Skipped candidates are still recorded in Go/No-Go JSON as `ok=false`,
+  `preflight_skipped=true`, `failure_kind=cheap_prefilter`,
+  `skip_reason`, and `skip_detail`. The release report also exposes
+  `preflight_skipped_candidate_count` for both the full matrix gate and the
+  targeted route-attempt gate.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `168/168`
+  passed after tightening the runtime CPU matrix Go/No-Go source contract.
+- Dirty-tree Go/No-Go smoke after the change preserved the expected No-Go
+  state: `ready_for_public_desktop_release=false`, blockers `10`.
+- The same smoke reduced `invocation_count` from `48` to `22`;
+  `verify-runtime-cpu-scenario-matrix.ps1` invocations from `26` to `0`;
+  wall time from the prior measured `179624ms` to `69363ms`; full matrix
+  preflight skips `14/14`; targeted route-attempt preflight skips `12/12`.
+
+Follow-up runtime CPU matrix current MSIX package identity hardening:
+
+- `measure-musu-runtime-cpu-scenarios.ps1` already defaults to the current
+  packaged desktop app id `blossompark.musu_f5h38pf4yt4gc!MUSU` and accepts
+  concrete `WindowsApps\blossompark.musu_...` executable paths.
+- `verify-runtime-cpu-scenario-matrix.ps1` still accepted only the generic
+  WindowsApps alias path and historical `yellowhama.musu_...` package path.
+  That mismatch could falsely reject clean current-package runtime CPU matrix
+  evidence when the matrix recorded the real installed
+  `C:\Program Files\WindowsApps\blossompark.musu_...\musu.exe` path.
+- The verifier now accepts the current `blossompark.musu_...` WindowsApps and
+  Program Files WindowsApps package paths without loosening the existing
+  `musu_exe_release_identity=true` requirement.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `169/169`
+  passed. The new regression case
+  `runtime matrix accepts current Blossompark MSIX package path` passed with
+  `exit_code=0`, `parsed_ok=true`, `fail_count=0`, and
+  `passed_expectation=true`.
+- Release status remains No-Go. This fixes evidence verifier/package identity
+  alignment only; it does not replace the required live second-PC route,
+  two-machine runtime CPU/matrix, private mesh/relay payload, Store, support,
+  and clean git release evidence.
+
+Follow-up P2P next-action automation readiness hardening:
+
+- The `p2p-control-plane` next action previously had executable diagnostic and
+  verification commands with no placeholders, so the generic next-action logic
+  reported `automation_ready=true`.
+- That was operationally misleading: the command can inspect the current
+  source/env/live blockers, but it cannot close the release gate while the
+  release-grade relay payload endpoint and relay tunnel runtime remain
+  unimplemented/unproven.
+- `New-NextAction` now supports `AutomationBlockedReason`. When this field is
+  present, the command can still be `command_ready=true` and
+  `verification_command_ready=true`, but `automation_ready=false`.
+- The `p2p-control-plane` action now records:
+  `Release-grade relay payload endpoint and relay tunnel runtime are not
+  implemented/proven yet; this command is diagnostic until those source/env/live
+  gates pass.`
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `169/169`
+  passed.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`:
+  expected No-Go, blockers `10`.
+- The regenerated `p2p-control-plane` next action reports
+  `command_ready=true`, `verification_command_ready=true`,
+  `automation_ready=false`, and the release-relay implementation blocked
+  reason above.
+
+Release status remains No-Go. This improves LLM/MCP operator safety and product
+honesty; it does not implement the relay byte path.
+
+Follow-up Store public metadata next-action automation readiness hardening:
+
+- The `store-public-metadata` next action previously said "Deploy current
+  privacy/support/public-config routes, then verify live public metadata drift,"
+  but its command only ran `verify-store-public-metadata.ps1` against the
+  already deployed `https://musu.pro` site.
+- Because the command and verification command had no placeholders, the generic
+  next-action logic reported `automation_ready=true` even though a stale live
+  deployment cannot be fixed by running the verifier.
+- The action is now `manual_then_command` with explicit manual steps:
+  deploy the current MUSU public site build, confirm the privacy/support/
+  public-config routes are from the current release build, then run the
+  verifier.
+- The action now records:
+  `Live deployment to https://musu.pro is required before this verifier can
+  pass; the command only verifies the deployed site.`
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `169/169`
+  passed.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`:
+  expected No-Go, blockers `10`.
+- The regenerated `store-public-metadata` next action reports
+  `action_type=manual_then_command`, `command_ready=true`,
+  `verification_command_ready=true`, `manual_steps_ready=true`,
+  `automation_ready=false`, and the live-deployment blocked reason above.
+
+Release status remains No-Go. This improves external-release operator honesty;
+it does not deploy `musu.pro` or close the Store public metadata blocker.
+
+Follow-up support mailbox and Store release next-action manual-evidence
+hardening:
+
+- `support-mailbox` previously used `action_type=command` even though the
+  command only creates a verification request packet. The release proof still
+  requires an external sender to deliver an email into `musu@musu.pro`, an
+  operator to observe the inbox delivery, and the recorder command to be filled
+  with the real sender/operator/verification id.
+- `store-release` previously used `action_type=command` even though the command
+  only verifies the local Store submission bundle. The release proof still
+  requires Partner Center product reservation, package submission, Microsoft
+  certification approval, and restricted capability approval.
+- Both actions are now `manual_then_command`, with explicit manual steps and an
+  `automation_blocked_reason` explaining the external evidence that must exist
+  before the recorder command can satisfy the gate.
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `169/169`
+  passed.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`:
+  expected No-Go, blockers `10`.
+- The regenerated `support-mailbox` next action reports
+  `action_type=manual_then_command`, `command_ready=true`,
+  `verification_command_ready=false`, `automation_ready=false`, and manual steps
+  for external email delivery plus placeholder replacement.
+- The regenerated `store-release` next action reports
+  `action_type=manual_then_command`, `command_ready=true`,
+  `verification_command_ready=false`, `automation_ready=false`, and manual steps
+  for Partner Center reservation/submission/certification/restricted capability
+  proof plus placeholder replacement.
+
+Release status remains No-Go. This makes the external release workflow safer for
+LLM/MCP operators; it does not send support mail or complete Microsoft Store
+certification.
+
+Follow-up multi-device and runtime CPU next-action physical-machine hardening:
+
+- `multi-device` previously used `action_type=command` even though the command
+  only generates the second-PC kit. The release proof still requires moving the
+  kit to a real second physical Windows PC, running it there with the current
+  MUSU build installed, and bringing the returned evidence back before recording
+  it.
+- `runtime-idle-cpu` previously reported `automation_ready=true` because the
+  local capture and go/no-go commands had no placeholders. That was misleading:
+  one local capture cannot satisfy a release gate that requires passing evidence
+  from every required physical machine.
+- `runtime-cpu-scenario-matrix` and `runtime-cpu-second-pc-route-attempt`
+  already had placeholders, but now explicitly state the real peer/second-PC
+  requirement and the need to capture/promote evidence before rerunning
+  Go/No-Go.
+- All four actions are now `manual_then_command` and carry
+  `automation_blocked_reason` values that distinguish local command execution
+  from release-grade multi-machine evidence.
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `169/169`
+  passed.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 30 -Json`:
+  expected No-Go, blockers `10`.
+- The regenerated `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, and `runtime-cpu-second-pc-route-attempt`
+  actions all report `action_type=manual_then_command` and
+  `automation_ready=false`.
+- The regenerated `runtime-idle-cpu` action now explains that the command
+  captures only the machine where it runs, while release readiness still
+  requires passing idle CPU evidence from every required physical machine.
+
+Release status remains No-Go. This does not replace the missing second physical
+PC evidence; it makes the operator handoff honest about that requirement.
+
+Follow-up final handoff next-action surface and Go/No-Go scratch isolation:
+
+- `write-release-go-no-go.ps1` now emits accurate `next_actions`, but
+  `show-final-release-handoff-status.ps1` did not surface those actions in its
+  JSON or text output. That meant the final handoff card could still hide the
+  `manual_then_command`, `automation_ready=false`, `manual_steps`, and
+  `automation_blocked_reason` details that were added to prevent LLM/MCP
+  operators from treating external/manual gates as one-command automation.
+- `show-final-release-handoff-status.ps1` now includes `next_actions` from the
+  Go/No-Go result and prints a dedicated `Next actions` section with
+  `action_type`, readiness booleans, blocked reason, manual steps, command, and
+  verification command.
+- While testing JSON and text handoff in parallel, two simultaneous
+  `write-release-go-no-go.ps1` calls collided on the fixed scratch file
+  `.local-build\go-no-go\readiness-audit-for-manifest.json`.
+- `write-release-go-no-go.ps1` now writes its manifest-readiness scratch input
+  under `.local-build\go-no-go\scratch\run-<pid>-<guid>\`, so parallel
+  handoff/status calls do not lock or overwrite the same file.
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1`,
+  `show-final-release-handoff-status.ps1`, and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `170/170`
+  passed after adding the final-handoff next-action surface contract.
+- Single JSON handoff:
+  `show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds 120 -Json`
+  returned `go_no_go_available=true`, `ready_for_public_desktop_release=false`,
+  `next_action_count=10`, and `runtime-idle-cpu` action
+  `action_type=manual_then_command`, `automation_ready=false`.
+- Parallel JSON/text handoff after scratch isolation succeeded:
+  JSON reported `go_no_go_available=true`, `next_action_count=10`; text output
+  showed `Next actions`, `blocked_reason`, `manual_steps`, and
+  `automation_ready` rows.
+
+Release status remains No-Go. This improves final operator/LLM handoff
+truthfulness and concurrent status reliability; it does not create the missing
+second-PC, Store, support, or relay evidence.
+
+Follow-up git next-action automation readiness hardening:
+
+- The `git` next action still reported `automation_ready=true` because
+  `git status --short` and the Go/No-Go verification command had no
+  placeholders.
+- That was misleading in a No-Go release: the git blocker should not encourage
+  an operator or LLM to commit just to clear dirty state while second-PC,
+  Store, support, and relay evidence remain missing.
+- The `git` action is now `manual_then_command`. It keeps `git status --short`
+  as a diagnostic command, but records manual steps to review the full diff, not
+  commit merely to clear the blocker, and only commit/regenerate manifests after
+  every non-git blocker has valid evidence.
+- The action now records:
+  `The git blocker can only close after all intended changes and required
+  release evidence are present; git status is diagnostic only.`
+
+Validation:
+
+- Parser checks passed for `write-release-go-no-go.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `170/170`
+  passed.
+- `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 120 -Json`:
+  expected No-Go, blockers `10`, `git` action
+  `action_type=manual_then_command`, `automation_ready=false`, and total
+  `automation_ready_count=0`.
+- `scripts/windows/show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds
+  120` text output shows the `git` action with `action_type=manual_then_command`,
+  `automation_ready=false`, the blocked reason, and manual diff/evidence review
+  steps.
+
+Release status remains No-Go. This prevents the final handoff from suggesting
+that a commit alone can make the release ready.
+
+Follow-up final handoff operator-step deduplication:
+
+- `show-final-release-handoff-status.ps1` previously printed legacy
+  `Operator steps` and the newer Go/No-Go `Next actions` for the same gates.
+- That could tell an operator or LLM two different stories for one blocker:
+  the legacy step looked command-centric, while `Next actions` carried the
+  stricter `manual_then_command`, `automation_ready=false`, manual steps, and
+  `automation_blocked_reason` contract.
+- The final handoff now treats Go/No-Go `next_actions` as the source of truth
+  when they are available. Legacy operator steps whose `gate` matches a
+  `next_actions.area` are filtered from the result and text output.
+- Packet/action-pack recovery steps remain available when they are unrelated
+  to Go/No-Go next-action areas, and the unavailable-Go/No-Go recovery path
+  still falls back to operator steps.
+
+Validation:
+
+- Parser checks passed for `show-final-release-handoff-status.ps1` and
+  `test-release-evidence-verifiers.ps1`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `170/170`
+  passed after extending the final-handoff next-action surface contract.
+- `scripts/windows/show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds
+  120 -Json` returned `ready_for_public_desktop_release=false`,
+  `go_no_go_available=true`, blockers `10`, `next_action_count=10`,
+  `operator_step_count=0`, and `duplicate_gate_count=0`.
+- Text handoff now shows `Operator steps` as `- none` and puts the actionable
+  guidance under `Next actions`, starting with the real second physical PC
+  `multi-device` manual flow.
+
+Release status remains No-Go. This removes contradictory final-handoff
+instructions; it does not replace the missing second-PC, Store, support, or
+relay evidence.
+
+Follow-up local-first connector tool contract:
+
+- The `scraping-apis-for-devs` research confirmed that generated API/Apify
+  catalogs are discovery input only, not MUSU runtime dependencies.
+- To prevent MUSU from becoming "install this app, then sign up for another API
+  marketplace," the desktop connector registry and MCP connector API now expose
+  a normalized `musu.tool_contract.v1`.
+- The cockpit connector cards now show provider, account requirement,
+  data-egress status, risk, and default/explicit enablement. This gives the user
+  an immediate "where will this run and what leaves my device?" answer before a
+  connector is reviewed or run.
+- Copied connector proof plans now include the same `tool_contract`, so LLMs and
+  operators receive the same execution boundary as the UI.
+- `musu_list_connectors`, `musu_get_connector_policy`, and
+  `musu_get_connector_proof_plan` now return connector entries with
+  `tool_contract`, and connector proof artifacts carry it too.
+- `musu-system-prompt-v1.md` now tells LLM operators to read `provider`,
+  `requires_account`, `data_leaves_device`, `risk`, `default_enabled`, and
+  `run_policy` before suggesting or running a connector.
+- Important correction: `website-to-markdown` and `OpenAPI to MCP` can be local
+  or user-MCP providers, but remote source URLs still create data/network
+  egress, so they are no longer treated as hidden no-egress defaults.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm exec -- tsx --test src/app/api/mcp/route.test.ts`: `41/41` passed.
+- `npm run test:tauri-shell`: `35/35` passed.
+
+Release status remains No-Go. This improves the S-grade local-first/optional
+connector trust boundary; it does not replace the missing second-PC, Store,
+support, or relay evidence.
+
+Follow-up order target execution-boundary disclosure:
+
+- The cockpit composer previously let a user choose a target machine, but it did
+  not explicitly explain the execution boundary before sending the order.
+- That is a daily-use trust gap: a user should know whether the next order will
+  auto-route, run on this PC, use MUSU Private Mesh, or rely on an external or
+  unverified route before they click `Send`.
+- The composer now renders `order-target-disclosure` under the order box.
+- The disclosure updates when the dropdown changes and when a fleet row is
+  clicked to select a target.
+- States:
+  - `auto`: MUSU will choose an online target; Retry preserves auto-route
+    instead of re-reading the dropdown.
+  - `local`: runs on this PC with no machine-to-machine route.
+  - `private`: targets a MUSU-managed Headscale/Private Mesh peer; no
+    Tailscale.com signup is required.
+  - `external`: reachable through a non-MUSU or unverified external tailnet;
+    run Private Mesh proof before treating it as release evidence.
+  - `unverified`: online but not verified as a MUSU Private Mesh route; use
+    verify/proof before release claims.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `36/36` passed, including
+  `order composer discloses selected target execution boundary`.
+- `npm run test:tauri-shell:browser`: `7/7` passed, including the built
+  `out/index.html` browser test
+  `desktop shell discloses target execution boundary before send`.
+- `npm run test:tauri-shell:artifact`: passed; build metadata and source/output
+  hashes are bound for `index.html`, `main.js`, and `styles.css`.
+
+Release status remains No-Go. This improves pre-send UX honesty and makes the
+fleet control loop safer to live in; it does not replace the missing second-PC,
+Store, support, or relay evidence.
+
+Follow-up task-card execution-boundary preservation:
+
+- The composer disclosure answered "where will this order run?" before `Send`, but
+  the task card still only kept the target label (`to studio-pc` or
+  `auto-route`).
+- That was insufficient for daily use and release review: after a failure,
+  retry, or remote completion, the user should be able to audit the card itself
+  and see whether the order was auto-routed, local, MUSU Private Mesh, external
+  tailnet, or unverified.
+- `submitText` now captures an `orderTargetBoundarySnapshot` from the submitted
+  target, not from whatever the dropdown later changes to.
+- `renderTaskCard` stores the snapshot in `data-order-boundary` /
+  `data-order-boundary-text` and renders a `.task-boundary` badge next to the
+  existing route pill.
+- Polling updates preserve the same snapshot through pending, terminal success,
+  and failure states. Retry still resubmits the stored order text and target, and
+  the new retry card computes its boundary from that stored target.
+- Browser QA now verifies that a card sent to `studio-pc` shows `to studio-pc`
+  plus `Private Mesh`, including the "No Tailscale.com signup is required"
+  disclosure in the badge title.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `37/37` passed, including
+  `task card preserves the target execution boundary captured at send time`.
+- `npm run test:tauri-shell:browser`: `7/7` passed.
+- `npm run test:tauri-shell:artifact`: passed; build metadata and source/output
+  hashes remain bound for the shell artifact.
+
+Release status remains No-Go. This improves post-send UX honesty and failed-order
+auditability; it does not replace the missing second-PC, Store, support, or relay
+evidence.
+
+Follow-up task-details execution-boundary inspector:
+
+- The task card header now preserves the execution boundary, but the expanded
+  `Details` inspector still only showed `Route`, `Status`, proof rows, and
+  callback rows.
+- That left a review gap: the place a user opens to audit a remote completion did
+  not include the same trust boundary shown in the header.
+- `renderTaskInspector` now reads the task card's captured
+  `data-order-boundary` and `data-order-boundary-text` and adds `Boundary` plus
+  `Boundary note` rows.
+- For a Private Mesh order, Details now carries the same "No Tailscale.com signup
+  is required" disclosure as the card badge. For external or unverified routes,
+  Details carries the proof/review warning instead of making the route look
+  equivalent to a verified MUSU mesh.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `37/37` passed; the task-card tests now verify
+  `Boundary` / `Boundary note` rows inside Details.
+- `npm run test:tauri-shell:browser`: `7/7` passed; the built shell now verifies
+  the Details inspector exposes the Private Mesh boundary and "No Tailscale.com
+  signup is required" note.
+- `npm run test:tauri-shell:artifact`: passed; build metadata and source/output
+  hashes remain bound for the shell artifact.
+
+Release status remains No-Go. This improves audit depth for completed and failed
+orders; it does not replace the missing second-PC, Store, support, or relay
+evidence.
+
+Follow-up retry execution-boundary drift fail-closed:
+
+- Retry already preserved the stored order text and target machine, but it still
+  recomputed the current execution boundary from the live fleet at retry time.
+- That meant a failed card originally sent over MUSU Private Mesh could be retried
+  after the same target drifted to an external or unverified route, silently
+  weakening the trust boundary while keeping the same target label.
+- A second gap existed inside the same label: `Private Mesh` could remain true
+  while the target's tailnet IP or verified control server changed. That is also
+  a different execution identity and cannot be retried silently.
+- Retry now passes the original card's captured `data-order-boundary` /
+  `data-order-boundary-text` / `data-order-boundary-fingerprint` into
+  `submitText` as an expected boundary.
+- `submitText` compares the expected boundary with the current live target
+  boundary before native `submit_order` IPC. If the boundary label or fingerprint
+  changed, it renders a failed card and does not call native submit.
+- The fingerprint binds target, this-PC flag, mesh state, tailnet IP, control
+  server URL, and control-server verification state. Missing legacy cards fall
+  back to label-only comparison instead of breaking old UI state.
+- The boundary-drift failure card sets `retryDisabled=true`, so it does not expose
+  a second `Retry` button that could immediately re-submit under the weakened
+  current boundary.
+- The same blocked card exposes `Review target`, which selects the stored target
+  in the composer and refreshes the current execution-boundary disclosure without
+  submitting anything. This gives the user a safe next step instead of a dead
+  end.
+- The user-facing failure says `Retry blocked: execution boundary changed from
+  Private Mesh to external` and tells the user to re-select the target or run
+  Private Mesh proof before retrying.
+- For same-label identity drift, the failure says `Retry blocked: execution
+  boundary identity changed within Private Mesh` and includes the human-readable
+  reason, such as `tailnet IP changed`, `control server changed`, or
+  `control-server verification changed`.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `39/39` passed, including
+  `retry fails closed before native IPC when the stored execution boundary
+  changed`, `retry fails closed before native IPC when Private Mesh peer
+  fingerprint changed`, the human-readable drift reason, and the hidden Retry
+  action plus visible `Review target` action on blocked cards.
+- `npm run test:tauri-shell:browser`: `9/9` passed, including built-artifact QA
+  for Private Mesh -> external boundary drift, Private Mesh peer identity drift,
+  the `tailnet IP changed` reason, and the hidden Retry affordance on blocked
+  cards. The QA also verifies `Review target` selects the current target and
+  refreshes the composer boundary disclosure without another submit.
+- `npm run test:tauri-shell:artifact`: passed; build metadata and source/output
+  hashes remain bound for the shell artifact.
+
+Release status remains No-Go. This closes a retry trust-boundary regression; it
+does not replace the missing second-PC, Store, support, or relay evidence.
+
+## 2026-06-14 Release proof next-action evidence
+
+Closed a release-proof usability gap: the cockpit already copied
+`release_readiness`, but the visible release evidence strip did not expose the
+same structured next action. A user could see a failed readiness checklist but
+still have to infer the exact next command.
+
+Current contract:
+
+- `releaseEvidenceReadiness()` now includes `next_action_detail` with schema
+  `musu.private_mesh_release_next_action.v1`.
+- The visible release evidence strip shows `Next:` with the same action summary
+  and command.
+- `Copy evidence` now includes the same object as top-level `next_action`, so an
+  LLM/operator reading the artifact gets the exact blocker, command, manual
+  steps, evidence path, and verification command.
+- Missing target physical evidence points at
+  `musu mesh physical-peer-evidence --json` on the target PC and preserves the
+  requirement to copy both the JSON and `.sha256` sidecar back to the source PC.
+- Trusted-but-unarchived proof points at
+  `archive-private-mesh-release-proof-bundle.ps1`; a fully ready proof points at
+  attaching the verified archive to release notes.
+
+Validation:
+
+- `cockpit-contract.test.ts` verifies the static contract, visible next action,
+  release-notes next action, archive next action, and physical-evidence next
+  action.
+- `cockpit-browser.spec.ts` verifies the visible next action and copied payload
+  in both release-ready and needs-review browser flows.
+
+Release status remains No-Go. This removes ambiguity after a failed release
+proof, but it does not replace the required packaged desktop proof on two real
+physical machines.
+
+## 2026-06-14 Release proof Copy next action
+
+Closed the remaining handoff gap in the release evidence strip: the cockpit now
+has a dedicated `Copy next` action beside `Open folder` and `Copy evidence`.
+
+Current contract:
+
+- `Copy evidence` remains the full release proof artifact copy path.
+- `Copy next` copies only the structured next action, using schema
+  `musu.private_mesh_release_next_action_clipboard.v1`.
+- The copied payload includes the release target, readiness boolean, missing
+  readiness labels, and the exact `next_action` object produced by
+  `releaseEvidenceReadiness()`.
+- The payload intentionally omits the full release proof `result`, so it is safe
+  to paste into an LLM/operator handoff when the user only wants the next command
+  and manual steps.
+- The button is disabled until a release proof result has a computable next
+  action.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `40/40` passed.
+- `npm run test:tauri-shell:browser`: `9/9` passed after updating the desktop
+  shell proof-summary snapshot for the intentional `Copy next` button.
+- `npm run test:tauri-shell:artifact`: passed.
+
+Release status remains No-Go. This improves release-operation UX; it does not
+replace the required packaged desktop proof on two real physical machines.
+
+## 2026-06-14 Release proof readiness summary
+
+Closed another operator handoff gap in the cockpit release evidence strip.
+Before this change, the card showed detailed checks and a `Next:` command, but
+the go/no-go state itself was implicit in the title and checklist. That was too
+easy to misread during a release handoff.
+
+Current contract:
+
+- The release evidence strip now includes `release-evidence-readiness`.
+- `releaseEvidenceReadiness()` emits
+  `musu.private_mesh_release_readiness_summary.v1`.
+- The summary exposes `ready`, passed/total/failed check counts, the first
+  blocker, and a stable human label such as
+  `No-Go: 7/9 checks passed · First blocker: Evidence hashes verified`.
+- `Copy next` includes the same summary as `release_readiness_summary`, so an
+  LLM/operator handoff can distinguish the next command from the current
+  release state without parsing the full proof result.
+
+Validation:
+
+- `node --check src-tauri-shell/main.js`: pass.
+- `npm run test:tauri-shell`: `40/40` passed.
+- `npm run test:tauri-shell:browser`: `9/9` passed after updating the desktop
+  and compact proof-summary snapshots for the intentional readiness pill.
+- `npm run test:tauri-shell:artifact`: passed.
+
+Release status remains No-Go. This makes the remaining release blocker harder
+to misread; it does not replace the required packaged desktop proof on two real
+physical machines.
+
+## 2026-06-14 Final handoff status cached-by-default
+
+Closed a release-operator UX problem found while dogfooding the final handoff
+status command: a status lookup could still trigger the full Go/No-Go script,
+which in turn may run long desktop/runtime evidence checks. That is too
+surprising for a command named `show-final-release-handoff-status` and can make
+the user's terminal or desktop feel like it is flickering while checks run.
+
+Current contract:
+
+- `show-final-release-handoff-status.ps1` now reads
+  `.local-build\go-no-go\latest.json` by default.
+- A fresh Go/No-Go evaluation requires explicit `-RefreshGoNoGo`.
+- The JSON result records `go_no_go_invocation.source`,
+  `go_no_go_invocation.cache_path`, and
+  `go_no_go_invocation.refresh_requested`.
+- If the cache is missing or invalid, the script returns structured
+  `musu.release_go_no_go_unavailable.v1` output instead of silently running
+  heavy desktop/runtime checks.
+- The command catalog now distinguishes `show_status` from
+  `show_status_refresh`.
+
+Validation:
+
+- PowerShell parser check for `show-final-release-handoff-status.ps1`: pass.
+- PowerShell parser check for `test-release-evidence-verifiers.ps1`: pass.
+- Source-contract needles for `GoNoGoPath`, `RefreshGoNoGo`, cache source,
+  structured cached-unavailable recovery, and `show_status_refresh`: present.
+- Cached status smoke with packet/action-pack verification skipped:
+  `go_no_go_invocation.source=cache`, `refresh_requested=false`,
+  `timed_out=false`, `exit_code=0`.
+
+Release status remains No-Go. This improves operator trust and prevents
+surprising status-check side effects; it does not replace the required packaged
+desktop proof on two real physical machines.
+
+## 2026-06-14 Final handoff cache freshness
+
+Follow-up hardening for cached final handoff status: cached-by-default is safer
+for operator UX, but stale cache must be explicit so nobody mistakes an old
+Go/No-Go result for a fresh one.
+
+Current contract:
+
+- `show-final-release-handoff-status.ps1` emits
+  `musu.go_no_go_cache_freshness.v1`.
+- The freshness object includes cache path, cache existence, cache last write
+  time, Go/No-Go `generated_at`, current git commit/dirty state, cached
+  manifest git commit/dirty state, commit match, stale boolean, stale reasons,
+  and the explicit refresh command.
+- Stale reasons include unavailable cache, git commit mismatch, dirty worktree
+  at generation time, and currently dirty worktree.
+- The top-level gates include `go_no_go_cache_stale`.
+- The top-level warnings include a `go-no-go-cache` warning when stale is true.
+- Stale cache is fail-closed: final handoff top-level
+  `ready_for_public_desktop_release` is false whenever cache freshness is
+  stale, even if the cached Go/No-Go JSON itself claimed ready.
+- The original cached verdict is preserved separately as
+  `cached_ready_for_public_desktop_release`.
+- The top-level blockers include `go-no-go-cache` when stale is true, so a stale
+  cache cannot be mistaken for release-ready status.
+
+Validation:
+
+- PowerShell parser check for `show-final-release-handoff-status.ps1`: pass.
+- PowerShell parser check for `test-release-evidence-verifiers.ps1`: pass.
+- Source-contract needles for cache freshness schema, stale reasons, top-level
+  gate, and warning: present.
+- Cached status smoke with packet/action-pack verification skipped:
+  `source=cache`, `refresh_requested=false`, `cache_stale=true`,
+  `stale_reasons=generated_from_dirty_worktree,current_worktree_dirty`,
+  `gate_cache_stale=true`, `cache_warning_count=1`.
+
+Release status remains No-Go. This makes cached status safe to read; it does
+not replace the required packaged desktop proof on two real physical machines.
+
+Follow-up stale-cache fail-closed patch:
+
+- `show-final-release-handoff-status.ps1` now computes an effective public
+  release verdict from cached Go/No-Go plus cache freshness.
+- `ready_for_public_desktop_release` is the effective fail-closed value.
+- `cached_ready_for_public_desktop_release` preserves the raw cached verdict.
+- A stale cache adds a `go-no-go-cache` blocker, not just a warning.
+- Text output prints both `ready_for_public_desktop_release` and
+  `cached_ready_for_public_desktop_release`, so operators can distinguish the
+  effective fail-closed verdict from the raw cached verdict.
+- `test-release-evidence-verifiers.ps1` source-contract needles were extended
+  to cover the fail-closed fields.
+
+Validation intentionally not run in this edit batch to avoid further terminal
+window flicker. Required follow-up when the user allows one quiet validation
+pass:
+
+- PowerShell parser check for `show-final-release-handoff-status.ps1`.
+- PowerShell parser check for `test-release-evidence-verifiers.ps1`.
+- Cached status smoke with packet/action-pack verification skipped.

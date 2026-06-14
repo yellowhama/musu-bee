@@ -370,12 +370,15 @@ export function useChat(
           type?: string;
           task_id?: string;
           status?: string;
+          channel?: string | null;
           output?: string | null;
           error?: string | null;
           assigned_pc?: string | null;
           duration_sec?: number | null;
         };
         if (data.type !== "task_update" || !data.task_id) return;
+        const eventChannel = data.channel?.trim();
+        if (eventChannel && eventChannel !== channel) return;
         if (data.status === "running" || data.status === "pending") {
           setIsAgentTyping(true);
           return;
@@ -436,8 +439,7 @@ export function useChat(
     closeEventSource();
     resetReconnectState();
     connect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeNode, clearReconnectTimer, closeEventSource, resetReconnectState]);
+  }, [activeNode, clearReconnectTimer, closeEventSource, connect, isAgentChannel, resetReconnectState]);
 
   // ── musu-bridge agent route ────────────────────────────────────────────────
 
@@ -521,7 +523,7 @@ export function useChat(
         setIsAgentTyping(false);
       }
     },
-    [appendChatMessage, channel],
+    [appendChatMessage, channel, selectedAdapter],
   );
 
   // ── Command handlers ───────────────────────────────────────────────────────

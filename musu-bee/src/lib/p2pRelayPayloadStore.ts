@@ -53,11 +53,15 @@ export type RelayPayloadDeliveryProof = {
   target_node_id: string;
   relay_url: string;
   tunnel_id: string;
+  payload_kind: string;
   transport_kind: "http_store_forward_preview" | "quic_relay_tunnel";
   relay_default_data_path: boolean;
   release_grade: boolean;
   payload_sha256: string;
   payload_bytes: number;
+  claimed_by: string;
+  claimed_at: string;
+  created_at: string;
   delivered_at: string;
 };
 
@@ -730,7 +734,9 @@ export function relayPayloadDeliveryProofFromDeliveredPayload(
     return null;
   }
   const deliveredAt = payload.delivered_at?.trim();
-  if (!deliveredAt) {
+  const claimedBy = payload.claimed_by?.trim();
+  const claimedAt = payload.claimed_at?.trim();
+  if (!deliveredAt || !claimedBy || !claimedAt) {
     return null;
   }
   return {
@@ -742,11 +748,15 @@ export function relayPayloadDeliveryProofFromDeliveredPayload(
     target_node_id: payload.target_node_id,
     relay_url: payload.relay_url,
     tunnel_id: payload.tunnel_id,
+    payload_kind: payload.payload_kind,
     transport_kind: payload.transport_kind,
     relay_default_data_path: payload.relay_default_data_path,
     release_grade: payload.release_grade,
     payload_sha256: payload.payload_sha256,
     payload_bytes: payload.payload_bytes,
+    claimed_by: claimedBy,
+    claimed_at: claimedAt,
+    created_at: payload.created_at,
     delivered_at: deliveredAt,
   };
 }

@@ -49,6 +49,9 @@ if ($ScriptTimeoutSeconds -lt 1) {
     throw "ScriptTimeoutSeconds must be at least 1."
 }
 
+$goNoGoWatch = [Diagnostics.Stopwatch]::StartNew()
+$script:goNoGoInvocations = New-Object System.Collections.Generic.List[object]
+
 function Get-CurrentPowerShellExecutable {
     $currentProcessPath = $null
     try {
@@ -73,7 +76,8 @@ function Invoke-JsonScript {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$Arguments = @(),
-        [switch]$AllowFailure
+        [switch]$AllowFailure,
+        [bool]$ExpectJson = $true
     )
 
     $processArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $FilePath) + $Arguments
@@ -111,6 +115,18 @@ function Invoke-JsonScript {
 
     if (-not $process) {
         $watch.Stop()
+        $script:goNoGoInvocations.Add([pscustomobject]@{
+                script = [System.IO.Path]::GetFileName($FilePath)
+                path = $FilePath
+                arguments = @($Arguments)
+                elapsed_ms = [int]$watch.ElapsedMilliseconds
+                timed_out = $false
+                exit_code = -1
+                json_returned = $false
+                expect_json = [bool]$ExpectJson
+                allow_failure = [bool]$AllowFailure
+                failure_kind = "start_failed"
+            }) | Out-Null
         if (-not $AllowFailure) {
             throw "Script failed to start: $FilePath`n$startError"
         }
@@ -157,6 +173,19 @@ function Invoke-JsonScript {
         }
     }
 
+    $script:goNoGoInvocations.Add([pscustomobject]@{
+            script = [System.IO.Path]::GetFileName($FilePath)
+            path = $FilePath
+            arguments = @($Arguments)
+            elapsed_ms = [int]$watch.ElapsedMilliseconds
+            timed_out = [bool]$timedOut
+            exit_code = [int]$exitCode
+            json_returned = ($null -ne $parsed)
+            expect_json = [bool]$ExpectJson
+            allow_failure = [bool]$AllowFailure
+            failure_kind = if ($timedOut) { "timeout" } elseif ($exitCode -ne 0) { "nonzero_exit" } elseif ($ExpectJson -and $null -eq $parsed -and -not [string]::IsNullOrWhiteSpace($text)) { "json_parse_failed" } else { "" }
+        }) | Out-Null
+
     if ($timedOut -and -not $AllowFailure) {
         throw "Script timed out after ${ScriptTimeoutSeconds}s: $FilePath"
     }
@@ -186,6 +215,220 @@ function Add-Blocker {
         area = $Area
         message = $Message
     }) | Out-Null
+}
+
+function New-NextAction {
+    param(
+        [Parameter(Mandatory = $true)][string]$Area,
+        [Parameter(Mandatory = $true)][string]$Summary,
+        [Parameter(Mandatory = $true)][string]$Command,
+        [ValidateSet("command", "manual_then_command", "manual")]
+        [string]$ActionType = "command",
+        [string[]]$ManualSteps = @(),
+        [string]$EvidencePath = "",
+        [string]$VerificationCommand = "",
+        [string]$AutomationBlockedReason = ""
+    )
+
+    $commandPlaceholders = Get-NextActionPlaceholders -Text $Command
+    $verificationPlaceholders = Get-NextActionPlaceholders -Text $VerificationCommand
+    $evidencePlaceholders = Get-NextActionPlaceholders -Text $EvidencePath
+    $manualPlaceholders = Get-NextActionPlaceholders -Text (@($ManualSteps) -join " ")
+    $placeholders = @(
+        $commandPlaceholders
+        $verificationPlaceholders
+        $evidencePlaceholders
+        $manualPlaceholders
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
+    $commandIsExecutable = (-not [string]::IsNullOrWhiteSpace($Command) -and [string]$ActionType -ne "manual")
+    $commandReady = ($commandIsExecutable -and @($commandPlaceholders).Count -eq 0)
+    $verificationCommandReady = (-not [string]::IsNullOrWhiteSpace($VerificationCommand) -and @($verificationPlaceholders).Count -eq 0)
+    $evidencePathReady = (-not [string]::IsNullOrWhiteSpace($EvidencePath) -and @($evidencePlaceholders).Count -eq 0)
+    $manualStepsReady = (@($ManualSteps).Count -eq 0 -or @($manualPlaceholders).Count -eq 0)
+    $automationReady = (
+        [string]::IsNullOrWhiteSpace($AutomationBlockedReason) -and
+        $commandReady -and
+        $verificationCommandReady -and
+        $evidencePathReady -and
+        @($manualPlaceholders).Count -eq 0 -and
+        @($ManualSteps).Count -eq 0 -and
+        @($placeholders).Count -eq 0
+    )
+
+    [pscustomobject]@{
+        area = $Area
+        summary = $Summary
+        action_type = $ActionType
+        command = $Command
+        command_is_executable = $commandIsExecutable
+        command_ready = $commandReady
+        verification_command_ready = $verificationCommandReady
+        evidence_path_ready = $evidencePathReady
+        manual_steps_ready = $manualStepsReady
+        automation_ready = $automationReady
+        command_placeholders = @($commandPlaceholders)
+        verification_placeholders = @($verificationPlaceholders)
+        evidence_placeholders = @($evidencePlaceholders)
+        manual_placeholders = @($manualPlaceholders)
+        placeholders = @($placeholders)
+        manual_steps = @($ManualSteps)
+        evidence_path = $EvidencePath
+        verification_command = $VerificationCommand
+        automation_blocked_reason = $AutomationBlockedReason
+    }
+}
+
+function Get-NextActionPlaceholders {
+    param([AllowNull()][string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return @()
+    }
+
+    $matches = [regex]::Matches($Text, "<[^<>]+>|REPLACE_WITH_[A-Z0-9_]+")
+    if ($matches.Count -eq 0) {
+        return @()
+    }
+    return @($matches | ForEach-Object { $_.Value } | Select-Object -Unique)
+}
+
+function Get-ReleaseNextActions {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Blockers,
+        [Parameter(Mandatory = $true)][string]$Version,
+        [Parameter(Mandatory = $true)][string]$SupportEmail,
+        [Parameter(Mandatory = $true)][string]$PublicMetadataBaseUrl
+    )
+
+    $actions = New-Object System.Collections.Generic.List[object]
+    $areas = @($Blockers | ForEach-Object { [string]$_.area } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    foreach ($area in $areas) {
+        switch ($area) {
+            "multi-device" {
+                $actions.Add((New-NextAction -Area $area -Summary "Generate the second-PC kit, run it on the other physical PC, bring the returned evidence back, then record it." -ActionType "manual_then_command" -ManualSteps @("Run the kit generator on the primary machine.", "Move the generated kit to the second physical Windows PC.", "Run the kit on that second physical PC with the current MUSU build installed.", "Bring the returned evidence JSON back to this workspace.", "Replace <EVIDENCE_JSON> with the actual returned evidence path before recording it.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-multidevice-test-kit.ps1 -Json" -EvidencePath ".local-build\multi-device\<EVIDENCE_JSON>" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>" -AutomationBlockedReason "A real second physical PC must run the generated kit and return evidence before the multi-device gate can be recorded.")) | Out-Null
+                break
+            }
+            "private-mesh-packaged-release-proof" {
+                $privateMeshImportCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-private-mesh-release-proof-archive.ps1 -LatestFromMusuHome -Json"
+                $actions.Add((New-NextAction -Area $area -Summary "Run the strict Private Mesh release proof from the installed MUSU desktop app on real hardware; standalone PowerShell/CLI archives are diagnostic only and do not satisfy the packaged desktop claim." -ActionType "manual_then_command" -ManualSteps @("Open the installed MUSU desktop app.", "Choose the real target PC in Fleet.", "Paste target-generated physical-peer evidence JSON plus its .sha256 sidecar.", "Click Release proof in the packaged desktop app.", "Use -MusuHome <PATH> only if the packaged app used a non-default MUSU_HOME.", "Do not use scripts\windows\run-private-mesh-release-proof.ps1 for this final packaged desktop gate.") -Command $privateMeshImportCommand -EvidencePath "%USERPROFILE%\.musu\private-mesh-release-proof\**\private-mesh-release-proof.archive.json or <MUSU_HOME>\private-mesh-release-proof\**\private-mesh-release-proof.archive.json" -VerificationCommand $privateMeshImportCommand)) | Out-Null
+                break
+            }
+            "runtime-idle-cpu" {
+                $actions.Add((New-NextAction -Area $area -Summary "Capture 60s packaged desktop-open idle CPU evidence on each required machine, including owned WebView2/process/resource budgets and fail-on-hot enforcement." -ActionType "manual_then_command" -ManualSteps @("Run the idle CPU capture on every required physical machine, including the second PC.", "Promote or import each passing capture into the accepted release evidence path.", "Rerun go/no-go only after evidence exists for the required machine count.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json" -EvidencePath ".local-build\runtime-idle-cpu\musu-idle-cpu-*.json; accepted release path: docs\evidence\runtime-idle-cpu\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "This command captures only the machine where it runs; release readiness still requires passing idle CPU evidence from every required physical machine.")) | Out-Null
+                break
+            }
+            "runtime-cpu-scenario-matrix" {
+                $actions.Add((New-NextAction -Area $area -Summary "Capture the full packaged runtime CPU scenario matrix on each required machine with the desktop app opened and an explicit peer route target." -ActionType "manual_then_command" -ManualSteps @("Choose the real peer name from the live fleet.", "Run the matrix capture on every required physical machine with the installed packaged desktop app.", "Replace <PEER_NAME> with the real peer before capture.", "Replace <MATRIX_JSON> with the actual matrix path before verifier replay.", "Promote or import each passing matrix into the accepted release evidence path.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json" -EvidencePath ".local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json; accepted release path: docs\evidence\runtime-cpu-scenarios\$Version\*.runtime-cpu-scenario-matrix.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-runtime-cpu-scenario-matrix.ps1 -EvidencePath <MATRIX_JSON> -Json" -AutomationBlockedReason "A real peer target and passing matrix evidence from every required physical machine are required before the runtime CPU matrix gate can close.")) | Out-Null
+                break
+            }
+            "runtime-cpu-second-pc-route-attempt" {
+                $actions.Add((New-NextAction -Area $area -Summary "Capture post-route CPU after a targeted second-PC route attempt using the same packaged matrix command; failed route is allowed only when per-attempt metadata is preserved." -ActionType "manual_then_command" -ManualSteps @("Choose the real second-PC peer name from the live fleet.", "Replace <PEER_NAME> before running the matrix command.", "Run the packaged matrix capture so the post-route scenario records per-attempt route metadata.", "Rerun go/no-go only after the targeted route-attempt matrix evidence is present.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json" -EvidencePath ".local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json; accepted release path: docs\evidence\runtime-cpu-scenarios\$Version\*.runtime-cpu-scenario-matrix.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "A real second-PC peer target and post-route matrix evidence are required before the second-PC route-attempt CPU gate can close.")) | Out-Null
+                break
+            }
+            "store-public-metadata" {
+                $actions.Add((New-NextAction -Area $area -Summary "Deploy current privacy/support/public-config routes, then verify live public metadata drift." -ActionType "manual_then_command" -ManualSteps @("Deploy the current MUSU public site build to $PublicMetadataBaseUrl.", "Confirm the deployed privacy, support, and public-config routes are from the current release build.", "Then run the public metadata verifier command.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -EvidencePath "$PublicMetadataBaseUrl/privacy, $PublicMetadataBaseUrl/support, $PublicMetadataBaseUrl/api/public-config" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.")) | Out-Null
+                break
+            }
+            "support-mailbox" {
+                $actions.Add((New-NextAction -Area $area -Summary "Prepare a unique external-email verification packet, then record inbox delivery evidence after the message is actually received." -ActionType "manual_then_command" -ManualSteps @("Run the request packet command to generate a unique verification id.", "Send the generated verification email from an external mailbox into $SupportEmail.", "Confirm the message arrived in the $SupportEmail inbox.", "Replace the verification command placeholders with the real sender, operator name, and verification id before recording evidence.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-support-mailbox-verification-request.ps1 -Json" -EvidencePath "docs\evidence\support-mailbox\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress `"REPLACE_WITH_EXTERNAL_SENDER_EMAIL`" -ReceivedBy `"REPLACE_WITH_OPERATOR_NAME`" -VerificationId `"musu-support-mailbox-REPLACE_WITH_UNIQUE_TOKEN`" -Notes `"Verified delivery in $SupportEmail inbox`" -Json" -AutomationBlockedReason "External email delivery into $SupportEmail must be performed and observed before support mailbox evidence can be recorded.")) | Out-Null
+                break
+            }
+            "store-release" {
+                $actions.Add((New-NextAction -Area $area -Summary "Verify the Store submission bundle locally, then record Partner Center approval evidence after Microsoft certification is complete." -ActionType "manual_then_command" -ManualSteps @("Run the local Store submission bundle verifier.", "Reserve or confirm the MUSU product name in Partner Center.", "Submit the Store package for Microsoft certification.", "Wait for certification approval and restricted capability approval.", "Replace the verification command placeholders with the real Partner Center timestamps, submission id, certification status, restricted capability status, and operator name.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1" -EvidencePath "docs\evidence\store-release\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName `"MUSU`" -ProductNameReservedAt `"<partner-center-name-reserved-at>`" -SubmissionId `"<partner-center-submission-id>`" -CertificationStatus `"approved`" -RestrictedCapabilityStatus `"approved`" -RecordedBy `"<operator-name>`" -Notes `"Microsoft Store certification and restricted capability review approved`" -Json" -AutomationBlockedReason "Partner Center reservation, submission, certification, and restricted capability approval must exist before Store release evidence can be recorded.")) | Out-Null
+                break
+            }
+            "p2p-control-plane" {
+                $actions.Add((New-NextAction -Area $area -Summary "Inspect source/env/live relay blockers, then record live P2P control-plane evidence only after release-grade relay transport is actually implemented and configured." -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json" -EvidencePath "docs\evidence\p2p-control-plane\$Version\*.evidence.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -AutomationBlockedReason "Release-grade relay payload endpoint and relay tunnel runtime are not implemented/proven yet; this command is diagnostic until those source/env/live gates pass.")) | Out-Null
+                break
+            }
+            "git" {
+                $actions.Add((New-NextAction -Area $area -Summary "Review the dirty worktree, commit only after all intended changes and release evidence are present, then regenerate release manifests." -ActionType "manual_then_command" -ManualSteps @("Review git status and the full diff for unrelated or accidental changes.", "Do not commit just to clear the git blocker while required release evidence is still missing.", "After every non-git blocker has valid evidence, commit the intended changes and regenerate go/no-go/release manifests from the clean commit.") -Command "git status --short" -EvidencePath ".local-build\go-no-go\latest.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "The git blocker can only close after all intended changes and required release evidence are present; git status is diagnostic only.")) | Out-Null
+                break
+            }
+        }
+    }
+    return $actions.ToArray()
+}
+
+function Format-PublicMetadataFailureSummary {
+    param(
+        $PublicMetadata,
+        [Parameter(Mandatory = $true)][string]$BaseUrl
+    )
+
+    if (-not $PublicMetadata) {
+        return "Public privacy/support metadata verification failed for $BaseUrl; verifier returned no JSON."
+    }
+
+    $details = New-Object System.Collections.Generic.List[string]
+    if ($PublicMetadata.PSObject.Properties["failure_kinds"] -and $PublicMetadata.failure_kinds) {
+        $failureKinds = @($PublicMetadata.failure_kinds | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        if ($failureKinds.Count -gt 0) {
+            $details.Add("failure_kinds=$($failureKinds -join ',')") | Out-Null
+        }
+    }
+
+    if ($PublicMetadata.PSObject.Properties["pages"] -and $PublicMetadata.pages) {
+        foreach ($page in @($PublicMetadata.pages | Where-Object { -not [bool]$_.ok })) {
+            $name = if ($page.PSObject.Properties["name"]) { [string]$page.name } else { "page" }
+            $status = if ($page.PSObject.Properties["status_code"] -and $null -ne $page.status_code) {
+                "HTTP $([int]$page.status_code)"
+            }
+            else {
+                "no_status"
+            }
+            $kind = if ($page.PSObject.Properties["failure_kind"] -and -not [string]::IsNullOrWhiteSpace([string]$page.failure_kind)) {
+                [string]$page.failure_kind
+            }
+            else {
+                "unknown_failure"
+            }
+            $missing = @()
+            if ($page.PSObject.Properties["missing_text"] -and $page.missing_text) {
+                $missing = @($page.missing_text | Select-Object -First 4 | ForEach-Object { [string]$_ })
+            }
+            $missingSummary = if ($missing.Count -gt 0) { " missing=[$($missing -join ', ')]" } else { "" }
+            $details.Add("${name} ${status} ${kind}${missingSummary}") | Out-Null
+        }
+    }
+
+    if ($PublicMetadata.PSObject.Properties["public_config"] -and $PublicMetadata.public_config -and -not [bool]$PublicMetadata.public_config.ok) {
+        $config = $PublicMetadata.public_config
+        $status = if ($config.PSObject.Properties["status_code"] -and $null -ne $config.status_code) {
+            "HTTP $([int]$config.status_code)"
+        }
+        else {
+            "no_status"
+        }
+        $kind = if ($config.PSObject.Properties["failure_kind"] -and -not [string]::IsNullOrWhiteSpace([string]$config.failure_kind)) {
+            [string]$config.failure_kind
+        }
+        else {
+            "unknown_failure"
+        }
+        $missingFields = @()
+        if ($config.PSObject.Properties["missing_fields"] -and $config.missing_fields) {
+            $missingFields = @($config.missing_fields | Select-Object -First 8 | ForEach-Object { [string]$_ })
+        }
+        $mismatchedFields = @()
+        if ($config.PSObject.Properties["mismatched_fields"] -and $config.mismatched_fields) {
+            $mismatchedFields = @($config.mismatched_fields | Select-Object -First 8 | ForEach-Object { [string]$_.name })
+        }
+        $fieldDetails = @()
+        if ($missingFields.Count -gt 0) {
+            $fieldDetails += "missing_fields=[$($missingFields -join ', ')]"
+        }
+        if ($mismatchedFields.Count -gt 0) {
+            $fieldDetails += "mismatched_fields=[$($mismatchedFields -join ', ')]"
+        }
+        $fieldSummary = if ($fieldDetails.Count -gt 0) { " $($fieldDetails -join ' ')" } else { "" }
+        $details.Add("public-config ${status} ${kind}${fieldSummary}") | Out-Null
+    }
+
+    if ($details.Count -eq 0) {
+        return "Public privacy/support metadata verification failed for $BaseUrl."
+    }
+    return "Public privacy/support metadata verification failed for ${BaseUrl}: $($details -join '; ')."
 }
 
 function New-Check {
@@ -316,6 +559,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/complete-final-operator-gates.ps1",
         "scripts/windows/configure-musu-pro-p2p-env.ps1",
         "scripts/windows/import-second-pc-return.ps1",
+        "scripts/windows/import-private-mesh-release-proof-archive.ps1",
         "scripts/windows/measure-musu-runtime-cpu-scenarios.ps1",
         "scripts/windows/evidence-integrity.ps1",
         "scripts/windows/msix-common.ps1",
@@ -331,6 +575,8 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-p2p-control-plane-evidence.ps1",
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
+        "scripts/windows/run-private-mesh-release-proof.ps1",
+        "scripts/windows/archive-private-mesh-release-proof-bundle.ps1",
         "scripts/windows/run-second-pc-release-check.ps1",
         "scripts/windows/test-second-pc-route-preflight.ps1",
         "scripts/windows/smoke-multidevice-beta.ps1",
@@ -341,6 +587,8 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-multidevice-evidence.ps1",
         "scripts/windows/verify-operator-action-pack.ps1",
         "scripts/windows/verify-p2p-control-plane-evidence.ps1",
+        "scripts/windows/verify-private-mesh-release-proof-archive.ps1",
+        "scripts/windows/verify-private-mesh-release-proof-bundle.ps1",
         "scripts/windows/verify-route-reachability-diagnostic.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
@@ -507,6 +755,17 @@ function Get-RuntimeCpuScenarioMatrixCandidateShape {
     }
     catch {
         return [pscustomobject]@{
+            parsed = $false
+            parse_error = $_.Exception.Message
+            schema = ""
+            version = ""
+            matrix_ok = $false
+            git_commit = ""
+            git_commit_valid = $false
+            git_dirty_present = $false
+            git_dirty = $true
+            operator_machine = ""
+            sample_seconds = 0.0
             scenario_names = @()
             has_target_post_route_probe = $false
         }
@@ -534,12 +793,96 @@ function Get-RuntimeCpuScenarioMatrixCandidateShape {
     }
 
     [pscustomobject]@{
+        parsed = $true
+        parse_error = ""
+        schema = if ($matrix.PSObject.Properties["schema"]) { [string]$matrix.schema } else { "" }
+        version = if ($matrix.PSObject.Properties["version"]) { [string]$matrix.version } else { "" }
+        matrix_ok = ($matrix.PSObject.Properties["ok"] -and [bool]$matrix.ok)
+        git_commit = if ($matrix.PSObject.Properties["git_commit"]) { [string]$matrix.git_commit } else { "" }
+        git_commit_valid = ($matrix.PSObject.Properties["git_commit"] -and [string]$matrix.git_commit -match "^[0-9a-f]{40}$")
+        git_dirty_present = [bool]$matrix.PSObject.Properties["git_dirty"]
+        git_dirty = (-not [bool]$matrix.PSObject.Properties["git_dirty"] -or [bool]$matrix.git_dirty)
+        operator_machine = if ($matrix.PSObject.Properties["operator_machine"]) { [string]$matrix.operator_machine } else { "" }
+        sample_seconds = if ($matrix.PSObject.Properties["sample_seconds"]) { [double]$matrix.sample_seconds } else { 0.0 }
         scenario_names = @($scenarioNames)
         has_target_post_route_probe = (
             $null -ne $routeProbe -and
             $routeProbe.PSObject.Properties["target"] -and
             -not [string]::IsNullOrWhiteSpace([string]$routeProbe.target)
         )
+    }
+}
+
+function Test-RuntimeCpuScenarioMatrixCandidatePreflight {
+    param(
+        [Parameter(Mandatory = $true)]$Shape,
+        [Parameter(Mandatory = $true)][string]$ExpectedVersion,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitCommit,
+        [Parameter(Mandatory = $true)][string[]]$RequiredScenarios,
+        [Parameter(Mandatory = $true)][int]$MinSampleSeconds,
+        [switch]$RequireTargetPostRoute
+    )
+
+    if (-not [bool]$Shape.parsed) {
+        return [pscustomobject]@{ ok = $false; reason = "parse_failed"; detail = [string]$Shape.parse_error }
+    }
+    if ([string]$Shape.schema -ne "musu.runtime_cpu_scenario_matrix.v1") {
+        return [pscustomobject]@{ ok = $false; reason = "schema_mismatch"; detail = "schema='$($Shape.schema)'" }
+    }
+    if ([string]$Shape.version -ne $ExpectedVersion) {
+        return [pscustomobject]@{ ok = $false; reason = "version_mismatch"; detail = "version='$($Shape.version)', expected='$ExpectedVersion'" }
+    }
+    if (-not [bool]$Shape.matrix_ok) {
+        return [pscustomobject]@{ ok = $false; reason = "matrix_not_ok"; detail = "matrix ok=false" }
+    }
+    if (-not [bool]$Shape.git_commit_valid) {
+        return [pscustomobject]@{ ok = $false; reason = "git_commit_invalid"; detail = "git_commit='$($Shape.git_commit)'" }
+    }
+    if ([bool]$Shape.git_dirty) {
+        return [pscustomobject]@{ ok = $false; reason = "git_dirty"; detail = "matrix was captured dirty or lacks git_dirty=false" }
+    }
+    if ([double]$Shape.sample_seconds -lt [double]$MinSampleSeconds) {
+        return [pscustomobject]@{ ok = $false; reason = "sample_duration_too_short"; detail = "sample_seconds=$($Shape.sample_seconds), expected>=$MinSampleSeconds" }
+    }
+    if (-not (Test-StringSetContainsAll -Values $Shape.scenario_names -Required $RequiredScenarios)) {
+        return [pscustomobject]@{ ok = $false; reason = "required_scenarios_missing"; detail = "required='$($RequiredScenarios -join ',')'" }
+    }
+    if ($RequireTargetPostRoute -and -not [bool]$Shape.has_target_post_route_probe) {
+        return [pscustomobject]@{ ok = $false; reason = "target_post_route_probe_missing"; detail = "post-route target is missing" }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedGitCommit) -and [string]$Shape.git_commit -ne $ExpectedGitCommit) {
+        $gitDeltaCacheKey = "$($Shape.git_commit)..$ExpectedGitCommit"
+        if (-not $script:runtimeCpuScenarioMatrixGitDeltaCache.ContainsKey($gitDeltaCacheKey)) {
+            $documentationOrStatusOnlyGitDelta = $false
+            if ($ExpectedGitCommit -match "^[0-9a-f]{40}$") {
+                $documentationOrStatusOnlyGitDelta = Test-DocumentationOrStatusOnlyGitDelta -FromCommit ([string]$Shape.git_commit) -ToCommit $ExpectedGitCommit
+            }
+            $script:runtimeCpuScenarioMatrixGitDeltaCache[$gitDeltaCacheKey] = $documentationOrStatusOnlyGitDelta
+        }
+        if (-not [bool]$script:runtimeCpuScenarioMatrixGitDeltaCache[$gitDeltaCacheKey]) {
+            return [pscustomobject]@{ ok = $false; reason = "runtime_affecting_git_delta"; detail = "git_commit='$($Shape.git_commit)', expected='$ExpectedGitCommit'" }
+        }
+    }
+
+    [pscustomobject]@{ ok = $true; reason = ""; detail = "" }
+}
+
+function New-RuntimeCpuScenarioMatrixPrefilteredResult {
+    param(
+        [Parameter(Mandatory = $true)]$Candidate,
+        [Parameter(Mandatory = $true)]$Shape,
+        [Parameter(Mandatory = $true)]$Preflight
+    )
+
+    [pscustomobject]@{
+        ok = $false
+        evidence_path = $Candidate.FullName
+        operator_machine = [string]$Shape.operator_machine
+        preflight_skipped = $true
+        failure_kind = "cheap_prefilter"
+        skip_reason = [string]$Preflight.reason
+        skip_detail = [string]$Preflight.detail
     }
 }
 
@@ -1149,7 +1492,9 @@ function Test-StartupSingleInstanceEvidence {
         $startupUsesPackagedCommand = (
             $musuExeLower.Contains("\microsoft\windowsapps\musu.exe") -or
             $musuExeLower.Contains("\windowsapps\yellowhama.musu_") -or
-            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_")
+            $musuExeLower.Contains("\program files\windowsapps\yellowhama.musu_") -or
+            $musuExeLower.Contains("\windowsapps\blossompark.musu_") -or
+            $musuExeLower.Contains("\program files\windowsapps\blossompark.musu_")
         )
         $checks.Add((New-Check -Name "startup executable release identity" -Status ($(if ($startupUsesPackagedCommand) { "pass" } else { "fail" })) -Message ($(if ($startupUsesPackagedCommand) { "startup evidence used the packaged WindowsApps MUSU command" } else { "startup evidence used a non-packaged MUSU command: '$musuExe'" })))) | Out-Null
 
@@ -1300,8 +1645,11 @@ $msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.p
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
+$privateMeshReleaseProofArchiveVerifierScript = Join-Path $scriptDir "verify-private-mesh-release-proof-archive.ps1"
 $p2pEnvStatusScript = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
+$goNoGoScratchRoot = Join-Path $repoRoot ".local-build\go-no-go\scratch"
+$goNoGoScratchDir = Join-Path $goNoGoScratchRoot ("run-{0}-{1}" -f $PID, [guid]::NewGuid().ToString("N"))
 
 $auditResult = Invoke-JsonScript -FilePath $auditScript -Arguments @("-Json")
 $audit = $auditResult.json
@@ -1341,7 +1689,15 @@ $msixDesktopEntrypointVerified = (
     [bool]$msixLocalDesktopEntrypointInstalledAuditResult.json.ok
 )
 
-$manifestResult = Invoke-JsonScript -FilePath $manifestScript -AllowFailure
+New-Item -ItemType Directory -Force -Path $goNoGoScratchDir | Out-Null
+$readinessAuditForManifestPath = Join-Path $goNoGoScratchDir "readiness-audit-for-manifest.json"
+$audit | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $readinessAuditForManifestPath -Encoding UTF8
+
+$manifestResult = Invoke-JsonScript `
+    -FilePath $manifestScript `
+    -Arguments @("-ReadinessAuditJsonPath", $readinessAuditForManifestPath) `
+    -AllowFailure `
+    -ExpectJson $false
 if ($manifestResult.timed_out) {
     throw "Release candidate manifest generation timed out after ${ScriptTimeoutSeconds}s."
 }
@@ -1549,8 +1905,40 @@ foreach ($root in $runtimeCpuScenarioMatrixRoots) {
 
 $runtimeCpuScenarioMatrixResults = @()
 $runtimeCpuScenarioMatrixMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+$script:runtimeCpuScenarioMatrixGitDeltaCache = @{}
 $runtimeCpuScenarioMatrixSelectedCandidates = Select-RuntimeCpuScenarioMatrixCandidates -Candidates $runtimeCpuScenarioMatrixCandidates -RequiredScenarios $RequiredRuntimeCpuScenarioMatrixScenarios -MaxPerMachine 12 -MaxUnknown 12
-foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
+$runtimeCpuScenarioMatrixShapeCache = @{}
+function Get-SelectedRuntimeCpuScenarioMatrixShape {
+    param([Parameter(Mandatory = $true)]$Candidate)
+
+    $key = [string]$Candidate.FullName
+    if (-not $runtimeCpuScenarioMatrixShapeCache.ContainsKey($key)) {
+        $runtimeCpuScenarioMatrixShapeCache[$key] = Get-RuntimeCpuScenarioMatrixCandidateShape -Candidate $Candidate
+    }
+    return $runtimeCpuScenarioMatrixShapeCache[$key]
+}
+
+$runtimeCpuScenarioMatrixVerificationCandidates = @(
+    $runtimeCpuScenarioMatrixSelectedCandidates | Where-Object {
+        $shape = Get-SelectedRuntimeCpuScenarioMatrixShape -Candidate $_
+        Test-StringSetContainsAll -Values $shape.scenario_names -Required $RequiredRuntimeCpuScenarioMatrixScenarios
+    }
+)
+$runtimeCpuScenarioMatrixPrefilteredCount = 0
+foreach ($candidate in @($runtimeCpuScenarioMatrixVerificationCandidates | Sort-Object LastWriteTime -Descending)) {
+    $shape = Get-SelectedRuntimeCpuScenarioMatrixShape -Candidate $candidate
+    $preflight = Test-RuntimeCpuScenarioMatrixCandidatePreflight `
+        -Shape $shape `
+        -ExpectedVersion $version `
+        -ExpectedGitCommit $currentGitCommit `
+        -RequiredScenarios $RequiredRuntimeCpuScenarioMatrixScenarios `
+        -MinSampleSeconds $MinRuntimeIdleCpuSampleSeconds
+    if (-not [bool]$preflight.ok) {
+        $runtimeCpuScenarioMatrixResults += New-RuntimeCpuScenarioMatrixPrefilteredResult -Candidate $candidate -Shape $shape -Preflight $preflight
+        $runtimeCpuScenarioMatrixPrefilteredCount += 1
+        continue
+    }
+
     $matrixArgs = @(
         "-EvidencePath", $candidate.FullName,
         "-ExpectedVersion", $version,
@@ -1590,7 +1978,10 @@ $runtimeCpuScenarioMatrixEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuScenarioMatrixMachines)
     candidate_count = $runtimeCpuScenarioMatrixResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"
+    selected_candidate_count = @($runtimeCpuScenarioMatrixSelectedCandidates).Count
+    verifier_candidate_count = @($runtimeCpuScenarioMatrixVerificationCandidates).Count
+    preflight_skipped_candidate_count = $runtimeCpuScenarioMatrixPrefilteredCount
+    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates-prefiltered-by-required-scenarios"
     required_scenarios = @($RequiredRuntimeCpuScenarioMatrixScenarios)
     candidates = $runtimeCpuScenarioMatrixResults
 }
@@ -1599,7 +1990,28 @@ $runtimeCpuSecondPcRouteAttemptVerified = $false
 $runtimeCpuSecondPcRouteAttemptResults = @()
 $runtimeCpuSecondPcRouteAttemptMachines = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 $runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")
-foreach ($candidate in @($runtimeCpuScenarioMatrixSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
+$runtimeCpuSecondPcRouteAttemptSelectedCandidates = @(
+    $runtimeCpuScenarioMatrixSelectedCandidates | Where-Object {
+        $shape = Get-SelectedRuntimeCpuScenarioMatrixShape -Candidate $_
+        [bool]$shape.has_target_post_route_probe
+    }
+)
+$runtimeCpuSecondPcRouteAttemptPrefilteredCount = 0
+foreach ($candidate in @($runtimeCpuSecondPcRouteAttemptSelectedCandidates | Sort-Object LastWriteTime -Descending)) {
+    $shape = Get-SelectedRuntimeCpuScenarioMatrixShape -Candidate $candidate
+    $preflight = Test-RuntimeCpuScenarioMatrixCandidatePreflight `
+        -Shape $shape `
+        -ExpectedVersion $version `
+        -ExpectedGitCommit $currentGitCommit `
+        -RequiredScenarios $runtimeCpuSecondPcRouteAttemptRequiredScenarios `
+        -MinSampleSeconds $MinRuntimeIdleCpuSampleSeconds `
+        -RequireTargetPostRoute
+    if (-not [bool]$preflight.ok) {
+        $runtimeCpuSecondPcRouteAttemptResults += New-RuntimeCpuScenarioMatrixPrefilteredResult -Candidate $candidate -Shape $shape -Preflight $preflight
+        $runtimeCpuSecondPcRouteAttemptPrefilteredCount += 1
+        continue
+    }
+
     $targetAttemptArgs = @(
         "-EvidencePath", $candidate.FullName,
         "-ExpectedVersion", $version,
@@ -1643,7 +2055,10 @@ $runtimeCpuSecondPcRouteAttemptEvidence = [pscustomobject]@{
     valid_machines = @($runtimeCpuSecondPcRouteAttemptMachines)
     candidate_count = $runtimeCpuSecondPcRouteAttemptResults.Count
     available_candidate_count = @($runtimeCpuScenarioMatrixCandidates).Count
-    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"
+    selected_candidate_count = @($runtimeCpuScenarioMatrixSelectedCandidates).Count
+    verifier_candidate_count = @($runtimeCpuSecondPcRouteAttemptSelectedCandidates).Count
+    preflight_skipped_candidate_count = $runtimeCpuSecondPcRouteAttemptPrefilteredCount
+    candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates-prefiltered-by-target-post-route"
     required_scenarios = @($runtimeCpuSecondPcRouteAttemptRequiredScenarios)
     route_probe = "post-route target route attempt, success or explicitly allowed failure"
     candidates = $runtimeCpuSecondPcRouteAttemptResults
@@ -1884,6 +2299,94 @@ if ($p2pControlPlaneEvidenceCandidate) {
             evidence_path = $p2pControlPlaneEvidenceCandidate.FullName
             raw = $p2pControlPlaneEvidenceResult.raw
         }
+    }
+}
+
+$privateMeshPackagedReleaseProofVerified = $false
+$privateMeshPackagedReleaseProofEvidence = $null
+$privateMeshPackagedReleaseProofEvidenceResults = New-Object System.Collections.Generic.List[object]
+$privateMeshPackagedReleaseProofEvidenceCandidates = @()
+$privateMeshPackagedReleaseProofEvidenceRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\private-mesh-release-proof\{0}" -f $version))
+        filter = "private-mesh-release-proof.archive.json"
+        recurse = $true
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\private-mesh-release-proof")
+        filter = "private-mesh-release-proof.archive.json"
+        recurse = $true
+    }
+)
+
+foreach ($root in $privateMeshPackagedReleaseProofEvidenceRoots) {
+    if (Test-Path -LiteralPath $root.path) {
+        $privateMeshPackagedReleaseProofEvidenceCandidates += @(
+            Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -Recurse:([bool]$root.recurse) -ErrorAction SilentlyContinue
+        )
+    }
+}
+
+$privateMeshPackagedReleaseProofSelectedCandidates = @(
+    $privateMeshPackagedReleaseProofEvidenceCandidates |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 6
+)
+
+foreach ($candidate in $privateMeshPackagedReleaseProofSelectedCandidates) {
+    $verification = Invoke-JsonScript `
+        -FilePath $privateMeshReleaseProofArchiveVerifierScript `
+        -Arguments @("-ArchiveManifestPath", $candidate.FullName, "-Json") `
+        -AllowFailure
+    $verificationJson = $verification.json
+    $verificationOk = (
+        $verificationJson -and
+        $verificationJson.PSObject.Properties["ok"] -and
+        [bool]$verificationJson.ok
+    )
+    $desktopRuntimeKind = if ($verificationJson -and $verificationJson.PSObject.Properties["desktop_runtime_kind"]) {
+        [string]$verificationJson.desktop_runtime_kind
+    }
+    else {
+        ""
+    }
+    $desktopRuntimePackaged = (
+        $verificationJson -and
+        $verificationJson.PSObject.Properties["desktop_runtime_packaged"] -and
+        [bool]$verificationJson.desktop_runtime_packaged
+    )
+    $candidateOk = ($verificationOk -and $desktopRuntimePackaged -and $desktopRuntimeKind -eq "packaged_desktop")
+    $privateMeshPackagedReleaseProofEvidenceResults.Add([pscustomobject]@{
+            ok = [bool]$candidateOk
+            archive_manifest_path = $candidate.FullName
+            archive_verifier_ok = [bool]$verificationOk
+            desktop_runtime_kind = $desktopRuntimeKind
+            desktop_runtime_packaged = [bool]$desktopRuntimePackaged
+            verifier_exit_code = $verification.exit_code
+            verifier_timed_out = $verification.timed_out
+            archive_verification = $verificationJson
+            raw = if ($verificationJson) { $null } else { $verification.raw }
+        }) | Out-Null
+
+    if ($candidateOk -and -not $privateMeshPackagedReleaseProofVerified) {
+        $privateMeshPackagedReleaseProofVerified = $true
+        $privateMeshPackagedReleaseProofEvidence = $verificationJson
+    }
+}
+
+if (-not $privateMeshPackagedReleaseProofEvidence) {
+    $privateMeshPackagedReleaseProofAvailableCandidateCount = @($privateMeshPackagedReleaseProofEvidenceCandidates).Count
+    $privateMeshPackagedReleaseProofCheckedCandidateCount = @($privateMeshPackagedReleaseProofSelectedCandidates).Count
+    $privateMeshPackagedReleaseProofCandidateResults = @($privateMeshPackagedReleaseProofEvidenceResults.ToArray())
+
+    $privateMeshPackagedReleaseProofEvidence = [pscustomobject]@{
+        ok = $false
+        required_desktop_runtime_kind = "packaged_desktop"
+        required_desktop_runtime_packaged = $true
+        candidate_selection = "latest-6-archive-manifests"
+        available_candidate_count = $privateMeshPackagedReleaseProofAvailableCandidateCount
+        checked_candidate_count = $privateMeshPackagedReleaseProofCheckedCandidateCount
+        candidates = $privateMeshPackagedReleaseProofCandidateResults
     }
 }
 
@@ -2156,6 +2659,9 @@ if (-not $msixCurrentLegacyConflictsOk) {
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
+if (-not $privateMeshPackagedReleaseProofVerified) {
+    Add-Blocker -List $blockers -Area "private-mesh-packaged-release-proof" -Message "Packaged desktop Private Mesh release proof archive with desktop_runtime_packaged=true and desktop_runtime_kind=packaged_desktop has not been verified."
+}
 if (-not $runtimeIdleCpuVerified) {
     Add-Blocker -List $blockers -Area "runtime-idle-cpu" -Message "Runtime idle CPU evidence has not passed on at least ${MinRuntimeIdleCpuMachineCount} machine(s) for ${MinRuntimeIdleCpuSampleSeconds}s at <= ${MaxRuntimeIdleCpuOneCorePercent}% of one logical CPU in scenario '${RequiredRuntimeIdleCpuScenario}' with owned WebView2 required."
 }
@@ -2203,7 +2709,7 @@ if (-not $desktopSingleInstanceVerified) {
 }
 if (-not $SkipPublicMetadata) {
     if (-not $publicMetadataResult.json -or -not [bool]$publicMetadataResult.json.ok) {
-        Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification failed for $PublicMetadataBaseUrl."
+        Add-Blocker -List $blockers -Area "store-public-metadata" -Message (Format-PublicMetadataFailureSummary -PublicMetadata $publicMetadataResult.json -BaseUrl $PublicMetadataBaseUrl)
     }
 }
 else {
@@ -2242,6 +2748,12 @@ if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
 }
 
+$nextActions = Get-ReleaseNextActions `
+    -Blockers $blockers.ToArray() `
+    -Version $version `
+    -SupportEmail $supportEmail `
+    -PublicMetadataBaseUrl $PublicMetadataBaseUrl
+
 $manualExternalGates = @(
     "Second-PC clean/current MSIX install verification",
     "Second-PC multi-device route verification",
@@ -2271,19 +2783,27 @@ $manualInternalGates = @(
     "Second-PC runtime/startup ownership verification",
     "Startup single-instance repeat audit",
     "Packaged desktop repeated activation audit",
+    "Packaged desktop Private Mesh release proof archive with desktop_runtime_packaged=true",
     "musu.pro registry/rendezvous/relay-control live evidence"
 )
 
 $ready = ($blockers.Count -eq 0)
+$goNoGoWatch.Stop()
+$goNoGoInvocations = @($script:goNoGoInvocations.ToArray())
 $result = [pscustomobject]@{
     schema = "musu.release_go_no_go.v1"
     generated_at = (Get-Date).ToString("o")
     version = $version
     repo_root = $repoRoot
+    elapsed_ms = [int]$goNoGoWatch.ElapsedMilliseconds
+    invocation_count = [int]$goNoGoInvocations.Count
+    go_no_go_invocations = $goNoGoInvocations
     ready_for_public_desktop_release = $ready
     local_artifacts_ready = ([bool]$audit.runtime_package_ready -and [bool]$audit.desktop_shell_ready)
     single_machine_verified = [bool]$audit.single_machine_verified
     multi_device_verified = [bool]$audit.multi_device_verified
+    private_mesh_packaged_release_proof_verified = [bool]$privateMeshPackagedReleaseProofVerified
+    private_mesh_packaged_release_proof_evidence = $privateMeshPackagedReleaseProofEvidence
     public_metadata_checked = -not [bool]$SkipPublicMetadata
     public_metadata_ok = if ($SkipPublicMetadata) { $null } elseif ($publicMetadataResult.json) { [bool]$publicMetadataResult.json.ok } else { $false }
     msix_install_verified = [bool]$msixInstallVerified
@@ -2469,6 +2989,7 @@ $result = [pscustomobject]@{
     p2p_relay_payload_delivery_proof_invalid_count = [int]$p2pRelayPayloadDeliveryProofInvalidCount
     p2p_control_plane_evidence = $p2pControlPlaneEvidence
     blockers = $blockers.ToArray()
+    next_actions = $nextActions
     warnings = $warnings.ToArray()
     manual_internal_gates = $manualInternalGates
     manual_external_gates = $manualExternalGates
@@ -2497,6 +3018,8 @@ if ($Json) {
 else {
     "MUSU release go/no-go"
     "go_no_go_output_path: $($result.go_no_go_output_path)"
+    "elapsed_ms: $($result.elapsed_ms)"
+    "invocation_count: $($result.invocation_count)"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
@@ -2549,6 +3072,31 @@ else {
     ""
     "Blockers"
     $blockers | Format-Table area, message -Wrap
+    ""
+    "Next actions"
+    $nextActions | Format-Table area, action_type, command_ready, verification_command_ready, automation_ready, summary, command -Wrap
+    ""
+    "Slow invocations"
+    $goNoGoInvocations | Sort-Object elapsed_ms -Descending | Select-Object -First 8 script, elapsed_ms, timed_out, exit_code, failure_kind | Format-Table -AutoSize
+    $placeholderNextActions = @($nextActions | Where-Object { $_.PSObject.Properties["placeholders"] -and @($_.placeholders).Count -gt 0 })
+    if ($placeholderNextActions.Count -gt 0) {
+        ""
+        "Placeholders"
+        foreach ($action in $placeholderNextActions) {
+            "- $($action.area): $(@($action.placeholders) -join ', ')"
+        }
+    }
+    $manualNextActions = @($nextActions | Where-Object { $_.PSObject.Properties["manual_steps"] -and @($_.manual_steps).Count -gt 0 })
+    if ($manualNextActions.Count -gt 0) {
+        ""
+        "Manual steps"
+        foreach ($action in $manualNextActions) {
+            "- $($action.area)"
+            foreach ($step in @($action.manual_steps)) {
+                "  - $step"
+            }
+        }
+    }
     if ($warnings.Count -gt 0) {
         ""
         "Warnings"

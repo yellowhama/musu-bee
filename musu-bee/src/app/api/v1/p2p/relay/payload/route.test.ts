@@ -519,11 +519,15 @@ test("marks claimed relay payload delivered", async () => {
         target_node_id: string;
         relay_url: string;
         tunnel_id: string;
+        payload_kind: string;
         transport_kind: string;
         relay_default_data_path: boolean;
         release_grade: boolean;
         payload_sha256: string;
         payload_bytes: number;
+        claimed_by: string;
+        claimed_at: string;
+        created_at: string;
         delivered_at: string;
       };
       payload: {
@@ -536,12 +540,16 @@ test("marks claimed relay payload delivered", async () => {
         target_node_id: string;
         relay_url: string;
         tunnel_id: string;
+        payload_kind: string;
         transport_kind: string;
         relay_default_data_path: boolean;
         release_grade: boolean;
         payload_sha256: string;
         payload_bytes: number;
         status: string;
+        claimed_by?: string;
+        claimed_at?: string;
+        created_at: string;
         delivered_at?: string;
       };
     };
@@ -558,6 +566,7 @@ test("marks claimed relay payload delivered", async () => {
     assert.equal(deliveryBody.delivery_proof?.target_node_id, deliveryBody.payload.target_node_id);
     assert.equal(deliveryBody.delivery_proof?.relay_url, deliveryBody.payload.relay_url);
     assert.equal(deliveryBody.delivery_proof?.tunnel_id, deliveryBody.payload.tunnel_id);
+    assert.equal(deliveryBody.delivery_proof?.payload_kind, deliveryBody.payload.payload_kind);
     assert.equal(deliveryBody.delivery_proof?.transport_kind, deliveryBody.payload.transport_kind);
     assert.equal(
       deliveryBody.delivery_proof?.relay_default_data_path,
@@ -566,6 +575,9 @@ test("marks claimed relay payload delivered", async () => {
     assert.equal(deliveryBody.delivery_proof?.release_grade, deliveryBody.payload.release_grade);
     assert.equal(deliveryBody.delivery_proof?.payload_sha256, deliveryBody.payload.payload_sha256);
     assert.equal(deliveryBody.delivery_proof?.payload_bytes, deliveryBody.payload.payload_bytes);
+    assert.equal(deliveryBody.delivery_proof?.claimed_by, deliveryBody.payload.claimed_by);
+    assert.equal(deliveryBody.delivery_proof?.claimed_at, deliveryBody.payload.claimed_at);
+    assert.equal(deliveryBody.delivery_proof?.created_at, deliveryBody.payload.created_at);
     assert.equal(deliveryBody.delivery_proof?.delivered_at, deliveryBody.payload.delivered_at);
 
     const deliveredRes = await GET(
@@ -661,11 +673,15 @@ test("KV relay payload store claims and delivers owner-scoped payloads", async (
     assert.equal(proof?.schema, "musu.relay_payload_delivery_proof.v1");
     assert.equal(proof?.payload_id, delivered?.payload_id);
     assert.equal(proof?.relay_url, delivered?.relay_url);
+    assert.equal(proof?.payload_kind, delivered?.payload_kind);
     assert.equal(proof?.transport_kind, delivered?.transport_kind);
     assert.equal(proof?.relay_default_data_path, delivered?.relay_default_data_path);
     assert.equal(proof?.release_grade, delivered?.release_grade);
     assert.equal(proof?.payload_sha256, delivered?.payload_sha256);
     assert.equal(proof?.payload_bytes, delivered?.payload_bytes);
+    assert.equal(proof?.claimed_by, delivered?.claimed_by);
+    assert.equal(proof?.claimed_at, delivered?.claimed_at);
+    assert.equal(proof?.created_at, delivered?.created_at);
     assert.equal(proof?.delivered_at, delivered?.delivered_at);
     assert.deepEqual(state.evalCommands, ["append", "claim", "deliver"]);
     const deliveredRecords = await queryRelayPayloads({

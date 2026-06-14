@@ -7,7 +7,7 @@ param(
     [string]$MusuExe,
     [switch]$AllowDeveloperRuntime,
     [switch]$OpenDesktopApp,
-    [string]$DesktopAppId = "Yellowhama.MUSU_ygcjq669as2b6!MUSU",
+    [string]$DesktopAppId = "blossompark.musu_f5h38pf4yt4gc!MUSU",
     [string]$DashboardUrl,
     [switch]$RunRouteProbe,
     [string]$RoutePrompt,
@@ -55,7 +55,9 @@ function Test-PackagedMusuCommandPath([string]$Path) {
     return (
         $lower.Contains("\microsoft\windowsapps\musu.exe") -or
         $lower.Contains("\windowsapps\yellowhama.musu_") -or
-        $lower.Contains("\program files\windowsapps\yellowhama.musu_")
+        $lower.Contains("\program files\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\windowsapps\blossompark.musu_") -or
+        $lower.Contains("\program files\windowsapps\blossompark.musu_")
     )
 }
 

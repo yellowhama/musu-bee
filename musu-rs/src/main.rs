@@ -20,6 +20,7 @@ use install::cli_commands::{
     DoctorOpts, GetOpts, LsOpts, NodesOpts, PutOpts, RelayAction, RoomAction, RouteOpts, ShareOpts,
     StatusOpts, StopOpts, UnshareOpts, UpOpts,
 };
+use install::private_mesh::PrivateMeshAction;
 
 #[derive(Parser)]
 #[command(name = "musu", version, about = "musu control plane (Rust)")]
@@ -95,6 +96,11 @@ enum Cmd {
     Relay {
         #[command(subcommand)]
         action: RelayAction,
+    },
+    /// Inspect and diagnose MUSU Private Mesh enrollment.
+    Mesh {
+        #[command(subcommand)]
+        action: PrivateMeshAction,
     },
     /// Publish/query MUSU.PRO project-room control-plane state.
     Room {
@@ -302,6 +308,10 @@ async fn main() -> anyhow::Result<()> {
         Cmd::Relay { action } => {
             init_tracing_default();
             install::cli_commands::run_relay(action).await
+        }
+        Cmd::Mesh { action } => {
+            init_tracing_default();
+            install::private_mesh::run(action).await
         }
         Cmd::Room { action } => {
             init_tracing_default();

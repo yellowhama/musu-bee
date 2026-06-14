@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import { SUPPORT_EMAIL } from "@/lib/contact";
+import {
+  PUBLIC_CONFIG_SCHEMA,
+  PUBLIC_RELEASE_METADATA_TEXT,
+  PUBLIC_RELEASE_VERSION,
+} from "@/lib/publicRelease";
 
 /**
  * v18.B Phase 1 — Public config endpoint used by install.ps1 to bootstrap
@@ -24,14 +30,41 @@ const ALLOWED_KEYS = {
   paddleEnv: "NEXT_PUBLIC_PADDLE_ENV",
 } as const;
 
+const DEFAULT_PUBLIC_APP_BASE_URL = "https://musu.pro";
+
+function publicAppBaseUrl(value = process.env.NEXT_PUBLIC_APP_URL) {
+  const trimmed = value?.trim();
+  if (!trimmed) return DEFAULT_PUBLIC_APP_BASE_URL;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return trimmed;
+    }
+  } catch {
+    // Fall through to the release default instead of letting public-config 500.
+  }
+  return DEFAULT_PUBLIC_APP_BASE_URL;
+}
+
+function publicPathUrl(path: string) {
+  return new URL(path, publicAppBaseUrl()).toString();
+}
+
 export async function GET() {
   const body: Record<string, string> = {};
+  body.schema = PUBLIC_CONFIG_SCHEMA;
   for (const [outKey, envName] of Object.entries(ALLOWED_KEYS)) {
     const val = process.env[envName]?.trim();
     if (val) {
-      body[outKey] = val;
+      body[outKey] = outKey === "appUrl" ? publicAppBaseUrl(val) : val;
     }
   }
+  body.releaseVersion = PUBLIC_RELEASE_VERSION;
+  body.publicReleaseMetadata = PUBLIC_RELEASE_METADATA_TEXT;
+  body.supportEmail = SUPPORT_EMAIL;
+  body.privacyUrl = publicPathUrl("/privacy");
+  body.supportUrl = publicPathUrl("/support");
+
   return NextResponse.json(body, {
     headers: { "Cache-Control": "public, max-age=300" },
   });

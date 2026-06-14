@@ -130,6 +130,16 @@ Add-RegexCheck -Scope "adapter-claude" -Name "shim cancellation-aware read" -Tex
 Add-RegexCheck -Scope "adapter-claude" -Name "shim bounded read without cancel" -Text $claudeAdapterText -Pattern 'tokio::time::timeout\(per_iter,\s*read_fut\)\.await' -Path $claudeAdapterPath -Message "Claude adapter shim still bounds reads when no cancel token is supplied."
 Add-RegexCheck -Scope "adapter-claude" -Name "shim shared kill path" -Text $claudeAdapterText -Pattern 'writer::runner::graceful_kill' -Path $claudeAdapterPath -Message "Claude adapter shim reuses the task runner kill path on cancel/timeout/error."
 
+$cliCommonPath = "musu-rs\src\adapter\cli_common.rs"
+$cliCommonText = Get-RepoText $cliCommonPath
+Add-RegexCheck -Scope "adapter-cli-common" -Name "generic CLI child kill on drop" -Text $cliCommonText -Pattern '\.kill_on_drop\(true\)' -Path $cliCommonPath -Message "Generic CLI adapter child processes are killed if the async command handle is dropped."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stdin writer one-shot spawn" -Text $cliCommonText -Pattern 'tokio::spawn\(async move \{[\s\S]*stdin\.write_all\(p\.as_bytes\(\)\)\.await[\s\S]*stdin\.shutdown\(\)\.await' -Path $cliCommonPath -Message "Generic CLI stdin writer spawn writes once, shuts stdin down, and exits."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stderr drain exits on eof or error" -Text $cliCommonText -Pattern 'tokio::spawn\(async move \{[\s\S]*reader\.read_line\(&mut line\)\.await[\s\S]*Ok\(0\) => break[\s\S]*Err\(_\) => break' -Path $cliCommonPath -Message "Generic CLI stderr drain task waits on pipe reads and exits on EOF or read error."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stream per-iteration timeout" -Text $cliCommonText -Pattern 'PER_ITER_TIMEOUT:\s*Duration\s*=\s*Duration::from_millis\(500\)' -Path $cliCommonPath -Message "Generic CLI stdout stream has a bounded no-deadline read timeout."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stream cancellation-aware read" -Text $cliCommonText -Pattern 'tokio::select!\s*\{[\s\S]*cancel\.notified\(\)[\s\S]*tokio::time::timeout\(per_iter,\s*read_fut\)' -Path $cliCommonPath -Message "Generic CLI stdout stream loop selects between cancellation and bounded reads."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stream hard deadline timeout" -Text $cliCommonText -Pattern 'if now >= d[\s\S]*return CliOutcome::Timeout' -Path $cliCommonPath -Message "Generic CLI stdout stream exits when its monotonic deadline is reached."
+Add-RegexCheck -Scope "adapter-cli-common" -Name "stream bounded read without cancel" -Text $cliCommonText -Pattern 'tokio::time::timeout\(per_iter,\s*read_fut\)\.await' -Path $cliCommonPath -Message "Generic CLI stdout stream still bounds reads when no cancel token is supplied."
+
 $clipboardPath = "musu-rs\src\io\clipboard.rs"
 $clipboardText = Get-RepoText $clipboardPath
 Add-RegexCheck -Scope "clipboard" -Name "clipboard monitor cancellation token" -Text $clipboardText -Pattern 'CancellationToken::new\(\)' -Path $clipboardPath -Message "Clipboard monitor owns an explicit cancellation token."
@@ -226,11 +236,15 @@ Add-RegexCheck -Scope "cli-route-wait" -Name "route wait deadline" -Text $cliTex
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait request timeout" -Text $cliText -Pattern 'ROUTE_WAIT_STATUS_REQUEST_TIMEOUT_SECS[\s\S]*\.timeout\(request_timeout\)' -Path $cliPath -Message "CLI route --wait status requests are timeout-bound."
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait sleep" -Text $cliText -Pattern 'let sleep_for\s*=\s*std::time::Duration::from_secs\(ROUTE_WAIT_POLL_INTERVAL_SECS\)[\s\S]*tokio::time::sleep\(sleep_for\)\.await' -Path $cliPath -Message "CLI route --wait sleeps between status polls."
 Add-RegexCheck -Scope "cli-route-wait" -Name "route wait timeout evidence class" -Text $cliText -Pattern 'remote_task_wait_timeout' -Path $cliPath -Message "CLI route --wait records timeout as a failed wait class instead of spinning forever."
-Add-RegexCheck -Scope "cli-login" -Name "login device flow expiry" -Text $cliText -Pattern 'flow\.expires_in[\s\S]*Duration::from_secs\(flow\.expires_in as u64\)' -Path $cliPath -Message "CLI login device-code polling uses the server-provided expiry as a deadline."
-Add-RegexCheck -Scope "cli-login" -Name "login timeout break" -Text $cliText -Pattern 'start\.elapsed\(\)\s*>\s*timeout[\s\S]*Login timed out' -Path $cliPath -Message "CLI login exits when the device-code flow expires."
+
+$deviceLoginPath = "musu-rs\src\install\cli_commands\device_login.rs"
+$deviceLoginText = Get-RepoText $deviceLoginPath
+Add-RegexCheck -Scope "cli-login" -Name "login device flow expiry" -Text $deviceLoginText -Pattern 'Duration::from_secs\(flow\.response\.expires_in as u64\)' -Path $deviceLoginPath -Message "CLI login device-code polling uses the server-provided expiry as a deadline."
+Add-RegexCheck -Scope "cli-login" -Name "login timeout break" -Text $deviceLoginText -Pattern 'start\.elapsed\(\)\s*>\s*timeout[\s\S]*Login timed out' -Path $deviceLoginPath -Message "CLI login exits when the device-code flow expires."
 Add-RegexCheck -Scope "cli-login" -Name "login polling interval helper" -Text $cloudText -Pattern 'pub fn poll_interval_secs\(&self\)\s*->\s*u32[\s\S]*unwrap_or\(5\)\.max\(5\)' -Path $cloudPath -Message "Device-code login response normalizes poll cadence with a 5s floor."
-Add-RegexCheck -Scope "cli-login" -Name "login polling sleep" -Text $cliText -Pattern 'tokio::time::sleep\(flow\.poll_interval\(\)\)\.await' -Path $cliPath -Message "CLI login sleeps at the server-provided device-flow cadence with a 5s floor."
-Add-RegexCheck -Scope "cli-login" -Name "login poll primitive" -Text $cliText -Pattern 'poll_device_token\(&flow\.device_code\)' -Path $cliPath -Message "CLI login polling is limited to the explicit device-code login command."
+Add-RegexCheck -Scope "cli-login" -Name "login polling sleep" -Text $deviceLoginText -Pattern 'tokio::time::sleep\(flow\.response\.poll_interval\(\)\)\.await' -Path $deviceLoginPath -Message "CLI login sleeps at the server-provided device-flow cadence with a 5s floor."
+Add-RegexCheck -Scope "cli-login" -Name "login poll primitive" -Text $deviceLoginText -Pattern 'poll_device_token\(&flow\.response\.device_code\)' -Path $deviceLoginPath -Message "CLI login polling is limited to the explicit device-code login command."
+Add-RegexCheck -Scope "cli-login" -Name "desktop login background safe" -Text $deviceLoginText -Pattern 'run_desktop_login[\s\S]*poll_and_finalize\(&flow,\s*true\)\.await' -Path $deviceLoginPath -Message "Desktop login reuses the same bounded device-flow finalizer."
 
 $controlHttpPath = "musu-rs\src\control\http_server.rs"
 $controlHttpText = Get-RepoText $controlHttpPath
@@ -362,6 +376,22 @@ $workflowHandlerText = Get-RepoText $workflowHandlerPath
 Add-RegexCheck -Scope "workflow-handler" -Name "execute workflow one-shot spawn" -Text $workflowHandlerText -Pattern 'tokio::spawn\(async move \{[\s\S]*execute_workflow\(&state_clone,\s*&id_clone\)\.await' -Path $workflowHandlerPath -Message "Workflow HTTP execution starts one spawned executor task and returns immediately."
 Add-RegexCheck -Scope "workflow-handler" -Name "execute workflow failure logged" -Text $workflowHandlerText -Pattern 'workflow execution failed' -Path $workflowHandlerPath -Message "Workflow executor spawn logs failure instead of retry-spinning."
 
+$privateMeshPath = "musu-rs\src\install\private_mesh.rs"
+$privateMeshText = Get-RepoText $privateMeshPath
+Add-RegexCheck -Scope "private-mesh-release-proof" -Name "release task poll deadline" -Text $privateMeshText -Pattern 'async fn poll_release_task[\s\S]*let deadline = Instant::now\(\) \+ timeout' -Path $privateMeshPath -Message "Private mesh release-task polling is bounded by a caller-supplied deadline."
+Add-RegexCheck -Scope "private-mesh-release-proof" -Name "release task poll loop bounded" -Text $privateMeshText -Pattern 'while Instant::now\(\) < deadline[\s\S]*get_bridge_json\(client,\s*token,\s*url\.clone\(\),\s*Duration::from_secs\(5\)\)' -Path $privateMeshPath -Message "Private mesh release-task polling uses timeout-bound status requests inside the deadline."
+Add-RegexCheck -Scope "private-mesh-release-proof" -Name "release task poll sleep" -Text $privateMeshText -Pattern 'tokio::time::sleep\(Duration::from_millis\(500\)\)\.await' -Path $privateMeshPath -Message "Private mesh release-task polling sleeps between status checks."
+Add-RegexCheck -Scope "private-mesh-release-proof" -Name "release task timeout reports last error" -Text $privateMeshText -Pattern 'source task status did not reach a terminal state before timeout[\s\S]*last poll error' -Path $privateMeshPath -Message "Private mesh release-task polling exits with a timeout error instead of spinning forever."
+Add-RegexCheck -Scope "private-mesh-command" -Name "tailscale command timeout deadline" -Text $privateMeshText -Pattern 'fn run_tail_command_owned_with_timeout[\s\S]*let deadline = std::time::Instant::now\(\) \+ timeout' -Path $privateMeshPath -Message "Tailscale command helper uses an explicit timeout deadline."
+Add-RegexCheck -Scope "private-mesh-command" -Name "tailscale command wait sleep" -Text $privateMeshText -Pattern 'child\.try_wait\(\)[\s\S]*std::thread::sleep\(Duration::from_millis\(50\)\)' -Path $privateMeshPath -Message "Tailscale command helper sleeps between try_wait probes."
+Add-RegexCheck -Scope "private-mesh-command" -Name "tailscale command kill on timeout" -Text $privateMeshText -Pattern 'timed_out = true[\s\S]*child\.kill\(\)[\s\S]*child\.wait\(\)' -Path $privateMeshPath -Message "Tailscale command helper kills and reaps the child on timeout."
+
+$startupPath = "musu-rs\src\install\startup.rs"
+$startupText = Get-RepoText $startupPath
+Add-RegexCheck -Scope "startup-login" -Name "startup service does not start login" -Text $startupText -Pattern 'if mode == LaunchMode::UserOpen \{[\s\S]*spawn_desktop_login_if_needed\(&musu_home\)' -Path $startupPath -Message "Packaged startup only spawns device-flow login for explicit user-open launches."
+Add-RegexCheck -Scope "startup-login" -Name "startup token fast path" -Text $startupText -Pattern 'load_token\(musu_home\)\.is_some\(\)[\s\S]*skipping device-flow[\s\S]*return;' -Path $startupPath -Message "Desktop startup skips the login spawn when an account token already exists."
+Add-RegexCheck -Scope "startup-login" -Name "startup login detached spawn bounded by device flow" -Text $startupText -Pattern 'tokio::spawn\(async move \{[\s\S]*run_desktop_login\(on_pending\)\.await[\s\S]*device-flow did not complete; bridge stays up' -Path $startupPath -Message "Desktop startup login spawn is detached, non-fatal, and delegates to the bounded device-flow finalizer."
+
 $rustSourceRoot = Join-Path $repoRoot "musu-rs\src"
 $rawBusyLoopHits = New-Object System.Collections.Generic.List[object]
 $unauditedSpawnHits = New-Object System.Collections.Generic.List[object]
@@ -389,6 +419,7 @@ else {
         "musu-rs\src\control\http_server.rs",
         "musu-rs\src\install\auto_update.rs",
         "musu-rs\src\install\cli_commands.rs",
+        "musu-rs\src\install\cli_commands\device_login.rs",
         "musu-rs\src\main.rs",
         "musu-rs\src\peer\mdns.rs"
     )
@@ -396,6 +427,7 @@ else {
         "musu-rs\src\install\uninstall.rs"
     )
     $allowlistedLoopFiles = @(
+        "musu-rs\src\adapter\cli_common.rs",
         "musu-rs\src\adapter\claude.rs",
         "musu-rs\src\brain\planner.rs",
         "musu-rs\src\bridge\mod.rs",
@@ -407,6 +439,8 @@ else {
         "musu-rs\src\indexer\watch.rs",
         "musu-rs\src\install\auto_update.rs",
         "musu-rs\src\install\cli_commands.rs",
+        "musu-rs\src\install\cli_commands\device_login.rs",
+        "musu-rs\src\install\private_mesh.rs",
         "musu-rs\src\install\sync.rs",
         "musu-rs\src\io\clipboard.rs",
         "musu-rs\src\io\webrtc.rs",
@@ -427,6 +461,7 @@ else {
         "musu-rs\src\workflow\workflow_spec.rs"
     )
     $allowlistedSpawnFiles = @(
+        "musu-rs\src\adapter\cli_common.rs",
         "musu-rs\src\bridge\handlers\companies.rs",
         "musu-rs\src\bridge\handlers\nodes.rs",
         "musu-rs\src\bridge\handlers\pty.rs",
@@ -438,6 +473,7 @@ else {
         "musu-rs\src\control\mod.rs",
         "musu-rs\src\indexer\sync.rs",
         "musu-rs\src\install\auto_update.rs",
+        "musu-rs\src\install\startup.rs",
         "musu-rs\src\io\clipboard.rs",
         "musu-rs\src\io\webrtc.rs",
         "musu-rs\src\peer\mdns.rs",

@@ -284,6 +284,16 @@ fn delivery_proof_from_delivered_payload(
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())?;
+    let claimed_by = payload
+        .claimed_by
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?;
+    let claimed_at = payload
+        .claimed_at
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?;
     if payload.status.trim() != "delivered" {
         return None;
     }
@@ -298,11 +308,15 @@ fn delivery_proof_from_delivered_payload(
             target_node_id: payload.target_node_id.clone(),
             relay_url: payload.relay_url.clone(),
             tunnel_id: payload.tunnel_id.clone(),
+            payload_kind: payload.payload_kind.clone(),
             transport_kind: payload.transport_kind.clone(),
             relay_default_data_path: payload.relay_default_data_path,
             release_grade: payload.release_grade,
             payload_sha256: payload.payload_sha256.clone(),
             payload_bytes: payload.payload_bytes,
+            claimed_by: claimed_by.to_string(),
+            claimed_at: claimed_at.to_string(),
+            created_at: payload.created_at.clone(),
             delivered_at: delivered_at.to_string(),
         },
     )
@@ -320,11 +334,15 @@ fn delivery_proof_from_cloud_proof(
         target_node_id: proof.target_node_id.clone(),
         relay_url: proof.relay_url.clone(),
         tunnel_id: proof.tunnel_id.clone(),
+        payload_kind: proof.payload_kind.clone(),
         transport_kind: proof.transport_kind.clone(),
         relay_default_data_path: proof.relay_default_data_path,
         release_grade: proof.release_grade,
         payload_sha256: proof.payload_sha256.clone(),
         payload_bytes: proof.payload_bytes,
+        claimed_by: proof.claimed_by.clone(),
+        claimed_at: proof.claimed_at.clone(),
+        created_at: proof.created_at.clone(),
         delivered_at: proof.delivered_at.clone(),
     }
 }

@@ -166,6 +166,18 @@ fn default_claude_command() -> String {
     "claude".into()
 }
 
+fn callback_node_name() -> String {
+    std::env::var("MUSU_NODE_NAME")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| {
+            hostname::get()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
+}
+
 #[cfg(windows)]
 fn find_on_path(file_name: &str) -> Option<String> {
     let path = std::env::var_os("PATH")?;
@@ -354,10 +366,7 @@ fn fire_callback(
         error: error.map(|s| s.to_string()),
         exit_code,
         duration_sec,
-        node: hostname::get()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string(),
+        node: callback_node_name(),
     };
     tokio::spawn(async move {
         let client = reqwest::Client::new();
@@ -1330,6 +1339,17 @@ mod tests {
     #[test]
     fn adapter_binary_on_path_false_for_absent() {
         assert!(!adapter_binary_on_path("definitely-not-a-real-cli-xyz123"));
+    }
+
+    #[test]
+    fn callback_node_name_prefers_musu_node_name() {
+        let previous = std::env::var("MUSU_NODE_NAME").ok();
+        std::env::set_var("MUSU_NODE_NAME", "studio-pc");
+        assert_eq!(callback_node_name(), "studio-pc");
+        match previous {
+            Some(value) => std::env::set_var("MUSU_NODE_NAME", value),
+            None => std::env::remove_var("MUSU_NODE_NAME"),
+        }
     }
 
     async fn mem_pool() -> SqlitePool {

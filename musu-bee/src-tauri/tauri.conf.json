@@ -7,7 +7,7 @@
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build:tauri-shell"
+    "beforeBuildCommand": "npm run build:tauri-shell && npm run build:tauri-sidecars"
   },
   "app": {
     "withGlobalTauri": true,
@@ -29,6 +29,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": [
+      "binaries/musu"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

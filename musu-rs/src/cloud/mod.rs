@@ -646,11 +646,15 @@ pub struct RouteRelayPayloadDeliveryProof {
     pub target_node_id: String,
     pub relay_url: String,
     pub tunnel_id: String,
+    pub payload_kind: String,
     pub transport_kind: String,
     pub relay_default_data_path: bool,
     pub release_grade: bool,
     pub payload_sha256: String,
     pub payload_bytes: u64,
+    pub claimed_by: String,
+    pub claimed_at: String,
+    pub created_at: String,
     pub delivered_at: String,
 }
 
@@ -2043,11 +2047,15 @@ mod tests {
                 target_node_id: "node_dst".into(),
                 relay_url: "wss://relay.musu.pro/connect".into(),
                 tunnel_id: "relay-tunnel-1".into(),
+                payload_kind: "forwarded_task_envelope".into(),
                 transport_kind: "quic_relay_tunnel".into(),
                 relay_default_data_path: false,
                 release_grade: true,
                 payload_sha256: "abc123".into(),
                 payload_bytes: 128,
+                claimed_by: "node_dst".into(),
+                claimed_at: "2026-06-04T00:00:01Z".into(),
+                created_at: "2026-06-04T00:00:00Z".into(),
                 delivered_at: "2026-06-04T00:00:02Z".into(),
             }),
             recorded_at: "2026-06-04T00:00:03Z".into(),
@@ -2071,6 +2079,14 @@ mod tests {
         assert_eq!(
             value["relay_payload_delivery_proof"]["delivered_at"],
             "2026-06-04T00:00:02Z"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["payload_kind"],
+            "forwarded_task_envelope"
+        );
+        assert_eq!(
+            value["relay_payload_delivery_proof"]["claimed_by"],
+            "node_dst"
         );
     }
 
@@ -2416,11 +2432,15 @@ mod tests {
                 "target_node_id": "pc-b",
                 "relay_url": "wss://relay.musu.pro/connect",
                 "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
                 "transport_kind": "http_store_forward_preview",
                 "relay_default_data_path": false,
                 "release_grade": false,
                 "payload_sha256": "abc123",
                 "payload_bytes": 2,
+                "claimed_by": "pc-b",
+                "claimed_at": "2026-06-04T01:00:01Z",
+                "created_at": "2026-06-04T01:00:00Z",
                 "delivered_at": "2026-06-04T01:00:02Z"
             }
         }))
@@ -2437,6 +2457,7 @@ mod tests {
         assert_eq!(proof.target_node_id, payload.target_node_id);
         assert_eq!(proof.relay_url, payload.relay_url);
         assert_eq!(proof.tunnel_id, payload.tunnel_id);
+        assert_eq!(proof.payload_kind, payload.payload_kind);
         assert_eq!(proof.transport_kind, payload.transport_kind);
         assert_eq!(
             proof.relay_default_data_path,
@@ -2445,6 +2466,9 @@ mod tests {
         assert_eq!(proof.release_grade, payload.release_grade);
         assert_eq!(proof.payload_sha256, payload.payload_sha256);
         assert_eq!(proof.payload_bytes, payload.payload_bytes);
+        assert_eq!(proof.claimed_by, payload.claimed_by.clone().unwrap());
+        assert_eq!(proof.claimed_at, payload.claimed_at.clone().unwrap());
+        assert_eq!(proof.created_at, payload.created_at);
         assert_eq!(proof.delivered_at, payload.delivered_at.clone().unwrap());
         assert_eq!(payload.status, "delivered");
         assert_eq!(
@@ -2517,11 +2541,15 @@ mod tests {
                 "target_node_id": "pc-b",
                 "relay_url": "wss://relay.musu.pro/connect",
                 "tunnel_id": "relay-tunnel-123",
+                "payload_kind": "forwarded_task_envelope",
                 "transport_kind": "quic_relay_tunnel",
                 "relay_default_data_path": false,
                 "release_grade": true,
                 "payload_sha256": "def456",
                 "payload_bytes": 256,
+                "claimed_by": "pc-b",
+                "claimed_at": "2026-06-04T01:00:01Z",
+                "created_at": "2026-06-04T01:00:00Z",
                 "delivered_at": "2026-06-04T01:00:03Z"
             }
         }))
@@ -2544,7 +2572,9 @@ mod tests {
         assert_eq!(transport.transport_verified_by, "musu_quic_tls_transport");
         assert_eq!(transport.payload_bytes_transited, payload.payload_bytes);
         assert_eq!(delivery.payload_id, payload.payload_id);
+        assert_eq!(delivery.payload_kind, payload.payload_kind);
         assert_eq!(delivery.transport_kind, payload.transport_kind);
+        assert_eq!(delivery.claimed_by, payload.claimed_by.unwrap());
         assert!(delivery.release_grade);
     }
 

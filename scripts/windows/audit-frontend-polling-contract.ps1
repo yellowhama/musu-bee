@@ -25,6 +25,7 @@ $expectedLowDutyPollingCallSitePaths = @(
     "musu-bee\src\app\m\[id]\page.tsx",
     "musu-bee\src\components\ApprovalsPanel.tsx",
     "musu-bee\src\components\AppShell.tsx",
+    "musu-bee\src\components\BridgeManager.tsx",
     "musu-bee\src\components\CostsPanel.tsx",
     "musu-bee\src\components\DoctorStatusCard.tsx",
     "musu-bee\src\components\GoalsPanel.tsx",
@@ -113,6 +114,45 @@ function Add-NoRegexCheck {
         -Passed (-not [regex]::IsMatch($Text, $Pattern)) `
         -Path $Path `
         -Message $Message
+}
+
+function Get-FrontendSourceFiles {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $skipDirectoryNames = @(
+        "node_modules",
+        ".next",
+        "dist",
+        "build",
+        "coverage",
+        ".turbo",
+        ".vite"
+    )
+    $pending = New-Object System.Collections.Generic.Stack[string]
+    $files = New-Object System.Collections.Generic.List[object]
+    $pending.Push($Root)
+
+    while ($pending.Count -gt 0) {
+        $current = $pending.Pop()
+        foreach ($directory in @(Get-ChildItem -LiteralPath $current -Directory -ErrorAction SilentlyContinue)) {
+            if ($skipDirectoryNames -notcontains $directory.Name) {
+                $pending.Push($directory.FullName)
+            }
+        }
+        foreach ($file in @(Get-ChildItem -LiteralPath $current -File -ErrorAction SilentlyContinue)) {
+            if (
+                $file.Extension -in @(".ts", ".tsx") -and
+                $file.Name -notmatch '\.(test|spec)\.tsx?$' -and
+                $file.Name -notmatch '\.d\.ts$' -and
+                $file.Name -notmatch '\.backup' -and
+                $file.Name -notmatch '^backup\.'
+            ) {
+                $files.Add($file) | Out-Null
+            }
+        }
+    }
+
+    return $files.ToArray()
 }
 
 $pollerPath = "musu-bee\src\lib\useLowDutyPolling.ts"
@@ -348,7 +388,9 @@ Add-Check `
 $tauriShellPath = "musu-bee\src-tauri-shell\main.js"
 $tauriShellText = Get-RepoText $tauriShellPath
 Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no interval loop" -Text $tauriShellText -Pattern 'setInterval\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own an interval polling loop."
-Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no timeout loop" -Text $tauriShellText -Pattern 'setTimeout\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own a retry or refresh timeout loop."
+Add-RegexCheck -Scope "desktop-shell" -Name "Tauri shell one-shot refresh cadence" -Text $tauriShellText -Pattern 'TAURI_SHELL_REFRESH_MS\s*=\s*15000[\s\S]*function scheduleRefresh[\s\S]*setTimeout\(runScheduledRefresh,\s*delayMs\)' -Path $tauriShellPath -Message "Tauri shell refresh uses a bounded one-shot timeout instead of an interval loop."
+Add-RegexCheck -Scope "desktop-shell" -Name "Tauri shell no overlapping refresh" -Text $tauriShellText -Pattern 'async function runScheduledRefresh\(\)[\s\S]*await refresh\(\);[\s\S]*scheduleRefresh\(TAURI_SHELL_REFRESH_MS\)' -Path $tauriShellPath -Message "Tauri shell rearms refresh only after the current refresh completes."
+Add-RegexCheck -Scope "desktop-shell" -Name "Tauri shell hidden pause" -Text $tauriShellText -Pattern 'document\.addEventListener\("visibilitychange"[\s\S]*document\.hidden[\s\S]*clearRefreshTimer\(\)' -Path $tauriShellPath -Message "Tauri shell pauses scheduled refresh while hidden."
 Add-NoRegexCheck -Scope "desktop-shell" -Name "Tauri shell no animation loop" -Text $tauriShellText -Pattern 'requestAnimationFrame\s*\(' -Path $tauriShellPath -Message "Tauri shell does not own an animation loop."
 
 $sourceRoots = @("musu-bee\src", "musu-bee\views")
@@ -360,14 +402,7 @@ foreach ($relativeRoot in $sourceRoots) {
         continue
     }
 
-    $sourceFiles += @(
-        Get-ChildItem -LiteralPath $sourceRoot -Recurse -File |
-            Where-Object {
-                $_.Extension -in @(".ts", ".tsx") -and
-                $_.Name -notmatch '\.(test|spec)\.tsx?$' -and
-                $_.Name -notmatch '\.d\.ts$'
-            }
-    )
+    $sourceFiles += @(Get-FrontendSourceFiles -Root $sourceRoot)
 }
 
 foreach ($file in $sourceFiles) {

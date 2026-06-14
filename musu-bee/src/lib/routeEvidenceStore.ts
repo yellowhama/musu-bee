@@ -70,11 +70,15 @@ export type RouteEvidencePayload = {
     target_node_id: string;
     relay_url: string;
     tunnel_id: string;
+    payload_kind: string;
     transport_kind: string;
     relay_default_data_path: boolean;
     release_grade: boolean;
     payload_sha256: string;
     payload_bytes: number;
+    claimed_by: string;
+    claimed_at: string;
+    created_at: string;
     delivered_at: string;
   };
   recorded_at: string;

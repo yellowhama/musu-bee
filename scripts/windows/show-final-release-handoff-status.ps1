@@ -6,6 +6,8 @@ param(
     [switch]$SkipPacketVerification,
     [string]$ActionPackPath,
     [switch]$SkipActionPackVerification,
+    [string]$GoNoGoPath = ".local-build\go-no-go\latest.json",
+    [switch]$RefreshGoNoGo,
     [ValidateSet("quick", "deep", "skip")]
     [string]$PacketVerificationMode = "quick",
     [ValidateSet("quick", "deep", "skip")]
@@ -59,6 +61,15 @@ function Get-CurrentPowerShellExecutable {
         return "pwsh"
     }
     return "powershell.exe"
+}
+
+function Get-CurrentGitSnapshot {
+    $commit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
+    $dirtyText = (& git -C $repoRoot status --porcelain 2>$null | Out-String).Trim()
+    [pscustomobject]@{
+        commit = if ([string]::IsNullOrWhiteSpace($commit)) { $null } else { $commit }
+        dirty = -not [string]::IsNullOrWhiteSpace($dirtyText)
+    }
 }
 
 function Invoke-JsonScript {
@@ -397,7 +408,14 @@ function Get-EvidenceRootStatus {
         $exists = Test-Path -LiteralPath $root.path
         $candidate = $null
         if ($exists) {
-            $candidate = Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue |
+            $recurse = ($root.PSObject.Properties["recurse"] -and [bool]$root.recurse)
+            $items = if ($recurse) {
+                Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -Recurse -ErrorAction SilentlyContinue
+            }
+            else {
+                Get-ChildItem -LiteralPath $root.path -Filter $root.filter -File -ErrorAction SilentlyContinue
+            }
+            $candidate = $items |
                 Sort-Object LastWriteTime -Descending |
                 Select-Object -First 1
             if (-not $latest -and $candidate) {
@@ -408,6 +426,7 @@ function Get-EvidenceRootStatus {
         $rootResults.Add([pscustomobject]@{
             path = $root.path
             filter = $root.filter
+            recurse = [bool]($root.PSObject.Properties["recurse"] -and [bool]$root.recurse)
             exists = [bool]$exists
             latest_file = if ($candidate) { $candidate.FullName } else { $null }
             latest_write_time = if ($candidate) { $candidate.LastWriteTime.ToString("o") } else { $null }
@@ -435,6 +454,125 @@ function Add-OperatorStep {
     }) | Out-Null
 }
 
+function New-UnavailableGoNoGoResult {
+    param(
+        [Parameter(Mandatory = $true)]$Invocation,
+        [string[]]$Arguments = @(),
+        [string]$ReasonOverride = "",
+        [string]$MessageOverride = "",
+        [string]$CommandOverride = ""
+    )
+
+    $reason = if (-not [string]::IsNullOrWhiteSpace($ReasonOverride)) {
+        $ReasonOverride
+    }
+    elseif ([bool]$Invocation.timed_out) {
+        "timed_out"
+    }
+    elseif ([int]$Invocation.exit_code -ne 0) {
+        "failed"
+    }
+    elseif (-not $Invocation.json) {
+        "unparseable_json"
+    }
+    else {
+        "unavailable"
+    }
+    $command = if (-not [string]::IsNullOrWhiteSpace($CommandOverride)) {
+        $CommandOverride
+    }
+    else {
+        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 $($Arguments -join ' ')"
+    }
+    $message = if (-not [string]::IsNullOrWhiteSpace($MessageOverride)) {
+        $MessageOverride
+    }
+    else {
+        "write-release-go-no-go.ps1 did not return usable JSON ($reason). Rerun with a larger -ScriptTimeoutSeconds or inspect the raw output before final handoff."
+    }
+
+    [pscustomobject]@{
+        schema = "musu.release_go_no_go_unavailable.v1"
+        ready_for_public_desktop_release = $false
+        local_artifacts_ready = $false
+        single_machine_verified = $false
+        msix_install_verified = $false
+        msix_desktop_entrypoint_verified = $false
+        runtime_idle_cpu_verified = $false
+        runtime_idle_cpu_min_machine_count = 0
+        runtime_idle_cpu_valid_machine_count = 0
+        runtime_idle_cpu_valid_machines = @()
+        runtime_idle_cpu_candidate_count = 0
+        runtime_cpu_scenario_matrix_verified = $false
+        runtime_cpu_scenario_matrix_min_machine_count = 0
+        runtime_cpu_scenario_matrix_valid_machine_count = 0
+        runtime_cpu_scenario_matrix_valid_machines = @()
+        runtime_cpu_scenario_matrix_candidate_count = 0
+        runtime_cpu_scenario_matrix_required_scenarios = @()
+        runtime_cpu_second_pc_route_attempt_verified = $false
+        runtime_cpu_second_pc_route_attempt_min_machine_count = 0
+        runtime_cpu_second_pc_route_attempt_valid_machine_count = 0
+        runtime_cpu_second_pc_route_attempt_valid_machines = @()
+        runtime_cpu_second_pc_route_attempt_candidate_count = 0
+        frontend_polling_contract_verified = $false
+        rust_background_loop_contract_verified = $false
+        local_api_auth_contract_verified = $false
+        operator_api_security_contract_verified = $false
+        degraded_mode_contract_verified = $false
+        crash_recovery_contract_verified = $false
+        p2p_store_forward_relay_contract_verified = $false
+        secret_storage_contract_verified = $false
+        process_ownership_verified = $false
+        startup_single_instance_verified = $false
+        desktop_single_instance_verified = $false
+        multi_device_verified = $false
+        private_mesh_packaged_release_proof_verified = $false
+        public_metadata_ok = $null
+        support_mailbox_verified = $false
+        store_release_verified = $false
+        p2p_control_plane_verified = $false
+        p2p_owner_scope_verified = $false
+        p2p_relay_lease_store_release_grade = $false
+        p2p_relay_transport_wired = $false
+        p2p_relay_route_evidence_ok = $false
+        p2p_relay_route_evidence_count = 0
+        p2p_relay_route_metadata_required_count = 0
+        p2p_relay_route_metadata_valid_count = 0
+        p2p_relay_route_metadata_invalid_count = 0
+        p2p_relay_route_transport_proof_required_count = 0
+        p2p_relay_route_transport_proof_valid_count = 0
+        p2p_relay_route_transport_proof_invalid_count = 0
+        p2p_relay_payload_transport_proven = $false
+        p2p_relay_payload_delivery_proof_required_count = 0
+        p2p_relay_payload_delivery_proof_valid_count = 0
+        p2p_relay_payload_delivery_proof_invalid_count = 0
+        manifest_git = $null
+        blockers = @([pscustomobject]@{
+            area = "go-no-go-unavailable"
+            message = $message
+        })
+        warnings = @()
+        unavailable = [pscustomobject]@{
+            reason = $reason
+            exit_code = [int]$Invocation.exit_code
+            timed_out = [bool]$Invocation.timed_out
+            elapsed_ms = [int]$Invocation.elapsed_ms
+            command = $command
+            raw = [string]$Invocation.raw
+            stderr = [string]$Invocation.stderr
+        }
+    }
+}
+
+function Resolve-HandoffStatusPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
+
 $goNoGoArgs = @("-Json")
 if ($SkipPublicMetadata) {
     $goNoGoArgs += "-SkipPublicMetadata"
@@ -443,7 +581,101 @@ else {
     $goNoGoArgs += @("-PublicMetadataBaseUrl", $PublicMetadataBaseUrl)
 }
 $goNoGoArgs += @("-ScriptTimeoutSeconds", ([string]$ScriptTimeoutSeconds))
-$goNoGo = (Invoke-JsonScript -FilePath (Join-Path $scriptDir "write-release-go-no-go.ps1") -Arguments $goNoGoArgs).json
+$goNoGoCachePath = Resolve-HandoffStatusPath -Path $GoNoGoPath
+$goNoGoSource = if ($RefreshGoNoGo) { "refreshed" } else { "cache" }
+$currentGit = Get-CurrentGitSnapshot
+$goNoGoInvocation = $null
+if ($RefreshGoNoGo) {
+    $goNoGoInvocation = Invoke-JsonScript -FilePath (Join-Path $scriptDir "write-release-go-no-go.ps1") -Arguments $goNoGoArgs -AllowFailure
+}
+else {
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $parsed = $null
+    $raw = ""
+    $stderr = ""
+    $exitCode = 0
+    if (Test-Path -LiteralPath $goNoGoCachePath) {
+        try {
+            $raw = (Get-Content -LiteralPath $goNoGoCachePath -Raw).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                $parsed = $raw | ConvertFrom-Json
+            }
+        }
+        catch {
+            $stderr = $_.Exception.Message
+            $exitCode = -1
+        }
+    }
+    else {
+        $stderr = "Cached go/no-go JSON not found at $goNoGoCachePath. Run with -RefreshGoNoGo to regenerate it explicitly."
+        $exitCode = -1
+    }
+    $watch.Stop()
+    $goNoGoInvocation = [pscustomobject]@{
+        exit_code = $exitCode
+        timed_out = $false
+        elapsed_ms = [int]$watch.ElapsedMilliseconds
+        json = $parsed
+        raw = $raw
+        stderr = $stderr
+    }
+}
+$goNoGoAvailable = ($goNoGoInvocation.json -and -not [bool]$goNoGoInvocation.timed_out -and [int]$goNoGoInvocation.exit_code -eq 0)
+$goNoGo = if ($goNoGoAvailable) {
+    $goNoGoInvocation.json
+}
+else {
+    if ($RefreshGoNoGo) {
+        New-UnavailableGoNoGoResult -Invocation $goNoGoInvocation -Arguments $goNoGoArgs
+    }
+    else {
+        New-UnavailableGoNoGoResult `
+            -Invocation $goNoGoInvocation `
+            -Arguments $goNoGoArgs `
+            -ReasonOverride "cached_go_no_go_unavailable" `
+            -CommandOverride "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -RefreshGoNoGo -ScriptTimeoutSeconds $ScriptTimeoutSeconds -Json" `
+            -MessageOverride "Cached go/no-go JSON was not usable. Status lookup does not run heavy desktop/runtime checks by default; rerun with -RefreshGoNoGo when you intentionally want a fresh go/no-go evaluation."
+    }
+}
+$cacheItem = if (Test-Path -LiteralPath $goNoGoCachePath) { Get-Item -LiteralPath $goNoGoCachePath } else { $null }
+$cacheGit = if ($goNoGo.PSObject.Properties["manifest_git"] -and $goNoGo.manifest_git) { $goNoGo.manifest_git } else { $null }
+$cacheGitCommit = if ($cacheGit -and $cacheGit.PSObject.Properties["commit"]) { [string]$cacheGit.commit } else { "" }
+$cacheGitDirty = if ($cacheGit -and $cacheGit.PSObject.Properties["dirty"]) { [bool]$cacheGit.dirty } else { $null }
+$cacheGeneratedAt = if ($goNoGo.PSObject.Properties["generated_at"]) { [string]$goNoGo.generated_at } else { "" }
+$cacheCommitMismatch = (
+    -not [string]::IsNullOrWhiteSpace($cacheGitCommit) -and
+    -not [string]::IsNullOrWhiteSpace([string]$currentGit.commit) -and
+    $cacheGitCommit -ne [string]$currentGit.commit
+)
+$cacheStaleReasons = New-Object System.Collections.Generic.List[string]
+if (-not $goNoGoAvailable) {
+    $cacheStaleReasons.Add("go_no_go_unavailable") | Out-Null
+}
+if ($cacheCommitMismatch) {
+    $cacheStaleReasons.Add("git_commit_mismatch") | Out-Null
+}
+if ($cacheGitDirty -eq $true) {
+    $cacheStaleReasons.Add("generated_from_dirty_worktree") | Out-Null
+}
+if ([bool]$currentGit.dirty) {
+    $cacheStaleReasons.Add("current_worktree_dirty") | Out-Null
+}
+$goNoGoCacheFreshness = [pscustomobject]@{
+    schema = "musu.go_no_go_cache_freshness.v1"
+    source = $goNoGoSource
+    path = $goNoGoCachePath
+    exists = [bool]$cacheItem
+    last_write_time = if ($cacheItem) { $cacheItem.LastWriteTime.ToString("o") } else { $null }
+    generated_at = $cacheGeneratedAt
+    current_git_commit = $currentGit.commit
+    current_git_dirty = [bool]$currentGit.dirty
+    cache_git_commit = if ([string]::IsNullOrWhiteSpace($cacheGitCommit)) { $null } else { $cacheGitCommit }
+    cache_git_dirty = $cacheGitDirty
+    git_commit_match = if ([string]::IsNullOrWhiteSpace($cacheGitCommit) -or [string]::IsNullOrWhiteSpace([string]$currentGit.commit)) { $null } else { -not $cacheCommitMismatch }
+    stale = (@($cacheStaleReasons).Count -gt 0)
+    stale_reasons = $cacheStaleReasons.ToArray()
+    refresh_command = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -RefreshGoNoGo -ScriptTimeoutSeconds $ScriptTimeoutSeconds -Json"
+}
 
 $packetExists = Test-Path -LiteralPath $PacketPath
 $resolvedPacketPath = if ($packetExists) { (Resolve-Path -LiteralPath $PacketPath).Path } else { $PacketPath }
@@ -593,10 +825,24 @@ $p2pControlPlaneRoots = @(
         filter = "*.evidence.json"
     }
 )
+$privateMeshReleaseProofRoots = @(
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ("docs\evidence\private-mesh-release-proof\{0}" -f $version))
+        filter = "private-mesh-release-proof.archive.json"
+        recurse = $true
+    },
+    [pscustomobject]@{
+        path = (Join-Path $repoRoot ".local-build\private-mesh-release-proof")
+        filter = "private-mesh-release-proof.archive.json"
+        recurse = $true
+    }
+)
 
 $commands = [pscustomobject]@{
     show_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
+    show_status_refresh = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -RefreshGoNoGo -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
     show_status_deep = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -PacketVerificationMode deep -ActionPackVerificationMode deep -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
+    show_status_deep_refresh = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-final-release-handoff-status.ps1 -RefreshGoNoGo -PacketVerificationMode deep -ActionPackVerificationMode deep -ScriptTimeoutSeconds $ScriptTimeoutSeconds"
     prepare_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-final-operator-gate-packet.ps1 -IncludeDesktopShell"
     verify_packet = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-final-operator-gate-packet.ps1 -PacketPath .local-build\final-operator-gates\musu-final-operator-gates-$safeVersion-latest.zip -Json"
     prepare_action_pack = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-operator-action-pack.ps1 -Json"
@@ -617,6 +863,7 @@ $commands = [pscustomobject]@{
     audit_startup_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-startup-single-instance.ps1 -RepeatCount 3 -FailOnProblem -Json"
     repair_packaged_local_runtime = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\repair-packaged-local-runtime-state.ps1 -StopRepoOrphanHelpers -FailOnProblem -Json"
     audit_desktop_single_instance = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-musu-desktop-single-instance.ps1 -RequireInstalledPackage -RepeatCount 3 -FailOnProblem -Json"
+    packaged_private_mesh_release_proof = "Open the installed MUSU desktop app, choose the real target PC in Fleet, paste target-generated physical-peer evidence JSON plus its .sha256 sidecar, click Release proof, then import the latest packaged archive with: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\import-private-mesh-release-proof-archive.ps1 -LatestFromMusuHome -Json. Use -MusuHome <PATH> only if the packaged app used a non-default MUSU_HOME. Do not use scripts\windows\run-private-mesh-release-proof.ps1 for this final packaged desktop gate."
     show_musu_pro_p2p_env_status = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json"
     record_p2p_control_plane = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -Json"
     final_completion = @"
@@ -670,6 +917,14 @@ elseif ($ActionPackVerificationMode -ne "skip" -and -not $actionPackVerified) {
         -Command $commands.verify_action_pack
 }
 
+if (-not $goNoGoAvailable) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "go-no-go-unavailable" `
+        -Summary "The go/no-go script did not return usable JSON, so final handoff status cannot classify the downstream release gates yet." `
+        -Command $commands.go_no_go
+}
+else {
 if (-not [bool]$goNoGo.msix_install_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
@@ -690,6 +945,13 @@ if (-not [bool]$goNoGo.multi_device_verified) {
         -Gate "multi-device" `
         -Summary "Run the second-PC kit, return `.local-build\multi-device\*.json`, then record it." `
         -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>"
+}
+if (-not [bool]$goNoGo.private_mesh_packaged_release_proof_verified) {
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "private-mesh-packaged-release-proof" `
+        -Summary "Run the strict Private Mesh release proof from the installed MUSU desktop app on real hardware; standalone PowerShell/CLI archives are diagnostic only and do not satisfy the packaged desktop claim." `
+        -Command $commands.packaged_private_mesh_release_proof
 }
 if (-not [bool]$goNoGo.runtime_idle_cpu_verified) {
     Add-OperatorStep `
@@ -810,13 +1072,71 @@ if (-not [bool]$goNoGo.p2p_control_plane_verified) {
         -Summary "Provision production KV/Upstash storage, real relay payload transport, and per-record delivery proof for https://musu.pro, then record owner-scoped release-grade P2P control-plane evidence." `
         -Command $commands.show_musu_pro_p2p_env_status
 }
+}
+
+$nextActions = if ($goNoGo.PSObject.Properties["next_actions"]) { @($goNoGo.next_actions) } else { @() }
+$nextActionAreas = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($action in $nextActions) {
+    $area = [string]$action.area
+    if (-not [string]::IsNullOrWhiteSpace($area)) {
+        [void]$nextActionAreas.Add($area)
+    }
+}
+$operatorStepsForResult = New-Object System.Collections.Generic.List[object]
+foreach ($step in $operatorSteps) {
+    $stepGate = [string]$step.gate
+    if (-not $goNoGoAvailable -or $nextActionAreas.Count -eq 0 -or -not $nextActionAreas.Contains($stepGate)) {
+        [void]$operatorStepsForResult.Add($step)
+    }
+}
+$warningsForResult = New-Object System.Collections.Generic.List[object]
+foreach ($warning in @($goNoGo.warnings)) {
+    [void]$warningsForResult.Add($warning)
+}
+$blockersForResult = New-Object System.Collections.Generic.List[object]
+foreach ($blocker in @($goNoGo.blockers)) {
+    [void]$blockersForResult.Add($blocker)
+}
+if ([bool]$goNoGoCacheFreshness.stale) {
+    [void]$warningsForResult.Add([pscustomobject]@{
+        area = "go-no-go-cache"
+        message = "Cached go/no-go status may be stale: $(@($goNoGoCacheFreshness.stale_reasons) -join ', '). Run with -RefreshGoNoGo only when you intentionally want a fresh heavy evaluation."
+    })
+    [void]$blockersForResult.Add([pscustomobject]@{
+        area = "go-no-go-cache"
+        message = "Final handoff status is fail-closed because cached go/no-go status is stale: $(@($goNoGoCacheFreshness.stale_reasons) -join ', ')."
+    })
+    Add-OperatorStep `
+        -List $operatorSteps `
+        -Gate "go-no-go-cache" `
+        -Summary "Refresh Go/No-Go only when you intentionally want the heavy desktop/runtime release checks to run; cached status remains fail-closed until then." `
+        -Command $commands.show_status_refresh
+}
+$cachedReadyForPublicDesktopRelease = [bool]$goNoGo.ready_for_public_desktop_release
+$effectiveReadyForPublicDesktopRelease = (
+    $cachedReadyForPublicDesktopRelease -and
+    -not [bool]$goNoGoCacheFreshness.stale
+)
 
 $result = [pscustomobject]@{
     schema = "musu.final_release_handoff_status.v1"
     generated_at = (Get-Date).ToString("o")
     version = $version
     repo_root = $repoRoot
-    ready_for_public_desktop_release = [bool]$goNoGo.ready_for_public_desktop_release
+    ready_for_public_desktop_release = [bool]$effectiveReadyForPublicDesktopRelease
+    cached_ready_for_public_desktop_release = [bool]$cachedReadyForPublicDesktopRelease
+    go_no_go_available = [bool]$goNoGoAvailable
+    go_no_go_invocation = [pscustomobject]@{
+        source = $goNoGoSource
+        cache_path = $goNoGoCachePath
+        refresh_requested = [bool]$RefreshGoNoGo
+        exit_code = [int]$goNoGoInvocation.exit_code
+        timed_out = [bool]$goNoGoInvocation.timed_out
+        elapsed_ms = [int]$goNoGoInvocation.elapsed_ms
+        raw = if ($goNoGoAvailable) { "" } else { [string]$goNoGoInvocation.raw }
+        stderr = if ($goNoGoAvailable) { "" } else { [string]$goNoGoInvocation.stderr }
+    }
+    go_no_go_cache_freshness = $goNoGoCacheFreshness
     packet = [pscustomobject]@{
         path = $resolvedPacketPath
         exists = [bool]$packetExists
@@ -832,6 +1152,8 @@ $result = [pscustomobject]@{
         verification = $actionPackVerification
     }
     gates = [pscustomobject]@{
+        go_no_go_available = [bool]$goNoGoAvailable
+        go_no_go_cache_stale = [bool]$goNoGoCacheFreshness.stale
         local_artifacts_ready = [bool]$goNoGo.local_artifacts_ready
         single_machine_verified = [bool]$goNoGo.single_machine_verified
         msix_install_verified = [bool]$goNoGo.msix_install_verified
@@ -864,6 +1186,7 @@ $result = [pscustomobject]@{
         startup_single_instance_verified = [bool]$goNoGo.startup_single_instance_verified
         desktop_single_instance_verified = [bool]$goNoGo.desktop_single_instance_verified
         multi_device_verified = [bool]$goNoGo.multi_device_verified
+        private_mesh_packaged_release_proof_verified = [bool]$goNoGo.private_mesh_packaged_release_proof_verified
         public_metadata_ok = $goNoGo.public_metadata_ok
         support_mailbox_verified = [bool]$goNoGo.support_mailbox_verified
         store_release_verified = [bool]$goNoGo.store_release_verified
@@ -885,8 +1208,9 @@ $result = [pscustomobject]@{
         p2p_relay_payload_delivery_proof_invalid_count = [int]$goNoGo.p2p_relay_payload_delivery_proof_invalid_count
         manifest_git_dirty = if ($goNoGo.manifest_git) { [bool]$goNoGo.manifest_git.dirty } else { $null }
     }
-    blockers = $goNoGo.blockers
-    warnings = $goNoGo.warnings
+    blockers = $blockersForResult.ToArray()
+    warnings = $warningsForResult.ToArray()
+    next_actions = $nextActions
     evidence_roots = [pscustomobject]@{
         msix_install = Get-EvidenceRootStatus -Roots $msixInstallRoots
         msix_desktop_entrypoint = Get-EvidenceRootStatus -Roots $msixDesktopEntrypointRoots
@@ -899,8 +1223,9 @@ $result = [pscustomobject]@{
         support_mailbox = Get-EvidenceRootStatus -Roots $supportRoots
         store_release = Get-EvidenceRootStatus -Roots $storeRoots
         p2p_control_plane = Get-EvidenceRootStatus -Roots $p2pControlPlaneRoots
+        private_mesh_release_proof = Get-EvidenceRootStatus -Roots $privateMeshReleaseProofRoots
     }
-    operator_steps = $operatorSteps.ToArray()
+    operator_steps = $operatorStepsForResult.ToArray()
     commands = $commands
     go_no_go = $goNoGo
 }
@@ -911,7 +1236,13 @@ if ($Json) {
 else {
     "MUSU final release handoff status"
     "version: $($result.version)"
+    "go_no_go_source: $($result.go_no_go_invocation.source)"
+    "go_no_go_cache_path: $($result.go_no_go_invocation.cache_path)"
+    "go_no_go_refresh_requested: $($result.go_no_go_invocation.refresh_requested)"
+    "go_no_go_cache_stale: $($result.go_no_go_cache_freshness.stale)"
+    "go_no_go_cache_stale_reasons: $(@($result.go_no_go_cache_freshness.stale_reasons) -join ', ')"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
+    "cached_ready_for_public_desktop_release: $($result.cached_ready_for_public_desktop_release)"
     "packet_exists: $($result.packet.exists)"
     "packet_verified: $($result.packet.verified)"
     "packet_verification_mode: $($result.packet.verification_mode)"
@@ -938,13 +1269,40 @@ else {
     }
     ""
     "Operator steps"
-    if ($operatorSteps.Count -eq 0) {
+    if (@($result.operator_steps).Count -eq 0) {
         "- none"
     }
     else {
-        foreach ($step in $operatorSteps) {
+        foreach ($step in @($result.operator_steps)) {
             "- [$($step.gate)] $($step.summary)"
             "  $($step.command)"
+        }
+    }
+    ""
+    "Next actions"
+    if (@($result.next_actions).Count -eq 0) {
+        "- none"
+    }
+    else {
+        foreach ($action in @($result.next_actions)) {
+            "- [$($action.area)] $($action.summary)"
+            "  action_type: $($action.action_type)"
+            "  command_ready: $($action.command_ready); verification_command_ready: $($action.verification_command_ready); automation_ready: $($action.automation_ready)"
+            if ($action.PSObject.Properties["automation_blocked_reason"] -and -not [string]::IsNullOrWhiteSpace([string]$action.automation_blocked_reason)) {
+                "  blocked_reason: $($action.automation_blocked_reason)"
+            }
+            if ($action.PSObject.Properties["manual_steps"] -and @($action.manual_steps).Count -gt 0) {
+                "  manual_steps:"
+                foreach ($manualStep in @($action.manual_steps)) {
+                    "    - $manualStep"
+                }
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$action.command)) {
+                "  command: $($action.command)"
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$action.verification_command)) {
+                "  verification: $($action.verification_command)"
+            }
         }
     }
     ""

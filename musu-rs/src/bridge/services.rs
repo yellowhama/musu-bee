@@ -185,15 +185,23 @@ impl ServiceRegistry {
     /// stale; the live bridge re-registers itself on boot anyway.
     pub fn cleanup_stale(&self) {
         for rec in self.list() {
-            let remove = match rec.pid {
-                Some(pid) => !is_pid_alive(pid),
-                None => true, // can't prove alive → stale
-            };
-            if remove {
+            if let Some(pid) = rec.pid {
+                if !is_pid_alive(pid) {
+                    tracing::debug!(
+                        name = %rec.name,
+                        pid = pid,
+                        "removing stale service record (pid dead)"
+                    );
+                    let _ = self.deregister(&rec.name);
+                }
+                continue;
+            }
+
+            // A record with no PID cannot prove ownership of a live service.
+            {
                 tracing::debug!(
                     name = %rec.name,
-                    pid = ?rec.pid,
-                    "removing stale service record"
+                    "removing stale service record (pid missing)"
                 );
                 let _ = self.deregister(&rec.name);
             }
@@ -272,7 +280,11 @@ pub fn resolve_public_bridge_url(home: &Path) -> String {
 }
 
 pub fn current_bridge_addr(cfg: &crate::bridge::config::BridgeConfig) -> String {
-    let registry = ServiceRegistry::new();
+    let home = cfg
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
+    let registry = ServiceRegistry::with_dir(home.join("services"));
     if let Some(record) = registry.discover("bridge") {
         if matches!(record.transport, Transport::Tcp) {
             return record.addr;

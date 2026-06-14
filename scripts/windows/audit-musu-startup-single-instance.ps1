@@ -41,7 +41,9 @@ function Test-PackagedMusuCommandPath([string]$Path) {
     return (
         $lower.Contains("\microsoft\windowsapps\musu.exe") -or
         $lower.Contains("\windowsapps\yellowhama.musu_") -or
-        $lower.Contains("\program files\windowsapps\yellowhama.musu_")
+        $lower.Contains("\program files\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\windowsapps\blossompark.musu_") -or
+        $lower.Contains("\program files\windowsapps\blossompark.musu_")
     )
 }
 

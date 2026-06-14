@@ -192,7 +192,12 @@ function Test-PackagedMusuPath([string]$Path) {
         return $false
     }
     $lower = $Path.ToLowerInvariant()
-    return ($lower.Contains("\windowsapps\yellowhama.musu_") -or $lower.Contains("\program files\windowsapps\yellowhama.musu_"))
+    return (
+        $lower.Contains("\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\program files\windowsapps\yellowhama.musu_") -or
+        $lower.Contains("\windowsapps\blossompark.musu_") -or
+        $lower.Contains("\program files\windowsapps\blossompark.musu_")
+    )
 }
 
 function Test-MusuBridgeCommandLine([string]$CommandLine) {

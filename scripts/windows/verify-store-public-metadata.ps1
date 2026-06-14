@@ -16,8 +16,12 @@ $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 if ([string]::IsNullOrWhiteSpace($ExpectedSupportEmail)) {
     $ExpectedSupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 }
+$expectedReleaseVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+$expectedReleaseMetadataText = "MUSU public release metadata: $expectedReleaseVersion"
 
 $checks = New-Object System.Collections.Generic.List[object]
+$pages = New-Object System.Collections.Generic.List[object]
+$publicConfigEvidence = $null
 
 function Add-Check {
     param(
@@ -45,9 +49,44 @@ function Read-Url([string]$Url) {
         return Invoke-WebRequest -Uri $Url -Method Get -UseBasicParsing -TimeoutSec $TimeoutSec
     }
     catch {
+        $statusCode = $null
+        try {
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+        }
+        catch {
+            $statusCode = $null
+        }
+        if ($null -ne $statusCode) {
+            return [pscustomobject]@{
+                StatusCode = $statusCode
+                Content = ""
+            }
+        }
         Add-Check -Name $Url -Status "fail" -Message "GET failed: $($_.Exception.Message)"
         return $null
     }
+}
+
+function Get-Sha256Hex([string]$Text) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+        $hash = $sha.ComputeHash($bytes)
+        return ([BitConverter]::ToString($hash) -replace "-", "").ToLowerInvariant()
+    }
+    finally {
+        $sha.Dispose()
+    }
+}
+
+function Get-ContentSnippet([string]$Text) {
+    $normalized = ([regex]::Replace($Text, "\s+", " ")).Trim()
+    if ($normalized.Length -le 240) {
+        return $normalized
+    }
+    return $normalized.Substring(0, 240)
 }
 
 function Test-Page {
@@ -59,53 +98,227 @@ function Test-Page {
 
     $response = Read-Url -Url $Url
     if (-not $response) {
+        $pages.Add([pscustomobject]@{
+            name = $Name
+            url = $Url
+            ok = $false
+            failure_kind = "request_failed"
+            status_code = $null
+            content_length = 0
+            content_sha256 = $null
+            required_text = $RequiredText
+            missing_text = $RequiredText
+            matched_text = @()
+            content_snippet = ""
+        }) | Out-Null
         return
     }
 
     $statusCode = [int]$response.StatusCode
+    $content = [string]$response.Content
+    $matchedText = New-Object System.Collections.Generic.List[string]
+    $missingText = New-Object System.Collections.Generic.List[string]
+
     if ($statusCode -ge 200 -and $statusCode -lt 300) {
         Add-Check -Name "$Name status" -Status "pass" -Message "$Url returned HTTP $statusCode."
     }
     else {
         Add-Check -Name "$Name status" -Status "fail" -Message "$Url returned HTTP $statusCode."
+        $pages.Add([pscustomobject]@{
+            name = $Name
+            url = $Url
+            ok = $false
+            failure_kind = "http_not_success"
+            status_code = $statusCode
+            content_length = $content.Length
+            content_sha256 = Get-Sha256Hex -Text $content
+            required_text = $RequiredText
+            missing_text = $RequiredText
+            matched_text = @()
+            content_snippet = Get-ContentSnippet -Text $content
+        }) | Out-Null
         return
     }
 
-    $content = [string]$response.Content
     foreach ($text in $RequiredText) {
         if ($content.Contains($text)) {
+            $matchedText.Add($text) | Out-Null
             Add-Check -Name "$Name content: $text" -Status "pass" -Message "$Name contains expected text '$text'."
         }
         else {
+            $missingText.Add($text) | Out-Null
             Add-Check -Name "$Name content: $text" -Status "fail" -Message "$Name did not contain expected text '$text'."
         }
+    }
+
+    $pageOk = ($missingText.Count -eq 0)
+    $pages.Add([pscustomobject]@{
+        name = $Name
+        url = $Url
+        ok = [bool]$pageOk
+        failure_kind = if ($pageOk) { $null } else { "content_mismatch" }
+        status_code = $statusCode
+        content_length = $content.Length
+        content_sha256 = Get-Sha256Hex -Text $content
+        required_text = $RequiredText
+        missing_text = $missingText.ToArray()
+        matched_text = $matchedText.ToArray()
+        content_snippet = Get-ContentSnippet -Text $content
+    }) | Out-Null
+}
+
+function Test-PublicConfig {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][hashtable]$RequiredFields
+    )
+
+    $response = Read-Url -Url $Url
+    if (-not $response) {
+        return [pscustomobject]@{
+            url = $Url
+            ok = $false
+            failure_kind = "request_failed"
+            status_code = $null
+            content_length = 0
+            content_sha256 = $null
+            missing_fields = @($RequiredFields.Keys)
+            mismatched_fields = @()
+            matched_fields = @()
+            content_snippet = ""
+        }
+    }
+
+    $statusCode = [int]$response.StatusCode
+    $content = [string]$response.Content
+    if ($statusCode -lt 200 -or $statusCode -ge 300) {
+        Add-Check -Name "public-config status" -Status "fail" -Message "$Url returned HTTP $statusCode."
+        return [pscustomobject]@{
+            url = $Url
+            ok = $false
+            failure_kind = "http_not_success"
+            status_code = $statusCode
+            content_length = $content.Length
+            content_sha256 = Get-Sha256Hex -Text $content
+            missing_fields = @($RequiredFields.Keys)
+            mismatched_fields = @()
+            matched_fields = @()
+            content_snippet = Get-ContentSnippet -Text $content
+        }
+    }
+
+    Add-Check -Name "public-config status" -Status "pass" -Message "$Url returned HTTP $statusCode."
+
+    $parsed = $null
+    try {
+        $parsed = $content | ConvertFrom-Json
+    }
+    catch {
+        Add-Check -Name "public-config JSON" -Status "fail" -Message "$Url did not return parseable JSON."
+        return [pscustomobject]@{
+            url = $Url
+            ok = $false
+            failure_kind = "json_parse_failed"
+            status_code = $statusCode
+            content_length = $content.Length
+            content_sha256 = Get-Sha256Hex -Text $content
+            missing_fields = @($RequiredFields.Keys)
+            mismatched_fields = @()
+            matched_fields = @()
+            content_snippet = Get-ContentSnippet -Text $content
+        }
+    }
+
+    $missingFields = New-Object System.Collections.Generic.List[string]
+    $mismatchedFields = New-Object System.Collections.Generic.List[object]
+    $matchedFields = New-Object System.Collections.Generic.List[string]
+
+    foreach ($field in $RequiredFields.Keys) {
+        $expected = [string]$RequiredFields[$field]
+        if (-not $parsed.PSObject.Properties[$field]) {
+            $missingFields.Add([string]$field) | Out-Null
+            Add-Check -Name "public-config field: $field" -Status "fail" -Message "public-config is missing '$field'."
+            continue
+        }
+
+        $actual = [string]$parsed.$field
+        if ($actual -ne $expected) {
+            $mismatchedFields.Add([pscustomobject]@{
+                name = [string]$field
+                expected = $expected
+                actual = $actual
+            }) | Out-Null
+            Add-Check -Name "public-config field: $field" -Status "fail" -Message "public-config '$field' was '$actual', expected '$expected'."
+        }
+        else {
+            $matchedFields.Add([string]$field) | Out-Null
+            Add-Check -Name "public-config field: $field" -Status "pass" -Message "public-config '$field' matches expected value."
+        }
+    }
+
+    $configOk = ($missingFields.Count -eq 0 -and $mismatchedFields.Count -eq 0)
+    return [pscustomobject]@{
+        url = $Url
+        ok = [bool]$configOk
+        failure_kind = if ($configOk) { $null } else { "public_config_mismatch" }
+        status_code = $statusCode
+        content_length = $content.Length
+        content_sha256 = Get-Sha256Hex -Text $content
+        missing_fields = $missingFields.ToArray()
+        mismatched_fields = $mismatchedFields.ToArray()
+        matched_fields = $matchedFields.ToArray()
+        content_snippet = Get-ContentSnippet -Text $content
     }
 }
 
 $base = $BaseUrl.TrimEnd("/")
 $privacyUrl = Join-Url -Base $base -Path "/privacy"
 $supportUrl = Join-Url -Base $base -Path "/support"
+$publicConfigUrl = Join-Url -Base $base -Path "/api/public-config"
 
 Test-Page -Name "privacy" -Url $privacyUrl -RequiredText @(
     "MUSU Privacy Policy",
     "Data MUSU may process",
-    $ExpectedSupportEmail
+    $ExpectedSupportEmail,
+    $expectedReleaseMetadataText
 )
 
 Test-Page -Name "support" -Url $supportUrl -RequiredText @(
     "MUSU Support",
     "Include this diagnostic evidence",
-    $ExpectedSupportEmail
+    $ExpectedSupportEmail,
+    $expectedReleaseMetadataText
 )
 
+$publicConfigEvidence = Test-PublicConfig -Url $publicConfigUrl -RequiredFields @{
+    schema = "musu.public_config.v1"
+    releaseVersion = $expectedReleaseVersion
+    publicReleaseMetadata = $expectedReleaseMetadataText
+    supportEmail = $ExpectedSupportEmail
+    privacyUrl = $privacyUrl
+    supportUrl = $supportUrl
+}
+
 $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+$failureKinds = @(
+    $pages | Where-Object { -not $_.ok } | ForEach-Object { $_.failure_kind }
+    if ($publicConfigEvidence -and -not [bool]$publicConfigEvidence.ok) { $publicConfigEvidence.failure_kind }
+) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
+
 $result = [pscustomobject]@{
+    schema = "musu.store_public_metadata_verification.v2"
+    checked_at = [datetimeoffset]::Now.ToString("o")
     ok = ($failCount -eq 0)
     base_url = $base
     privacy_url = $privacyUrl
     support_url = $supportUrl
     expected_support_email = $ExpectedSupportEmail
+    expected_release_version = $expectedReleaseVersion
+    expected_release_metadata_text = $expectedReleaseMetadataText
     fail_count = $failCount
+    failure_kinds = $failureKinds
+    pages = $pages.ToArray()
+    public_config = $publicConfigEvidence
     checks = $checks.ToArray()
 }
 

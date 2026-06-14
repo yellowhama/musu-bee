@@ -101,4 +101,62 @@ export const TOOLS = [
     description: "List available MUSU chat channels.",
     inputSchema: { type: "object", properties: {}, required: [] },
   },
+  {
+    name: "musu_get_network_runbook",
+    description: "Return the MUSU Private Mesh / Headscale runbook. Do not require or suggest Tailscale.com signup.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "musu_get_connector_policy",
+    description:
+      "Return MUSU's connector trust policy, and optionally classify a proposed external API/MCP/scraping connector before recommending it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Proposed connector/API name" },
+        description: { type: "string", description: "Short description or user request to classify" },
+        source_url: { type: "string", description: "Connector source URL, marketplace URL, or official docs URL" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "musu_list_connectors",
+    description:
+      "List MUSU's curated connector registry with trust tiers, required secrets, data egress, health checks, and proof requirements.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        category: { type: "string", description: "Optional category filter, e.g. work-apps or developer-tools" },
+        trust_tier: { type: "number", description: "Optional trust tier filter: 0, 1, 2, or 3" },
+        risk_profile: { type: "string", description: "Optional risk profile filter" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "musu_get_connector_proof_plan",
+    description:
+      "Return the exact readiness, missing secrets, health check, proof artifact, retry contract, and revoke plan for one curated connector.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Curated connector id, e.g. github or website-to-markdown" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "musu_run_connector_health_check",
+    description:
+      "Run an implemented connector health check and return a MUSU connector proof artifact. Requires source_url for URL-based connectors.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Curated connector id, e.g. website-to-markdown, openapi-to-mcp, mcp-validator, or github" },
+        source_url: { type: "string", description: "Required for URL-based health checks" },
+      },
+      required: ["id"],
+    },
+  },
 ];

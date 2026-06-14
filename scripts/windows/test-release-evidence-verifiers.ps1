@@ -30,13 +30,19 @@ $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-dia
 $processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
+$releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
+$frontendPollingAuditor = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
+$storeSubmissionBundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
+$desktopReleaseReadinessAuditor = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
+$msixCommon = Join-Path $scriptDir "msix-common.ps1"
 $routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
 $supportMailboxRequestPreparer = Join-Path $scriptDir "prepare-support-mailbox-verification-request.ps1"
 $oneMachineMusuProWorkOrderSmoke = Join-Path $scriptDir "smoke-one-machine-musu-pro-work-order.ps1"
@@ -1049,13 +1055,31 @@ function Test-RuntimeCpuGoNoGoMatrixSelectionContract {
     $requiredNeedles = @(
         'function Select-RuntimeCpuScenarioMatrixCandidates',
         'Get-RuntimeCpuScenarioMatrixCandidateShape',
+        'function Test-RuntimeCpuScenarioMatrixCandidatePreflight',
+        'function New-RuntimeCpuScenarioMatrixPrefilteredResult',
+        '$script:runtimeCpuScenarioMatrixGitDeltaCache',
+        'Test-DocumentationOrStatusOnlyGitDelta -FromCommit ([string]$Shape.git_commit) -ToCommit $ExpectedGitCommit',
+        'reason = "git_dirty"',
+        'reason = "runtime_affecting_git_delta"',
+        'preflight_skipped = $true',
+        'failure_kind = "cheap_prefilter"',
         'Test-StringSetContainsAll -Values $shape.scenario_names -Required $RequiredScenarios',
         'Select-RuntimeCpuScenarioMatrixCandidates -Candidates $runtimeCpuScenarioMatrixCandidates -RequiredScenarios $RequiredRuntimeCpuScenarioMatrixScenarios -MaxPerMachine 12 -MaxUnknown 12',
+        'function Get-SelectedRuntimeCpuScenarioMatrixShape',
+        '$runtimeCpuScenarioMatrixVerificationCandidates = @(',
+        'Test-StringSetContainsAll -Values $shape.scenario_names -Required $RequiredRuntimeCpuScenarioMatrixScenarios',
+        '$runtimeCpuSecondPcRouteAttemptSelectedCandidates = @(',
+        '[bool]$shape.has_target_post_route_probe',
+        'verifier_candidate_count = @($runtimeCpuScenarioMatrixVerificationCandidates).Count',
+        'verifier_candidate_count = @($runtimeCpuSecondPcRouteAttemptSelectedCandidates).Count',
+        'preflight_skipped_candidate_count = $runtimeCpuScenarioMatrixPrefilteredCount',
+        'preflight_skipped_candidate_count = $runtimeCpuSecondPcRouteAttemptPrefilteredCount',
         '$runtimeCpuSecondPcRouteAttemptRequiredScenarios = @("post-route")',
         '"-RequiredScenarios", ($runtimeCpuSecondPcRouteAttemptRequiredScenarios -join ",")',
         '"-RejectSelfPostRouteTarget"',
         '"-RejectLocalPostRouteTarget"',
-        'candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates"'
+        'candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates-prefiltered-by-required-scenarios"',
+        'candidate_selection = "latest-per-machine-up-to-12-plus-complete-scenario-and-target-route-candidates-prefiltered-by-target-post-route"'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1073,6 +1097,94 @@ function Test-FinalHandoffStatusTargetedRuntimeCpuContract {
     $requiredNeedles = @(
         'measure_runtime_cpu_scenario_matrix = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json"',
         'Run the 60s startup/runtime/dashboard/desktop/post-route CPU matrix on the primary and second PC with explicit remote route targets'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-FinalHandoffStatusGoNoGoUnavailableContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[string]$GoNoGoPath = ".local-build\go-no-go\latest.json"',
+        '[switch]$RefreshGoNoGo',
+        'function Get-CurrentGitSnapshot',
+        'function Resolve-HandoffStatusPath',
+        '$goNoGoSource = if ($RefreshGoNoGo) { "refreshed" } else { "cache" }',
+        '$currentGit = Get-CurrentGitSnapshot',
+        '$goNoGoCacheFreshness = [pscustomobject]@',
+        'schema = "musu.go_no_go_cache_freshness.v1"',
+        'stale_reasons = $cacheStaleReasons.ToArray()',
+        'go_no_go_cache_freshness = $goNoGoCacheFreshness',
+        'go_no_go_cache_stale = [bool]$goNoGoCacheFreshness.stale',
+        '$warningsForResult = New-Object System.Collections.Generic.List[object]',
+        '$blockersForResult = New-Object System.Collections.Generic.List[object]',
+        'area = "go-no-go-cache"',
+        'Cached go/no-go status may be stale:',
+        'Final handoff status is fail-closed because cached go/no-go status is stale:',
+        '$cachedReadyForPublicDesktopRelease = [bool]$goNoGo.ready_for_public_desktop_release',
+        '$effectiveReadyForPublicDesktopRelease = (',
+        'ready_for_public_desktop_release = [bool]$effectiveReadyForPublicDesktopRelease',
+        'cached_ready_for_public_desktop_release = [bool]$cachedReadyForPublicDesktopRelease',
+        'cached_ready_for_public_desktop_release: $($result.cached_ready_for_public_desktop_release)',
+        'blockers = $blockersForResult.ToArray()',
+        'if ($RefreshGoNoGo) {',
+        'function New-UnavailableGoNoGoResult',
+        'musu.release_go_no_go_unavailable.v1',
+        'Invoke-JsonScript -FilePath (Join-Path $scriptDir "write-release-go-no-go.ps1") -Arguments $goNoGoArgs -AllowFailure',
+        'Cached go/no-go JSON not found at $goNoGoCachePath. Run with -RefreshGoNoGo to regenerate it explicitly.',
+        'Cached go/no-go JSON was not usable. Status lookup does not run heavy desktop/runtime checks by default; rerun with -RefreshGoNoGo when you intentionally want a fresh go/no-go evaluation.',
+        '$goNoGoAvailable = ($goNoGoInvocation.json -and -not [bool]$goNoGoInvocation.timed_out -and [int]$goNoGoInvocation.exit_code -eq 0)',
+        'go-no-go-unavailable',
+        'The go/no-go script did not return usable JSON',
+        'go_no_go_available = [bool]$goNoGoAvailable',
+        'go_no_go_invocation = [pscustomobject]@',
+        'source = $goNoGoSource',
+        'cache_path = $goNoGoCachePath',
+        'refresh_requested = [bool]$RefreshGoNoGo',
+        'show_status_refresh',
+        'if (-not $goNoGoAvailable) {',
+        'else {',
+        'raw = if ($goNoGoAvailable) { "" } else { [string]$goNoGoInvocation.raw }'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-FinalHandoffStatusNextActionsSurfaceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$nextActions = if ($goNoGo.PSObject.Properties["next_actions"]) { @($goNoGo.next_actions) } else { @() }',
+        '$nextActionAreas = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)',
+        'foreach ($action in $nextActions)',
+        '[void]$nextActionAreas.Add($area)',
+        '$operatorStepsForResult = New-Object System.Collections.Generic.List[object]',
+        'foreach ($step in $operatorSteps)',
+        '-not $nextActionAreas.Contains($stepGate)',
+        'next_actions = $nextActions',
+        'operator_steps = $operatorStepsForResult.ToArray()',
+        'foreach ($step in @($result.operator_steps))',
+        '"Next actions"',
+        'foreach ($action in @($result.next_actions))',
+        'action_type: $($action.action_type)',
+        'automation_ready: $($action.automation_ready)',
+        'automation_blocked_reason',
+        'blocked_reason: $($action.automation_blocked_reason)',
+        'manual_steps:',
+        'verification: $($action.verification_command)'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1638,6 +1750,274 @@ function Test-ExternalGateRecheckActionableContract {
     return $true
 }
 
+function Test-GoNoGoPublicMetadataFailureDetailContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Format-PublicMetadataFailureSummary',
+        'failure_kinds',
+        'missing_text',
+        'public_config',
+        'missing_fields',
+        'mismatched_fields',
+        'status_code',
+        'failure_kind',
+        'Select-Object -First 4',
+        'Select-Object -First 8',
+        'Public privacy/support metadata verification failed for ${BaseUrl}:',
+        'Format-PublicMetadataFailureSummary -PublicMetadata $publicMetadataResult.json -BaseUrl $PublicMetadataBaseUrl'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-GoNoGoNextActionsContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Get-ReleaseNextActions',
+        'function Get-NextActionPlaceholders',
+        '$goNoGoWatch = [Diagnostics.Stopwatch]::StartNew()',
+        '$script:goNoGoInvocations = New-Object System.Collections.Generic.List[object]',
+        'go_no_go_invocations = $goNoGoInvocations',
+        'invocation_count = [int]$goNoGoInvocations.Count',
+        'elapsed_ms = [int]$goNoGoWatch.ElapsedMilliseconds',
+        'json_returned = ($null -ne $parsed)',
+        'expect_json = [bool]$ExpectJson',
+        '$goNoGoScratchRoot = Join-Path $repoRoot ".local-build\go-no-go\scratch"',
+        '$goNoGoScratchDir = Join-Path $goNoGoScratchRoot ("run-{0}-{1}" -f $PID, [guid]::NewGuid().ToString("N"))',
+        '$readinessAuditForManifestPath = Join-Path $goNoGoScratchDir "readiness-audit-for-manifest.json"',
+        '-Arguments @("-ReadinessAuditJsonPath", $readinessAuditForManifestPath)',
+        '-ExpectJson $false',
+        'next_actions = $nextActions',
+        'action_type = $ActionType',
+        'command_is_executable = $commandIsExecutable',
+        'command_ready = $commandReady',
+        'verification_command_ready = $verificationCommandReady',
+        'evidence_path_ready = $evidencePathReady',
+        'manual_steps_ready = $manualStepsReady',
+        'automation_ready = $automationReady',
+        '[string]$AutomationBlockedReason = ""',
+        '[string]::IsNullOrWhiteSpace($AutomationBlockedReason) -and',
+        'automation_blocked_reason = $AutomationBlockedReason',
+        '$verificationCommandReady = (-not [string]::IsNullOrWhiteSpace($VerificationCommand) -and @($verificationPlaceholders).Count -eq 0)',
+        '$automationReady = (',
+        'command_placeholders = @($commandPlaceholders)',
+        'verification_placeholders = @($verificationPlaceholders)',
+        'evidence_placeholders = @($evidencePlaceholders)',
+        'manual_placeholders = @($manualPlaceholders)',
+        'placeholders = @($placeholders)',
+        'manual_steps = @($ManualSteps)',
+        '[regex]::Matches($Text, "<[^<>]+>|REPLACE_WITH_[A-Z0-9_]+")',
+        'REPLACE_WITH_EXTERNAL_SENDER_EMAIL',
+        'prepare-multidevice-test-kit.ps1',
+        'Move the generated kit to the second physical Windows PC.',
+        'A real second physical PC must run the generated kit and return evidence before the multi-device gate can be recorded.',
+        'record-multidevice-evidence.ps1',
+        'manual_then_command',
+        'Run the strict Private Mesh release proof from the installed MUSU desktop app on real hardware',
+        'import-private-mesh-release-proof-archive.ps1 -LatestFromMusuHome -Json',
+        'Do not use scripts\windows\run-private-mesh-release-proof.ps1 for this final packaged desktop gate.',
+        '%USERPROFILE%\.musu\private-mesh-release-proof\**\private-mesh-release-proof.archive.json',
+        'measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json',
+        'Run the idle CPU capture on every required physical machine, including the second PC.',
+        'This command captures only the machine where it runs; release readiness still requires passing idle CPU evidence from every required physical machine.',
+        '.local-build\runtime-idle-cpu\musu-idle-cpu-*.json; accepted release path: docs\evidence\runtime-idle-cpu\$Version\*.json',
+        'measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json',
+        'Choose the real peer name from the live fleet.',
+        'A real peer target and passing matrix evidence from every required physical machine are required before the runtime CPU matrix gate can close.',
+        'Choose the real second-PC peer name from the live fleet.',
+        'A real second-PC peer target and post-route matrix evidence are required before the second-PC route-attempt CPU gate can close.',
+        '.local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json; accepted release path: docs\evidence\runtime-cpu-scenarios\$Version\*.runtime-cpu-scenario-matrix.json',
+        'verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Deploy the current MUSU public site build to $PublicMetadataBaseUrl.',
+        'Confirm the deployed privacy, support, and public-config routes are from the current release build.',
+        'Then run the public metadata verifier command.',
+        'Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.',
+        'prepare-support-mailbox-verification-request.ps1 -Json',
+        'Prepare a unique external-email verification packet, then record inbox delivery evidence after the message is actually received.',
+        'Send the generated verification email from an external mailbox into $SupportEmail.',
+        'External email delivery into $SupportEmail must be performed and observed before support mailbox evidence can be recorded.',
+        'record-support-mailbox-verification.ps1',
+        'Verify the Store submission bundle locally, then record Partner Center approval evidence after Microsoft certification is complete.',
+        'Reserve or confirm the MUSU product name in Partner Center.',
+        'Wait for certification approval and restricted capability approval.',
+        'Partner Center reservation, submission, certification, and restricted capability approval must exist before Store release evidence can be recorded.',
+        'record-store-release-verification.ps1',
+        'show-musu-pro-p2p-env-status.ps1 -Json',
+        'record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Release-grade relay payload endpoint and relay tunnel runtime are not implemented/proven yet; this command is diagnostic until those source/env/live gates pass.',
+        'git status --short',
+        'Review the dirty worktree, commit only after all intended changes and release evidence are present, then regenerate release manifests.',
+        'Do not commit just to clear the git blocker while required release evidence is still missing.',
+        'The git blocker can only close after all intended changes and required release evidence are present; git status is diagnostic only.',
+        'Format-Table area, action_type, command_ready, verification_command_ready, automation_ready, summary, command -Wrap',
+        '"Slow invocations"',
+        '"Placeholders"',
+        '"Manual steps"',
+        '"Next actions"'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    $forbiddenNeedles = @(
+        'run-private-mesh-release-proof.ps1 -DesktopRuntimeKind packaged_desktop -Archive -Json',
+        '-Command "Open the installed MUSU desktop app',
+        'measure-musu-idle-cpu.ps1 -Scenario desktop-open -SampleSeconds 60 -Json',
+        'measure-musu-runtime-cpu-scenarios.ps1 -RunRouteProbe -Json',
+        'measure-musu-runtime-cpu-scenarios.ps1 -RunRouteProbe -RouteTarget <PEER_NAME> -AllowFailedRouteProbe -Json'
+    )
+
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ReleaseCandidateManifestReadinessReuseContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$ManifestScriptPath,
+        [Parameter(Mandatory = $true)][string]$GoNoGoScriptPath
+    )
+
+    $manifestSource = Get-Content -LiteralPath $ManifestScriptPath -Raw
+    $goNoGoSource = Get-Content -LiteralPath $GoNoGoScriptPath -Raw
+    $requiredManifestNeedles = @(
+        '[string]$ReadinessAuditJsonPath',
+        'function Read-ReadinessAuditJson',
+        'Readiness audit JSON is missing required property',
+        '$audit = if (-not [string]::IsNullOrWhiteSpace($ReadinessAuditJsonPath))',
+        'Read-ReadinessAuditJson -Path $ReadinessAuditJsonPath',
+        'powershell -NoProfile -ExecutionPolicy Bypass -File $readinessScript -Json'
+    )
+    $requiredGoNoGoNeedles = @(
+        '$goNoGoScratchRoot = Join-Path $repoRoot ".local-build\go-no-go\scratch"',
+        '$goNoGoScratchDir = Join-Path $goNoGoScratchRoot ("run-{0}-{1}" -f $PID, [guid]::NewGuid().ToString("N"))',
+        '$readinessAuditForManifestPath = Join-Path $goNoGoScratchDir "readiness-audit-for-manifest.json"',
+        '$audit | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $readinessAuditForManifestPath -Encoding UTF8',
+        '-Arguments @("-ReadinessAuditJsonPath", $readinessAuditForManifestPath)'
+    )
+
+    foreach ($needle in $requiredManifestNeedles) {
+        if (-not $manifestSource.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $requiredGoNoGoNeedles) {
+        if (-not $goNoGoSource.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-FrontendPollingAuditDependencyExclusionContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Get-FrontendSourceFiles',
+        '"node_modules"',
+        '".next"',
+        '"dist"',
+        '"build"',
+        '"coverage"',
+        'Get-ChildItem -LiteralPath $current -Directory',
+        'Get-ChildItem -LiteralPath $current -File',
+        '$sourceFiles += @(Get-FrontendSourceFiles -Root $sourceRoot)'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'Get-ChildItem -LiteralPath $sourceRoot -Recurse -File'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ReadinessStoreBundleEntrypointReuseContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$ReadinessScriptPath,
+        [Parameter(Mandatory = $true)][string]$BundleVerifierPath
+    )
+
+    $readinessSource = Get-Content -LiteralPath $ReadinessScriptPath -Raw
+    $bundleSource = Get-Content -LiteralPath $BundleVerifierPath -Raw
+    $requiredReadinessNeedles = @(
+        'audit-msix-desktop-entrypoint.ps1',
+        'verify-store-submission-bundle.ps1',
+        '-SkipDesktopEntrypoint -Json'
+    )
+    $requiredBundleNeedles = @(
+        '[switch]$SkipDesktopEntrypoint',
+        'if ($SkipDesktopEntrypoint)',
+        'caller already verified the Store-reviewed MSIX desktop entrypoint',
+        'audit-msix-desktop-entrypoint.ps1',
+        '-PackagePath $msixFile.FullName -StartupContract store-reviewed-immediate-registration -Json'
+    )
+
+    foreach ($needle in $requiredReadinessNeedles) {
+        if (-not $readinessSource.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $requiredBundleNeedles) {
+        if (-not $bundleSource.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-StorePublicMetadataReleaseMarkerContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '$expectedReleaseVersion = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()',
+        '$expectedReleaseMetadataText = "MUSU public release metadata: $expectedReleaseVersion"',
+        '$publicConfigUrl = Join-Url -Base $base -Path "/api/public-config"',
+        'function Test-PublicConfig',
+        'schema = "musu.public_config.v1"',
+        'releaseVersion = $expectedReleaseVersion',
+        'publicReleaseMetadata = $expectedReleaseMetadataText',
+        'supportEmail = $ExpectedSupportEmail',
+        'privacyUrl = $privacyUrl',
+        'supportUrl = $supportUrl',
+        '$expectedReleaseMetadataText',
+        'expected_release_version = $expectedReleaseVersion',
+        'expected_release_metadata_text = $expectedReleaseMetadataText',
+        'public_config = $publicConfigEvidence'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-P2pEnvStatusRuntimeLoginActionContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2070,6 +2450,41 @@ function Test-MsixLegacyConflictPersistedPathContract {
     return $true
 }
 
+function Test-MsixLegacyConflictFastScheduledTaskProbeContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$CommonScriptPath,
+        [Parameter(Mandatory = $true)][string]$CheckerScriptPath
+    )
+
+    $commonSource = Get-Content -LiteralPath $CommonScriptPath -Raw
+    $checkerSource = Get-Content -LiteralPath $CheckerScriptPath -Raw
+    $commonNeedles = @(
+        'function Get-MusuScheduledTaskConflictsFast',
+        'Get-CimInstance -Namespace "root/Microsoft/Windows/TaskScheduler" -ClassName "MSFT_ScheduledTask"',
+        'function Convert-MusuScheduledTaskState',
+        'ScheduledTaskProbeMethod = $scheduledTaskProbeMethod',
+        '$scheduledTaskProbeMethod = "cim"',
+        '$scheduledTaskProbeMethod = "scheduledtasks-job"',
+        'Invoke-MusuOptionalProbe -Name "scheduled task conflict scan" -TimeoutSeconds 5'
+    )
+    $checkerNeedles = @(
+        'scheduled_task_probe_method',
+        'ScheduledTaskProbeMethod'
+    )
+
+    foreach ($needle in $commonNeedles) {
+        if (-not $commonSource.Contains($needle)) {
+            return $false
+        }
+    }
+    foreach ($needle in $checkerNeedles) {
+        if (-not $checkerSource.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-OperatorApiSecurityRoomWorkOrderRejectedAuditContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2222,6 +2637,265 @@ function Test-DesktopShellProcessOwnershipSurfaceContract {
     }
 
     return $true
+}
+
+function Test-PrivateMeshReleaseDesktopRuntimeScopeContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptDir)
+
+    $runner = Get-Content -LiteralPath (Join-Path $ScriptDir "run-private-mesh-release-proof.ps1") -Raw
+    $bundle = Get-Content -LiteralPath (Join-Path $ScriptDir "verify-private-mesh-release-proof-bundle.ps1") -Raw
+    $archive = Get-Content -LiteralPath (Join-Path $ScriptDir "archive-private-mesh-release-proof-bundle.ps1") -Raw
+    $archiveVerifier = Get-Content -LiteralPath (Join-Path $ScriptDir "verify-private-mesh-release-proof-archive.ps1") -Raw
+
+    $requiredNeedles = @(
+        @{ source = $runner; needle = 'desktop_runtime_kind = "external_cli_release_runner"' },
+        @{ source = $runner; needle = 'desktop_runtime_packaged = $false' },
+        @{ source = $runner; needle = '$result.desktop_runtime_exe_path = $musuExeResolved' },
+        @{ source = $runner; needle = '$result.desktop_runtime_exe_sha256 = Get-EvidenceFileSha256 -Path $musuExeResolved' },
+        @{ source = $bundle; needle = 'desktop runtime scope recorded' },
+        @{ source = $bundle; needle = 'desktop_runtime_kind = $desktopRuntimeKind' },
+        @{ source = $bundle; needle = 'desktop_runtime_packaged = $desktopRuntimePackaged' },
+        @{ source = $archive; needle = 'desktop_runtime_kind = Get-StringProperty -Value $manifest -Name "desktop_runtime_kind"' },
+        @{ source = $archive; needle = 'desktop_runtime_packaged = [bool](Get-PropertyValue -Value $manifest -Name "desktop_runtime_packaged")' },
+        @{ source = $archiveVerifier; needle = 'archived desktop runtime scope matches bundle' },
+        @{ source = $archiveVerifier; needle = 'archive manifest must preserve the bundle desktop runtime identity and packaged/unpackaged scope' }
+    )
+
+    foreach ($item in $requiredNeedles) {
+        if (-not ([string]$item.source).Contains([string]$item.needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Test-GoNoGoPrivateMeshPackagedReleaseProofContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'verify-private-mesh-release-proof-archive.ps1',
+        '$privateMeshPackagedReleaseProofEvidenceRoots = @(',
+        'docs\evidence\private-mesh-release-proof\{0}',
+        '.local-build\private-mesh-release-proof',
+        'private-mesh-release-proof.archive.json',
+        'desktop_runtime_packaged',
+        'desktop_runtime_kind',
+        '$desktopRuntimeKind -eq "packaged_desktop"',
+        'desktop_runtime_packaged=true',
+        'private-mesh-packaged-release-proof',
+        'Packaged desktop Private Mesh release proof archive',
+        'private_mesh_packaged_release_proof_verified',
+        'private_mesh_packaged_release_proof_evidence',
+        '$privateMeshPackagedReleaseProofCandidateResults = @($privateMeshPackagedReleaseProofEvidenceResults.ToArray())',
+        'candidates = $privateMeshPackagedReleaseProofCandidateResults'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Test-PrivateMeshPackagedReleaseStatusSurfaceContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExternalScriptPath,
+        [Parameter(Mandatory = $true)][string]$FinalStatusScriptPath
+    )
+
+    $contracts = @(
+        [pscustomobject]@{
+            path = $ExternalScriptPath
+            needles = @(
+                'private_mesh_packaged_release_proof_verified',
+                'private_mesh_packaged_release_proof_evidence',
+                'private_mesh_packaged_release_proof_missing',
+                'Private Mesh packaged desktop release proof'
+            )
+        },
+        [pscustomobject]@{
+            path = $FinalStatusScriptPath
+            needles = @(
+                'private_mesh_packaged_release_proof_verified',
+                'private_mesh_release_proof = Get-EvidenceRootStatus -Roots $privateMeshReleaseProofRoots',
+               'private-mesh-release-proof.archive.json',
+               'import-private-mesh-release-proof-archive.ps1',
+               '-LatestFromMusuHome',
+               'packaged_private_mesh_release_proof',
+               'Do not use scripts\windows\run-private-mesh-release-proof.ps1 for this final packaged desktop gate.',
+               '-Gate "private-mesh-packaged-release-proof"',
+                'standalone PowerShell/CLI archives are diagnostic only'
+            )
+        }
+    )
+
+    foreach ($contract in $contracts) {
+        $source = Get-Content -LiteralPath $contract.path -Raw
+        foreach ($needle in $contract.needles) {
+            if (-not $source.Contains($needle)) {
+                return $false
+            }
+        }
+    }
+
+    return $true
+}
+
+function Test-PrivateMeshReleaseProofArchiveImporterContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'musu.private_mesh_release_proof_archive_import.v1',
+        'verify-private-mesh-release-proof-archive.ps1',
+        '[switch]$LatestFromMusuHome',
+        '[string]$MusuHome',
+        'Resolve-LatestArchiveManifestFromMusuHome',
+        'Get-ArchiveManifestCandidatesFromMusuHome',
+        'Select-VerifiedPackagedArchiveManifestFromMusuHome',
+        'Test-PackagedArchiveVerificationResult',
+        'Write-ImporterFailureAndExit',
+        '$env:MUSU_HOME',
+        'Join-Path $profile ".musu"',
+        'Get-ChildItem -LiteralPath $root -Filter "private-mesh-release-proof.archive.json" -File -Recurse',
+        'Select-Object -First 25',
+        'No verifier-passing packaged desktop Private Mesh release proof archive found under MUSU_HOME',
+        'private_mesh_release_proof_root_missing',
+        'private_mesh_release_proof_archive_manifest_missing',
+        'no_packaged_desktop_archive_candidate',
+        'archive_manifest_path_missing',
+        'archive_dir_missing',
+        'archive_manifest_missing_in_archive_dir',
+        'archive_verifier_failed',
+        'archive_not_packaged_desktop',
+        'failure_kind = $FailureKind',
+        'latest_from_musu_home = [bool]$LatestFromMusuHome -or $autoDiscovered',
+        'auto_discovered_from_musu_home = $autoDiscovered',
+        '[Console]::Out.WriteLine(($failure | ConvertTo-Json -Depth 10))',
+        'ok = $false',
+        'failed_at = (Get-Date).ToString("o")',
+        'auto_rejected_archive_candidates',
+        'next_action = "Open the installed MUSU desktop app, run Release proof on real hardware, then rerun this importer. If a packaged archive exists outside MUSU_HOME, pass -ArchiveManifestPath."',
+        'desktop_runtime_kind -ne "packaged_desktop"',
+        'desktop_runtime_packaged',
+        'Archive was not produced by the packaged desktop runtime',
+        'docs\evidence\private-mesh-release-proof\{0}',
+        'Test-PathInsideDirectory -Path $destArchiveDir -Directory $resolvedOutputRoot',
+        'Remove-Item -LiteralPath $destArchiveDir -Recurse -Force',
+        'Imported archive copy failed verifier replay',
+        'write-release-go-no-go.ps1 -Json'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function New-PrivateMeshArchiveImporterFailureInvocation {
+    param(
+        [Parameter(Mandatory = $true)][string]$ImporterPath,
+        [Parameter(Mandatory = $true)][string]$CaseName,
+        [Parameter(Mandatory = $true)][string]$ExpectedFailureKind,
+        [switch]$CreateProofRoot,
+        [switch]$CreateInvalidArchiveManifest,
+        [switch]$UseExplicitArchiveManifestPath,
+        [switch]$UseMissingExplicitArchiveManifestPath,
+        [switch]$UseMissingExplicitArchiveDir,
+        [switch]$UseExplicitArchiveDirWithoutManifest
+    )
+
+    $caseRoot = Join-Path $OutputRoot ("private-mesh-archive-importer-{0}" -f $CaseName)
+    if (Test-Path -LiteralPath $caseRoot) {
+        throw "Unexpected existing importer failure fixture root: $caseRoot"
+    }
+    $resolvedCaseRoot = [System.IO.Path]::GetFullPath($caseRoot)
+    $usesExplicitArchiveInput = (
+        [bool]$UseMissingExplicitArchiveManifestPath -or
+        [bool]$UseExplicitArchiveManifestPath -or
+        [bool]$UseMissingExplicitArchiveDir -or
+        [bool]$UseExplicitArchiveDirWithoutManifest
+    )
+
+    $proofRoot = Join-Path $caseRoot "private-mesh-release-proof"
+    if ($CreateProofRoot -or $CreateInvalidArchiveManifest) {
+        New-Item -ItemType Directory -Force -Path $proofRoot | Out-Null
+    }
+
+    $invalidManifestPath = ""
+    if ($CreateInvalidArchiveManifest) {
+        $archiveDir = if ($UseExplicitArchiveManifestPath) {
+            Join-Path $caseRoot "explicit-invalid-archive"
+        }
+        else {
+            Join-Path $proofRoot "run-invalid\archive\invalid"
+        }
+        New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
+        $invalidManifestPath = Join-Path $archiveDir "private-mesh-release-proof.archive.json"
+        [pscustomobject]@{ schema = "invalid.private_mesh_archive_fixture.v1" } |
+            ConvertTo-Json -Depth 4 |
+            Set-Content -LiteralPath $invalidManifestPath -Encoding UTF8
+    }
+
+    $arguments = if ($UseMissingExplicitArchiveManifestPath) {
+        @("-ArchiveManifestPath", (Join-Path $caseRoot "missing\private-mesh-release-proof.archive.json"), "-Json")
+    }
+    elseif ($UseMissingExplicitArchiveDir) {
+        @("-ArchiveDir", (Join-Path $caseRoot "missing-archive-dir"), "-Json")
+    }
+    elseif ($UseExplicitArchiveDirWithoutManifest) {
+        $archiveDirWithoutManifest = Join-Path $caseRoot "archive-dir-without-manifest"
+        New-Item -ItemType Directory -Force -Path $archiveDirWithoutManifest | Out-Null
+        @("-ArchiveDir", $archiveDirWithoutManifest, "-Json")
+    }
+    elseif ($UseExplicitArchiveManifestPath) {
+        @("-ArchiveManifestPath", $invalidManifestPath, "-Json")
+    }
+    else {
+        @("-MusuHome", $caseRoot, "-Json")
+    }
+
+    $invocation = Invoke-Verifier -ScriptPath $ImporterPath -Arguments $arguments
+    $schemaOk = $invocation.parsed -and [string]$invocation.parsed.schema -eq "musu.private_mesh_release_proof_archive_import.v1"
+    $okFalse = $invocation.parsed -and $invocation.parsed.PSObject.Properties["ok"] -and -not [bool]$invocation.parsed.ok
+    $failureKindOk = $invocation.parsed -and $invocation.parsed.PSObject.Properties["failure_kind"] -and [string]$invocation.parsed.failure_kind -eq $ExpectedFailureKind
+    $latestFromMusuHomeOk = $invocation.parsed -and
+        $invocation.parsed.PSObject.Properties["latest_from_musu_home"] -and
+        [bool]$invocation.parsed.latest_from_musu_home -eq (-not $usesExplicitArchiveInput)
+    $autoDiscoveredOk = $invocation.parsed -and
+        $invocation.parsed.PSObject.Properties["auto_discovered_from_musu_home"] -and
+        [bool]$invocation.parsed.auto_discovered_from_musu_home -eq (-not $usesExplicitArchiveInput)
+    $musuHomeOk = $false
+    if ($invocation.parsed -and $invocation.parsed.PSObject.Properties["musu_home"]) {
+        if ($usesExplicitArchiveInput) {
+            $musuHomeOk = [string]::IsNullOrWhiteSpace([string]$invocation.parsed.musu_home)
+        }
+        else {
+            $musuHomeOk = [System.IO.Path]::GetFullPath([string]$invocation.parsed.musu_home).Equals(
+                $resolvedCaseRoot,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )
+        }
+    }
+
+    if ($schemaOk -and $okFalse -and $failureKindOk -and $latestFromMusuHomeOk -and $autoDiscoveredOk -and $musuHomeOk) {
+        return $invocation
+    }
+
+    return [pscustomobject]@{
+        exit_code = 0
+        parsed = [pscustomobject]@{
+            ok = $true
+            fail_count = 0
+        }
+        raw = "Importer structured failure contract mismatch for $CaseName. Expected failure_kind=$ExpectedFailureKind, explicit_input=$usesExplicitArchiveInput, latest_from_musu_home=$(-not $usesExplicitArchiveInput), auto_discovered_from_musu_home=$(-not $usesExplicitArchiveInput), and matching musu_home context. Raw: $($invocation.raw)"
+    }
 }
 
 $now = [datetimeoffset]::Now
@@ -3814,6 +4488,30 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$finalHandoffStatusGoNoGoUnavailableOk = Test-FinalHandoffStatusGoNoGoUnavailableContract -ScriptPath (Join-Path $scriptDir "show-final-release-handoff-status.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalHandoffStatusGoNoGoUnavailableOk `
+    -Message "final handoff status must return structured JSON and one actionable go-no-go recovery step when write-release-go-no-go.ps1 times out or fails"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final handoff status explains go-no-go unavailable state" `
+    -Verifier "final handoff status source contract" `
+    -FixturePath (Join-Path $scriptDir "show-final-release-handoff-status.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalHandoffStatusNextActionsSurfaceOk = Test-FinalHandoffStatusNextActionsSurfaceContract -ScriptPath (Join-Path $scriptDir "show-final-release-handoff-status.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalHandoffStatusNextActionsSurfaceOk `
+    -Message "final handoff status must surface go/no-go next_actions with manual steps and automation blocked reasons"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final handoff status surfaces next-action manual/automation state" `
+    -Verifier "final handoff status source contract" `
+    -FixturePath (Join-Path $scriptDir "show-final-release-handoff-status.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $runtimeCpuGoNoGoMatrixSelectionOk = Test-RuntimeCpuGoNoGoMatrixSelectionContract -ScriptPath $releaseGoNoGoWriter
 $invocation = New-StaticVerifierInvocation `
     -Ok $runtimeCpuGoNoGoMatrixSelectionOk `
@@ -4087,6 +4785,82 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$goNoGoPublicMetadataFailureDetailOk = Test-GoNoGoPublicMetadataFailureDetailContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoPublicMetadataFailureDetailOk `
+    -Message "go/no-go public metadata blocker must include v2 failure kinds, page status, failure kind, and missing text"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go public metadata blocker includes actionable failure detail" `
+    -Verifier "public metadata blocker source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoNextActionsOk = Test-GoNoGoNextActionsContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoNextActionsOk `
+    -Message "go/no-go must emit blocker-specific next_actions with exact operator commands and evidence paths"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go emits actionable next steps for blockers" `
+    -Verifier "go-no-go next actions source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$manifestReadinessReuseOk = Test-ReleaseCandidateManifestReadinessReuseContract `
+    -ManifestScriptPath $releaseCandidateManifestWriter `
+    -GoNoGoScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $manifestReadinessReuseOk `
+    -Message "go/no-go must pass its already computed desktop readiness audit into the release manifest writer instead of running the same expensive audit twice"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "release manifest reuses go-no-go readiness audit" `
+    -Verifier "release manifest readiness audit reuse source contract" `
+    -FixturePath $releaseCandidateManifestWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$frontendPollingAuditDependencyExclusionOk = Test-FrontendPollingAuditDependencyExclusionContract -ScriptPath $frontendPollingAuditor
+$invocation = New-StaticVerifierInvocation `
+    -Ok $frontendPollingAuditDependencyExclusionOk `
+    -Message "frontend polling audit must skip dependency/build directories at directory traversal time"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "frontend polling audit excludes dependency source trees" `
+    -Verifier "frontend polling audit source scan contract" `
+    -FixturePath $frontendPollingAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$readinessStoreBundleEntrypointReuseOk = Test-ReadinessStoreBundleEntrypointReuseContract `
+    -ReadinessScriptPath $desktopReleaseReadinessAuditor `
+    -BundleVerifierPath $storeSubmissionBundleVerifier
+$invocation = New-StaticVerifierInvocation `
+    -Ok $readinessStoreBundleEntrypointReuseOk `
+    -Message "readiness audit must not rerun the Store MSIX desktop entrypoint inside the store bundle verifier after already checking Store and local MSIX entrypoints"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "readiness audit reuses prechecked Store MSIX desktop entrypoint" `
+    -Verifier "readiness store bundle entrypoint reuse source contract" `
+    -FixturePath $desktopReleaseReadinessAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$storePublicMetadataReleaseMarkerOk = Test-StorePublicMetadataReleaseMarkerContract -ScriptPath $storePublicMetadataVerifier
+$invocation = New-StaticVerifierInvocation `
+    -Ok $storePublicMetadataReleaseMarkerOk `
+    -Message "store public metadata verifier must require current VERSION release marker on privacy and support pages"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "store public metadata verifier requires current release marker" `
+    -Verifier "store public metadata source contract" `
+    -FixturePath $storePublicMetadataVerifier `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $routeReachabilityRecorderSourceContractOk = Test-RouteReachabilityRecorderSourceContract -ScriptPath $routeReachabilityRecorder
 $invocation = New-StaticVerifierInvocation `
     -Ok $routeReachabilityRecorderSourceContractOk `
@@ -4291,6 +5065,155 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$privateMeshReleaseDesktopRuntimeScopeOk = Test-PrivateMeshReleaseDesktopRuntimeScopeContract -ScriptDir $scriptDir
+$invocation = New-StaticVerifierInvocation `
+    -Ok $privateMeshReleaseDesktopRuntimeScopeOk `
+    -Message "Private Mesh release runner, bundle, archive, and archive verifier must preserve desktop_runtime_* scope so external CLI evidence cannot be confused with packaged desktop proof"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh release evidence records desktop runtime scope" `
+    -Verifier "Private Mesh release proof source contract" `
+    -FixturePath (Join-Path $scriptDir "run-private-mesh-release-proof.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoPrivateMeshPackagedReleaseProofOk = Test-GoNoGoPrivateMeshPackagedReleaseProofContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoPrivateMeshPackagedReleaseProofOk `
+    -Message "release go/no-go must block unless a verified Private Mesh archive was produced by the packaged desktop runtime"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go blocks on packaged desktop Private Mesh release proof" `
+    -Verifier "Private Mesh go-no-go source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$privateMeshPackagedReleaseStatusSurfaceOk = Test-PrivateMeshPackagedReleaseStatusSurfaceContract `
+    -ExternalScriptPath $externalGateRecheckRecorder `
+    -FinalStatusScriptPath $finalHandoffStatusReporter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $privateMeshPackagedReleaseStatusSurfaceOk `
+    -Message "external recheck and final handoff status must surface the packaged desktop Private Mesh release-proof gate, not just generic multi-device readiness"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "packaged desktop Private Mesh release proof surfaces in status reports" `
+    -Verifier "Private Mesh release status source contract" `
+    -FixturePath $finalHandoffStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$privateMeshReleaseProofArchiveImporterOk = Test-PrivateMeshReleaseProofArchiveImporterContract -ScriptPath (Join-Path $scriptDir "import-private-mesh-release-proof-archive.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $privateMeshReleaseProofArchiveImporterOk `
+    -Message "Private Mesh release-proof archive importer must verify archive replay, reject non-packaged runtime evidence, and copy only inside the release evidence root"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh packaged release proof archive importer is strict" `
+    -Verifier "Private Mesh release archive importer source contract" `
+    -FixturePath (Join-Path $scriptDir "import-private-mesh-release-proof-archive.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$privateMeshReleaseProofArchiveImporter = Join-Path $scriptDir "import-private-mesh-release-proof-archive.ps1"
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "missing-root" `
+    -ExpectedFailureKind "private_mesh_release_proof_root_missing"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains missing proof root" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "empty-root" `
+    -ExpectedFailureKind "private_mesh_release_proof_archive_manifest_missing" `
+    -CreateProofRoot
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains empty proof root" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "bad-candidate" `
+    -ExpectedFailureKind "no_packaged_desktop_archive_candidate" `
+    -CreateInvalidArchiveManifest
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains rejected archive candidates" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "explicit-missing-manifest" `
+    -ExpectedFailureKind "archive_manifest_path_missing" `
+    -UseMissingExplicitArchiveManifestPath
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains explicit missing archive manifest" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "explicit-invalid-manifest" `
+    -ExpectedFailureKind "archive_verifier_failed" `
+    -CreateInvalidArchiveManifest `
+    -UseExplicitArchiveManifestPath
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains explicit invalid archive manifest" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "explicit-missing-archive-dir" `
+    -ExpectedFailureKind "archive_dir_missing" `
+    -UseMissingExplicitArchiveDir
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains explicit missing archive directory" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
+$invocation = New-PrivateMeshArchiveImporterFailureInvocation `
+    -ImporterPath $privateMeshReleaseProofArchiveImporter `
+    -CaseName "explicit-archive-dir-without-manifest" `
+    -ExpectedFailureKind "archive_manifest_missing_in_archive_dir" `
+    -UseExplicitArchiveDirWithoutManifest
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Private Mesh archive importer explains explicit archive directory without manifest" `
+    -Verifier "Private Mesh release archive importer" `
+    -FixturePath $privateMeshReleaseProofArchiveImporter `
+    -ShouldPass $false `
+    -Invocation $invocation `
+    -RequireParsed
+
 $externalGateRecheckActionableContractOk = Test-ExternalGateRecheckActionableContract -ScriptPath $externalGateRecheckRecorder
 $invocation = New-StaticVerifierInvocation `
     -Ok $externalGateRecheckActionableContractOk `
@@ -4456,6 +5379,18 @@ Add-CaseResult `
     -Name "MSIX legacy conflict check separates persisted and current process PATH" `
     -Verifier "MSIX legacy conflict source contract" `
     -FixturePath $msixLegacyConflictsChecker `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$msixLegacyConflictFastScheduledTaskProbeContractOk = Test-MsixLegacyConflictFastScheduledTaskProbeContract -CommonScriptPath $msixCommon -CheckerScriptPath $msixLegacyConflictsChecker
+$invocation = New-StaticVerifierInvocation `
+    -Ok $msixLegacyConflictFastScheduledTaskProbeContractOk `
+    -Message "MSIX legacy conflict check must prefer the in-process CIM scheduled-task probe while preserving the timeout-bounded Get-ScheduledTask fallback and reporting the probe method"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "MSIX legacy conflict check uses fast scheduled-task probe with fallback" `
+    -Verifier "MSIX legacy conflict source contract" `
+    -FixturePath $msixCommon `
     -ShouldPass $true `
     -Invocation $invocation
 
@@ -4723,6 +5658,13 @@ Add-CaseResult -Cases $cases -Name "process attribution summary rejects repo-rel
 $fixture = Write-Fixture -Name "runtime-matrix-valid" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
 Add-CaseResult -Cases $cases -Name "runtime matrix accepts complete resource-budget evidence" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$validRuntimeCpuMatrixCurrentPackagePath = Copy-JsonObject -Object $validRuntimeCpuMatrix
+$validRuntimeCpuMatrixCurrentPackagePath.musu_exe = "C:\Program Files\WindowsApps\blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc\musu.exe"
+$validRuntimeCpuMatrixCurrentPackagePath.musu_exe_release_identity = $true
+$fixture = Write-Fixture -Name "runtime-matrix-valid-current-blossompark-package-path" -Object $validRuntimeCpuMatrixCurrentPackagePath
+$invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-Json")
+Add-CaseResult -Cases $cases -Name "runtime matrix accepts current Blossompark MSIX package path" -Verifier "verify-runtime-cpu-scenario-matrix.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
 $fixture = Write-Fixture -Name "runtime-matrix-local-route-target-required" -Object $validRuntimeCpuMatrix
 $invocation = Invoke-Verifier -ScriptPath $runtimeCpuScenarioMatrixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-RequiredScenarios", "startup-open,runtime-started,dashboard-open,desktop-open,post-route", "-MinSampleSeconds", "60", "-MaxOneCorePercent", "5", "-RequirePostRouteProbe", "-RequirePostRouteTarget", "-Json")

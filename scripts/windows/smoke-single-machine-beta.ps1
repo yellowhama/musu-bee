@@ -5,6 +5,8 @@ param(
     [string]$WorkspaceUri = "file:///F:/workspace/musu-bee",
     [string]$ExpectedDashboardOutput = "MUSU_RELEASE_SMOKE_OK",
     [string]$ExpectedCliOutput = "MUSU_CLI_ROUTE_OK",
+    [string]$CliModel = "",
+    [string]$CliAdapter = "",
     [int]$TaskTimeoutSec = 180,
     [int]$CommandTimeoutSec = 90,
     [int]$ReadinessRetryCount = 5,
@@ -383,11 +385,35 @@ Assert-True ($sseContentType.Contains("text/event-stream")) "SSE endpoint did no
 }
 
 $cliRouteOutput = $null
+$cliRouteModelApplied = $false
 if (-not $SkipCliRoute) {
     Write-Step "Run CLI route smoke"
+    $routeArgs = @("route", "--wait")
+    $routeHelp = $null
+    if ((-not [string]::IsNullOrWhiteSpace($CliModel)) -or (-not [string]::IsNullOrWhiteSpace($CliAdapter))) {
+        $routeHelp = Invoke-TextCommand `
+            -FilePath $MusuExe `
+            -Arguments @("route", "--help") `
+            -TimeoutSec 30
+    }
+    if (-not [string]::IsNullOrWhiteSpace($CliAdapter)) {
+        if ($null -ne $routeHelp -and $routeHelp.Contains("--adapter")) {
+            $routeArgs += @("--adapter", $CliAdapter)
+        }
+        else {
+            throw "CLI route smoke requested adapter '$CliAdapter', but this MUSU build does not support route --adapter."
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($CliModel)) {
+        if ($routeHelp.Contains("--model")) {
+            $routeArgs += @("--model", $CliModel)
+            $cliRouteModelApplied = $true
+        }
+    }
+    $routeArgs += @("Reply exactly: $ExpectedCliOutput")
     $cliRouteOutput = Invoke-TextCommand `
         -FilePath $MusuExe `
-        -Arguments @("route", "--wait", "Reply exactly: $ExpectedCliOutput") `
+        -Arguments $routeArgs `
         -TimeoutSec $TaskTimeoutSec
     Assert-True ($cliRouteOutput.Contains($ExpectedCliOutput)) "CLI route output did not contain expected text '$ExpectedCliOutput'. Output: $cliRouteOutput"
 }
@@ -424,6 +450,8 @@ $evidence = [pscustomobject]@{
     sse_status_code = if ($bridgeOnlyPackage) { 0 } else { $sse.StatusCode }
     sse_content_type = $sseContentType
     cli_route_checked = -not $SkipCliRoute
+    cli_route_adapter = if ($SkipCliRoute -or [string]::IsNullOrWhiteSpace($CliAdapter)) { $null } else { $CliAdapter }
+    cli_route_model = if ($SkipCliRoute) { $null } elseif ($cliRouteModelApplied) { $CliModel } else { $null }
     expected_cli_output = if ($SkipCliRoute) { $null } else { $ExpectedCliOutput }
     cli_route_output = if ($SkipCliRoute) { $null } else { $cliRouteOutput.Trim() }
 }

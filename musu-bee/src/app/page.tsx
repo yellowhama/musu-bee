@@ -261,7 +261,7 @@ export default function ComingSoonPage() {
                 </div>
                 <div style={{ background: "rgba(36, 200, 219, 0.1)", border: "1px solid rgba(36, 200, 219, 0.2)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "var(--fg1)", lineHeight: 1.5, position: "relative" }}>
                   <div style={{ position: "absolute", left: -6, top: 20, width: 4, height: 16, background: "var(--accent)", borderRadius: 2 }} />
-                  I've assigned the backend refactoring to Cloud-A100.
+                  I&apos;ve assigned the backend refactoring to Cloud-A100.
                 </div>
               </div>
               <div style={{ padding: 20, borderTop: "1px solid var(--border-subtle)" }}>

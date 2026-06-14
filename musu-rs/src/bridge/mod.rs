@@ -368,15 +368,24 @@ pub async fn run() -> Result<()> {
                 }
 
                 let tailscale_ip = crate::peer::tailscale::get_tailscale_ip();
+                let mesh_status =
+                    crate::install::private_mesh::build_status_report(&musu_home_clone);
                 let hardware = crate::peer::hardware::gather_hardware_info_cached();
                 let mut meta_obj = serde_json::json!({
                     "hardware": hardware,
                     "public_url": advertised_public_url,
+                    "mesh_mode": mesh_status.mode.clone(),
+                    "route_label": mesh_status.route_label.clone(),
+                    "control_server_url": mesh_status.control_server_url.clone(),
+                    "control_server_verified": mesh_status.control_server_verified,
                 });
                 if let Some(scheme) = advertised_transport_scheme_clone.as_ref() {
                     meta_obj["transport_scheme"] = serde_json::json!(scheme);
                 }
-                if let Some(ip) = tailscale_ip.as_ref() {
+                if let Some(ip) = tailscale_ip
+                    .as_ref()
+                    .or(mesh_status.local_tailnet_ip.as_ref())
+                {
                     meta_obj["tailscale_ip"] = serde_json::json!(ip);
                 }
                 if let Some(fingerprint) = tls_cert_fingerprint_clone.as_ref() {
