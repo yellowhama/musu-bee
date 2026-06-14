@@ -363,6 +363,18 @@ if (-not $DryRun -and -not (Test-Path -LiteralPath $desktopExe)) {
 
 $resolvedIcon = Resolve-OptionalPath $SourceIconPath
 $resolvedCert = Resolve-OptionalPath $CertPath
+# Key stability: prefer the canonical signing key so every build (regardless of
+# -OutputDir) signs with the SAME certificate. Without this, -GenerateCert minted
+# a fresh key per build, breaking .appinstaller auto-update (publisher/thumbprint
+# mismatch). The pfx lives under .local-build/signing/ (gitignored), so it is
+# durable locally but never committed. -CertPath still overrides; if the
+# canonical key is absent and -GenerateCert is set, a new key is minted and
+# saved here as the canonical one for all future builds.
+$canonicalCertPath = Join-Path $repoRoot ".local-build\signing\blossompark.musu.pfx"
+if (-not $resolvedCert -and (Test-Path -LiteralPath $canonicalCertPath)) {
+    $resolvedCert = (Resolve-Path -LiteralPath $canonicalCertPath).Path
+    Write-Step "Using canonical signing certificate ($canonicalCertPath)"
+}
 if (-not $resolvedCert -and (Test-Path -LiteralPath $generatedCertPath)) {
     $resolvedCert = (Resolve-Path -LiteralPath $generatedCertPath).Path
 }
@@ -455,6 +467,18 @@ if ($resolvedCert) {
 
 Write-Step "Packing MSIX"
 Invoke-Checked -FilePath "winapp" -ArgumentList $packArgs -WorkingDirectory $repoRoot
+
+# Persist a freshly-minted key as the canonical signing key so all future builds
+# reuse it (stable .appinstaller auto-update). Only when we just generated one
+# (no pre-existing cert was reused) and the canonical slot is still empty.
+if (-not $DryRun -and -not $resolvedCert -and $GenerateCert -and `
+        (Test-Path -LiteralPath $generatedCertPath) -and `
+        -not (Test-Path -LiteralPath $canonicalCertPath)) {
+    $canonicalDir = Split-Path -Parent $canonicalCertPath
+    New-Item -ItemType Directory -Force -Path $canonicalDir | Out-Null
+    Copy-Item -LiteralPath $generatedCertPath -Destination $canonicalCertPath -Force
+    Write-Step "Saved newly-generated key as canonical ($canonicalCertPath)"
+}
 
 if (-not $KeepStage -and -not $DryRun) {
     Write-Step "Cleaning stage directory"
