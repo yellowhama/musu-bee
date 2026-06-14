@@ -178,7 +178,10 @@ fn callback_node_name() -> String {
         })
 }
 
-#[cfg(windows)]
+// PATH lookup is platform-neutral (split_paths handles ; vs : per OS), so this
+// must NOT be Windows-gated: adapter_binary_on_path / resolve_agent_binary call
+// it on every platform. (Was #[cfg(windows)] and broke the Linux CI build with
+// E0425 cannot-find-function — Windows-only local testing missed it.)
 fn find_on_path(file_name: &str) -> Option<String> {
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
