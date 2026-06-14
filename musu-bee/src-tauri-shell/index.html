@@ -125,6 +125,21 @@
               <button id="physical-peer-evidence-check" type="button">Check evidence</button>
             </div>
             <p id="physical-peer-evidence-status" class="release-evidence-input-status" hidden></p>
+            <!-- Run the full release proof from here (control host) instead of
+                 copying the `musu mesh release-proof ...` command. Target node/IP
+                 + the checked evidence file feed private_mesh_release_proof_target. -->
+            <div class="release-proof-run">
+              <label class="release-evidence-input" for="release-proof-target-ip">
+                <span>Peer tailnet IP (100.x.y.z)</span>
+                <input id="release-proof-target-ip" type="text" placeholder="100.64.0.x" autocomplete="off" />
+              </label>
+              <label class="release-evidence-input" for="release-proof-control-url">
+                <span>Control server URL</span>
+                <input id="release-proof-control-url" type="url" placeholder="https://mesh.your-domain" autocomplete="off" />
+              </label>
+              <button id="release-proof-run" type="button">Run release proof</button>
+              <p id="release-proof-run-status" class="release-evidence-input-status" hidden></p>
+            </div>
           </div>
           <div class="release-evidence-actions">
             <button type="button" data-open-release-evidence disabled>Open folder</button>

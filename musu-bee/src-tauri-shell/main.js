@@ -1598,6 +1598,64 @@ async function validatePhysicalPeerEvidenceForTarget(path, target) {
   }
 }
 
+// Run the full release proof from the cockpit (control host) instead of copying
+// `musu mesh release-proof ...`. Pulls the peer IP + control URL from the inputs
+// and the checked physical-evidence path, and the target node from the order
+// target selector, then calls private_mesh_release_proof_target.
+async function runReleaseProof() {
+  const btn = $("release-proof-run");
+  const statusEl = $("release-proof-run-status");
+  if (!btn) return;
+  const targetIp = String($("release-proof-target-ip")?.value || "").trim();
+  const controlUrl = String($("release-proof-control-url")?.value || "").trim();
+  const evidencePath = physicalPeerEvidencePath();
+  const targetNode = String($("order-target")?.value || "").trim();
+  const fail = (msg) => {
+    if (statusEl) {
+      statusEl.hidden = false;
+      statusEl.dataset.state = "error";
+      statusEl.textContent = msg;
+    }
+  };
+  if (!targetNode) return fail("Pick the target machine in the order bar first.");
+  if (!/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(targetIp))
+    return fail("Enter the peer's tailnet IP (100.64.0.0/10).");
+  if (!controlUrl) return fail("Enter your control server URL.");
+  if (!evidencePath) return fail("Check the target PC's physical evidence file first.");
+
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  if (statusEl) {
+    statusEl.hidden = false;
+    statusEl.dataset.state = "running";
+    statusEl.textContent = "Running ping → bridge health → delegated task → callback → evidence proof…";
+  }
+  try {
+    const r = await invoke("private_mesh_release_proof_target", {
+      targetNode,
+      targetIp,
+      expectedControlServerUrl: controlUrl,
+      physicalPeerEvidencePath: evidencePath,
+    });
+    if (statusEl) {
+      if (r && r.release_grade) {
+        statusEl.dataset.state = "ok";
+        statusEl.textContent = "Release-grade proof passed: distinct hosts, tailnet ping, bridge health, callback, and physical evidence all verified.";
+      } else {
+        statusEl.dataset.state = r && r.ok ? "warn" : "error";
+        statusEl.textContent = (r && (r.error || (r.next_steps && r.next_steps[0]))) ||
+          "Software route verified but not yet release-grade — check the steps above.";
+      }
+    }
+  } catch (err) {
+    fail(`Release proof failed: ${String(err)}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = old || "Run release proof";
+  }
+}
+
 async function useLatestPhysicalPeerEvidence(btn) {
   const old = btn?.textContent || "Use latest";
   try {
@@ -2336,6 +2394,15 @@ async function runMeshBootstrap() {
       resultEl.hidden = false;
       resultEl.dataset.state = "error";
       resultEl.textContent = "Enter your mesh host URL first (e.g. https://mesh.your-domain).";
+    }
+    input.focus();
+    return;
+  }
+  if (!(serverUrl.startsWith("https://") || serverUrl.startsWith("http://")) || /\s/.test(serverUrl)) {
+    if (resultEl) {
+      resultEl.hidden = false;
+      resultEl.dataset.state = "error";
+      resultEl.textContent = "Use a full mesh host URL such as https://mesh.your-domain (http:// is only for local test meshes).";
     }
     input.focus();
     return;
@@ -3892,6 +3959,7 @@ $("physical-peer-evidence-latest")?.addEventListener("click", (event) => {
 $("physical-peer-evidence-check")?.addEventListener("click", (event) => {
   checkPhysicalPeerEvidence(event.currentTarget);
 });
+$("release-proof-run")?.addEventListener("click", runReleaseProof);
 $("physical-peer-evidence-path")?.addEventListener("input", () => {
   clearPhysicalPeerEvidenceValidation();
 });
