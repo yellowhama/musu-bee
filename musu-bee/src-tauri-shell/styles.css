@@ -1107,6 +1107,52 @@ body {
 .device-add-pass code {
   color: var(--ink);
 }
+.device-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 9px;
+}
+.device-add-actions button {
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--online) 30%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--online) 11%, var(--bg-1));
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+}
+.device-add-actions button:first-child {
+  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+  background: color-mix(in srgb, var(--amber) 16%, var(--bg-1));
+}
+.device-add-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.device-add-actions button[hidden] {
+  display: none;
+}
+.device-add-pass-result {
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-0);
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.device-add-pass-result[data-state="ok"] {
+  border-color: color-mix(in srgb, var(--online) 40%, var(--line));
+  color: var(--ink);
+}
+.device-add-pass-result[data-state="error"] {
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--line));
+  color: var(--bad);
+}
 .command-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

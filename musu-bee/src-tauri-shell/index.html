@@ -198,20 +198,16 @@
             </li>
             <li>
               <span class="step-kicker">Device-add pass</span>
-              <p>Run the generated helper; it writes a one-use MUSU device-add pass file under <code>device-add-passes/</code> and prints only the file path plus the target join command.</p>
+              <p>With the control host running, issue a one-use MUSU device-add pass from this cockpit. MUSU writes the secret-bearing pass under <code>device-add-passes/</code> and only shows the file path to copy to the target PC.</p>
               <div class="device-add-pass">
                 <strong>Pass schema</strong>
                 <code>musu.device_add.v1</code>
               </div>
-              <div class="command-row">
-                <code>powershell -ExecutionPolicy Bypass -File .\scripts\create-join-key.ps1</code>
-                <button
-                  type="button"
-                  data-copy-text="powershell -ExecutionPolicy Bypass -File .\scripts\create-join-key.ps1"
-                >
-                  Copy
-                </button>
+              <div class="device-add-actions">
+                <button id="device-add-pass-generate" type="button">Issue pass</button>
+                <button id="device-add-pass-copy" type="button" data-copy-text="" hidden>Copy path</button>
               </div>
+              <p id="device-add-pass-result" class="device-add-pass-result" hidden></p>
             </li>
             <li>
               <span class="step-kicker">Every PC</span>
@@ -348,6 +344,7 @@
           <div class="diag-row"><span>Bridge</span><strong id="d-bridge">—</strong></div>
           <div class="diag-row"><span>Connection</span><strong id="d-conn">—</strong></div>
           <div class="diag-row"><span>Runtime</span><strong id="d-runtime">—</strong></div>
+          <div class="diag-row"><span>Dashboard</span><strong id="d-dashboard">—</strong></div>
           <div class="diag-row"><span>Package</span><strong id="package-status">—</strong></div>
           <div class="diag-row"><span>Auth</span><strong id="auth-status">—</strong></div>
           <div class="diag-row"><span>Runtime profile</span><strong id="runtime-profile-status">—</strong></div>
@@ -368,6 +365,7 @@
         <div id="diag-warnings" class="diag-warnings" hidden></div>
         <div class="diag-actions">
           <button id="start-runtime" type="button" disabled>Start Runtime</button>
+          <button id="open-dashboard" type="button" hidden>Open dashboard</button>
           <button id="d-refresh" type="button">Refresh</button>
           <button id="d-copy" type="button">Copy diagnostics</button>
         </div>

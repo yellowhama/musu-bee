@@ -2387,6 +2387,51 @@ async function runMeshBootstrap() {
   }
 }
 
+async function runDeviceAddPassIssue() {
+  const btn = $("device-add-pass-generate");
+  const copyBtn = $("device-add-pass-copy");
+  const resultEl = $("device-add-pass-result");
+  if (!btn) return;
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Issuing...";
+  if (copyBtn) {
+    copyBtn.hidden = true;
+    copyBtn.dataset.copyText = "";
+  }
+  if (resultEl) {
+    resultEl.hidden = false;
+    resultEl.dataset.state = "running";
+    resultEl.textContent = "Minting a one-use MUSU device-add pass from the running control host...";
+  }
+  try {
+    const r = await invoke("private_mesh_create_join_key");
+    if (r && r.ok) {
+      const expiry = Number(r.expires_after_seconds || 0);
+      if (resultEl) {
+        resultEl.dataset.state = "ok";
+        resultEl.textContent = `Pass ready: ${r.pass_path} (${r.login_server}, tailnet ${r.tailnet}, expires in ${Math.round(expiry / 60) || 60} min).`;
+      }
+      if (copyBtn) {
+        copyBtn.hidden = false;
+        copyBtn.dataset.copyText = r.pass_path || "";
+        copyBtn.textContent = "Copy path";
+      }
+    } else if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = (r && r.error) || "Could not issue a device-add pass. Start the control host and run the checks first.";
+    }
+  } catch (err) {
+    if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = `Could not issue a device-add pass: ${String(err)}`;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText || "Issue pass";
+  }
+}
+
 async function runPrivateMeshDoctor() {
   const btn = $("mesh-doctor");
   if (!btn) return;
@@ -2796,6 +2841,16 @@ function renderDiagnostics(status) {
       : "offline";
   $("d-conn").textContent = status.auth_status || "unknown";
   $("d-runtime").textContent = `${status.runtime_process_count ?? 0} process(es)`;
+  const dashboardAvailable = Boolean(status.dashboard_url);
+  $("d-dashboard").textContent = dashboardAvailable
+    ? "available"
+    : status.dashboard_status || "offline";
+  const openDashboardBtn = $("open-dashboard");
+  if (openDashboardBtn) {
+    openDashboardBtn.hidden = !dashboardAvailable;
+    openDashboardBtn.disabled = state.busy || !dashboardAvailable;
+    openDashboardBtn.title = status.dashboard_detail || "";
+  }
   $("package-status").textContent = status.package_status || "unknown";
   $("auth-status").textContent = status.auth_status || "unknown";
   $("runtime-profile-status").textContent = status.runtime_profile_status || "unknown";
@@ -2879,6 +2934,37 @@ async function startRuntime(btn) {
     if (btn) btn.textContent = "Start Runtime";
     const canStartRuntimeNow = state.status?.can_start_runtime === true;
     $("start-runtime").disabled = state.busy || !canStartRuntimeNow;
+  }
+}
+
+async function openDashboard(btn) {
+  if (state.busy) return;
+  state.busy = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Opening...";
+  }
+  try {
+    const result = await invoke("open_dashboard");
+    if (!result?.ok) {
+      const wbox = $("diag-warnings");
+      if (wbox) {
+        wbox.hidden = false;
+        wbox.textContent = result?.output || result?.message || "Dashboard is not available.";
+      }
+    }
+  } catch (err) {
+    const wbox = $("diag-warnings");
+    if (wbox) {
+      wbox.hidden = false;
+      wbox.textContent = `Dashboard open failed: ${String(err)}`;
+    }
+  } finally {
+    state.busy = false;
+    if (btn) {
+      btn.textContent = "Open dashboard";
+      btn.disabled = !state.status?.dashboard_url;
+    }
   }
 }
 
@@ -3712,6 +3798,7 @@ $("d-refresh").addEventListener("click", () => {
   loadDiagnostics();
 });
 $("start-runtime").addEventListener("click", (e) => startRuntime(e.currentTarget));
+$("open-dashboard").addEventListener("click", (e) => openDashboard(e.currentTarget));
 $("d-copy").addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(window.__lastStatus || {}, null, 2));
@@ -3742,6 +3829,7 @@ document.querySelectorAll("[data-copy-text]").forEach((btn) => {
 
 $("mesh-doctor")?.addEventListener("click", runPrivateMeshDoctor);
 $("bootstrap-generate")?.addEventListener("click", runMeshBootstrap);
+$("device-add-pass-generate")?.addEventListener("click", runDeviceAddPassIssue);
 $("bootstrap-server-url")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();

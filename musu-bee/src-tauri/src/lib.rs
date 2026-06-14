@@ -30,6 +30,7 @@ pub fn run() {
             private_mesh_doctor,
             private_mesh_verify_target,
             private_mesh_bootstrap,
+            private_mesh_create_join_key,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -245,6 +246,22 @@ struct PrivateMeshBootstrapDesktopResult {
     tailnet_name: String,
     generated_files: Vec<String>,
     next_commands: Vec<String>,
+    error: Option<String>,
+    output: String,
+}
+
+/// Result of `private_mesh_create_join_key` — the cockpit's "Issue device-add
+/// pass" action. Mints a one-use pass from the running control plane and tells
+/// the user exactly which file to copy to the target PC, so adding a machine is
+/// a button, not a copied `scripts/create-join-key` command.
+#[derive(serde::Serialize)]
+struct PrivateMeshCreateJoinKeyDesktopResult {
+    ok: bool,
+    pass_path: String,
+    login_server: String,
+    tailnet: String,
+    expires_after_seconds: i64,
+    join_command: String,
     error: Option<String>,
     output: String,
 }
@@ -918,6 +935,72 @@ fn private_mesh_bootstrap(
         tailnet_name: str_field("tailnet_name"),
         generated_files: str_list("generated_files"),
         next_commands: str_list("commands"),
+        error: None,
+        output: combined,
+    })
+}
+
+/// `private_mesh_create_join_key` — mint a one-use device-add pass from the
+/// cockpit. Proxies `musu mesh create-join-key --json`, which runs the bundle's
+/// helper against the running Headscale control plane and returns the pass file
+/// to copy to the new PC. Adding a machine is now a button, not a copied script.
+#[tauri::command]
+fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResult, String> {
+    let command = musu_command_path();
+    // Minting a key talks to a container (docker exec) and can take a few
+    // seconds; give it the same headroom as a doctor run.
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "create-join-key", "--json"],
+        PRIVATE_MESH_DOCTOR_TIMEOUT,
+    )
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh create-join-key --json: {err}",
+            command.display()
+        )
+    })?;
+    if result.timed_out {
+        return Err(format!(
+            "{} mesh create-join-key --json timed out",
+            command.display()
+        ));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if !result.status_success {
+        return Ok(PrivateMeshCreateJoinKeyDesktopResult {
+            ok: false,
+            pass_path: String::new(),
+            login_server: String::new(),
+            tailnet: String::new(),
+            expires_after_seconds: 0,
+            join_command: String::new(),
+            error: Some(combined.clone()),
+            output: combined,
+        });
+    }
+
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
+        .map_err(|err| format!("failed to parse `musu mesh create-join-key --json` output: {err}"))?;
+    let str_field = |key: &str| {
+        report
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+
+    Ok(PrivateMeshCreateJoinKeyDesktopResult {
+        ok: true,
+        pass_path: str_field("pass_path"),
+        login_server: str_field("login_server"),
+        tailnet: str_field("tailnet"),
+        expires_after_seconds: report
+            .get("expires_after_seconds")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0),
+        join_command: str_field("join_command"),
         error: None,
         output: combined,
     })

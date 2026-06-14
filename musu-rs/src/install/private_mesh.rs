@@ -22,6 +22,10 @@ pub enum PrivateMeshAction {
     Doctor(PrivateMeshStatusOpts),
     /// Generate a self-hosted Headscale control-plane deployment bundle.
     Bootstrap(PrivateMeshBootstrapOpts),
+    /// Mint a one-use device-add pass (Headscale preauth key) from a running
+    /// control-plane bundle, so the cockpit's "Add PC" button can issue a pass
+    /// without the operator running scripts/create-join-key by hand.
+    CreateJoinKey(PrivateMeshCreateJoinKeyOpts),
     /// Join this machine to MUSU Private Mesh through a Headscale login server.
     Join(PrivateMeshJoinOpts),
     /// Verify a target peer over MUSU Private Mesh and update local evidence.
@@ -81,6 +85,20 @@ pub struct PrivateMeshBootstrapOpts {
     #[arg(long)]
     pub force: bool,
     /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshCreateJoinKeyOpts {
+    /// Control-plane bundle directory (the one `mesh bootstrap` wrote). Defaults
+    /// to `~/.musu/private-mesh-control-plane`.
+    #[arg(long)]
+    pub bundle_dir: Option<PathBuf>,
+    /// Emit machine-readable JSON (the cockpit Add PC button uses this).
     #[arg(long)]
     pub json: bool,
     /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
@@ -401,6 +419,7 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::Status(opts) => run_status(opts, false).await,
         PrivateMeshAction::Doctor(opts) => run_status(opts, true).await,
         PrivateMeshAction::Bootstrap(opts) => run_bootstrap(opts).await,
+        PrivateMeshAction::CreateJoinKey(opts) => run_create_join_key(opts).await,
         PrivateMeshAction::Join(opts) => run_join(opts).await,
         PrivateMeshAction::Verify(opts) => run_verify(opts).await,
         PrivateMeshAction::PhysicalPeerEvidence(opts) => run_physical_peer_evidence(opts).await,
@@ -458,6 +477,136 @@ async fn run_bootstrap(opts: PrivateMeshBootstrapOpts) -> Result<()> {
     Ok(())
 }
 
+/// Run the bundle's `create-join-key` helper to mint a one-use device-add pass
+/// from the running Headscale control plane, then report the generated pass
+/// file. This is what the cockpit's "Issue device-add pass" button calls, so
+/// adding a PC never requires the operator to run the helper script by hand.
+async fn run_create_join_key(opts: PrivateMeshCreateJoinKeyOpts) -> Result<()> {
+    let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let bundle_dir = opts
+        .bundle_dir
+        .clone()
+        .unwrap_or_else(|| home.join("private-mesh-control-plane"));
+
+    if !bundle_dir.is_dir() {
+        anyhow::bail!(
+            "control-plane bundle not found at {}. Generate it first (Add PC → Generate bundle / `musu mesh bootstrap`).",
+            bundle_dir.display()
+        );
+    }
+    let scripts_dir = bundle_dir.join("scripts");
+    let passes_before = list_device_add_passes(&bundle_dir);
+
+    // Run the platform helper. The helper itself talks to the running Headscale
+    // container (`docker compose exec headscale headscale preauthkeys create`)
+    // and writes a musu.device_add.v1 file under device-add-passes/.
+    #[cfg(windows)]
+    let (program, args): (&str, Vec<String>) = (
+        "powershell",
+        vec![
+            "-NoProfile".to_string(),
+            "-NonInteractive".to_string(),
+            "-ExecutionPolicy".to_string(),
+            "Bypass".to_string(),
+            "-File".to_string(),
+            scripts_dir
+                .join("create-join-key.ps1")
+                .to_string_lossy()
+                .into_owned(),
+        ],
+    );
+    #[cfg(not(windows))]
+    let (program, args): (&str, Vec<String>) = (
+        "sh",
+        vec![scripts_dir
+            .join("create-join-key.sh")
+            .to_string_lossy()
+            .into_owned()],
+    );
+
+    let mut command = tokio::process::Command::new(program);
+    command.args(&args).current_dir(&bundle_dir);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|err| anyhow!("failed to run create-join-key helper: {err}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        anyhow::bail!(
+            "create-join-key helper failed. Is the Headscale control plane running (Add PC → Start the control host)?\n{stderr}{stdout}"
+        );
+    }
+
+    // Only a pass file created by this run is safe to surface. Falling back to
+    // an older file would make the cockpit copy a stale or already-consumed key.
+    let passes_after = list_device_add_passes(&bundle_dir);
+    let new_pass = passes_after
+        .iter()
+        .find(|p| !passes_before.contains(*p))
+        .cloned()
+        .ok_or_else(|| {
+            anyhow!("create-join-key helper ran but no new device-add pass file was produced")
+        })?;
+
+    let pass_value = read_device_add_pass(&new_pass.to_string_lossy())?;
+    let field = |k: &str| {
+        pass_value
+            .get(k)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+
+    let result = serde_json::json!({
+        "schema": "musu.create_join_key.v1",
+        "ok": true,
+        "pass_path": new_pass.to_string_lossy(),
+        "login_server": field("login_server"),
+        "tailnet": field("tailnet"),
+        "created_at_utc": field("created_at_utc"),
+        "expires_after_seconds": pass_value.get("expires_after_seconds").and_then(|v| v.as_i64()).unwrap_or(0),
+        "one_time_key": pass_value.get("one_time_key").and_then(|v| v.as_bool()).unwrap_or(false),
+        "join_command": field("join_command"),
+        "operator_instruction": field("operator_instruction"),
+    });
+
+    if opts.json {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!("MUSU device-add pass minted.");
+        println!("  pass file: {}", new_pass.display());
+        println!("  login server: {}", field("login_server"));
+        println!("  expires in: 1 hour, one-time use.");
+        println!();
+        println!("Copy that file to the target PC, then run:");
+        println!("  musu mesh join --device-add-pass <musu.device_add.v1.json>");
+    }
+    Ok(())
+}
+
+/// List existing `device-add-passes/*.json` files in a bundle, sorted, so the
+/// caller can detect the newly-minted one.
+fn list_device_add_passes(bundle_dir: &std::path::Path) -> Vec<PathBuf> {
+    let dir = bundle_dir.join("device-add-passes");
+    let mut out: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("json"))
+        .collect();
+    out.sort();
+    out
+}
+
 fn resolve_join_inputs(opts: &PrivateMeshJoinOpts) -> Result<ResolvedJoinInputs> {
     if let Some(pass) = opts.device_add_pass.as_deref() {
         if opts.login_server.is_some() || opts.authkey.is_some() {
@@ -512,7 +661,11 @@ fn read_device_add_pass(input: &str) -> Result<serde_json::Value> {
             path.display()
         )
     })?;
-    serde_json::from_str(&body).map_err(|err| {
+    // The Windows create-join-key.ps1 helper writes the pass file as UTF-8 with a
+    // BOM; serde_json rejects a leading BOM ("expected value at line 1 column 1").
+    // Strip it (and any surrounding whitespace) before parsing.
+    let body = body.trim_start_matches('\u{feff}').trim();
+    serde_json::from_str(body).map_err(|err| {
         anyhow!(
             "--device-add-pass file is not valid JSON at {}: {err}",
             path.display()
@@ -2863,7 +3016,11 @@ New-Item -ItemType Directory -Force -Path $passDir | Out-Null
 $safeTailnet = $Tailnet -replace "[^A-Za-z0-9_.-]", "_"
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $passPath = Join-Path $passDir "musu.device_add.$safeTailnet.$stamp.json"
-$deviceAddPass | ConvertTo-Json -Compress | Set-Content -LiteralPath $passPath -Encoding UTF8
+# Write UTF-8 WITHOUT a BOM. Windows PowerShell's `Set-Content -Encoding UTF8`
+# prepends a BOM, which makes the pass file fail JSON parsing on read
+# ("expected value at line 1 column 1"). WriteAllText is BOM-free on every
+# PowerShell version.
+[System.IO.File]::WriteAllText($passPath, ($deviceAddPass | ConvertTo-Json -Compress))
 try {{
   $acl = Get-Acl -LiteralPath $passPath
   $acl.SetAccessRuleProtection($true, $false)
@@ -4395,7 +4552,10 @@ mod tests {
         assert!(key_ps1.contains("$createdAtUtc"));
         assert!(key_ps1.contains("created_at_utc = $createdAtUtc"));
         assert!(key_ps1.contains("expires_after_seconds = 3600"));
-        assert!(key_ps1.contains("Set-Content -LiteralPath $passPath"));
+        // Pass file must be written BOM-free (WriteAllText), not via
+        // Set-Content -Encoding UTF8 which prepends a BOM and breaks JSON parse.
+        assert!(key_ps1.contains("[System.IO.File]::WriteAllText($passPath"));
+        assert!(!key_ps1.contains("Set-Content -LiteralPath $passPath -Encoding UTF8"));
         assert!(key_ps1.contains("SetAccessRuleProtection($true, $false)"));
         assert!(key_ps1.contains("schema = \"musu.device_add.v1\""));
         assert!(key_ps1.contains("one_time_key = $true"));
