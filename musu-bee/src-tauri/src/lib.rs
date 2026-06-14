@@ -29,6 +29,7 @@ pub fn run() {
             private_mesh_status,
             private_mesh_doctor,
             private_mesh_verify_target,
+            private_mesh_bootstrap,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -227,6 +228,23 @@ struct PrivateMeshVerifyDesktopResult {
     target_callback_match: bool,
     release_grade: bool,
     next_steps: Vec<String>,
+    error: Option<String>,
+    output: String,
+}
+
+/// Result of `private_mesh_bootstrap` — the cockpit's "Generate mesh bundle"
+/// action. Replaces the copy-the-`musu mesh bootstrap`-command UX: the cockpit
+/// calls this directly and shows where the self-hosted Headscale + Caddy +
+/// embedded-DERP bundle was written plus the next steps, so the user never has
+/// to leave the app to run the bootstrap CLI by hand.
+#[derive(serde::Serialize)]
+struct PrivateMeshBootstrapDesktopResult {
+    ok: bool,
+    server_url: String,
+    output_dir: String,
+    tailnet_name: String,
+    generated_files: Vec<String>,
+    next_commands: Vec<String>,
     error: Option<String>,
     output: String,
 }
@@ -616,25 +634,33 @@ fn account_token_present(home: &std::path::Path) -> bool {
 /// `MUSU_BRIDGE_TOKEN=` line in `~/.musu/bridge.env`. Mirrors
 /// `musu-rs install::token::read_bridge_token(...).is_some()`.
 fn bridge_token_present(home: &std::path::Path) -> bool {
-    if std::env::var("MUSU_BRIDGE_TOKEN")
-        .map(|t| !t.is_empty())
-        .unwrap_or(false)
-    {
-        return true;
+    bridge_token(home).is_some()
+}
+
+fn bridge_token(home: &std::path::Path) -> Option<String> {
+    if let Ok(token) = std::env::var("MUSU_BRIDGE_TOKEN") {
+        let token = token.trim().to_string();
+        if !token.is_empty() {
+            return Some(token);
+        }
     }
     let Ok(body) = std::fs::read_to_string(home.join("bridge.env")) else {
-        return false;
+        return None;
     };
-    body.lines().any(|line| {
+    for line in body.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
-            return false;
+            continue;
         }
         let line = line.strip_prefix("export ").unwrap_or(line);
-        line.strip_prefix("MUSU_BRIDGE_TOKEN=")
-            .map(|rest| !rest.trim_matches(|c| c == '"' || c == '\'').is_empty())
-            .unwrap_or(false)
-    })
+        if let Some(rest) = line.strip_prefix("MUSU_BRIDGE_TOKEN=") {
+            let token = rest.trim_matches(|c| c == '"' || c == '\'').to_string();
+            if !token.is_empty() {
+                return Some(token);
+            }
+        }
+    }
+    None
 }
 
 #[tauri::command]
@@ -810,6 +836,91 @@ fn private_mesh_verify_target(target_ip: String) -> Result<PrivateMeshVerifyDesk
     }
 
     parse_private_mesh_verify_result(&target_ip, &combined)
+}
+
+/// `private_mesh_bootstrap` — generate the self-hosted Private Mesh control-plane
+/// bundle (Headscale + Caddy HTTPS + embedded DERP) from the cockpit, so adding
+/// a PC starts with a button instead of a copied CLI command. Proxies
+/// `musu mesh bootstrap --server-url <url> --json` and projects its report into
+/// a desktop-friendly result the Add PC panel renders.
+#[tauri::command]
+fn private_mesh_bootstrap(
+    server_url: String,
+) -> Result<PrivateMeshBootstrapDesktopResult, String> {
+    let server_url = server_url.trim().to_string();
+    // Minimal validation so the cockpit never shells out a malformed URL.
+    if !(server_url.starts_with("https://") || server_url.starts_with("http://")) {
+        return Err("server_url must start with https:// (or http:// for a local test mesh)".to_string());
+    }
+    if server_url.contains(char::is_whitespace) {
+        return Err("server_url must not contain whitespace".to_string());
+    }
+
+    let command = musu_command_path();
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "bootstrap", "--server-url", &server_url, "--json"],
+        DOCTOR_STATUS_TIMEOUT,
+    )
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh bootstrap --server-url {server_url} --json: {err}",
+            command.display()
+        )
+    })?;
+    if result.timed_out {
+        return Err(format!(
+            "{} mesh bootstrap --server-url {server_url} --json timed out",
+            command.display()
+        ));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if !result.status_success {
+        return Ok(PrivateMeshBootstrapDesktopResult {
+            ok: false,
+            server_url,
+            output_dir: String::new(),
+            tailnet_name: String::new(),
+            generated_files: vec![],
+            next_commands: vec![],
+            error: Some(combined.clone()),
+            output: combined,
+        });
+    }
+
+    // Parse the PrivateMeshBootstrapReport JSON the CLI emitted on stdout.
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
+        .map_err(|err| format!("failed to parse `musu mesh bootstrap --json` output: {err}"))?;
+    let str_field = |key: &str| {
+        report
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+    let str_list = |key: &str| {
+        report
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    };
+
+    Ok(PrivateMeshBootstrapDesktopResult {
+        ok: true,
+        server_url: str_field("server_url"),
+        output_dir: str_field("output_dir"),
+        tailnet_name: str_field("tailnet_name"),
+        generated_files: str_list("generated_files"),
+        next_commands: str_list("commands"),
+        error: None,
+        output: combined,
+    })
 }
 
 #[tauri::command]
@@ -1057,92 +1168,69 @@ fn run_private_mesh_desktop_report(
     parse_private_mesh_desktop_status(&combined)
 }
 
-/// `list_fleet` — the cockpit's fleet list. Spawns `musu.exe nodes --json` (the
-/// same packaged-runtime-spawn pattern as `desktop_status`/`start_runtime`; this
-/// crate deliberately does NOT depend on musu-rs as a library) and parses its
-/// envelope. Returns an empty list (not an error) when not logged in yet, so the
-/// cockpit can show its empty/connecting state instead of an error.
+/// `list_fleet` — the cockpit's fleet list. Reads the local bridge's live
+/// `/api/fleet/status` endpoint directly instead of spawning `musu.exe nodes`
+/// on every refresh. This keeps fleet refresh cheap, removes a subprocess from
+/// the 15s cockpit loop, and avoids Windows console flicker regressions.
+/// Returns an empty list when the bridge/token is not ready yet so the cockpit
+/// can show its empty/connecting state instead of an error.
 #[tauri::command]
 fn list_fleet() -> Result<Vec<FleetNode>, String> {
-    let command = musu_command_path();
-    // `--local`: read the LIVE local mesh (this bridge's /api/fleet/status, with
-    // real health + manually-added peers) so the cockpit shows the true
-    // fleet-as-one-device view without depending on cloud login.
-    let result = run_command_with_timeout(
-        &command,
-        &["nodes", "--json", "--local"],
-        DOCTOR_STATUS_TIMEOUT,
-    )
-    .map_err(|err| {
-        format!(
-            "failed to run {} nodes --json --local: {err}",
-            command.display()
-        )
-    })?;
-    if result.timed_out {
-        return Err(format!(
-            "{} nodes --json --local timed out",
-            command.display()
-        ));
+    let home = musu_home();
+    let Some(base_url) = bridge_registry_status(&home).url else {
+        return Ok(Vec::new());
+    };
+    let Some(token) = bridge_token(&home) else {
+        return Ok(Vec::new());
+    };
+
+    let response = match http_get_with_bearer(&base_url, "/api/fleet/status", &token) {
+        Ok(response) => response,
+        Err(_) => return Ok(Vec::new()),
+    };
+    let status_code = http_status_code(&response).unwrap_or(0);
+    if status_code == 401 || status_code == 403 {
+        return Err("local_fleet_auth_failed".to_string());
     }
-
-    let envelope: serde_json::Value = serde_json::from_str(result.stdout.trim())
-        .map_err(|err| format!("failed to parse `musu nodes --json` output: {err}"))?;
-
-    // P3: distinguish "empty fleet" from failure. not_logged_in → empty Vec (the
-    // cockpit shows the connecting/device-flow screen). token_expired /
-    // cloud_unreachable → Err so the cockpit can say "sign in again" / "couldn't
-    // reach musu.pro" instead of silently showing zero machines.
-    if envelope.get("ok").and_then(|v| v.as_bool()) != Some(true) {
-        let kind = envelope.get("error").and_then(|v| v.as_str()).unwrap_or("");
-        return match kind {
-            // not_logged_in / bridge_unreachable → empty (cockpit shows its
-            // connecting/empty state rather than an error toast).
-            "not_logged_in" | "bridge_unreachable" | "" => Ok(Vec::new()),
-            "token_expired" => Err("token_expired".to_string()),
-            other => Err(format!("cloud_unreachable: {other}")),
-        };
+    if status_code != 200 {
+        return Ok(Vec::new());
     }
+    let body = http_response_body(&response)
+        .ok_or_else(|| "local fleet response did not contain an HTTP body".to_string())?;
+    let dashboard: serde_json::Value = serde_json::from_str(body)
+        .map_err(|err| format!("failed to parse local fleet JSON: {err}"))?;
 
-    let nodes = envelope
-        .get("nodes")
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
+    Ok(fleet_nodes_from_bridge_dashboard(&dashboard))
+}
 
-    Ok(nodes
-        .into_iter()
-        .map(|n| FleetNode {
-            node_name: n
-                .get("node_name")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            last_seen: n
-                .get("last_seen")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            status_error: json_string(&n, &["status_error"]),
-            public_url: n
-                .get("public_url")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            is_this_pc: n
-                .get("is_this_pc")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false),
-            tailscale_ip: json_string(&n, &["tailscale_ip"]),
-            mesh_mode: json_string(&n, &["mesh_mode"]),
-            route_label: json_string(&n, &["route_label"]),
-            control_server_url: json_string(&n, &["control_server_url"]),
-            control_server_verified: n
-                .get("control_server_verified")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false),
-        })
-        .collect())
+fn fleet_nodes_from_bridge_dashboard(dashboard: &serde_json::Value) -> Vec<FleetNode> {
+    let mut nodes = Vec::new();
+    if let Some(this) = dashboard.get("this_node") {
+        nodes.push(fleet_node_from_bridge_value(this, true));
+    }
+    if let Some(peers) = dashboard.get("peers").and_then(|value| value.as_array()) {
+        nodes.extend(
+            peers
+                .iter()
+                .map(|peer| fleet_node_from_bridge_value(peer, false)),
+        );
+    }
+    nodes
+}
+
+fn fleet_node_from_bridge_value(value: &serde_json::Value, is_this_pc: bool) -> FleetNode {
+    FleetNode {
+        node_name: json_string(value, &["name"]).unwrap_or_default(),
+        public_url: json_string(value, &["addr"]).unwrap_or_default(),
+        last_seen: json_string(value, &["last_seen"]).unwrap_or_default(),
+        status_error: json_string(value, &["status_error"]),
+        is_this_pc,
+        tailscale_ip: json_string(value, &["tailscale_ip"]),
+        mesh_mode: json_string(value, &["mesh_mode"]),
+        route_label: json_string(value, &["route_label"]),
+        control_server_url: json_string(value, &["control_server_url"]),
+        control_server_verified: json_bool(value, &["control_server_verified"]).unwrap_or(false),
+    }
 }
 
 /// `submit_order` — give the fleet work (P0: the cockpit's input path). Spawns
@@ -4633,6 +4721,26 @@ fn probe_http(base: &str, path: &str) -> ProbeResult {
 }
 
 fn http_get(base: &str, path: &str) -> Result<String, String> {
+    http_get_with_headers(base, path, &[])
+}
+
+fn http_get_with_bearer(base: &str, path: &str, token: &str) -> Result<String, String> {
+    let authorization = bearer_authorization_header(token)?;
+    http_get_with_headers(base, path, &[authorization.as_str()])
+}
+
+fn bearer_authorization_header(token: &str) -> Result<String, String> {
+    let token = token.trim();
+    if token.is_empty() {
+        return Err("bridge token is empty".to_string());
+    }
+    if token.bytes().any(|byte| byte <= 0x1f || byte == 0x7f) {
+        return Err("bridge token contains control characters".to_string());
+    }
+    Ok(format!("Authorization: Bearer {token}"))
+}
+
+fn http_get_with_headers(base: &str, path: &str, headers: &[&str]) -> Result<String, String> {
     let without_scheme = base
         .strip_prefix("http://")
         .ok_or_else(|| format!("unsupported URL scheme in {base}"))?;
@@ -4651,7 +4759,12 @@ fn http_get(base: &str, path: &str) -> Result<String, String> {
     .map_err(|err| format!("{host_port} unreachable: {err}"))?;
 
     let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(1200)));
-    let request = format!("GET {path} HTTP/1.1\r\nHost: {host_port}\r\nConnection: close\r\n\r\n");
+    let mut request = format!("GET {path} HTTP/1.1\r\nHost: {host_port}\r\n");
+    for header in headers {
+        request.push_str(header);
+        request.push_str("\r\n");
+    }
+    request.push_str("Connection: close\r\n\r\n");
     std::io::Write::write_all(&mut stream, request.as_bytes())
         .map_err(|err| format!("request write failed: {err}"))?;
 
@@ -4659,6 +4772,23 @@ fn http_get(base: &str, path: &str) -> Result<String, String> {
     std::io::Read::read_to_string(&mut stream, &mut response)
         .map_err(|err| format!("response read failed: {err}"))?;
     Ok(response)
+}
+
+fn http_response_body(response: &str) -> Option<&str> {
+    response
+        .split_once("\r\n\r\n")
+        .map(|(_, body)| body)
+        .or_else(|| response.split_once("\n\n").map(|(_, body)| body))
+}
+
+fn http_status_code(response: &str) -> Option<u16> {
+    response
+        .lines()
+        .next()?
+        .split_whitespace()
+        .nth(1)?
+        .parse::<u16>()
+        .ok()
 }
 
 fn spawn_runtime_autostart() {
@@ -4849,16 +4979,17 @@ mod tests {
         attach_release_evidence_integrity, attach_release_peer_identity,
         attach_route_evidence_integrity, bridge_is_healthy,
         bridge_registry_status_with_pid_checker, bridge_status_label, can_start_runtime,
-        developer_dashboard_surface_enabled_for, is_packaged_desktop_runtime_path, is_tailnet_ipv4,
-        latest_physical_peer_evidence_from_home, latest_release_evidence_from_home,
-        local_os_hostname, musu_command_path_for_current_exe, parse_doctor_status_summary,
-        parse_private_mesh_desktop_status, parse_private_mesh_release_proof_result,
-        parse_private_mesh_verify_result, parse_queued_task_id,
-        read_physical_peer_evidence_summary, release_evidence_folder_for_path,
-        release_proof_command_args, run_command_with_timeout, sha256_hex, startup_marker_path,
-        summarize_process_ownership, update_release_evidence_trust, verify_sidecar_for_file,
-        write_json_sidecar_for_file, PrivateMeshReleaseProofDesktopResult, ProcessEntry,
-        RuntimeStartGate, PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
+        developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
+        is_packaged_desktop_runtime_path, is_tailnet_ipv4, latest_physical_peer_evidence_from_home,
+        latest_release_evidence_from_home, local_os_hostname, musu_command_path_for_current_exe,
+        parse_doctor_status_summary, parse_private_mesh_desktop_status,
+        parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
+        parse_queued_task_id, read_physical_peer_evidence_summary,
+        release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
+        sha256_hex, startup_marker_path, summarize_process_ownership,
+        update_release_evidence_trust, verify_sidecar_for_file, write_json_sidecar_for_file,
+        PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate,
+        PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
@@ -4879,6 +5010,88 @@ mod tests {
         assert_eq!(parse_queued_task_id("✓ Task queued: unknown\n"), None);
         assert_eq!(parse_queued_task_id("order rejected: peer not found"), None);
         assert_eq!(parse_queued_task_id(""), None);
+    }
+
+    #[test]
+    fn bridge_dashboard_projects_to_fleet_nodes_without_cli_envelope() {
+        let dashboard = serde_json::json!({
+            "this_node": {
+                "name": "this-laptop",
+                "addr": "http://127.0.0.1:8070",
+                "last_seen": "2026-06-14T01:02:03Z",
+                "mesh_mode": "musu_headscale",
+                "route_label": "Private Mesh",
+                "tailscale_ip": "100.64.0.10",
+                "control_server_url": "https://mesh.example",
+                "control_server_verified": true
+            },
+            "peers": [
+                {
+                    "name": "studio-pc",
+                    "addr": "http://100.64.0.11:8070",
+                    "last_seen": "2026-06-14T01:02:04Z",
+                    "mesh_mode": "musu_headscale",
+                    "route_label": "Private Mesh",
+                    "tailscale_ip": "100.64.0.11",
+                    "control_server_url": "https://mesh.example",
+                    "control_server_verified": true
+                },
+                {
+                    "name": "offline-pc",
+                    "addr": "http://100.64.0.12:8070",
+                    "last_seen": "",
+                    "status_error": "node status unreadable"
+                }
+            ]
+        });
+
+        let nodes = fleet_nodes_from_bridge_dashboard(&dashboard);
+
+        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes[0].node_name, "this-laptop");
+        assert!(nodes[0].is_this_pc);
+        assert_eq!(nodes[1].node_name, "studio-pc");
+        assert_eq!(nodes[1].mesh_mode.as_deref(), Some("musu_headscale"));
+        assert_eq!(nodes[1].tailscale_ip.as_deref(), Some("100.64.0.11"));
+        assert!(nodes[1].control_server_verified);
+        assert_eq!(nodes[2].node_name, "offline-pc");
+        assert_eq!(nodes[2].last_seen, "");
+        assert_eq!(
+            nodes[2].status_error.as_deref(),
+            Some("node status unreadable")
+        );
+    }
+
+    #[test]
+    fn bearer_authorization_header_trims_valid_token() {
+        assert_eq!(
+            super::bearer_authorization_header("  abc123  ").unwrap(),
+            "Authorization: Bearer abc123"
+        );
+    }
+
+    #[test]
+    fn bearer_authorization_header_rejects_control_characters() {
+        assert!(super::bearer_authorization_header("abc\r\nX-Injected: true").is_err());
+        assert!(super::bearer_authorization_header("abc\u{7f}").is_err());
+        assert!(super::bearer_authorization_header("   ").is_err());
+    }
+
+    #[test]
+    fn http_status_code_parses_local_bridge_auth_failures() {
+        assert_eq!(
+            super::http_status_code("HTTP/1.1 200 OK\r\n\r\n{}"),
+            Some(200)
+        );
+        assert_eq!(
+            super::http_status_code("HTTP/1.1 401 Unauthorized\r\n\r\n{}"),
+            Some(401)
+        );
+        assert_eq!(
+            super::http_status_code("HTTP/1.1 403 Forbidden\r\n\r\n{}"),
+            Some(403)
+        );
+        assert_eq!(super::http_status_code("not-http"), None);
     }
 
     #[test]

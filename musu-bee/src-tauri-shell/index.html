@@ -159,16 +159,20 @@
           <ol class="add-pc-steps">
             <li>
               <span class="step-kicker">Control host</span>
-              <p>Generate your self-hosted Headscale + Caddy HTTPS + embedded DERP bundle.</p>
-              <div class="command-row">
-                <code>musu mesh bootstrap --server-url https://mesh.your-domain</code>
-                <button
-                  type="button"
-                  data-copy-text="musu mesh bootstrap --server-url https://mesh.your-domain"
-                >
-                  Copy
-                </button>
+              <p>Generate your self-hosted Headscale + Caddy HTTPS + embedded DERP bundle. No command to copy — give it your mesh host and click.</p>
+              <div class="bootstrap-row">
+                <input
+                  id="bootstrap-server-url"
+                  type="url"
+                  inputmode="url"
+                  autocomplete="off"
+                  placeholder="https://mesh.your-domain"
+                  aria-label="Mesh control server URL"
+                />
+                <button id="bootstrap-generate" type="button">Generate bundle</button>
               </div>
+              <p id="bootstrap-result" class="bootstrap-result" hidden></p>
+              <ul id="bootstrap-files" class="bootstrap-files" hidden></ul>
             </li>
             <li>
               <span class="step-kicker">Start + checks</span>

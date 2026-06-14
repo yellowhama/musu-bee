@@ -1138,6 +1138,69 @@ body {
   border-color: var(--online);
 }
 
+/* Add PC step 1: in-app bundle generation (input + button), replacing the
+   copy-the-command UX. Mirrors .command-row's grid so the panel stays uniform. */
+.bootstrap-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.bootstrap-row input {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: none;
+}
+.bootstrap-row input:focus-visible {
+  border-color: var(--online);
+}
+.bootstrap-row button {
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--online) 40%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--online) 16%, var(--bg-1));
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bootstrap-row button:hover:not(:disabled) {
+  border-color: var(--online);
+}
+.bootstrap-row button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.bootstrap-result {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+.bootstrap-result[data-state="ok"] {
+  color: var(--online);
+}
+.bootstrap-result[data-state="error"] {
+  color: var(--bad);
+}
+.bootstrap-files {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.7;
+  max-height: 9em;
+  overflow: auto;
+}
+
 /* ── connecting state ────────────────────────────────── */
 .connecting {
   text-align: center;

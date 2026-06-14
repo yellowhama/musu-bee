@@ -943,7 +943,7 @@ async function runPeerVerify(btn, targetIp) {
 
   try {
     const result = await invoke("private_mesh_verify_target", { targetIp });
-    refreshPrivateMeshStatus();
+    refreshPrivateMeshStatus({ force: true });
     if (row) {
       row.dataset.verifyState = result?.release_grade
         ? "release-grade"
@@ -1922,7 +1922,7 @@ async function runPeerReleaseProof(btn, target) {
     const readiness = hasReleaseProofEvidence(result) ? releaseEvidenceReadiness(result) : null;
     const releaseReady = readiness?.ready === true;
     renderReleaseProofEvidence(lastReleaseProofResult, target, releaseReady ? "ready" : "error");
-    refreshPrivateMeshStatus();
+    refreshPrivateMeshStatus({ force: true });
     const evidencePath = releaseProofEvidencePath(result);
     if (releaseReady) {
       if (row) row.dataset.verifyState = "release-grade";
@@ -2281,15 +2281,109 @@ async function refreshLatestReleaseEvidence() {
   }
 }
 
-async function refreshPrivateMeshStatus() {
+const PRIVATE_MESH_STATUS_REFRESH_MS = 300_000;
+let lastPrivateMeshStatusRefreshAt = 0;
+let privateMeshStatusRefreshInFlight = null;
+
+async function refreshPrivateMeshStatus({ force = false } = {}) {
+  const now = Date.now();
+  if (
+    !force &&
+    lastPrivateMeshStatus &&
+    now - lastPrivateMeshStatusRefreshAt < PRIVATE_MESH_STATUS_REFRESH_MS
+  ) {
+    return lastPrivateMeshStatus;
+  }
+  if (privateMeshStatusRefreshInFlight) {
+    return privateMeshStatusRefreshInFlight;
+  }
+
+  privateMeshStatusRefreshInFlight = (async () => {
+    try {
+      const status = await invoke("private_mesh_status");
+      lastPrivateMeshStatusRefreshAt = Date.now();
+      renderPrivateMeshStatus(status);
+      return status;
+    } catch (err) {
+      const status = {
+        ok: false,
+        error: String(err),
+        next_steps: ["Run `musu mesh doctor --json` for details."],
+      };
+      lastPrivateMeshStatusRefreshAt = Date.now();
+      renderPrivateMeshStatus(status);
+      return status;
+    } finally {
+      privateMeshStatusRefreshInFlight = null;
+    }
+  })();
+
+  return privateMeshStatusRefreshInFlight;
+}
+
+// Add PC step 1 as a product action, not a copied command: take the mesh host
+// URL and generate the self-hosted Headscale + Caddy + DERP bundle in-app via
+// the private_mesh_bootstrap IPC, then show where it landed + what was created.
+async function runMeshBootstrap() {
+  const btn = $("bootstrap-generate");
+  const input = $("bootstrap-server-url");
+  const resultEl = $("bootstrap-result");
+  const filesEl = $("bootstrap-files");
+  if (!btn || !input) return;
+  const serverUrl = input.value.trim();
+  if (!serverUrl) {
+    if (resultEl) {
+      resultEl.hidden = false;
+      resultEl.dataset.state = "error";
+      resultEl.textContent = "Enter your mesh host URL first (e.g. https://mesh.your-domain).";
+    }
+    input.focus();
+    return;
+  }
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  input.disabled = true;
+  btn.textContent = "Generating…";
+  if (resultEl) {
+    resultEl.hidden = false;
+    resultEl.dataset.state = "running";
+    resultEl.textContent = "Writing the self-hosted Headscale + Caddy + DERP bundle…";
+  }
+  if (filesEl) {
+    filesEl.hidden = true;
+    filesEl.textContent = "";
+  }
   try {
-    renderPrivateMeshStatus(await invoke("private_mesh_status"));
+    const r = await invoke("private_mesh_bootstrap", { serverUrl });
+    if (r && r.ok) {
+      if (resultEl) {
+        resultEl.dataset.state = "ok";
+        resultEl.textContent = `Bundle ready in ${r.output_dir} (tailnet: ${r.tailnet_name}).`;
+      }
+      if (filesEl && Array.isArray(r.generated_files) && r.generated_files.length) {
+        filesEl.hidden = false;
+        filesEl.textContent = "";
+        for (const f of r.generated_files) {
+          const li = document.createElement("li");
+          li.textContent = f;
+          filesEl.appendChild(li);
+        }
+      }
+    } else {
+      if (resultEl) {
+        resultEl.dataset.state = "error";
+        resultEl.textContent = (r && r.error) || "Bundle generation failed. See diagnostics.";
+      }
+    }
   } catch (err) {
-    renderPrivateMeshStatus({
-      ok: false,
-      error: String(err),
-      next_steps: ["Run `musu mesh doctor --json` for details."],
-    });
+    if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = `Bundle generation failed: ${String(err)}`;
+    }
+  } finally {
+    btn.disabled = false;
+    input.disabled = false;
+    btn.textContent = oldText;
   }
 }
 
@@ -2855,7 +2949,10 @@ async function refresh() {
   if (connected) {
     try {
       const nodes = await invoke("list_fleet");
-      renderFleet(Array.isArray(nodes) ? nodes : [], thisPcActivity, bridgeOk);
+      const list = Array.isArray(nodes) && nodes.length ? nodes : [
+        { node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true },
+      ];
+      renderFleet(list, thisPcActivity, bridgeOk);
       setConn("connected", "Connected");
     } catch (err) {
       // P3: distinguish fetch failures from an empty fleet. The cockpit still
@@ -3320,7 +3417,7 @@ function pollTask(taskId, text, target, orderBoundary) {
       stopTaskPoll(taskId);
       if (st.route_proof?.callback_delivered) {
         markFleetRowCallbackProof(st.route_proof, target);
-        refreshPrivateMeshStatus();
+        refreshPrivateMeshStatus({ force: true });
       }
       // OS notification on terminal events (no-op if the plugin command is
       // absent — wrapped in try/catch so a missing command can't break the UI).
@@ -3644,6 +3741,13 @@ document.querySelectorAll("[data-copy-text]").forEach((btn) => {
 });
 
 $("mesh-doctor")?.addEventListener("click", runPrivateMeshDoctor);
+$("bootstrap-generate")?.addEventListener("click", runMeshBootstrap);
+$("bootstrap-server-url")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    runMeshBootstrap();
+  }
+});
 document.querySelectorAll("[data-mesh-copy-proof]").forEach((btn) => {
   btn.addEventListener("click", copyPrivateMeshProof);
 });

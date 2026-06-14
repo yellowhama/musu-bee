@@ -62,6 +62,27 @@ function loadShellDom() {
   return dom;
 }
 
+test("public setup docs present MUSU Private Mesh, not Tailscale.com signup, as the default", () => {
+  const userDocs = [
+    "../INSTALL.md",
+    "../QUICKSTART.md",
+    "../docs/CONFIG.md",
+    "../docs/API.md",
+  ]
+    .map((file) => `${file}\n${source(file)}`)
+    .join("\n\n");
+
+  assert.match(userDocs, /musu mesh join --device-add-pass <musu\.device_add\.v1\.json>/);
+  assert.match(userDocs, /Tailscale\.com account is not required/);
+  assert.match(userDocs, /MUSU Private Mesh/);
+  assert.match(userDocs, /tailnet_ip/);
+  assert.doesNotMatch(userDocs, /sign up for Tailscale/i);
+  assert.doesNotMatch(userDocs, /For LAN\/Tailscale access/);
+  assert.doesNotMatch(userDocs, /over Tailscale and the mesh router/);
+  assert.doesNotMatch(userDocs, /Tailscale \+ peer pairing/);
+  assert.doesNotMatch(userDocs, /Tailscale IP \(leave empty for local-only\)/);
+});
+
 test("failed-card retry resubmits the stored order tuple, not the current composer target", () => {
   const text = source("src-tauri-shell/main.js");
 
@@ -400,6 +421,58 @@ test("browser shell QA rebuilds ignored out artifact before opening it", () => {
   assert.match(browserSpec, /metadata\.output_hashes\["index\.html"\]/);
 });
 
+test("desktop child CLI commands are hidden, and fleet refresh avoids child processes", () => {
+  const tauri = source("src-tauri/src/lib.rs");
+  const main = source("src-tauri-shell/main.js");
+  const listFleet = tauri.match(/fn list_fleet\(\)[\s\S]*?\n}\n\n\/\/\/ `submit_order`/)?.[0] || "";
+
+  assert.match(tauri, /fn no_window\(cmd: &mut std::process::Command\) -> &mut std::process::Command/);
+  assert.match(tauri, /use std::os::windows::process::CommandExt/);
+  assert.match(tauri, /const CREATE_NO_WINDOW:\s*u32\s*=\s*0x0800_0000/);
+  assert.match(tauri, /cmd\.creation_flags\(CREATE_NO_WINDOW\)/);
+  assert.match(
+    tauri,
+    /fn start_login\(\)[\s\S]*?no_window\(&mut cmd\)\s*[\r\n\s]*\.spawn\(\)/
+  );
+  assert.match(
+    tauri,
+    /fn spawn_musu_startup_open\(\)[\s\S]*?no_window\(&mut cmd\)\s*[\r\n\s]*\.spawn\(\)/
+  );
+  assert.match(
+    tauri,
+    /fn run_command_with_timeout\([\s\S]*?let mut child = no_window\(&mut cmd\)\s*[\r\n\s]*\.spawn\(\)/
+  );
+  assert.match(listFleet, /http_get_with_bearer\(&base_url,\s*"\/api\/fleet\/status",\s*&token\)/);
+  assert.match(listFleet, /status_code == 401 \|\| status_code == 403/);
+  assert.match(listFleet, /return Err\("local_fleet_auth_failed"\.to_string\(\)\)/);
+  assert.match(listFleet, /fleet_nodes_from_bridge_dashboard\(&dashboard\)/);
+  assert.doesNotMatch(listFleet, /run_command_with_timeout\(/);
+  assert.doesNotMatch(listFleet, /musu_command_path\(/);
+  assert.match(tauri, /fn submit_order\([\s\S]*?run_command_with_timeout\(/);
+  assert.match(tauri, /fn desktop_status\(\)[\s\S]*?run_command_with_timeout\(/);
+  assert.match(tauri, /fn http_get_with_bearer\(base: &str,\s*path: &str,\s*token: &str\)/);
+  assert.match(tauri, /fn bearer_authorization_header\(token: &str\) -> Result<String, String>/);
+  assert.match(tauri, /token\.bytes\(\)\.any\(\|byte\| byte <= 0x1f \|\| byte == 0x7f\)/);
+  assert.match(tauri, /format!\("Authorization: Bearer \{token\}"\)/);
+  assert.match(tauri, /fn http_status_code\(response: &str\) -> Option<u16>/);
+  assert.match(
+    main,
+    /if \(connected\) \{[\s\S]*?const nodes = await invoke\("list_fleet"\);[\s\S]*?const list = Array\.isArray\(nodes\) && nodes\.length \? nodes : \[[\s\S]*?node_name: "this machine"[\s\S]*?renderFleet\(list, thisPcActivity, bridgeOk\);/
+  );
+  assert.match(main, /const PRIVATE_MESH_STATUS_REFRESH_MS = 300_000/);
+  assert.match(main, /let lastPrivateMeshStatusRefreshAt = 0/);
+  assert.match(main, /let privateMeshStatusRefreshInFlight = null/);
+  assert.match(
+    main,
+    /async function refreshPrivateMeshStatus\(\{ force = false \} = \{\}\)[\s\S]*?now - lastPrivateMeshStatusRefreshAt < PRIVATE_MESH_STATUS_REFRESH_MS[\s\S]*?return lastPrivateMeshStatus;/
+  );
+  assert.match(
+    main,
+    /if \(privateMeshStatusRefreshInFlight\) \{[\s\S]*?return privateMeshStatusRefreshInFlight;/
+  );
+  assert.match(main, /refreshPrivateMeshStatus\(\{ force: true \}\)/);
+});
+
 test("Private Mesh release proof bundle is bound to the current contract and toolchain", () => {
   const tauri = source("src-tauri/src/lib.rs");
   const runner = source("../scripts/windows/run-private-mesh-release-proof.ps1");
@@ -526,7 +599,10 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /data-fleet-count="offline"/);
   assert.match(html, /No Tailscale\.com signup required/);
   assert.match(html, /Headscale \+ Caddy HTTPS \+ embedded DERP/);
-  assert.match(html, /musu mesh bootstrap --server-url/);
+  // Add PC step 1 is an in-app action now (input + Generate bundle button driving
+  // the private_mesh_bootstrap IPC), not a copied `musu mesh bootstrap` command.
+  assert.match(html, /id="bootstrap-server-url"/);
+  assert.match(html, /id="bootstrap-generate"[^>]*>Generate bundle</);
   assert.match(html, /docker compose config --quiet/);
   assert.match(html, /check-public-endpoint\.ps1/);
   assert.match(html, /Device-add pass/);
@@ -574,7 +650,8 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /id="mesh-doctor"/);
   assert.match(html, /Run local check/);
   assert.match(html, /data-copy-text="musu mesh doctor --json"/);
-  assert.match(html, /data-copy-text="musu mesh bootstrap --server-url https:\/\/mesh\.your-domain"/);
+  // bootstrap step is now an in-app input+button action (asserted above), so the
+  // old copy-the-command affordance is intentionally gone.
   assert.match(html, /data-copy-text="docker compose config --quiet && docker compose up -d && docker compose exec headscale headscale health"/);
   assert.match(html, /data-copy-text="powershell -ExecutionPolicy Bypass -File \.\\scripts\\check-public-endpoint\.ps1"/);
   assert.match(html, /data-copy-text="musu mesh join --device-add-pass &lt;musu\.device_add\.v1\.json&gt;"/);
