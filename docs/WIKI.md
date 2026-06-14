@@ -21666,3 +21666,49 @@ musu-startup now folds bridge + login into one "open the app" sequence: `musu-st
 ## wiki/1151 — 2026-06-09 musu-pro migration consolidated: web console paused (GOAL v976)
 
 The 29 uncommitted musu-pro changes (since the 2026-05-27 "site offline" commit) were investigated and confirmed as one coherent migration bundle — committed as `df7e259` (musu-pro main, NOT pushed = production gate). New `bridge-surface.ts` (BRIDGE_SURFACE_ENABLED=false → 410 with "MUSU Desktop is the local executor, web console paused") + Notice, wired into bridge API routes + console pages; removed BeeIframe + bee.musu.pro frame-src; site-availability.ts → envFlagEnabled(MUSU_SITE_DISABLED) toggle. Aligns the web side with the local-executor thesis (musu.pro coordinates, Desktop executes) — same direction as the desktop unification work. tsc clean, next build PASS. Repo: F:\Aisaak\Projects\musu-pro (Vercel deploy repo, distinct from musu-bee).
+
+## wiki/1152 — 2026-06-14 Private Mesh console flicker, no-signup docs, and auth-boundary audit
+
+Installed MSIX `1.15.0.2` was launched through the Start-menu app contract and
+sampled for passive cockpit refresh. Only `musu-desktop.exe` and
+`musu.exe startup open` were observed; `nodes_processes=0`,
+`mesh_status_processes=0`, and `other_child_cli_processes=0`.
+
+Product/spec changes:
+
+- Public setup docs now present MUSU Private Mesh and
+  `musu mesh join --device-add-pass <musu.device_add.v1.json>` as the default
+  cross-network path. Tailscale.com signup is not required.
+- `tailnet_ip` is the preferred user-facing docs term; legacy `tailscale_ip`
+  remains accepted as compatibility/protocol evidence.
+- `list_fleet()` reads local bridge `/api/fleet/status` directly with bearer
+  auth instead of spawning `musu.exe nodes --json --local`.
+- `private_mesh_status` is cached/deduplicated in the cockpit, with force
+  refresh after explicit proof/release/callback transitions.
+- Code audit found and fixed a trust-boundary issue: local bridge `401`/`403`
+  now fails closed as `local_fleet_auth_failed` instead of collapsing to an
+  empty fleet that could be hidden by the local fallback row.
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_PRIVATE_MESH_CONSOLE_FLICKER_DOC_SYNC_AND_AUDIT_2026_06_14.md`
+- `docs/RELEASE_1_15_0_RC1_DESKTOP_CONSOLE_FLICKER_AND_FLEET_REFRESH_HARDENING_2026_06_14.md`
+- `docs/memory/chief_of_staff/2026-06-14_private_mesh_console_flicker_doc_sync.md`
+
+## wiki/1153 — 2026-06-14 Private Mesh console flicker doc sync index refresh
+
+MUSU local indexer was refreshed after wiki/1152 and the related code/docs
+changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3189 files`
+- `3471 symbols`
+- `94475 ms`
+
+Indexed context includes `list_fleet()` direct bridge refresh,
+`http_get_with_bearer`, `bearer_authorization_header`, `http_status_code`,
+`local_fleet_auth_failed`, `PRIVATE_MESH_STATUS_REFRESH_MS`,
+`musu.device_add.v1`, `tailnet_ip`, installed MSIX `1.15.0.2` passive refresh
+evidence, and `nodes_processes=0` / `mesh_status_processes=0` /
+`other_child_cli_processes=0`.

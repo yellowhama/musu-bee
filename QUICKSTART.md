@@ -55,7 +55,7 @@ curl http://localhost:8070/health
 # → {"status":"ok", ...}
 ```
 
-Localhost requests bypass auth by default. For LAN/Tailscale access
+Localhost requests bypass auth by default. For LAN or MUSU Private Mesh access
 you'll need the bearer token — grab it once:
 
 ```bash
@@ -214,7 +214,7 @@ MUSU naturally binds all your devices together into one seamless work environmen
   briefings, feedback, channels, vault, wiki, mesh, troubleshooting
 - [`docs/CONFIG.md`](docs/CONFIG.md) — every env var
 - [`docs/ONBOARDING.md`](docs/ONBOARDING.md) — adding another machine
-  to an existing mesh (Tailscale + peer pairing)
+  to MUSU Private Mesh without requiring a Tailscale.com account
 - [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) — longer
   per-API walkthrough with multi-node examples
 

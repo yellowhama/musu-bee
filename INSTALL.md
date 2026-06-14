@@ -30,7 +30,7 @@ Design references:
 bash scripts/install.sh --service --start
 ```
 
-This auto-detects your GPU, OS, and Tailscale IP, creates `~/.musu/`,
+This auto-detects your GPU, OS, and MUSU Private Mesh tailnet IP when present, creates `~/.musu/`,
 seeds the agents, registers a **systemd user service** (`musu-bridge`),
 and starts the bridge on `http://127.0.0.1:8070`.
 
@@ -83,7 +83,7 @@ Whether you ran `install.sh` or `install.ps1`, the same 7 steps run:
 2. **Create operator dir** — `~/.musu/` (or `%USERPROFILE%\.musu\` on Windows). Permissions locked to current user.
 3. **Create venv + install deps** — `musu-bridge/.venv` with `musu-core` and `musu-bridge` editable installs.
 4. **Seed `bridge.env`** — `~/.musu/bridge.env` from template, with a fresh `MUSU_BRIDGE_TOKEN` auto-generated.
-5. **Detect node identity** — writes `~/.musu/nodes.toml` with hostname, OS, GPU, Tailscale IP.
+5. **Detect node identity** — writes `~/.musu/nodes.toml` with hostname, OS, GPU, and MUSU Private Mesh tailnet IP when present.
 6. **Build `musu-bee`** — `npm install && npm run build` (matches `scripts/install.sh`'s actual invocation; requires Node.js, skipped with a warning if missing). `pnpm` works equivalently if you prefer it — see the per-module manual install below.
 7. **Register service** — systemd (Linux), launchd (macOS), or Task Scheduler (Windows).
 
@@ -187,19 +187,22 @@ curl -X POST http://localhost:8070/api/nodes/add \
   -H "Content-Type: application/json" \
   -d '{
     "name": "<friendly-name>",
-    "tailscale_ip": "100.x.x.x"
+    "tailnet_ip": "100.x.x.x"
   }'
 ```
 
 `NodeAddRequest` accepts `name` (required, 1-64 chars), and either
-`url` or `tailscale_ip` (the bridge auto-generates the URL from the
-Tailscale IP). Optional `agents` list assigns specific agents to
-the node. GPU/OS metadata goes in `~/.musu/nodes.toml` on the
-destination machine, not in this request.
+`url`, `tailnet_ip`, or legacy `tailscale_ip` (the bridge auto-generates the
+URL from the tailnet IP). Optional `agents` list assigns specific agents to
+the node. GPU/OS metadata goes in `~/.musu/nodes.toml` on the destination
+machine, not in this request.
 
-The new node needs to run the installer too (same one-liner). After
-that, both bridges discover each other over Tailscale and the mesh
-router can spill work between them.
+The new node needs to run the installer too (same one-liner). On the same LAN,
+MUSU can use the local bridge directly. Across networks, use MUSU Private Mesh:
+generate a `musu.device_add.v1` pass from the MUSU Headscale bundle or Cockpit
+Add PC flow, then run `musu mesh join --device-add-pass <musu.device_add.v1.json>`
+on the target machine. A Tailscale.com account is not required for the default
+MUSU Private Mesh path.
 
 See [`docs/ONBOARDING.md`](docs/ONBOARDING.md) for the full mesh
 onboarding flow (token exchange, peer acceptance, agent assignment).
