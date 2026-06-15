@@ -1,10 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { MusuLogo } from "@/components/brand/MusuLogo";
-import {
-  DESKTOP_APPINSTALLER_URL,
-  PUBLIC_RELEASE_VERSION,
-} from "@/lib/publicRelease";
+import { PUBLIC_RELEASE_VERSION } from "@/lib/publicRelease";
 
 export const metadata = {
   title: "MUSU | The Antigravity Workspace",
@@ -181,12 +178,13 @@ export default function ComingSoonPage() {
                 </button>
               </div>
             </form>
-            {/* Desktop download: the .appinstaller installs MUSU for Windows and
-                registers it for auto-update. Self-signed today, so /download
-                carries the trust-the-cert step. */}
+            {/* Desktop download: route to /download, NOT the raw .appinstaller.
+                The package is self-signed; double-clicking the bare .appinstaller
+                before the cert is trusted fails with a signature error. /download
+                runs the one-click Install-MUSU.ps1 that trusts the cert first. */}
             <div style={{ marginTop: 24, textAlign: "center" }}>
-              <a
-                href={DESKTOP_APPINSTALLER_URL}
+              <Link
+                href="/download"
                 className="btn btn-primary btn-premium"
                 data-testid="hero-download-windows"
                 style={{
@@ -205,7 +203,7 @@ export default function ComingSoonPage() {
                 }}
               >
                 <span aria-hidden="true">⊞</span> Download for Windows
-              </a>
+              </Link>
               <div style={{ marginTop: 12 }}>
                 <Link
                   href="/download"

@@ -987,7 +987,8 @@ fn consume_device_add_pass_file(path: &Path) -> Result<PathBuf> {
 
 async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
     let join_inputs = resolve_join_inputs(&opts)?;
-    let login_server = normalize_login_server(&join_inputs.login_server)?;
+    // Join transmits the one-time authkey to the login server, so require https.
+    let login_server = normalize_login_server_with_policy(&join_inputs.login_server, true)?;
     let control_server_health_url = control_server_health_url(&login_server)?;
     let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
     let config_path = home.join(PRIVATE_MESH_CONFIG);
@@ -2450,6 +2451,7 @@ fn write_bootstrap_bundle(
     let server_url = normalize_control_server_url(&opts.server_url, opts.allow_insecure_http)?;
     validate_private_mesh_tailnet_name(&opts.tailnet_name)?;
     validate_private_mesh_base_domain(&opts.base_domain)?;
+    validate_headscale_image(&opts.image)?;
     let embedded_derp_enabled = !opts.disable_embedded_derp;
     if embedded_derp_enabled && server_url.starts_with("http://") {
         return Err(anyhow!(
@@ -2845,6 +2847,30 @@ fn validate_private_mesh_base_domain(value: &str) -> Result<()> {
                 "--base-domain may contain only ASCII letters, digits, '-' and dots"
             ));
         }
+    }
+    Ok(())
+}
+
+/// Validate the headscale container image reference before it is interpolated
+/// into the generated docker-compose.yaml. Without this, a value containing a
+/// newline + YAML keys (e.g. "...\n    privileged: true") injects arbitrary
+/// container config into the headscale service (compose/YAML injection), which
+/// `docker compose up -d` then runs. Restrict to a conservative OCI reference
+/// grammar: printable ASCII, no whitespace/control chars, bounded length, only
+/// the characters that appear in real registry/repo:tag@digest references.
+fn validate_headscale_image(value: &str) -> Result<()> {
+    if value.trim() != value || value.is_empty() {
+        return Err(anyhow!("--image must be a non-empty OCI image reference"));
+    }
+    if value.len() > 512 {
+        return Err(anyhow!("--image must be at most 512 characters"));
+    }
+    if !value.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_' | '/' | ':' | '@' | '+')
+    }) {
+        return Err(anyhow!(
+            "--image may contain only ASCII letters, digits, and . - _ / : @ + (no whitespace, newlines, or other characters)"
+        ));
     }
     Ok(())
 }
@@ -3508,14 +3534,30 @@ fn write_private_mesh_config(path: &Path, config: &PrivateMeshConfig) -> Result<
     Ok(())
 }
 
+#[cfg(test)]
 fn normalize_login_server(value: &str) -> Result<String> {
+    normalize_login_server_with_policy(value, false)
+}
+
+/// `require_https`: when true, reject plaintext http://. The join path passes
+/// true because it transmits the one-time Headscale preauth key via
+/// `tailscale up --login-server <url> --authkey <key>` and runs the /health
+/// check over the same URL — an http:// login server would leak the join
+/// credential to any on-path attacker.
+fn normalize_login_server_with_policy(value: &str, require_https: bool) -> Result<String> {
     let trimmed = value.trim().trim_end_matches('/');
     if trimmed.is_empty() {
         return Err(anyhow!("--login-server is required"));
     }
     let url = reqwest::Url::parse(trimmed)
         .map_err(|e| anyhow!("--login-server must be a valid URL: {e}"))?;
-    if !(url.scheme() == "https" || url.scheme() == "http") {
+    if require_https {
+        if url.scheme() != "https" {
+            return Err(anyhow!(
+                "--login-server must use https:// when joining (the one-time authkey is sent to it); refusing plaintext http://"
+            ));
+        }
+    } else if !(url.scheme() == "https" || url.scheme() == "http") {
         return Err(anyhow!(
             "--login-server must start with https:// or http://"
         ));
@@ -4409,6 +4451,28 @@ mod tests {
         )
         .unwrap_err();
         assert!(future_result.to_string().contains("too far in the future"));
+    }
+
+    #[test]
+    fn join_login_server_rejects_plaintext_http() {
+        // join transmits the authkey, so http:// must be refused (credential leak).
+        assert!(normalize_login_server_with_policy("http://mesh.example/", true).is_err());
+        assert_eq!(
+            normalize_login_server_with_policy("https://mesh.example/", true).unwrap(),
+            "https://mesh.example"
+        );
+    }
+
+    #[test]
+    fn headscale_image_rejects_yaml_injection() {
+        // a value with a newline + yaml keys must not reach docker-compose.yaml
+        assert!(validate_headscale_image("ghcr.io/juanfont/headscale:v0.28.0").is_ok());
+        assert!(validate_headscale_image(
+            "headscale:v0.28.0\n    privileged: true\n    volumes: [/:/host]"
+        )
+        .is_err());
+        assert!(validate_headscale_image("headscale:latest ; rm -rf /").is_err());
+        assert!(validate_headscale_image("").is_err());
     }
 
     #[test]

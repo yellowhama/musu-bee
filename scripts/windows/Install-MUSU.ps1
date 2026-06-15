@@ -20,6 +20,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Pinned signing-certificate thumbprint (canonical key blossompark.musu). The
+# cert and the MSIX it signs are fetched over the SAME channel, so MSIX code
+# signing alone proves nothing here — we must verify the downloaded cert matches
+# this out-of-band pin before trusting it. If you rotate the signing key, update
+# this constant in the same commit that publishes the new cert.
+$ExpectedCertThumbprint = "65F5926444D563966C75F000C384C8530B1D8DD8"
+
 function Test-IsAdmin {
     $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object System.Security.Principal.WindowsPrincipal($id)
@@ -41,7 +48,17 @@ Write-Host "[1/3] Downloading certificate..." -ForegroundColor Cyan
 $certPath = Join-Path $work $CertFileName
 Invoke-WebRequest "$ReleaseBase/$CertFileName" -OutFile $certPath -UseBasicParsing
 
-Write-Host "[2/3] Trusting certificate (LocalMachine\TrustedPeople)..." -ForegroundColor Cyan
+Write-Host "[2/3] Verifying + trusting certificate..." -ForegroundColor Cyan
+# Verify the downloaded cert matches the pinned thumbprint BEFORE trusting it.
+# Without this, an attacker who can serve a substitute cert+MSIX over the same
+# origin would have their package trusted.
+$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $certPath
+$actualThumb = $cert.Thumbprint.ToUpperInvariant()
+$expectedThumb = $ExpectedCertThumbprint.ToUpperInvariant()
+if ($actualThumb -ne $expectedThumb) {
+    throw "Certificate thumbprint mismatch. Expected $expectedThumb but got $actualThumb. Aborting install — do NOT trust this certificate."
+}
+Write-Host "    thumbprint OK ($actualThumb)" -ForegroundColor DarkGray
 Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
 
 Write-Host "[3/3] Installing MUSU (with auto-update)..." -ForegroundColor Cyan

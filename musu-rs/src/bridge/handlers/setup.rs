@@ -116,6 +116,22 @@ const KNOWN_ADAPTERS: &[&str] = &[
     "openai_compat_remote",
 ];
 
+/// Adapters that may be persisted as the FLEET-WIDE DEFAULT. `shell` is
+/// deliberately excluded: a default adapter runs for any task that omits
+/// `adapter_type`, INCLUDING cross-machine forwarded tasks, and the shell
+/// adapter executes the task prompt verbatim via `cmd /C` / `sh -c`. Making
+/// `shell` the default would turn ordinary prompt-execution into shell RCE on
+/// every forwarded task. `shell` stays dispatchable only via an explicit
+/// per-task `adapter_type="shell"`.
+const DEFAULTABLE_ADAPTERS: &[&str] = &[
+    "echo",
+    "codex",
+    "claude",
+    "gemini",
+    "openai_compat_local",
+    "openai_compat_remote",
+];
+
 /// POST /api/setup/default-adapter — persist `MUSU_DEFAULT_ADAPTER=<adapter>` into
 /// `bridge.env` so it survives restarts. The LLM calls this after diagnosing the
 /// environment. The change takes effect for the running process immediately (we
@@ -131,6 +147,13 @@ pub async fn set_default_adapter(
             KNOWN_ADAPTERS.join(", ")
         )));
     }
+    if !DEFAULTABLE_ADAPTERS.contains(&adapter.as_str()) {
+        return Err(MusuError::BadRequest(format!(
+            "adapter {adapter:?} cannot be the fleet default (it executes commands); \
+             dispatch it per-task with adapter_type instead. Defaultable: {}",
+            DEFAULTABLE_ADAPTERS.join(", ")
+        )));
+    }
 
     let home = crate::install::resolve_musu_home_from_env()
         .map_err(|e| MusuError::Internal(format!("resolve musu home: {e}")))?;
@@ -138,13 +161,17 @@ pub async fn set_default_adapter(
     upsert_bridge_env(&home, "MUSU_DEFAULT_ADAPTER", &adapter)
         .map_err(|e| MusuError::Internal(format!("write bridge.env: {e}")))?;
 
-    // Apply to the live process so subsequent tasks use it without a restart.
-    std::env::set_var("MUSU_DEFAULT_ADAPTER", &adapter);
-
+    // NOTE: we intentionally do NOT std::env::set_var here. Mutating the process
+    // environment at request time races std::env::var on the task-spawn hot path
+    // (default_adapter_type) under the multi-threaded tokio runtime — concurrent
+    // setenv/getenv is UB. The default is persisted to bridge.env and takes
+    // effect on the next bridge start.
     Ok(Json(SetDefaultAdapterResponse {
         ok: true,
         adapter: adapter.clone(),
-        note: format!("default adapter set to `{adapter}` (persisted to bridge.env, applied now)"),
+        note: format!(
+            "default adapter set to `{adapter}` (persisted to bridge.env, applies on next bridge restart)"
+        ),
     }))
 }
 
@@ -206,5 +233,15 @@ mod tests {
         assert!(after2.contains("MUSU_BRIDGE_TOKEN=abc123"));
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn shell_is_known_but_not_defaultable() {
+        // shell must be runnable per-task but never the fleet-wide default,
+        // or a forwarded task's prompt would execute as a shell command.
+        assert!(KNOWN_ADAPTERS.contains(&"shell"));
+        assert!(!DEFAULTABLE_ADAPTERS.contains(&"shell"));
+        // every defaultable adapter is also a known adapter
+        assert!(DEFAULTABLE_ADAPTERS.iter().all(|a| KNOWN_ADAPTERS.contains(a)));
     }
 }

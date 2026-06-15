@@ -3,6 +3,31 @@ import { NextResponse } from "next/server";
 import { getBridgeUrl } from "@/lib/bridge-config";
 import { buildBridgeHeaders } from "@/lib/bridgeHeaders";
 import { getBridgeToken } from "@/lib/bridge-token";
+import { authorizeP2pControl } from "@/lib/p2pControlAuth";
+
+/**
+ * Is the resolved bridge target on the local machine? The proxy attaches the
+ * server's privileged bridge token to every forwarded request. When the bridge
+ * is localhost (the desktop product: bridge runs on the same machine, not
+ * reachable from outside), forwarding without caller auth is fine. But if the
+ * bridge is a REMOTE address (a public deployment with MUSU_BRIDGE_URL pointing
+ * at a reachable bridge), an unauthenticated proxy would let anyone drive that
+ * bridge with the server's token — so in that case we require p2p control auth.
+ */
+function bridgeIsLocal(bridgeBaseUrl: string): boolean {
+  try {
+    const host = new URL(bridgeBaseUrl).hostname.toLowerCase();
+    return (
+      host === "127.0.0.1" ||
+      host === "localhost" ||
+      host === "::1" ||
+      host === "[::1]"
+    );
+  } catch {
+    // Unparseable → treat as non-local and require auth (fail closed).
+    return false;
+  }
+}
 
 /**
  * Shared bridge-proxy helper, extracted from the catch-all
@@ -50,8 +75,21 @@ export async function proxyToBridge(
   const parse = opts.parse ?? "text";
   const errorMessage = opts.errorMessage ?? "musu-bridge unavailable";
   try {
+    const base = bridgeBase();
+
+    // When the bridge is remote (public deployment), require caller auth before
+    // forwarding with the server's bridge token. Local-bridge (desktop) traffic
+    // is not reachable from outside, so it stays open to keep the app working.
+    if (!bridgeIsLocal(base)) {
+      // authorizeP2pControl only reads req.headers.get("authorization").
+      const failedAuth = authorizeP2pControl(req as Parameters<typeof authorizeP2pControl>[0]);
+      if (failedAuth) {
+        return failedAuth;
+      }
+    }
+
     const incoming = new URL(req.url);
-    const target = new URL(`${bridgeBase()}${opts.targetPath}`);
+    const target = new URL(`${base}${opts.targetPath}`);
 
     // Guard: keep the final URL within the expected API scope (catch-all parity).
     if (!target.pathname.startsWith("/api/")) {
