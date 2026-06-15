@@ -36,8 +36,17 @@ function Test-IsAdmin {
 if (-not (Test-IsAdmin)) {
     Write-Host "MUSU install needs administrator rights to trust the beta certificate." -ForegroundColor Yellow
     Write-Host "Re-launching elevated..." -ForegroundColor Yellow
-    $psi = "-ExecutionPolicy Bypass -File `"$PSCommandPath`" -ReleaseBase `"$ReleaseBase`""
-    Start-Process powershell -Verb RunAs -ArgumentList $psi
+    # Pass args as an array so all params survive elevation and PowerShell handles
+    # quoting (a flat interpolated string drops -CertFileName/-AppInstallerFileName
+    # and breaks on a quote in -ReleaseBase).
+    $elevatedArgs = @(
+        "-ExecutionPolicy", "Bypass",
+        "-File", $PSCommandPath,
+        "-ReleaseBase", $ReleaseBase,
+        "-CertFileName", $CertFileName,
+        "-AppInstallerFileName", $AppInstallerFileName
+    )
+    Start-Process powershell -Verb RunAs -ArgumentList $elevatedArgs
     return
 }
 

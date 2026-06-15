@@ -337,6 +337,20 @@ async fn finalize(
 
             let session_id = sink.session_id.clone().or(ctx_session);
             let summary = sink.result_text.clone().unwrap_or(sink.accumulated);
+            // Exit 0 with no parsed assistant text is the "ran but empty"
+            // regression: surface it as a failure with stderr instead of
+            // reporting a clean success with an empty summary.
+            if summary.trim().is_empty() {
+                let stderr_tail = handle
+                    .last_stderr
+                    .lock()
+                    .ok()
+                    .and_then(|g| g.clone())
+                    .unwrap_or_default();
+                return Err(AdapterError::Unknown(format!(
+                    "codex completed with no output (exit 0, no assistant text parsed); stderr: {stderr_tail}"
+                )));
+            }
             Ok(AdapterResult {
                 success: true,
                 summary,

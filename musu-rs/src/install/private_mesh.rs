@@ -17,6 +17,10 @@ const CREATE_JOIN_KEY_HELPER_TIMEOUT: Duration = Duration::from_secs(45);
 const START_CONTROL_CONFIG_TIMEOUT: Duration = Duration::from_secs(15);
 const START_CONTROL_UP_TIMEOUT: Duration = Duration::from_secs(90);
 const START_CONTROL_HEALTH_TIMEOUT: Duration = Duration::from_secs(8);
+/// `tailscale up --authkey` on the join path can block indefinitely on an
+/// unreachable control server; bound it so the cockpit "Join the mesh" button
+/// fails with a next-step instead of hanging.
+const JOIN_UP_TIMEOUT: Duration = Duration::from_secs(90);
 
 #[derive(Subcommand, Debug)]
 pub enum PrivateMeshAction {
@@ -1009,10 +1013,10 @@ async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
     let command = if opts.dry_run {
         None
     } else {
-        let report = run_tail_command_owned(join_tail_args(
-            &login_server,
-            join_inputs.authkey.as_deref(),
-        ));
+        let report = run_tail_command_owned_with_timeout(
+            join_tail_args(&login_server, join_inputs.authkey.as_deref()),
+            JOIN_UP_TIMEOUT,
+        );
         if !report.found {
             return Err(anyhow!(
                 "compatible mesh client CLI not found; install it, then run this command again. MUSU does not require Tailscale.com signup."
@@ -3320,7 +3324,11 @@ cd "$BUNDLE_ROOT"
 DEFAULT_TAILNET={tailnet}
 DEFAULT_SERVER_URL={server_url}
 TAILNET="${{1:-$DEFAULT_TAILNET}}"
-SERVER_URL="${{MUSU_MESH_SERVER_URL:-$DEFAULT_SERVER_URL}}"
+# Use the bootstrap-pinned, validated server_url directly. No env override:
+# MUSU_MESH_SERVER_URL would silently change which control server joining PCs
+# trust (it is baked into the device-add pass), bypassing validation, and the
+# PowerShell sibling helper has no such override.
+SERVER_URL="$DEFAULT_SERVER_URL"
 
 echo "Checking Headscale health..."
 docker compose exec -T headscale headscale health

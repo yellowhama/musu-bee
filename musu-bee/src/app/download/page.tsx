@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import PublicSiteShell from "@/components/PublicSiteShell";
 import {
-  DESKTOP_APPINSTALLER_URL,
-  DESKTOP_CERT_URL,
   DESKTOP_INSTALL_SCRIPT_URL,
   DESKTOP_MSIX_URL,
   PUBLIC_RELEASE_METADATA_TEXT,
@@ -139,17 +137,6 @@ const primaryButtonStyle: CSSProperties = {
   boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
 };
 
-const secondaryButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "16px 28px",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.18)",
-  color: "var(--fg1)",
-  textDecoration: "none",
-  fontWeight: 600,
-};
-
 const sectionStyle: CSSProperties = {
   marginTop: 28,
   paddingTop: 24,
@@ -175,19 +162,6 @@ const listStyle: CSSProperties = {
   color: "var(--fg2)",
   fontSize: 15,
   lineHeight: 1.85,
-};
-
-const preStyle: CSSProperties = {
-  margin: "10px 0 0",
-  padding: "12px 14px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: 8,
-  overflowX: "auto",
-  fontFamily: "var(--font-mono)",
-  fontSize: 13,
-  lineHeight: 1.6,
-  color: "var(--fg1)",
 };
 
 const codeStyle: CSSProperties = {

@@ -244,6 +244,19 @@ async fn finalize(
             }
 
             let session_id = sink.session_id.clone().or(ctx_session);
+            // Exit 0 with no assistant text is the "ran but empty" regression:
+            // surface it as a failure with stderr rather than a clean success.
+            if sink.accumulated.trim().is_empty() {
+                let stderr_tail = handle
+                    .last_stderr
+                    .lock()
+                    .ok()
+                    .and_then(|g| g.clone())
+                    .unwrap_or_default();
+                return Err(AdapterError::Unknown(format!(
+                    "gemini completed with no output (exit 0, no assistant text parsed); stderr: {stderr_tail}"
+                )));
+            }
             Ok(AdapterResult {
                 success: true,
                 summary: sink.accumulated,

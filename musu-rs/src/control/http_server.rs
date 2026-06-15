@@ -421,10 +421,15 @@ async fn dispatch_tool(
                 .find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
                 .ok_or_else(|| format!("Node {} not found", node_id))?;
 
-            let target_url = format!("http://{}/api/files/read?path={}", peer.addr, path);
+            // Percent-encode the caller-supplied path via reqwest's query builder
+            // instead of format!-interpolating it into the URL, so a path with
+            // '&', '#', or other URL metacharacters cannot inject extra query
+            // params / a fragment into the request to the peer node.
+            let target_url = format!("http://{}/api/files/read", peer.addr);
             let resp = state
                 .http_client
                 .get(&target_url)
+                .query(&[("path", path)])
                 .bearer_auth(&state.config.token)
                 .send()
                 .await
