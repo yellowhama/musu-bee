@@ -15,3 +15,7 @@ const DESKTOP_RELEASE_BASE =
 export const DESKTOP_APPINSTALLER_URL = `${DESKTOP_RELEASE_BASE}/musu.appinstaller`;
 export const DESKTOP_MSIX_URL = `${DESKTOP_RELEASE_BASE}/musu-desktop-x64.msix`;
 export const DESKTOP_CERT_URL = `${DESKTOP_RELEASE_BASE}/blossompark.musu.cer`;
+// One-click installer: downloads + trusts the cert + installs the .appinstaller
+// in a single elevated run, so the beta user never types a certificate command.
+// (Removed entirely once the Store release ships — Store re-signs the package.)
+export const DESKTOP_INSTALL_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/Install-MUSU.ps1`;
