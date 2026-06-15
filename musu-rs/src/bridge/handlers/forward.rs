@@ -1076,19 +1076,17 @@ pub async fn receive_callback(
     .fetch_optional(&state.pool)
     .await
     .map_err(MusuError::Sqlx)?;
-    let callback_company_id = callback_context
+    let callback_company_id = callback_context.as_ref().and_then(|row| {
+        row.try_get::<Option<String>, _>("company_id")
+            .ok()
+            .flatten()
+    });
+    let callback_channel = callback_context
         .as_ref()
-        .and_then(|row| row.try_get::<Option<String>, _>("company_id").ok().flatten());
-    let callback_channel = callback_context.as_ref().and_then(|row| {
-        row.try_get::<Option<String>, _>("channel")
-            .ok()
-            .flatten()
-    });
-    let callback_sender_id = callback_context.as_ref().and_then(|row| {
-        row.try_get::<Option<String>, _>("sender_id")
-            .ok()
-            .flatten()
-    });
+        .and_then(|row| row.try_get::<Option<String>, _>("channel").ok().flatten());
+    let callback_sender_id = callback_context
+        .as_ref()
+        .and_then(|row| row.try_get::<Option<String>, _>("sender_id").ok().flatten());
 
     let musu_home = state
         .config
@@ -1177,8 +1175,8 @@ pub async fn receive_callback(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::extract::State;
     use crate::peer::discovery::PeerSource;
+    use axum::extract::State;
     use std::sync::Arc;
     use tempfile::TempDir;
     use tokio::sync::broadcast::error::TryRecvError;

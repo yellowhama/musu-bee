@@ -173,6 +173,74 @@ async function installMockTauri(
               error: null,
             };
           }
+          if (command === "private_mesh_bootstrap") {
+            (window as any).__bootstrapCalls = ((window as any).__bootstrapCalls || 0) + 1;
+            (window as any).__lastBootstrapArgs = args;
+            return {
+              ok: true,
+              server_url: String(args?.serverUrl || ""),
+              output_dir: "C:\\Users\\empty\\.musu\\private-mesh-control-plane",
+              tailnet_name: "musu",
+              generated_files: [
+                "docker-compose.yml",
+                "config/headscale.yaml",
+                "scripts/create-join-key.ps1",
+              ],
+              next_commands: [],
+              error: null,
+              output: "{}",
+            };
+          }
+          if (command === "private_mesh_start_control_host") {
+            (window as any).__startControlHostCalls =
+              ((window as any).__startControlHostCalls || 0) + 1;
+            return {
+              ok: true,
+              bundle_dir: "C:\\Users\\empty\\.musu\\private-mesh-control-plane",
+              output: JSON.stringify({ schema: "musu.start_control_host.v1", healthy: true }),
+              error: null,
+            };
+          }
+          if (command === "private_mesh_create_join_key") {
+            (window as any).__createJoinKeyCalls =
+              ((window as any).__createJoinKeyCalls || 0) + 1;
+            return {
+              ok: true,
+              pass_path:
+                "C:\\Users\\empty\\.musu\\private-mesh-control-plane\\device-add-passes\\musu.device_add.musu.20260615-120000.json",
+              login_server: "https://mesh.example",
+              tailnet: "musu",
+              expires_after_seconds: 3600,
+              join_command: "musu mesh join --device-add-pass <musu.device_add.v1.json>",
+              error: null,
+              output: "{}",
+            };
+          }
+          if (command === "desktop_status") {
+            (window as any).__desktopStatusCalls =
+              ((window as any).__desktopStatusCalls || 0) + 1;
+            return {
+              version: "1.15.0-rc.1",
+              bridge_status: "ok",
+              auth_status: "Local Only",
+              runtime_process_count: 1,
+              dashboard_status: "ok",
+              dashboard_url: "http://127.0.0.1:3001",
+              dashboard_detail: "optional developer dashboard is running",
+              package_status: "ok",
+              runtime_profile_status: "ok",
+              process_ownership_status: "ok",
+              owned_node_process_count: 0,
+              owned_webview2_process_count: 2,
+              warnings: [],
+              can_start_runtime: false,
+            };
+          }
+          if (command === "open_dashboard") {
+            (window as any).__openDashboardCalls =
+              ((window as any).__openDashboardCalls || 0) + 1;
+            return { ok: true, message: "dashboard opened", output: "http://127.0.0.1:3001" };
+          }
           if (command === "latest_release_evidence") {
             (window as any).__latestEvidenceCalls =
               ((window as any).__latestEvidenceCalls || 0) + 1;
@@ -320,6 +388,17 @@ async function installMockTauri(
   }, options);
 }
 
+test("diagnostics exposes optional dashboard only when desktop_status provides it", async ({ page }) => {
+  await installMockTauri(page);
+  await page.goto(SHELL_URL);
+  await page.getByText("Having trouble?").click();
+  await expect.poll(() => page.evaluate(() => (window as any).__desktopStatusCalls || 0)).toBe(1);
+  await expect(page.locator("#d-dashboard")).toHaveText("available");
+  await expect(page.getByRole("button", { name: "Open dashboard" })).toBeVisible();
+  await page.getByRole("button", { name: "Open dashboard" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__openDashboardCalls || 0)).toBe(1);
+});
+
 async function renderProofScenario(page: import("@playwright/test").Page) {
   await page.goto(SHELL_URL);
   await expect(page.getByText("Your machines")).toBeVisible();
@@ -334,13 +413,52 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
   const addPcPanel = page.locator("#add-pc-panel");
   await expect(addPcPanel).toBeVisible();
   await expect(addPcPanel.getByText("No Tailscale.com signup required.")).toBeVisible();
-  await expect(addPcPanel.getByText("musu mesh bootstrap --server-url")).toBeVisible();
-  await expect(addPcPanel.getByText("docker compose config --quiet")).toBeVisible();
+  await expect(addPcPanel.locator("#bootstrap-server-url")).toBeVisible();
+  await expect(addPcPanel.getByRole("button", { name: "Generate bundle" })).toBeVisible();
+  await expect(addPcPanel.getByRole("button", { name: "Start control host" })).toBeVisible();
+  await expect(addPcPanel.getByText("MUSU runs docker compose")).toBeVisible();
   await expect(addPcPanel.getByText("check-public-endpoint.ps1")).toBeVisible();
   await expect(addPcPanel.getByText("Device-add pass", { exact: true })).toBeVisible();
   await expect(addPcPanel.getByText("musu.device_add.v1", { exact: true })).toBeVisible();
-  await expect(addPcPanel.getByText("writes a one-use MUSU device-add pass file")).toBeVisible();
+  await expect(addPcPanel.getByText("issue a one-use MUSU device-add pass")).toBeVisible();
   await expect(addPcPanel.getByText("device-add-passes/")).toBeVisible();
+  await expect(addPcPanel.getByRole("button", { name: "Issue pass" })).toBeVisible();
+  await expect(addPcPanel.getByText("scripts\\create-join-key.ps1")).toHaveCount(0);
+  await addPcPanel.getByRole("button", { name: "Generate bundle" }).click();
+  await expect(addPcPanel.locator("#bootstrap-result")).toContainText(
+    "Enter your mesh host URL first"
+  );
+  await expect.poll(() => page.evaluate(() => (window as any).__bootstrapCalls || 0)).toBe(0);
+  await addPcPanel.locator("#bootstrap-server-url").fill("mesh.example");
+  await addPcPanel.getByRole("button", { name: "Generate bundle" }).click();
+  await expect(addPcPanel.locator("#bootstrap-result")).toContainText(
+    "Use a full mesh host URL"
+  );
+  await expect.poll(() => page.evaluate(() => (window as any).__bootstrapCalls || 0)).toBe(0);
+  await addPcPanel.locator("#bootstrap-server-url").fill("https://mesh.example");
+  await addPcPanel.getByRole("button", { name: "Generate bundle" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__bootstrapCalls || 0)).toBe(1);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__lastBootstrapArgs?.serverUrl || ""))
+    .toBe("https://mesh.example");
+  await expect(addPcPanel.locator("#bootstrap-result")).toContainText(
+    "Bundle ready in C:\\Users\\empty\\.musu\\private-mesh-control-plane"
+  );
+  await expect(addPcPanel.locator("#bootstrap-files")).toContainText("docker-compose.yml");
+  await expect(addPcPanel.locator("#bootstrap-files")).toContainText("config/headscale.yaml");
+  await addPcPanel.getByRole("button", { name: "Start control host" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__startControlHostCalls || 0)).toBe(1);
+  await expect(addPcPanel.locator("#start-control-host-result")).toContainText(
+    "Control host is up"
+  );
+  await addPcPanel.getByRole("button", { name: "Issue pass" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__createJoinKeyCalls || 0)).toBe(1);
+  await expect(addPcPanel.locator("#device-add-pass-result")).toContainText("Pass ready:");
+  await expect(addPcPanel.locator("#device-add-pass-result")).toContainText("https://mesh.example");
+  await addPcPanel.getByRole("button", { name: "Copy path" }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__copiedText || ""))
+    .toContain("musu.device_add.musu.20260615-120000.json");
   await expect(addPcPanel.getByText("Copy that generated pass file to each target PC")).toBeVisible();
   await expect(addPcPanel.getByText("musu mesh join --device-add-pass")).toBeVisible();
   await expect(addPcPanel.getByText("Release proof", { exact: true })).toBeVisible();

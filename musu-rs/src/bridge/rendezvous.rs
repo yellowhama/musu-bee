@@ -13,10 +13,15 @@ use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
 
 const DEFAULT_RENDEZVOUS_TIMEOUT_MS: u64 = 3_000;
+#[cfg(test)]
 const RELEASE_RELAY_TUNNEL_TRANSPORT_KIND: &str = "quic_relay_tunnel";
+#[cfg(test)]
 const RELEASE_RELAY_TUNNEL_ENCRYPTION: &str = "quic_tls_1_3";
+#[cfg(test)]
 const RELEASE_RELAY_TUNNEL_PEER_IDENTITY_METHOD: &str = "quic_tls_cert_fingerprint";
+#[cfg(test)]
 const RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
+#[cfg(test)]
 const RELEASE_RELAY_TUNNEL_NOT_IMPLEMENTED: &str = "release_relay_tunnel_runtime_not_implemented";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,6 +187,7 @@ impl RelayPayloadQueueOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(test)]
 pub struct ReleaseRelayTunnelSubmissionContract {
     pub transport_kind: &'static str,
     pub encryption: &'static str,
@@ -189,6 +195,7 @@ pub struct ReleaseRelayTunnelSubmissionContract {
     pub transport_verified_by: &'static str,
 }
 
+#[cfg(test)]
 pub fn release_relay_tunnel_submission_contract() -> ReleaseRelayTunnelSubmissionContract {
     ReleaseRelayTunnelSubmissionContract {
         transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND,
@@ -198,6 +205,7 @@ pub fn release_relay_tunnel_submission_contract() -> ReleaseRelayTunnelSubmissio
     }
 }
 
+#[cfg(test)]
 pub fn submit_release_relay_tunnel_payload(
     payload: &crate::cloud::P2pRelayPayloadRequest,
     relay_url: &str,
@@ -236,6 +244,7 @@ pub fn submit_release_relay_tunnel_payload(
     Err(RELEASE_RELAY_TUNNEL_NOT_IMPLEMENTED)
 }
 
+#[cfg(test)]
 fn is_hex_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
