@@ -15,6 +15,27 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::Notify;
 
+/// Adapters that may be the FLEET-WIDE DEFAULT (applied to any task that omits
+/// `adapter_type`, including cross-machine forwarded tasks). `shell` and any
+/// other command-executing adapter are deliberately excluded: a default shell
+/// adapter would execute every forwarded task's prompt verbatim via
+/// `cmd /C` / `sh -c` (RCE). Enforced at BOTH the write endpoint
+/// (set_default_adapter) and the read path (default_adapter_type), so a `shell`
+/// default is unreachable no matter how it reached bridge.env / the env var.
+pub const DEFAULTABLE_ADAPTERS: &[&str] = &[
+    "echo",
+    "codex",
+    "claude",
+    "gemini",
+    "openai_compat_local",
+    "openai_compat_remote",
+];
+
+/// Is `adapter` safe to use as the fleet default?
+pub fn is_defaultable_adapter(adapter: &str) -> bool {
+    DEFAULTABLE_ADAPTERS.contains(&adapter)
+}
+
 /// Per-request adapter context. Mirrors Python `AdapterContext`
 /// (`musu_core/adapters/base.py:74-101`) with W12/W13 preempt fields.
 ///

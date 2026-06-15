@@ -87,10 +87,33 @@ fn default_qa_loop_max() -> u32 {
 /// Shared by every task-spawning entry point (delegate, forward-receive, run)
 /// so the guarantee holds across ALL paths.
 pub(crate) fn default_adapter_type() -> String {
-    default_adapter_from(
-        std::env::var("MUSU_DEFAULT_ADAPTER").ok().as_deref(),
-        detect_default_adapter,
-    )
+    // Prefer the env var; fall back to the persisted bridge.env value when the
+    // env is unset. Removing the live std::env::set_var (env-race fix) means the
+    // persisted default would otherwise never reach the running bridge — the
+    // bridge boots in-process via `musu startup` with no dotenv hydration. Read
+    // the file the same way ensure_bridge_token does (token.rs).
+    let env_value = std::env::var("MUSU_DEFAULT_ADAPTER")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .or_else(persisted_default_adapter);
+    default_adapter_from(env_value.as_deref(), detect_default_adapter)
+}
+
+/// Read `MUSU_DEFAULT_ADAPTER` from `<home>/bridge.env` (the persisted default
+/// set by set_default_adapter). Line-based parse, mirroring token.rs.
+fn persisted_default_adapter() -> Option<String> {
+    let home = crate::install::resolve_musu_home_from_env().ok()?;
+    let body = std::fs::read_to_string(home.join("bridge.env")).ok()?;
+    for line in body.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("MUSU_DEFAULT_ADAPTER=") {
+            let val = rest.trim().trim_matches('"').trim();
+            if !val.is_empty() {
+                return Some(val.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Auto-detect the best available default adapter by what's on PATH.
@@ -116,6 +139,19 @@ pub(crate) fn detect_default_adapter() -> &'static str {
 /// process-global env (thread-unsafe) or the real filesystem PATH.
 fn default_adapter_from(env_value: Option<&str>, detect: impl Fn() -> &'static str) -> String {
     match env_value.map(str::trim).filter(|v| !v.is_empty()) {
+        // Read-side allow-list guard: a configured default that is NOT
+        // defaultable (e.g. MUSU_DEFAULT_ADAPTER=shell written by pre-fix code,
+        // a hand-edited bridge.env, or an inherited OS env var) must NOT silently
+        // become the fleet default — that is the forwarded-task RCE. Drop it to
+        // the safe auto-detected default and warn. The write endpoint already
+        // rejects these, but the resolver must not trust the value's provenance.
+        Some(v) if !crate::adapter::is_defaultable_adapter(v) => {
+            tracing::warn!(
+                rejected_default = %v,
+                "ignoring non-defaultable MUSU_DEFAULT_ADAPTER; using auto-detected default (shell/exec adapters are dispatchable only per-task)"
+            );
+            detect().to_string()
+        }
         Some(v) => v.to_string(),
         None => detect().to_string(),
     }
@@ -491,6 +527,22 @@ mod tests {
         assert_eq!(default_adapter_from(None, detect_echo), "echo");
         // a different detector result flows through
         assert_eq!(default_adapter_from(None, || "claude"), "claude");
+    }
+
+    #[test]
+    fn default_adapter_drops_non_defaultable_shell_on_read() {
+        let detect_echo = || "echo";
+        // A configured `shell` default (e.g. legacy bridge.env, hand-edit, or an
+        // inherited OS env var) must NOT become the fleet default — it is dropped
+        // to the safe auto-detected value, closing the forwarded-task RCE on the
+        // read side regardless of how the value got there.
+        assert_eq!(default_adapter_from(Some("shell"), detect_echo), "echo");
+        assert_eq!(default_adapter_from(Some("  shell  "), detect_echo), "echo");
+        assert_eq!(default_adapter_from(Some("shell"), || "codex"), "codex");
+        // an unknown/garbage adapter is likewise not trusted as the default
+        assert_eq!(default_adapter_from(Some("rm-rf"), detect_echo), "echo");
+        // defaultable values still flow through unchanged
+        assert_eq!(default_adapter_from(Some("codex"), detect_echo), "codex");
     }
 }
 

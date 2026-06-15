@@ -96,7 +96,6 @@ export async function GET() {
     protocol: "json-rpc-2.0",
     endpoint: "/api/mcp",
     tools: TOOLS,
-    discovery: "/.well-known/mcp.json",
   });
 }
 

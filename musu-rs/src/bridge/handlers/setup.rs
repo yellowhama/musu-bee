@@ -116,21 +116,10 @@ const KNOWN_ADAPTERS: &[&str] = &[
     "openai_compat_remote",
 ];
 
-/// Adapters that may be persisted as the FLEET-WIDE DEFAULT. `shell` is
-/// deliberately excluded: a default adapter runs for any task that omits
-/// `adapter_type`, INCLUDING cross-machine forwarded tasks, and the shell
-/// adapter executes the task prompt verbatim via `cmd /C` / `sh -c`. Making
-/// `shell` the default would turn ordinary prompt-execution into shell RCE on
-/// every forwarded task. `shell` stays dispatchable only via an explicit
-/// per-task `adapter_type="shell"`.
-const DEFAULTABLE_ADAPTERS: &[&str] = &[
-    "echo",
-    "codex",
-    "claude",
-    "gemini",
-    "openai_compat_local",
-    "openai_compat_remote",
-];
+// DEFAULTABLE_ADAPTERS lives in crate::adapter (shared with the read path in
+// bridge::handlers::tasks so the write guard and the resolver enforce the same
+// allow-list).
+use crate::adapter::DEFAULTABLE_ADAPTERS;
 
 /// POST /api/setup/default-adapter — persist `MUSU_DEFAULT_ADAPTER=<adapter>` into
 /// `bridge.env` so it survives restarts. The LLM calls this after diagnosing the

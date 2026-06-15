@@ -238,6 +238,33 @@ function safeHttpUrl(value: string) {
  * (allow) if the host is already a literal IP the gate handled, or if resolution
  * fails (the subsequent fetch will then fail on its own).
  */
+/** Is a bare (unbracketed) resolved IP private/loopback/link-local/ULA/metadata?
+ *  dns.lookup returns IPv6 WITHOUT brackets, and IPv4-mapped IPv6 as ::ffff:a.b.c.d,
+ *  neither of which isPrivateOrLocalHostname (bracket-based) catches — so check
+ *  the bare form here. */
+function resolvedAddressIsPrivate(address: string): boolean {
+  const addr = address.toLowerCase();
+  // IPv4-mapped IPv6 (::ffff:127.0.0.1) → test the embedded IPv4.
+  const mapped = addr.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) {
+    return isPrivateOrLocalHostname(mapped[1]);
+  }
+  if (addr.includes(":")) {
+    // Bare IPv6: loopback, ULA (fc00::/7 → fc/fd), link-local (fe80::/10).
+    return (
+      addr === "::1" ||
+      addr.startsWith("fc") ||
+      addr.startsWith("fd") ||
+      addr.startsWith("fe80:") ||
+      addr.startsWith("fe9") ||
+      addr.startsWith("fea") ||
+      addr.startsWith("feb")
+    );
+  }
+  // IPv4 literal → reuse the existing dotted-quad classifier.
+  return isPrivateOrLocalHostname(addr);
+}
+
 async function resolvedHostIsPrivate(hostname: string): Promise<string | null> {
   const bare = hostname.replace(/^\[|\]$/g, "");
   // Literal IPs were already handled by isPrivateOrLocalHostname in the gate.
@@ -246,15 +273,21 @@ async function resolvedHostIsPrivate(hostname: string): Promise<string | null> {
   }
   try {
     const dns = await import("node:dns/promises");
-    const records = await dns.lookup(bare, { all: true });
+    // Bound the lookup so a hostile/slow resolver cannot stall the health check
+    // before the already-bounded fetch (matches the catch → null behavior).
+    const lookup = dns.lookup(bare, { all: true });
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("dns_timeout")), 3000),
+    );
+    const records = (await Promise.race([lookup, timeout])) as Array<{ address: string }>;
     for (const { address } of records) {
-      if (isPrivateOrLocalHostname(address)) {
+      if (resolvedAddressIsPrivate(address)) {
         return address;
       }
     }
     return null;
   } catch {
-    // Resolution failed → let fetch surface the error; do not hard-block.
+    // Resolution failed/timed out → let fetch surface the error; do not hard-block.
     return null;
   }
 }
@@ -617,8 +650,12 @@ async function runUrlFetchHealthCheck(
   }
 
   // The string-based gate above cannot catch a public hostname that RESOLVES to
-  // a private/metadata IP (DNS rebinding / attacker-controlled domain). Resolve
-  // the host and block if ANY resolved address is private/loopback/link-local.
+  // a private/metadata IP. Resolve and block if ANY resolved address is
+  // private/loopback/link-local/ULA (IPv4 + IPv6 + IPv4-mapped). Residual: this
+  // is the gate's own lookup; fetch() resolves independently, so a true DNS-
+  // rebinding attacker (public on this lookup, private on fetch's) is NOT
+  // blocked — accepted for the connector health-check use case (low likelihood,
+  // owner-triggered, read-only). Full defeat needs IP-pinning the fetch.
   const resolvedBlock = await resolvedHostIsPrivate(url.hostname);
   if (resolvedBlock) {
     return {
