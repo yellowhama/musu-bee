@@ -3475,6 +3475,17 @@ function renderTaskInspector(li, { taskId, status, routeLabel, artifact, routePr
   }
 }
 
+// Remove a task card by id (used to swap an optimistic placeholder for the real
+// task_id once submit_order returns, avoiding a duplicate row).
+function removeTaskCard(taskId) {
+  const li = document.querySelector(`#task-feed [data-task="${taskId}"]`);
+  if (li) {
+    stopTaskTimers?.(taskId);
+    li.remove();
+    refreshGroupVisibility();
+  }
+}
+
 function renderTaskCard(taskId, { status, text, target, output, error, artifact, routeProof, orderBoundary, retryDisabled }) {
   const targetGroup = groupFor(status);
   let li = document.querySelector(`#task-feed [data-task="${taskId}"]`);
@@ -3776,12 +3787,23 @@ async function submitText(text, target, { expectedBoundary } = {}) {
     });
     return;
   }
+  // Optimistic card: show a "queued" card the instant the user sends, BEFORE the
+  // submit_order IPC round-trips. Otherwise a slow adapter / remote target leaves
+  // the screen blank right after Send and the user can't tell it worked (the
+  // Linear 0ms-feedback bar). Replaced in place by the real task_id on success.
+  const optimisticId = `local-${Date.now()}`;
+  renderTaskCard(optimisticId, { status: "pending", text, target: orderTarget, orderBoundary });
+  announce(`Order sent${orderTarget ? ` to ${orderTarget}` : ""}`);
   try {
     const result = await invoke("submit_order", { text, target: orderTarget });
     if (result.task_id) {
+      // Re-key the optimistic card to the real id (renderTaskCard upserts by id,
+      // so remove the placeholder first to avoid a duplicate).
+      removeTaskCard(optimisticId);
       renderTaskCard(result.task_id, { status: "pending", text, target: orderTarget, orderBoundary });
       pollTask(result.task_id, text, orderTarget, orderBoundary);
     } else {
+      removeTaskCard(optimisticId);
       // No task id (e.g. rejected) — surface as a failed card so it's visible.
       renderTaskCard(`local-${Date.now()}`, {
         status: "failed",
@@ -3792,6 +3814,9 @@ async function submitText(text, target, { expectedBoundary } = {}) {
       });
     }
   } catch (err) {
+    // Turn the optimistic placeholder into the failed card (don't leave a stray
+    // "queued" row alongside a new failed one).
+    removeTaskCard(optimisticId);
     renderTaskCard(`local-${Date.now()}`, {
       status: "failed",
       text,
