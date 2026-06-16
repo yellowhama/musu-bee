@@ -330,6 +330,13 @@
         </p>
         <p id="order-status" class="order-status" hidden></p>
 
+        <!-- Visually-hidden live regions so the one thing that matters in a
+             status-centric app — what the fleet is doing — is ANNOUNCED, not just
+             rendered. polite: task running/done + order status. assertive:
+             failures + connection lost. -->
+        <div id="sr-live-polite" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div id="sr-live-assertive" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
         <!-- task feed: attention-grouped inbox (S-tier). Orders surface where
              they need you first: running → done. Each group hides when empty. -->
         <div id="task-feed" class="task-feed" aria-label="Recent work" hidden>

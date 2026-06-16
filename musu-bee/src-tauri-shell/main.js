@@ -232,10 +232,30 @@ async function invoke(command, args = {}) {
   return api.invoke(command, args);
 }
 
+// Announce a state change to assistive tech via the hidden live regions. Writing
+// the same text twice in a row won't re-announce (aria-atomic), so nudge with a
+// leading space toggle when the text is unchanged.
+function announce(message, assertive) {
+  const el = document.getElementById(assertive ? "sr-live-assertive" : "sr-live-polite");
+  if (!el || !message) return;
+  const text = el.textContent === message ? message + " " : message;
+  el.textContent = text;
+}
+
+let lastAnnouncedConnState = null;
 function setConn(state, label) {
   const el = $("conn");
   el.dataset.state = state;
   $("conn-label").textContent = label;
+  // Announce only real transitions, and route connection-lost to assertive.
+  if (state !== lastAnnouncedConnState) {
+    if (state === "offline" || state === "error") {
+      announce("Connection lost", true);
+    } else if (state === "online" || state === "connected") {
+      announce("Connected");
+    }
+    lastAnnouncedConnState = state;
+  }
 }
 
 function isOnline(lastSeen) {
@@ -403,6 +423,25 @@ function updateOrderTargetDisclosure() {
   const sel = $("order-target");
   if (!disclosure || !sel) return;
   const selected = sel.selectedOptions?.[0] || null;
+  // Pre-send guard: if an explicit target is selected but offline/not-targetable,
+  // don't accept an order we already know will fail — disable Send and surface
+  // the reason now, instead of letting it surface later as a failed task card.
+  const send = $("order-send");
+  if (selected && selected.value && selected.disabled) {
+    // The option text already carries the human reason, e.g. "node (offline)".
+    const reason = selected.textContent || `${selected.value} is offline`;
+    disclosure.dataset.boundary = "unverified";
+    disclosure.textContent = `${reason} — pick a reachable machine, or clear the target to auto-route.`;
+    if (send) {
+      send.disabled = true;
+      send.title = `${selected.value} is not reachable`;
+    }
+    return;
+  }
+  if (send) {
+    send.disabled = false;
+    send.removeAttribute("title");
+  }
   const contract = orderTargetBoundary(selected);
   disclosure.dataset.boundary = contract.boundary;
   disclosure.textContent = contract.text;
@@ -3661,7 +3700,7 @@ function pollTask(taskId, text, target, orderBoundary) {
       }
       // OS notification on terminal events (no-op if the plugin command is
       // absent — wrapped in try/catch so a missing command can't break the UI).
-      notifyTerminal(text, st);
+      notifyTerminal(text, st, target);
       return;
     }
     if (!stopped) {
@@ -3674,7 +3713,17 @@ function pollTask(taskId, text, target, orderBoundary) {
 // Fire an OS notification when an order finishes — so the user can walk away and
 // MUSU taps them. Best-effort: the Tauri command may not exist yet (shell-only
 // build), so swallow errors.
-async function notifyTerminal(text, st) {
+async function notifyTerminal(text, st, target) {
+  // Announce to assistive tech alongside the OS notification, so a SR/ambient
+  // user learns the order finished without watching the card. done = polite,
+  // failed/cancelled = assertive.
+  const who = target ? ` on ${target}` : "";
+  if (st.status === "done") {
+    announce(`Order${who} done`);
+  } else {
+    const why = st.error ? `: ${String(st.error).slice(0, 80)}` : "";
+    announce(`Order${who} ${st.status}${why}`, true);
+  }
   try {
     await invoke("notify_task_result", {
       title: st.status === "done" ? "Order done" : `Order ${st.status}`,
