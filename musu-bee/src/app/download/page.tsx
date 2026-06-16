@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import PublicSiteShell from "@/components/PublicSiteShell";
 import {
-  DESKTOP_APPINSTALLER_URL,
-  DESKTOP_CERT_URL,
+  DESKTOP_INSTALL_SCRIPT_URL,
   DESKTOP_MSIX_URL,
   PUBLIC_RELEASE_METADATA_TEXT,
   PUBLIC_RELEASE_VERSION,
@@ -24,52 +23,37 @@ export default function DownloadPage() {
         <h1 style={titleStyle}>MUSU for Windows</h1>
         <p style={descStyle}>
           MUSU is in beta. The desktop build is self-signed today (not yet
-          Microsoft Store-signed), so installing takes two steps: trust the
-          certificate once, then install. After that, MUSU keeps itself updated
-          automatically. Version <strong>{PUBLIC_RELEASE_VERSION}</strong>, x64.
+          Microsoft Store-signed). The one-click installer trusts the beta
+          certificate and installs MUSU for you in a single step &mdash; no
+          commands to type. After that, MUSU keeps itself updated automatically.
+          Version <strong>{PUBLIC_RELEASE_VERSION}</strong>, x64.
         </p>
 
         <div style={ctaRowStyle}>
           <a
-            href={DESKTOP_APPINSTALLER_URL}
-            data-testid="download-appinstaller"
+            href={DESKTOP_INSTALL_SCRIPT_URL}
+            data-testid="download-installer-script"
             style={primaryButtonStyle}
           >
-            <span aria-hidden="true">⊞</span> Download installer (.appinstaller)
-          </a>
-          <a href={DESKTOP_CERT_URL} data-testid="download-cert" style={secondaryButtonStyle}>
-            Download certificate (.cer)
+            <span aria-hidden="true">⊞</span> Download installer (Install-MUSU.ps1)
           </a>
         </div>
 
         <section style={sectionStyle}>
-          <h2 style={headingStyle}>Install in two steps</h2>
+          <h2 style={headingStyle}>Install in one step</h2>
           <ol style={listStyle}>
             <li>
-              <strong>Trust the certificate.</strong> Download{" "}
-              <a href={DESKTOP_CERT_URL} style={linkStyle}>
-                blossompark.musu.cer
-              </a>{" "}
-              and import it into your machine&rsquo;s Trusted People store. Open
-              an <strong>Administrator</strong> PowerShell and run:
-              <pre style={preStyle}>
-                <code>
-                  Import-Certificate -FilePath .\blossompark.musu.cer
-                  {"\n"} -CertStoreLocation Cert:\LocalMachine\TrustedPeople
-                </code>
-              </pre>
+              Download{" "}
+              <a href={DESKTOP_INSTALL_SCRIPT_URL} style={linkStyle}>
+                Install-MUSU.ps1
+              </a>
+              .
             </li>
             <li>
-              <strong>Install MUSU.</strong> Open{" "}
-              <a href={DESKTOP_APPINSTALLER_URL} style={linkStyle}>
-                musu.appinstaller
-              </a>{" "}
-              (double-click it, or run the command below). Windows App Installer
-              handles installation and registers MUSU to check for updates every
-              24 hours.
-              <pre style={preStyle}>
-                <code>Add-AppxPackage -AppInstallerFile &quot;{DESKTOP_APPINSTALLER_URL}&quot;</code>
-              </pre>
+              <strong>Right-click it &rarr; &ldquo;Run with PowerShell.&rdquo;</strong>{" "}
+              Approve the admin prompt once. It downloads and trusts the beta
+              certificate, then installs MUSU with automatic updates &mdash; you
+              never type a certificate command.
             </li>
           </ol>
         </section>
@@ -153,17 +137,6 @@ const primaryButtonStyle: CSSProperties = {
   boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
 };
 
-const secondaryButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "16px 28px",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.18)",
-  color: "var(--fg1)",
-  textDecoration: "none",
-  fontWeight: 600,
-};
-
 const sectionStyle: CSSProperties = {
   marginTop: 28,
   paddingTop: 24,
@@ -189,19 +162,6 @@ const listStyle: CSSProperties = {
   color: "var(--fg2)",
   fontSize: 15,
   lineHeight: 1.85,
-};
-
-const preStyle: CSSProperties = {
-  margin: "10px 0 0",
-  padding: "12px 14px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: 8,
-  overflowX: "auto",
-  fontFamily: "var(--font-mono)",
-  fontSize: 13,
-  lineHeight: 1.6,
-  color: "var(--fg1)",
 };
 
 const codeStyle: CSSProperties = {

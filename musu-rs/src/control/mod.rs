@@ -216,7 +216,7 @@ impl ControlServer {
     /// set_default_adapter — V28. Proxies POST /api/setup/default-adapter.
     #[tool(
         name = "set_default_adapter",
-        description = "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env and applies immediately. Use after get_setup_status to configure the machine — e.g. set 'codex' if codex is installed, or 'echo' as a zero-dependency floor."
+        description = "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env and applies to subsequent tasks. Use after get_setup_status to configure the machine — e.g. set 'codex' if codex is installed, or 'echo' as a zero-dependency floor."
     )]
     async fn set_default_adapter(
         &self,

@@ -138,11 +138,27 @@ The default multi-machine product boundary is now explicit:
 - Local bridge auth failures are not an empty fleet. `401` and `403` are
   `local_fleet_auth_failed` so the cockpit can show Review instead of hiding a
   broken trust boundary behind a local fallback row.
+- 2026-06-15 refinement: device-add pass issuance is a Cockpit Add PC product
+  action (`Issue pass` -> `private_mesh_create_join_key`), not a normal-path
+  instruction to copy and run `scripts\create-join-key.ps1`. The helper scripts
+  remain bundle internals and manual fallback tools.
+- 2026-06-15 refinement: Add PC control-plane Docker exec calls are
+  non-interactive. GUI-triggered health and join-key helper paths use
+  `docker compose exec -T headscale headscale ...`, so the product does not
+  depend on a terminal TTY when a user clicks Cockpit buttons.
+- 2026-06-15 refinement: Private Mesh bootstrap identifiers are validated before
+  any bundle files are written. `--tailnet-name` must be a short ASCII
+  identifier, and `--base-domain` must be DNS-label shaped, so generated
+  Headscale YAML and helper scripts do not depend on escaping arbitrary
+  operator input.
 
 Current evidence and qualitative status are tracked in:
 
 - `docs/RELEASE_1_15_0_RC1_DESKTOP_CONSOLE_FLICKER_AND_FLEET_REFRESH_HARDENING_2026_06_14.md`
 - `docs/RELEASE_1_15_0_RC1_PRIVATE_MESH_CONSOLE_FLICKER_DOC_SYNC_AND_AUDIT_2026_06_14.md`
+- `docs/RELEASE_1_15_0_RC1_ADD_PC_JOIN_KEY_WIRING_AUDIT_SPEC_2026_06_15.md`
+- `docs/RELEASE_1_15_0_RC1_NONINTERACTIVE_DOCKER_EXEC_AUDIT_2026_06_15.md`
+- `docs/RELEASE_1_15_0_RC1_BOOTSTRAP_IDENTIFIER_VALIDATION_AUDIT_2026_06_15.md`
 
 ## 2026-06-06 Relay Proof Identity Boundary Update
 

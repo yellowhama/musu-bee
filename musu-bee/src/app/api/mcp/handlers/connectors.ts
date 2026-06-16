@@ -230,6 +230,76 @@ function safeHttpUrl(value: string) {
   }
 }
 
+/**
+ * Resolve a hostname and return the first resolved address that is
+ * private/loopback/link-local/metadata, or null if all are public. This closes
+ * the SSRF gap where a public hostname (or a DNS-rebinding record) resolves to
+ * an internal IP that the string-based hostname gate cannot see. Returns null
+ * (allow) if the host is already a literal IP the gate handled, or if resolution
+ * fails (the subsequent fetch will then fail on its own).
+ */
+/** Is a bare (unbracketed) resolved IP private/loopback/link-local/ULA/metadata?
+ *  dns.lookup returns IPv6 WITHOUT brackets, and IPv4-mapped IPv6 as ::ffff:a.b.c.d,
+ *  neither of which isPrivateOrLocalHostname (bracket-based) catches — so check
+ *  the bare form here. */
+function resolvedAddressIsPrivate(address: string): boolean {
+  const addr = address.toLowerCase();
+  // IPv4-mapped IPv6 (::ffff:127.0.0.1) → test the embedded IPv4.
+  const mapped = addr.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) {
+    return isPrivateOrLocalHostname(mapped[1]);
+  }
+  if (addr.includes(":")) {
+    // Bare IPv6: loopback, ULA (fc00::/7 → fc/fd), link-local fe80::/10
+    // (first hextet 0xfe80–0xfebf → prefixes fe8/fe9/fea/feb; fe80: alone would
+    // miss fe81–fe8f).
+    return (
+      addr === "::1" ||
+      addr.startsWith("fc") ||
+      addr.startsWith("fd") ||
+      addr.startsWith("fe8") ||
+      addr.startsWith("fe9") ||
+      addr.startsWith("fea") ||
+      addr.startsWith("feb")
+    );
+  }
+  // IPv4 literal → reuse the existing dotted-quad classifier.
+  return isPrivateOrLocalHostname(addr);
+}
+
+async function resolvedHostIsPrivate(hostname: string): Promise<string | null> {
+  const bare = hostname.replace(/^\[|\]$/g, "");
+  // Literal IPs were already handled by isPrivateOrLocalHostname in the gate.
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(bare) || bare.includes(":")) {
+    return null;
+  }
+  try {
+    const dns = await import("node:dns/promises");
+    // Bound the lookup so a hostile/slow resolver cannot stall the health check
+    // before the already-bounded fetch (matches the catch → null behavior).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const lookup = dns.lookup(bare, { all: true });
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("dns_timeout")), 3000);
+    });
+    let records: Array<{ address: string }>;
+    try {
+      records = (await Promise.race([lookup, timeout])) as Array<{ address: string }>;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+    for (const { address } of records) {
+      if (resolvedAddressIsPrivate(address)) {
+        return address;
+      }
+    }
+    return null;
+  } catch {
+    // Resolution failed/timed out → let fetch surface the error; do not hard-block.
+    return null;
+  }
+}
+
 function isPrivateOrLocalHostname(hostname: string) {
   const host = hostname.toLowerCase();
   if (
@@ -587,6 +657,32 @@ async function runUrlFetchHealthCheck(
     };
   }
 
+  // The string-based gate above cannot catch a public hostname that RESOLVES to
+  // a private/metadata IP. Resolve and block if ANY resolved address is
+  // private/loopback/link-local/ULA (IPv4 + IPv6 + IPv4-mapped). Residual: this
+  // is the gate's own lookup; fetch() resolves independently, so a true DNS-
+  // rebinding attacker (public on this lookup, private on fetch's) is NOT
+  // blocked — accepted for the connector health-check use case (low likelihood,
+  // owner-triggered, read-only). Full defeat needs IP-pinning the fetch.
+  const resolvedBlock = await resolvedHostIsPrivate(url.hostname);
+  if (resolvedBlock) {
+    return {
+      ok: false,
+      readiness: "source_url_blocked",
+      proof: connectorProofArtifact(connector, "not_run", {
+        source_url: url.toString(),
+        error: "source_url_resolves_to_private_network_blocked",
+        source_gate: {
+          ok: false,
+          reason: "source_url_resolves_to_private_network_blocked",
+          policy: "blocked",
+          risk_profile: "server_side_request_forgery",
+          matched_terms: [resolvedBlock],
+        },
+      }),
+    };
+  }
+
   try {
     const res = await fetch(url, {
       headers: { Accept: "text/html,application/json,text/plain;q=0.9,*/*;q=0.1" },
@@ -655,6 +751,25 @@ async function runOpenApiHealthCheck(
         source_url: sourceGate.source_url_redacted || url.toString(),
         error: sourceGate.reason,
         source_gate: sourceGate,
+      }),
+    };
+  }
+
+  const resolvedBlock = await resolvedHostIsPrivate(url.hostname);
+  if (resolvedBlock) {
+    return {
+      ok: false,
+      readiness: "source_url_blocked",
+      proof: connectorProofArtifact(connector, "not_run", {
+        source_url: url.toString(),
+        error: "source_url_resolves_to_private_network_blocked",
+        source_gate: {
+          ok: false,
+          reason: "source_url_resolves_to_private_network_blocked",
+          policy: "blocked",
+          risk_profile: "server_side_request_forgery",
+          matched_terms: [resolvedBlock],
+        },
       }),
     };
   }

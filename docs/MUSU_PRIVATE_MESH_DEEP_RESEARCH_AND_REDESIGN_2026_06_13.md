@@ -924,7 +924,7 @@ Aligned the cockpit and MCP setup guidance with the generated bundle:
 - The Cockpit Add PC panel now includes a "Start + checks" step between
   bootstrap and join-key creation.
 - That step exposes `docker compose config --quiet`, `docker compose up -d`,
-  `docker compose exec headscale headscale health`, and
+  `docker compose exec -T headscale headscale health`, and
   `scripts/check-public-endpoint.ps1`.
 - The MCP network runbook now tells agents to require compose validation,
   internal Headscale health, and the generated public endpoint check before
@@ -2629,3 +2629,108 @@ Product implication:
   environment gates, especially real single-machine, real second-PC Private Mesh,
   packaged proof archive, CPU/process evidence, public metadata, store/support,
   P2P control-plane evidence, and a clean git manifest.
+
+## Implementation Addendum 2026-06-15a
+
+Closed the Cockpit Add PC join-key wiring gap.
+
+Problem:
+
+- The backend had `private_mesh_create_join_key` and
+  `musu mesh create-join-key --json`, but the Cockpit Add PC panel still told
+  the user to copy `scripts\create-join-key.ps1`.
+- That contradicted the product contract: ordinary Add PC enrollment must be a
+  MUSU product action, not a helper-script ritual.
+- `run_create_join_key` also had a stale fallback: if the helper succeeded but
+  no new pass file appeared, it could show the last existing
+  `device-add-passes/*.json`.
+
+New behavior:
+
+- The Add PC panel now has an `Issue pass` button wired to
+  `invoke("private_mesh_create_join_key")`.
+- The result surface shows the generated pass file path, login server, tailnet,
+  and expiry. The `Copy path` button copies only the file path, not the raw
+  `hskey-auth-*` secret inside the pass.
+- The normal Cockpit path no longer exposes
+  `scripts\create-join-key.ps1` as a copyable command.
+- Browser QA now clicks `Issue pass`, verifies `private_mesh_create_join_key`,
+  checks pass path rendering/copy, and rejects the old helper copy surface.
+- `run_create_join_key` now fails if no new pass file appears, instead of
+  falling back to stale pass files.
+- Windows helper execution now uses `-NoProfile -NonInteractive` plus
+  `CREATE_NO_WINDOW` so nested PowerShell helper execution does not break the
+  desktop no-flicker contract.
+- IPC inventory found `open_dashboard` as the only registered-but-not-invoked
+  Tauri command. It is now wired as a diagnostics-only `Open dashboard` action
+  when `desktop_status.dashboard_url` exists; post-fix inventory is
+  `22 registered / 22 invoked / 0 missing`.
+
+Verification:
+
+- `npm run test:tauri-shell` passed with `42` tests.
+- `npm run test:tauri-shell:browser` passed with `10` tests.
+- `cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs` initially passed
+  with pre-existing `rendezvous.rs` relay placeholder dead-code warnings; the
+  follow-up route/proof audit moved that placeholder behind `#[cfg(test)]` and
+  brought the Rust check to warning-free.
+- `git diff --check` passed.
+
+Product implication:
+
+- The implementation is now aligned with the intended Add PC UX:
+  Cockpit Add PC -> Generate bundle -> Start + checks -> Issue pass -> copy the
+  pass file to the target PC -> `musu mesh join --device-add-pass
+  <musu.device_add.v1.json>`.
+- This closes the app-wiring gap but not the release proof gap. S-grade Private
+  Mesh still requires two separate physical machines joined through MUSU
+  Headscale, route verification, delegated order execution, callback
+  reconciliation, and archived proof.
+
+## Implementation Addendum 2026-06-15b
+
+Closed the route/proof/relay claim-boundary warning gap.
+
+Problem:
+
+- `rendezvous.rs` compiled a future release relay submission contract into the
+  production binary even though no runtime path called it.
+- That made `cargo check` noisy and made the code look closer to a production
+  QUIC relay tunnel than it actually is.
+- One remaining mDNS wrapper, `auto_register_peers`, was also unused; the bridge
+  uses the cancellable `auto_register_peers_with_cancellation` path.
+
+New behavior:
+
+- The release relay submission placeholder is now `#[cfg(test)]`. Its tests
+  still prove the intended future contract is `quic_relay_tunnel`,
+  `quic_tls_1_3`, fingerprint-bound, and blocked with
+  `release_relay_tunnel_runtime_not_implemented`.
+- The active relay drain path remains in `relay_payload.rs` and rejects
+  release-grade relay payload evidence without bound transport proof using
+  `release_relay_transport_proof_missing`.
+- `route_evidence.rs` records release relay evidence only when payload delivery
+  proof and relay transport proof are both attached.
+- Callback proof still marks Private Mesh verification only after a successful
+  tailnet route proof and callback proof are both present.
+- The unused mDNS wrapper was removed; the cancellable bridge path remains.
+
+Verification:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml release_relay --lib -j 1`
+  passed with `7` tests.
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_payload --lib -j 1`
+  passed with `32` tests.
+- `cargo test --manifest-path musu-rs\Cargo.toml mdns --lib -j 1` passed with
+  `3` tests.
+- `cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs` passed with no
+  warnings.
+
+Product implication:
+
+- MUSU should continue to sell the near-term S-grade network path as
+  MUSU-owned Headscale Private Mesh, not Tailscale.com signup and not a
+  production relay tunnel.
+- Relay payload fallback is useful preview infrastructure and proof plumbing,
+  but a real release relay still requires QUIC/TLS runtime implementation and
+  end-to-end dogfood.

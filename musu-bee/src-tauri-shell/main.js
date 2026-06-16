@@ -232,10 +232,30 @@ async function invoke(command, args = {}) {
   return api.invoke(command, args);
 }
 
+// Announce a state change to assistive tech via the hidden live regions. Writing
+// the same text twice in a row won't re-announce (aria-atomic), so nudge with a
+// leading space toggle when the text is unchanged.
+function announce(message, assertive) {
+  const el = document.getElementById(assertive ? "sr-live-assertive" : "sr-live-polite");
+  if (!el || !message) return;
+  const text = el.textContent === message ? message + " " : message;
+  el.textContent = text;
+}
+
+let lastAnnouncedConnState = null;
 function setConn(state, label) {
   const el = $("conn");
   el.dataset.state = state;
   $("conn-label").textContent = label;
+  // Announce only real transitions, and route connection-lost to assertive.
+  if (state !== lastAnnouncedConnState) {
+    if (state === "offline" || state === "error") {
+      announce("Connection lost", true);
+    } else if (state === "online" || state === "connected") {
+      announce("Connected");
+    }
+    lastAnnouncedConnState = state;
+  }
 }
 
 function isOnline(lastSeen) {
@@ -403,6 +423,25 @@ function updateOrderTargetDisclosure() {
   const sel = $("order-target");
   if (!disclosure || !sel) return;
   const selected = sel.selectedOptions?.[0] || null;
+  // Pre-send guard: if an explicit target is selected but offline/not-targetable,
+  // don't accept an order we already know will fail — disable Send and surface
+  // the reason now, instead of letting it surface later as a failed task card.
+  const send = $("order-send");
+  if (selected && selected.value && selected.disabled) {
+    // The option text already carries the human reason, e.g. "node (offline)".
+    const reason = selected.textContent || `${selected.value} is offline`;
+    disclosure.dataset.boundary = "unverified";
+    disclosure.textContent = `${reason} — pick a reachable machine, or clear the target to auto-route.`;
+    if (send) {
+      send.disabled = true;
+      send.title = `${selected.value} is not reachable`;
+    }
+    return;
+  }
+  if (send) {
+    send.disabled = false;
+    send.removeAttribute("title");
+  }
   const contract = orderTargetBoundary(selected);
   disclosure.dataset.boundary = contract.boundary;
   disclosure.textContent = contract.text;
@@ -1856,7 +1895,10 @@ function renderReleaseProofEvidence(result, target, state = "idle") {
     }
   }
   if (checksEl) {
-    checksEl.hidden = !readiness;
+    // The per-check list lives in a collapsed <details> drawer; the plain
+    // verdict (title/detail/readiness line) is the primary surface.
+    const drawer = $("release-evidence-checks-drawer");
+    if (drawer) drawer.hidden = !readiness;
     checksEl.innerHTML = "";
     if (readiness) {
       for (const check of readiness.checks) {
@@ -2451,6 +2493,56 @@ async function runMeshBootstrap() {
     btn.disabled = false;
     input.disabled = false;
     btn.textContent = oldText;
+  }
+}
+
+// Add PC final step on the NEW PC: paste the copied device-add pass file path
+// and join the fleet from a button (private_mesh_join) instead of typing
+// `musu mesh join`. The join runs tailscale up + control-server health re-check.
+async function runMeshJoin() {
+  const btn = $("join-run");
+  const input = $("join-pass-path");
+  const resultEl = $("join-result");
+  if (!btn || !input) return;
+  const passPath = input.value.trim();
+  if (!passPath) {
+    if (resultEl) {
+      resultEl.hidden = false;
+      resultEl.dataset.state = "error";
+      resultEl.textContent = "Paste the path to the device-add pass file copied from the control host.";
+    }
+    input.focus();
+    return;
+  }
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  input.disabled = true;
+  btn.textContent = "Joining…";
+  if (resultEl) {
+    resultEl.hidden = false;
+    resultEl.dataset.state = "running";
+    resultEl.textContent = "Joining the mesh (tailscale up + control-server health re-check)…";
+  }
+  try {
+    const r = await invoke("private_mesh_join", { passPath });
+    if (resultEl) {
+      if (r && r.ok) {
+        resultEl.dataset.state = "ok";
+        resultEl.textContent = "Joined the MUSU Private Mesh. This PC is now part of the fleet — refresh to see it.";
+      } else {
+        resultEl.dataset.state = "error";
+        resultEl.textContent = (r && r.error) || "Join failed. Check the pass file path and that the control host is online.";
+      }
+    }
+  } catch (err) {
+    if (resultEl) {
+      resultEl.dataset.state = "error";
+      resultEl.textContent = `Join failed: ${String(err)}`;
+    }
+  } finally {
+    btn.disabled = false;
+    input.disabled = false;
+    btn.textContent = oldText || "Join this PC";
   }
 }
 
@@ -3383,6 +3475,17 @@ function renderTaskInspector(li, { taskId, status, routeLabel, artifact, routePr
   }
 }
 
+// Remove a task card by id (used to swap an optimistic placeholder for the real
+// task_id once submit_order returns, avoiding a duplicate row).
+function removeTaskCard(taskId) {
+  const li = document.querySelector(`#task-feed [data-task="${taskId}"]`);
+  if (li) {
+    stopTaskTimers?.(taskId);
+    li.remove();
+    refreshGroupVisibility();
+  }
+}
+
 function renderTaskCard(taskId, { status, text, target, output, error, artifact, routeProof, orderBoundary, retryDisabled }) {
   const targetGroup = groupFor(status);
   let li = document.querySelector(`#task-feed [data-task="${taskId}"]`);
@@ -3611,7 +3714,7 @@ function pollTask(taskId, text, target, orderBoundary) {
       }
       // OS notification on terminal events (no-op if the plugin command is
       // absent — wrapped in try/catch so a missing command can't break the UI).
-      notifyTerminal(text, st);
+      notifyTerminal(text, st, target);
       return;
     }
     if (!stopped) {
@@ -3624,7 +3727,17 @@ function pollTask(taskId, text, target, orderBoundary) {
 // Fire an OS notification when an order finishes — so the user can walk away and
 // MUSU taps them. Best-effort: the Tauri command may not exist yet (shell-only
 // build), so swallow errors.
-async function notifyTerminal(text, st) {
+async function notifyTerminal(text, st, target) {
+  // Announce to assistive tech alongside the OS notification, so a SR/ambient
+  // user learns the order finished without watching the card. done = polite,
+  // failed/cancelled = assertive.
+  const who = target ? ` on ${target}` : "";
+  if (st.status === "done") {
+    announce(`Order${who} done`);
+  } else {
+    const why = st.error ? `: ${String(st.error).slice(0, 80)}` : "";
+    announce(`Order${who} ${st.status}${why}`, true);
+  }
   try {
     await invoke("notify_task_result", {
       title: st.status === "done" ? "Order done" : `Order ${st.status}`,
@@ -3674,12 +3787,23 @@ async function submitText(text, target, { expectedBoundary } = {}) {
     });
     return;
   }
+  // Optimistic card: show a "queued" card the instant the user sends, BEFORE the
+  // submit_order IPC round-trips. Otherwise a slow adapter / remote target leaves
+  // the screen blank right after Send and the user can't tell it worked (the
+  // Linear 0ms-feedback bar). Replaced in place by the real task_id on success.
+  const optimisticId = `local-${Date.now()}`;
+  renderTaskCard(optimisticId, { status: "pending", text, target: orderTarget, orderBoundary });
+  announce(`Order sent${orderTarget ? ` to ${orderTarget}` : ""}`);
   try {
     const result = await invoke("submit_order", { text, target: orderTarget });
     if (result.task_id) {
+      // Re-key the optimistic card to the real id (renderTaskCard upserts by id,
+      // so remove the placeholder first to avoid a duplicate).
+      removeTaskCard(optimisticId);
       renderTaskCard(result.task_id, { status: "pending", text, target: orderTarget, orderBoundary });
       pollTask(result.task_id, text, orderTarget, orderBoundary);
     } else {
+      removeTaskCard(optimisticId);
       // No task id (e.g. rejected) — surface as a failed card so it's visible.
       renderTaskCard(`local-${Date.now()}`, {
         status: "failed",
@@ -3690,6 +3814,9 @@ async function submitText(text, target, { expectedBoundary } = {}) {
       });
     }
   } catch (err) {
+    // Turn the optimistic placeholder into the failed card (don't leave a stray
+    // "queued" row alongside a new failed one).
+    removeTaskCard(optimisticId);
     renderTaskCard(`local-${Date.now()}`, {
       status: "failed",
       text,
@@ -3749,6 +3876,40 @@ $("add-pc-toggle")?.addEventListener("click", () => {
 $("empty-add-pc")?.addEventListener("click", openAddPcGuide);
 // ── command palette (Ctrl/Cmd+K) — keyboard-first premium speed ────────
 // A searchable action list. Frecency-lite: recently-run commands float up.
+// Target a machine by name from the keyboard (palette), reusing the fleet-row
+// select behavior: set the order target, cue the composer placeholder, focus the
+// order input. Returns false if the machine isn't a reachable target.
+function targetMachineByName(name) {
+  const sel = $("order-target");
+  if (!sel) return false;
+  const opt = [...sel.options].find((o) => o.value === name && !o.disabled);
+  if (!opt) return false;
+  sel.value = name;
+  updateOrderTargetDisclosure();
+  document.querySelectorAll(".fleet-row.selected").forEach((r) => r.classList.remove("selected"));
+  const row = document.querySelector(`.fleet-row[data-node="${CSS.escape(name)}"]`);
+  if (row) row.classList.add("selected");
+  const input = $("order-input");
+  input.focus();
+  input.placeholder = `What should ${name} do?`;
+  return true;
+}
+
+// Dynamic palette commands: one "Target <machine>" per online fleet target, so
+// the core verb (point at a machine + start an order) is completable from the
+// keyboard without touching the mouse — the S-tier palette bar (Linear/Raycast).
+function dynamicPaletteCommands() {
+  const sel = $("order-target");
+  if (!sel) return [];
+  return [...sel.options]
+    .filter((o) => o.value && !o.disabled)
+    .map((o) => ({
+      id: `target:${o.value}`,
+      label: `Target ${o.value} — start an order`,
+      run: () => targetMachineByName(o.value),
+    }));
+}
+
 const paletteCommands = [
   { id: "focus-order", label: "Focus order input", run: () => $("order-input").focus() },
   { id: "add-pc", label: "Show Add PC guide", run: openAddPcGuide },
@@ -3772,7 +3933,8 @@ const paletteFrecency = new Map(); // id → score
 
 function rankCommands(query) {
   const q = query.trim().toLowerCase();
-  return paletteCommands
+  const all = [...paletteCommands, ...dynamicPaletteCommands()];
+  return all
     .filter((c) => !q || c.label.toLowerCase().includes(q))
     .map((c) => ({ c, score: (paletteFrecency.get(c.id) || 0) - (c.label.toLowerCase().indexOf(q) >= 0 ? 0 : 1) }))
     .sort((a, b) => b.score - a.score)
@@ -3934,6 +4096,13 @@ document.querySelectorAll("[data-copy-text]").forEach((btn) => {
 $("mesh-doctor")?.addEventListener("click", runPrivateMeshDoctor);
 $("bootstrap-generate")?.addEventListener("click", runMeshBootstrap);
 $("start-control-host")?.addEventListener("click", runStartControlHost);
+$("join-run")?.addEventListener("click", runMeshJoin);
+$("join-pass-path")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    runMeshJoin();
+  }
+});
 $("device-add-pass-generate")?.addEventListener("click", runDeviceAddPassIssue);
 $("bootstrap-server-url")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {

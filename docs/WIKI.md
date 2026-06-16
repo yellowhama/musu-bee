@@ -21712,3 +21712,518 @@ Indexed context includes `list_fleet()` direct bridge refresh,
 `musu.device_add.v1`, `tailnet_ip`, installed MSIX `1.15.0.2` passive refresh
 evidence, and `nodes_processes=0` / `mesh_status_processes=0` /
 `other_child_cli_processes=0`.
+
+## wiki/1154 — 2026-06-15 Add PC join-key wiring audit and spec refresh
+
+Current HEAD had a product mismatch: `private_mesh_create_join_key` and
+`musu mesh create-join-key --json` existed, but the Cockpit Add PC panel still
+exposed `scripts\create-join-key.ps1` as a copied helper command. That was not
+the intended product contract.
+
+Product/spec changes:
+
+- Add PC device-add pass creation is now a Cockpit product action:
+  `Issue pass` calls `private_mesh_create_join_key`.
+- The Cockpit shows the generated `musu.device_add.v1` pass file path and
+  copies only that path, not the raw `hskey-auth-*` secret inside the file.
+- The normal Add PC path no longer exposes `scripts\create-join-key.ps1` as a
+  copyable command.
+- Browser QA now validates the same contract by clicking `Issue pass`, checking
+  pass-path rendering/copy, and rejecting the old helper copy surface.
+- `run_create_join_key` now fails if no new pass file appears; it no longer
+  falls back to a stale `device-add-passes/*.json`.
+- Nested Windows helper execution now uses `-NoProfile -NonInteractive` and
+  `CREATE_NO_WINDOW` to preserve the desktop no-flicker process contract.
+- IPC inventory initially found `open_dashboard` as the only
+  registered-but-not-invoked Tauri command. It is now wired as a diagnostics-only
+  `Open dashboard` action when `desktop_status.dashboard_url` exists.
+- Post-fix IPC inventory now reports `22` registered Tauri commands, `22`
+  frontend-invoked commands, no invoked-but-unregistered commands, and no
+  registered-but-not-invoked commands.
+
+Verification:
+
+- `npm run test:tauri-shell`: `42 passed`
+- `npm run test:tauri-shell:browser`: `10 passed`
+- `cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs`: passed; the
+  follow-up route/proof cleanup brought Rust to warning-free
+- `git diff --check`: passed
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_ADD_PC_JOIN_KEY_WIRING_AUDIT_SPEC_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_add_pc_join_key_wiring_audit.md`
+
+## wiki/1155 — 2026-06-15 Add PC join-key wiring index refresh
+
+MUSU local indexer was refreshed after wiki/1154 and the related code/docs
+changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3193 files`
+- `3477 symbols`
+- `26919 ms`
+
+Indexed context includes `private_mesh_create_join_key`,
+`runDeviceAddPassIssue`, `device-add-pass-generate`,
+`musu.create_join_key.v1`, `musu.device_add.v1`, `CREATE_NO_WINDOW`, stale
+pass fallback removal, `cockpit-browser.spec.ts`, `open_dashboard`, and
+wiki/1154.
+
+## wiki/1156 — 2026-06-15 route proof and relay code audit
+
+Route/proof/relay audit tightened the boundary between MUSU's current
+Headscale Private Mesh product path and future relay work.
+
+Findings and changes:
+
+- `relay_payload.rs` is the active target-side relay drain path. It accepts
+  claimed forwarded-task payloads, marks delivery, and records route evidence.
+- Release-grade relay evidence requires a bound `quic_relay_tunnel` transport
+  proof plus payload delivery proof. Release-grade or `quic_relay_tunnel`
+  payloads without transport proof fail with
+  `release_relay_transport_proof_missing`.
+- `receive_callback` records callback proof and marks local Private Mesh
+  verification only after an existing route proof confirms a successful tailnet
+  route plus callback delivery.
+- The unused future release relay submission contract in `rendezvous.rs` is now
+  `#[cfg(test)]`; tests still prove it remains blocked with
+  `release_relay_tunnel_runtime_not_implemented`.
+- Removed the unused mDNS `auto_register_peers` wrapper; the bridge uses
+  `auto_register_peers_with_cancellation`.
+
+Verification:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml release_relay --lib -j 1`:
+  `7 passed`
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_payload --lib -j 1`:
+  `32 passed`
+- `cargo test --manifest-path musu-rs\Cargo.toml mdns --lib -j 1`: `3 passed`
+- `cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs`: passed with no
+  warnings
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_ROUTE_PROOF_RELAY_CODE_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_route_proof_relay_code_audit.md`
+
+## wiki/1157 — 2026-06-15 route proof and relay index refresh
+
+MUSU local indexer was refreshed after wiki/1156 and the related code/docs
+changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3196 files`
+- `3481 symbols`
+- `16812 ms`
+
+Indexed context includes `wiki/1156`,
+`release_relay_tunnel_runtime_not_implemented`,
+`release_relay_transport_proof_missing`,
+`record_target_relay_payload_delivery_route_evidence`,
+`record_release_relay_payload_delivery_route_evidence`, `task_route_proof`,
+`record_task_callback_proof`, `auto_register_peers_with_cancellation`,
+`warning-free cargo check`, `private_mesh_create_join_key`, and
+`open_dashboard`.
+
+## wiki/1158 — 2026-06-15 Start control host wiring audit
+
+Add PC step 2 had production wiring, but browser QA only proved visibility. The
+Cockpit rendered `Start control host`, `main.js` implemented
+`runStartControlHost()`, and Tauri exposed `private_mesh_start_control_host`;
+however, the main browser scenario did not click the button or verify the IPC.
+
+Changes:
+
+- `cockpit-browser.spec.ts` mock now handles
+  `private_mesh_start_control_host`.
+- Browser QA clicks `Start control host`, verifies
+  `__startControlHostCalls === 1`, and checks `#start-control-host-result`
+  contains `Control host is up`.
+- Static contract tests now require `runStartControlHost()`,
+  `invoke("private_mesh_start_control_host")`, and the click listener.
+
+Verification:
+
+- `npm run test:tauri-shell`: `42 passed`
+- `npm run test:tauri-shell:browser`: `10 passed`
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_START_CONTROL_HOST_WIRING_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_start_control_host_wiring_audit.md`
+
+## wiki/1159 — 2026-06-15 Start control host index refresh
+
+MUSU local indexer was refreshed after wiki/1158 and the related browser QA/docs
+changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3199 files`
+- `3481 symbols`
+- `16384 ms`
+
+Indexed context includes `wiki/1158`, `Start control host`,
+`private_mesh_start_control_host`, `runStartControlHost`,
+`start-control-host-result`, `__startControlHostCalls`,
+`musu.start_control_host.v1`, Add PC step 2, and no copied docker compose
+command.
+
+## wiki/1160 — 2026-06-15 Generate bundle wiring audit
+
+Add PC step 1 had production wiring, but browser QA only proved visibility. The
+Cockpit rendered `Generate bundle`, `main.js` implemented
+`runMeshBootstrap()`, and Tauri exposed `private_mesh_bootstrap`; however, the
+main browser scenario did not fill the URL, click the button, verify the IPC, or
+check result/file rendering.
+
+Changes:
+
+- `cockpit-browser.spec.ts` mock now handles `private_mesh_bootstrap`.
+- Browser QA fills `https://mesh.example`, clicks `Generate bundle`, verifies
+  `__bootstrapCalls === 1`, and checks the `serverUrl` IPC argument.
+- Browser QA checks `#bootstrap-result` and `#bootstrap-files` after bundle
+  generation.
+- Static contract tests now require `runMeshBootstrap()`,
+  `invoke("private_mesh_bootstrap", { serverUrl })`, and the click listener.
+- The main Add PC browser path now proves:
+  `Generate bundle -> Start control host -> Issue pass -> Copy path`.
+
+Verification:
+
+- `npm run test:tauri-shell`: `42 passed`
+- `npm run test:tauri-shell:browser`: `10 passed`
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_GENERATE_BUNDLE_WIRING_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_generate_bundle_wiring_audit.md`
+
+## wiki/1161 — 2026-06-15 Generate bundle index refresh
+
+MUSU local indexer was refreshed after wiki/1160 and the related browser QA/docs
+changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3202 files`
+- `3481 symbols`
+- `17143 ms`
+
+Indexed context includes `wiki/1160`, `Generate bundle`,
+`private_mesh_bootstrap`, `runMeshBootstrap`, `bootstrap-server-url`,
+`bootstrap-result`, `bootstrap-files`, `__bootstrapCalls`,
+`musu.private_mesh_bootstrap.v1`, Add PC step 1, and no copied bootstrap
+command.
+
+## wiki/1162 — 2026-06-15 Generate bundle fail-closed audit
+
+`Generate bundle` now fails closed in the Cockpit before native IPC for missing
+or malformed mesh host URLs.
+
+Problem:
+
+- Empty input was already blocked in `runMeshBootstrap()`.
+- Scheme-less input such as `mesh.example` still reached
+  `private_mesh_bootstrap` and relied on Rust-side validation.
+
+Change:
+
+- `runMeshBootstrap()` now rejects URLs that do not start with `https://` or
+  `http://`, and rejects whitespace, before calling native IPC.
+- Browser QA clicks `Generate bundle` with an empty input and verifies
+  `__bootstrapCalls` remains `0`.
+- Browser QA fills `mesh.example`, clicks `Generate bundle`, verifies the full
+  URL error, and verifies `__bootstrapCalls` remains `0`.
+- Browser QA then fills `https://mesh.example` and expects
+  `__bootstrapCalls === 1`.
+
+Verification:
+
+- `npm run test:tauri-shell`: `42 passed`
+- `npm run test:tauri-shell:browser`: `10 passed`
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_GENERATE_BUNDLE_FAIL_CLOSED_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_generate_bundle_fail_closed_audit.md`
+
+## wiki/1163 — 2026-06-15 Generate bundle fail-closed index refresh
+
+MUSU local indexer was refreshed after wiki/1162 and the related frontend
+validation/browser QA/docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3205 files`
+- `3481 symbols`
+- `13575 ms`
+
+Indexed context includes `wiki/1162`, `Generate bundle fail-closed`,
+`Use a full mesh host URL`, `Enter your mesh host URL first`,
+`__bootstrapCalls`, `private_mesh_bootstrap`, `bootstrap-server-url`, and native
+IPC validation gating.
+
+## wiki/1164 — 2026-06-15 Add PC backend timeout audit
+
+The Add PC backend path now has explicit layered timeouts instead of relying on
+generic parent process deadlines.
+
+Problem:
+
+- `run_create_join_key()` and `run_start_control_host()` used unbounded
+  `tokio::process::Command::output()` calls internally.
+- The Tauri wrapper had a timeout, but direct CLI users and child helper/Docker
+  work did not have their own deadlines.
+- `private_mesh_start_control_host()` used an inline `60s` wrapper timeout even
+  though cold Docker image pulls plus health retries can exceed a minute.
+
+Changes:
+
+- Added `CREATE_JOIN_KEY_HELPER_TIMEOUT = 45s`.
+- Added `START_CONTROL_CONFIG_TIMEOUT = 15s`.
+- Added `START_CONTROL_UP_TIMEOUT = 90s`.
+- Added `START_CONTROL_HEALTH_TIMEOUT = 8s`.
+- Added `ADD_PC_BOOTSTRAP_TIMEOUT = 25s`.
+- Added `ADD_PC_CREATE_JOIN_KEY_TIMEOUT = 60s`.
+- Added `ADD_PC_START_CONTROL_HOST_TIMEOUT = 180s`.
+- Added Rust/contract coverage for these timeout contracts.
+
+Verification:
+
+- `npm run test:tauri-shell`: `43 passed`
+- `cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs`: passed
+- `cargo test --manifest-path musu-rs\Cargo.toml add_pc_backend_process_timeouts_are_bounded --lib -j 1`:
+  `1 passed`
+- `git diff --check`: passed
+- Broad `cargo test` hit Windows/MSVC `STATUS_IN_PAGE_ERROR (0xc0000006)`;
+  the targeted retry passed.
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_ADD_PC_BACKEND_TIMEOUT_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_add_pc_backend_timeout_audit.md`
+
+## wiki/1165 — 2026-06-15 Add PC backend timeout index refresh
+
+MUSU local indexer was refreshed after wiki/1164 and the related Add PC backend
+timeout source/docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3207 files`
+- `3482 symbols`
+- `351641 ms`
+
+Indexed context includes `wiki/1164`, `ADD_PC_BOOTSTRAP_TIMEOUT`,
+`ADD_PC_CREATE_JOIN_KEY_TIMEOUT`, `ADD_PC_START_CONTROL_HOST_TIMEOUT`,
+`CREATE_JOIN_KEY_HELPER_TIMEOUT`, `START_CONTROL_UP_TIMEOUT`,
+`add_pc_backend_process_timeouts_are_bounded`, `STATUS_IN_PAGE_ERROR`, and
+Add PC backend bounded process execution.
+
+## wiki/1166 — 2026-06-15 Rust format gate audit
+
+The Rust format gate is clean again.
+
+Problem:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check` failed on
+  `musu-rs/src/bridge/handlers/forward.rs`.
+- The failure was formatting-only: callback context extraction line wrapping and
+  test `use` ordering.
+
+Change:
+
+- Applied only rustfmt-equivalent formatting changes to `forward.rs`.
+- No callback routing, task update, SSE publish, or route proof behavior was
+  changed.
+
+Verification:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check`: passed
+- `git diff --check`: passed
+- `$env:CARGO_INCREMENTAL='0'; cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs -j 1`:
+  passed in `2m 01s`
+- Default `cargo check` hit Windows/MSVC `STATUS_IN_PAGE_ERROR (0xc0000006)`;
+  the incremental-off single-job rerun passed, so this is classified as
+  environment/toolchain instability rather than a source diagnostic.
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_RUST_FORMAT_GATE_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_rust_format_gate_audit.md`
+
+## wiki/1167 — 2026-06-15 Rust format gate index refresh
+
+MUSU local indexer was refreshed after wiki/1166 and the related Rust format
+gate source/docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3210 files`
+- `3482 symbols`
+- `113578 ms`
+
+Indexed context includes `wiki/1166`, `Rust format gate audit`, `forward.rs`,
+`callback_context`, `CARGO_INCREMENTAL=0`, `STATUS_IN_PAGE_ERROR`,
+`cargo fmt --manifest-path musu-rs\\Cargo.toml -- --check`, and the clean
+format gate.
+
+## wiki/1168 — 2026-06-15 Non-interactive Docker exec audit
+
+Add PC control-plane Docker/Headscale calls now use non-interactive Compose exec
+shape.
+
+Problem:
+
+- `run_start_control_host()` health probe used `docker compose exec` without
+  `-T`.
+- Generated `scripts/create-join-key.ps1` and `scripts/create-join-key.sh` also
+  used `docker compose exec` without `-T`.
+- That shape is acceptable in a terminal, but it is not the right contract for
+  a GUI/non-interactive Cockpit button path.
+
+Change:
+
+- Start-control-host health now uses `["exec", "-T", "headscale", "headscale",
+  "health"]`.
+- Generated PowerShell and shell helpers use
+  `docker compose exec -T headscale headscale ...`.
+- Manual fallback/error messages and README command list now show the same
+  `exec -T` shape.
+- Generated-bundle tests require `exec -T` and reject the old interactive
+  `docker compose exec headscale headscale` string.
+
+Verification:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check`: passed
+- `git diff --check`: passed
+- `$env:CARGO_INCREMENTAL='0'; cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs -j 1`:
+  passed in `3m 42s`
+- `$env:CARGO_INCREMENTAL='0'; cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs --tests -j 1`:
+  passed in `3m 16s`
+- Direct execution of
+  `cargo test --manifest-path musu-rs\Cargo.toml bootstrap_bundle_writes_headscale_control_plane_files --lib -j 1`
+  was stopped after a Windows/MSVC test-binary build ran for more than 15
+  minutes without output. `cargo check --tests` compiled the updated assertions.
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_NONINTERACTIVE_DOCKER_EXEC_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_noninteractive_docker_exec_audit.md`
+
+## wiki/1169 — 2026-06-15 Non-interactive Docker exec index refresh
+
+MUSU local indexer was refreshed after wiki/1168 and the related Add PC
+non-interactive Docker exec source/docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3215 files`
+- `3482 symbols`
+- `106883 ms`
+
+Indexed context includes `wiki/1168`, `docker compose exec -T`,
+`non-interactive Docker exec`, `create-join-key.ps1`, `create-join-key.sh`,
+`START_CONTROL_HEALTH_TIMEOUT`, `cargo check --tests`, and the Add PC helper
+non-TTY contract.
+
+## wiki/1170 — 2026-06-15 Root WSL scratch hygiene audit
+
+Repo-root WSL probe scripts are now ignored as operator scratch.
+
+Problem:
+
+- The root contained untracked `.wsl_hs.sh`, `.wsl_net.sh`, `.wsl_ts.sh`, and
+  `.wsl_join2.sh`.
+- These are local Headscale/Tailscale/WSL probe helpers, not product source.
+- `.wsl_join2.sh` reads a local temp preauth-key path, so this pattern must not
+  appear as a commit candidate or release blocker.
+
+Change:
+
+- Added `.wsl_*.sh` to `.gitignore` under the existing root temporary debug
+  script section.
+- Did not delete the local files; they remain operator scratch but are no longer
+  in the product/release diff.
+
+Verification:
+
+- `git check-ignore .wsl_hs.sh .wsl_net.sh .wsl_ts.sh .wsl_join2.sh`: all
+  ignored
+- `git diff --check`: passed
+- `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check`: passed
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_ROOT_WSL_SCRATCH_HYGIENE_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_root_wsl_scratch_hygiene_audit.md`
+
+## wiki/1171 — 2026-06-15 Root WSL scratch hygiene index refresh
+
+MUSU local indexer was refreshed after wiki/1170 and the related `.gitignore`
+and docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3217 files`
+- `3482 symbols`
+- `70358 ms`
+
+Indexed context includes `wiki/1170`, `.wsl_*.sh`, `.wsl_join2.sh`,
+`preauth_key.txt`, `root WSL scratch hygiene`, `git check-ignore`, and the
+operator-scratch boundary.
+
+## wiki/1172 — 2026-06-15 Bootstrap identifier validation audit
+
+Private Mesh bootstrap now validates generated-bundle identifiers before
+writing scripts/config files.
+
+Problem:
+
+- `server_url` was normalized, but `tailnet_name` and `base_domain` were not.
+- Those values are embedded into generated Headscale YAML, shell, PowerShell,
+  JSON, README, and report fields.
+- Unsafe CLI overrides could produce broken or script-unsafe generated bundles.
+
+Change:
+
+- Added `validate_private_mesh_tailnet_name(...)`.
+- Added `validate_private_mesh_base_domain(...)`.
+- `write_bootstrap_bundle()` calls both validators before creating output dirs
+  or writing files.
+- Added targeted Rust test
+  `bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`.
+
+Verification:
+
+- `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check`: passed
+- `git diff --check`: passed
+- `$env:CARGO_INCREMENTAL='0'; cargo check --manifest-path musu-rs\Cargo.toml -p musu-rs --tests -j 1`:
+  passed in `3m 12s`
+- `$env:CARGO_INCREMENTAL='0'; cargo test --manifest-path musu-rs\Cargo.toml bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs --lib -j 1`:
+  `1 passed`; Windows/MSVC test binary build took `6m 39s`
+
+Canonical report:
+
+- `docs/RELEASE_1_15_0_RC1_BOOTSTRAP_IDENTIFIER_VALIDATION_AUDIT_2026_06_15.md`
+- `docs/memory/chief_of_staff/2026-06-15_bootstrap_identifier_validation_audit.md`
+
+## wiki/1173 — 2026-06-15 Bootstrap identifier validation index refresh
+
+MUSU local indexer was refreshed after wiki/1172 and the related Private Mesh
+bootstrap validation source/docs changes.
+
+- command:
+  `& "$env:LOCALAPPDATA\Microsoft\WindowsApps\musu.exe" indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+- `3220 files`
+- `3485 symbols`
+- `88061 ms`
+
+Indexed context includes `wiki/1172`, `validate_private_mesh_tailnet_name`,
+`validate_private_mesh_base_domain`,
+`bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`,
+`--tailnet-name`, `--base-domain`, and generated helper identifier safety.

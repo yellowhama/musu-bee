@@ -214,7 +214,10 @@ body {
   border-color: rgba(240, 181, 74, 0.3);
 }
 .conn[data-state="connecting"] .dot {
-  background: var(--warn);
+  /* hollow breathing circle — distinct silhouette from solid "connected" so the
+     state survives color-blindness AND reduced-motion (where the blink is off). */
+  background: transparent;
+  border: 2px solid var(--warn);
   animation: blink 1.1s steps(2, jump-none) infinite;
 }
 .conn[data-state="offline"] {
@@ -222,7 +225,16 @@ body {
   border-color: rgba(240, 119, 106, 0.3);
 }
 .conn[data-state="offline"] .dot {
-  background: var(--bad);
+  /* hollow SQUARE — matches the task-status vocabulary (failed/offline = square),
+     so the headline status reads by shape, not hue, even under reduced-motion. */
+  background: transparent;
+  border: 2px solid var(--bad);
+  border-radius: 2px;
+}
+.conn[data-state="error"] .dot {
+  background: transparent;
+  border: 2px solid var(--bad);
+  border-radius: 2px;
 }
 
 @keyframes breathe {
@@ -2364,6 +2376,19 @@ body {
 .conn[data-state="connected"] .dot,
 .fleet-row.online .node-dot {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--online) 34%, transparent);
+}
+
+/* Visually hidden but available to assistive tech / live-region announcers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

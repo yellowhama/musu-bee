@@ -134,6 +134,7 @@ update_*.ts
 trigger_*.ts
 repair_*.ts
 rebind_*.ts
+.wsl_*.sh
 audit_linkage.ts
 coherence_report.*
 filter_issue*.py

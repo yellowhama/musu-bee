@@ -1235,10 +1235,18 @@ fn run_inprocess_adapter(spec: &TaskSpec) -> Option<(String, bool)> {
 async fn run_trait_adapter(spec: &TaskSpec, cancel: Arc<Notify>) -> Result<(String, bool), String> {
     use crate::adapter::{registry, AdapterContext};
 
-    let deadline_unix_ms = spec.timeout_sec.map(|s| {
+    // Apply the default wall-clock timeout when the caller omits timeout_sec, so
+    // codex/gemini/shell get the same hung-child protection as the claude path
+    // (V28 H2). Without this, an adapter task with timeout_sec=None never times
+    // out and can leave the task 'running' forever.
+    let timeout = spec
+        .timeout_sec
+        .map(|s| Duration::from_secs(s as u64))
+        .unwrap_or_else(default_task_timeout);
+    let deadline_unix_ms = {
         let now_ms = chrono::Utc::now().timestamp_millis().max(0) as u64;
-        now_ms + (s as u64) * 1000
-    });
+        Some(now_ms + timeout.as_secs() * 1000)
+    };
 
     let ctx = AdapterContext {
         run_id: spec.task_id.clone(),

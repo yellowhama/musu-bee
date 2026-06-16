@@ -1,14 +1,11 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { MusuLogo } from "@/components/brand/MusuLogo";
-import {
-  DESKTOP_APPINSTALLER_URL,
-  PUBLIC_RELEASE_VERSION,
-} from "@/lib/publicRelease";
+import { PUBLIC_RELEASE_VERSION } from "@/lib/publicRelease";
 
 export const metadata = {
-  title: "MUSU | The Antigravity Workspace",
-  description: "The Antigravity Workspace for Vibe Coders.",
+  title: "MUSU | Your computers, as one",
+  description: "A desktop cockpit for your own machines. Give a computer an order, walk away, get notified when it's done. Private mesh you host yourself.",
 };
 
 export default function ComingSoonPage() {
@@ -99,7 +96,7 @@ export default function ComingSoonPage() {
               boxShadow: "0 0 20px rgba(36, 200, 219, 0.1)",
             }}
           >
-            Antigravity Workspace
+            Your computers, as one
           </div>
           <h1
             style={{
@@ -112,13 +109,13 @@ export default function ComingSoonPage() {
               letterSpacing: "-0.04em",
             }}
           >
-            The Ultimate IDE <br />
-            <span style={{ 
-              background: "linear-gradient(to right, var(--accent), var(--brand-yellow))", 
-              WebkitBackgroundClip: "text", 
-              WebkitTextFillColor: "transparent" 
+            Give a machine work. <br />
+            <span style={{
+              background: "linear-gradient(to right, var(--accent), var(--brand-yellow))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
             }}>
-              for Vibe Coders.
+              Walk away.
             </span>
           </h1>
           <p
@@ -131,7 +128,7 @@ export default function ComingSoonPage() {
               fontWeight: 400,
             }}
           >
-            The era of text-only chat bots is over. Meet the most beautiful AI control plane featuring Generative UI, 3 distinct workflow modes, and flawless multi-machine orchestration.
+            MUSU is a desktop cockpit for your own machines. Pick a computer, give it an order in one box, and walk away — MUSU runs it on that machine and taps you when it&rsquo;s done. Your machines join over a private mesh you host yourself; no account on someone else&rsquo;s network.
           </p>
 
           <div
@@ -142,51 +139,16 @@ export default function ComingSoonPage() {
               margin: "0 auto",
             }}
           >
-            <form style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 12 }}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                  className="input-premium"
-                  style={{
-                    flex: "1 1 200px",
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid var(--border-default)",
-                    color: "var(--fg1)",
-                    padding: "16px 24px",
-                    fontFamily: "var(--font-ui)",
-                    fontSize: "var(--text-base)",
-                    outline: "none",
-                    borderRadius: "12px",
-                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-premium"
-                  style={{
-                    flex: "1 1 auto",
-                    padding: "16px 32px",
-                    borderRadius: "12px",
-                    background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
-                    color: "#fff",
-                    border: "none",
-                    boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
-                    fontWeight: 600,
-                    transition: "transform 0.1s ease, filter 0.2s ease",
-                  }}
-                >
-                  Request Access
-                </button>
-              </div>
-            </form>
-            {/* Desktop download: the .appinstaller installs MUSU for Windows and
-                registers it for auto-update. Self-signed today, so /download
-                carries the trust-the-cert step. */}
+            {/* Single primary CTA: download. The old email form had no onSubmit
+                and no label — a dead CTA at the top of the funnel. The product
+                ships today, so the honest primary action is "get it". */}
+            {/* Desktop download: route to /download, NOT the raw .appinstaller.
+                The package is self-signed; double-clicking the bare .appinstaller
+                before the cert is trusted fails with a signature error. /download
+                runs the one-click Install-MUSU.ps1 that trusts the cert first. */}
             <div style={{ marginTop: 24, textAlign: "center" }}>
-              <a
-                href={DESKTOP_APPINSTALLER_URL}
+              <Link
+                href="/download"
                 className="btn btn-primary btn-premium"
                 data-testid="hero-download-windows"
                 style={{
@@ -205,7 +167,7 @@ export default function ComingSoonPage() {
                 }}
               >
                 <span aria-hidden="true">⊞</span> Download for Windows
-              </a>
+              </Link>
               <div style={{ marginTop: 12 }}>
                 <Link
                   href="/download"
@@ -270,47 +232,59 @@ export default function ComingSoonPage() {
               </div>
             </div>
 
-            {/* Center Panel - Town Mode / Viewport */}
-            <div style={{ flex: 1, padding: 32, position: "relative", background: "transparent", minWidth: 300 }}>
-              <div style={{ position: "absolute", top: 24, right: 24, display: "flex", gap: 8, background: "rgba(0,0,0,0.2)", padding: 4, borderRadius: "12px" }}>
-                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>Dev</span>
-                <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--fg1)", padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}>Town</span>
-                <span style={{ padding: "6px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>Butler</span>
-              </div>
-              
-              <h3 style={{ fontSize: "24px", fontWeight: 600, fontFamily: "var(--font-display)", marginBottom: 32, marginTop: 12 }}>Agent Fleet Management</h3>
-              
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                {/* Agent Card */}
-                <div style={{ background: "linear-gradient(145deg, rgba(39,39,42,0.8) 0%, rgba(24,24,27,0.8) 100%)", border: "1px solid var(--border-default)", borderRadius: "16px", padding: 24, width: 220, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "16px", background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "18px", boxShadow: "0 4px 12px rgba(36,200,219,0.3)" }}>CEO</div>
-                  <div style={{ fontSize: "16px", fontWeight: 600, marginBottom: 4 }}>Project Lead</div>
-                  <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>Claude 3.5 Sonnet</div>
+            {/* Center Panel - the real cockpit: order box + attention-grouped
+                task feed (status-by-shape). Mirrors what actually ships. */}
+            <div style={{ flex: 1, padding: 32, position: "relative", background: "transparent", minWidth: 300, display: "flex", flexDirection: "column", gap: 20 }}>
+              <h3 style={{ fontSize: "20px", fontWeight: 600, fontFamily: "var(--font-display)", margin: 0 }}>Give Cloud-A100 work</h3>
+
+              {/* Order composer */}
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", borderRadius: "12px", padding: "13px 16px", fontSize: "14px", color: "rgba(255,255,255,0.55)" }}>
+                  What should Cloud-A100 do?
                 </div>
-                <div className="agent-add-card" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed var(--border-strong)", borderRadius: "16px", padding: 24, width: 220, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.2s" }}  >
-                  <span style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", fontWeight: 500 }}>+ Add Agent</span>
+                <div style={{ padding: "13px 22px", borderRadius: "12px", background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)", color: "#fff", fontWeight: 600, fontSize: "14px" }}>Send</div>
+              </div>
+              <p style={{ margin: "-8px 0 0", fontSize: "12px", color: "rgba(255,255,255,0.45)" }}>Private Mesh · runs on Cloud-A100, hash-verified route</p>
+
+              {/* Running */}
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Running</div>
+                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* running = breathing amber circle (status-by-shape) */}
+                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "var(--brand-yellow)", boxShadow: "0 0 8px rgba(255,209,102,0.6)", flexShrink: 0 }} />
+                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.9)", flex: 1 }}>Refactor the auth module</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>0:42</span>
+                </div>
+              </div>
+
+              {/* Done */}
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Done</div>
+                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* done = solid green circle */}
+                  <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#22C55E", flexShrink: 0 }} />
+                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", flex: 1 }}>Run the test suite</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>1:08</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Panel - Chat Console */}
+            {/* Right Panel - notification (walk away, get tapped) */}
             <div className="mockup-sidebar mockup-sidebar-right" style={{ borderLeft: "1px solid var(--border-subtle)", background: "rgba(9, 9, 11, 0.4)", display: "flex", flexDirection: "column" }}>
               <div style={{ padding: 20, borderBottom: "1px solid var(--border-subtle)", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.5)" }} /> Console
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.5)" }} /> Walk away
               </div>
               <div style={{ flex: 1, padding: 20, display: "flex", flexDirection: "column", gap: 16, overflowY: "hidden" }}>
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
-                  Checking GPU memory across nodes...
-                </div>
-                <div style={{ background: "rgba(36, 200, 219, 0.1)", border: "1px solid rgba(36, 200, 219, 0.2)", borderRadius: "12px", padding: 16, fontSize: "14px", color: "var(--fg1)", lineHeight: 1.5, position: "relative" }}>
-                  <div style={{ position: "absolute", left: -6, top: 20, width: 4, height: 16, background: "var(--accent)", borderRadius: 2 }} />
-                  I&apos;ve assigned the backend refactoring to Cloud-A100.
-                </div>
-              </div>
-              <div style={{ padding: 20, borderTop: "1px solid var(--border-subtle)" }}>
-                <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", borderRadius: "12px", padding: "12px 16px", display: "flex", alignItems: "center" }}>
-                  <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", flex: 1 }}>Message CEO...</span>
-                  <div style={{ width: 28, height: 28, borderRadius: "8px", background: "rgba(36, 200, 219, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)" }}>↑</div>
+                <p style={{ margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>Orders run in the background. MUSU taps you the moment a machine finishes — even if the window&apos;s closed.</p>
+                {/* OS notification mock */}
+                <div style={{ background: "rgba(24,24,27,0.9)", border: "1px solid var(--border-default)", borderRadius: "12px", padding: 14, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.6)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "5px", background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--fg1)" }}>MUSU</span>
+                    <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginLeft: "auto" }}>now</span>
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--fg1)" }}>Order done</div>
+                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Cloud-A100 finished &ldquo;Run the test suite&rdquo;</div>
                 </div>
               </div>
             </div>
@@ -332,19 +306,19 @@ export default function ComingSoonPage() {
             >
               {[
                 {
-                  title: "3-Column Antigravity Layout",
-                  desc: "Monitor nodes on the left, communicate on the right, and visualize generative widgets in the massive center viewport. The perfect AI workflow ratio.",
+                  title: "One box, any machine",
+                  desc: "Pick a computer from your fleet, type what it should do, and send. The order runs on that machine — not in a chat window. Press ⌘K to target a machine and start an order without leaving the keyboard.",
                   icon: "◫"
                 },
                 {
-                  title: "Generative UI (Holograms)",
-                  desc: "AI that responds with more than just text. Charts, tables, loading bars, and summary widgets are rendered holographically in real-time.",
-                  icon: "✨"
+                  title: "Walk away, get tapped",
+                  desc: "Orders run in the background. The cockpit shows a live, attention-first inbox — what needs you first — and your OS notifies you the moment a machine finishes or fails.",
+                  icon: "🔔"
                 },
                 {
-                  title: "Three Distinct Modes",
-                  desc: "Dev Mode for terminal hackers. Town Mode to manage your AI team visually. Butler Mode for zero-knowledge natural language execution.",
-                  icon: "⌘"
+                  title: "Your own private mesh",
+                  desc: "Machines join over a mesh you host yourself — no account on someone else's network. Add a machine from a button; the cockpit wires the connection for you.",
+                  icon: "🔒"
                 },
               ].map((feat, i) => (
                 <div
@@ -407,7 +381,7 @@ export default function ComingSoonPage() {
         <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
           <MusuLogo size="header" variant="onDark" />
         </Link>
-        <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
+        <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>© 2026 MUSU. Your computers, as one.</span>
       </footer>
 
       <style dangerouslySetInnerHTML={{__html: `

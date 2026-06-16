@@ -25,6 +25,7 @@ let GET: Module["GET"];
 let POST: Module["POST"];
 
 let wikiDbPath: string;
+const MCP_TEST_TOKEN = "mcp-test-control-token";
 
 before(async () => {
   // Tasks: in-memory SQLite (tasks.ts has singleton, creates tables itself)
@@ -50,6 +51,11 @@ before(async () => {
   process.env.MUSU_PORT_URL = "http://port.test";
   process.env.MUSU_BRIDGE_URL = "http://bridge.test";
 
+  // /api/mcp now requires p2p control auth for every non-discovery method
+  // (musu_run_command etc. are RCE if unauthenticated). Configure the token so
+  // the existing tool tests authenticate via the Authorization header below.
+  process.env.MUSU_P2P_CONTROL_TOKEN = MCP_TEST_TOKEN;
+
   ({ GET, POST } = (await import("./route")) as Module);
 });
 
@@ -66,11 +72,17 @@ function withFetchMock(
   return fn().finally(() => { globalThis.fetch = orig; });
 }
 
-function rpcReq(body: Record<string, unknown>) {
+function rpcReq(body: Record<string, unknown>, opts?: { token?: string | null }) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  // Default to an authenticated request; pass { token: null } to omit auth.
+  const token = opts && "token" in opts ? opts.token : MCP_TEST_TOKEN;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   return new NextRequest("http://localhost/api/mcp", {
     method: "POST",
     body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
 }
 
@@ -138,6 +150,36 @@ test("알 수 없는 method → -32601", async () => {
   assert.equal(res.status, 200);
   const body = await res.json() as { error: { code: number } };
   assert.equal(body.error.code, -32601);
+});
+
+// ── 인증 (RCE 방지) ───────────────────────────────────────────────────────────
+
+test("인증 없이 musu_run_command → 401 (RCE 차단)", async () => {
+  const res = await POST(rpcReq(
+    { jsonrpc: "2.0", id: 1, method: "musu_run_command", params: { command: "whoami" } },
+    { token: null }
+  ));
+  assert.equal(res.status, 401);
+  const body = await res.json() as { error: { code: number } };
+  assert.equal(body.error.code, -32002);
+});
+
+test("잘못된 토큰 → 401", async () => {
+  const res = await POST(rpcReq(
+    { jsonrpc: "2.0", id: 1, method: "musu_create_task", params: { title: "x" } },
+    { token: "wrong-token" }
+  ));
+  assert.equal(res.status, 401);
+});
+
+test("tools/list 는 인증 없이 허용 (디스커버리)", async () => {
+  const res = await POST(rpcReq(
+    { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    { token: null }
+  ));
+  assert.equal(res.status, 200);
+  const body = await res.json() as { result: { tools: unknown[] } };
+  assert.ok(Array.isArray(body.result.tools));
 });
 
 // ── musu_get_devices ─────────────────────────────────────────────────────────

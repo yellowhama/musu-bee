@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeP2pControl } from "@/lib/p2pControlAuth";
 import { TOOLS } from "./tools";
 import { handleGetDevices } from "./handlers/devices";
 import { handleGetTasks, handleCreateTask, handleUpdateTask } from "./handlers/tasks";
@@ -38,6 +39,13 @@ function isJsonRpcId(value: unknown): value is string | number | null {
 function isObjectParams(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
+
+// Only read-only discovery is safe without auth. Every other method either
+// changes state or (musu_run_command / connector health checks) drives a
+// privileged action on the worker using the server's own bridge token, so it
+// MUST be authenticated. Anything not in this set falls through to the
+// authorizeP2pControl gate below.
+const ANONYMOUS_METHODS = new Set<string>(["tools/list"]);
 
 async function dispatch(req: JsonRpcRequest): Promise<unknown> {
   const params = req.params ?? {};
@@ -88,7 +96,6 @@ export async function GET() {
     protocol: "json-rpc-2.0",
     endpoint: "/api/mcp",
     tools: TOOLS,
-    discovery: "/.well-known/mcp.json",
   });
 }
 
@@ -114,6 +121,21 @@ export async function POST(req: NextRequest) {
     (Object.prototype.hasOwnProperty.call(rpc, "params") && !isObjectParams(rpc.params))
   ) {
     return NextResponse.json(rpcError(invalidId ? null : rpc.id ?? null, -32600, "Invalid Request"), { status: 400 });
+  }
+
+  // Authenticate every method except read-only discovery. musu_run_command and
+  // the connector health checks execute privileged worker actions with the
+  // server's bridge token, so an unauthenticated /api/mcp would be remote code
+  // execution. The Next middleware does not gate /api, so we gate here.
+  if (!ANONYMOUS_METHODS.has(rpc.method)) {
+    const failedAuth = authorizeP2pControl(req);
+    if (failedAuth) {
+      const status = failedAuth.status;
+      const code = status === 503 ? -32001 : -32002;
+      const message =
+        status === 503 ? "p2p control auth not configured" : "unauthorized";
+      return NextResponse.json(rpcError(rpc.id ?? null, code, message), { status });
+    }
   }
 
   const response = await dispatch(rpc);

@@ -421,10 +421,15 @@ async fn dispatch_tool(
                 .find(|p| p.name.as_deref() == Some(node_id) || p.addr == node_id)
                 .ok_or_else(|| format!("Node {} not found", node_id))?;
 
-            let target_url = format!("http://{}/api/files/read?path={}", peer.addr, path);
+            // Percent-encode the caller-supplied path via reqwest's query builder
+            // instead of format!-interpolating it into the URL, so a path with
+            // '&', '#', or other URL metacharacters cannot inject extra query
+            // params / a fragment into the request to the peer node.
+            let target_url = format!("http://{}/api/files/read", peer.addr);
             let resp = state
                 .http_client
                 .get(&target_url)
+                .query(&[("path", path)])
                 .bearer_auth(&state.config.token)
                 .send()
                 .await
@@ -519,7 +524,7 @@ fn tool_definitions() -> Vec<McpToolInfo> {
         McpToolInfo { name: "list_nodes".into(), description: "List musu nodes (self + peers) known to the local bridge.".into(), input_schema: empty.clone() },
         McpToolInfo { name: "get_fleet_status".into(), description: "Get every machine in your fleet with its capabilities (gpu_present, gpu_vram_gb, cpu_cores, os) and live status (online, active_tasks). Use this to pick which machine to send a task to before calling delegate_task.".into(), input_schema: empty.clone() },
         McpToolInfo { name: "get_setup_status".into(), description: "Diagnose THIS machine's MUSU setup (installed agent CLIs, local Ollama/ComfyUI, current+recommended default adapter, login). Call first when asked to set up the computer.".into(), input_schema: empty.clone() },
-        McpToolInfo { name: "set_default_adapter".into(), description: "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env, applies now.".into(), input_schema: serde_json::json!({"type":"object","properties":{"adapter":{"type":"string"}},"required":["adapter"]}) },
+        McpToolInfo { name: "set_default_adapter".into(), description: "Set which agent a task uses by default (echo/codex/claude/gemini/openai_compat_local). Persists to bridge.env and applies to subsequent tasks.".into(), input_schema: serde_json::json!({"type":"object","properties":{"adapter":{"type":"string"}},"required":["adapter"]}) },
         McpToolInfo { name: "search_company".into(), description: "Full-text search a company's workspace index.".into(), input_schema: serde_json::json!({"type":"object","properties":{"workspace":{"type":"string"},"q":{"type":"string"},"scope":{"type":"string"},"limit":{"type":"integer"}},"required":["workspace","q"]}) },
         McpToolInfo { name: "run_remote_command".into(), description: "Execute a command on a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"command":{"type":"string"},"args":{"type":"array","items":{"type":"string"}},"cwd":{"type":"string"}},"required":["node_id","command"]}) },
         McpToolInfo { name: "read_remote_file".into(), description: "Read a file from a remote machine in the mesh.".into(), input_schema: serde_json::json!({"type":"object","properties":{"node_id":{"type":"string","description":"Target node ID"},"path":{"type":"string","description":"Absolute file path on the remote machine"}},"required":["node_id","path"]}) },

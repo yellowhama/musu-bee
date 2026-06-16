@@ -316,25 +316,6 @@ pub async fn discover_peers_with_cancellation(
     peers
 }
 
-/// Auto-register discovered peers into manual_peers.toml.
-///
-/// Called by the bridge on startup and periodically.
-pub async fn auto_register_peers(
-    musu_home: &std::path::Path,
-    my_node_name: &str,
-    my_token: &str,
-    duration: Duration,
-) -> usize {
-    auto_register_peers_with_optional_cancellation(
-        musu_home,
-        my_node_name,
-        my_token,
-        duration,
-        None,
-    )
-    .await
-}
-
 /// Auto-register discovered peers until duration elapses or cancelled.
 pub async fn auto_register_peers_with_cancellation(
     musu_home: &std::path::Path,

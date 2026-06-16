@@ -468,6 +468,14 @@ export type ApproveDeviceCodeResult =
  * record (H-1). `approvedOwner` MUST be the server-derived shared owner_key — the
  * caller proves the human's identity via Supabase getUser() before calling.
  */
+// NOTE (audit L3): a `not_found` user_code does NOT increment a brute-force
+// counter — only the per-record attempt cap (KV_APPROVE_DEVICE_CODE_SCRIPT)
+// rate-limits a code once found. This is acceptable defense-in-depth, not a
+// gap, because: (1) approve is already gated by the fail-closed
+// MUSU_DEVICE_APPROVER_USER_IDS allowlist (only a trusted owner can call it),
+// (2) the user_code space (~8.5e11) plus the 900s TTL makes online guessing of
+// a currently-pending code impractical. If a per-approver/per-IP limiter on
+// `not_found` is ever needed, add a shared-KV counter here.
 export async function approveDeviceCode(
   userCode: string,
   approvedOwner: string

@@ -8162,4 +8162,182 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `tailnet_ip`, `Private Mesh console flicker`, and
   `No Tailscale.com account`.
 
+- 2026-06-15 Add PC join-key wiring audit and spec refresh:
+  wiki/1154 records the Cockpit Add PC correction that wires
+  `device-add-pass-generate` to `private_mesh_create_join_key`, removes the old
+  normal-path `scripts\create-join-key.ps1` copy affordance, makes
+  `run_create_join_key` fail instead of surfacing stale pass files, and applies
+  `CREATE_NO_WINDOW` to the nested Windows helper. It also records the browser
+  QA contract refresh and IPC inventory result. `open_dashboard` was the only
+  registered-but-not-invoked Tauri command and is now wired as a diagnostics-only
+  action; post-fix IPC inventory is `22 registered / 22 invoked / 0 missing`.
+  Search terms should include
+  `wiki/1154`, `private_mesh_create_join_key`, `runDeviceAddPassIssue`,
+  `device-add-pass-generate`, `musu.create_join_key.v1`,
+  `musu.device_add.v1`, `CREATE_NO_WINDOW`, `stale pass fallback`,
+  `cockpit-browser.spec.ts`, and `open_dashboard`.
+
+- 2026-06-15 Add PC join-key wiring index refresh:
+  wiki/1155 records the MUSU local index refresh after wiki/1154 with
+  `3193 files`, `3477 symbols`, and `26919 ms`. Search terms should include
+  `wiki/1155`, `3193 files`, `3477 symbols`, `private_mesh_create_join_key`,
+  `runDeviceAddPassIssue`, `device-add-pass-generate`,
+  `musu.create_join_key.v1`, `stale pass fallback`, and `open_dashboard`.
+
+- 2026-06-15 route proof and relay code audit:
+  wiki/1156 records the route/proof/relay audit that moved the unused
+  `rendezvous.rs` release relay submission placeholder behind `#[cfg(test)]`,
+  verified active relay drain release-grade proof rejection, removed the unused
+  mDNS wrapper, and brought `cargo check --manifest-path musu-rs\Cargo.toml -p
+  musu-rs` to warning-free. Search terms should include `wiki/1156`,
+  `release_relay_tunnel_runtime_not_implemented`,
+  `release_relay_transport_proof_missing`,
+  `record_target_relay_payload_delivery_route_evidence`,
+  `record_release_relay_payload_delivery_route_evidence`, `task_route_proof`,
+  `record_task_callback_proof`, `auto_register_peers_with_cancellation`, and
+  `warning-free cargo check`.
+
+- 2026-06-15 route proof and relay index refresh:
+  wiki/1157 records the MUSU local index refresh after wiki/1156 with
+  `3196 files`, `3481 symbols`, and `16812 ms`. Search terms should include
+  `wiki/1157`, `3196 files`, `3481 symbols`,
+  `release_relay_transport_proof_missing`,
+  `release_relay_tunnel_runtime_not_implemented`,
+  `record_task_callback_proof`, `private_mesh_create_join_key`,
+  `open_dashboard`, and `warning-free cargo check`.
+
+- 2026-06-15 Start control host wiring audit:
+  wiki/1158 records the Add PC step-2 browser QA gap: the production
+  `Start control host` button and `private_mesh_start_control_host` IPC existed,
+  but browser QA previously proved only visibility. The browser test now clicks
+  the button, verifies `__startControlHostCalls`, and checks
+  `start-control-host-result`; contract tests require `runStartControlHost`.
+  Search terms should include `wiki/1158`, `Start control host`,
+  `private_mesh_start_control_host`, `runStartControlHost`,
+  `start-control-host-result`, `__startControlHostCalls`,
+  `musu.start_control_host.v1`, and `no copied docker compose command`.
+
+- 2026-06-15 Start control host index refresh:
+  wiki/1159 records the MUSU local index refresh after wiki/1158 with
+  `3199 files`, `3481 symbols`, and `16384 ms`. Search terms should include
+  `wiki/1159`, `3199 files`, `3481 symbols`, `Start control host`,
+  `private_mesh_start_control_host`, `runStartControlHost`,
+  `__startControlHostCalls`, and `musu.start_control_host.v1`.
+
+- 2026-06-15 Generate bundle wiring audit:
+  wiki/1160 records the Add PC step-1 browser QA gap: the production
+  `Generate bundle` button and `private_mesh_bootstrap` IPC existed, but
+  browser QA previously proved only visibility. The browser test now fills the
+  URL, clicks the button, verifies `__bootstrapCalls`, checks the `serverUrl`
+  argument, and verifies `bootstrap-result` / `bootstrap-files`. Search terms
+  should include `wiki/1160`, `Generate bundle`, `private_mesh_bootstrap`,
+  `runMeshBootstrap`, `bootstrap-server-url`, `bootstrap-result`,
+  `bootstrap-files`, `__bootstrapCalls`, `musu.private_mesh_bootstrap.v1`, and
+  `no copied bootstrap command`.
+
+- 2026-06-15 Generate bundle index refresh:
+  wiki/1161 records the MUSU local index refresh after wiki/1160 with
+  `3202 files`, `3481 symbols`, and `17143 ms`. Search terms should include
+  `wiki/1161`, `3202 files`, `3481 symbols`, `Generate bundle`,
+  `private_mesh_bootstrap`, `runMeshBootstrap`, `bootstrap-server-url`,
+  `bootstrap-result`, `bootstrap-files`, and `__bootstrapCalls`.
+
+- 2026-06-15 Generate bundle fail-closed audit:
+  wiki/1162 records frontend fail-closed hardening for Add PC step 1. Empty
+  input and scheme-less `mesh.example` now show inline errors and keep
+  `__bootstrapCalls` at `0`; only `https://mesh.example` invokes
+  `private_mesh_bootstrap`. Search terms should include `wiki/1162`,
+  `Generate bundle fail-closed`, `Use a full mesh host URL`,
+  `Enter your mesh host URL first`, `__bootstrapCalls`,
+  `private_mesh_bootstrap`, `bootstrap-server-url`, and
+  `native IPC before validation`.
+
+- 2026-06-15 Generate bundle fail-closed index refresh:
+  wiki/1163 records the MUSU local index refresh after wiki/1162 with
+  `3205 files`, `3481 symbols`, and `13575 ms`. Search terms should include
+  `wiki/1163`, `3205 files`, `3481 symbols`,
+  `Generate bundle fail-closed`, `Use a full mesh host URL`,
+  `Enter your mesh host URL first`, `__bootstrapCalls`, and
+  `native IPC validation gating`.
+
+- 2026-06-15 Add PC backend timeout audit:
+  wiki/1164 records the backend timeout hardening for Add PC. CLI internals now
+  bound create-join-key helper execution and Docker Compose start-control
+  stages, while Tauri Add PC commands use named outer timeout constants.
+  Search terms should include `wiki/1164`, `ADD_PC_BOOTSTRAP_TIMEOUT`,
+  `ADD_PC_CREATE_JOIN_KEY_TIMEOUT`, `ADD_PC_START_CONTROL_HOST_TIMEOUT`,
+  `CREATE_JOIN_KEY_HELPER_TIMEOUT`, `START_CONTROL_UP_TIMEOUT`,
+  `add_pc_backend_process_timeouts_are_bounded`, and `STATUS_IN_PAGE_ERROR`.
+
+- 2026-06-15 Add PC backend timeout index refresh:
+  wiki/1165 records the MUSU local index refresh after wiki/1164 with
+  `3207 files`, `3482 symbols`, and `351641 ms`. Search terms should include
+  `wiki/1165`, `3207 files`, `3482 symbols`,
+  `ADD_PC_CREATE_JOIN_KEY_TIMEOUT`, `ADD_PC_START_CONTROL_HOST_TIMEOUT`,
+  `CREATE_JOIN_KEY_HELPER_TIMEOUT`, `START_CONTROL_UP_TIMEOUT`,
+  `add_pc_backend_process_timeouts_are_bounded`, and
+  `Add PC backend bounded process execution`.
+
+- 2026-06-15 Rust format gate audit:
+  wiki/1166 records the cleanup of the Rust format gate after
+  `cargo fmt --manifest-path musu-rs\Cargo.toml -- --check` reported
+  `musu-rs/src/bridge/handlers/forward.rs`. Search terms should include
+  `wiki/1166`, `Rust format gate audit`, `forward.rs`, `callback_context`,
+  `CARGO_INCREMENTAL=0`, `STATUS_IN_PAGE_ERROR`, and
+  `cargo fmt --manifest-path musu-rs\\Cargo.toml -- --check`.
+
+- 2026-06-15 Rust format gate index refresh:
+  wiki/1167 records the MUSU local index refresh after wiki/1166 with
+  `3210 files`, `3482 symbols`, and `113578 ms`. Search terms should include
+  `wiki/1167`, `3210 files`, `3482 symbols`, `Rust format gate audit`,
+  `forward.rs`, `callback_context`, `CARGO_INCREMENTAL=0`, and
+  `STATUS_IN_PAGE_ERROR`.
+
+- 2026-06-15 Non-interactive Docker exec audit:
+  wiki/1168 records the Add PC/Private Mesh Docker exec hardening. Generated
+  Headscale helper scripts and the start-control-host health probe now use
+  `docker compose exec -T headscale headscale ...`; generated-bundle assertions
+  reject the old interactive exec shape. Search terms should include
+  `wiki/1168`, `docker compose exec -T`, `non-interactive Docker exec`,
+  `create-join-key.ps1`, `create-join-key.sh`, `START_CONTROL_HEALTH_TIMEOUT`,
+  and `cargo check --tests`.
+
+- 2026-06-15 Non-interactive Docker exec index refresh:
+  wiki/1169 records the MUSU local index refresh after wiki/1168 with
+  `3215 files`, `3482 symbols`, and `106883 ms`. Search terms should include
+  `wiki/1169`, `3215 files`, `3482 symbols`, `docker compose exec -T`,
+  `non-interactive Docker exec`, `create-join-key.ps1`,
+  `create-join-key.sh`, and `START_CONTROL_HEALTH_TIMEOUT`.
+
+- 2026-06-15 Root WSL scratch hygiene audit:
+  wiki/1170 records the repo hygiene fix for local WSL probe scripts. Root
+  `.wsl_*.sh` files are now ignored so Headscale/Tailscale scratch helpers do
+  not appear as release/commit candidates. Search terms should include
+  `wiki/1170`, `.wsl_*.sh`, `.wsl_join2.sh`, `preauth_key.txt`,
+  `root WSL scratch hygiene`, `git check-ignore`, and `operator scratch`.
+
+- 2026-06-15 Root WSL scratch hygiene index refresh:
+  wiki/1171 records the MUSU local index refresh after wiki/1170 with
+  `3217 files`, `3482 symbols`, and `70358 ms`. Search terms should include
+  `wiki/1171`, `3217 files`, `3482 symbols`, `.wsl_*.sh`, `.wsl_join2.sh`,
+  `preauth_key.txt`, `root WSL scratch hygiene`, and `git check-ignore`.
+
+- 2026-06-15 Bootstrap identifier validation audit:
+  wiki/1172 records Private Mesh bootstrap validation for generated-bundle
+  identifiers. `tailnet_name` and `base_domain` are now validated before files
+  are written, and targeted Rust coverage rejects script-unsafe names. Search
+  terms should include `wiki/1172`, `validate_private_mesh_tailnet_name`,
+  `validate_private_mesh_base_domain`,
+  `bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`,
+  `--tailnet-name`, and `--base-domain`.
+
+- 2026-06-15 Bootstrap identifier validation index refresh:
+  wiki/1173 records the MUSU local index refresh after wiki/1172 with
+  `3220 files`, `3485 symbols`, and `88061 ms`. Search terms should include
+  `wiki/1173`, `3220 files`, `3485 symbols`,
+  `validate_private_mesh_tailnet_name`,
+  `validate_private_mesh_base_domain`,
+  `bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`,
+  `--tailnet-name`, and `--base-domain`.
+
 **End of WIKI_INDEX.md.**

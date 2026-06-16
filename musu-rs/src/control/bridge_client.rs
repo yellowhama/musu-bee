@@ -217,7 +217,8 @@ impl BridgeClient {
     }
 
     /// V28 — proxy to `POST /api/setup/default-adapter`. Persists which agent a
-    /// task uses by default (echo/codex/claude/…) to bridge.env, applied now.
+    /// task uses by default (echo/codex/claude/…) to bridge.env; applies to
+    /// subsequent tasks (read back from bridge.env, no live env mutation).
     pub async fn set_default_adapter(&self, adapter: &str) -> Result<String> {
         self.post_json(
             "/api/setup/default-adapter",

@@ -1042,10 +1042,16 @@ pub async fn receive_callback(
         ));
     }
 
-    // Update the original route_execution row with remote result.
+    // Update the original route_execution row with the remote result, but ONLY
+    // if it is not already in a terminal state. The runner retries the callback
+    // up to 3× and a task may be re-forwarded, so a duplicate/late callback can
+    // otherwise clobber a row that was already cancelled/failed/done — silently
+    // flipping the recorded outcome and re-broadcasting SSE. Gate on status and
+    // dispatch on rows_affected (pattern-toctou-atomic-update).
     let update_result = sqlx::query(
         "UPDATE route_executions SET status = ?, output = ?, error = ?, \
-         exit_code = ?, duration_sec = ?, updated_at = ? WHERE task_id = ?",
+         exit_code = ?, duration_sec = ?, updated_at = ? \
+         WHERE task_id = ? AND status NOT IN ('done', 'failed', 'cancelled')",
     )
     .bind(&cb.status)
     .bind(&cb.output)
@@ -1058,6 +1064,28 @@ pub async fn receive_callback(
     .await
     .map_err(MusuError::Sqlx)?;
     if update_result.rows_affected() == 0 {
+        // 0 rows means either the task does not exist OR it is already terminal.
+        // Distinguish the two so a duplicate/late callback on a finalized task is
+        // an idempotent no-op (200), not a spurious NotFound, and does NOT
+        // re-broadcast SSE for the now-clobbered-prevented row.
+        let already_terminal = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM route_executions \
+             WHERE task_id = ? AND status IN ('done', 'failed', 'cancelled')",
+        )
+        .bind(&cb.source_task_id)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(MusuError::Sqlx)?
+            > 0;
+        if already_terminal {
+            tracing::info!(
+                source_task_id = %cb.source_task_id,
+                remote_task_id = %cb.remote_task_id,
+                "ignoring duplicate/late callback for already-terminal task"
+            );
+            // Idempotent no-op: do not re-broadcast SSE or overwrite the row.
+            return Ok(StatusCode::OK);
+        }
         tracing::warn!(
             source_task_id = %cb.source_task_id,
             remote_task_id = %cb.remote_task_id,
@@ -1076,19 +1104,17 @@ pub async fn receive_callback(
     .fetch_optional(&state.pool)
     .await
     .map_err(MusuError::Sqlx)?;
-    let callback_company_id = callback_context
+    let callback_company_id = callback_context.as_ref().and_then(|row| {
+        row.try_get::<Option<String>, _>("company_id")
+            .ok()
+            .flatten()
+    });
+    let callback_channel = callback_context
         .as_ref()
-        .and_then(|row| row.try_get::<Option<String>, _>("company_id").ok().flatten());
-    let callback_channel = callback_context.as_ref().and_then(|row| {
-        row.try_get::<Option<String>, _>("channel")
-            .ok()
-            .flatten()
-    });
-    let callback_sender_id = callback_context.as_ref().and_then(|row| {
-        row.try_get::<Option<String>, _>("sender_id")
-            .ok()
-            .flatten()
-    });
+        .and_then(|row| row.try_get::<Option<String>, _>("channel").ok().flatten());
+    let callback_sender_id = callback_context
+        .as_ref()
+        .and_then(|row| row.try_get::<Option<String>, _>("sender_id").ok().flatten());
 
     let musu_home = state
         .config
@@ -1177,8 +1203,8 @@ pub async fn receive_callback(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::extract::State;
     use crate::peer::discovery::PeerSource;
+    use axum::extract::State;
     use std::sync::Arc;
     use tempfile::TempDir;
     use tokio::sync::broadcast::error::TryRecvError;

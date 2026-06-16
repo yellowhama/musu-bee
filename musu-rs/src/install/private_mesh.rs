@@ -13,6 +13,14 @@ const DEVICE_ADD_PASS_EXPIRES_AFTER_SECONDS: i64 = 3600;
 const DEVICE_ADD_PASS_CREATED_AT_FUTURE_SKEW_SECONDS: i64 = 300;
 const PHYSICAL_PEER_EVIDENCE_MAX_AGE_SECONDS: i64 = 86_400;
 const PHYSICAL_PEER_EVIDENCE_FUTURE_SKEW_SECONDS: i64 = 300;
+const CREATE_JOIN_KEY_HELPER_TIMEOUT: Duration = Duration::from_secs(45);
+const START_CONTROL_CONFIG_TIMEOUT: Duration = Duration::from_secs(15);
+const START_CONTROL_UP_TIMEOUT: Duration = Duration::from_secs(90);
+const START_CONTROL_HEALTH_TIMEOUT: Duration = Duration::from_secs(8);
+/// `tailscale up --authkey` on the join path can block indefinitely on an
+/// unreachable control server; bound it so the cockpit "Join the mesh" button
+/// fails with a next-step instead of hanging.
+const JOIN_UP_TIMEOUT: Duration = Duration::from_secs(90);
 
 #[derive(Subcommand, Debug)]
 pub enum PrivateMeshAction {
@@ -517,7 +525,7 @@ async fn run_create_join_key(opts: PrivateMeshCreateJoinKeyOpts) -> Result<()> {
     let passes_before = list_device_add_passes(&bundle_dir);
 
     // Run the platform helper. The helper itself talks to the running Headscale
-    // container (`docker compose exec headscale headscale preauthkeys create`)
+    // container (`docker compose exec -T headscale headscale preauthkeys create`)
     // and writes a musu.device_add.v1 file under device-add-passes/.
     #[cfg(windows)]
     let (program, args): (&str, Vec<String>) = (
@@ -545,15 +553,21 @@ async fn run_create_join_key(opts: PrivateMeshCreateJoinKeyOpts) -> Result<()> {
 
     let mut command = tokio::process::Command::new(program);
     command.args(&args).current_dir(&bundle_dir);
+    command.kill_on_drop(true);
     #[cfg(windows)]
     {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let output = command
-        .output()
+    let output = tokio::time::timeout(CREATE_JOIN_KEY_HELPER_TIMEOUT, command.output())
         .await
+        .map_err(|_| {
+            anyhow!(
+                "create-join-key helper timed out after {} seconds. Check Docker/Headscale, then retry from Add PC.",
+                CREATE_JOIN_KEY_HELPER_TIMEOUT.as_secs()
+            )
+        })?
         .map_err(|err| anyhow!("failed to run create-join-key helper: {err}"))?;
 
     if !output.status.success() {
@@ -644,25 +658,42 @@ async fn run_start_control_host(opts: PrivateMeshStartControlHostOpts) -> Result
     }
 
     // Run a `docker compose` step in the bundle dir, returning (success, output).
-    async fn compose_step(bundle_dir: &std::path::Path, args: &[&str]) -> (bool, String) {
-        match tokio::process::Command::new("docker")
+    async fn compose_step(
+        bundle_dir: &std::path::Path,
+        args: &[&str],
+        timeout: Duration,
+    ) -> (bool, String) {
+        let mut command = tokio::process::Command::new("docker");
+        command
             .arg("compose")
             .args(args)
             .current_dir(bundle_dir)
-            .output()
-            .await
-        {
-            Ok(out) => {
+            .kill_on_drop(true);
+        match tokio::time::timeout(timeout, command.output()).await {
+            Ok(Ok(out)) => {
                 let mut combined = String::from_utf8_lossy(&out.stdout).into_owned();
                 combined.push_str(&String::from_utf8_lossy(&out.stderr));
                 (out.status.success(), combined.trim().to_string())
             }
-            Err(err) => (false, format!("failed to run docker compose: {err}")),
+            Ok(Err(err)) => (false, format!("failed to run docker compose: {err}")),
+            Err(_) => (
+                false,
+                format!(
+                    "docker compose {} timed out after {} seconds",
+                    args.join(" "),
+                    timeout.as_secs()
+                ),
+            ),
         }
     }
 
     // 1) Validate the compose file before starting anything.
-    let (config_ok, config_out) = compose_step(&bundle_dir, &["config", "--quiet"]).await;
+    let (config_ok, config_out) = compose_step(
+        &bundle_dir,
+        &["config", "--quiet"],
+        START_CONTROL_CONFIG_TIMEOUT,
+    )
+    .await;
     if !config_ok {
         let result = serde_json::json!({
             "schema": "musu.start_control_host.v1",
@@ -675,7 +706,7 @@ async fn run_start_control_host(opts: PrivateMeshStartControlHostOpts) -> Result
     }
 
     // 2) Start the stack detached.
-    let (up_ok, up_out) = compose_step(&bundle_dir, &["up", "-d"]).await;
+    let (up_ok, up_out) = compose_step(&bundle_dir, &["up", "-d"], START_CONTROL_UP_TIMEOUT).await;
     if !up_ok {
         let result = serde_json::json!({
             "schema": "musu.start_control_host.v1",
@@ -695,7 +726,12 @@ async fn run_start_control_host(opts: PrivateMeshStartControlHostOpts) -> Result
         if attempt > 0 {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
         }
-        let (ok, out) = compose_step(&bundle_dir, &["exec", "headscale", "headscale", "health"]).await;
+        let (ok, out) = compose_step(
+            &bundle_dir,
+            &["exec", "-T", "headscale", "headscale", "health"],
+            START_CONTROL_HEALTH_TIMEOUT,
+        )
+        .await;
         health_out = out;
         if ok {
             health_ok = true;
@@ -955,7 +991,8 @@ fn consume_device_add_pass_file(path: &Path) -> Result<PathBuf> {
 
 async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
     let join_inputs = resolve_join_inputs(&opts)?;
-    let login_server = normalize_login_server(&join_inputs.login_server)?;
+    // Join transmits the one-time authkey to the login server, so require https.
+    let login_server = normalize_login_server_with_policy(&join_inputs.login_server, true)?;
     let control_server_health_url = control_server_health_url(&login_server)?;
     let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
     let config_path = home.join(PRIVATE_MESH_CONFIG);
@@ -976,10 +1013,10 @@ async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
     let command = if opts.dry_run {
         None
     } else {
-        let report = run_tail_command_owned(join_tail_args(
-            &login_server,
-            join_inputs.authkey.as_deref(),
-        ));
+        let report = run_tail_command_owned_with_timeout(
+            join_tail_args(&login_server, join_inputs.authkey.as_deref()),
+            JOIN_UP_TIMEOUT,
+        );
         if !report.found {
             return Err(anyhow!(
                 "compatible mesh client CLI not found; install it, then run this command again. MUSU does not require Tailscale.com signup."
@@ -2416,6 +2453,9 @@ fn write_bootstrap_bundle(
     musu_home: &Path,
 ) -> Result<PrivateMeshBootstrapReport> {
     let server_url = normalize_control_server_url(&opts.server_url, opts.allow_insecure_http)?;
+    validate_private_mesh_tailnet_name(&opts.tailnet_name)?;
+    validate_private_mesh_base_domain(&opts.base_domain)?;
+    validate_headscale_image(&opts.image)?;
     let embedded_derp_enabled = !opts.disable_embedded_derp;
     if embedded_derp_enabled && server_url.starts_with("http://") {
         return Err(anyhow!(
@@ -2501,7 +2541,7 @@ fn write_bootstrap_bundle(
         format!("cd {}", output_dir.display()),
         "docker compose config --quiet".to_string(),
         "docker compose up -d".to_string(),
-        "docker compose exec headscale headscale health".to_string(),
+        "docker compose exec -T headscale headscale health".to_string(),
         "powershell -ExecutionPolicy Bypass -File .\\scripts\\check-public-endpoint.ps1"
             .to_string(),
         "./scripts/check-public-endpoint.sh".to_string(),
@@ -2742,6 +2782,101 @@ fn normalize_control_server_url(value: &str, allow_insecure_http: bool) -> Resul
         ));
     }
     Ok(trimmed.to_string())
+}
+
+fn validate_private_mesh_tailnet_name(value: &str) -> Result<()> {
+    if value.trim() != value || value.is_empty() {
+        return Err(anyhow!("--tailnet-name must be a non-empty identifier"));
+    }
+    if value.len() > 63 {
+        return Err(anyhow!("--tailnet-name must be at most 63 characters"));
+    }
+    let Some(first) = value.chars().next() else {
+        return Err(anyhow!("--tailnet-name must be a non-empty identifier"));
+    };
+    let Some(last) = value.chars().last() else {
+        return Err(anyhow!("--tailnet-name must be a non-empty identifier"));
+    };
+    if !first.is_ascii_alphanumeric() || !last.is_ascii_alphanumeric() {
+        return Err(anyhow!(
+            "--tailnet-name must start and end with an ASCII letter or digit"
+        ));
+    }
+    if !value
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.')
+    {
+        return Err(anyhow!(
+            "--tailnet-name may contain only ASCII letters, digits, '-', '_', and '.'"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_private_mesh_base_domain(value: &str) -> Result<()> {
+    if value.trim() != value || value.is_empty() {
+        return Err(anyhow!("--base-domain must be a non-empty DNS name"));
+    }
+    if value.len() > 253 {
+        return Err(anyhow!("--base-domain must be at most 253 characters"));
+    }
+    if value.ends_with('.') {
+        return Err(anyhow!("--base-domain must not include a trailing dot"));
+    }
+    for label in value.split('.') {
+        if label.is_empty() {
+            return Err(anyhow!("--base-domain must not contain empty labels"));
+        }
+        if label.len() > 63 {
+            return Err(anyhow!(
+                "--base-domain labels must be at most 63 characters"
+            ));
+        }
+        let Some(first) = label.chars().next() else {
+            return Err(anyhow!("--base-domain must not contain empty labels"));
+        };
+        let Some(last) = label.chars().last() else {
+            return Err(anyhow!("--base-domain must not contain empty labels"));
+        };
+        if !first.is_ascii_alphanumeric() || !last.is_ascii_alphanumeric() {
+            return Err(anyhow!(
+                "--base-domain labels must start and end with an ASCII letter or digit"
+            ));
+        }
+        if !label
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
+        {
+            return Err(anyhow!(
+                "--base-domain may contain only ASCII letters, digits, '-' and dots"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Validate the headscale container image reference before it is interpolated
+/// into the generated docker-compose.yaml. Without this, a value containing a
+/// newline + YAML keys (e.g. "...\n    privileged: true") injects arbitrary
+/// container config into the headscale service (compose/YAML injection), which
+/// `docker compose up -d` then runs. Restrict to a conservative OCI reference
+/// grammar: printable ASCII, no whitespace/control chars, bounded length, only
+/// the characters that appear in real registry/repo:tag@digest references.
+fn validate_headscale_image(value: &str) -> Result<()> {
+    if value.trim() != value || value.is_empty() {
+        return Err(anyhow!("--image must be a non-empty OCI image reference"));
+    }
+    if value.len() > 512 {
+        return Err(anyhow!("--image must be at most 512 characters"));
+    }
+    if !value.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_' | '/' | ':' | '@' | '+')
+    }) {
+        return Err(anyhow!(
+            "--image may contain only ASCII letters, digits, and . - _ / : @ + (no whitespace, newlines, or other characters)"
+        ));
+    }
+    Ok(())
 }
 
 fn read_private_mesh_config(path: &Path) -> Option<PrivateMeshConfig> {
@@ -3063,11 +3198,11 @@ Push-Location $BundleRoot
 try {{
 
 function Invoke-Headscale {{
-  & docker compose exec headscale headscale @args
+  & docker compose exec -T headscale headscale @args
 }}
 
 function Resolve-HeadscaleUserId([string]$Name) {{
-  $jsonText = (& docker compose exec headscale headscale users list --output json 2>$null | Out-String).Trim()
+  $jsonText = (& docker compose exec -T headscale headscale users list --output json 2>$null | Out-String).Trim()
   if ($LASTEXITCODE -eq 0 -and $jsonText) {{
     try {{
       $users = $jsonText | ConvertFrom-Json
@@ -3086,14 +3221,14 @@ function Resolve-HeadscaleUserId([string]$Name) {{
     }}
   }}
 
-  $tableText = (& docker compose exec headscale headscale users list | Out-String)
+  $tableText = (& docker compose exec -T headscale headscale users list | Out-String)
   foreach ($line in ($tableText -split "`r?`n")) {{
     if ($line -notmatch [regex]::Escape($Name)) {{ continue }}
     foreach ($part in ($line -split "\s+")) {{
       if ($part -match "^\d+$") {{ return $part }}
     }}
   }}
-  throw "Could not resolve Headscale user id for '$Name'. Run: docker compose exec headscale headscale users list"
+  throw "Could not resolve Headscale user id for '$Name'. Run: docker compose exec -T headscale headscale users list"
 }}
 
 function Redact-HeadscaleSecrets([string]$Text) {{
@@ -3114,13 +3249,13 @@ $userId = Resolve-HeadscaleUserId $Tailnet
 $keyArgs = @("preauthkeys", "create", "--user", $userId)
 
 Write-Host "Creating a Headscale preauth key for user id $userId..."
-$keyOutput = & docker compose exec headscale headscale @keyArgs
+$keyOutput = & docker compose exec -T headscale headscale @keyArgs
 $keyText = ($keyOutput | Out-String)
 $key = [regex]::Match($keyText, "hskey-auth-[A-Za-z0-9_-]+-[A-Za-z0-9_-]+").Value
 
 if (-not $key) {{
   Write-Output (Redact-HeadscaleSecrets $keyText)
-  throw "Could not find hskey-auth-* in headscale output. Check the Headscale version and run `docker compose exec headscale headscale preauthkeys create --user <USER_ID>` manually."
+  throw "Could not find hskey-auth-* in headscale output. Check the Headscale version and run `docker compose exec -T headscale headscale preauthkeys create --user <USER_ID>` manually."
 }}
 
 Write-Host ""
@@ -3189,29 +3324,33 @@ cd "$BUNDLE_ROOT"
 DEFAULT_TAILNET={tailnet}
 DEFAULT_SERVER_URL={server_url}
 TAILNET="${{1:-$DEFAULT_TAILNET}}"
-SERVER_URL="${{MUSU_MESH_SERVER_URL:-$DEFAULT_SERVER_URL}}"
+# Use the bootstrap-pinned, validated server_url directly. No env override:
+# MUSU_MESH_SERVER_URL would silently change which control server joining PCs
+# trust (it is baked into the device-add pass), bypassing validation, and the
+# PowerShell sibling helper has no such override.
+SERVER_URL="$DEFAULT_SERVER_URL"
 
 echo "Checking Headscale health..."
-docker compose exec headscale headscale health
+docker compose exec -T headscale headscale health
 
 echo "Ensuring MUSU owner namespace exists: $TAILNET"
-docker compose exec headscale headscale users create "$TAILNET" || echo "User may already exist; continuing."
+docker compose exec -T headscale headscale users create "$TAILNET" || echo "User may already exist; continuing."
 
-USER_LIST="$(docker compose exec headscale headscale users list || true)"
+USER_LIST="$(docker compose exec -T headscale headscale users list || true)"
 USER_ID="$(printf '%s\n' "$USER_LIST" | awk -v user="$TAILNET" '$0 ~ user {{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+$/) {{ print $i; exit }} }}')"
 if [ -z "$USER_ID" ]; then
   printf '%s\n' "$USER_LIST"
-  echo "Could not resolve Headscale user id for '$TAILNET'. Run 'docker compose exec headscale headscale users list' and then 'docker compose exec headscale headscale preauthkeys create --user <USER_ID>' manually." >&2
+  echo "Could not resolve Headscale user id for '$TAILNET'. Run 'docker compose exec -T headscale headscale users list' and then 'docker compose exec -T headscale headscale preauthkeys create --user <USER_ID>' manually." >&2
   exit 1
 fi
 
 echo "Creating a Headscale preauth key..."
-KEY_OUTPUT="$(docker compose exec headscale headscale preauthkeys create --user "$USER_ID")"
+KEY_OUTPUT="$(docker compose exec -T headscale headscale preauthkeys create --user "$USER_ID")"
 KEY="$(printf '%s\n' "$KEY_OUTPUT" | grep -Eo 'hskey-auth-[A-Za-z0-9_-]+-[A-Za-z0-9_-]+' | head -n 1 || true)"
 
 if [ -z "$KEY" ]; then
   printf '%s\n' "$KEY_OUTPUT" | sed -E 's/hskey-auth-[A-Za-z0-9_-]+-[A-Za-z0-9_-]+/hskey-auth-<redacted>/g'
-  echo "Could not find hskey-auth-* in headscale output. Check the Headscale version and run 'docker compose exec headscale headscale preauthkeys create --user <USER_ID>' manually." >&2
+  echo "Could not find hskey-auth-* in headscale output. Check the Headscale version and run 'docker compose exec -T headscale headscale preauthkeys create --user <USER_ID>' manually." >&2
   exit 1
 fi
 
@@ -3261,7 +3400,7 @@ Tailscale.com account.
 ```powershell
 docker compose config --quiet
 docker compose up -d
-docker compose exec headscale headscale health
+docker compose exec -T headscale headscale health
 powershell -ExecutionPolicy Bypass -File .\scripts\check-public-endpoint.ps1
 ```
 
@@ -3403,14 +3542,30 @@ fn write_private_mesh_config(path: &Path, config: &PrivateMeshConfig) -> Result<
     Ok(())
 }
 
+#[cfg(test)]
 fn normalize_login_server(value: &str) -> Result<String> {
+    normalize_login_server_with_policy(value, false)
+}
+
+/// `require_https`: when true, reject plaintext http://. The join path passes
+/// true because it transmits the one-time Headscale preauth key via
+/// `tailscale up --login-server <url> --authkey <key>` and runs the /health
+/// check over the same URL — an http:// login server would leak the join
+/// credential to any on-path attacker.
+fn normalize_login_server_with_policy(value: &str, require_https: bool) -> Result<String> {
     let trimmed = value.trim().trim_end_matches('/');
     if trimmed.is_empty() {
         return Err(anyhow!("--login-server is required"));
     }
     let url = reqwest::Url::parse(trimmed)
         .map_err(|e| anyhow!("--login-server must be a valid URL: {e}"))?;
-    if !(url.scheme() == "https" || url.scheme() == "http") {
+    if require_https {
+        if url.scheme() != "https" {
+            return Err(anyhow!(
+                "--login-server must use https:// when joining (the one-time authkey is sent to it); refusing plaintext http://"
+            ));
+        }
+    } else if !(url.scheme() == "https" || url.scheme() == "http") {
         return Err(anyhow!(
             "--login-server must start with https:// or http://"
         ));
@@ -3818,6 +3973,15 @@ fn print_human_status(report: &PrivateMeshStatusReport, doctor: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn add_pc_backend_process_timeouts_are_bounded() {
+        assert_eq!(CREATE_JOIN_KEY_HELPER_TIMEOUT.as_secs(), 45);
+        assert_eq!(START_CONTROL_CONFIG_TIMEOUT.as_secs(), 15);
+        assert_eq!(START_CONTROL_UP_TIMEOUT.as_secs(), 90);
+        assert_eq!(START_CONTROL_HEALTH_TIMEOUT.as_secs(), 8);
+        assert!(START_CONTROL_UP_TIMEOUT > CREATE_JOIN_KEY_HELPER_TIMEOUT);
+    }
 
     #[test]
     fn parse_tailnet_ipv4_accepts_only_100_64_10() {
@@ -4298,6 +4462,28 @@ mod tests {
     }
 
     #[test]
+    fn join_login_server_rejects_plaintext_http() {
+        // join transmits the authkey, so http:// must be refused (credential leak).
+        assert!(normalize_login_server_with_policy("http://mesh.example/", true).is_err());
+        assert_eq!(
+            normalize_login_server_with_policy("https://mesh.example/", true).unwrap(),
+            "https://mesh.example"
+        );
+    }
+
+    #[test]
+    fn headscale_image_rejects_yaml_injection() {
+        // a value with a newline + yaml keys must not reach docker-compose.yaml
+        assert!(validate_headscale_image("ghcr.io/juanfont/headscale:v0.28.0").is_ok());
+        assert!(validate_headscale_image(
+            "headscale:v0.28.0\n    privileged: true\n    volumes: [/:/host]"
+        )
+        .is_err());
+        assert!(validate_headscale_image("headscale:latest ; rm -rf /").is_err());
+        assert!(validate_headscale_image("").is_err());
+    }
+
+    #[test]
     fn unconfigured_tailnet_is_external_until_classified() {
         assert_eq!(
             classify_mesh_mode(None, Some("100.100.1.2")),
@@ -4605,6 +4791,14 @@ mod tests {
         assert!(report
             .commands
             .iter()
+            .any(|command| command == "docker compose exec -T headscale headscale health"));
+        assert!(!report
+            .commands
+            .iter()
+            .any(|command| command == "docker compose exec headscale headscale health"));
+        assert!(report
+            .commands
+            .iter()
             .any(|command| command.contains("check-public-endpoint.ps1")));
         assert!(report.embedded_derp_enabled);
         assert_eq!(report.derp_public_ipv4.as_deref(), Some("198.51.100.10"));
@@ -4656,6 +4850,8 @@ mod tests {
         assert!(readme.contains("raw preauth-key command shape"));
         assert!(readme.contains("musu mesh join --device-add-pass <musu.device_add.v1.json>"));
         assert!(readme.contains("docker compose config --quiet"));
+        assert!(readme.contains("docker compose exec -T headscale headscale health"));
+        assert!(!readme.contains("docker compose exec headscale headscale health"));
         assert!(readme.contains("check-public-endpoint.ps1"));
         assert!(readme.contains("musu mesh release-proof --target-node"));
         assert!(readme.contains("verify-private-mesh-route-proof-evidence.ps1"));
@@ -4665,6 +4861,10 @@ mod tests {
         assert!(check_sh.contains("/health"));
         assert!(readme.contains("default HTTPS bundle includes Caddy"));
         assert!(readme.contains("scripts\\create-join-key.ps1"));
+        assert!(key_ps1.contains("docker compose exec -T headscale headscale @args"));
+        assert!(key_ps1.contains("docker compose exec -T headscale headscale users list"));
+        assert!(key_ps1.contains("docker compose exec -T headscale headscale @keyArgs"));
+        assert!(!key_ps1.contains("docker compose exec headscale headscale"));
         assert!(key_ps1.contains("preauthkeys\", \"create\", \"--user\", $userId"));
         assert!(!key_ps1.contains("[switch]$Reusable"));
         assert!(!key_ps1.contains("--reusable"));
@@ -4699,6 +4899,10 @@ mod tests {
         assert!(!key_ps1.contains(
             "join_command = \"musu mesh join --login-server $ServerUrl --authkey $key\""
         ));
+        assert!(key_sh.contains("docker compose exec -T headscale headscale health"));
+        assert!(key_sh.contains("docker compose exec -T headscale headscale users list"));
+        assert!(key_sh.contains("docker compose exec -T headscale headscale preauthkeys create"));
+        assert!(!key_sh.contains("docker compose exec headscale headscale"));
         assert!(key_sh.contains("preauthkeys create --user \"$USER_ID\""));
         assert!(key_sh.contains("hskey-auth-<redacted>"));
         assert!(key_sh.contains(
@@ -4741,6 +4945,25 @@ mod tests {
             normalize_control_server_url("http://mesh.local:8080/", true).unwrap(),
             "http://mesh.local:8080"
         );
+    }
+
+    #[test]
+    fn bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs() {
+        assert!(validate_private_mesh_tailnet_name("musu-lab").is_ok());
+        assert!(validate_private_mesh_tailnet_name("musu.lab_1").is_ok());
+        assert!(validate_private_mesh_tailnet_name("musu lab").is_err());
+        assert!(validate_private_mesh_tailnet_name("musu'lab").is_err());
+        assert!(validate_private_mesh_tailnet_name("musu\nlab").is_err());
+        assert!(validate_private_mesh_tailnet_name("-musu").is_err());
+        assert!(validate_private_mesh_tailnet_name("musu-").is_err());
+
+        assert!(validate_private_mesh_base_domain("musu.private").is_ok());
+        assert!(validate_private_mesh_base_domain("mesh-1.musu.private").is_ok());
+        assert!(validate_private_mesh_base_domain("musu..private").is_err());
+        assert!(validate_private_mesh_base_domain("_musu.private").is_err());
+        assert!(validate_private_mesh_base_domain("musu.private/evil").is_err());
+        assert!(validate_private_mesh_base_domain("-musu.private").is_err());
+        assert!(validate_private_mesh_base_domain("musu.private.").is_err());
     }
 
     #[test]
