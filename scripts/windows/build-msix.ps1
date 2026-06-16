@@ -165,14 +165,14 @@ function New-ManifestContent {
 
     $uap4Namespace = ""
     $rescap5Namespace = ""
-    $ignorableNamespaces = "uap uap3 desktop rescap"
+    $ignorableNamespaces = "uap uap3 desktop rescap win32dep"
     $startupTaskExtraAttribute = ""
     $extraCapability = ""
 
     if ($StartupContract -eq "store-reviewed-immediate-registration") {
         $uap4Namespace = '  xmlns:uap4="http://schemas.microsoft.com/appx/manifest/uap/windows10/4"'
         $rescap5Namespace = '  xmlns:rescap5="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/5"'
-        $ignorableNamespaces = "uap uap3 uap4 desktop rescap rescap5"
+        $ignorableNamespaces = "uap uap3 uap4 desktop rescap rescap5 win32dep"
         $startupTaskExtraAttribute = 'rescap5:ImmediateRegistration="true"'
         $extraCapability = '    <uap4:CustomCapability Name="Microsoft.nonUserConfigurableStartupTasks_8wekyb3d8bbwe" />'
     }
@@ -185,6 +185,7 @@ function New-ManifestContent {
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:win32dep="http://schemas.microsoft.com/appx/manifest/desktop/windows10/win32dependencies"
 $uap4Namespace
 $rescap5Namespace
   IgnorableNamespaces="$ignorableNamespaces">
@@ -204,6 +205,10 @@ $rescap5Namespace
       Name="Windows.Desktop"
       MinVersion="10.0.17763.0"
       MaxVersionTested="10.0.26100.0" />
+    <win32dep:ExternalDependency
+      Name="Microsoft.WebView2"
+      Publisher="CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+      MinVersion="1.0.0.0" />
   </Dependencies>
   <Resources>
     <Resource Language="en-us" />
