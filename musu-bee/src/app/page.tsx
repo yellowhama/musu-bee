@@ -47,9 +47,12 @@ export default function ComingSoonPage() {
         <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
           <MusuLogo size="header" variant="onDark" />
         </Link>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+          <Link href="/auth/login" style={{ color: "var(--fg2)", textDecoration: "none", fontWeight: 600, fontSize: "var(--text-sm)" }}>
+            Log in
+          </Link>
           <Link
-            href="/app"
+            href="/auth/signup"
             className="btn btn-primary"
             style={{
               textDecoration: "none",
@@ -62,7 +65,7 @@ export default function ComingSoonPage() {
               fontWeight: 600,
             }}
           >
-            Open App →
+            Sign up
           </Link>
         </div>
       </nav>
