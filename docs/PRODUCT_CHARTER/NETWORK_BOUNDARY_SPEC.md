@@ -151,6 +151,32 @@ The default multi-machine product boundary is now explicit:
   identifier, and `--base-domain` must be DNS-label shaped, so generated
   Headscale YAML and helper scripts do not depend on escaping arbitrary
   operator input.
+- 2026-06-16 refinement (pipes hidden, end to end): the entire Add PC flow is a
+  cockpit button flow, not copied `musu mesh` commands. Generate bundle, Start
+  control host, Issue pass, Join this PC, and Run release proof are all buttons
+  (`private_mesh_*` IPC); the enrollment steps no longer inline
+  `musu mesh verify` / `physical-peer-evidence` / `release-proof` command-rows,
+  and the per-check release readiness list is collapsed into a "Proof details"
+  drawer. Raw `musu mesh` commands survive only as per-machine copy escape
+  hatches and under "Having trouble?". This realises the "되기만 하면 돼 / hide
+  the pipes" thesis for device #2..#N.
+- 2026-06-16 refinement (join credential confidentiality): `mesh join` requires
+  an `https://` login server (`normalize_login_server_with_policy(require_https)`),
+  because the one-time Headscale preauth key is transmitted to it; plaintext
+  `http://` is refused on the join path so the join credential cannot leak on an
+  on-path attacker. Bootstrap already forced https for embedded DERP.
+- 2026-06-16 refinement (default adapter is not RCE): `shell` and other
+  command-executing adapters are excluded from `DEFAULTABLE_ADAPTERS`
+  (`crate::adapter`), enforced at BOTH the write endpoint (`set_default_adapter`)
+  and the read path (`default_adapter_type` drops a non-defaultable value to the
+  safe auto-detected default). A forwarded task that omits `adapter_type` can
+  never resolve to a verbatim-shell default however the env/bridge.env value got
+  there.
+- 2026-06-16 refinement (one-click beta install): until the Store re-signed
+  package ships, `Install-MUSU.ps1` (published to musu.pro) self-elevates once,
+  verifies the pinned signing-cert thumbprint, trusts it, then installs the
+  `.appinstaller` — the user types no certificate command. The landing page and
+  download page describe the shipped cockpit (no Antigravity/Town/Butler copy).
 
 Current evidence and qualitative status are tracked in:
 

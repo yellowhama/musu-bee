@@ -8340,4 +8340,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`,
   `--tailnet-name`, and `--base-domain`.
 
+- 2026-06-16 S-tier hardening session (merged to main `a8e8f8fb`):
+  `docs/SESSION_S_TIER_HARDENING_SUMMARY_2026_06_16.md` records the full session.
+  Security: thermo-nuclear adversarial audit + 3 re-validation passes converging
+  to CRITICAL/HIGH = 0. UX (vs Tailscale/Linear/Raycast/Warp/Vercel): 8 gaps
+  closed. Self-hosted mesh: two-node cross-node WireGuard ping proof. Deploy:
+  one-click `Install-MUSU.ps1` + Store bundle. Search terms should include
+  `thermo-nuclear`, `three-pass re-audit`, `CRITICAL/HIGH = 0`,
+  `DEFAULTABLE_ADAPTERS`, `/api/mcp auth gate`, `mesh join https-only`,
+  `optimistic order card`, `aria-live`, `status-by-shape`,
+  `Add PC pipes hidden`, `Install-MUSU.ps1`, `landing real cockpit demo`, and
+  `next build --webpack`.
+
+- 2026-06-16 Private Mesh cross-node proof:
+  `docs/PRIVATE_MESH_CROSS_NODE_PROOF_2026_06_16.md` records a self-hosted
+  Headscale two-node bidirectional WireGuard ping (`100.64.0.9` <-> `100.64.0.11`,
+  ~1ms, zero Tailscale.com). Honest scope: two isolated tailscaled instances on
+  ONE WSL host (coordination + routing proven), NOT two physical machines; a
+  real 2nd PC remains required. Search terms should include `cross-node proof`,
+  `wsl-musu-node2`, `wsl-musu-node3`, `pong via`,
+  `two-physical-machine pending`, and `WinTun driver contention`.
+
+- 2026-06-16 NETWORK_BOUNDARY_SPEC refinements:
+  `docs/PRODUCT_CHARTER/NETWORK_BOUNDARY_SPEC.md` gained 2026-06-16 entries:
+  pipes-hidden Add PC (buttons over `musu mesh` CLI, readiness drawer), join
+  credential https-only, default adapter is not RCE (DEFAULTABLE_ADAPTERS read +
+  write), one-click beta install. Search terms should include
+  `되기만 하면 돼`, `hide the pipes`, `normalize_login_server_with_policy`,
+  `DEFAULTABLE_ADAPTERS`, and `Install-MUSU thumbprint`.
+
 **End of WIKI_INDEX.md.**
