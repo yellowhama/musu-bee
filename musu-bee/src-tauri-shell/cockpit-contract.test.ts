@@ -653,11 +653,20 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   // driving private_mesh_join), not a copied `musu mesh join` command.
   assert.match(html, /id="join-pass-path"/);
   assert.match(html, /id="join-run"[^>]*>Join this PC</);
-  assert.match(html, /musu mesh verify --target-ip/);
-  assert.match(html, /musu mesh physical-peer-evidence --json/);
-  assert.match(html, /Release proof/);
-  assert.match(html, /musu mesh release-proof --target-node/);
-  assert.match(html, /--physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence\.json&gt;/);
+  // Hide-the-pipes: the Add-PC steps no longer expose raw `musu mesh ...`
+  // command-rows to copy. verify / physical-peer-evidence / release-proof are
+  // all driven by buttons (the per-machine "Run proof" + the "Run release proof"
+  // button in the Release evidence strip + the Private Mesh proof buttons); the
+  // raw commands remain available only as per-machine copy escape hatches and
+  // under "Having trouble?", not inline in the enrollment steps.
+  assert.doesNotMatch(html, /<code>musu mesh verify --target-ip &lt;peer/);
+  assert.doesNotMatch(html, /<code>musu mesh release-proof --target-node &lt;node&gt;/);
+  assert.match(html, /Release proof \(optional\)/);
+  assert.match(html, /Run release proof/);
+  assert.match(html, /id="release-proof-run"/);
+  // The 9-check readiness breakdown is collapsed into a details drawer, not
+  // spilled onto the primary surface.
+  assert.match(html, /id="release-evidence-checks-drawer"/);
   assert.doesNotMatch(html, /run-private-mesh-release-proof\.ps1/);
   assert.match(html, /id="mesh-status-card"/);
   assert.match(html, /id="mesh-status-title"/);

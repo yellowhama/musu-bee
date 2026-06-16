@@ -1895,7 +1895,10 @@ function renderReleaseProofEvidence(result, target, state = "idle") {
     }
   }
   if (checksEl) {
-    checksEl.hidden = !readiness;
+    // The per-check list lives in a collapsed <details> drawer; the plain
+    // verdict (title/detail/readiness line) is the primary surface.
+    const drawer = $("release-evidence-checks-drawer");
+    if (drawer) drawer.hidden = !readiness;
     checksEl.innerHTML = "";
     if (readiness) {
       for (const check of readiness.checks) {

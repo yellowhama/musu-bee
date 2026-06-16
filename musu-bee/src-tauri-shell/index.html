@@ -109,7 +109,13 @@
             <p id="release-evidence-detail">Run proof on a Private Mesh peer to generate evidence.</p>
             <p id="release-evidence-readiness" class="release-evidence-readiness" hidden></p>
             <p id="release-evidence-next" class="release-evidence-next" hidden></p>
-            <ul id="release-evidence-checks" class="release-evidence-checks" hidden></ul>
+            <!-- The plain-language verdict above is the primary surface. The full
+                 per-check breakdown (manifest/sidecar/transport vocabulary) is
+                 detail — keep it collapsed so it doesn't dominate the cockpit. -->
+            <details id="release-evidence-checks-drawer" class="release-evidence-checks-drawer" hidden>
+              <summary>Proof details</summary>
+              <ul id="release-evidence-checks" class="release-evidence-checks"></ul>
+            </details>
             <code id="release-evidence-path"></code>
             <label class="release-evidence-input" for="physical-peer-evidence-path">
               <span>Target PC physical evidence JSON</span>
@@ -229,37 +235,17 @@
                 <button id="join-run" type="button">Join this PC</button>
               </div>
               <p id="join-result" class="bootstrap-result" hidden></p>
-              <div class="command-row">
-                <code>musu mesh verify --target-ip &lt;peer-100.x.y.z&gt;</code>
-                <button
-                  type="button"
-                  data-copy-text="musu mesh verify --target-ip &lt;peer-100.x.y.z&gt;"
-                >
-                  Copy
-                </button>
-              </div>
-              <div class="command-row">
-                <code>musu mesh physical-peer-evidence --json</code>
-                <button
-                  type="button"
-                  data-copy-text="musu mesh physical-peer-evidence --json"
-                >
-                  Copy
-                </button>
-              </div>
+              <p class="add-pc-hint">
+                Once joined, the new machine appears in your fleet above and you
+                can give it orders. Checking the connection and capturing proof
+                is done for you — use the buttons in &ldquo;Private Mesh proof&rdquo;
+                and each machine&rsquo;s &ldquo;Run proof&rdquo;; the raw
+                <code>musu mesh</code> commands stay under &ldquo;Having trouble?&rdquo;.
+              </p>
             </li>
             <li>
-              <span class="step-kicker">Release proof</span>
-              <p>Copy the physical-peer evidence JSON and its `.sha256` sidecar from the target PC to the same folder on the source PC, then run release proof. Without that target-generated pair, MUSU shows only software route proof, not final release trust.</p>
-              <div class="command-row">
-                <code>musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100.x.y.z&gt; --expected-control-server-url https://mesh.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence.json&gt; --json</code>
-                <button
-                  type="button"
-                  data-copy-text="musu mesh release-proof --target-node &lt;node&gt; --target-ip &lt;peer-100.x.y.z&gt; --expected-control-server-url https://mesh.your-domain --physical-peer-evidence &lt;copied-target-pc-physical-peer-evidence.json&gt; --json"
-                >
-                  Copy
-                </button>
-              </div>
+              <span class="step-kicker">Release proof (optional)</span>
+              <p>Want release-grade proof that the two machines really reached each other? Copy the target PC&rsquo;s physical-evidence file over (its path goes in &ldquo;Release evidence&rdquo; above), then click <strong>Run release proof</strong> there. No command to type — MUSU runs it and shows a plain verdict. Skip this and the mesh still works; you just get software-route proof instead of release-grade.</p>
             </li>
           </ol>
         </div>
