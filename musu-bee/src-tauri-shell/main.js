@@ -3848,6 +3848,40 @@ $("add-pc-toggle")?.addEventListener("click", () => {
 $("empty-add-pc")?.addEventListener("click", openAddPcGuide);
 // ── command palette (Ctrl/Cmd+K) — keyboard-first premium speed ────────
 // A searchable action list. Frecency-lite: recently-run commands float up.
+// Target a machine by name from the keyboard (palette), reusing the fleet-row
+// select behavior: set the order target, cue the composer placeholder, focus the
+// order input. Returns false if the machine isn't a reachable target.
+function targetMachineByName(name) {
+  const sel = $("order-target");
+  if (!sel) return false;
+  const opt = [...sel.options].find((o) => o.value === name && !o.disabled);
+  if (!opt) return false;
+  sel.value = name;
+  updateOrderTargetDisclosure();
+  document.querySelectorAll(".fleet-row.selected").forEach((r) => r.classList.remove("selected"));
+  const row = document.querySelector(`.fleet-row[data-node="${CSS.escape(name)}"]`);
+  if (row) row.classList.add("selected");
+  const input = $("order-input");
+  input.focus();
+  input.placeholder = `What should ${name} do?`;
+  return true;
+}
+
+// Dynamic palette commands: one "Target <machine>" per online fleet target, so
+// the core verb (point at a machine + start an order) is completable from the
+// keyboard without touching the mouse — the S-tier palette bar (Linear/Raycast).
+function dynamicPaletteCommands() {
+  const sel = $("order-target");
+  if (!sel) return [];
+  return [...sel.options]
+    .filter((o) => o.value && !o.disabled)
+    .map((o) => ({
+      id: `target:${o.value}`,
+      label: `Target ${o.value} — start an order`,
+      run: () => targetMachineByName(o.value),
+    }));
+}
+
 const paletteCommands = [
   { id: "focus-order", label: "Focus order input", run: () => $("order-input").focus() },
   { id: "add-pc", label: "Show Add PC guide", run: openAddPcGuide },
@@ -3871,7 +3905,8 @@ const paletteFrecency = new Map(); // id → score
 
 function rankCommands(query) {
   const q = query.trim().toLowerCase();
-  return paletteCommands
+  const all = [...paletteCommands, ...dynamicPaletteCommands()];
+  return all
     .filter((c) => !q || c.label.toLowerCase().includes(q))
     .map((c) => ({ c, score: (paletteFrecency.get(c.id) || 0) - (c.label.toLowerCase().indexOf(q) >= 0 ? 0 : 1) }))
     .sort((a, b) => b.score - a.score)
