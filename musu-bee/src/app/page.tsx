@@ -4,8 +4,8 @@ import { MusuLogo } from "@/components/brand/MusuLogo";
 import { PUBLIC_RELEASE_VERSION } from "@/lib/publicRelease";
 
 export const metadata = {
-  title: "MUSU | The Antigravity Workspace",
-  description: "The Antigravity Workspace for Vibe Coders.",
+  title: "MUSU | Your computers, as one",
+  description: "A desktop cockpit for your own machines. Give a computer an order, walk away, get notified when it's done. Private mesh you host yourself.",
 };
 
 export default function ComingSoonPage() {
@@ -96,7 +96,7 @@ export default function ComingSoonPage() {
               boxShadow: "0 0 20px rgba(36, 200, 219, 0.1)",
             }}
           >
-            Antigravity Workspace
+            Your computers, as one
           </div>
           <h1
             style={{
@@ -109,13 +109,13 @@ export default function ComingSoonPage() {
               letterSpacing: "-0.04em",
             }}
           >
-            The Ultimate IDE <br />
-            <span style={{ 
-              background: "linear-gradient(to right, var(--accent), var(--brand-yellow))", 
-              WebkitBackgroundClip: "text", 
-              WebkitTextFillColor: "transparent" 
+            Give a machine work. <br />
+            <span style={{
+              background: "linear-gradient(to right, var(--accent), var(--brand-yellow))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
             }}>
-              for Vibe Coders.
+              Walk away.
             </span>
           </h1>
           <p
@@ -128,7 +128,7 @@ export default function ComingSoonPage() {
               fontWeight: 400,
             }}
           >
-            The era of text-only chat bots is over. Meet the most beautiful AI control plane featuring Generative UI, 3 distinct workflow modes, and flawless multi-machine orchestration.
+            MUSU is a desktop cockpit for your own machines. Pick a computer, give it an order in one box, and walk away — MUSU runs it on that machine and taps you when it&rsquo;s done. Your machines join over a private mesh you host yourself; no account on someone else&rsquo;s network.
           </p>
 
           <div
@@ -139,45 +139,9 @@ export default function ComingSoonPage() {
               margin: "0 auto",
             }}
           >
-            <form style={{ display: "flex", width: "100%", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", width: "100%", flexWrap: "wrap", gap: 12 }}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                  className="input-premium"
-                  style={{
-                    flex: "1 1 200px",
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid var(--border-default)",
-                    color: "var(--fg1)",
-                    padding: "16px 24px",
-                    fontFamily: "var(--font-ui)",
-                    fontSize: "var(--text-base)",
-                    outline: "none",
-                    borderRadius: "12px",
-                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-premium"
-                  style={{
-                    flex: "1 1 auto",
-                    padding: "16px 32px",
-                    borderRadius: "12px",
-                    background: "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
-                    color: "#fff",
-                    border: "none",
-                    boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
-                    fontWeight: 600,
-                    transition: "transform 0.1s ease, filter 0.2s ease",
-                  }}
-                >
-                  Request Access
-                </button>
-              </div>
-            </form>
+            {/* Single primary CTA: download. The old email form had no onSubmit
+                and no label — a dead CTA at the top of the funnel. The product
+                ships today, so the honest primary action is "get it". */}
             {/* Desktop download: route to /download, NOT the raw .appinstaller.
                 The package is self-signed; double-clicking the bare .appinstaller
                 before the cert is trusted fails with a signature error. /download
@@ -330,19 +294,19 @@ export default function ComingSoonPage() {
             >
               {[
                 {
-                  title: "3-Column Antigravity Layout",
-                  desc: "Monitor nodes on the left, communicate on the right, and visualize generative widgets in the massive center viewport. The perfect AI workflow ratio.",
+                  title: "One box, any machine",
+                  desc: "Pick a computer from your fleet, type what it should do, and send. The order runs on that machine — not in a chat window. Press ⌘K to target a machine and start an order without leaving the keyboard.",
                   icon: "◫"
                 },
                 {
-                  title: "Generative UI (Holograms)",
-                  desc: "AI that responds with more than just text. Charts, tables, loading bars, and summary widgets are rendered holographically in real-time.",
-                  icon: "✨"
+                  title: "Walk away, get tapped",
+                  desc: "Orders run in the background. The cockpit shows a live, attention-first inbox — what needs you first — and your OS notifies you the moment a machine finishes or fails.",
+                  icon: "🔔"
                 },
                 {
-                  title: "Three Distinct Modes",
-                  desc: "Dev Mode for terminal hackers. Town Mode to manage your AI team visually. Butler Mode for zero-knowledge natural language execution.",
-                  icon: "⌘"
+                  title: "Your own private mesh",
+                  desc: "Machines join over a mesh you host yourself — no account on someone else's network. Add a machine from a button; the cockpit wires the connection for you.",
+                  icon: "🔒"
                 },
               ].map((feat, i) => (
                 <div
@@ -405,7 +369,7 @@ export default function ComingSoonPage() {
         <Link href="/" aria-label="MUSU home" style={siteLogoLinkStyle}>
           <MusuLogo size="header" variant="onDark" />
         </Link>
-        <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>© 2026 MUSU. The Antigravity Workspace.</span>
+        <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>© 2026 MUSU. Your computers, as one.</span>
       </footer>
 
       <style dangerouslySetInnerHTML={{__html: `
