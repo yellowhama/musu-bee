@@ -1,12 +1,16 @@
-# Install-MUSU.ps1 — one-click MUSU installer for the self-signed beta.
+# Install-MUSU.ps1 — one-line MUSU installer for the self-signed beta.
+#
+# Primary usage (one line, like Bun/Deno/Scoop):
+#     irm https://musu.pro/install.ps1 | iex
 #
 # What it does, so the user never types a certificate command by hand:
 #   1. downloads the public self-signed certificate,
 #   2. trusts it in LocalMachine\TrustedPeople (so Windows will install the app),
 #   3. installs MUSU via the .appinstaller (which also wires 24h auto-update).
 #
-# Usage: right-click this file -> "Run with PowerShell" as Administrator, OR from
-# an elevated prompt:  powershell -ExecutionPolicy Bypass -File .\Install-MUSU.ps1
+# Self-elevates: if not admin, it re-fetches itself from the canonical URL inside
+# an elevated PowerShell (so it works whether run from a file OR piped via iex,
+# where there is no file path to re-launch).
 #
 # This is the beta bridge until the Microsoft Store release lands, after which no
 # certificate step is needed at all (Store re-signs the package).
@@ -15,7 +19,10 @@
 param(
     [string]$ReleaseBase = "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest",
     [string]$CertFileName = "blossompark.musu.cer",
-    [string]$AppInstallerFileName = "musu.appinstaller"
+    [string]$AppInstallerFileName = "musu.appinstaller",
+    # Canonical self-URL used to re-fetch the script when self-elevating under
+    # `irm | iex` (no $PSCommandPath in that mode).
+    [string]$SelfUrl = "https://musu.pro/install.ps1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,17 +43,15 @@ function Test-IsAdmin {
 if (-not (Test-IsAdmin)) {
     Write-Host "MUSU install needs administrator rights to trust the beta certificate." -ForegroundColor Yellow
     Write-Host "Re-launching elevated..." -ForegroundColor Yellow
-    # Pass args as an array so all params survive elevation and PowerShell handles
-    # quoting (a flat interpolated string drops -CertFileName/-AppInstallerFileName
-    # and breaks on a quote in -ReleaseBase).
-    $elevatedArgs = @(
-        "-ExecutionPolicy", "Bypass",
-        "-File", $PSCommandPath,
-        "-ReleaseBase", $ReleaseBase,
-        "-CertFileName", $CertFileName,
-        "-AppInstallerFileName", $AppInstallerFileName
+    # Re-fetch + run the script in an elevated PowerShell. This works whether we
+    # were started from a file OR piped via `irm ... | iex` (in which case there
+    # is no $PSCommandPath to re-launch). We re-download from the canonical SelfUrl
+    # and pipe to iex inside the elevated shell.
+    $inner = "`$ErrorActionPreference='Stop'; iex ((New-Object Net.WebClient).DownloadString('$SelfUrl'))"
+    $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+    Start-Process powershell -Verb RunAs -ArgumentList @(
+        "-ExecutionPolicy", "Bypass", "-NoProfile", "-EncodedCommand", $b64
     )
-    Start-Process powershell -Verb RunAs -ArgumentList $elevatedArgs
     return
 }
 

@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "Download MUSU for Windows",
   description:
-    "Install MUSU for Windows. Beta build, self-signed: trust the certificate, then install the .appinstaller for automatic updates.",
+    "Install MUSU for Windows in one line: irm https://musu.pro/install.ps1 | iex. Beta build, self-signed; the installer trusts the cert and installs for you.",
 };
 
 export default function DownloadPage() {
@@ -29,33 +29,28 @@ export default function DownloadPage() {
           Version <strong>{PUBLIC_RELEASE_VERSION}</strong>, x64.
         </p>
 
-        <div style={ctaRowStyle}>
-          <a
-            href={DESKTOP_INSTALL_SCRIPT_URL}
-            data-testid="download-installer-script"
-            style={primaryButtonStyle}
-          >
-            <span aria-hidden="true">⊞</span> Download installer (Install-MUSU.ps1)
-          </a>
-        </div>
+        <section style={{ ...sectionStyle, marginTop: 28 }}>
+          <h2 style={headingStyle}>Install in one line</h2>
+          <p style={bodyStyle}>
+            Open <strong>PowerShell</strong> and paste this. It trusts the beta
+            certificate and installs MUSU (with automatic updates) &mdash; you
+            never type a certificate command, and it elevates itself once.
+          </p>
+          <pre style={preStyle}>
+            <code data-testid="install-one-liner">irm https://musu.pro/install.ps1 | iex</code>
+          </pre>
+        </section>
 
         <section style={sectionStyle}>
-          <h2 style={headingStyle}>Install in one step</h2>
-          <ol style={listStyle}>
-            <li>
-              Download{" "}
-              <a href={DESKTOP_INSTALL_SCRIPT_URL} style={linkStyle}>
-                Install-MUSU.ps1
-              </a>
-              .
-            </li>
-            <li>
-              <strong>Right-click it &rarr; &ldquo;Run with PowerShell.&rdquo;</strong>{" "}
-              Approve the admin prompt once. It downloads and trusts the beta
-              certificate, then installs MUSU with automatic updates &mdash; you
-              never type a certificate command.
-            </li>
-          </ol>
+          <h2 style={headingStyle}>Prefer to download the script?</h2>
+          <p style={bodyStyle}>
+            Grab{" "}
+            <a href={DESKTOP_INSTALL_SCRIPT_URL} style={linkStyle}>
+              Install-MUSU.ps1
+            </a>{" "}
+            and right-click &rarr; &ldquo;Run with PowerShell.&rdquo; Same result
+            as the one-liner.
+          </p>
         </section>
 
         <section style={sectionStyle}>
@@ -162,6 +157,19 @@ const listStyle: CSSProperties = {
   color: "var(--fg2)",
   fontSize: 15,
   lineHeight: 1.85,
+};
+
+const preStyle: CSSProperties = {
+  margin: "12px 0 0",
+  padding: "14px 16px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 8,
+  overflowX: "auto",
+  fontFamily: "var(--font-mono)",
+  fontSize: 14,
+  lineHeight: 1.6,
+  color: "var(--fg1)",
 };
 
 const codeStyle: CSSProperties = {
