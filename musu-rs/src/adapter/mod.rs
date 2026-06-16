@@ -151,6 +151,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn every_dispatchable_adapter_except_exec_is_defaultable() {
+        // Guard against the silent-downgrade footgun: if a new dispatchable
+        // adapter is added to registry::dispatch but forgotten in
+        // DEFAULTABLE_ADAPTERS, configuring it as MUSU_DEFAULT_ADAPTER would be
+        // silently dropped to auto-detect. Keep this list in sync with the
+        // registry::dispatch match arms. `shell` is the only intentional
+        // exec-deny exclusion.
+        let dispatchable = [
+            "echo",
+            "codex",
+            "claude",
+            "gemini",
+            "openai_compat_local",
+            "openai_compat_remote",
+            "shell",
+        ];
+        for a in dispatchable {
+            let should_default = a != "shell";
+            assert_eq!(
+                is_defaultable_adapter(a),
+                should_default,
+                "adapter {a:?} defaultable mismatch — update DEFAULTABLE_ADAPTERS",
+            );
+        }
+    }
+
+    #[test]
     fn adapter_error_has_exactly_5_variants() {
         let all = [
             AdapterError::RateLimit,

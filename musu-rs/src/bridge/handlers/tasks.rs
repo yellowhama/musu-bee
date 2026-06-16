@@ -92,6 +92,11 @@ pub(crate) fn default_adapter_type() -> String {
     // persisted default would otherwise never reach the running bridge — the
     // bridge boots in-process via `musu startup` with no dotenv hydration. Read
     // the file the same way ensure_bridge_token does (token.rs).
+    //
+    // The file read fires ONLY when the request omits adapter_type AND the env
+    // var is unset (env-set / adapter-supplied requests short-circuit before the
+    // .or_else). bridge.env is a tiny flat file, so the per-spawn cost in that
+    // narrow case is accepted rather than adding a OnceCell + invalidation.
     let env_value = std::env::var("MUSU_DEFAULT_ADAPTER")
         .ok()
         .filter(|v| !v.trim().is_empty())
@@ -104,10 +109,17 @@ pub(crate) fn default_adapter_type() -> String {
 fn persisted_default_adapter() -> Option<String> {
     let home = crate::install::resolve_musu_home_from_env().ok()?;
     let body = std::fs::read_to_string(home.join("bridge.env")).ok()?;
+    // Parse exactly like read_bridge_token (token.rs): skip blank/# lines, strip
+    // an optional `export ` prefix, and trim both quote chars — so an
+    // `export MUSU_DEFAULT_ADAPTER='codex'` line writes-and-reads symmetrically.
     for line in body.lines() {
         let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let line = line.strip_prefix("export ").unwrap_or(line);
         if let Some(rest) = line.strip_prefix("MUSU_DEFAULT_ADAPTER=") {
-            let val = rest.trim().trim_matches('"').trim();
+            let val = rest.trim_matches(|c| c == '"' || c == '\'');
             if !val.is_empty() {
                 return Some(val.to_string());
             }

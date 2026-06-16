@@ -250,12 +250,14 @@ function resolvedAddressIsPrivate(address: string): boolean {
     return isPrivateOrLocalHostname(mapped[1]);
   }
   if (addr.includes(":")) {
-    // Bare IPv6: loopback, ULA (fc00::/7 → fc/fd), link-local (fe80::/10).
+    // Bare IPv6: loopback, ULA (fc00::/7 → fc/fd), link-local fe80::/10
+    // (first hextet 0xfe80–0xfebf → prefixes fe8/fe9/fea/feb; fe80: alone would
+    // miss fe81–fe8f).
     return (
       addr === "::1" ||
       addr.startsWith("fc") ||
       addr.startsWith("fd") ||
-      addr.startsWith("fe80:") ||
+      addr.startsWith("fe8") ||
       addr.startsWith("fe9") ||
       addr.startsWith("fea") ||
       addr.startsWith("feb")
@@ -275,11 +277,17 @@ async function resolvedHostIsPrivate(hostname: string): Promise<string | null> {
     const dns = await import("node:dns/promises");
     // Bound the lookup so a hostile/slow resolver cannot stall the health check
     // before the already-bounded fetch (matches the catch → null behavior).
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const lookup = dns.lookup(bare, { all: true });
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("dns_timeout")), 3000),
-    );
-    const records = (await Promise.race([lookup, timeout])) as Array<{ address: string }>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("dns_timeout")), 3000);
+    });
+    let records: Array<{ address: string }>;
+    try {
+      records = (await Promise.race([lookup, timeout])) as Array<{ address: string }>;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
     for (const { address } of records) {
       if (resolvedAddressIsPrivate(address)) {
         return address;
