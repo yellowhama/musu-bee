@@ -8369,4 +8369,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `되기만 하면 돼`, `hide the pipes`, `normalize_login_server_with_policy`,
   `DEFAULTABLE_ADAPTERS`, and `Install-MUSU thumbprint`.
 
+- 2026-06-17 cloud mesh control plane + one-line install + auth reachability:
+  `docs/SESSION_CLOUD_MESH_AND_INSTALL_2026_06_17.md` +
+  `docs/MESH_CLOUD_CONTROL_PLANE_DEPLOY_2026_06_16.md` (STATUS: DEPLOYED) record
+  the live cloud control plane: Vultr Seoul `158.247.209.227`, Cloudflare DNS
+  `mesh.musu.pro` (proxied=false), Caddy auto-HTTPS, `/health`=200, this PC joined
+  as `100.64.0.1`. Windows-only work machines; control plane = one cloud VPS;
+  Headscale kept (Nebula rejected). One-line install `irm https://musu.pro/install.ps1 | iex`
+  via a Next `/install.ps1` route + irm|iex-safe Install-MUSU.ps1. Login/Signup
+  (Supabase) linked from home + PublicSiteShell nav. GUI msix rebuilt to current
+  cockpit. Gotchas: `npm run build` not bare `next build`; `ssh-keygen -N ""`
+  (not `'""'`); Vultr sshkey_id didn't inject (used plink -hostkey); Cloudflare
+  `cfat_` token (not `cfk_`); Windows tailscaled NoState warm-up. Search terms:
+  `cloud control plane`, `mesh.musu.pro`, `158.247.209.227`, `irm install.ps1`,
+  `Nebula rejected`, `Windows-only nodes`, `Log in Sign up nav`, `NoState warm-up`.
+
+- 2026-06-17 NETWORK_BOUNDARY_SPEC 2026-06-17 refinements:
+  Windows-only nodes + cloud control plane, one-line install, auth reachability.
+  Search terms: `Windows-only nodes`, `cloud control plane`, `coordination-only`,
+  `irm install.ps1`, `auth reachability`.
+
 **End of WIKI_INDEX.md.**

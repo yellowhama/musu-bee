@@ -1,5 +1,22 @@
 # MUSU Private Mesh — cloud control-plane deploy (2026-06-16)
 
+## STATUS: DEPLOYED & VERIFIED (2026-06-17)
+
+The cloud control plane is **live**:
+- VPS: Vultr Seoul (`vc2-1c-1gb`, Ubuntu 24.04), public IPv4 `158.247.209.227`
+- DNS: `mesh.musu.pro` A → `158.247.209.227` (Cloudflare, proxied=false / DNS-only)
+- `https://mesh.musu.pro/health` = **200** (Caddy auto Let's Encrypt HTTPS in front of headscale:8080)
+- Containers: `musu-headscale` (healthy) + `musu-headscale-caddy`, via `docker compose up -d`
+- This Windows PC joined as node `100.64.0.1` (Headscale `online`, `control_server_verified=true`,
+  "no Tailscale.com account"). NOTE: the Windows system tailscaled briefly sat in
+  `NoState` after register before it connected — a known Windows-engine warm-up,
+  not a MUSU/Headscale fault.
+
+Remaining: a second physical Windows PC to capture the cross-host `tailscale ping`
+(two-physical-machine release proof). Everything up to that point is live.
+
+---
+
 The control plane (Headscale + embedded DERP) runs on ONE small cloud Linux VPS.
 All MUSU work machines stay pure Windows — they only run the tailscale client
 with `--login-server https://mesh.musu.pro`. No Linux/Docker/WSL on user PCs.

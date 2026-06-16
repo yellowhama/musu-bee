@@ -177,6 +177,26 @@ The default multi-machine product boundary is now explicit:
   verifies the pinned signing-cert thumbprint, trusts it, then installs the
   `.appinstaller` — the user types no certificate command. The landing page and
   download page describe the shipped cockpit (no Antigravity/Town/Butler copy).
+- 2026-06-17 refinement (Windows-only nodes, cloud control plane): "runs on a
+  Windows-only computer" is satisfied by keeping the control plane (Headscale +
+  embedded DERP) on ONE cloud Linux VPS while ALL work machines stay pure Windows
+  (tailscale client + `--login-server https://mesh.musu.pro`, no Linux/Docker/WSL
+  on user PCs). Control plane is coordination-only; work/files move bridge↔bridge.
+  DEPLOYED: Vultr Seoul `158.247.209.227`, Cloudflare DNS `mesh.musu.pro`
+  (proxied=false), Caddy auto-HTTPS, `/health`=200. Headscale stays the backend
+  (Nebula rejected: it loses embedded-DERP relay needed for the off-network
+  thesis). PaaS (Railway/Fly) is unsuitable — embedded DERP needs UDP/3478 which
+  PaaS doesn't reliably expose; a plain VPS is required.
+- 2026-06-17 refinement (one-line install): the primary install is
+  `irm https://musu.pro/install.ps1 | iex` (a Next route proxies the canonical
+  Install-MUSU.ps1 from the release as text/plain). The raw .ps1 download remains
+  as a secondary path. Install-MUSU.ps1 is `irm|iex`-safe: it self-elevates by
+  re-fetching itself via -EncodedCommand (no $PSCommandPath when piped).
+- 2026-06-17 refinement (auth reachability): /auth/login and /auth/signup
+  (Supabase email/password + Google/GitHub OAuth) are now linked from both the
+  home nav and PublicSiteShell — previously the pages existed (200) but nothing
+  linked to them, so login/signup were effectively absent. Supabase is configured
+  on the musu-pro Vercel project (its own project, not nongjida's).
 
 Current evidence and qualitative status are tracked in:
 
