@@ -40,6 +40,10 @@ pub enum PrivateMeshAction {
     CreateJoinKey(PrivateMeshCreateJoinKeyOpts),
     /// Join this machine to MUSU Private Mesh through a Headscale login server.
     Join(PrivateMeshJoinOpts),
+    /// Join this machine to its account's mesh automatically: fetch a one-time
+    /// preauth key from the cloud (account derived from the saved login token),
+    /// then run the normal join. No device-add pass to copy between machines.
+    JoinAccount(PrivateMeshJoinAccountOpts),
     /// Verify a target peer over MUSU Private Mesh and update local evidence.
     Verify(PrivateMeshVerifyOpts),
     /// Write physical-peer evidence from this target machine for release proof.
@@ -156,6 +160,23 @@ pub struct PrivateMeshJoinOpts {
     #[arg(long)]
     pub skip_control_health: bool,
     /// Do not execute the compatible mesh client; only write MUSU local state.
+    #[arg(long)]
+    pub dry_run: bool,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshJoinAccountOpts {
+    /// Human-readable node name to persist in MUSU's local mesh state.
+    #[arg(long)]
+    pub node_name: Option<String>,
+    /// Do not execute the compatible mesh client; only fetch the key + write
+    /// local state. Proves token→key→resolve without running `tailscale up`.
     #[arg(long)]
     pub dry_run: bool,
     /// Emit machine-readable JSON.
@@ -448,6 +469,7 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::StartControlHost(opts) => run_start_control_host(opts).await,
         PrivateMeshAction::CreateJoinKey(opts) => run_create_join_key(opts).await,
         PrivateMeshAction::Join(opts) => run_join(opts).await,
+        PrivateMeshAction::JoinAccount(opts) => run_join_account(opts).await,
         PrivateMeshAction::Verify(opts) => run_verify(opts).await,
         PrivateMeshAction::PhysicalPeerEvidence(opts) => run_physical_peer_evidence(opts).await,
         PrivateMeshAction::ReleaseProof(opts) => run_release_proof(opts).await,
@@ -987,6 +1009,36 @@ fn consume_device_add_pass_file(path: &Path) -> Result<PathBuf> {
         )
     })?;
     Ok(marker_path)
+}
+
+/// Account-driven join: turn a saved login token into a one-time mesh preauth
+/// key (account derived server-side), then delegate to the normal `run_join`.
+/// This is the no-pass path behind "account login = automatic mesh join".
+async fn run_join_account(opts: PrivateMeshJoinAccountOpts) -> Result<()> {
+    let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let token = crate::cloud::token::load_token(&home).ok_or_else(|| {
+        anyhow!("Not logged in. Run `musu login` first, then join is automatic.")
+    })?;
+
+    let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
+    let key = cloud.request_mesh_join_key().await?;
+
+    // Reuse the existing login_server + authkey join path. No device-add pass,
+    // no new join logic: run_join handles https policy, /health, `tailscale up`,
+    // config persistence, and the join evidence event.
+    let join_opts = PrivateMeshJoinOpts {
+        login_server: Some(key.login_server),
+        authkey: Some(key.authkey),
+        device_add_pass: None,
+        node_name: opts.node_name,
+        owner_id: None,
+        tailnet_id: Some(key.tailnet),
+        skip_control_health: false,
+        dry_run: opts.dry_run,
+        json: opts.json,
+        musu_home: opts.musu_home,
+    };
+    run_join(join_opts).await
 }
 
 async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {

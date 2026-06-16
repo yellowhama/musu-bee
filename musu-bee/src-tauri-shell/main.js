@@ -2182,10 +2182,16 @@ function renderPrivateMeshStatus(status) {
     state = "warning";
     if (title) title.textContent = "External tailnet detected";
     if (detail) detail.textContent = "This machine is not on MUSU's no-signup Private Mesh path.";
+  } else if (meshAutoJoinInFlight) {
+    state = "running";
+    if (title) title.textContent = "Connecting to your mesh…";
+    if (detail) detail.textContent = "Joining the fleet for your account. This is automatic after sign-in.";
   } else {
+    // Logged in but not yet on the mesh: with account-auto-join the cockpit
+    // reconnects on its own. Frame it as connecting, not a manual setup chore.
     state = "needed";
-    if (title) title.textContent = "Private Mesh setup needed";
-    if (detail) detail.textContent = "Bootstrap a control host, create a join key, then join this PC.";
+    if (title) title.textContent = "Connecting to your mesh…";
+    if (detail) detail.textContent = "Signing this PC into your private mesh automatically.";
   }
 
   const step = derpProbeRan && derpProbeDetail
@@ -2235,6 +2241,12 @@ function renderPrivateMeshStatus(status) {
       : "Mesh proof is not available yet.";
   });
   if (card) card.dataset.state = state;
+
+  // After rendering, if we're signed in but not on the mesh, kick a best-effort
+  // auto-join (cooldown-gated). Fire-and-forget: it refreshes status when done.
+  if (!meshStatusIsConnected(status)) {
+    void maybeAutoJoinAccountMesh(status);
+  }
 }
 
 async function copyPrivateMeshProof(event) {
@@ -2384,6 +2396,57 @@ async function refreshLatestReleaseEvidence() {
 const PRIVATE_MESH_STATUS_REFRESH_MS = 300_000;
 let lastPrivateMeshStatusRefreshAt = 0;
 let privateMeshStatusRefreshInFlight = null;
+
+// "Account login = automatic mesh join" — cockpit side. Login itself triggers a
+// join in the CLI; this is the retry/recovery path. When the machine is logged
+// in (account token present) but mesh status says it is not on the MUSU mesh,
+// call private_mesh_join_account to (re)connect. Single-flight + cooldown so a
+// failed attempt backs off instead of hammering the control plane.
+let meshAutoJoinInFlight = null;
+let meshAutoJoinLastAttemptAt = 0;
+const MESH_AUTO_JOIN_COOLDOWN_MS = 30_000;
+
+function meshStatusIsConnected(status) {
+  return (
+    status?.ok === true &&
+    status.mode === "musu_headscale" &&
+    status.control_server_verified === true
+  );
+}
+
+async function maybeAutoJoinAccountMesh(status, { force = false } = {}) {
+  if (meshStatusIsConnected(status)) return;
+  // Only auto-join when this machine is actually signed in; otherwise the join
+  // would just fail with "Not logged in". cockpit_state.auth_status ===
+  // "Connected" is the same signed-in signal the rest of the cockpit uses.
+  let signedIn = false;
+  try {
+    const cockpitState = await invoke("cockpit_state");
+    signedIn = (cockpitState?.auth_status || "") === "Connected";
+  } catch {
+    signedIn = false;
+  }
+  if (!signedIn) return;
+
+  const now = Date.now();
+  if (!force && now - meshAutoJoinLastAttemptAt < MESH_AUTO_JOIN_COOLDOWN_MS) return;
+  if (meshAutoJoinInFlight) return meshAutoJoinInFlight;
+
+  meshAutoJoinLastAttemptAt = now;
+  meshAutoJoinInFlight = (async () => {
+    try {
+      await invoke("private_mesh_join_account");
+    } catch {
+      // Soft-fail: the cooldown gates the next attempt; status refresh below
+      // surfaces "connecting…" without throwing into the UI.
+    } finally {
+      meshAutoJoinInFlight = null;
+    }
+    // Re-read status so the UI reflects the new connection state promptly.
+    return refreshPrivateMeshStatus({ force: true });
+  })();
+  return meshAutoJoinInFlight;
+}
 
 async function refreshPrivateMeshStatus({ force = false } = {}) {
   const now = Date.now();
@@ -4023,6 +4086,11 @@ async function startSignIn(btn) {
     // (approval code + browser link). Nudge a refresh so it shows promptly.
     setConn("connecting", "Opening sign-in…");
     refresh();
+    // The CLI login flow auto-joins the mesh once approval completes; mirror it
+    // on the cockpit side so the mesh card reconnects without a manual step the
+    // moment the account token lands (force a status read which triggers
+    // maybeAutoJoinAccountMesh).
+    void refreshPrivateMeshStatus({ force: true });
   } catch (err) {
     setConn("offline", "Sign-in failed");
     $("connecting-detail").textContent = String(err);

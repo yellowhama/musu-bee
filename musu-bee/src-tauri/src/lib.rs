@@ -33,6 +33,7 @@ pub fn run() {
             private_mesh_start_control_host,
             private_mesh_create_join_key,
             private_mesh_join,
+            private_mesh_join_account,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -1130,6 +1131,44 @@ fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, 
     if result.timed_out {
         return Err(format!(
             "{} mesh join timed out (control server handshake)",
+            command.display()
+        ));
+    }
+
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `private_mesh_join_account` — join THIS machine to its account's mesh with
+/// no device-add pass. Proxies `musu mesh join-account --json`, which fetches a
+/// one-time preauth key for the logged-in account from the cloud and runs the
+/// join. This is the cockpit's "Reconnect to mesh" action and the retry target
+/// when the machine is logged in (account token present) but not yet on the
+/// mesh. Login itself already triggers this automatically; the button covers
+/// retry/recovery.
+#[tauri::command]
+fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    // join-account fetches a key then runs `tailscale up` + control /health
+    // re-check; allow the same headroom as the pass-based join.
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "join-account", "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh join-account: {err}",
+            command.display()
+        )
+    })?;
+    if result.timed_out {
+        return Err(format!(
+            "{} mesh join-account timed out (control server handshake)",
             command.display()
         ));
     }
