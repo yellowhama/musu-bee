@@ -191,13 +191,36 @@ test("ensureSelfIsolationPolicy: PUTs the isolation policy", async () => {
   assert.match(calls[0].url, /\/api\/v1\/policy$/);
 });
 
-test("ensureSelfIsolationPolicy: file-mode PUT rejection is treated as success", async () => {
-  // Headscale in policy.mode=file rejects PUT — policy is already on disk.
+test("ensureSelfIsolationPolicy: file-mode + isolated on-disk policy → success", async () => {
+  // PUT rejected (file mode), then GET confirms autogroup:self isolation.
   const { fetchImpl } = fakeFetch([
     () => ({ status: 500, json: { code: 2, message: "update is disabled for modes other than 'database'" } }),
+    () => ({ json: { policy: ACCOUNT_SELF_ISOLATION_POLICY } }),
   ]);
-  // Must NOT throw.
-  await ensureSelfIsolationPolicy({ ...CFG, fetchImpl });
+  await ensureSelfIsolationPolicy({ ...CFG, fetchImpl }); // must NOT throw
+});
+
+test("ensureSelfIsolationPolicy: file-mode + allow-all on-disk policy → 502 fail-closed", async () => {
+  // PUT rejected, GET shows empty/allow-all → must refuse (HIGH-2).
+  const { fetchImpl } = fakeFetch([
+    () => ({ status: 500, json: { message: "update is disabled for modes other than 'database'" } }),
+    () => ({ json: { policy: "{}" } }),
+  ]);
+  await assert.rejects(
+    ensureSelfIsolationPolicy({ ...CFG, fetchImpl }),
+    (err: unknown) => err instanceof HeadscaleProvisioningError && err.status === 502
+  );
+});
+
+test("ensureSelfIsolationPolicy: file-mode + empty policy → 502 fail-closed", async () => {
+  const { fetchImpl } = fakeFetch([
+    () => ({ status: 500, json: { message: "update is disabled for modes other than 'database'" } }),
+    () => ({ json: { policy: "" } }),
+  ]);
+  await assert.rejects(
+    ensureSelfIsolationPolicy({ ...CFG, fetchImpl }),
+    (err: unknown) => err instanceof HeadscaleProvisioningError && err.status === 502
+  );
 });
 
 test("ensureSelfIsolationPolicy: other 500 still throws", async () => {

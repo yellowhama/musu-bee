@@ -239,12 +239,66 @@ export async function ensureSelfIsolationPolicy(
     /* ignore */
   }
   if (res.status === 500 && /modes other than 'database'/i.test(detail)) {
-    return; // file-mode policy: already enforced on disk
+    // File mode: PUT is a no-op, but we must NOT assume the on-disk policy is
+    // actually isolated — a drifted/allow-all policy.json would silently let a
+    // freshly-joined node reach every other account's nodes (the exact HIGH this
+    // module exists to prevent). Verify the live policy enforces isolation;
+    // fail closed otherwise. (HIGH-2)
+    await assertLivePolicyIsolated(cfg);
+    return;
   }
   throw new HeadscaleProvisioningError(
     `headscale set policy failed (${res.status})`,
     502
   );
+}
+
+/**
+ * Reads the live policy from Headscale and asserts it enforces per-user
+ * isolation (an `autogroup:self` destination grant) and is NOT allow-all. Used
+ * on the file-mode path where we cannot PUT — we must positively confirm the
+ * on-disk policy is safe before handing out a join key. Throws 502 otherwise.
+ */
+async function assertLivePolicyIsolated(cfg: HeadscaleClientConfig): Promise<void> {
+  const res = await headscaleFetch(cfg, "/api/v1/policy", { method: "GET" });
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(
+      `headscale get policy failed (${res.status}); cannot confirm isolation`,
+      502
+    );
+  }
+  const body = (await readJson(res)) as { policy?: string } | null;
+  const raw = (body?.policy ?? "").trim();
+  if (!raw) {
+    // Empty/absent policy = allow-all in Headscale. Fail closed.
+    throw new HeadscaleProvisioningError(
+      "live mesh policy is empty (allow-all); refusing to mint a key into an unisolated tailnet",
+      502
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new HeadscaleProvisioningError(
+      "live mesh policy is not valid JSON; cannot confirm isolation",
+      502
+    );
+  }
+  // Must contain an autogroup:self destination grant (the isolation rule) and
+  // must NOT be the empty/allow-all object.
+  const grants =
+    (parsed as { grants?: unknown[]; acls?: unknown[] })?.grants ??
+    (parsed as { acls?: unknown[] })?.acls ??
+    [];
+  const serialized = JSON.stringify(grants);
+  const isolated = /autogroup:self/.test(serialized);
+  if (!Array.isArray(grants) || grants.length === 0 || !isolated) {
+    throw new HeadscaleProvisioningError(
+      "live mesh policy does not enforce autogroup:self isolation; refusing to mint a key (fail-closed)",
+      502
+    );
+  }
 }
 
 /**

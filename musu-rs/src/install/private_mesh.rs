@@ -1062,6 +1062,16 @@ async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
         }
         result
     };
+    // HIGH-1 guard: `join_tail_args` uses `--reset`, which wipes ALL current
+    // tailscale settings to defaults. That is correct when (re)joining MUSU's
+    // own mesh, but DESTRUCTIVE if this machine is currently on a DIFFERENT
+    // (personal) tailnet — it would silently evict the user's own Tailscale.
+    // The user explicitly wants their personal Tailscale preserved. So before
+    // running `up --reset`, refuse if an active tailnet points at a control
+    // server that is NOT our login server. Skipped under dry_run.
+    if !opts.dry_run {
+        assert_safe_to_reset_tailscale(&login_server)?;
+    }
     let command = if opts.dry_run {
         None
     } else {
@@ -3643,6 +3653,71 @@ fn control_server_health_url(login_server: &str) -> Result<String> {
     url.set_query(None);
     url.set_fragment(None);
     Ok(url.to_string())
+}
+
+/// HIGH-1 guard for the destructive `up --reset`. Refuses to reset when the
+/// machine is already on a DIFFERENT tailnet than the one we're joining, so an
+/// account auto-join never wipes the user's personal Tailscale configuration.
+///
+/// Reads `tailscale status --json` and inspects `CurrentTailnet`/control URL:
+/// - not running / no client / empty status → safe (nothing to destroy).
+/// - running against a control server == our login_server → safe (this is a
+///   re-join of our own mesh; --reset just re-applies our own settings).
+/// - running against ANY OTHER control server → refuse with an actionable error.
+fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
+    let status = run_tail_command(&["status", "--json"]);
+    if !status.found {
+        return Ok(()); // no client installed → run_join handles "not found" later
+    }
+    let out = status.stdout.as_deref().unwrap_or("").trim();
+    if out.is_empty() {
+        return Ok(()); // no status → treat as not-connected
+    }
+    let json: serde_json::Value = match serde_json::from_str(out) {
+        Ok(v) => v,
+        Err(_) => return Ok(()), // unparseable → don't block; up will surface real errors
+    };
+
+    // Backend not running → nothing to destroy.
+    let backend = json
+        .get("BackendState")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if backend != "Running" {
+        return Ok(());
+    }
+
+    // Find the control URL this machine is currently using. Tailscale exposes it
+    // under CurrentTailnet or the self/health blocks depending on version; check
+    // the common locations.
+    let current_control = json
+        .get("CurrentTailnet")
+        .and_then(|t| t.get("ControlURL").or_else(|| t.get("Name")))
+        .and_then(|v| v.as_str())
+        .or_else(|| json.get("ControlURL").and_then(|v| v.as_str()))
+        .unwrap_or("");
+
+    if current_control.is_empty() {
+        // Running but we can't read which control server — be conservative and
+        // refuse, since --reset on an unknown active tailnet is destructive.
+        anyhow::bail!(
+            "This machine is already connected to a tailnet but its control server could not be \
+             determined. Refusing to run `tailscale up --reset` (it would wipe that connection). \
+             Run `tailscale logout` first if you intend to switch this machine to MUSU mesh, then retry."
+        );
+    }
+
+    let ours = login_server.trim_end_matches('/');
+    if current_control.trim_end_matches('/').eq_ignore_ascii_case(ours) {
+        return Ok(()); // same control server → re-join our own mesh, safe.
+    }
+
+    anyhow::bail!(
+        "This machine is already on a different tailnet (control server: {current_control}). \
+         Joining MUSU mesh would run `tailscale up --reset` and wipe that personal/other \
+         tailnet configuration. Refusing to do that automatically. If you want this machine on \
+         MUSU mesh, run `tailscale logout` first, then retry — or keep it on its current tailnet."
+    );
 }
 
 fn join_tail_args(login_server: &str, authkey: Option<&str>) -> Vec<String> {
