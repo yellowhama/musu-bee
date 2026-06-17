@@ -3687,19 +3687,24 @@ fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
         return Ok(());
     }
 
-    // Find the control URL this machine is currently using. Tailscale exposes it
-    // under CurrentTailnet or the self/health blocks depending on version; check
-    // the common locations.
+    // Identify which control server this machine is currently on. Tailscale's
+    // `status --json` shape varies by version: it may expose `ControlURL` (a
+    // full URL), or only `CurrentTailnet.Name` (the tailnet name, which for a
+    // self-hosted Headscale is the control HOST, e.g. "mesh.musu.pro"). We
+    // compare by HOST so "mesh.musu.pro" matches login_server
+    // "https://mesh.musu.pro" — otherwise we'd wrongly refuse to re-join our own
+    // mesh.
     let current_control = json
-        .get("CurrentTailnet")
-        .and_then(|t| t.get("ControlURL").or_else(|| t.get("Name")))
+        .get("ControlURL")
         .and_then(|v| v.as_str())
-        .or_else(|| json.get("ControlURL").and_then(|v| v.as_str()))
+        .or_else(|| {
+            json.get("CurrentTailnet")
+                .and_then(|t| t.get("ControlURL").or_else(|| t.get("Name")))
+                .and_then(|v| v.as_str())
+        })
         .unwrap_or("");
 
     if current_control.is_empty() {
-        // Running but we can't read which control server — be conservative and
-        // refuse, since --reset on an unknown active tailnet is destructive.
         anyhow::bail!(
             "This machine is already connected to a tailnet but its control server could not be \
              determined. Refusing to run `tailscale up --reset` (it would wipe that connection). \
@@ -3707,9 +3712,19 @@ fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
         );
     }
 
-    let ours = login_server.trim_end_matches('/');
-    if current_control.trim_end_matches('/').eq_ignore_ascii_case(ours) {
-        return Ok(()); // same control server → re-join our own mesh, safe.
+    // Extract a comparable host from both sides (strip scheme/path/port).
+    let host_of = |s: &str| -> String {
+        let s = s.trim();
+        let s = s
+            .split_once("://")
+            .map(|(_, rest)| rest)
+            .unwrap_or(s);
+        let s = s.split('/').next().unwrap_or(s);
+        let s = s.split(':').next().unwrap_or(s);
+        s.trim_end_matches('.').to_ascii_lowercase()
+    };
+    if host_of(current_control) == host_of(login_server) {
+        return Ok(()); // same control host → re-join our own mesh, safe.
     }
 
     anyhow::bail!(
