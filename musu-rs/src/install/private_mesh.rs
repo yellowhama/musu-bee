@@ -3646,8 +3646,14 @@ fn control_server_health_url(login_server: &str) -> Result<String> {
 }
 
 fn join_tail_args(login_server: &str, authkey: Option<&str>) -> Vec<String> {
+    // `--reset` is required so re-joining a machine that is ALREADY connected to
+    // a tailnet works. Without it, `tailscale up` refuses with "changing
+    // settings via 'tailscale up' requires mentioning all non-default flags".
+    // --reset clears prior settings to defaults and applies exactly the flags
+    // below — the correct semantics for an account-driven (re)join.
     let mut args = vec![
         "up".into(),
+        "--reset".into(),
         "--login-server".into(),
         login_server.to_string(),
     ];
@@ -4553,6 +4559,7 @@ mod tests {
             join_tail_args("https://mesh.example", Some("key-123")),
             vec![
                 "up",
+                "--reset",
                 "--login-server",
                 "https://mesh.example",
                 "--authkey",

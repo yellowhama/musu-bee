@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getUser } from "@/lib/auth-server";
+import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { checkMeshJoinRateLimit } from "@/lib/meshJoinRateLimit";
 import {
   HeadscaleProvisioningError,
+  headscaleUserNameForOwnerKey,
   provisionMeshJoinKey,
 } from "@/lib/headscaleProvisioning";
 
@@ -15,18 +16,20 @@ export const runtime = "nodejs";
  * POST /api/account/mesh-join-key
  *
  * "Account login = automatic mesh join": the desktop CLI calls this right after
- * a successful login to obtain a one-time Headscale preauth key bound to the
- * caller's account, then runs `tailscale up --login-server --authkey`. No
- * device-add pass is copied between machines — every device of the same account
- * lands in the same isolated fleet.
+ * a successful login to obtain a one-time Headscale preauth key for the owner's
+ * fleet, then runs `tailscale up --login-server --authkey`. No device-add pass
+ * is copied between machines — every device of the same owner lands in the same
+ * isolated fleet.
  *
- * Security model mirrors the existing single-owner control-plane endpoints:
- *  - identity strictly from getUser().id server-side (request body cannot set it)
- *  - same-origin / CSRF guard (this POST mints a real credential)
- *  - fail-closed config gate: no Headscale API config → 503, never a silent allow
- *  - fail-closed enrollment allowlist (MUSU_MESH_ENROLL_USER_IDS), symmetric with
- *    device-approve's MUSU_DEVICE_APPROVER_USER_IDS
- *  - per-account rate limit (each mint creates a key on the control plane)
+ * This is a CLI endpoint (musu.exe), NOT a browser endpoint. It authenticates
+ * with the single-owner control bearer token (the same token device-flow issues
+ * to ~/.musu/token), exactly like the other p2p-control endpoints. There is no
+ * cookie/same-origin involved — the bearer token IS the CSRF defense.
+ *
+ *  - auth: authorizeP2pControl (bearer control token / sha256 allowlist)
+ *  - identity: owner_key derived from the bearer token (one owner = one fleet)
+ *  - fail-closed config gate: no Headscale API config → 503
+ *  - per-owner rate limit (each mint creates a key on the control plane)
  *  - the Headscale admin API key lives only in server env, never returned
  */
 
@@ -37,51 +40,6 @@ const RequestSchema = z
   })
   .strict();
 
-/** Comma/space/semicolon-separated allowlist parser (same shape as device-approve). */
-function allowedEnrollUserIds(): string[] {
-  return (process.env.MUSU_MESH_ENROLL_USER_IDS ?? "")
-    .split(/[,\s;]+/)
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0);
-}
-
-function siteOrigins(): Set<string> {
-  const origins = new Set<string>();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (appUrl) {
-    try {
-      origins.add(new URL(appUrl).origin);
-    } catch {
-      /* ignore malformed env */
-    }
-  }
-  return origins;
-}
-
-/**
- * Same-origin guard (CSRF). Mirrors device/approve/route.ts: require an Origin
- * (or Referer fallback) matching the site origin or the request's own origin.
- * A state-changing request with neither header is rejected.
- */
-function isSameOrigin(req: NextRequest): boolean {
-  const allowed = siteOrigins();
-  allowed.add(req.nextUrl.origin);
-
-  const originHeader = req.headers.get("origin");
-  if (originHeader) {
-    return allowed.has(originHeader);
-  }
-  const referer = req.headers.get("referer");
-  if (referer) {
-    try {
-      return allowed.has(new URL(referer).origin);
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
 const DEFAULT_TTL_SECONDS = 600;
 
 function joinKeyTtlSeconds(): number {
@@ -91,15 +49,13 @@ function joinKeyTtlSeconds(): number {
 }
 
 export async function POST(req: NextRequest) {
-  // CSRF / same-origin before any state change or provisioning call.
-  if (!isSameOrigin(req)) {
-    return NextResponse.json({ ok: false, error: "cross_origin_rejected" }, { status: 403 });
-  }
+  // Auth: single-owner control bearer token (NOT cookies/same-origin — this is a
+  // CLI endpoint). Same gate as the other p2p-control endpoints.
+  const denied = authorizeP2pControl(req);
+  if (denied) return denied;
 
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+  // Identity: one owner key per control token → one fleet → one acct user.
+  const ownerKey = p2pControlPrincipal(req).owner_key;
 
   // Fail-closed config gate: without Headscale API access we cannot provision.
   const apiUrl = process.env.HEADSCALE_API_URL?.trim();
@@ -115,27 +71,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Fail-closed enrollment allowlist, symmetric with device-approve.
-  const allowlist = allowedEnrollUserIds();
-  if (allowlist.length === 0) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "mesh_enroll_not_configured",
-        detail: "MUSU_MESH_ENROLL_USER_IDS is unset; all mesh enrollments are denied (fail-closed)",
-      },
-      { status: 503 }
-    );
-  }
-  if (!allowlist.includes(user.id)) {
-    return NextResponse.json(
-      { ok: false, error: "enroll_not_allowlisted" },
-      { status: 403 }
-    );
-  }
-
-  // Per-account rate limit (each mint creates a control-plane key).
-  const rate = checkMeshJoinRateLimit(user.id);
+  // Per-owner rate limit (each mint creates a control-plane key).
+  const rate = checkMeshJoinRateLimit(ownerKey);
   if (rate.limited) {
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
@@ -159,19 +96,26 @@ export async function POST(req: NextRequest) {
 
   const loginServer = process.env.HEADSCALE_LOGIN_SERVER?.trim() || apiUrl;
 
+  let tailnetName: string;
+  try {
+    tailnetName = headscaleUserNameForOwnerKey(ownerKey);
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid_owner_key" }, { status: 400 });
+  }
+
   try {
     const result = await provisionMeshJoinKey({
       apiUrl,
       apiKey,
       loginServer,
-      accountUserId: user.id,
+      tailnetName,
       ttlSeconds: joinKeyTtlSeconds(),
       nowMs: Date.now(),
     });
 
-    // Audit (M-1): who enrolled, when. Never log the key itself.
+    // Audit (M-1): who enrolled, when. Never log the key or the owner token.
     console.log(
-      `[mesh-join-key] minted for account=${user.id} tailnet=${result.tailnet} ttl=${joinKeyTtlSeconds()}s`
+      `[mesh-join-key] minted tailnet=${result.tailnet} ttl=${joinKeyTtlSeconds()}s`
     );
 
     return NextResponse.json({

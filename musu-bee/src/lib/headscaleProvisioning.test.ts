@@ -191,6 +191,25 @@ test("ensureSelfIsolationPolicy: PUTs the isolation policy", async () => {
   assert.match(calls[0].url, /\/api\/v1\/policy$/);
 });
 
+test("ensureSelfIsolationPolicy: file-mode PUT rejection is treated as success", async () => {
+  // Headscale in policy.mode=file rejects PUT — policy is already on disk.
+  const { fetchImpl } = fakeFetch([
+    () => ({ status: 500, json: { code: 2, message: "update is disabled for modes other than 'database'" } }),
+  ]);
+  // Must NOT throw.
+  await ensureSelfIsolationPolicy({ ...CFG, fetchImpl });
+});
+
+test("ensureSelfIsolationPolicy: other 500 still throws", async () => {
+  const { fetchImpl } = fakeFetch([
+    () => ({ status: 500, json: { message: "internal boom" } }),
+  ]);
+  await assert.rejects(
+    ensureSelfIsolationPolicy({ ...CFG, fetchImpl }),
+    (err: unknown) => err instanceof HeadscaleProvisioningError && err.status === 502
+  );
+});
+
 test("provisionMeshJoinKey: policy → ensure user → mint, returns join key", async () => {
   const name = `acct-${VALID_UUID}`;
   const nowMs = 1_700_000_000_000;

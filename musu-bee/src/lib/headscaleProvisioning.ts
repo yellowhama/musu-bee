@@ -64,6 +64,25 @@ export class HeadscaleProvisioningError extends Error {
  * `musu` user and any human-created users. Lowercasing is belt-and-suspenders;
  * UUIDs are already lowercase hex.
  */
+/**
+ * Maps a single-owner control-plane owner key (`token-sha256:<hex>`, produced by
+ * p2pControlOwnerKey) to its Headscale username. The control token is shared
+ * across the owner's devices, so one owner key = one fleet = one `acct-*` user;
+ * autogroup:self then isolates that fleet from any other user. We take the hex
+ * digest (label-safe) so the name is deterministic and collision-free.
+ */
+export function headscaleUserNameForOwnerKey(ownerKey: string): string {
+  const m = /^token-sha256:([0-9a-f]{64})$/.exec((ownerKey ?? "").trim().toLowerCase());
+  if (!m) {
+    throw new HeadscaleProvisioningError(
+      "owner key is not a token-sha256 digest; refusing to derive a Headscale user name",
+      400
+    );
+  }
+  // Headscale usernames must start with a letter; `acct-` prefix guarantees that.
+  return `acct-${m[1]}`;
+}
+
 export function headscaleUserNameForAccount(userId: string): string {
   const id = (userId ?? "").trim().toLowerCase();
   if (!UUID_RE.test(id)) {
@@ -206,12 +225,26 @@ export async function ensureSelfIsolationPolicy(
     method: "PUT",
     body: JSON.stringify({ policy: ACCOUNT_SELF_ISOLATION_POLICY }),
   });
-  if (!res.ok) {
-    throw new HeadscaleProvisioningError(
-      `headscale set policy failed (${res.status})`,
-      502
-    );
+  if (res.ok) return;
+
+  // Headscale running with `policy.mode: file` rejects PUT with
+  // "update is disabled for modes other than 'database'". That is NOT a failure
+  // for us: in file mode the isolation policy is already applied from
+  // policy.json on disk, so the tailnet is isolated regardless. Treat that
+  // specific rejection as success; surface any other error.
+  let detail = "";
+  try {
+    detail = JSON.stringify(await readJson(res));
+  } catch {
+    /* ignore */
   }
+  if (res.status === 500 && /modes other than 'database'/i.test(detail)) {
+    return; // file-mode policy: already enforced on disk
+  }
+  throw new HeadscaleProvisioningError(
+    `headscale set policy failed (${res.status})`,
+    502
+  );
 }
 
 /**
@@ -270,7 +303,10 @@ export async function provisionMeshJoinKey(args: {
   apiUrl: string;
   apiKey: string;
   loginServer: string;
-  accountUserId: string;
+  /** Either a Supabase account UUID OR a pre-derived Headscale username. */
+  accountUserId?: string;
+  /** Pre-derived Headscale username (e.g. from headscaleUserNameForOwnerKey). */
+  tailnetName?: string;
   ttlSeconds: number;
   nowMs: number;
   fetchImpl?: typeof fetch;
@@ -280,7 +316,9 @@ export async function provisionMeshJoinKey(args: {
     apiKey: args.apiKey,
     fetchImpl: args.fetchImpl,
   };
-  const name = headscaleUserNameForAccount(args.accountUserId);
+  const name = args.tailnetName
+    ? args.tailnetName
+    : headscaleUserNameForAccount(args.accountUserId ?? "");
 
   // Isolation first: never hand out a key into an allow-all tailnet.
   await ensureSelfIsolationPolicy(cfg);

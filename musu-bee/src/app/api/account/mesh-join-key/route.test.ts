@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { NextRequest } from "next/server";
 
 // server-only throws under the node test runner; stub it via require.cache
@@ -14,31 +15,22 @@ require.cache[serverOnlyPath] = {
   exports: {},
 } as unknown as NodeJS.Module;
 
-// Stub @/lib/auth-server so getUser() returns whatever currentUser is set to,
-// without touching Supabase. Resolve the compiled path the same way the route's
-// "@/lib/auth-server" alias resolves (src/lib/auth-server.ts).
-let currentUser: { id: string } | null = null;
-const authServerPath = require.resolve("../../../../lib/auth-server.ts");
-require.cache[authServerPath] = {
-  id: authServerPath,
-  filename: authServerPath,
-  loaded: true,
-  exports: {
-    getUser: async () => currentUser,
-    getUserFromRequest: async () => currentUser,
-  },
-} as unknown as NodeJS.Module;
-
 type RouteModule = { POST: (req: NextRequest) => Promise<Response> };
 
-const SITE_ORIGIN = "https://musu.test";
-const VALID_UUID = "0a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9";
+const SITE = "https://musu.test";
+// The CLI authenticates with the single-owner control bearer token.
+const CONTROL_TOKEN = "test-control-token-abc";
+const OWNER_KEY =
+  "token-sha256:" + createHash("sha256").update(CONTROL_TOKEN).digest("hex");
+const EXPECTED_TAILNET =
+  "acct-" + createHash("sha256").update(CONTROL_TOKEN).digest("hex");
 
 const ENV_KEYS = [
   "HEADSCALE_API_URL",
   "HEADSCALE_API_KEY",
   "HEADSCALE_LOGIN_SERVER",
-  "MUSU_MESH_ENROLL_USER_IDS",
+  "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MESH_JOIN_KEY_TTL_SECONDS",
   "MUSU_MESH_JOIN_RATE_LIMIT_PER_MINUTE",
   "NEXT_PUBLIC_APP_URL",
@@ -59,7 +51,7 @@ function installHeadscaleFetch() {
     fetchCalls.push({ url: u });
     if (u.includes("/api/v1/policy")) return jsonResponse({ policy: "ok" });
     if (u.includes("/api/v1/user?name=")) {
-      return jsonResponse({ users: [{ id: "5", name: `acct-${VALID_UUID}` }] });
+      return jsonResponse({ users: [{ id: "5", name: EXPECTED_TAILNET }] });
     }
     if (u.includes("/api/v1/preauthkey")) {
       return jsonResponse({ preAuthKey: { key: "mint-key-abc" } });
@@ -68,20 +60,20 @@ function installHeadscaleFetch() {
   }) as unknown as typeof fetch;
 }
 
-function req(body?: unknown, origin = SITE_ORIGIN): NextRequest {
+function req(opts?: { token?: string | null; body?: unknown }): NextRequest {
+  const headers: Record<string, string> = {};
+  const tok = opts?.token === undefined ? CONTROL_TOKEN : opts.token;
+  if (tok) headers["authorization"] = `Bearer ${tok}`;
   const init: { method: string; headers: Record<string, string>; body?: string } = {
     method: "POST",
-    headers: { origin },
+    headers,
   };
-  if (body !== undefined) {
-    init.body = JSON.stringify(body);
+  if (opts?.body !== undefined) {
+    init.body = JSON.stringify(opts.body);
     init.headers["content-type"] = "application/json";
     init.headers["content-length"] = String(init.body.length);
   }
-  return new NextRequest(
-    `${SITE_ORIGIN}/api/account/mesh-join-key`,
-    init as ConstructorParameters<typeof NextRequest>[1]
-  );
+  return new NextRequest(`${SITE}/api/account/mesh-join-key`, init as ConstructorParameters<typeof NextRequest>[1]);
 }
 
 let caseN = 0;
@@ -99,11 +91,10 @@ function setupEnv() {
     previousEnv.set(key, process.env[key]);
     delete process.env[key];
   }
-  process.env.NEXT_PUBLIC_APP_URL = SITE_ORIGIN;
+  process.env.NEXT_PUBLIC_APP_URL = SITE;
   process.env.HEADSCALE_API_URL = "https://mesh.musu.pro";
   process.env.HEADSCALE_API_KEY = "admin-key";
-  process.env.MUSU_MESH_ENROLL_USER_IDS = VALID_UUID;
-  currentUser = { id: VALID_UUID };
+  process.env.MUSU_P2P_CONTROL_TOKEN = CONTROL_TOKEN;
   fetchCalls = [];
   installHeadscaleFetch();
 }
@@ -117,7 +108,7 @@ function teardownEnv() {
   globalThis.fetch = originalFetch;
 }
 
-test("happy path: mints key, isolation policy set BEFORE preauthkey", async () => {
+test("happy path: bearer control token mints key; policy before preauthkey", async () => {
   setupEnv();
   try {
     const { POST } = await loadRoute();
@@ -127,24 +118,64 @@ test("happy path: mints key, isolation policy set BEFORE preauthkey", async () =
     assert.equal(body.ok, true);
     assert.equal(body.login_server, "https://mesh.musu.pro");
     assert.equal(body.authkey, "mint-key-abc");
-    assert.equal(body.tailnet, `acct-${VALID_UUID}`);
+    assert.equal(body.tailnet, EXPECTED_TAILNET);
     const policyIdx = fetchCalls.findIndex((c) => c.url.includes("/policy"));
     const keyIdx = fetchCalls.findIndex((c) => c.url.includes("/preauthkey"));
-    assert.ok(policyIdx >= 0 && keyIdx >= 0);
-    assert.ok(policyIdx < keyIdx, "isolation policy must precede key mint");
+    assert.ok(policyIdx >= 0 && keyIdx >= 0 && policyIdx < keyIdx);
   } finally {
     teardownEnv();
   }
 });
 
-test("401 when not authenticated", async () => {
+test("401 with no bearer token", async () => {
   setupEnv();
-  currentUser = null;
+  try {
+    const { POST } = await loadRoute();
+    const res = await POST(req({ token: null }));
+    assert.equal(res.status, 401);
+    assert.equal(fetchCalls.length, 0);
+  } finally {
+    teardownEnv();
+  }
+});
+
+test("401 with wrong bearer token", async () => {
+  setupEnv();
+  try {
+    const { POST } = await loadRoute();
+    const res = await POST(req({ token: "not-the-token" }));
+    assert.equal(res.status, 401);
+    assert.equal(fetchCalls.length, 0);
+  } finally {
+    teardownEnv();
+  }
+});
+
+test("sha256 allowlist accepts a matching token", async () => {
+  setupEnv();
+  // Drop the raw token; accept only via the sha256 allowlist.
+  delete process.env.MUSU_P2P_CONTROL_TOKEN;
+  process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = createHash("sha256")
+    .update(CONTROL_TOKEN)
+    .digest("hex");
   try {
     const { POST } = await loadRoute();
     const res = await POST(req());
-    assert.equal(res.status, 401);
-    assert.equal(fetchCalls.length, 0);
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).tailnet, EXPECTED_TAILNET);
+  } finally {
+    teardownEnv();
+  }
+});
+
+test("503 when control auth not configured", async () => {
+  setupEnv();
+  delete process.env.MUSU_P2P_CONTROL_TOKEN;
+  try {
+    const { POST } = await loadRoute();
+    const res = await POST(req());
+    assert.equal(res.status, 503);
+    assert.equal((await res.json()).error, "p2p_control_auth_not_configured");
   } finally {
     teardownEnv();
   }
@@ -164,46 +195,7 @@ test("503 when Headscale API not configured", async () => {
   }
 });
 
-test("503 when enrollment allowlist unset (fail-closed)", async () => {
-  setupEnv();
-  delete process.env.MUSU_MESH_ENROLL_USER_IDS;
-  try {
-    const { POST } = await loadRoute();
-    const res = await POST(req());
-    assert.equal(res.status, 503);
-    assert.equal((await res.json()).error, "mesh_enroll_not_configured");
-  } finally {
-    teardownEnv();
-  }
-});
-
-test("403 when account not on the allowlist", async () => {
-  setupEnv();
-  process.env.MUSU_MESH_ENROLL_USER_IDS = "some-other-account";
-  try {
-    const { POST } = await loadRoute();
-    const res = await POST(req());
-    assert.equal(res.status, 403);
-    assert.equal((await res.json()).error, "enroll_not_allowlisted");
-    assert.equal(fetchCalls.length, 0);
-  } finally {
-    teardownEnv();
-  }
-});
-
-test("403 cross-origin", async () => {
-  setupEnv();
-  try {
-    const { POST } = await loadRoute();
-    const res = await POST(req(undefined, "https://evil.example"));
-    assert.equal(res.status, 403);
-    assert.equal((await res.json()).error, "cross_origin_rejected");
-  } finally {
-    teardownEnv();
-  }
-});
-
-test("429 after exceeding the per-account rate limit", async () => {
+test("429 after exceeding the per-owner rate limit", async () => {
   setupEnv();
   process.env.MUSU_MESH_JOIN_RATE_LIMIT_PER_MINUTE = "2";
   try {
@@ -235,7 +227,7 @@ test("400 on extra body fields (strict schema)", async () => {
   setupEnv();
   try {
     const { POST } = await loadRoute();
-    const res = await POST(req({ user_id: "spoof", evil: true }));
+    const res = await POST(req({ body: { user_id: "spoof", evil: true } }));
     assert.equal(res.status, 400);
   } finally {
     teardownEnv();
