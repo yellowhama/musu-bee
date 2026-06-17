@@ -63,3 +63,44 @@ command.exit_code: 0, local_tailnet_ip: 100.64.0.2, private_mesh.toml 생성됨
 ## 관련 메모리
 - `reference-musu-mesh-cloud-infra` — VPS 구조 + env 함정
 - `reference-skill-guard` — 별개(스킬 보안), 이번 세션 부산물
+
+## 독립 Code Audit (Phase 5, security-engineer) + 후속 수정
+
+single-node 완주 후 적대적 audit 수행. 8개 적대적 질문 점검. **net-new HIGH 2개**
+발견(둘 다 "asserted invariant, never verified" 클래스) — 머지 전 수정 완료:
+
+- **HIGH-1 — `tailscale up --reset`가 사용자 개인 Tailscale 파괴.** join_tail_args의
+  --reset(재join 정확성용)이, 이미 다른(개인) tailnet에 붙은 머신에서 무인 자동
+  join 시 그 tailnet을 조용히 초기화. 사용자는 개인 Tailscale 보존 명시 요구.
+  → `assert_safe_to_reset_tailscale`: `tailscale status --json`을 읽어 활성 tailnet의
+  control이 우리 login_server와 **host가 다르면** 거부(not-running/같은-host/no-client는
+  통과). dry_run 제외. **이건 5번째 버그(--reset) 수정이 만든 회귀를 audit가 잡은 것.**
+  - 후속: 첫 구현이 Name(host)을 URL과 raw 비교해 우리 mesh까지 오판 → host 추출
+    비교로 재수정. **라이브 검증**: 이 PC(mesh.musu.pro)는 통과, 다른 tailnet은 거부.
+- **HIGH-2 — file-mode policy soft-fail이 allow-all tailnet에 키 발급 가능.**
+  ensureSelfIsolationPolicy가 file-mode PUT 거부를 "성공"으로 처리하며 policy.json
+  내용을 검증 안 함. 드리프트/allow-all이면 격리 깨진 채 키 발급. → file-mode 분기에서
+  `GET /api/v1/policy`로 autogroup:self grant 존재 + non-allow-all 확인, 아니면
+  502 fail-closed. **라이브 검증**: 현재 정책 autogroup:self 확인 후 200; 단위테스트
+  3케이스(isolated→ok, allow-all→502, empty→502).
+
+audit가 **clean 확인**한 것(INFO): bearer 인증 timing-safe + fail-closed, admin API key
+서버전용(응답/로그 미노출), preauthkey hygiene(reusable:false+short TTL+멱등 race), 입력
+검증 strict, secret 로깅 없음, 초기 5버그 회귀 없음.
+
+**audit의 메타 교훈**: 검증 게이트가 실제로 연쇄 결함을 잡았다. --reset 수정(bug fix)이
+더 큰 bug(개인 tailnet 파괴)를 만들었고 Phase 5가 그걸, 그 수정이 또 host-비교 버그를
+만들었고 라이브 테스트가 그걸 잡음.
+
+## 운영 함정 (작업 중 알게 된 것)
+
+- **`vercel env add` stdin 파이프 = 빈값 버그** (CLI 54.5.0). `printf | vercel env add`나
+  `< file` 모두 값을 빈 문자열로 저장. → REST API `POST /v10/projects/<id>/env?upsert=true`
+  로 설정하고 `vercel env pull`로 길이 검증 필수.
+- **`vercel deploy --prod --archive=tgz`가 간헐적으로 행** (이 환경). archive 업로드가
+  출력 없이 멈춤. 재시도하면 보통 다음 번에 뜸. 파일 >15000라 --archive=tgz는 필수.
+- **Headscale v0.28.0 = `acls` 문법** (`grants`는 v0.29+, 적용 시 크래시 루프).
+- **Headscale policy.mode=file** = REST PUT 거부(database mode만 PUT 가능). 정책은
+  policy.json 파일로 적용; 코드는 GET으로 검증.
+- **tailscale `status --json`** 은 버전별로 `ControlURL` 또는 `CurrentTailnet.Name`(host)만
+  노출 → host 기준 비교 필요.
