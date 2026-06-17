@@ -78,7 +78,10 @@ function req(body?: unknown, origin = SITE_ORIGIN): NextRequest {
     init.headers["content-type"] = "application/json";
     init.headers["content-length"] = String(init.body.length);
   }
-  return new NextRequest(`${SITE_ORIGIN}/api/account/mesh-join-key`, init as RequestInit);
+  return new NextRequest(
+    `${SITE_ORIGIN}/api/account/mesh-join-key`,
+    init as ConstructorParameters<typeof NextRequest>[1]
+  );
 }
 
 let caseN = 0;
