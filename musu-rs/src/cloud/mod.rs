@@ -128,6 +128,16 @@ pub struct RegistryNode {
     pub meta: Option<serde_json::Value>,
 }
 
+/// Response of `POST /api/account/mesh-join-key`: a one-time Headscale preauth
+/// key bound to the caller's account, plus the login server to join. The cloud
+/// derives the account from the bearer token; the client never supplies it.
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshJoinKey {
+    pub login_server: String,
+    pub authkey: String,
+    pub tailnet: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
@@ -1064,6 +1074,33 @@ impl MusuCloud {
 
         if !resp.status().is_success() {
             return Err(cloud_api_error("Failed to register node", &url, resp).await);
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/account/mesh-join-key to mint a one-time mesh preauth key for
+    /// the logged-in account. Used by "account login = automatic mesh join":
+    /// after login the desktop calls this, then runs `tailscale up` with the
+    /// returned login_server + authkey. The account is derived server-side from
+    /// the bearer token, so nothing about identity is sent in the body.
+    pub async fn request_mesh_join_key(&self) -> Result<MeshJoinKey> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-join-key", self.base_url);
+
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({}))
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to request mesh join key", &url, resp).await);
         }
 
         Ok(resp.json().await?)

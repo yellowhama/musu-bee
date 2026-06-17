@@ -139,6 +139,28 @@ pub async fn poll_and_finalize(flow: &DeviceFlow, quiet: bool) -> Result<()> {
                     println!("This machine is connected to your MUSU account.");
                 }
 
+                // "Account login = automatic mesh join": best-effort. Fetch a
+                // one-time mesh key for this account and join the fleet so the
+                // user's devices reach each other without copying a device-add
+                // pass. Soft-fail like register_node above — a mesh hiccup must
+                // never fail the login itself; the cockpit retries later.
+                if let Err(e) = auto_join_account_mesh(quiet).await {
+                    if quiet {
+                        tracing::warn!(
+                            error = %e,
+                            "automatic mesh join did not complete; will retry from the app"
+                        );
+                    } else {
+                        println!("Automatic mesh connection is still pending.");
+                        println!("  reason: {}", e);
+                        println!("  MUSU will keep trying in the background.");
+                    }
+                } else if quiet {
+                    tracing::info!("machine joined its account mesh");
+                } else {
+                    println!("This machine joined your private mesh.");
+                }
+
                 if !quiet {
                     println!();
                     println!("Connection checklist:");
@@ -156,6 +178,28 @@ pub async fn poll_and_finalize(flow: &DeviceFlow, quiet: bool) -> Result<()> {
             }
         }
     }
+}
+
+/// Best-effort automatic mesh join after a successful login. Delegates to the
+/// `mesh join-account` action, which fetches a one-time preauth key for this
+/// account and runs the normal join. Kept separate so the caller can soft-fail
+/// it without entangling login success with mesh availability.
+async fn auto_join_account_mesh(quiet: bool) -> Result<()> {
+    use crate::install::private_mesh::{
+        run as run_private_mesh, PrivateMeshAction, PrivateMeshJoinAccountOpts,
+    };
+    run_private_mesh(PrivateMeshAction::JoinAccount(PrivateMeshJoinAccountOpts {
+        node_name: None,
+        dry_run: false,
+        // Keep mesh output quiet during login when the caller is quiet; the
+        // login flow already prints its own join status lines.
+        json: false,
+        musu_home: None,
+    }))
+    .await
+    .map(|_| {
+        let _ = quiet;
+    })
 }
 
 pub async fn run_login() -> Result<()> {

@@ -8389,4 +8389,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Search terms: `Windows-only nodes`, `cloud control plane`, `coordination-only`,
   `irm install.ps1`, `auth reachability`.
 
+- 2026-06-18 SESSION_ACCOUNT_AUTO_MESH_JOIN: "account login = automatic mesh
+  join" implemented + live single-node E2E (this PC joined as 100.64.0.2 under
+  its acct-* user, no device-add pass). New POST /api/account/mesh-join-key
+  (bearer control-token auth, owner_key→acct-* Headscale user, one-time preauth
+  key); `musu mesh join-account` reusing run_join; poll_and_finalize auto-join
+  hook; tailscale up --reset. Self-contained KV (redis+SRH) on the VPS so
+  device-flow works without Upstash. Five chained bugs fixed: missing prod env
+  (vercel-env-add-pipe-empties-the-value bug → use REST API), raw
+  MUSU_P2P_CONTROL_TOKEN missing (503), same-origin guard blocking the CLI
+  (403), policy PUT on file-mode control plane (500), tailscale --reset.
+  2-machine E2E + isolation proof still pending (needs real 2nd machine).
+  Phase-5 audit found + fixed 2 HIGH: `tailscale up --reset` could wipe the
+  user's personal Tailscale (added assert_safe_to_reset_tailscale, host-compare
+  guard), and file-mode policy soft-fail could mint into an allow-all tailnet
+  (added GET /api/v1/policy autogroup:self verification, fail-closed). Search
+  terms: `mesh-join-key`, `account auto join`, `join-account`, `owner_key acct
+  user`, `tailscale --reset`, `assert_safe_to_reset_tailscale`, `personal
+  tailnet preserved`, `policy file mode`, `assertLivePolicyIsolated`,
+  `vercel env add empties value`, `vercel deploy archive hang`, `redis SRH
+  kv.musu.pro`, `p2p_control_token_not_issuable`, `cross_origin_rejected`,
+  `headscale acls vs grants`, `tailscale status ControlURL CurrentTailnet Name`.
+
 **End of WIKI_INDEX.md.**

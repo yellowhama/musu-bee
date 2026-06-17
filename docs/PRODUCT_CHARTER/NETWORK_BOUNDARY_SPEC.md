@@ -1549,3 +1549,42 @@ Boundary implications:
 - MUSU Desktop must still implement and prove the actual data plane;
 - `quic_relay_tunnel` candidate metadata cannot satisfy release gates without
   `quic_tls_1_3` transport proof and payload delivery proof.
+
+---
+
+## 2026-06-18 — Account-driven automatic mesh join
+
+Onboarding model changed from manual device-add pass to automatic join on login.
+
+**Product behavior:**
+- `irm musu.pro/install.ps1 | iex` → sign in → done. Every device of the same
+  account joins the same isolated fleet automatically; no device-add pass is
+  copied between machines.
+- Login (CLI / desktop / autostart) triggers a best-effort mesh join via
+  `poll_and_finalize` → `musu mesh join-account`. Soft-fail: a mesh hiccup never
+  fails login; the cockpit retries.
+
+**Endpoint:** `POST /api/account/mesh-join-key` (musu.pro).
+- **Caller:** the `musu.exe` CLI — NOT a browser. Authenticates with the
+  single-owner control bearer token (`authorizeP2pControl`), the same gate the
+  other p2p-control endpoints use. There is no cookie / same-origin involved;
+  the bearer token IS the CSRF defense.
+- **Identity:** `owner_key` derived from the bearer token → one owner = one
+  fleet = one Headscale user `acct-<sha256(token)>`. `autogroup:self` policy
+  isolates each owner's fleet from every other user (including the legacy `musu`
+  user).
+- **Mints** a one-time, short-TTL (`reusable:false`) Headscale preauth key.
+  Headscale admin API key stays in server env, never returned.
+
+**Boundary implications:**
+- this is control-plane enrollment, not local execution;
+- the Headscale control plane runs `policy.mode=file` — the isolation policy is
+  enforced from `policy.json` on disk, so the REST policy PUT is a no-op there
+  and its rejection is treated as success;
+- device-flow's control-code store now lives on a self-contained
+  redis + serverless-redis-http (Upstash-REST-compatible) pair on the VPS — no
+  external SaaS dependency for login;
+- a machine already in a tailnet re-joins with `tailscale up --reset`;
+- 2-machine reachability + cross-account isolation still require a real
+  two-physical-machine E2E proof before release claims (single-node join is
+  proven; peer data-plane and isolation are not).

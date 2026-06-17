@@ -40,6 +40,10 @@ pub enum PrivateMeshAction {
     CreateJoinKey(PrivateMeshCreateJoinKeyOpts),
     /// Join this machine to MUSU Private Mesh through a Headscale login server.
     Join(PrivateMeshJoinOpts),
+    /// Join this machine to its account's mesh automatically: fetch a one-time
+    /// preauth key from the cloud (account derived from the saved login token),
+    /// then run the normal join. No device-add pass to copy between machines.
+    JoinAccount(PrivateMeshJoinAccountOpts),
     /// Verify a target peer over MUSU Private Mesh and update local evidence.
     Verify(PrivateMeshVerifyOpts),
     /// Write physical-peer evidence from this target machine for release proof.
@@ -156,6 +160,23 @@ pub struct PrivateMeshJoinOpts {
     #[arg(long)]
     pub skip_control_health: bool,
     /// Do not execute the compatible mesh client; only write MUSU local state.
+    #[arg(long)]
+    pub dry_run: bool,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+    /// Override the install root (`~/.musu/`). Used by tests and smoke scripts.
+    #[arg(long, hide = true)]
+    pub musu_home: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshJoinAccountOpts {
+    /// Human-readable node name to persist in MUSU's local mesh state.
+    #[arg(long)]
+    pub node_name: Option<String>,
+    /// Do not execute the compatible mesh client; only fetch the key + write
+    /// local state. Proves token→key→resolve without running `tailscale up`.
     #[arg(long)]
     pub dry_run: bool,
     /// Emit machine-readable JSON.
@@ -448,6 +469,7 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::StartControlHost(opts) => run_start_control_host(opts).await,
         PrivateMeshAction::CreateJoinKey(opts) => run_create_join_key(opts).await,
         PrivateMeshAction::Join(opts) => run_join(opts).await,
+        PrivateMeshAction::JoinAccount(opts) => run_join_account(opts).await,
         PrivateMeshAction::Verify(opts) => run_verify(opts).await,
         PrivateMeshAction::PhysicalPeerEvidence(opts) => run_physical_peer_evidence(opts).await,
         PrivateMeshAction::ReleaseProof(opts) => run_release_proof(opts).await,
@@ -989,6 +1011,36 @@ fn consume_device_add_pass_file(path: &Path) -> Result<PathBuf> {
     Ok(marker_path)
 }
 
+/// Account-driven join: turn a saved login token into a one-time mesh preauth
+/// key (account derived server-side), then delegate to the normal `run_join`.
+/// This is the no-pass path behind "account login = automatic mesh join".
+async fn run_join_account(opts: PrivateMeshJoinAccountOpts) -> Result<()> {
+    let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
+    let token = crate::cloud::token::load_token(&home).ok_or_else(|| {
+        anyhow!("Not logged in. Run `musu login` first, then join is automatic.")
+    })?;
+
+    let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
+    let key = cloud.request_mesh_join_key().await?;
+
+    // Reuse the existing login_server + authkey join path. No device-add pass,
+    // no new join logic: run_join handles https policy, /health, `tailscale up`,
+    // config persistence, and the join evidence event.
+    let join_opts = PrivateMeshJoinOpts {
+        login_server: Some(key.login_server),
+        authkey: Some(key.authkey),
+        device_add_pass: None,
+        node_name: opts.node_name,
+        owner_id: None,
+        tailnet_id: Some(key.tailnet),
+        skip_control_health: false,
+        dry_run: opts.dry_run,
+        json: opts.json,
+        musu_home: opts.musu_home,
+    };
+    run_join(join_opts).await
+}
+
 async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
     let join_inputs = resolve_join_inputs(&opts)?;
     // Join transmits the one-time authkey to the login server, so require https.
@@ -1010,6 +1062,16 @@ async fn run_join(opts: PrivateMeshJoinOpts) -> Result<()> {
         }
         result
     };
+    // HIGH-1 guard: `join_tail_args` uses `--reset`, which wipes ALL current
+    // tailscale settings to defaults. That is correct when (re)joining MUSU's
+    // own mesh, but DESTRUCTIVE if this machine is currently on a DIFFERENT
+    // (personal) tailnet — it would silently evict the user's own Tailscale.
+    // The user explicitly wants their personal Tailscale preserved. So before
+    // running `up --reset`, refuse if an active tailnet points at a control
+    // server that is NOT our login server. Skipped under dry_run.
+    if !opts.dry_run {
+        assert_safe_to_reset_tailscale(&login_server)?;
+    }
     let command = if opts.dry_run {
         None
     } else {
@@ -3593,9 +3655,95 @@ fn control_server_health_url(login_server: &str) -> Result<String> {
     Ok(url.to_string())
 }
 
+/// HIGH-1 guard for the destructive `up --reset`. Refuses to reset when the
+/// machine is already on a DIFFERENT tailnet than the one we're joining, so an
+/// account auto-join never wipes the user's personal Tailscale configuration.
+///
+/// Reads `tailscale status --json` and inspects `CurrentTailnet`/control URL:
+/// - not running / no client / empty status → safe (nothing to destroy).
+/// - running against a control server == our login_server → safe (this is a
+///   re-join of our own mesh; --reset just re-applies our own settings).
+/// - running against ANY OTHER control server → refuse with an actionable error.
+fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
+    let status = run_tail_command(&["status", "--json"]);
+    if !status.found {
+        return Ok(()); // no client installed → run_join handles "not found" later
+    }
+    let out = status.stdout.as_deref().unwrap_or("").trim();
+    if out.is_empty() {
+        return Ok(()); // no status → treat as not-connected
+    }
+    let json: serde_json::Value = match serde_json::from_str(out) {
+        Ok(v) => v,
+        Err(_) => return Ok(()), // unparseable → don't block; up will surface real errors
+    };
+
+    // Backend not running → nothing to destroy.
+    let backend = json
+        .get("BackendState")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if backend != "Running" {
+        return Ok(());
+    }
+
+    // Identify which control server this machine is currently on. Tailscale's
+    // `status --json` shape varies by version: it may expose `ControlURL` (a
+    // full URL), or only `CurrentTailnet.Name` (the tailnet name, which for a
+    // self-hosted Headscale is the control HOST, e.g. "mesh.musu.pro"). We
+    // compare by HOST so "mesh.musu.pro" matches login_server
+    // "https://mesh.musu.pro" — otherwise we'd wrongly refuse to re-join our own
+    // mesh.
+    let current_control = json
+        .get("ControlURL")
+        .and_then(|v| v.as_str())
+        .or_else(|| {
+            json.get("CurrentTailnet")
+                .and_then(|t| t.get("ControlURL").or_else(|| t.get("Name")))
+                .and_then(|v| v.as_str())
+        })
+        .unwrap_or("");
+
+    if current_control.is_empty() {
+        anyhow::bail!(
+            "This machine is already connected to a tailnet but its control server could not be \
+             determined. Refusing to run `tailscale up --reset` (it would wipe that connection). \
+             Run `tailscale logout` first if you intend to switch this machine to MUSU mesh, then retry."
+        );
+    }
+
+    // Extract a comparable host from both sides (strip scheme/path/port).
+    let host_of = |s: &str| -> String {
+        let s = s.trim();
+        let s = s
+            .split_once("://")
+            .map(|(_, rest)| rest)
+            .unwrap_or(s);
+        let s = s.split('/').next().unwrap_or(s);
+        let s = s.split(':').next().unwrap_or(s);
+        s.trim_end_matches('.').to_ascii_lowercase()
+    };
+    if host_of(current_control) == host_of(login_server) {
+        return Ok(()); // same control host → re-join our own mesh, safe.
+    }
+
+    anyhow::bail!(
+        "This machine is already on a different tailnet (control server: {current_control}). \
+         Joining MUSU mesh would run `tailscale up --reset` and wipe that personal/other \
+         tailnet configuration. Refusing to do that automatically. If you want this machine on \
+         MUSU mesh, run `tailscale logout` first, then retry — or keep it on its current tailnet."
+    );
+}
+
 fn join_tail_args(login_server: &str, authkey: Option<&str>) -> Vec<String> {
+    // `--reset` is required so re-joining a machine that is ALREADY connected to
+    // a tailnet works. Without it, `tailscale up` refuses with "changing
+    // settings via 'tailscale up' requires mentioning all non-default flags".
+    // --reset clears prior settings to defaults and applies exactly the flags
+    // below — the correct semantics for an account-driven (re)join.
     let mut args = vec![
         "up".into(),
+        "--reset".into(),
         "--login-server".into(),
         login_server.to_string(),
     ];
@@ -4501,6 +4649,7 @@ mod tests {
             join_tail_args("https://mesh.example", Some("key-123")),
             vec![
                 "up",
+                "--reset",
                 "--login-server",
                 "https://mesh.example",
                 "--authkey",
