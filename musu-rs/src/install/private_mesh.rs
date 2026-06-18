@@ -66,6 +66,9 @@ pub enum PrivateMeshNodeAction {
     List(PrivateMeshNodeListOpts),
     /// Rename a node by its Headscale id (resolve→confirm-by-id).
     Rename(PrivateMeshNodeRenameOpts),
+    /// Remove (evict) a node by its Headscale id. ONE-WAY; the server refuses to
+    /// remove this machine itself and requires the confirmed name to still match.
+    Remove(PrivateMeshNodeRemoveOpts),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -83,6 +86,23 @@ pub struct PrivateMeshNodeRenameOpts {
     /// The new name (1-63 chars: letters, digits, hyphens; starts alphanumeric).
     #[arg(long)]
     pub new_name: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeRemoveOpts {
+    /// The Headscale node id to remove (from `node list`).
+    #[arg(long)]
+    pub node_id: String,
+    /// The node's current name, as confirmed by the user (optimistic-concurrency
+    /// guard: server refuses if the node's name no longer matches).
+    #[arg(long)]
+    pub expected_name: String,
+    /// This machine's tailnet IP, so the server can refuse self-eviction.
+    #[arg(long)]
+    pub caller_ip: Option<String>,
     /// Emit machine-readable JSON.
     #[arg(long)]
     pub json: bool,
@@ -561,6 +581,27 @@ async fn run_node_cli(action: PrivateMeshNodeAction) -> Result<()> {
                 );
             } else {
                 println!("Renamed node {} → {}", renamed.node.id, renamed.node.name);
+            }
+            Ok(())
+        }
+        PrivateMeshNodeAction::Remove(opts) => {
+            let removed = cloud
+                .remove_mesh_node(&opts.node_id, &opts.expected_name, opts.caller_ip.as_deref())
+                .await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_remove.v1",
+                        "ok": true,
+                        "removed": removed.removed,
+                        "already_gone": removed.already_gone,
+                    }))?
+                );
+            } else if removed.already_gone {
+                println!("Node {} was already removed.", opts.node_id);
+            } else {
+                println!("Removed node {} from the fleet.", opts.node_id);
             }
             Ok(())
         }

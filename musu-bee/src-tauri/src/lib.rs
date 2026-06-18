@@ -38,6 +38,7 @@ pub fn run() {
             private_mesh_leave,
             mesh_node_list,
             mesh_node_rename,
+            mesh_node_remove,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -1239,6 +1240,45 @@ fn mesh_node_rename(node_id: String, new_name: String) -> Result<PrivateMeshJoin
     .map_err(|err| format!("failed to run {} mesh node rename: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh node rename timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_remove` — ONE-WAY evict a fleet node via `musu mesh node remove`.
+/// The server refuses to remove this machine itself (caller_ip) and requires the
+/// confirmed name to still match (WS-2c Phase 2, Critic HIGH-3 + optimistic
+/// concurrency). caller_ip is the cockpit's own tailnet IP when known.
+#[tauri::command]
+fn mesh_node_remove(
+    node_id: String,
+    expected_name: String,
+    caller_ip: Option<String>,
+) -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let mut args: Vec<String> = vec![
+        "mesh".into(),
+        "node".into(),
+        "remove".into(),
+        "--node-id".into(),
+        node_id,
+        "--expected-name".into(),
+        expected_name,
+    ];
+    if let Some(ip) = caller_ip.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        args.push("--caller-ip".into());
+        args.push(ip.to_string());
+    }
+    args.push("--json".into());
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let result = run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh node remove: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node remove timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {

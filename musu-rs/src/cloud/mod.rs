@@ -170,6 +170,14 @@ pub struct MeshNodeRenamedInner {
     pub name: String,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNodeRemoved {
+    #[serde(default)]
+    pub removed: bool,
+    #[serde(default)]
+    pub already_gone: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
@@ -1176,6 +1184,33 @@ impl MusuCloud {
             .await?;
         if !resp.status().is_success() {
             return Err(cloud_api_error("Failed to rename mesh node", &url, resp).await);
+        }
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/account/mesh-node-action {action:"remove"} — ONE-WAY evict a node
+    /// BY ID. `expected_name` is the name the user confirmed (optimistic
+    /// concurrency); `caller_ip` lets the server refuse evicting this machine
+    /// itself (WS-2c HIGH-3). Server enforces owner-scope + idempotent 404.
+    pub async fn remove_mesh_node(
+        &self,
+        node_id: &str,
+        expected_name: &str,
+        caller_ip: Option<&str>,
+    ) -> Result<MeshNodeRemoved> {
+        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-node-action", self.base_url);
+        let mut body = serde_json::json!({
+            "action": "remove",
+            "node_id": node_id,
+            "expected_name": expected_name,
+        });
+        if let Some(ip) = caller_ip {
+            body["caller_ip"] = serde_json::Value::String(ip.to_string());
+        }
+        let resp = self.client.post(&url).bearer_auth(token).json(&body).send().await?;
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to remove mesh node", &url, resp).await);
         }
         Ok(resp.json().await?)
     }

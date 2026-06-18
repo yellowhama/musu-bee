@@ -623,6 +623,26 @@ body {
   border-color: var(--amber);
   color: var(--ink);
 }
+/* Remove a machine — one-way, so styled as a danger affordance. */
+.node-remove {
+  flex-shrink: 0;
+  margin-left: 6px;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, var(--line));
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: transparent;
+  color: color-mix(in srgb, var(--bad) 80%, var(--ink-dim));
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.node-remove:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+}
 .node-verify-run {
   cursor: pointer;
 }

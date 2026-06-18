@@ -488,3 +488,54 @@ export async function renameNodeForUser(
   }
   return updated;
 }
+
+/**
+ * Remove (evict) a node from the mesh — ONE-WAY (WS-2c Phase 2). Re-asserts the
+ * node belongs to `userId` (HIGH-2 cross-tenant), and refuses to delete the
+ * REQUESTING machine's own node (HIGH-3 self-eviction: `callerIp` is the caller's
+ * tailnet IP; if the target carries it, refuse — a shell guard is bypassable, so
+ * this is enforced server-side). Treats a Headscale 404 as idempotent success
+ * (already removed) and NEVER re-resolves by name/IP after a 404 (that's the
+ * wrong-node path). `expectedName` is an optimistic-concurrency check: the node's
+ * current name must still match what the user confirmed, else refuse.
+ */
+export async function deleteNodeForUser(args: {
+  cfg: HeadscaleClientConfig;
+  userId: string;
+  nodeId: string;
+  expectedName: string;
+  callerIp?: string;
+}): Promise<{ removed: boolean; alreadyGone: boolean }> {
+  const { cfg, userId, nodeId, expectedName, callerIp } = args;
+  const owned = await listNodesForUser(cfg, userId);
+  const target = owned.find((n) => n.id === nodeId);
+  if (!target) {
+    // Not in the owner's fleet → either already removed or never theirs.
+    return { removed: false, alreadyGone: true };
+  }
+  // Optimistic concurrency: the confirmed name must still match (HIGH-1 — don't
+  // delete a node that was renamed/replaced out from under the confirmation).
+  if (expectedName && target.name !== expectedName) {
+    throw new HeadscaleProvisioningError(
+      "node changed since you confirmed (name no longer matches); refusing to remove",
+      409
+    );
+  }
+  // HIGH-3: never evict the requesting machine itself.
+  if (callerIp && target.ipAddresses.includes(callerIp)) {
+    throw new HeadscaleProvisioningError(
+      "refusing to remove the machine you're using (this PC). Disconnect it instead.",
+      400
+    );
+  }
+  const res = await headscaleFetch(cfg, `/api/v1/node/${encodeURIComponent(nodeId)}`, {
+    method: "DELETE",
+  });
+  if (res.status === 404) {
+    return { removed: false, alreadyGone: true }; // idempotent; do NOT re-resolve
+  }
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale delete node failed (${res.status})`, 502);
+  }
+  return { removed: true, alreadyGone: false };
+}

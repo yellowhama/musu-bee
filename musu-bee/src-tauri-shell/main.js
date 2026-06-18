@@ -218,6 +218,7 @@ function connectorApprovalGateForUi(connector) {
 }
 let fleetFilter = "all";
 let lastFleetIsEmpty = true;
+let lastFleetNodes = []; // last rendered node list (for this-PC IP lookups, etc.)
 let lastPrivateMeshStatus = null;
 let lastReleaseProofResult = null;
 let lastReleaseProofTarget = null;
@@ -2844,6 +2845,7 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   // empty = no nodes at all, or only this PC
   const isEmpty = nodes.length === 0 || others.length === 0;
   lastFleetIsEmpty = isEmpty;
+  lastFleetNodes = nodes;
   // Onboarding: do NOT auto-open the Add-PC panel on an empty fleet. Adding a PC
   // is infrastructure setup (Headscale) — pushing a first-time user there before
   // they've felt the product (give-a-task → walk-away → get-pinged) is the wrong
@@ -3006,6 +3008,21 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
       renameNodeFlow(n);
     });
     li.appendChild(renameBtn);
+
+    // Remove (WS-2c Phase 2) — one-way; never on this PC (use Disconnect for
+    // that). The server also refuses self-eviction; this just hides the button.
+    if (!n.is_this_pc) {
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "node-remove";
+      removeBtn.textContent = "Remove";
+      removeBtn.title = `Remove ${n.node_name} from the fleet`;
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeNodeFlow(n);
+      });
+      li.appendChild(removeBtn);
+    }
 
     if (verifyCommand) {
       const verifyActions = document.createElement("span");
@@ -4456,6 +4473,70 @@ async function renameNodeFlow(node) {
     }
   } catch (err) {
     window.alert(`Rename failed: ${String(err)}`);
+  } finally {
+    refresh();
+  }
+}
+
+// Remove a machine from the fleet (WS-2c Phase 2, one-way). Same resolve→
+// confirm-by-id matching as rename, plus a typed confirmation (the user must
+// type the machine name) and this-PC's IP passed so the server can refuse
+// self-eviction. The destructive guard is server-side; this is UX defense.
+async function removeNodeFlow(node) {
+  let listRes;
+  try {
+    listRes = await invoke("mesh_node_list");
+  } catch (err) {
+    window.alert(`Couldn't load the machine list: ${String(err)}`);
+    return;
+  }
+  let nodes = [];
+  try {
+    nodes = JSON.parse(listRes?.output || "{}").nodes || [];
+  } catch {
+    window.alert("Couldn't read the machine list (unexpected response).");
+    return;
+  }
+  const rowName = (node.node_name || "").trim();
+  const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
+  const matches = nodes.filter((m) => {
+    const nameOk = (m.name || "").trim() === rowName;
+    const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
+    return nameOk && ipOk;
+  });
+  if (matches.length === 0) {
+    window.alert(`Couldn't find "${rowName}" in your fleet right now — refresh and try again.`);
+    return;
+  }
+  if (matches.length > 1) {
+    window.alert(`More than one machine matches "${rowName}". Removal is blocked to avoid removing the wrong one.`);
+    return;
+  }
+  const target = matches[0];
+  const typed = window.prompt(
+    `Remove "${target.name}" from your fleet? This is permanent — the machine must rejoin (log in again) to come back.\n\nType the machine name to confirm:`
+  );
+  if (typed == null) return;
+  if (typed.trim() !== target.name) {
+    window.alert("Name didn't match — removal cancelled.");
+    return;
+  }
+  // this-PC's own IP (so the server refuses if the user somehow targets it).
+  const thisPc = (lastFleetNodes || []).find((m) => m.is_this_pc);
+  const callerIp = thisPc ? String(thisPc.tailscale_ip || thisPc.tailnet_ip || "").trim() : "";
+  try {
+    const res = await invoke("mesh_node_remove", {
+      nodeId: target.id,
+      expectedName: target.name,
+      callerIp: callerIp || null,
+    });
+    if (res && res.ok === false) {
+      window.alert(`Remove failed: ${String(res.error || "unknown error").slice(0, 200)}`);
+    } else {
+      announce(`Removed ${target.name} from the fleet`, true);
+    }
+  } catch (err) {
+    window.alert(`Remove failed: ${String(err)}`);
   } finally {
     refresh();
   }

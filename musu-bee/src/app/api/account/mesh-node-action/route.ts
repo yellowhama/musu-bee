@@ -5,6 +5,7 @@ import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { checkMeshJoinRateLimit } from "@/lib/meshJoinRateLimit";
 import {
   HeadscaleProvisioningError,
+  deleteNodeForUser,
   ensureHeadscaleUser,
   headscaleUserNameForOwnerKey,
   listNodesForUser,
@@ -21,13 +22,13 @@ export const runtime = "nodejs";
  * token, exactly like mesh-join-key. The owner_key derives the acct Headscale
  * user; ALL node operations are scoped to that user's id at the control plane.
  *
- * Two actions (resolve→confirm-by-id flow, Critic HIGH-1/HIGH-2):
- *  - {action:"list"}                       → the owner's nodes (id+name+ip+online)
- *  - {action:"rename", node_id, new_name}  → rename, re-asserting ownership by id
- *
- * REMOVE is deliberately NOT here — node deletion is one-way and gated behind a
- * dual-audit + explicit approval (master plan WS-2c Phase 2). This endpoint can
- * only list and rename.
+ * Three actions (resolve→confirm-by-id flow, Critic HIGH-1/HIGH-2/HIGH-3):
+ *  - {action:"list"}                          → the owner's nodes
+ *  - {action:"rename", node_id, new_name}     → rename, re-asserting ownership by id
+ *  - {action:"remove", node_id, expected_name, caller_ip?} → ONE-WAY evict, with
+ *    owner-scope + name optimistic-concurrency + server-side this-PC refusal
+ *    (caller_ip) + idempotent 404. Node deletion is gated; the destructive
+ *    safety lives in deleteNodeForUser, never in the client.
  *
  * The Headscale admin key is global (all users); the server-derived `?user=`
  * scope + per-action ownership re-assert in headscaleProvisioning are the sole
@@ -41,6 +42,16 @@ const RequestSchema = z.discriminatedUnion("action", [
       action: z.literal("rename"),
       node_id: z.string().min(1).max(64).regex(/^\d+$/, "node_id must be numeric"),
       new_name: z.string().min(1).max(63),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("remove"),
+      node_id: z.string().min(1).max(64).regex(/^\d+$/, "node_id must be numeric"),
+      // The name the user saw + typed to confirm — optimistic-concurrency guard.
+      expected_name: z.string().min(1).max(63),
+      // The caller's own tailnet IP, so the server can refuse self-eviction.
+      caller_ip: z.string().max(64).optional(),
     })
     .strict(),
 ]);
@@ -106,16 +117,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // rename
-    const updated = await renameNodeForUser(
+    if (parsed.data.action === "rename") {
+      const updated = await renameNodeForUser(
+        cfg,
+        user.id,
+        parsed.data.node_id,
+        parsed.data.new_name
+      );
+      // Audit: who renamed what (no secrets, no owner token).
+      console.log(`[mesh-node-action] rename node=${updated.id} → ${updated.name}`);
+      return NextResponse.json({ ok: true, node: { id: updated.id, name: updated.name } });
+    }
+
+    // remove (one-way) — destructive safety enforced server-side in deleteNodeForUser.
+    const result = await deleteNodeForUser({
       cfg,
-      user.id,
-      parsed.data.node_id,
-      parsed.data.new_name
+      userId: user.id,
+      nodeId: parsed.data.node_id,
+      expectedName: parsed.data.expected_name,
+      callerIp: parsed.data.caller_ip,
+    });
+    // Audit: one-way op — log node id + result (no secrets).
+    console.log(
+      `[mesh-node-action] remove node=${parsed.data.node_id} removed=${result.removed} alreadyGone=${result.alreadyGone}`
     );
-    // Audit: who renamed what (no secrets, no owner token).
-    console.log(`[mesh-node-action] rename node=${updated.id} → ${updated.name}`);
-    return NextResponse.json({ ok: true, node: { id: updated.id, name: updated.name } });
+    return NextResponse.json({ ok: true, removed: result.removed, already_gone: result.alreadyGone });
   } catch (err) {
     if (err instanceof HeadscaleProvisioningError) {
       const status = err.status === 400 || err.status === 409 ? err.status : 502;
