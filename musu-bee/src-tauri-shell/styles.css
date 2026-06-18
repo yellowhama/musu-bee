@@ -1501,10 +1501,8 @@ body {
   transition: border-color 0.15s ease;
 }
 .order-box:focus-within {
-  /* still clearly usable when the user does focus it */
+  /* still clearly usable when the user does focus it (de-hero recedes it at rest) */
   background: var(--bg-1);
-}
-.order-box:focus-within {
   border-color: rgba(255, 200, 87, 0.5);
 }
 .order-prompt {

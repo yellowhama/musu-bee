@@ -74,15 +74,31 @@ WS-3a 이메일 = BLOCKED (제품 결정)
 - 각 WS: cockpit-contract.test.ts 갱신 + 빌드. shell 변경은 browse 시각. Rust는 cargo check + (배포 시) 실설치.
 - 큰 변경(>100 LOC/>5 파일) 후 thermo-nuclear-code-quality-review (메모리 주기).
 
-## TODO (개별 진행 단위)
-1. WS-1a step3 세부 플랜 문서 + render-order arbiter 구현 + 4상태 검증
-2. WS-1b 머신 상태 배지 + you-are-here 마커
-3. (게이트) WS-1 main 머지 + 데스크탑 재배포 + 실설치 검증
-4. WS-2a open_external_url Rust command
-5. WS-2b private_mesh_leave + disconnect UI 분리 (Critic)
-6. WS-2c 머신 rename/remove 세부 플랜 + Rust+Headscale (Critic+dual-audit)
-7. (게이트) WS-2 Rust 묶음 빌드 + 재배포
-8. WS-3a 이메일 정체성 = 제품 결정 대기 (BLOCKED, 구현 X)
+## TODO (개별 진행 단위) — 진행 상태 (2026-06-19)
+1. ✅ WS-1a step3 render-order arbiter + 4상태 (main `2425bedb`)
+2. ✅ WS-1b 머신 상태 배지 + you-are-here (main)
+3. ✅ WS-1 main 머지 + 데스크탑 재배포 + PrintWindow 실설치 검증 (`b714b361`)
+4. ✅ WS-2a open_external_url (main `a2dd4568`)
+5. ✅ WS-2b private_mesh_leave + disconnect 분리 + predicate 6 테스트 (Critic 인버전 차단)
+6. ✅ WS-2c rename + remove (Critic HIGH×3 + dual-audit; self-eviction fail-closed)
+7. ✅ WS-2 Rust 묶음 빌드 + 재배포 (canary 5/5 + PrintWindow 실설치)
+8. ⏸ WS-3a 이메일 정체성 = BLOCKED (클라우드 /me 엔드포인트 부재, 제품 결정 대기)
+
+## 데스크탑 재설계 (C-plus, 2026-06-19) — "웹페이지 같다" 답
+
+사용자 피드백 "cockpit이 데스크탑 앱이 아니라 웹페이지 한 페이지 같다 + 목적이 뭐냐" → brainstorm으로 V28 thesis 재확인(fleet-as-one-device, MUSU=binding) + 코드로 쌍방향 통로(Claude Code↔cockpit↔cockpit↔AI) 전 구간 실재 확인. 머신 카드 그리드(Option A) 제안 → **system-architect Critic가 HIGH×3 차단**:
+- "데이터 이미 있음" 거짓(setup.rs localhost-only, fleet.rs peer 경로 무관) → 원격 프로그램 표시 = cross-machine bridge 변경, 2-머신 E2E 게이트
+- 카드별 command가 V28 §3.1 LOCKED(명령=Claude Code MCP) 충돌 → cockpit=관찰+presence+lifecycle만
+- N≥2 최적화하며 N=1 회귀
+→ **Option C-plus**(증분·N=1 우선·관찰 전용, `0ac6bf4d`): 데스크탑 밀도(680→880+de-hero) + this-PC 전문프로그램 배지(`this_pc_programs`, /api/setup/status 재사용). 카드 그리드+원격 배지=2-머신 E2E 후.
+
+문서: `COCKPIT_DESKTOP_REDESIGN_BIDIRECTIONAL_2026_06_19.md`.
+
+## 남은 다음 단계 (전부 2-머신 E2E에 게이트)
+1. **2-머신 E2E** (🔴 실기기 2대 필요, BLOCKED): 노트북 cockpit/Claude Code → studio-pc가 받아 그쪽 AI 실행 → 결과 회신 + 격리. V28 thesis 진짜 증명 + 쌍방향 통로 라이브 확인. 코드는 다 있고 라이브만 미실증.
+2. **N≥2 머신 카드 그리드 + 원격 프로그램 배지** (1 이후): cross-machine bridge에 specialist-program 필드 전파.
+3. **WS-3a 이메일 칩**: 클라우드 /me 엔드포인트 신설(제품 결정).
+4. (선택) **C-plus 실설치 픽셀 검증**: 다음 MSIX 재빌드 시 PrintWindow로 데스크탑 밀도 확인(browse 샌드박스 불안정으로 이번 미완).
 
 ## 관련
 - `COCKPIT_UX_REDESIGN_SPEC_2026_06_18.md` — 디자인 스펙(딥리서치+Critic+gap감사)

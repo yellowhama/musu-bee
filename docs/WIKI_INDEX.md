@@ -8464,4 +8464,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   re-show immediate`, `chip send positive control`, `tauri embeds compressed
   frontend assets`.
 
+- 2026-06-19 cockpit WS-2 Rust lane + desktop redesign (C-plus). Merged to main
+  (`a2dd4568` WS-2, `0ac6bf4d` C-plus). **WS-2 (help/disconnect/rename/remove):**
+  `open_external_url` Tauri cmd (Help link, https-only + `%`-blocked vs cmd env
+  expansion); mesh **disconnect** separate from sign-out via `private_mesh_leave`
+  / `tailscale down` gated by a NEW positive predicate `active_tailnet_is_ours`
+  (Ours/NotOurs/Indeterminate — does NOT reuse `assert_safe_to_reset_tailscale`,
+  whose pass-through cases would wrongly `down` a personal tailnet; Critic HIGH
+  inversion, 6 unit tests incl. unparseable→Indeterminate); machine **rename**
+  + **remove** via site `POST /api/account/mesh-node-action` (owner-scoped
+  `?user=` list + `headscaleProvisioning.{listNodesForUser,renameNodeForUser,
+  deleteNodeForUser}`) → cloud `MusuCloud.{list,rename,remove}_mesh_node` → CLI
+  `musu mesh node list|rename|remove` → Tauri `mesh_node_*` → shell row buttons.
+  remove is one-way, **dual-audited**: wrong-node impossible (id-only,
+  owner-scoped, idempotent-404, no name re-resolve), cross-tenant impossible
+  (server-derived `?user=` + strict schema), self-eviction **fail-closed**
+  (caller_ip required). this-PC shows rename but not remove. **Desktop redesign
+  (C-plus, answer to "looks like a web page"):** Critic reshaped a machine-card
+  grid (Option A) → incremental, single-machine-first, observation-only —
+  `.cockpit` 680→880 + tighter padding (desktop density), order box de-heroed
+  (command surface is Claude Code via MCP, V28 §3.1, not the cockpit), and a
+  this-PC **specialist-program badge** (Ollama/ComfyUI/default-agent) via a NEW
+  `this_pc_programs` cmd reusing localhost `/api/setup/status`. Per-remote-machine
+  program status + the card grid are DEFERRED behind the 2-machine E2E
+  (`setup.rs` is localhost-only; `fleet.rs` peer path has no program field).
+  Tests 50 (tauri-shell) / 455 (musu-rs). Search terms: `open_external_url`,
+  `private_mesh_leave`, `active_tailnet_is_ours`, `tailnet_ownership_from_status`,
+  `mesh-node-action`, `listNodesForUser`, `deleteNodeForUser`, `mesh node rename
+  remove`, `self-eviction caller_ip fail-closed`, `this_pc_programs`, `cockpit
+  desktop density`, `order box de-hero`, `specialist program badge`, `Option
+  C-plus`, `fleet as one device cockpit`, `command surface Claude Code MCP`.
+
 **End of WIKI_INDEX.md.**
