@@ -626,6 +626,28 @@ body {
   border-color: var(--amber);
   color: var(--ink);
 }
+/* Specialist-program chips on a machine row — what it's running (C-plus step 2).
+   running services (Ollama/ComfyUI) read green; the default agent is neutral. */
+.node-program {
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.node-program.running {
+  border-color: color-mix(in srgb, var(--online) 34%, var(--line-soft));
+  background: color-mix(in srgb, var(--online) 8%, var(--bg-0));
+  color: var(--online);
+}
+
 /* Remove a machine — one-way, so styled as a danger affordance. */
 .node-remove {
   flex-shrink: 0;

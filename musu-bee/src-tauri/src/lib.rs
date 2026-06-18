@@ -45,6 +45,7 @@ pub fn run() {
             validate_physical_peer_evidence_path,
             open_release_evidence_folder,
             list_fleet,
+            this_pc_programs,
             submit_order,
             get_order_status,
             notify_task_result,
@@ -1581,6 +1582,52 @@ fn run_private_mesh_desktop_report(
 }
 
 /// `list_fleet` — the cockpit's fleet list. Reads the local bridge's live
+/// What this PC can run / is running, for the this-PC machine panel (redesign
+/// C-plus step 2). Reuses the bridge's localhost `/api/setup/status` probe
+/// (ollama:11434 / comfyui:8188 + the auto-detected default agent) — this is the
+/// LOCAL machine only; per-remote-machine program status needs the deferred
+/// cross-machine bridge change. Empty/false when the bridge isn't ready.
+#[derive(serde::Serialize, Default)]
+struct ThisPcPrograms {
+    ollama_running: bool,
+    comfyui_running: bool,
+    default_adapter: String,
+}
+
+#[tauri::command]
+fn this_pc_programs() -> Result<ThisPcPrograms, String> {
+    let home = musu_home();
+    let Some(base_url) = bridge_registry_status(&home).url else {
+        return Ok(ThisPcPrograms::default());
+    };
+    let Some(token) = bridge_token(&home) else {
+        return Ok(ThisPcPrograms::default());
+    };
+    let response = match http_get_with_bearer(&base_url, "/api/setup/status", &token) {
+        Ok(r) => r,
+        Err(_) => return Ok(ThisPcPrograms::default()),
+    };
+    if http_status_code(&response).unwrap_or(0) != 200 {
+        return Ok(ThisPcPrograms::default());
+    }
+    let Some(body) = http_response_body(&response) else {
+        return Ok(ThisPcPrograms::default());
+    };
+    let json: serde_json::Value = match serde_json::from_str(body) {
+        Ok(v) => v,
+        Err(_) => return Ok(ThisPcPrograms::default()),
+    };
+    Ok(ThisPcPrograms {
+        ollama_running: json.get("ollama_running").and_then(|v| v.as_bool()).unwrap_or(false),
+        comfyui_running: json.get("comfyui_running").and_then(|v| v.as_bool()).unwrap_or(false),
+        default_adapter: json
+            .get("current_default_adapter")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+    })
+}
+
 /// `/api/fleet/status` endpoint directly instead of spawning `musu.exe nodes`
 /// on every refresh. This keeps fleet refresh cheap, removes a subprocess from
 /// the 15s cockpit loop, and avoids Windows console flicker regressions.
