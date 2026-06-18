@@ -3719,7 +3719,15 @@ fn active_tailnet_is_ours(login_server: &str) -> TailnetOwnership {
     if !status.found {
         return TailnetOwnership::Indeterminate; // no client → nothing we own is up
     }
-    let out = status.stdout.as_deref().unwrap_or("").trim();
+    tailnet_ownership_from_status(status.stdout.as_deref().unwrap_or(""), login_server)
+}
+
+/// Pure decision: given the raw `tailscale status --json` text and our login
+/// server, classify whether the active tailnet is ours. Separated from the
+/// command call so the inversion-safe branch logic is unit-testable (Critic
+/// 2026-06-19). EVERY uncertain case → Indeterminate (leave defaults to refuse).
+fn tailnet_ownership_from_status(status_json: &str, login_server: &str) -> TailnetOwnership {
+    let out = status_json.trim();
     if out.is_empty() {
         return TailnetOwnership::Indeterminate;
     }
@@ -4792,6 +4800,60 @@ mod tests {
             ]
         );
         assert!(!join_tail_args("https://mesh.example", None).contains(&"login".to_string()));
+    }
+
+    // ── leave ownership predicate (WS-2b, Critic-mandated) ──────────────────
+    // The inversion-safe branch logic: `tailscale down` runs ONLY on Ours;
+    // every uncertain case must be Indeterminate so leave defaults to refuse and
+    // never tears down a personal tailnet.
+    const OURS: &str = "https://mesh.musu.pro";
+
+    #[test]
+    fn ownership_same_control_host_is_ours() {
+        // ControlURL form + CurrentTailnet.Name form, with scheme/port noise.
+        let j = r#"{"BackendState":"Running","ControlURL":"https://mesh.musu.pro:443/"}"#;
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Ours);
+        let j2 = r#"{"BackendState":"Running","CurrentTailnet":{"Name":"mesh.musu.pro"}}"#;
+        assert_eq!(tailnet_ownership_from_status(j2, OURS), TailnetOwnership::Ours);
+    }
+
+    #[test]
+    fn ownership_different_host_is_not_ours() {
+        let j = r#"{"BackendState":"Running","ControlURL":"https://controlplane.tailscale.com"}"#;
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::NotOurs);
+    }
+
+    #[test]
+    fn ownership_unparseable_is_indeterminate_not_down() {
+        // The dangerous case the Critic flagged: garbage status while on a
+        // personal tailnet must NOT authorize `down`.
+        assert_eq!(tailnet_ownership_from_status("not json at all", OURS), TailnetOwnership::Indeterminate);
+        assert_eq!(tailnet_ownership_from_status("", OURS), TailnetOwnership::Indeterminate);
+    }
+
+    #[test]
+    fn ownership_backend_not_running_is_indeterminate() {
+        for state in ["Stopped", "NeedsLogin", "Starting", "NoState"] {
+            let j = format!(r#"{{"BackendState":"{state}","ControlURL":"https://mesh.musu.pro"}}"#);
+            assert_eq!(
+                tailnet_ownership_from_status(&j, OURS),
+                TailnetOwnership::Indeterminate,
+                "backend {state} must be Indeterminate"
+            );
+        }
+    }
+
+    #[test]
+    fn ownership_control_undetermined_is_indeterminate() {
+        let j = r#"{"BackendState":"Running"}"#; // running but no control URL/name
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Indeterminate);
+    }
+
+    #[test]
+    fn control_host_of_strips_scheme_port_path() {
+        assert_eq!(control_host_of("https://mesh.musu.pro:443/x"), "mesh.musu.pro");
+        assert_eq!(control_host_of("mesh.musu.pro."), "mesh.musu.pro");
+        assert_eq!(control_host_of("HTTP://Mesh.Musu.Pro"), "mesh.musu.pro");
     }
 
     #[test]
