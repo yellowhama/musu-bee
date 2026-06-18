@@ -219,6 +219,7 @@ function connectorApprovalGateForUi(connector) {
 let fleetFilter = "all";
 let lastFleetIsEmpty = true;
 let lastFleetNodes = []; // last rendered node list (for this-PC IP lookups, etc.)
+let lastThisPcPrograms = null; // this PC's ollama/comfyui/adapter snapshot
 let lastPrivateMeshStatus = null;
 let lastReleaseProofResult = null;
 let lastReleaseProofTarget = null;
@@ -2972,6 +2973,22 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
       badge.className = "this-pc-badge";
       badge.textContent = "this PC";
       li.appendChild(badge);
+
+      // Specialist-program badges (redesign C-plus step 2): what THIS machine is
+      // running, so the row reads as "a machine doing something", not just a name.
+      // Sourced from this_pc_programs (local /api/setup/status). Local-only —
+      // peer machines get this once the cross-machine bridge change lands.
+      const prog = lastThisPcPrograms || {};
+      const progs = [];
+      if (prog.ollama_running) progs.push({ label: "Ollama", on: true });
+      if (prog.comfyui_running) progs.push({ label: "ComfyUI", on: true });
+      if (prog.default_adapter) progs.push({ label: prog.default_adapter, on: false });
+      for (const p of progs) {
+        const chip = document.createElement("span");
+        chip.className = `node-program${p.on ? " running" : ""}`;
+        chip.textContent = p.label;
+        li.appendChild(chip);
+      }
     }
 
     // Plain-language status label next to the name (D7 Tailscale-style: a dot is
@@ -3349,6 +3366,17 @@ async function refresh() {
   // avoid. Until the bridge exposes a real running-task count (Phase 2a), show
   // honest "online" and nothing more. Don't paint activity we can't measure.
   const thisPcActivity = "online";
+
+  // Refresh this-PC's specialist-program snapshot (ollama/comfyui/adapter) before
+  // rendering so the this-PC row can badge what it's running. Soft-fail: a miss
+  // just leaves the badges off, never blocks the fleet render.
+  if (connected) {
+    try {
+      lastThisPcPrograms = await invoke("this_pc_programs");
+    } catch {
+      /* leave previous snapshot; badges simply may be stale/absent */
+    }
+  }
 
   if (connected) {
     try {

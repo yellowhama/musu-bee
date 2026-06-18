@@ -159,9 +159,12 @@ body {
 .cockpit {
   position: relative;
   z-index: 1;
-  max-width: 680px;
+  /* Desktop width, not a 680px web column (redesign Option C-plus: this is a
+     desktop tool, not a landing page). Wider field + tighter padding raises the
+     information density and stops it reading like a centered web page. */
+  max-width: 880px;
   margin: 0 auto;
-  padding: 26px 26px 34px;
+  padding: 18px 24px 28px;
   animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -623,6 +626,28 @@ body {
   border-color: var(--amber);
   color: var(--ink);
 }
+/* Specialist-program chips on a machine row — what it's running (C-plus step 2).
+   running services (Ollama/ComfyUI) read green; the default agent is neutral. */
+.node-program {
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.node-program.running {
+  border-color: color-mix(in srgb, var(--online) 34%, var(--line-soft));
+  background: color-mix(in srgb, var(--online) 8%, var(--bg-0));
+  color: var(--online);
+}
+
 /* Remove a machine — one-way, so styled as a danger affordance. */
 .node-remove {
   flex-shrink: 0;
@@ -1467,10 +1492,17 @@ body {
   align-items: center;
   gap: 8px;
   padding: 0 8px 0 16px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
+  /* De-hero (Option C-plus): the primary command surface is Claude Code via MCP
+     (V28 §3.1), so the cockpit's order box is a quiet fallback — recede it into
+     the page (subtle inset) rather than presenting it as the hero input. */
+  background: color-mix(in srgb, var(--bg-1) 60%, transparent);
+  border: 1px solid var(--line-soft);
   border-radius: var(--r);
   transition: border-color 0.15s ease;
+}
+.order-box:focus-within {
+  /* still clearly usable when the user does focus it */
+  background: var(--bg-1);
 }
 .order-box:focus-within {
   border-color: rgba(255, 200, 87, 0.5);
