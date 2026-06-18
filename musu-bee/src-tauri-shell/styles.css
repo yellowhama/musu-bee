@@ -2677,3 +2677,188 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .first-task-aha.pulse-once .aha-dot { animation: none; }
 }
+
+/* ── account menu + settings (redesign A1-A4) ───────────────────────────────
+   The discoverable home for Settings / Help / Sign out, in the header's
+   fixed corner — never buried in diagnostics. */
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.account-wrap {
+  position: relative;
+}
+.account-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.account-btn:hover { border-color: var(--amber); }
+.account-btn[aria-expanded="true"] { border-color: var(--amber); background: var(--bg-3); }
+.account-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, var(--ink-dim) 0 32%, transparent 33%),
+    radial-gradient(circle at 50% 100%, var(--ink-dim) 0 48%, transparent 49%);
+}
+.account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+  padding: 6px;
+  z-index: 120;
+  animation: palette-pop 0.12s ease both;
+}
+.account-menu-id {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: 6px;
+}
+.account-menu-id-label {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.account-menu-id strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+.account-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu button:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.account-menu button kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.account-menu #m-signout { color: var(--bad); }
+.account-menu-sep {
+  height: 1px;
+  background: var(--line-soft);
+  margin: 6px 4px;
+}
+
+/* generic modal (settings) — reuses palette backdrop/pop animation */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 12, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  z-index: 110;
+  animation: palette-fade 0.12s ease both;
+}
+.modal-box {
+  width: min(480px, 92vw);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+  animation: palette-pop 0.14s ease both;
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.modal-head h2 { margin: 0; font-size: 16px; font-family: var(--sans); }
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.modal-close:hover { background: var(--bg-3); color: var(--ink); }
+.settings-section {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.settings-section:last-child { border-bottom: none; }
+.settings-section h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.settings-row > span { color: var(--ink-dim); }
+.settings-row > strong { color: var(--ink); }
+.settings-row select {
+  background: var(--bg-1);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.settings-actions button {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.settings-actions button:hover { border-color: var(--amber); }
+.settings-actions .btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.settings-actions .btn-danger:hover { border-color: var(--bad); }

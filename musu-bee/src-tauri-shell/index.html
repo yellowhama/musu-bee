@@ -24,9 +24,38 @@
             <p>your computers</p>
           </div>
         </div>
-        <div id="conn" class="conn" data-state="checking">
-          <span class="dot"></span>
-          <span id="conn-label">Checking</span>
+        <div class="top-right">
+          <div id="conn" class="conn" data-state="checking">
+            <span class="dot"></span>
+            <span id="conn-label">Checking</span>
+          </div>
+          <!-- account menu: the obvious home for Settings / Help / Sign out.
+               Reference apps keep identity + sign-out in a fixed corner menu,
+               never buried in diagnostics. -->
+          <div class="account-wrap">
+            <button
+              id="account-btn"
+              class="account-btn"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="account-menu"
+              title="Account & settings"
+            >
+              <span class="account-avatar" aria-hidden="true"></span>
+            </button>
+            <div id="account-menu" class="account-menu" role="menu" hidden>
+              <div class="account-menu-id">
+                <span class="account-menu-id-label">Account</span>
+                <strong id="account-menu-state">—</strong>
+              </div>
+              <button id="m-settings" type="button" role="menuitem">Settings<kbd>Ctrl ,</kbd></button>
+              <button id="m-help" type="button" role="menuitem">Help &amp; docs</button>
+              <div class="account-menu-sep" role="separator"></div>
+              <button id="m-signout" type="button" role="menuitem" hidden>Sign out</button>
+              <button id="m-signin" type="button" role="menuitem" hidden>Sign in</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -399,6 +428,45 @@
         <p class="diag-version" id="version">—</p>
       </details>
     </main>
+
+    <!-- settings (Ctrl/Cmd+,) — the real settings surface. Account/Appearance/
+         About live here instead of scattered through the diagnostics panel. -->
+    <div id="settings-modal" class="modal-backdrop" hidden>
+      <div class="modal-box settings-box" role="dialog" aria-modal="true" aria-label="Settings">
+        <div class="modal-head">
+          <h2>Settings</h2>
+          <button id="settings-close" class="modal-close" type="button" aria-label="Close settings">✕</button>
+        </div>
+        <section class="settings-section">
+          <h3>Account</h3>
+          <div class="settings-row">
+            <span>Status</span><strong id="set-account-state">—</strong>
+          </div>
+          <div class="settings-actions">
+            <button id="set-signout" type="button" class="btn-danger" hidden>Sign out</button>
+            <button id="set-signin" type="button" class="btn-primary" hidden>Sign in</button>
+          </div>
+        </section>
+        <section class="settings-section">
+          <h3>Appearance</h3>
+          <div class="settings-row">
+            <span>Theme</span>
+            <select id="set-theme">
+              <option value="dark">Dark</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+        </section>
+        <section class="settings-section">
+          <h3>About</h3>
+          <div class="settings-row"><span>Version</span><strong id="set-version">—</strong></div>
+          <div class="settings-row"><span>Updates</span><strong id="set-update-state">Auto-updates on launch</strong></div>
+          <div class="settings-actions">
+            <button id="set-help" type="button">Help &amp; docs</button>
+          </div>
+        </section>
+      </div>
+    </div>
 
     <!-- command palette (Ctrl/Cmd+K) — keyboard-first, premium speed -->
     <div id="palette" class="palette-backdrop" hidden>

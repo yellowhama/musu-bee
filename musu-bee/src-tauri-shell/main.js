@@ -3153,6 +3153,8 @@ function renderDiagnostics(status) {
   const inb = $("d-signin");
   if (out) out.hidden = !signedIn || loginInProgress;
   if (inb) inb.hidden = signedIn || loginInProgress;
+  // mirror the same account state into the header account menu + settings modal
+  syncAccountAffordances(status);
 
   renderWarnings(status);
   $("version").textContent = status.version ? `MUSU ${status.version}` : "";
@@ -4222,6 +4224,115 @@ async function signOut(btn) {
 $("signin-btn").addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("d-signin").addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("d-signout").addEventListener("click", (e) => signOut(e.currentTarget));
+
+// ── account menu + settings (Ctrl+,) ───────────────────────────────────────
+// The discoverable home for Settings / Help / Sign out — reference apps keep
+// these in a fixed-corner account menu, never in a diagnostics drawer. These
+// mirror the existing #d-signin/#d-signout actions (same functions) so behavior
+// stays identical; they're just placed where users actually look.
+const HELP_URL = "https://musu.pro/docs";
+
+function openHelp() {
+  try {
+    invoke("open_external_url", { url: HELP_URL }).catch(() => {
+      try { window.open(HELP_URL, "_blank"); } catch { /* no-op */ }
+    });
+  } catch {
+    try { window.open(HELP_URL, "_blank"); } catch { /* no-op */ }
+  }
+}
+
+function setAccountMenuOpen(open) {
+  const menu = $("account-menu");
+  const btn = $("account-btn");
+  if (!menu || !btn) return;
+  menu.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function setSettingsOpen(open) {
+  const modal = $("settings-modal");
+  if (!modal) return;
+  modal.hidden = !open;
+  if (open) {
+    setAccountMenuOpen(false);
+    // sync the snapshot into the settings surface
+    syncAccountAffordances(window.__lastStatus || {});
+    $("set-theme") && ($("set-theme").value = currentTheme());
+    queueMicrotask(() => $("settings-close")?.focus());
+  }
+}
+
+// Theme: dark (default) or system. Stored in localStorage; applied as a
+// data-theme attribute. v1 keeps the dark palette and only toggles whether the
+// OS "light" preference is honored (system) — the cockpit is dark-first.
+function currentTheme() {
+  try { return window.localStorage.getItem("musu.theme") || "dark"; } catch { return "dark"; }
+}
+function applyTheme(theme) {
+  try { window.localStorage.setItem("musu.theme", theme); } catch { /* no-op */ }
+  document.documentElement.setAttribute("data-theme", theme);
+}
+
+// Keep every account/version affordance (header menu + settings modal) in sync
+// with one status snapshot, so there's a single source of truth.
+function syncAccountAffordances(status) {
+  const auth = status?.auth_status || "";
+  const signedIn = auth === "Connected";
+  const stateText = signedIn
+    ? "Signed in"
+    : auth === "Local Only"
+      ? "Local only (not signed in)"
+      : "Not signed in";
+  const loginInProgress = !$("connecting")?.hidden;
+  for (const id of ["account-menu-state", "set-account-state"]) {
+    const el = $(id); if (el) el.textContent = stateText;
+  }
+  for (const id of ["m-signout", "set-signout"]) {
+    const el = $(id); if (el) el.hidden = !signedIn || loginInProgress;
+  }
+  for (const id of ["m-signin", "set-signin"]) {
+    const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
+  }
+  const ver = status?.version ? `MUSU ${status.version}` : "—";
+  const sv = $("set-version"); if (sv) sv.textContent = ver;
+}
+
+$("account-btn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setAccountMenuOpen($("account-menu")?.hidden !== false);
+});
+// click-away closes the menu
+document.addEventListener("click", (e) => {
+  const menu = $("account-menu");
+  if (menu && !menu.hidden && !e.target?.closest?.(".account-wrap")) setAccountMenuOpen(false);
+});
+$("m-settings")?.addEventListener("click", () => setSettingsOpen(true));
+$("m-help")?.addEventListener("click", () => { setAccountMenuOpen(false); openHelp(); });
+$("m-signout")?.addEventListener("click", (e) => { setAccountMenuOpen(false); signOut(e.currentTarget); });
+$("m-signin")?.addEventListener("click", (e) => { setAccountMenuOpen(false); startSignIn(e.currentTarget); });
+
+$("settings-close")?.addEventListener("click", () => setSettingsOpen(false));
+$("settings-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "settings-modal") setSettingsOpen(false); // backdrop click
+});
+$("set-signout")?.addEventListener("click", (e) => signOut(e.currentTarget));
+$("set-signin")?.addEventListener("click", (e) => startSignIn(e.currentTarget));
+$("set-help")?.addEventListener("click", openHelp);
+$("set-theme")?.addEventListener("change", (e) => applyTheme(e.currentTarget.value));
+
+// Ctrl/Cmd+, opens settings; Esc closes the topmost overlay.
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === ",") {
+    e.preventDefault();
+    setSettingsOpen($("settings-modal")?.hidden !== false);
+  } else if (e.key === "Escape") {
+    if (!$("settings-modal")?.hidden) setSettingsOpen(false);
+    else if (!$("account-menu")?.hidden) setAccountMenuOpen(false);
+  }
+});
+
+applyTheme(currentTheme());
 
 // Diagnostics are lazy: only fetch the expensive desktop_status when the drawer
 // is actually opened (and again on each open, to refresh stale numbers).
