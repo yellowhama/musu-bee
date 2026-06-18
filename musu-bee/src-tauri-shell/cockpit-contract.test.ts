@@ -937,7 +937,12 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /function runDeviceAddPassIssue\(\)/);
   assert.match(text, /invoke\("private_mesh_create_join_key"\)/);
   assert.match(text, /\$\("device-add-pass-generate"\)\?\.addEventListener\("click", runDeviceAddPassIssue\)/);
-  assert.match(text, /setAddPcPanelOpen\(isEmpty\)/);
+  // Onboarding: the Add-PC panel must NOT auto-open on an empty fleet. The empty
+  // state now points at the order box (give-a-task is the aha, not infra setup);
+  // Add-PC re-surfaces as a contextual nudge after the first task. Was
+  // setAddPcPanelOpen(isEmpty); deliberately changed.
+  assert.match(text, /setAddPcPanelOpen\(false\)/);
+  assert.doesNotMatch(text, /setAddPcPanelOpen\(isEmpty\)/);
   assert.match(text, /\$\("add-pc-toggle"\)\?\.addEventListener\("click"/);
   assert.match(text, /\$\("empty-add-pc"\)\?\.addEventListener\("click", openAddPcGuide\)/);
   assert.match(text, /musu\.private_mesh_desktop_proof_clipboard\.v1/);
@@ -2607,5 +2612,85 @@ test("order target dropdown disables offline or unreadable machines", async () =
   assert.equal(studioRow.classList.contains("selected"), false);
 
   await new Promise((resolve) => setTimeout(resolve, 0));
+  dom.window.close();
+});
+
+// ── onboarding: task-first empty state, example chips, first-task aha ────────
+
+test("empty fleet does NOT auto-open the Add-PC panel (task-first onboarding)", async () => {
+  const dom = loadShellDom();
+  const win = dom.window as unknown as {
+    renderFleet: (n: Array<Record<string, unknown>>, a?: unknown, b?: unknown) => void;
+  };
+  const doc = dom.window.document;
+  // Only this PC = empty fleet.
+  win.renderFleet([{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }], null, true);
+  const panel = doc.getElementById("add-pc-panel") as HTMLElement | null;
+  // Add-PC stays closed; the empty state (which points at the order box) shows.
+  assert.equal(panel?.hidden, true, "Add-PC panel must not auto-open on empty fleet");
+  const empty = doc.getElementById("fleet-empty") as HTMLElement | null;
+  assert.equal(empty?.hidden, false, "empty state should be visible");
+  assert.match(empty?.textContent || "", /Give it a task/);
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
+
+test("empty-state primary CTA focuses the order input (aha is first task)", async () => {
+  const dom = loadShellDom();
+  const win = dom.window as unknown as { renderFleet: (n: Array<Record<string, unknown>>, a?: unknown, b?: unknown) => void };
+  const doc = dom.window.document;
+  win.renderFleet([{ node_name: "this machine", last_seen: "", public_url: "", is_this_pc: true }], null, true);
+  (doc.getElementById("empty-give-task") as HTMLElement).click();
+  assert.equal(doc.activeElement, doc.getElementById("order-input"), "give-a-task CTA must focus the order input");
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
+
+test("example chips fill the order input but do NOT send", async () => {
+  const dom = loadShellDom();
+  const doc = dom.window.document;
+  const win = dom.window as unknown as { __TAURI__: { core: { invoke: (c: string) => Promise<unknown> } } };
+  // Spy: record any submit_order call.
+  let submitted = 0;
+  const realInvoke = win.__TAURI__.core.invoke;
+  win.__TAURI__.core.invoke = async (command: string) => {
+    if (command === "submit_order") submitted += 1;
+    return realInvoke(command);
+  };
+  const examples = doc.getElementById("order-examples") as HTMLElement;
+  const chip = examples.querySelector("[data-order-example]") as HTMLButtonElement;
+  assert.ok(chip, "at least one example chip exists");
+  assert.equal(chip.tagName, "BUTTON", "chips are real buttons (keyboard-accessible)");
+  chip.click();
+  const input = doc.getElementById("order-input") as HTMLInputElement;
+  assert.equal(input.value, (chip.textContent || "").trim(), "chip click fills the input");
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(submitted, 0, "chip click must NOT send the order");
+  dom.window.close();
+});
+
+test("first task done fires the aha exactly once; chips retire after", async () => {
+  const dom = loadShellDom();
+  const doc = dom.window.document;
+  const win = dom.window as unknown as { markFirstTaskDoneIfNeeded: () => boolean };
+  try { dom.window.localStorage.removeItem("musu.onboarding.firstTaskDone"); } catch {}
+  const banner = doc.getElementById("first-task-aha") as HTMLElement;
+  const examples = doc.getElementById("order-examples") as HTMLElement;
+  assert.equal(banner.hidden, true, "aha hidden before first task");
+  // First done → fires, badge shows, chips retire.
+  assert.equal(win.markFirstTaskDoneIfNeeded(), true);
+  assert.equal(banner.hidden, false, "aha badge shows after first task");
+  assert.equal(examples.hidden, true, "example chips retire after first task");
+  // Second done → idempotent, no re-fire.
+  assert.equal(win.markFirstTaskDoneIfNeeded(), false, "aha fires only once");
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
+
+test("order input default placeholder is this-PC framed", async () => {
+  const dom = loadShellDom();
+  const input = dom.window.document.getElementById("order-input") as HTMLInputElement;
+  assert.equal(input.getAttribute("placeholder"), "What should this PC do?");
+  await new Promise((r) => setTimeout(r, 0));
   dom.window.close();
 });

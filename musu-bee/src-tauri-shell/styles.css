@@ -2533,3 +2533,99 @@ body {
     grid-template-columns: 58px minmax(0, 1fr);
   }
 }
+
+/* ── onboarding: empty-state secondary, example chips, first-task aha ─────── */
+
+/* Inline text-link button — used for "Add another PC" secondary actions so the
+   primary CTA (give-a-task) stays dominant. Muted, underlined-on-hover. */
+.btn-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-link:hover {
+  color: var(--online);
+}
+
+.empty-secondary {
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+/* Example-command chips: a first-run nudge. Deliberately muted/secondary so they
+   suggest rather than compete with the order box. They LOOK like suggestions,
+   not primary buttons. */
+.order-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.order-examples-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.order-example {
+  padding: 6px 11px;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.order-example:hover,
+.order-example:focus-visible {
+  border-color: color-mix(in srgb, var(--online) 38%, var(--line-soft));
+  color: var(--ink);
+}
+
+/* First-task aha: a quiet one-line badge (no modal, no confetti). */
+.first-task-aha {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  background: color-mix(in srgb, var(--online) 8%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--online) 30%, var(--line));
+  border-radius: 12px;
+}
+.aha-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--online);
+}
+.aha-copy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.first-task-aha.pulse-once .aha-dot {
+  animation: aha-pulse 1.1s ease-out 2;
+}
+@keyframes aha-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--online) 60%, transparent); }
+  100% { box-shadow: 0 0 0 7px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .first-task-aha.pulse-once .aha-dot { animation: none; }
+}
