@@ -2844,8 +2844,22 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   // empty = no nodes at all, or only this PC
   const isEmpty = nodes.length === 0 || others.length === 0;
   lastFleetIsEmpty = isEmpty;
+  // Onboarding: do NOT auto-open the Add-PC panel on an empty fleet. Adding a PC
+  // is infrastructure setup (Headscale) — pushing a first-time user there before
+  // they've felt the product (give-a-task → walk-away → get-pinged) is the wrong
+  // first step. Keep the panel closed; the empty state now points at the order
+  // box, and Add-PC re-surfaces as a contextual nudge AFTER the first task done
+  // (see markFirstTaskDoneIfNeeded). The user can still open it manually.
   if (!addPcPanelUserToggled) {
-    setAddPcPanelOpen(isEmpty);
+    setAddPcPanelOpen(false);
+  }
+  // On an empty fleet before the first task, collapse the connector-policy
+  // section — it sits between the empty state and the order box and pushes the
+  // first task below the fold (reduces first-run cognitive load; the section is
+  // still reachable once the user has machines/tasks). Show it otherwise.
+  const connectorPolicy = $("connector-policy");
+  if (connectorPolicy) {
+    connectorPolicy.hidden = isEmpty && !onboardingFlag("firstTaskDone");
   }
 
   // keep the order target dropdown in sync with the fleet (preserve selection)
@@ -3790,6 +3804,27 @@ function pollTask(taskId, text, target, orderBoundary) {
 // Fire an OS notification when an order finishes — so the user can walk away and
 // MUSU taps them. Best-effort: the Tauri command may not exist yet (shell-only
 // build), so swallow errors.
+// First-task aha (one-time). When the user's FIRST task finishes successfully,
+// they've just experienced the whole loop — give-a-task → walk-away → get-pinged.
+// Mark it, show a one-line badge above the cockpit, and surface an Add-PC nudge
+// (the right moment to scale: they've felt the value). Pure + idempotent so it's
+// unit-testable without the async notify path. Returns true the one time it fires.
+function markFirstTaskDoneIfNeeded() {
+  if (onboardingFlag("firstTaskDone")) return false;
+  setOnboardingFlag("firstTaskDone");
+  // Chips were a first-run nudge; retire them now.
+  updateOrderExamplesVisibility();
+  const banner = $("first-task-aha");
+  if (banner) {
+    banner.hidden = false;
+    banner.classList.add("pulse-once");
+  }
+  announce(
+    "First task done. This is the loop — give it work, walk away, get pinged."
+  );
+  return true;
+}
+
 async function notifyTerminal(text, st, target) {
   // Announce to assistive tech alongside the OS notification, so a SR/ambient
   // user learns the order finished without watching the card. done = polite,
@@ -3797,6 +3832,7 @@ async function notifyTerminal(text, st, target) {
   const who = target ? ` on ${target}` : "";
   if (st.status === "done") {
     announce(`Order${who} done`);
+    markFirstTaskDoneIfNeeded();
   } else {
     const why = st.error ? `: ${String(st.error).slice(0, 80)}` : "";
     announce(`Order${who} ${st.status}${why}`, true);
@@ -3926,6 +3962,49 @@ function openAddPcGuide() {
   setAddPcPanelOpen(true, { focus: true, user: true });
 }
 
+// ── onboarding state (first-task) ──────────────────────────────────────────
+// One-time flags namespaced under musu.onboarding.*. Machine-scoped (per WebView
+// profile) for v1 — simple and good enough; a second account on the same machine
+// re-seeing the aha is a benign edge. localStorage may throw (private mode /
+// cleared WebView); always guard. Falling back to "not done" on read errors is
+// safe — at worst the one-time UI shows again, which is harmless.
+function onboardingFlag(name) {
+  try {
+    return window.localStorage.getItem(`musu.onboarding.${name}`) === "1";
+  } catch {
+    return false;
+  }
+}
+function setOnboardingFlag(name) {
+  try {
+    window.localStorage.setItem(`musu.onboarding.${name}`, "1");
+  } catch {
+    /* storage unavailable — non-fatal; the one-time UI may repeat */
+  }
+}
+
+// Example-command chips are a first-run nudge. Show them only until the user has
+// completed their first task, then get out of the way.
+function updateOrderExamplesVisibility() {
+  const box = $("order-examples");
+  if (!box) return;
+  box.hidden = onboardingFlag("firstTaskDone");
+}
+
+// Bring the order box into view AND focus it. The empty-state lives above the
+// order box, so a focus-only CTA would move focus to an element below the fold
+// the user never sees (H2). scrollIntoView first, then focus.
+function focusOrderInput() {
+  const input = $("order-input");
+  if (!input) return;
+  try {
+    input.scrollIntoView({ block: "center", behavior: "smooth" });
+  } catch {
+    /* jsdom / old engines: scrollIntoView may be unavailable — focus still works */
+  }
+  input.focus();
+}
+
 // ── wiring ─────────────────────────────────────────────
 $("order-send").addEventListener("click", submitOrder);
 $("order-input").addEventListener("keydown", (e) => {
@@ -3937,6 +4016,25 @@ $("add-pc-toggle")?.addEventListener("click", () => {
   setAddPcPanelOpen(panel?.hidden !== false, { focus: true, user: true });
 });
 $("empty-add-pc")?.addEventListener("click", openAddPcGuide);
+// Empty-state primary CTA: the first task is the aha, not Add-PC. Bring the
+// order box into view and focus it so the user types their first task.
+$("empty-give-task")?.addEventListener("click", focusOrderInput);
+
+// Example-command chips: clicking FILLS the order input (does not send) so the
+// user keeps intent, then brings the box into view + focuses. Delegated so all
+// chips share one handler. Send is left to the user (Send button / Enter).
+$("order-examples")?.addEventListener("click", (e) => {
+  const chip = e.target?.closest?.("[data-order-example]");
+  if (!chip) return;
+  const input = $("order-input");
+  if (input) input.value = chip.textContent.trim();
+  focusOrderInput();
+});
+updateOrderExamplesVisibility();
+
+// Contextual Add-PC nudge inside the first-task aha banner — surfaces the
+// multi-PC value exactly when the user has felt the single-PC value (M1).
+$("aha-add-pc")?.addEventListener("click", openAddPcGuide);
 // ── command palette (Ctrl/Cmd+K) — keyboard-first premium speed ────────
 // A searchable action list. Frecency-lite: recently-run commands float up.
 // Target a machine by name from the keyboard (palette), reusing the fleet-row

@@ -249,18 +249,35 @@
             </li>
           </ol>
         </div>
+        <!-- First-task aha (one-time): shown after the user's first successful
+             task. A quiet one-line badge — no modal, no confetti (this is a
+             developer tool). Also the right moment to nudge Add-PC. -->
+        <div id="first-task-aha" class="first-task-aha" hidden>
+          <span class="aha-dot" aria-hidden="true"></span>
+          <p class="aha-copy">
+            First task done. This is the loop — give it work, walk away, get pinged.
+            <button id="aha-add-pc" class="btn-link" type="button">Add another PC</button>
+            to run tasks across all your machines.
+          </p>
+        </div>
+
         <ul id="fleet-list" class="fleet-list" aria-label="Your machines"></ul>
         <p id="fleet-filter-empty" class="fleet-filter-empty" hidden>No machines match.</p>
 
         <!-- empty state (only this PC / none) -->
         <div id="fleet-empty" class="card empty" hidden>
-          <div class="empty-glyph" aria-hidden="true">+</div>
-          <p class="empty-title">This is your only machine.</p>
-          <p class="muted">Install MUSU on another PC to build your fleet.</p>
-          <button id="empty-add-pc" class="btn-secondary" type="button">Show Add PC guide</button>
-          <a class="btn-primary" href="https://musu.pro" target="_blank" rel="noopener"
-            >Get MUSU for another PC <span class="arr">→</span></a
-          >
+          <div class="empty-glyph" aria-hidden="true">›</div>
+          <p class="empty-title">This PC is connected and ready.</p>
+          <p class="muted">
+            Give it a task below — then walk away. MUSU notifies you when it's done.
+          </p>
+          <button id="empty-give-task" class="btn-primary" type="button">
+            Give this PC a task <span class="arr">→</span>
+          </button>
+          <p class="empty-secondary muted">
+            <button id="empty-add-pc" class="btn-link" type="button">Add another PC (optional)</button>
+            — MUSU gets stronger with more machines.
+          </p>
         </div>
 
         <section id="connector-policy" class="connector-policy" data-policy="idle">
@@ -297,13 +314,28 @@
           <ul id="connector-registry" class="connector-registry" aria-label="Curated connectors"></ul>
         </section>
 
+        <!-- Example commands (nudge): shown only before the first task. Clicking a
+             chip FILLS the order input (does not send) so the user keeps intent —
+             they review and press Send. Copy is cwd-independent + honest (the
+             headless AI does read/reason/explain reliably; no folder-relative or
+             exec/mutate prompts that aren't guaranteed). -->
+        <div id="order-examples" class="order-examples" hidden>
+          <span class="order-examples-label">Try:</span>
+          <button type="button" class="order-example" data-order-example>
+            Introduce yourself and list what you can help me do on this machine, with examples
+          </button>
+          <button type="button" class="order-example" data-order-example>
+            Write me a short status report on this machine and suggest one thing to try first
+          </button>
+        </div>
+
         <!-- order box: give the fleet work (P0 input path → submit_order) -->
         <div class="order-box">
           <span class="order-prompt" aria-hidden="true">›</span>
           <input
             id="order-input"
             type="text"
-            placeholder="What should they do?"
+            placeholder="What should this PC do?"
             autocomplete="off"
           />
           <select id="order-target" aria-label="Target machine">
