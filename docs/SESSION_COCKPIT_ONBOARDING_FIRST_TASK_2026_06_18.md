@@ -90,9 +90,30 @@ frontend-architect Critic가 HIGH 4건. 모두 옵션1 구현에 반영(아래 "
   - 칩1을 "look around this machine + 3가지 제안"으로 보강 시도했으나 cwd 깊이 탐색으로 **~3.5분(208s) 과교정** → 철회. 빠른 칩 1 + 루프 체감 칩 1 조합이 다양성에 낫다.
 - **항목 3 완료**: `markFirstTaskDoneIfNeeded`가 connector-policy를 즉시 re-show(다음 ~15s poll 안 기다림). 칩→Send positive-control 테스트 추가(fill-not-send는 *부재*만 단언하므로 send 경로를 별도로 보호). **테스트 49/49**.
 
+## 데스크탑 재빌드 + 배포 완료 (항목 2, 2026-06-18 같은 날)
+
+사용자 승인 "MSIX 빌드 + musu.pro 배포까지". **묶음 결정 해소**: auto-mesh-join은 이미 main에 머지돼 있었음(`2d051cd9` 포함, route+lib 실재) → cockpit onboarding + mesh를 **같은 트리에서 함께 빌드**.
+
+**빌드 체인** (`scripts/windows/build-msix.ps1`, self-contained — publisher=blossompark.musu 하드코딩, Yellowhama placeholder 이미 해소):
+1. `cargo build --bin musu --bin musu-startup --release` (1m37s)
+2. `tauri build --no-bundle` (beforeBuild = shell→out + sidecar 복사 → musu-desktop.exe 컴파일 5m13s)
+3. `winapp pack` + canonical 키(`.local-build/signing/blossompark.musu.pfx`, 6/15 재사용 → auto-update 안정) 서명
+4. `.appinstaller`(Version 1.15.0.0) + hosted-named msix copy 생성
+
+**배포** (GitHub release `desktop-latest`, yellowhama/musu-bee, MANUAL `gh release upload --clobber`):
+- `musu-desktop-x64.msix` 27.78MB (06:58 UTC) — 서명 Valid
+- `musu.appinstaller` 1.15.0.0 (06:58) — auto-update primary
+- `MUSU_1.15.0_x64-setup.exe` 215.1MB (07:05) — **재빌드 필요했음**(아래 함정)
+- cert(6/14) + Install-MUSU.ps1(6/16) 불변 = 정합 유지
+
+**라이브 검증**: 3 경로 HTTP 200 + 크기 정합. cert thumbprint 정합 확인 — MSIX 서명 = Install-MUSU.ps1 pin = `65F5926444D563966C75F000C384C8530B1D8DD8` (canonical 키 재사용 효과). install.ps1→cert trust→appinstaller 체인 무결.
+
+**작업 중 잡은 함정 (정직)**: 첫 MSIX 빌드 후 다운로드 페이지가 노출하는 `setup.exe`(NSIS)가 **onboarding 6시간 전(09:46) stale 빌드**임을 발견 — msix만 최신이고 setup.exe는 옛 cockpit. `--no-bundle`은 NSIS를 안 만들기 때문. → `tauri build --bundles nsis`로 재빌드(16:04, onboarding 포함) 후 재업로드. 세 설치 경로(msix/appinstaller/setup.exe)를 모두 같은 빌드로 정합화.
+
 ## 남은 다음 단계
 
-1. **데스크탑 재빌드 + 배포**: cockpit 변경을 사용자 설치본에 반영하려면 Tauri 빌드 → MSIX → musu.pro. (auto-mesh-join 미배포분 `feature/account-auto-mesh-join`과 함께 묶을지 결정)
+1. **2-machine E2E** (auto-mesh-join, 실기기 필요) — 별개 세션의 미완. 이번 배포로 설치본엔 자동합류 코드가 들어갔으니, 실제 2번째 PC 설치→로그인→자동합류→격리 검증이 V28 thesis 진짜 종결.
+2. **설치본 시각 검증** — 새 MSIX/setup.exe 설치 후 cockpit 빈 상태가 의도대로(첫 작업 CTA, 칩, connector 접힘) 뜨는지. 현재는 정적 렌더만 확인.
 
 ## 관련 문서
 - [`DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md`](DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md) — 데스크탑=로컬브릿지 onboarding 스펙(상위)
