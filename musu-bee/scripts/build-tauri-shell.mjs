@@ -34,6 +34,11 @@ for (const name of ["styles.css", "main.js"]) {
 // the whole fonts/ dir so the desktop shell renders offline / instantly.
 cpSync(join(sourceRoot, "fonts"), join(outRoot, "fonts"), { recursive: true });
 
+// Brand assets (real musu logo + favicon, copied from the site's public/images
+// so the cockpit uses the SAME mark as the website/favicon). Bundled locally —
+// no network fetch.
+cpSync(join(sourceRoot, "assets"), join(outRoot, "assets"), { recursive: true });
+
 const html = readFileSync(join(sourceRoot, "index.html"), "utf8")
   .replaceAll("__MUSU_VERSION__", version);
 writeFileSync(join(outRoot, "index.html"), html);

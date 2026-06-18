@@ -54,36 +54,75 @@
 :root {
   color-scheme: dark;
 
-  /* graphite field — not flat black; layered, with a cool cast */
-  --bg-0: #0b0d0f;
-  --bg-1: #121519;
-  --bg-2: #181c21;
-  --bg-3: #1f242b;
-  --line: #2a3138;
-  --line-soft: #20262c;
+  /* Surface ladder aligned to the musu.pro site design system (the design
+     bible): zinc-based, neutral (no cool cast), never pure black. Mirrors the
+     site's --bg-base #09090b / zinc-900 / zinc-800 / zinc-700 so the desktop
+     cockpit and the website read as ONE product. Token NAMES kept (--bg-0..3,
+     --line) — 168 color-mix sites reference them; only values move. */
+  --bg-0: #09090b;   /* site --bg-base (zinc-950) */
+  --bg-1: #18181b;   /* zinc-900 — panel/strip */
+  --bg-2: #1f1f23;   /* between zinc-900/800 — cards */
+  --bg-3: #27272a;   /* site --bg-elevated (zinc-800) — popover/raised */
+  --line: #3f3f46;   /* zinc-700 — borders */
+  --line-soft: #27272a;
 
-  --ink: #e8eaed;
-  --ink-dim: #9aa3ad;
-  --ink-faint: #5c656f;
-  --ink-ghost: #3a424b;
+  /* text hierarchy — aligned to the site bible (--fg1..fg4). The ladder now
+     matches musu.pro exactly. Measured on --bg-1 (#18181b): ink ~17:1,
+     ink-dim(#a1a1aa) ~7:1 (past 4.5 body floor), ink-faint(#71717a) ~3.6:1
+     (past the 3:1 large/UI floor — was 2.9 below floor = the "low-contrast"
+     complaint). ink-ghost decorative only (≈2:1) — never for must-read text. */
+  --ink: #ffffff;        /* site --fg1 */
+  --ink-dim: #a1a1aa;    /* site --fg2 (zinc-400) */
+  --ink-faint: #71717a;  /* site --fg3 (zinc-500) */
+  --ink-ghost: #52525b;  /* site --fg4 (zinc-600) — decorative */
 
-  /* amber = the one signal color. used sparingly = it carries weight */
-  --amber: #ffc857;
-  --amber-bright: #ffd87a;
+  /* signal color, aligned to the site's --brand-yellow (#ffc131). Used sparingly
+     so it carries weight (the "alive"/primary-action signal). The site's other
+     accent is cyan #24c8db — adopting that as a secondary accent is deferred to
+     the relayout step (it touches every amber color-mix site). */
+  --amber: #ffc131;        /* site --brand-yellow */
+  --amber-bright: #ffd166;
   --amber-ink: #1a1206;
-  --amber-glow: rgba(255, 200, 87, 0.55);
+  --amber-glow: rgba(255, 193, 49, 0.55);
 
-  --online: #5fd08a;
-  --online-glow: rgba(95, 208, 138, 0.5);
-  --offline: #4a525b;
-  --bad: #f0776a;
-  --warn: #f0b54a;
+  /* status colors aligned to the site bible (Tailwind-standard, --status-*) so
+     a node/task reads the same shade in the cockpit and on the website. */
+  --online: #22c55e;       /* site --status-online */
+  --online-glow: rgba(34, 197, 94, 0.5);
+  --offline: #9ca3af;      /* site --status-offline */
+  --bad: #ef4444;          /* site --status-error */
+  --warn: #ff9800;         /* site --status-warn / --brand-accent */
 
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sans: "Sora", ui-sans-serif, system-ui, sans-serif;
 
   --r: 10px;
   --r-lg: 14px;
+
+  /* spacing scale — 8px grid + 4px half-step (Tier-1 dark-UI guidance). Token
+     definitions for consistent rhythm; adopted incrementally (the relayout step
+     wires these in — existing hardcoded px are left as-is to avoid a risky
+     blanket sweep). */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* type scale — 1.25 modular ratio. De-emphasize with color (ink tiers), not
+     sub-400 weight. */
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-md: 18px;
+  --fs-lg: 20px;
+  --fs-xl: 24px;
+  --fs-2xl: 30px;
+  --fs-3xl: 36px;
 }
 
 * {
@@ -149,7 +188,7 @@ body {
   gap: 13px;
 }
 
-/* concentric-hexagon mark — same design as the musu.pro favicon */
+/* brand mark — the real musu logo PNG (same artwork as the site + favicon) */
 .mark {
   position: relative;
   display: grid;
@@ -162,6 +201,15 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+}
+/* The logo art is left-anchored in a wide canvas (384x96); crop to the mark by
+   covering with a left object-position so only the rings show in the 42px box. */
+.mark-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: left center;
 }
 
 .brand-text h1 {

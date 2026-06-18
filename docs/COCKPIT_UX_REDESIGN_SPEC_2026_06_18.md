@@ -49,7 +49,22 @@ header.top → #fleet-section { section-head(Add PC) · #fleet-filters(6탭) ·
 | **D7** | fleet행=Tailscale식(dot+"last seen"+평문상태), 태스크=Devin식(관계라벨+안읽음 dot) | Tailscale/Devin | "STALE/OFFLINE/TARGETABLE"→"Ready/Asleep/last seen X" 카피 교체 |
 | **D8** | 정직 베타 라벨 + 검증가능 locality 카피(색만 의존 X, dot+텍스트) | web.dev/trust | connector-policy 카피 정직화, 상태 dot+라벨 |
 
-## 다크테마 토큰 (Tier-1, styles.css :root 화)
+## 디자인 바이블 = musu.pro 사이트 (사용자 지시 2026-06-18)
+
+사용자: "로고는 지금 파비콘/웹사이트 그거, 컬러팔레트·디자인 바이블도 지금 웹사이트 디자인 참고(웹이 좋으니까), 온보딩도 잘 살려." → **cockpit을 사이트와 시각 일관**시킨다. 일반 리서치값이 아니라 **`musu-bee/src/app/globals.css`의 실제 토큰을 소스**로.
+
+추출한 사이트 바이블:
+- 배경: `--bg-base #09090b`(zinc-950), 표면 zinc-900/800, `--bg-elevated #27272a`
+- 텍스트: `--fg1 #ffffff` / `--fg2 #a1a1aa`(zinc-400) / `--fg3 #71717a`(zinc-500) / `--fg4 #52525b`(zinc-600)
+- accent: **주 cyan `--accent #24c8db`(emerald)** + `--brand-yellow #ffc131` + `--brand-accent #FF9800`
+- 상태: online `#22C55E` / running `#3B82F6` / error `#EF4444` / warn `#FF9800` (Tailwind 표준)
+- radius: 6/10/16/24/32, 폰트: Outfit/Inter/Space Mono
+- 로고: `public/images/logos/musu-logo-header-on-dark.png`(노랑+cyan 맞물린 고리 마크), 파비콘 `public/images/favicon-header.png`
+
+**step1 적용(완료, `feature/cockpit-redesign-tokens`)**: cockpit `:root` 토큰을 사이트값으로 정렬(이름 보존, 값만 — 168 color-mix 안전). amber→`#ffc131`(사이트 brand-yellow), 상태색→사이트 Tailwind 표준, 텍스트 3단→사이트 fg1-4. ink-faint 대비 2.9→3.6(WCAG 3:1 통과, "저대비" 불만 해소). 헤더 인라인 헥사곤 SVG→실제 로고 PNG(`assets/musu-logo.png`, object-fit cover left 크롭). 빌드 스크립트에 `assets/` 복사 추가. 검증: 테스트 49/49 + browse 시각(로고·색감·온보딩 빈상태 살아있음 확인).
+**deferred**: 사이트 주 accent인 cyan `#24c8db`을 cockpit 보조 accent로 도입(amber color-mix 168곳 영향 → step3 레이아웃 때). 폰트 Sora/JetBrains→Outfit/Inter/Space Mono 정렬(별도 판단).
+
+## 다크테마 토큰 (사이트 바이블 정렬 — 아래는 일반 Tier-1 참고값)
 
 **회색 ramp는 OKLCH/LCH 생성**(HSL 아님 — 등간격 광도가 등간격으로 *보이게*).
 
