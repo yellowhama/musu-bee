@@ -527,6 +527,17 @@ body {
   border-radius: 999px;
 }
 
+/* Plain-language per-machine status (D7): a dot is not enough — show the human
+   state in text. "Ready" = online/targetable (green), else dim last-seen/asleep. */
+.node-status {
+  margin-left: 10px;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: var(--ink-faint);
+}
+.node-status.ok { color: var(--online); }
+.node-status.off { color: var(--ink-faint); }
+
 .node-network {
   padding: 3px 9px;
   font-family: var(--mono);

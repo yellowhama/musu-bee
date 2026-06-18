@@ -2972,6 +2972,20 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
       li.appendChild(badge);
     }
 
+    // Plain-language status label next to the name (D7 Tailscale-style: a dot is
+    // not enough — never rely on color alone, web.dev offline-UX). "Ready" when
+    // online and targetable, otherwise the human last-seen / asleep state.
+    const statusLabel = document.createElement("span");
+    statusLabel.className = `node-status ${online ? "ok" : "off"}`;
+    statusLabel.textContent = online
+      ? "Ready"
+      : statusError
+        ? "Needs attention"
+        : seen
+          ? `Last seen ${seen}`
+          : "Asleep or off";
+    li.appendChild(statusLabel);
+
     const meshBadge = document.createElement("span");
     meshBadge.className = `node-network ${mesh.state}`;
     meshBadge.textContent = mesh.label;
