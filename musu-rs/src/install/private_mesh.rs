@@ -54,6 +54,38 @@ pub enum PrivateMeshAction {
     /// only when the active tailnet is provably ours (a personal tailnet is left
     /// untouched). Does NOT sign out of the cloud account — that's `musu logout`.
     Leave(PrivateMeshStatusOpts),
+    /// Manage nodes in this account's fleet (list / rename). Account derived
+    /// server-side from the saved login token; operations are owner-scoped.
+    #[command(subcommand)]
+    Node(PrivateMeshNodeAction),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PrivateMeshNodeAction {
+    /// List this account's fleet nodes (id, name, ips, online).
+    List(PrivateMeshNodeListOpts),
+    /// Rename a node by its Headscale id (resolve→confirm-by-id).
+    Rename(PrivateMeshNodeRenameOpts),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeListOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeRenameOpts {
+    /// The Headscale node id to rename (from `node list`).
+    #[arg(long)]
+    pub node_id: String,
+    /// The new name (1-63 chars: letters, digits, hyphens; starts alphanumeric).
+    #[arg(long)]
+    pub new_name: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -478,6 +510,60 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::PhysicalPeerEvidence(opts) => run_physical_peer_evidence(opts).await,
         PrivateMeshAction::ReleaseProof(opts) => run_release_proof(opts).await,
         PrivateMeshAction::Leave(opts) => run_leave_cli(opts),
+        PrivateMeshAction::Node(action) => run_node_cli(action).await,
+    }
+}
+
+/// CLI for fleet node management (list / rename). Account derived server-side
+/// from the saved login token; rename keys on the Headscale node id returned by
+/// list (resolve→confirm-by-id, never re-resolves by name/IP).
+async fn run_node_cli(action: PrivateMeshNodeAction) -> Result<()> {
+    let home = super::resolve_musu_home(None)?;
+    let token = crate::cloud::token::load_token(&home)
+        .ok_or_else(|| anyhow!("Not logged in. Run `musu login` first."))?;
+    let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
+
+    match action {
+        PrivateMeshNodeAction::List(opts) => {
+            let list = cloud.list_mesh_nodes().await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_list.v1",
+                        "ok": true,
+                        "nodes": list.nodes.iter().map(|n| serde_json::json!({
+                            "id": n.id, "name": n.name, "ips": n.ips,
+                            "online": n.online, "last_seen": n.last_seen,
+                        })).collect::<Vec<_>>(),
+                    }))?
+                );
+            } else if list.nodes.is_empty() {
+                println!("No machines in this account's fleet.");
+            } else {
+                for n in &list.nodes {
+                    let dot = if n.online { "●" } else { "○" };
+                    println!("{dot} {}  id={}  {}", n.name, n.id, n.ips.join(","));
+                }
+            }
+            Ok(())
+        }
+        PrivateMeshNodeAction::Rename(opts) => {
+            let renamed = cloud.rename_mesh_node(&opts.node_id, &opts.new_name).await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_rename.v1",
+                        "ok": true,
+                        "node": { "id": renamed.node.id, "name": renamed.node.name },
+                    }))?
+                );
+            } else {
+                println!("Renamed node {} → {}", renamed.node.id, renamed.node.name);
+            }
+            Ok(())
+        }
     }
 }
 

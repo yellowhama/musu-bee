@@ -2992,6 +2992,21 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     meshBadge.title = mesh.title;
     li.appendChild(meshBadge);
 
+    // Rename (WS-2c): resolve→confirm-by-id. We fetch the authoritative node
+    // list, match THIS row by name+IP, and rename by the returned Headscale id —
+    // never by the row's possibly-stale name. Ambiguous match → refuse (the
+    // server enforces the same, this is a first-line UX guard).
+    const renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.className = "node-rename";
+    renameBtn.textContent = "Rename";
+    renameBtn.title = `Rename ${n.node_name}`;
+    renameBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      renameNodeFlow(n);
+    });
+    li.appendChild(renameBtn);
+
     if (verifyCommand) {
       const verifyActions = document.createElement("span");
       verifyActions.className = "node-verify-actions";
@@ -4390,6 +4405,61 @@ async function disconnectMesh(btn) {
   }
 }
 $("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.currentTarget));
+
+// Rename a fleet machine (WS-2c, resolve→confirm-by-id). Fetch the authoritative
+// node list, match this row by name AND tailnet IP, rename by the returned
+// Headscale id. Refuse if the row matches zero or more than one live node (the
+// row's name/IP may be stale; the server enforces the same — this is the UX guard
+// against renaming the wrong machine).
+async function renameNodeFlow(node) {
+  let listRes;
+  try {
+    listRes = await invoke("mesh_node_list");
+  } catch (err) {
+    window.alert(`Couldn't load the machine list: ${String(err)}`);
+    return;
+  }
+  let nodes = [];
+  try {
+    nodes = JSON.parse(listRes?.output || "{}").nodes || [];
+  } catch {
+    window.alert("Couldn't read the machine list (unexpected response).");
+    return;
+  }
+  const rowName = (node.node_name || "").trim();
+  const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
+  // Match by name AND IP when we have an IP; require a single unambiguous match.
+  const matches = nodes.filter((m) => {
+    const nameOk = (m.name || "").trim() === rowName;
+    const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
+    return nameOk && ipOk;
+  });
+  if (matches.length === 0) {
+    window.alert(`Couldn't find "${rowName}" in your fleet right now — it may have changed. Refresh and try again.`);
+    return;
+  }
+  if (matches.length > 1) {
+    window.alert(`More than one machine matches "${rowName}". Renaming is blocked to avoid changing the wrong one.`);
+    return;
+  }
+  const target = matches[0];
+  const newName = window.prompt(`Rename "${target.name}" to:`, target.name);
+  if (newName == null) return;
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === target.name) return;
+  try {
+    const res = await invoke("mesh_node_rename", { nodeId: target.id, newName: trimmed });
+    if (res && res.ok === false) {
+      window.alert(`Rename failed: ${String(res.error || "unknown error").slice(0, 200)}`);
+    } else {
+      announce(`Renamed ${target.name} to ${trimmed}`);
+    }
+  } catch (err) {
+    window.alert(`Rename failed: ${String(err)}`);
+  } finally {
+    refresh();
+  }
+}
 
 // Ctrl/Cmd+, opens settings; Esc closes the topmost overlay.
 document.addEventListener("keydown", (e) => {

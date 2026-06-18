@@ -36,6 +36,8 @@ pub fn run() {
             private_mesh_join,
             private_mesh_join_account,
             private_mesh_leave,
+            mesh_node_list,
+            mesh_node_rename,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -1195,6 +1197,48 @@ fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
         .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh leave timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_list` — the account's fleet nodes (id+name+ips+online) as JSON,
+/// via `musu mesh node list --json`. The cockpit parses `output` to drive the
+/// rename picker (resolve→confirm-by-id: the id here is what rename keys on).
+#[tauri::command]
+fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["mesh", "node", "list", "--json"], ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node list timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_rename` — rename a fleet node BY ID via `musu mesh node rename`.
+/// The server re-asserts the node still belongs to this account before renaming
+/// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
+#[tauri::command]
+fn mesh_node_rename(node_id: String, new_name: String) -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "node", "rename", "--node-id", &node_id, "--new-name", &new_name, "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| format!("failed to run {} mesh node rename: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node rename timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {

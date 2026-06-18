@@ -603,6 +603,26 @@ body {
   text-transform: uppercase;
   cursor: copy;
 }
+/* Rename a machine — neutral (not a status action). */
+.node-rename {
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.node-rename:hover {
+  border-color: var(--amber);
+  color: var(--ink);
+}
 .node-verify-run {
   cursor: pointer;
 }
