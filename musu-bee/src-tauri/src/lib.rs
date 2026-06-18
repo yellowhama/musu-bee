@@ -1374,10 +1374,16 @@ fn open_dashboard() -> Result<CommandResult, String> {
 #[tauri::command]
 fn open_external_url(url: String) -> Result<CommandResult, String> {
     let url = url.trim();
-    // Strict allowlist: must be a plain https URL with no shell-meaningful chars.
+    // Strict allowlist: a plain https URL with no shell-meaningful chars. `%` is
+    // blocked too because the Windows path routes through `cmd /C start`, which
+    // expands `%VAR%` on its command line before launching (an info-leak / URL-
+    // rewrite vector that Rust's arg-quoting can't escape). This also rejects
+    // percent-encoded URLs (%20 etc.) — fine for a fixed docs/help link; if a
+    // caller ever needs percent-encoding, switch the Windows path off `cmd`
+    // (ShellExecuteW / opener crate) instead of relaxing this.
     let valid = url.starts_with("https://")
         && url.len() <= 2048
-        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>');
+        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>' || c == '%');
     if !valid {
         return Err("refusing to open a non-https or malformed URL".to_string());
     }
