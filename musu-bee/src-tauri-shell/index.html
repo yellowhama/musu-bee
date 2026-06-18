@@ -102,14 +102,14 @@
           <button type="button" data-fleet-filter="online" aria-pressed="false">
             Online <span data-fleet-count="online">0</span>
           </button>
-          <button type="button" data-fleet-filter="targetable" aria-pressed="false">
-            Targetable <span data-fleet-count="targetable">0</span>
+          <button type="button" data-fleet-filter="targetable" aria-pressed="false" title="Online and ready to receive a task">
+            Ready <span data-fleet-count="targetable">0</span>
           </button>
           <button type="button" data-fleet-filter="this-pc" aria-pressed="false">
             This PC <span data-fleet-count="this-pc">0</span>
           </button>
-          <button type="button" data-fleet-filter="stale" aria-pressed="false">
-            Stale <span data-fleet-count="stale">0</span>
+          <button type="button" data-fleet-filter="stale" aria-pressed="false" title="Not seen recently — may be asleep or off">
+            Idle <span data-fleet-count="stale">0</span>
           </button>
           <button type="button" data-fleet-filter="offline" aria-pressed="false">
             Offline <span data-fleet-count="offline">0</span>
@@ -118,8 +118,8 @@
         <div id="mesh-proof-strip" class="mesh-proof-strip" data-state="checking" hidden>
           <span class="mesh-status-dot" aria-hidden="true"></span>
           <div>
-            <strong id="mesh-proof-strip-title">Private Mesh proof</strong>
-            <p id="mesh-proof-strip-detail">Waiting for local mesh evidence.</p>
+            <strong id="mesh-proof-strip-title">Private connection</strong>
+            <p id="mesh-proof-strip-detail">Checking that machines reach each other only through your own private network…</p>
             <p id="mesh-proof-strip-proof" class="mesh-status-proof" hidden></p>
             <p id="mesh-proof-strip-diagnostic" class="mesh-status-diagnostic" hidden></p>
           </div>

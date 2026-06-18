@@ -970,7 +970,12 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /function runPrivateMeshDoctor\(\)/);
   assert.match(text, /invoke\("private_mesh_status"\)/);
   assert.match(text, /invoke\("private_mesh_doctor"\)/);
-  assert.match(text, /Private Mesh proof complete/);
+  // Plain-language mesh strip title (redesign step 2 copy de-jargoning): the
+  // completed state reads "Private connection verified" (was "Private Mesh proof
+  // complete"). The internal proof-order string + release-evidence error copy
+  // keep their technical wording (asserted elsewhere) — only user-facing strip
+  // titles were de-jargoned.
+  assert.match(text, /Private connection verified/);
   assert.match(text, /document\.querySelectorAll\("\[data-copy-text\]"\)/);
   assert.match(text, /btn\.addEventListener\("click", copyPrivateMeshProof\)/);
   assert.match(text, /li\.dataset\.meshState = mesh\.state/);

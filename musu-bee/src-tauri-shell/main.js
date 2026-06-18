@@ -2172,7 +2172,7 @@ function renderPrivateMeshStatus(status) {
     if (detail) detail.textContent = status?.error || "Run diagnostics or `musu mesh doctor --json`.";
   } else if (releaseGrade) {
     state = "ready";
-    if (title) title.textContent = "Private Mesh proof complete";
+    if (title) title.textContent = "Private connection verified";
     if (detail) detail.textContent = `${routeLabel} · callback verified${ip ? ` · ${ip}` : ""}${derpSummary ? ` · ${derpSummary}` : ""}`;
   } else if (mode === "musu_headscale" && controlVerified) {
     state = "partial";
@@ -2217,7 +2217,7 @@ function renderPrivateMeshStatus(status) {
     strip.dataset.state = state;
   }
   if (stripTitle) {
-    stripTitle.textContent = releaseGrade ? "Private Mesh proof complete" : "Private Mesh proof";
+    stripTitle.textContent = releaseGrade ? "Private connection verified" : "Private connection";
   }
   if (stripDetail) {
     stripDetail.textContent = status?.ok
@@ -2935,7 +2935,7 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
         : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
     );
     if (!online) {
-      li.title = statusError || (seen ? `Last seen ${seen}` : "Offline");
+      li.title = statusError || (seen ? `Last seen ${seen}` : "Asleep or off");
     }
     li.dataset.node = n.node_name || "";
     const selectThisMachine = () => {
