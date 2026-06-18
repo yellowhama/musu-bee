@@ -4355,6 +4355,42 @@ $("set-signin")?.addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("set-help")?.addEventListener("click", openHelp);
 $("set-theme")?.addEventListener("change", (e) => applyTheme(e.currentTarget.value));
 
+// Disconnect this machine from the mesh — distinct from Sign out (cloud). Runs
+// `tailscale down` via private_mesh_leave only when the active tailnet is ours
+// (a personal tailnet is preserved server-side). Confirm first; a task running
+// here can lose its result callback over the mesh.
+async function disconnectMesh(btn) {
+  const ok = window.confirm(
+    "Disconnect this machine from your private network?\n\n" +
+      "• Your other machines won't be able to reach it.\n" +
+      "• A task running on this machine may not be able to send its result back.\n" +
+      "• This does NOT sign you out — reconnect by logging in or rejoining.\n\n" +
+      "A personal (non-MUSU) tailnet is never touched."
+  );
+  if (!ok) return;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await invoke("private_mesh_leave");
+    const wbox = $("diag-warnings");
+    if (wbox && res && res.ok === false && res.error) {
+      wbox.hidden = false;
+      wbox.textContent = `Disconnect: ${String(res.error).slice(0, 200)}`;
+    }
+    announce("Disconnected this machine from the mesh", true);
+  } catch (err) {
+    const wbox = $("diag-warnings");
+    if (wbox) {
+      wbox.hidden = false;
+      wbox.textContent = `Disconnect failed: ${String(err)}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    refresh();
+    loadDiagnostics();
+  }
+}
+$("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.currentTarget));
+
 // Ctrl/Cmd+, opens settings; Esc closes the topmost overlay.
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === ",") {

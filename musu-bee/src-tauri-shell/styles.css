@@ -2855,6 +2855,12 @@ body {
   font: inherit;
   font-size: 13px;
 }
+.settings-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
 .settings-actions {
   display: flex;
   gap: 8px;

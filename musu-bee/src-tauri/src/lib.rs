@@ -35,6 +35,7 @@ pub fn run() {
             private_mesh_create_join_key,
             private_mesh_join,
             private_mesh_join_account,
+            private_mesh_leave,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -1174,6 +1175,27 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
         ));
     }
 
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `private_mesh_leave` — disconnect THIS machine from the mesh (`tailscale down`)
+/// via `musu mesh leave --json`. Distinct from `account_logout` (cloud sign-out):
+/// leave never touches the account token, and it only runs `down` when the active
+/// tailnet is provably ours (a personal tailnet is preserved). The cockpit's
+/// "Disconnect this machine" button lives separately from Sign out.
+#[tauri::command]
+fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh leave timed out", command.display()));
+    }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
