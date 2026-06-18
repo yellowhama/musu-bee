@@ -2862,3 +2862,33 @@ body {
 .settings-actions button:hover { border-color: var(--amber); }
 .settings-actions .btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .settings-actions .btn-danger:hover { border-color: var(--bad); }
+
+/* ── WS-1a step3: visual re-order (non-destructive) ─────────────────────────
+   Re-sequence the cockpit into 3 zones — fleet status strip (top), activity
+   stream (body), order composer (hero, bottom) — via flex `order` only. The
+   DOM stays put (so every event listener / querySelector / visibility rule
+   still works); only the VISUAL order changes. updateBodyZone() in main.js
+   arbitrates which of fleet-empty / task-feed owns the body. */
+.fleet-section {
+  display: flex;
+  flex-direction: column;
+}
+/* zone 1 — fleet status strip + list */
+.fleet-section > .section-head { order: 0; }
+.fleet-section > #fleet-filters { order: 1; }
+.fleet-section > #mesh-proof-strip { order: 2; }
+.fleet-section > #fleet-list,
+.fleet-section > #fleet-filter-empty { order: 10; }
+/* zone 2 — activity body (fleet-empty OR task-feed, arbitrated) + aha */
+.fleet-section > #task-feed { order: 20; }
+.fleet-section > #fleet-empty { order: 20; }
+.fleet-section > #first-task-aha { order: 21; }
+/* zone 3 — order composer is the hero, anchored below the body */
+.fleet-section > #order-examples { order: 30; }
+.fleet-section > .order-box { order: 31; }
+.fleet-section > #order-target-disclosure,
+.fleet-section > #order-status { order: 32; }
+/* lower-priority: connector policy + management panels sit beneath the hero */
+.fleet-section > #connector-policy { order: 40; }
+.fleet-section > #add-pc-panel { order: 50; }
+.fleet-section > #release-evidence-strip { order: 51; }

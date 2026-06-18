@@ -2815,8 +2815,8 @@ function applyFleetFilter() {
     el.textContent = String(counts[el.dataset.fleetCount] ?? 0);
   });
 
-  const fleetEmpty = $("fleet-empty");
-  if (fleetEmpty) fleetEmpty.hidden = !(lastFleetIsEmpty && fleetFilter === "all");
+  // #fleet-empty visibility is now owned by updateBodyZone() (called at the end
+  // of renderFleet) so it can't fight #task-feed for the body zone.
 
   const filterEmpty = $("fleet-filter-empty");
   if (filterEmpty) {
@@ -2853,14 +2853,8 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   if (!addPcPanelUserToggled) {
     setAddPcPanelOpen(false);
   }
-  // On an empty fleet before the first task, collapse the connector-policy
-  // section — it sits between the empty state and the order box and pushes the
-  // first task below the fold (reduces first-run cognitive load; the section is
-  // still reachable once the user has machines/tasks). Show it otherwise.
-  const connectorPolicy = $("connector-policy");
-  if (connectorPolicy) {
-    connectorPolicy.hidden = isEmpty && !onboardingFlag("firstTaskDone");
-  }
+  // #connector-policy collapse is now owned by updateBodyZone() (called at the
+  // end of renderFleet) — unified with fleet-empty/task-feed body arbitration.
 
   // keep the order target dropdown in sync with the fleet (preserve selection)
   const sel = $("order-target");
@@ -3100,6 +3094,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   }
 
   applyFleetFilter();
+  // Single source of truth for the body zone (fleet-empty vs task-feed vs
+  // connector-policy). Runs after applyFleetFilter so fleetFilter is current.
+  updateBodyZone();
 }
 
 // ── diagnostics drawer ─────────────────────────────────
@@ -3393,17 +3390,41 @@ function groupList(group) {
   return $("task-feed").querySelector(`[data-group="${group}"] .task-group-list`);
 }
 
-// Show/hide each group section based on whether it has cards; reveal the feed.
+// Show/hide each group section based on whether it has cards.
 function refreshGroupVisibility() {
   const feed = $("task-feed");
-  let any = false;
   for (const group of ["running", "done"]) {
     const section = feed.querySelector(`[data-group="${group}"]`);
     const has = section.querySelector(".task-group-list").children.length > 0;
     section.hidden = !has;
-    any = any || has;
   }
-  feed.hidden = !any;
+  updateBodyZone();
+}
+
+// Single arbiter of the body zone (redesign WS-1a / Critic HIGH-3). Previously
+// three disconnected predicates decided what occupies the middle: fleet-empty
+// (lastFleetIsEmpty && filter==all), connector-policy (isEmpty && !firstTaskDone),
+// and task-feed (card count) — nothing cross-referenced them, so fleet-empty and
+// task-feed could both show or both hide. This unifies them: the activity stream
+// owns the body when there are tasks; otherwise the empty-state CTA does. Called
+// at the end of both renderFleet and refreshGroupVisibility so there's one truth.
+function updateBodyZone() {
+  const feed = $("task-feed");
+  const hasTasks = feed
+    ? [...feed.querySelectorAll(".task-group-list")].some((l) => l.children.length > 0)
+    : false;
+  if (feed) feed.hidden = !hasTasks;
+  const fleetEmpty = $("fleet-empty");
+  // empty-state CTA owns the body only when there are no task cards AND the fleet
+  // itself is empty on the unfiltered view.
+  if (fleetEmpty) {
+    fleetEmpty.hidden = hasTasks || !(lastFleetIsEmpty && fleetFilter === "all");
+  }
+  // connector-policy collapses only on a truly empty body (no tasks, pre-first-task).
+  const connectorPolicy = $("connector-policy");
+  if (connectorPolicy) {
+    connectorPolicy.hidden = !hasTasks && !onboardingFlag("firstTaskDone");
+  }
 }
 
 function stopTaskTimers(taskId) {
@@ -3816,11 +3837,10 @@ function markFirstTaskDoneIfNeeded() {
   setOnboardingFlag("firstTaskDone");
   // Chips were a first-run nudge; retire them now.
   updateOrderExamplesVisibility();
-  // Re-show the connector-policy section immediately. renderFleet hides it on an
-  // empty pre-first-task fleet; now that the first task is done, bring it back
-  // here rather than waiting up to one poll cycle (~15s) for the next renderFleet.
-  const connectorPolicy = $("connector-policy");
-  if (connectorPolicy) connectorPolicy.hidden = false;
+  // Re-arbitrate the body zone immediately (firstTaskDone is now set, so
+  // connector-policy un-collapses) rather than waiting up to one ~15s poll for
+  // the next renderFleet. updateBodyZone is the single owner now.
+  updateBodyZone();
   const banner = $("first-task-aha");
   if (banner) {
     banner.hidden = false;
