@@ -8411,4 +8411,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   kv.musu.pro`, `p2p_control_token_not_issuable`, `cross_origin_rejected`,
   `headscale acls vs grants`, `tailscale status ControlURL CurrentTailnet Name`.
 
+- 2026-06-18 SESSION_COCKPIT_ONBOARDING_FIRST_TASK: task-first cockpit
+  onboarding — merged to main (`2425bedb`). Reframes the empty-fleet first run
+  around the aha (give-a-task → walk-away → get-pinged) instead of Headscale
+  Add-PC infra setup. Stops auto-opening the Add-PC panel on an empty fleet
+  (`setAddPcPanelOpen(false)`); empty state now has a primary "Give this PC a
+  task" CTA that scrollIntoView+focuses the order box (H2 fold fix), example
+  chips that FILL-not-send and are cwd-independent/headless-honest (H3), a
+  one-time first-task aha badge via idempotent `markFirstTaskDoneIfNeeded`
+  (localStorage `musu.onboarding.firstTaskDone`, machine-scoped v1), a contextual
+  Add-PC nudge surfaced only after the first task done (M1), and collapses the
+  connector-policy section on an empty pre-first-task fleet so the order box is
+  above the fold. 4 files in `src-tauri-shell/` (+321/-10). Tests 48/48
+  (5 new). Phase-5 audit (quality-engineer): 0 HIGH; H2/H3/M1 resolved in code,
+  H4 (chips may not be long enough to *feel* the walk-away loop) left as MEDIUM
+  dogfood follow-up. Verification was static file:// render + JSDOM; live Tauri
+  IPC flow + multi-resolution pixel layout + desktop rebuild-into-MSIX still
+  pending. Search terms: `cockpit onboarding`, `first task aha`,
+  `markFirstTaskDoneIfNeeded`, `empty-give-task`, `order-examples chips`,
+  `fill not send`, `connector-policy hide empty fleet`, `setAddPcPanelOpen
+  false`, `focusOrderInput scrollIntoView`, `musu.onboarding.firstTaskDone`,
+  `aha-add-pc nudge`.
+
 **End of WIKI_INDEX.md.**
