@@ -2853,6 +2853,14 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   if (!addPcPanelUserToggled) {
     setAddPcPanelOpen(false);
   }
+  // On an empty fleet before the first task, collapse the connector-policy
+  // section — it sits between the empty state and the order box and pushes the
+  // first task below the fold (reduces first-run cognitive load; the section is
+  // still reachable once the user has machines/tasks). Show it otherwise.
+  const connectorPolicy = $("connector-policy");
+  if (connectorPolicy) {
+    connectorPolicy.hidden = isEmpty && !onboardingFlag("firstTaskDone");
+  }
 
   // keep the order target dropdown in sync with the fleet (preserve selection)
   const sel = $("order-target");
