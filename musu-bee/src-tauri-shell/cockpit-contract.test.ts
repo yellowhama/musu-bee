@@ -2757,9 +2757,12 @@ test("body-zone arbiter: fleet-empty and task-feed are never both visible (WS-1a
     true
   );
   win.updateBodyZone();
+  // Capture as plain booleans so tsc doesn't narrow them away — the
+  // mutual-exclusion assert must compare the actual runtime values.
+  const bothVisible0 = (h: boolean, e: boolean) => h === false && e === false;
   assert.equal(feed.hidden, true, "0 tasks → task-feed hidden");
   assert.equal(empty.hidden, false, "0 tasks + empty fleet → fleet-empty owns the body");
-  assert.ok(!(feed.hidden === false && empty.hidden === false), "never both visible (0-task case)");
+  assert.ok(!bothVisible0(feed.hidden, empty.hidden), "never both visible (0-task case)");
 
   // State: ≥1 task. Inject a running card, then arbitrate. Expect task-feed owns
   // the body, fleet-empty hidden.
@@ -2771,7 +2774,7 @@ test("body-zone arbiter: fleet-empty and task-feed are never both visible (WS-1a
   win.updateBodyZone();
   assert.equal(feed.hidden, false, "≥1 task → task-feed owns the body");
   assert.equal(empty.hidden, true, "≥1 task → fleet-empty yields");
-  assert.ok(!(feed.hidden === false && empty.hidden === false), "never both visible (running case)");
+  assert.ok(!bothVisible0(feed.hidden, empty.hidden), "never both visible (running case)");
 
   // Remove the card → back to empty-state ownership (no stale double-hide).
   runningList.removeChild(li);

@@ -390,3 +390,101 @@ export async function provisionMeshJoinKey(args: {
     tailnet: name,
   };
 }
+
+// ── node management (WS-2c rename) ──────────────────────────────────────────
+// Headscale v0.28.0 node REST. List is filtered by user id at the control plane
+// (never list global then filter in app code — Critic HIGH-2: the admin key is
+// global, so this server-side ?user= scope is the sole cross-tenant barrier).
+
+export interface HeadscaleNode {
+  id: string; // uint64-as-string
+  name: string; // given name
+  user: { id: string; name: string };
+  ipAddresses: string[];
+  online: boolean;
+  lastSeen: string | null;
+}
+
+function parseHeadscaleNode(raw: unknown): HeadscaleNode | null {
+  if (!raw || typeof raw !== "object") return null;
+  const n = raw as Record<string, unknown>;
+  const id = n.id != null ? String(n.id) : "";
+  if (!id) return null;
+  const user = (n.user ?? {}) as Record<string, unknown>;
+  return {
+    id,
+    name: String(n.givenName ?? n.name ?? ""),
+    user: { id: user.id != null ? String(user.id) : "", name: String(user.name ?? "") },
+    ipAddresses: Array.isArray(n.ipAddresses) ? n.ipAddresses.map(String) : [],
+    online: n.online === true,
+    lastSeen: n.lastSeen != null ? String(n.lastSeen) : null,
+  };
+}
+
+/**
+ * List the nodes belonging to ONE Headscale user, filtered at the control plane
+ * by numeric user id. The caller derives `userId` from the authenticated
+ * owner_key (never from client input), so an owner only ever sees its own fleet.
+ */
+export async function listNodesForUser(
+  cfg: HeadscaleClientConfig,
+  userId: string
+): Promise<HeadscaleNode[]> {
+  const res = await headscaleFetch(
+    cfg,
+    `/api/v1/node?user=${encodeURIComponent(userId)}`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale list nodes failed (${res.status})`, 502);
+  }
+  const body = (await readJson(res)) as { nodes?: unknown[] } | null;
+  return (body?.nodes ?? [])
+    .map(parseHeadscaleNode)
+    .filter((n): n is HeadscaleNode => n !== null && n.user.id === userId);
+}
+
+/**
+ * Rename a node, but ONLY after re-asserting it still belongs to `userId`
+ * (Critic HIGH-2: fail-closed cross-tenant; HIGH-1: act on the authoritative
+ * current node, not a stale client-supplied name/IP). Re-fetches the node by id
+ * from the owner-scoped list and refuses if it's gone or now owned by someone
+ * else (optimistic-concurrency).
+ */
+export async function renameNodeForUser(
+  cfg: HeadscaleClientConfig,
+  userId: string,
+  nodeId: string,
+  newName: string
+): Promise<HeadscaleNode> {
+  const owned = await listNodesForUser(cfg, userId);
+  const target = owned.find((n) => n.id === nodeId);
+  if (!target) {
+    throw new HeadscaleProvisioningError(
+      "node not found in this account's fleet (it may have been removed or renamed elsewhere)",
+      409
+    );
+  }
+  const trimmed = newName.trim();
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$/.test(trimmed)) {
+    throw new HeadscaleProvisioningError(
+      "name must be 1-63 chars: letters, digits, hyphens; starting alphanumeric",
+      400
+    );
+  }
+  const res = await headscaleFetch(
+    cfg,
+    `/api/v1/node/${encodeURIComponent(nodeId)}/rename/${encodeURIComponent(trimmed)}`,
+    { method: "POST" }
+  );
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale rename node failed (${res.status})`, 502);
+  }
+  const body = (await readJson(res)) as { node?: unknown } | null;
+  const updated = parseHeadscaleNode(body?.node);
+  // Re-assert ownership on the returned node too (defense in depth).
+  if (!updated || updated.user.id !== userId) {
+    throw new HeadscaleProvisioningError("rename ownership re-check failed", 502);
+  }
+  return updated;
+}
