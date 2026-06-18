@@ -110,6 +110,20 @@ frontend-architect Critic가 HIGH 4건. 모두 옵션1 구현에 반영(아래 "
 
 **작업 중 잡은 함정 (정직)**: 첫 MSIX 빌드 후 다운로드 페이지가 노출하는 `setup.exe`(NSIS)가 **onboarding 6시간 전(09:46) stale 빌드**임을 발견 — msix만 최신이고 setup.exe는 옛 cockpit. `--no-bundle`은 NSIS를 안 만들기 때문. → `tauri build --bundles nsis`로 재빌드(16:04, onboarding 포함) 후 재업로드. 세 설치 경로(msix/appinstaller/setup.exe)를 모두 같은 빌드로 정합화.
 
+### 배포 무결성 Audit (quality-engineer, 독립·read-only)
+
+**Verdict: 라이브 배포 안전. HIGH/MEDIUM 0건.**
+- publisher / identity / version / hosted-filename / cert-thumbprint **전 체인 정합** — MSIX manifest ↔ .appinstaller ↔ publicRelease.ts ↔ Install-MUSU.ps1 모두 일치.
+- hosted `musu-desktop-x64.msix`는 sideload 빌드와 **SHA256 byte-identical** (store-reviewed variant는 올바르게 미호스팅).
+- 서명 thumbprint `65F5926444D563966C75F000C384C8530B1D8DD8` = Install-MUSU.ps1 pin (canonical 키 재사용).
+- 버전 monotonic 1.13→1.15 + `ForceUpdateFromAnyVersion` (재설치 커버). 5개 asset HTTP 200.
+- secret 누출 0: `.local-build/` gitignore, `.pfx` 미추적, `$CertPassword="password"`는 self-signed beta 키라 무의미(공개 cert + out-of-band thumbprint pin).
+- **LOW 2건 (미래 하드닝)**: ① 미래 빌드가 canonical 키 없이 `-GenerateCert`도 없으면 `winapp pack`이 서명 없이 fall-through(현재 미발동) → 서명경로 미해결 시 throw 가드 권장. ② publish가 MANUAL이라 drift canary 없음 → 5-asset HEAD canary 권장(publicRelease.ts 주석이 이미 처방).
+
+### setup.exe byte-검증 한계 (정직)
+
+audit의 OPEN question(setup.exe가 onboarding 코드를 byte-포함하나)을 추적: **Tauri는 frontend 자산(out/)을 압축해 musu-desktop.exe에 임베드**하므로, exe 평문 grep으로는 `renderFleet`(구버전에도 있던 문자열)조차 안 잡힌다 = grep 방식 자체가 부적합(누락 증거 아님). 빌드 인과(out 15:32 → exe 16:04 → NSIS 16:04)는 강한 정황이나 **byte-proof는 실제 설치 후 빈 화면 확인이 유일**. → 다음단계 잔여.
+
 ## 남은 다음 단계
 
 1. **2-machine E2E** (auto-mesh-join, 실기기 필요) — 별개 세션의 미완. 이번 배포로 설치본엔 자동합류 코드가 들어갔으니, 실제 2번째 PC 설치→로그인→자동합류→격리 검증이 V28 thesis 진짜 종결.

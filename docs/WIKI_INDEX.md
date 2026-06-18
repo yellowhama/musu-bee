@@ -8425,12 +8425,43 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   above the fold. 4 files in `src-tauri-shell/` (+321/-10). Tests 48/48
   (5 new). Phase-5 audit (quality-engineer): 0 HIGH; H2/H3/M1 resolved in code,
   H4 (chips may not be long enough to *feel* the walk-away loop) left as MEDIUM
-  dogfood follow-up. Verification was static file:// render + JSDOM; live Tauri
-  IPC flow + multi-resolution pixel layout + desktop rebuild-into-MSIX still
-  pending. Search terms: `cockpit onboarding`, `first task aha`,
-  `markFirstTaskDoneIfNeeded`, `empty-give-task`, `order-examples chips`,
-  `fill not send`, `connector-policy hide empty fleet`, `setAddPcPanelOpen
-  false`, `focusOrderInput scrollIntoView`, `musu.onboarding.firstTaskDone`,
-  `aha-add-pc nudge`.
+  dogfood follow-up. Verification was static file:// render + JSDOM. Search
+  terms: `cockpit onboarding`, `first task aha`, `markFirstTaskDoneIfNeeded`,
+  `empty-give-task`, `order-examples chips`, `fill not send`, `connector-policy
+  hide empty fleet`, `setAddPcPanelOpen false`, `focusOrderInput scrollIntoView`,
+  `musu.onboarding.firstTaskDone`, `aha-add-pc nudge`.
+
+- 2026-06-18 onboarding follow-ups + desktop rebuild & deploy (same session,
+  SESSION_COCKPIT_ONBOARDING_FIRST_TASK doc). (1) Audit follow-ups merged
+  (`386fb94e`): connector-policy now re-shows immediately inside
+  `markFirstTaskDoneIfNeeded` (no ~15s poll wait); new chip→Send positive-control
+  test guards the send path. Tests 49/49. (2) H4 dogfood RESOLVED by measurement:
+  headless `claude -p` latency — "status report" chip ~28s (in the 20-60s
+  walk-away band ✅), "introduce yourself" ~16s; ≥1 chip satisfies the felt-loop
+  bar so chips kept as-is (a "look around" variant measured ~3.5min =
+  over-correction, reverted). (3) Desktop rebuilt + republished to GitHub release
+  `desktop-latest`: `scripts/windows/build-msix.ps1` (self-contained,
+  publisher=blossompark.musu) → musu-desktop-x64.msix 27.78MB + musu.appinstaller
+  1.15.0.0 + MUSU_1.15.0_x64-setup.exe 215MB, all signed with canonical key
+  (`.local-build/signing/blossompark.musu.pfx`, reused → stable auto-update).
+  GOTCHA: `tauri build --no-bundle` does NOT build the NSIS setup.exe, so after
+  the MSIX build the release's setup.exe was a stale (pre-onboarding) artifact —
+  rebuilt with `tauri build --bundles nsis` and re-uploaded so all 3 install
+  paths match. Post-deploy audit (quality-engineer, read-only): SAFE — publisher/
+  identity/version/hosted-name/cert-thumbprint consistent across MSIX manifest +
+  .appinstaller + publicRelease.ts + Install-MUSU.ps1; hosted MSIX byte-identical
+  to the sideload build; thumbprint 65F5926…8DD8 matches the installer's pin;
+  version monotonic 1.13→1.15 w/ ForceUpdateFromAnyVersion; all 5 assets HTTP 200.
+  2 LOW (forward hardening: unsigned-fallthrough footgun if a future build lacks
+  the canonical key + no publish-drift canary). NOTE: Tauri embeds frontend
+  assets COMPRESSED in musu-desktop.exe, so plaintext grep of the exe finds
+  neither old nor new cockpit strings — byte-confirming the onboarding code is in
+  the installer requires an actual install + empty-state check (build timing
+  out/15:32 → exe 16:04 is strong but not byte-proof). Search terms: `desktop
+  rebuild deploy`, `build-msix.ps1`, `desktop-latest release`, `nsis no-bundle
+  stale setup.exe`, `tauri build --bundles nsis`, `canonical signing key reuse`,
+  `appinstaller publisher consistency`, `H4 dogfood chip latency`, `connector
+  re-show immediate`, `chip send positive control`, `tauri embeds compressed
+  frontend assets`.
 
 **End of WIKI_INDEX.md.**
