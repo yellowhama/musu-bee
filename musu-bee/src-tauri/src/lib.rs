@@ -24,6 +24,7 @@ pub fn run() {
             cockpit_state,
             start_runtime,
             open_dashboard,
+            open_external_url,
             start_login,
             account_logout,
             private_mesh_status,
@@ -1339,6 +1340,47 @@ fn open_dashboard() -> Result<CommandResult, String> {
     Ok(CommandResult {
         ok: true,
         message: "dashboard opened".to_string(),
+        output: url,
+    })
+}
+
+/// Open an external URL in the user's default browser (the cockpit's Help/docs
+/// link). Same OS dispatch as `open_dashboard`, but the URL comes from the shell,
+/// so it is validated strictly: only absolute https:// URLs are allowed. This
+/// prevents shelling out a malformed or non-web URL (e.g. `file:`, `cmd`, args
+/// with spaces/quotes) via the `start` shell built-in.
+#[tauri::command]
+fn open_external_url(url: String) -> Result<CommandResult, String> {
+    let url = url.trim();
+    // Strict allowlist: must be a plain https URL with no shell-meaningful chars.
+    let valid = url.starts_with("https://")
+        && url.len() <= 2048
+        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>');
+    if !valid {
+        return Err("refusing to open a non-https or malformed URL".to_string());
+    }
+    let url = url.to_string();
+
+    let mut command = if cfg!(target_os = "windows") {
+        let mut command = std::process::Command::new("cmd");
+        command.arg("/C").arg("start").arg("").arg(&url);
+        command
+    } else if cfg!(target_os = "macos") {
+        let mut command = std::process::Command::new("open");
+        command.arg(&url);
+        command
+    } else {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(&url);
+        command
+    };
+
+    command
+        .spawn()
+        .map_err(|err| format!("failed to open url: {err}"))?;
+    Ok(CommandResult {
+        ok: true,
+        message: "url opened".to_string(),
         output: url,
     })
 }
