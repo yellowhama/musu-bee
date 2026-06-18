@@ -79,11 +79,20 @@ frontend-architect Critic가 HIGH 4건. 모두 옵션1 구현에 반영(아래 "
 - **사용자 설치본 반영 = 데스크탑 재빌드 필요**: cockpit 변경이 설치된 MSIX에 들어가려면 Tauri 재빌드 + 재배포 체인 필요(앞 세션과 동일). 현재는 코드/main 머지까지만.
 - connector-policy re-show가 첫 작업 후 최대 ~15s 지연(다음 poll까지) — 영구 숨김 아님, 비치명.
 
-## 다음 단계
+## 후속 처리 (audit follow-up, 2026-06-18 같은 날)
 
-1. **dogfood로 H4 잔여 측정**: 두 칩 실제 응답 시간 측정 → 둘 다 <20s면 한 칩을 더 긴 read/reason task로 교체. (gstack/실사용)
-2. **데스크탑 재빌드 + 배포**: cockpit 변경을 사용자 설치본에 반영하려면 Tauri 빌드 → MSIX → musu.pro. (auto-mesh-join 미배포분과 함께 묶을지 결정)
-3. (선택, 비블로커) connector-policy를 `markFirstTaskDoneIfNeeded`에서 즉시 re-show; 칩-fill→Send round-trip positive-control 테스트 추가.
+`feature/onboarding-followups` → main 머지(`386fb94e`).
+
+- **H4 dogfood 완료 (항목 1)**: 두 칩의 실제 응답 시간을 headless `claude -p --model sonnet`로 측정.
+  - 칩2 "status report" = **~28s** (20-60s walk-away 루프 체감 band 충족 ✅)
+  - 칩1 "introduce yourself" = **~16s** (빠른 즉답 — 의도된 역할)
+  - audit 기준 "**≥1 칩 20-60s**" 충족 → **칩 교체 불필요**, as-is 유지.
+  - 칩1을 "look around this machine + 3가지 제안"으로 보강 시도했으나 cwd 깊이 탐색으로 **~3.5분(208s) 과교정** → 철회. 빠른 칩 1 + 루프 체감 칩 1 조합이 다양성에 낫다.
+- **항목 3 완료**: `markFirstTaskDoneIfNeeded`가 connector-policy를 즉시 re-show(다음 ~15s poll 안 기다림). 칩→Send positive-control 테스트 추가(fill-not-send는 *부재*만 단언하므로 send 경로를 별도로 보호). **테스트 49/49**.
+
+## 남은 다음 단계
+
+1. **데스크탑 재빌드 + 배포**: cockpit 변경을 사용자 설치본에 반영하려면 Tauri 빌드 → MSIX → musu.pro. (auto-mesh-join 미배포분 `feature/account-auto-mesh-join`과 함께 묶을지 결정)
 
 ## 관련 문서
 - [`DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md`](DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md) — 데스크탑=로컬브릿지 onboarding 스펙(상위)
