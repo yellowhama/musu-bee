@@ -124,10 +124,27 @@ frontend-architect Critic가 HIGH 4건. 모두 옵션1 구현에 반영(아래 "
 
 audit의 OPEN question(setup.exe가 onboarding 코드를 byte-포함하나)을 추적: **Tauri는 frontend 자산(out/)을 압축해 musu-desktop.exe에 임베드**하므로, exe 평문 grep으로는 `renderFleet`(구버전에도 있던 문자열)조차 안 잡힌다 = grep 방식 자체가 부적합(누락 증거 아님). 빌드 인과(out 15:32 → exe 16:04 → NSIS 16:04)는 강한 정황이나 **byte-proof는 실제 설치 후 빈 화면 확인이 유일**. → 다음단계 잔여.
 
+## 설치본 시각 검증 완료 (byte-proof + IPC 동시 해소, 2026-06-18)
+
+새 MSIX(onboarding 포함)를 **실제 설치**(`Add-AppxPackage`; 같은 버전번호라 0x80073CFB → 기존 제거 후 설치)하고 cockpit 실행 → 빈 상태 스크린샷(`.local-build/desktop-screenshots/installed-onboarding-20260618.png`). 라이브 확인:
+- ✅ "This PC is connected and ready." 재프레임 타이틀
+- ✅ "Give it a task below — then walk away. MUSU notifies you when it's done." 루프 카피
+- ✅ "Give this PC a task →" primary CTA + "Add another PC (optional)" secondary link(M1 강등)
+- ✅ 예시 칩 2개 ("Introduce yourself…" / "Write me a short status report…") + "Try:" 라벨
+- ✅ placeholder "What should this PC do?", Add-PC 패널 자동오픈 안 됨
+- ✅ connector-policy("External APIs are reviewed…") **화면에 없음 = 접힘 확인**(상단 "Private Mesh proof"는 별개 mesh 위젯)
+
+**이것으로 byte-proof + 실 IPC + 픽셀 레이아웃 약점 3개 중 2개 해소.** 설치된 musu-desktop.exe = 6/18 빌드(설치 전 6/17 onboarding-이전 빌드에서 교체 확인). Tauri 압축 임베드라 exe grep은 불가했지만, **실 설치+실행 화면이 onboarding 코드 동작의 직접 증거**다.
+
+## 배포 하드닝 완료 (LOW 2건, 2026-06-18, `b4ef885e`)
+
+audit의 LOW 2건을 닫음:
+- **`build-msix.ps1` 서명경로 throw 가드**: -CertPath/canonical키/-GenerateCert 어느 것도 서명경로를 못 잡으면 throw(기존 silent fall-through = unsigned pack → auto-update publisher trust 깨짐). DryRun 예외.
+- **`canary-desktop-release.ps1` (신규)**: publicRelease.ts의 DESKTOP_*_URL 상수를 직접 파싱(site와 drift 불가)해 라이브 release 5 asset에 HEAD. 비-200 → exit 1. publish가 MANUAL이라 forgotten-upload drift 가드. 검증: 5/5 200.
+
 ## 남은 다음 단계
 
-1. **2-machine E2E** (auto-mesh-join, 실기기 필요) — 별개 세션의 미완. 이번 배포로 설치본엔 자동합류 코드가 들어갔으니, 실제 2번째 PC 설치→로그인→자동합류→격리 검증이 V28 thesis 진짜 종결.
-2. **설치본 시각 검증** — 새 MSIX/setup.exe 설치 후 cockpit 빈 상태가 의도대로(첫 작업 CTA, 칩, connector 접힘) 뜨는지. 현재는 정적 렌더만 확인.
+1. **2-machine E2E** (auto-mesh-join, 🔴 실기기 2대 필요 — 이 환경 단일 머신이라 **BLOCKED**): 2번째 PC 설치→로그인→같은 acct-* fleet 자동합류→ping(`musu mesh verify`)→격리 검증. 이번 배포로 설치본엔 자동합류 코드가 들어갔으니, 실 2번째 PC 확보 시 V28 thesis 진짜 종결. (단일 머신으로는 single-node E2E까지가 한계 — 별개 세션에서 이미 완주)
 
 ## 관련 문서
 - [`DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md`](DESKTOP_BRIDGE_ONBOARDING_SPEC_AND_ROADMAP_2026_06_09.md) — 데스크탑=로컬브릿지 onboarding 스펙(상위)
