@@ -2737,3 +2737,48 @@ test("order input default placeholder is this-PC framed", async () => {
   await new Promise((r) => setTimeout(r, 0));
   dom.window.close();
 });
+
+test("body-zone arbiter: fleet-empty and task-feed are never both visible (WS-1a HIGH-3)", async () => {
+  // The whole point of updateBodyZone(): the activity stream owns the body when
+  // there are task cards; otherwise the empty-state CTA does. They must never
+  // both show (the pre-step3 bug) and must never both hide when one should own
+  // the body.
+  const dom = loadShellDom();
+  const doc = dom.window.document;
+  const win = dom.window as any;
+  const feed = doc.getElementById("task-feed") as HTMLElement;
+  const empty = doc.getElementById("fleet-empty") as HTMLElement;
+
+  // State: 0 tasks + empty fleet (only this PC). Render an empty fleet, then
+  // arbitrate. Expect fleet-empty owns the body, task-feed hidden.
+  win.renderFleet(
+    [{ node_name: "this machine", last_seen: new Date().toISOString(), public_url: "http://127.0.0.1:8070", is_this_pc: true }],
+    "idle",
+    true
+  );
+  win.updateBodyZone();
+  assert.equal(feed.hidden, true, "0 tasks → task-feed hidden");
+  assert.equal(empty.hidden, false, "0 tasks + empty fleet → fleet-empty owns the body");
+  assert.ok(!(feed.hidden === false && empty.hidden === false), "never both visible (0-task case)");
+
+  // State: ≥1 task. Inject a running card, then arbitrate. Expect task-feed owns
+  // the body, fleet-empty hidden.
+  const runningList = feed.querySelector('[data-group="running"] .task-group-list') as HTMLElement;
+  const li = doc.createElement("li");
+  li.className = "task-card";
+  li.dataset.task = "arb-1";
+  runningList.appendChild(li);
+  win.updateBodyZone();
+  assert.equal(feed.hidden, false, "≥1 task → task-feed owns the body");
+  assert.equal(empty.hidden, true, "≥1 task → fleet-empty yields");
+  assert.ok(!(feed.hidden === false && empty.hidden === false), "never both visible (running case)");
+
+  // Remove the card → back to empty-state ownership (no stale double-hide).
+  runningList.removeChild(li);
+  win.updateBodyZone();
+  assert.equal(feed.hidden, true, "card removed → task-feed hidden again");
+  assert.equal(empty.hidden, false, "card removed → fleet-empty owns the body again");
+
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
