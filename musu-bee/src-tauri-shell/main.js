@@ -2172,7 +2172,7 @@ function renderPrivateMeshStatus(status) {
     if (detail) detail.textContent = status?.error || "Run diagnostics or `musu mesh doctor --json`.";
   } else if (releaseGrade) {
     state = "ready";
-    if (title) title.textContent = "Private Mesh proof complete";
+    if (title) title.textContent = "Private connection verified";
     if (detail) detail.textContent = `${routeLabel} · callback verified${ip ? ` · ${ip}` : ""}${derpSummary ? ` · ${derpSummary}` : ""}`;
   } else if (mode === "musu_headscale" && controlVerified) {
     state = "partial";
@@ -2217,7 +2217,7 @@ function renderPrivateMeshStatus(status) {
     strip.dataset.state = state;
   }
   if (stripTitle) {
-    stripTitle.textContent = releaseGrade ? "Private Mesh proof complete" : "Private Mesh proof";
+    stripTitle.textContent = releaseGrade ? "Private connection verified" : "Private connection";
   }
   if (stripDetail) {
     stripDetail.textContent = status?.ok
@@ -2815,8 +2815,8 @@ function applyFleetFilter() {
     el.textContent = String(counts[el.dataset.fleetCount] ?? 0);
   });
 
-  const fleetEmpty = $("fleet-empty");
-  if (fleetEmpty) fleetEmpty.hidden = !(lastFleetIsEmpty && fleetFilter === "all");
+  // #fleet-empty visibility is now owned by updateBodyZone() (called at the end
+  // of renderFleet) so it can't fight #task-feed for the body zone.
 
   const filterEmpty = $("fleet-filter-empty");
   if (filterEmpty) {
@@ -2853,14 +2853,8 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   if (!addPcPanelUserToggled) {
     setAddPcPanelOpen(false);
   }
-  // On an empty fleet before the first task, collapse the connector-policy
-  // section — it sits between the empty state and the order box and pushes the
-  // first task below the fold (reduces first-run cognitive load; the section is
-  // still reachable once the user has machines/tasks). Show it otherwise.
-  const connectorPolicy = $("connector-policy");
-  if (connectorPolicy) {
-    connectorPolicy.hidden = isEmpty && !onboardingFlag("firstTaskDone");
-  }
+  // #connector-policy collapse is now owned by updateBodyZone() (called at the
+  // end of renderFleet) — unified with fleet-empty/task-feed body arbitration.
 
   // keep the order target dropdown in sync with the fleet (preserve selection)
   const sel = $("order-target");
@@ -2935,7 +2929,7 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
         : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
     );
     if (!online) {
-      li.title = statusError || (seen ? `Last seen ${seen}` : "Offline");
+      li.title = statusError || (seen ? `Last seen ${seen}` : "Asleep or off");
     }
     li.dataset.node = n.node_name || "";
     const selectThisMachine = () => {
@@ -2977,6 +2971,20 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
       badge.textContent = "this PC";
       li.appendChild(badge);
     }
+
+    // Plain-language status label next to the name (D7 Tailscale-style: a dot is
+    // not enough — never rely on color alone, web.dev offline-UX). "Ready" when
+    // online and targetable, otherwise the human last-seen / asleep state.
+    const statusLabel = document.createElement("span");
+    statusLabel.className = `node-status ${online ? "ok" : "off"}`;
+    statusLabel.textContent = online
+      ? "Ready"
+      : statusError
+        ? "Needs attention"
+        : seen
+          ? `Last seen ${seen}`
+          : "Asleep or off";
+    li.appendChild(statusLabel);
 
     const meshBadge = document.createElement("span");
     meshBadge.className = `node-network ${mesh.state}`;
@@ -3100,6 +3108,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   }
 
   applyFleetFilter();
+  // Single source of truth for the body zone (fleet-empty vs task-feed vs
+  // connector-policy). Runs after applyFleetFilter so fleetFilter is current.
+  updateBodyZone();
 }
 
 // ── diagnostics drawer ─────────────────────────────────
@@ -3153,6 +3164,8 @@ function renderDiagnostics(status) {
   const inb = $("d-signin");
   if (out) out.hidden = !signedIn || loginInProgress;
   if (inb) inb.hidden = signedIn || loginInProgress;
+  // mirror the same account state into the header account menu + settings modal
+  syncAccountAffordances(status);
 
   renderWarnings(status);
   $("version").textContent = status.version ? `MUSU ${status.version}` : "";
@@ -3391,17 +3404,41 @@ function groupList(group) {
   return $("task-feed").querySelector(`[data-group="${group}"] .task-group-list`);
 }
 
-// Show/hide each group section based on whether it has cards; reveal the feed.
+// Show/hide each group section based on whether it has cards.
 function refreshGroupVisibility() {
   const feed = $("task-feed");
-  let any = false;
   for (const group of ["running", "done"]) {
     const section = feed.querySelector(`[data-group="${group}"]`);
     const has = section.querySelector(".task-group-list").children.length > 0;
     section.hidden = !has;
-    any = any || has;
   }
-  feed.hidden = !any;
+  updateBodyZone();
+}
+
+// Single arbiter of the body zone (redesign WS-1a / Critic HIGH-3). Previously
+// three disconnected predicates decided what occupies the middle: fleet-empty
+// (lastFleetIsEmpty && filter==all), connector-policy (isEmpty && !firstTaskDone),
+// and task-feed (card count) — nothing cross-referenced them, so fleet-empty and
+// task-feed could both show or both hide. This unifies them: the activity stream
+// owns the body when there are tasks; otherwise the empty-state CTA does. Called
+// at the end of both renderFleet and refreshGroupVisibility so there's one truth.
+function updateBodyZone() {
+  const feed = $("task-feed");
+  const hasTasks = feed
+    ? [...feed.querySelectorAll(".task-group-list")].some((l) => l.children.length > 0)
+    : false;
+  if (feed) feed.hidden = !hasTasks;
+  const fleetEmpty = $("fleet-empty");
+  // empty-state CTA owns the body only when there are no task cards AND the fleet
+  // itself is empty on the unfiltered view.
+  if (fleetEmpty) {
+    fleetEmpty.hidden = hasTasks || !(lastFleetIsEmpty && fleetFilter === "all");
+  }
+  // connector-policy collapses only on a truly empty body (no tasks, pre-first-task).
+  const connectorPolicy = $("connector-policy");
+  if (connectorPolicy) {
+    connectorPolicy.hidden = !hasTasks && !onboardingFlag("firstTaskDone");
+  }
 }
 
 function stopTaskTimers(taskId) {
@@ -3814,11 +3851,10 @@ function markFirstTaskDoneIfNeeded() {
   setOnboardingFlag("firstTaskDone");
   // Chips were a first-run nudge; retire them now.
   updateOrderExamplesVisibility();
-  // Re-show the connector-policy section immediately. renderFleet hides it on an
-  // empty pre-first-task fleet; now that the first task is done, bring it back
-  // here rather than waiting up to one poll cycle (~15s) for the next renderFleet.
-  const connectorPolicy = $("connector-policy");
-  if (connectorPolicy) connectorPolicy.hidden = false;
+  // Re-arbitrate the body zone immediately (firstTaskDone is now set, so
+  // connector-policy un-collapses) rather than waiting up to one ~15s poll for
+  // the next renderFleet. updateBodyZone is the single owner now.
+  updateBodyZone();
   const banner = $("first-task-aha");
   if (banner) {
     banner.hidden = false;
@@ -4222,6 +4258,115 @@ async function signOut(btn) {
 $("signin-btn").addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("d-signin").addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("d-signout").addEventListener("click", (e) => signOut(e.currentTarget));
+
+// ── account menu + settings (Ctrl+,) ───────────────────────────────────────
+// The discoverable home for Settings / Help / Sign out — reference apps keep
+// these in a fixed-corner account menu, never in a diagnostics drawer. These
+// mirror the existing #d-signin/#d-signout actions (same functions) so behavior
+// stays identical; they're just placed where users actually look.
+const HELP_URL = "https://musu.pro/docs";
+
+function openHelp() {
+  try {
+    invoke("open_external_url", { url: HELP_URL }).catch(() => {
+      try { window.open(HELP_URL, "_blank"); } catch { /* no-op */ }
+    });
+  } catch {
+    try { window.open(HELP_URL, "_blank"); } catch { /* no-op */ }
+  }
+}
+
+function setAccountMenuOpen(open) {
+  const menu = $("account-menu");
+  const btn = $("account-btn");
+  if (!menu || !btn) return;
+  menu.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function setSettingsOpen(open) {
+  const modal = $("settings-modal");
+  if (!modal) return;
+  modal.hidden = !open;
+  if (open) {
+    setAccountMenuOpen(false);
+    // sync the snapshot into the settings surface
+    syncAccountAffordances(window.__lastStatus || {});
+    $("set-theme") && ($("set-theme").value = currentTheme());
+    queueMicrotask(() => $("settings-close")?.focus());
+  }
+}
+
+// Theme: dark (default) or system. Stored in localStorage; applied as a
+// data-theme attribute. v1 keeps the dark palette and only toggles whether the
+// OS "light" preference is honored (system) — the cockpit is dark-first.
+function currentTheme() {
+  try { return window.localStorage.getItem("musu.theme") || "dark"; } catch { return "dark"; }
+}
+function applyTheme(theme) {
+  try { window.localStorage.setItem("musu.theme", theme); } catch { /* no-op */ }
+  document.documentElement.setAttribute("data-theme", theme);
+}
+
+// Keep every account/version affordance (header menu + settings modal) in sync
+// with one status snapshot, so there's a single source of truth.
+function syncAccountAffordances(status) {
+  const auth = status?.auth_status || "";
+  const signedIn = auth === "Connected";
+  const stateText = signedIn
+    ? "Signed in"
+    : auth === "Local Only"
+      ? "Local only (not signed in)"
+      : "Not signed in";
+  const loginInProgress = !$("connecting")?.hidden;
+  for (const id of ["account-menu-state", "set-account-state"]) {
+    const el = $(id); if (el) el.textContent = stateText;
+  }
+  for (const id of ["m-signout", "set-signout"]) {
+    const el = $(id); if (el) el.hidden = !signedIn || loginInProgress;
+  }
+  for (const id of ["m-signin", "set-signin"]) {
+    const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
+  }
+  const ver = status?.version ? `MUSU ${status.version}` : "—";
+  const sv = $("set-version"); if (sv) sv.textContent = ver;
+}
+
+$("account-btn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setAccountMenuOpen($("account-menu")?.hidden !== false);
+});
+// click-away closes the menu
+document.addEventListener("click", (e) => {
+  const menu = $("account-menu");
+  if (menu && !menu.hidden && !e.target?.closest?.(".account-wrap")) setAccountMenuOpen(false);
+});
+$("m-settings")?.addEventListener("click", () => setSettingsOpen(true));
+$("m-help")?.addEventListener("click", () => { setAccountMenuOpen(false); openHelp(); });
+$("m-signout")?.addEventListener("click", (e) => { setAccountMenuOpen(false); signOut(e.currentTarget); });
+$("m-signin")?.addEventListener("click", (e) => { setAccountMenuOpen(false); startSignIn(e.currentTarget); });
+
+$("settings-close")?.addEventListener("click", () => setSettingsOpen(false));
+$("settings-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "settings-modal") setSettingsOpen(false); // backdrop click
+});
+$("set-signout")?.addEventListener("click", (e) => signOut(e.currentTarget));
+$("set-signin")?.addEventListener("click", (e) => startSignIn(e.currentTarget));
+$("set-help")?.addEventListener("click", openHelp);
+$("set-theme")?.addEventListener("change", (e) => applyTheme(e.currentTarget.value));
+
+// Ctrl/Cmd+, opens settings; Esc closes the topmost overlay.
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === ",") {
+    e.preventDefault();
+    setSettingsOpen($("settings-modal")?.hidden !== false);
+  } else if (e.key === "Escape") {
+    if (!$("settings-modal")?.hidden) setSettingsOpen(false);
+    else if (!$("account-menu")?.hidden) setAccountMenuOpen(false);
+  }
+});
+
+applyTheme(currentTheme());
 
 // Diagnostics are lazy: only fetch the expensive desktop_status when the drawer
 // is actually opened (and again on each open, to refresh stale numbers).
