@@ -89,7 +89,40 @@ header.top → #fleet-section { section-head(Add PC) · #fleet-filters(6탭) ·
 - spacing: 8px 그리드+4px half. ramp 4/8/12/16/24/32/40/48/64. 컴포넌트 패딩 4-16, 섹션 갭 24-64.
 - type: 1.25 비율, 12/14/16/18/20/24/30/36/48, line-height 8px 스냅, weight≥400(강조는 색으로), Inter.
 
-## 단계별 구현 계획 (제안 — 작은 것부터, 가역)
+## 기능 Gap 감사 (레퍼런스 대비, 2026-06-18 사용자 지시 "뭐가 없는지 찾아봐")
+
+딥리서치(Linear/Raycast/Slack/Discord/VS Code/Tailscale/ChatGPT/Claude 감사). **핵심 위반**: 모든 레퍼런스가 ① 계정 정체성을 고정 코너에 항상 표시, ② 맨 로그아웃 안 띄움(계정 메뉴/설정 하단). MUSU는 로그인/로그아웃/버전/새로고침이 전부 **"Having trouble?" 진단 패널(접힘) 안에 묻힘** — 어떤 레퍼런스도 안 하는 안티패턴.
+
+**현황 정정**: 로그아웃은 *있다*(`#d-signout`→`account_logout`, main.js:4205). 없는 게 아니라 *발견 불가*.
+
+### 구현 범위: A + B (사용자 결정)
+
+**A — 계정/설정/로그아웃 (사용자 직접 지적):**
+- A1 **진짜 설정창** (Ctrl+, + 계정 메뉴로 열림). 섹션: Account / Appearance / Notifications / Privacy / About.
+- A2 **계정 정체성 칩** (하단-좌측 아바타/이니셜 + musu.pro 이메일, 항상 표시). 2024-26 표준(ChatGPT/Claude/VS Code).
+- A3 **로그아웃을 계정 메뉴 + 설정 Account 하단으로** (진단 패널에서 제거).
+- A4 **Ctrl+, 설정 단축키.**
+
+**B — 높은 체감 누락:**
+- B1 **트레이 우클릭 명시적 Quit + Restart** (백그라운드 태스크 실행 중 → 사고 종료 = 태스크 죽음, critical). Tauri 트레이 메뉴 수작업 필요(plugin 아님).
+- B2 **머신별 상태 배지(online/last-seen) + "you are here" 마커 + rename/remove** (Tailscale Machines 패턴).
+- B3 **mesh Connect/Disconnect를 Sign out과 시각 분리** (Tailscale: 둘은 별개 동작).
+- B4 **About/버전** (설정 → About).
+- B5 **업데이트 상태 표시** ("버전 X.Y · 최신/업데이트 가능"; .appinstaller 자동업뎃이라도 사용자는 현재성 확인 원함).
+- B6 **테마 토글** (dark/system).
+- B7 **Help/docs 링크.**
+
+C(nice, 보류): `?` 단축키 치트시트, 자동시작, 알림설정, 모든기기 로그아웃, 프라이버시 문구, 피드백.
+
+### Tauri 빌드 주의 (silently no-op 방지)
+- 트레이 메뉴+Quit: 수작업(`tauri#9280`, 메뉴 갱신=전체 재구성). 
+- 자동시작=`tauri-plugin-autostart`, 알림=`tauri-plugin-notification`. 
+- 업데이트 상태: 이미 .appinstaller라 About에 버전/상태만 표시.
+
+### A/B 구현 순서 (제안)
+A1-A4 먼저(헤더 계정 칩 + 설정창 = 순수 cockpit shell, Rust 무관, 가장 안전) → B2/B3/B6/B7(설정창·fleet 카피, shell) → B4/B5(About/버전, shell + 버전 데이터) → **B1 트레이 Quit(Rust src-tauri, 별도 — agent-team Critic 권장)**.
+
+## 단계별 구현 계획 (UX 토큰/레이아웃 — 제안, 작은 것부터, 가역)
 
 각 단계 후 cockpit-contract.test.ts 갱신 + 빌드 후 시각 검증.
 
