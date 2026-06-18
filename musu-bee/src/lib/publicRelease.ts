@@ -21,3 +21,7 @@ export const DESKTOP_CERT_URL = `${DESKTOP_RELEASE_BASE}/blossompark.musu.cer`;
 // in a single elevated run, so the beta user never types a certificate command.
 // (Removed entirely once the Store release ships — Store re-signs the package.)
 export const DESKTOP_INSTALL_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/Install-MUSU.ps1`;
+// Classic double-click installer (NSIS .exe). Bundles the WebView2 offline
+// installer, so it works on a clean PC with no prerequisites. For users who
+// prefer a familiar "download the .exe and run it" flow over the one-line PS.
+export const DESKTOP_SETUP_EXE_URL = `${DESKTOP_RELEASE_BASE}/MUSU_1.15.0_x64-setup.exe`;

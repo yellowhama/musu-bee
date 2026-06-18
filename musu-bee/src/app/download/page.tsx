@@ -4,6 +4,7 @@ import PublicSiteShell from "@/components/PublicSiteShell";
 import {
   DESKTOP_INSTALL_SCRIPT_URL,
   DESKTOP_MSIX_URL,
+  DESKTOP_SETUP_EXE_URL,
   PUBLIC_RELEASE_METADATA_TEXT,
   PUBLIC_RELEASE_VERSION,
 } from "@/lib/publicRelease";
@@ -39,6 +40,19 @@ export default function DownloadPage() {
           <pre style={preStyle}>
             <code data-testid="install-one-liner">irm https://musu.pro/install.ps1 | iex</code>
           </pre>
+        </section>
+
+        <section style={sectionStyle}>
+          <h2 style={headingStyle}>Prefer a .exe? Just double-click.</h2>
+          <p style={bodyStyle}>
+            Download{" "}
+            <a href={DESKTOP_SETUP_EXE_URL} style={linkStyle} data-testid="setup-exe-link">
+              MUSU setup.exe
+            </a>{" "}
+            and run it &mdash; the classic installer, no PowerShell. It bundles
+            everything it needs (including the Edge WebView2 runtime), so it works
+            on a fresh PC out of the box.
+          </p>
         </section>
 
         <section style={sectionStyle}>
