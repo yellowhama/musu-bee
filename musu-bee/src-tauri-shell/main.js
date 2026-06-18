@@ -3814,6 +3814,11 @@ function markFirstTaskDoneIfNeeded() {
   setOnboardingFlag("firstTaskDone");
   // Chips were a first-run nudge; retire them now.
   updateOrderExamplesVisibility();
+  // Re-show the connector-policy section immediately. renderFleet hides it on an
+  // empty pre-first-task fleet; now that the first task is done, bring it back
+  // here rather than waiting up to one poll cycle (~15s) for the next renderFleet.
+  const connectorPolicy = $("connector-policy");
+  if (connectorPolicy) connectorPolicy.hidden = false;
   const banner = $("first-task-aha");
   if (banner) {
     banner.hidden = false;

@@ -2669,6 +2669,40 @@ test("example chips fill the order input but do NOT send", async () => {
   dom.window.close();
 });
 
+test("after a chip fills the input, Send still round-trips (positive control)", async () => {
+  // Guards against a future refactor that breaks the send path while the
+  // fill-not-send test above keeps passing (it only asserts the absence of a send).
+  const dom = loadShellDom();
+  const doc = dom.window.document;
+  const win = dom.window as any;
+  const now = new Date().toISOString();
+  let submitted = 0;
+  win.__TAURI__.core.invoke = async (command: string, args?: Record<string, unknown>) => {
+    if (command === "submit_order") {
+      submitted += 1;
+      return { task_id: "task-chip-send-1" };
+    }
+    if (command === "get_order_status") return { status: "done", output: "ok" };
+    return {};
+  };
+  // A single-PC fleet so the order targets this machine (no explicit target needed).
+  win.renderFleet(
+    [{ node_name: "this machine", last_seen: now, public_url: "http://127.0.0.1:8070", is_this_pc: true }],
+    "idle",
+    true
+  );
+  const examples = doc.getElementById("order-examples") as HTMLElement;
+  const chip = examples.querySelector("[data-order-example]") as HTMLButtonElement;
+  chip.click();
+  const input = doc.getElementById("order-input") as HTMLInputElement;
+  assert.ok(input.value.length > 0, "chip filled the input");
+  // Now the user hits Send — the filled chip text must actually be submitted.
+  (doc.getElementById("order-send") as HTMLButtonElement).click();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(submitted, 1, "Send after a chip fill round-trips to submit_order exactly once");
+  dom.window.close();
+});
+
 test("first task done fires the aha exactly once; chips retire after", async () => {
   const dom = loadShellDom();
   const doc = dom.window.document;
@@ -2676,11 +2710,15 @@ test("first task done fires the aha exactly once; chips retire after", async () 
   try { dom.window.localStorage.removeItem("musu.onboarding.firstTaskDone"); } catch {}
   const banner = doc.getElementById("first-task-aha") as HTMLElement;
   const examples = doc.getElementById("order-examples") as HTMLElement;
+  const connector = doc.getElementById("connector-policy") as HTMLElement;
   assert.equal(banner.hidden, true, "aha hidden before first task");
-  // First done → fires, badge shows, chips retire.
+  // Simulate the empty-fleet collapse that renderFleet applies pre-first-task.
+  connector.hidden = true;
+  // First done → fires, badge shows, chips retire, connector re-shows immediately.
   assert.equal(win.markFirstTaskDoneIfNeeded(), true);
   assert.equal(banner.hidden, false, "aha badge shows after first task");
   assert.equal(examples.hidden, true, "example chips retire after first task");
+  assert.equal(connector.hidden, false, "connector-policy re-shows immediately, not after the next poll");
   // Second done → idempotent, no re-fire.
   assert.equal(win.markFirstTaskDoneIfNeeded(), false, "aha fires only once");
   await new Promise((r) => setTimeout(r, 0));
