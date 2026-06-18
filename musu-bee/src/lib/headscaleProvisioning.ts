@@ -521,8 +521,20 @@ export async function deleteNodeForUser(args: {
       409
     );
   }
-  // HIGH-3: never evict the requesting machine itself.
-  if (callerIp && target.ipAddresses.includes(callerIp)) {
+  // HIGH-3: never evict the requesting machine itself — FAIL-CLOSED. The dual
+  // audit flagged that an optional callerIp made this an honor-system check
+  // (omit it → guard skipped). So removal now REQUIRES a non-empty callerIp:
+  // without it we cannot prove the target isn't this PC, and we refuse rather
+  // than risk self-eviction. The cockpit always sends this-PC's tailnet IP; a
+  // direct CLI caller must pass --caller-ip.
+  const callerIpTrimmed = (callerIp ?? "").trim();
+  if (!callerIpTrimmed) {
+    throw new HeadscaleProvisioningError(
+      "remove requires the caller's tailnet IP (self-eviction guard); none supplied",
+      400
+    );
+  }
+  if (target.ipAddresses.includes(callerIpTrimmed)) {
     throw new HeadscaleProvisioningError(
       "refusing to remove the machine you're using (this PC). Disconnect it instead.",
       400

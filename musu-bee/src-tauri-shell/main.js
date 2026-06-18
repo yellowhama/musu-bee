@@ -4521,14 +4521,20 @@ async function removeNodeFlow(node) {
     window.alert("Name didn't match — removal cancelled.");
     return;
   }
-  // this-PC's own IP (so the server refuses if the user somehow targets it).
+  // this-PC's own IP — REQUIRED by the server's fail-closed self-eviction guard.
+  // If we can't determine it, refuse here rather than send a request the server
+  // will (correctly) reject.
   const thisPc = (lastFleetNodes || []).find((m) => m.is_this_pc);
   const callerIp = thisPc ? String(thisPc.tailscale_ip || thisPc.tailnet_ip || "").trim() : "";
+  if (!callerIp) {
+    window.alert("Can't determine this PC's mesh address right now — try again once the fleet has refreshed.");
+    return;
+  }
   try {
     const res = await invoke("mesh_node_remove", {
       nodeId: target.id,
       expectedName: target.name,
-      callerIp: callerIp || null,
+      callerIp,
     });
     if (res && res.ok === false) {
       window.alert(`Remove failed: ${String(res.error || "unknown error").slice(0, 200)}`);
