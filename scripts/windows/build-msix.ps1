@@ -468,6 +468,15 @@ if ($resolvedCert) {
     if ($InstallCert) {
         $packArgs += @("--install-cert")
     }
+} elseif (-not $DryRun) {
+    # No signing path resolved: the canonical key is absent AND -GenerateCert was
+    # not passed AND no -CertPath was given. Without this guard, winapp pack would
+    # run with neither --cert nor --generate-cert and silently produce an unsigned
+    # (or build-failing) package, breaking the .appinstaller publisher/thumbprint
+    # contract. Fail loud instead. (DryRun is exempt — it never packs.)
+    throw ("No signing certificate resolved. Provide -CertPath, pass -GenerateCert " +
+        "to mint one, or restore the canonical key at $canonicalCertPath. " +
+        "Refusing to pack an unsigned MSIX (would break auto-update publisher trust).")
 }
 
 Write-Step "Packing MSIX"
