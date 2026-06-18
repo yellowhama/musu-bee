@@ -50,6 +50,62 @@ pub enum PrivateMeshAction {
     PhysicalPeerEvidence(PrivateMeshPhysicalPeerEvidenceOpts),
     /// Run target-bound ping, bridge health, delegated task, callback, and evidence proof.
     ReleaseProof(PrivateMeshReleaseProofOpts),
+    /// Disconnect THIS machine from MUSU Private Mesh (`tailscale down`). Runs
+    /// only when the active tailnet is provably ours (a personal tailnet is left
+    /// untouched). Does NOT sign out of the cloud account — that's `musu logout`.
+    Leave(PrivateMeshStatusOpts),
+    /// Manage nodes in this account's fleet (list / rename). Account derived
+    /// server-side from the saved login token; operations are owner-scoped.
+    #[command(subcommand)]
+    Node(PrivateMeshNodeAction),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum PrivateMeshNodeAction {
+    /// List this account's fleet nodes (id, name, ips, online).
+    List(PrivateMeshNodeListOpts),
+    /// Rename a node by its Headscale id (resolve→confirm-by-id).
+    Rename(PrivateMeshNodeRenameOpts),
+    /// Remove (evict) a node by its Headscale id. ONE-WAY; the server refuses to
+    /// remove this machine itself and requires the confirmed name to still match.
+    Remove(PrivateMeshNodeRemoveOpts),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeListOpts {
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeRenameOpts {
+    /// The Headscale node id to rename (from `node list`).
+    #[arg(long)]
+    pub node_id: String,
+    /// The new name (1-63 chars: letters, digits, hyphens; starts alphanumeric).
+    #[arg(long)]
+    pub new_name: String,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct PrivateMeshNodeRemoveOpts {
+    /// The Headscale node id to remove (from `node list`).
+    #[arg(long)]
+    pub node_id: String,
+    /// The node's current name, as confirmed by the user (optimistic-concurrency
+    /// guard: server refuses if the node's name no longer matches).
+    #[arg(long)]
+    pub expected_name: String,
+    /// This machine's tailnet IP, so the server can refuse self-eviction.
+    #[arg(long)]
+    pub caller_ip: Option<String>,
+    /// Emit machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -473,7 +529,108 @@ pub async fn run(action: PrivateMeshAction) -> Result<()> {
         PrivateMeshAction::Verify(opts) => run_verify(opts).await,
         PrivateMeshAction::PhysicalPeerEvidence(opts) => run_physical_peer_evidence(opts).await,
         PrivateMeshAction::ReleaseProof(opts) => run_release_proof(opts).await,
+        PrivateMeshAction::Leave(opts) => run_leave_cli(opts),
+        PrivateMeshAction::Node(action) => run_node_cli(action).await,
     }
+}
+
+/// CLI for fleet node management (list / rename). Account derived server-side
+/// from the saved login token; rename keys on the Headscale node id returned by
+/// list (resolve→confirm-by-id, never re-resolves by name/IP).
+async fn run_node_cli(action: PrivateMeshNodeAction) -> Result<()> {
+    let home = super::resolve_musu_home(None)?;
+    let token = crate::cloud::token::load_token(&home)
+        .ok_or_else(|| anyhow!("Not logged in. Run `musu login` first."))?;
+    let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
+
+    match action {
+        PrivateMeshNodeAction::List(opts) => {
+            let list = cloud.list_mesh_nodes().await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_list.v1",
+                        "ok": true,
+                        "nodes": list.nodes.iter().map(|n| serde_json::json!({
+                            "id": n.id, "name": n.name, "ips": n.ips,
+                            "online": n.online, "last_seen": n.last_seen,
+                        })).collect::<Vec<_>>(),
+                    }))?
+                );
+            } else if list.nodes.is_empty() {
+                println!("No machines in this account's fleet.");
+            } else {
+                for n in &list.nodes {
+                    let dot = if n.online { "●" } else { "○" };
+                    println!("{dot} {}  id={}  {}", n.name, n.id, n.ips.join(","));
+                }
+            }
+            Ok(())
+        }
+        PrivateMeshNodeAction::Rename(opts) => {
+            let renamed = cloud.rename_mesh_node(&opts.node_id, &opts.new_name).await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_rename.v1",
+                        "ok": true,
+                        "node": { "id": renamed.node.id, "name": renamed.node.name },
+                    }))?
+                );
+            } else {
+                println!("Renamed node {} → {}", renamed.node.id, renamed.node.name);
+            }
+            Ok(())
+        }
+        PrivateMeshNodeAction::Remove(opts) => {
+            let removed = cloud
+                .remove_mesh_node(&opts.node_id, &opts.expected_name, opts.caller_ip.as_deref())
+                .await?;
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "schema": "musu.mesh_node_remove.v1",
+                        "ok": true,
+                        "removed": removed.removed,
+                        "already_gone": removed.already_gone,
+                    }))?
+                );
+            } else if removed.already_gone {
+                println!("Node {} was already removed.", opts.node_id);
+            } else {
+                println!("Removed node {} from the fleet.", opts.node_id);
+            }
+            Ok(())
+        }
+    }
+}
+
+/// CLI wrapper for `run_leave`: prints a JSON or human result so the cockpit's
+/// `private_mesh_leave` command (which shells out `musu mesh leave --json`) and a
+/// human operator both get a clear outcome.
+fn run_leave_cli(opts: PrivateMeshStatusOpts) -> Result<()> {
+    let outcome = run_leave(opts.musu_home.as_deref())?;
+    let (ok, code, message) = match &outcome {
+        LeaveOutcome::Disconnected => (true, "disconnected", "Disconnected this machine from MUSU mesh.".to_string()),
+        LeaveOutcome::NotConnected => (true, "not_connected", "This machine is not connected to a MUSU mesh; nothing to disconnect.".to_string()),
+        LeaveOutcome::RefusedForeignTailnet => (false, "refused_foreign_tailnet", "This machine is on a different (personal) tailnet — left untouched. MUSU only disconnects its own mesh.".to_string()),
+        LeaveOutcome::Failed(detail) => (false, "failed", format!("Disconnect failed: {detail}")),
+    };
+    if opts.json {
+        let payload = serde_json::json!({
+            "schema": "musu.private_mesh_leave.v1",
+            "ok": ok,
+            "outcome": code,
+            "message": message,
+        });
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        println!("{message}");
+    }
+    Ok(())
 }
 
 async fn run_status(opts: PrivateMeshStatusOpts, doctor: bool) -> Result<()> {
@@ -3659,6 +3816,75 @@ fn control_server_health_url(login_server: &str) -> Result<String> {
 /// machine is already on a DIFFERENT tailnet than the one we're joining, so an
 /// account auto-join never wipes the user's personal Tailscale configuration.
 ///
+/// Extract a comparable host from a control URL / tailnet name (strip
+/// scheme/path/port), so "mesh.musu.pro" matches "https://mesh.musu.pro:443/".
+/// Shared by the reset guard and the leave ownership predicate.
+fn control_host_of(s: &str) -> String {
+    let s = s.trim();
+    let s = s.split_once("://").map(|(_, rest)| rest).unwrap_or(s);
+    let s = s.split('/').next().unwrap_or(s);
+    let s = s.split(':').next().unwrap_or(s);
+    s.trim_end_matches('.').to_ascii_lowercase()
+}
+
+/// Whether the machine's currently-active tailnet IS our MUSU mesh. This is the
+/// POSITIVE predicate the leave path needs — distinct from
+/// `assert_safe_to_reset_tailscale`, which is a refuse-if-DIFFERENT gate whose
+/// "Ok" pass-through cases (not-running / unparseable / backend≠Running) are safe
+/// for `up --reset` but would WRONGLY authorize `tailscale down` on a personal
+/// tailnet if reused (Critic HIGH, 2026-06-19). Here those cases resolve to
+/// `Indeterminate`, and the leave path runs `down` ONLY on `Ours` (default-to-refuse).
+#[derive(Debug, PartialEq, Eq)]
+enum TailnetOwnership {
+    Ours,
+    NotOurs,
+    Indeterminate,
+}
+
+fn active_tailnet_is_ours(login_server: &str) -> TailnetOwnership {
+    let status = run_tail_command(&["status", "--json"]);
+    if !status.found {
+        return TailnetOwnership::Indeterminate; // no client → nothing we own is up
+    }
+    tailnet_ownership_from_status(status.stdout.as_deref().unwrap_or(""), login_server)
+}
+
+/// Pure decision: given the raw `tailscale status --json` text and our login
+/// server, classify whether the active tailnet is ours. Separated from the
+/// command call so the inversion-safe branch logic is unit-testable (Critic
+/// 2026-06-19). EVERY uncertain case → Indeterminate (leave defaults to refuse).
+fn tailnet_ownership_from_status(status_json: &str, login_server: &str) -> TailnetOwnership {
+    let out = status_json.trim();
+    if out.is_empty() {
+        return TailnetOwnership::Indeterminate;
+    }
+    let json: serde_json::Value = match serde_json::from_str(out) {
+        Ok(v) => v,
+        Err(_) => return TailnetOwnership::Indeterminate, // can't confirm → don't down
+    };
+    let backend = json.get("BackendState").and_then(|v| v.as_str()).unwrap_or("");
+    if backend != "Running" {
+        return TailnetOwnership::Indeterminate; // not actively up → nothing of ours to down
+    }
+    let current_control = json
+        .get("ControlURL")
+        .and_then(|v| v.as_str())
+        .or_else(|| {
+            json.get("CurrentTailnet")
+                .and_then(|t| t.get("ControlURL").or_else(|| t.get("Name")))
+                .and_then(|v| v.as_str())
+        })
+        .unwrap_or("");
+    if current_control.is_empty() {
+        return TailnetOwnership::Indeterminate; // control undetermined → don't down
+    }
+    if control_host_of(current_control) == control_host_of(login_server) {
+        TailnetOwnership::Ours
+    } else {
+        TailnetOwnership::NotOurs // a different (personal) tailnet — preserve it
+    }
+}
+
 /// Reads `tailscale status --json` and inspects `CurrentTailnet`/control URL:
 /// - not running / no client / empty status → safe (nothing to destroy).
 /// - running against a control server == our login_server → safe (this is a
@@ -3712,18 +3938,8 @@ fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
         );
     }
 
-    // Extract a comparable host from both sides (strip scheme/path/port).
-    let host_of = |s: &str| -> String {
-        let s = s.trim();
-        let s = s
-            .split_once("://")
-            .map(|(_, rest)| rest)
-            .unwrap_or(s);
-        let s = s.split('/').next().unwrap_or(s);
-        let s = s.split(':').next().unwrap_or(s);
-        s.trim_end_matches('.').to_ascii_lowercase()
-    };
-    if host_of(current_control) == host_of(login_server) {
+    // Compare by HOST (strip scheme/path/port) via the shared helper.
+    if control_host_of(current_control) == control_host_of(login_server) {
         return Ok(()); // same control host → re-join our own mesh, safe.
     }
 
@@ -3733,6 +3949,60 @@ fn assert_safe_to_reset_tailscale(login_server: &str) -> Result<()> {
          tailnet configuration. Refusing to do that automatically. If you want this machine on \
          MUSU mesh, run `tailscale logout` first, then retry — or keep it on its current tailnet."
     );
+}
+
+/// Outcome of a leave attempt — drives the cockpit's report so the UI never
+/// lies about connectivity (Critic MED1: false-state).
+#[derive(Debug, PartialEq, Eq)]
+pub enum LeaveOutcome {
+    /// `tailscale down` ran and a re-query confirmed we're no longer up on ours.
+    Disconnected,
+    /// Not on a MUSU mesh (no config), or not currently up on ours → nothing done.
+    NotConnected,
+    /// Active tailnet is a DIFFERENT (personal) one → refused, preserved.
+    RefusedForeignTailnet,
+    /// `down` ran but did not succeed / could not be confirmed → still connected.
+    Failed(String),
+}
+
+/// Disconnect THIS machine from the MUSU mesh (`tailscale down`), without
+/// touching the cloud account token (that's `account_logout`, kept separate).
+/// Runs `down` ONLY when the active tailnet is provably ours (preserve a personal
+/// tailnet); leaves private_mesh.toml intact so a re-join reuses the node key.
+/// NEVER reads/writes ~/.musu/token (Critic INFO: leave/logout independence).
+pub fn run_leave(musu_home: Option<&Path>) -> Result<LeaveOutcome> {
+    let home = super::resolve_musu_home(musu_home)?;
+    let config_path = home.join(PRIVATE_MESH_CONFIG);
+    let Some(config) = read_private_mesh_config(&config_path) else {
+        return Ok(LeaveOutcome::NotConnected); // not in a MUSU mesh
+    };
+    let Some(login_server) = config.mesh.control_server_url.as_deref() else {
+        return Ok(LeaveOutcome::NotConnected);
+    };
+
+    match active_tailnet_is_ours(login_server) {
+        TailnetOwnership::NotOurs => Ok(LeaveOutcome::RefusedForeignTailnet),
+        TailnetOwnership::Indeterminate => Ok(LeaveOutcome::NotConnected),
+        TailnetOwnership::Ours => {
+            let down = run_tail_command(&["down"]);
+            if down.exit_code != Some(0) {
+                let detail = down
+                    .stderr
+                    .as_deref()
+                    .unwrap_or("tailscale down failed (it may need elevated rights)")
+                    .trim()
+                    .to_string();
+                return Ok(LeaveOutcome::Failed(detail));
+            }
+            // MED1: re-query to confirm we actually left ours before reporting it.
+            match active_tailnet_is_ours(login_server) {
+                TailnetOwnership::Ours => Ok(LeaveOutcome::Failed(
+                    "tailscale down returned 0 but the machine is still up on the MUSU mesh".into(),
+                )),
+                _ => Ok(LeaveOutcome::Disconnected),
+            }
+        }
+    }
 }
 
 fn join_tail_args(login_server: &str, authkey: Option<&str>) -> Vec<String> {
@@ -4657,6 +4927,60 @@ mod tests {
             ]
         );
         assert!(!join_tail_args("https://mesh.example", None).contains(&"login".to_string()));
+    }
+
+    // ── leave ownership predicate (WS-2b, Critic-mandated) ──────────────────
+    // The inversion-safe branch logic: `tailscale down` runs ONLY on Ours;
+    // every uncertain case must be Indeterminate so leave defaults to refuse and
+    // never tears down a personal tailnet.
+    const OURS: &str = "https://mesh.musu.pro";
+
+    #[test]
+    fn ownership_same_control_host_is_ours() {
+        // ControlURL form + CurrentTailnet.Name form, with scheme/port noise.
+        let j = r#"{"BackendState":"Running","ControlURL":"https://mesh.musu.pro:443/"}"#;
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Ours);
+        let j2 = r#"{"BackendState":"Running","CurrentTailnet":{"Name":"mesh.musu.pro"}}"#;
+        assert_eq!(tailnet_ownership_from_status(j2, OURS), TailnetOwnership::Ours);
+    }
+
+    #[test]
+    fn ownership_different_host_is_not_ours() {
+        let j = r#"{"BackendState":"Running","ControlURL":"https://controlplane.tailscale.com"}"#;
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::NotOurs);
+    }
+
+    #[test]
+    fn ownership_unparseable_is_indeterminate_not_down() {
+        // The dangerous case the Critic flagged: garbage status while on a
+        // personal tailnet must NOT authorize `down`.
+        assert_eq!(tailnet_ownership_from_status("not json at all", OURS), TailnetOwnership::Indeterminate);
+        assert_eq!(tailnet_ownership_from_status("", OURS), TailnetOwnership::Indeterminate);
+    }
+
+    #[test]
+    fn ownership_backend_not_running_is_indeterminate() {
+        for state in ["Stopped", "NeedsLogin", "Starting", "NoState"] {
+            let j = format!(r#"{{"BackendState":"{state}","ControlURL":"https://mesh.musu.pro"}}"#);
+            assert_eq!(
+                tailnet_ownership_from_status(&j, OURS),
+                TailnetOwnership::Indeterminate,
+                "backend {state} must be Indeterminate"
+            );
+        }
+    }
+
+    #[test]
+    fn ownership_control_undetermined_is_indeterminate() {
+        let j = r#"{"BackendState":"Running"}"#; // running but no control URL/name
+        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Indeterminate);
+    }
+
+    #[test]
+    fn control_host_of_strips_scheme_port_path() {
+        assert_eq!(control_host_of("https://mesh.musu.pro:443/x"), "mesh.musu.pro");
+        assert_eq!(control_host_of("mesh.musu.pro."), "mesh.musu.pro");
+        assert_eq!(control_host_of("HTTP://Mesh.Musu.Pro"), "mesh.musu.pro");
     }
 
     #[test]

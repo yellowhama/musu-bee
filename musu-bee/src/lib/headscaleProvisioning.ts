@@ -390,3 +390,164 @@ export async function provisionMeshJoinKey(args: {
     tailnet: name,
   };
 }
+
+// ── node management (WS-2c rename) ──────────────────────────────────────────
+// Headscale v0.28.0 node REST. List is filtered by user id at the control plane
+// (never list global then filter in app code — Critic HIGH-2: the admin key is
+// global, so this server-side ?user= scope is the sole cross-tenant barrier).
+
+export interface HeadscaleNode {
+  id: string; // uint64-as-string
+  name: string; // given name
+  user: { id: string; name: string };
+  ipAddresses: string[];
+  online: boolean;
+  lastSeen: string | null;
+}
+
+function parseHeadscaleNode(raw: unknown): HeadscaleNode | null {
+  if (!raw || typeof raw !== "object") return null;
+  const n = raw as Record<string, unknown>;
+  const id = n.id != null ? String(n.id) : "";
+  if (!id) return null;
+  const user = (n.user ?? {}) as Record<string, unknown>;
+  return {
+    id,
+    name: String(n.givenName ?? n.name ?? ""),
+    user: { id: user.id != null ? String(user.id) : "", name: String(user.name ?? "") },
+    ipAddresses: Array.isArray(n.ipAddresses) ? n.ipAddresses.map(String) : [],
+    online: n.online === true,
+    lastSeen: n.lastSeen != null ? String(n.lastSeen) : null,
+  };
+}
+
+/**
+ * List the nodes belonging to ONE Headscale user, filtered at the control plane
+ * by numeric user id. The caller derives `userId` from the authenticated
+ * owner_key (never from client input), so an owner only ever sees its own fleet.
+ */
+export async function listNodesForUser(
+  cfg: HeadscaleClientConfig,
+  userId: string
+): Promise<HeadscaleNode[]> {
+  const res = await headscaleFetch(
+    cfg,
+    `/api/v1/node?user=${encodeURIComponent(userId)}`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale list nodes failed (${res.status})`, 502);
+  }
+  const body = (await readJson(res)) as { nodes?: unknown[] } | null;
+  return (body?.nodes ?? [])
+    .map(parseHeadscaleNode)
+    .filter((n): n is HeadscaleNode => n !== null && n.user.id === userId);
+}
+
+/**
+ * Rename a node, but ONLY after re-asserting it still belongs to `userId`
+ * (Critic HIGH-2: fail-closed cross-tenant; HIGH-1: act on the authoritative
+ * current node, not a stale client-supplied name/IP). Re-fetches the node by id
+ * from the owner-scoped list and refuses if it's gone or now owned by someone
+ * else (optimistic-concurrency).
+ */
+export async function renameNodeForUser(
+  cfg: HeadscaleClientConfig,
+  userId: string,
+  nodeId: string,
+  newName: string
+): Promise<HeadscaleNode> {
+  const owned = await listNodesForUser(cfg, userId);
+  const target = owned.find((n) => n.id === nodeId);
+  if (!target) {
+    throw new HeadscaleProvisioningError(
+      "node not found in this account's fleet (it may have been removed or renamed elsewhere)",
+      409
+    );
+  }
+  const trimmed = newName.trim();
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$/.test(trimmed)) {
+    throw new HeadscaleProvisioningError(
+      "name must be 1-63 chars: letters, digits, hyphens; starting alphanumeric",
+      400
+    );
+  }
+  const res = await headscaleFetch(
+    cfg,
+    `/api/v1/node/${encodeURIComponent(nodeId)}/rename/${encodeURIComponent(trimmed)}`,
+    { method: "POST" }
+  );
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale rename node failed (${res.status})`, 502);
+  }
+  const body = (await readJson(res)) as { node?: unknown } | null;
+  const updated = parseHeadscaleNode(body?.node);
+  // Re-assert ownership on the returned node too (defense in depth).
+  if (!updated || updated.user.id !== userId) {
+    throw new HeadscaleProvisioningError("rename ownership re-check failed", 502);
+  }
+  return updated;
+}
+
+/**
+ * Remove (evict) a node from the mesh — ONE-WAY (WS-2c Phase 2). Re-asserts the
+ * node belongs to `userId` (HIGH-2 cross-tenant), and refuses to delete the
+ * REQUESTING machine's own node (HIGH-3 self-eviction: `callerIp` is the caller's
+ * tailnet IP; if the target carries it, refuse — a shell guard is bypassable, so
+ * this is enforced server-side). Treats a Headscale 404 as idempotent success
+ * (already removed) and NEVER re-resolves by name/IP after a 404 (that's the
+ * wrong-node path). `expectedName` is an optimistic-concurrency check: the node's
+ * current name must still match what the user confirmed, else refuse.
+ */
+export async function deleteNodeForUser(args: {
+  cfg: HeadscaleClientConfig;
+  userId: string;
+  nodeId: string;
+  expectedName: string;
+  callerIp?: string;
+}): Promise<{ removed: boolean; alreadyGone: boolean }> {
+  const { cfg, userId, nodeId, expectedName, callerIp } = args;
+  const owned = await listNodesForUser(cfg, userId);
+  const target = owned.find((n) => n.id === nodeId);
+  if (!target) {
+    // Not in the owner's fleet → either already removed or never theirs.
+    return { removed: false, alreadyGone: true };
+  }
+  // Optimistic concurrency: the confirmed name must still match (HIGH-1 — don't
+  // delete a node that was renamed/replaced out from under the confirmation).
+  if (expectedName && target.name !== expectedName) {
+    throw new HeadscaleProvisioningError(
+      "node changed since you confirmed (name no longer matches); refusing to remove",
+      409
+    );
+  }
+  // HIGH-3: never evict the requesting machine itself — FAIL-CLOSED. The dual
+  // audit flagged that an optional callerIp made this an honor-system check
+  // (omit it → guard skipped). So removal now REQUIRES a non-empty callerIp:
+  // without it we cannot prove the target isn't this PC, and we refuse rather
+  // than risk self-eviction. The cockpit always sends this-PC's tailnet IP; a
+  // direct CLI caller must pass --caller-ip.
+  const callerIpTrimmed = (callerIp ?? "").trim();
+  if (!callerIpTrimmed) {
+    throw new HeadscaleProvisioningError(
+      "remove requires the caller's tailnet IP (self-eviction guard); none supplied",
+      400
+    );
+  }
+  if (target.ipAddresses.includes(callerIpTrimmed)) {
+    throw new HeadscaleProvisioningError(
+      "refusing to remove the machine you're using (this PC). Disconnect it instead.",
+      400
+    );
+  }
+  const res = await headscaleFetch(cfg, `/api/v1/node/${encodeURIComponent(nodeId)}`, {
+    method: "DELETE",
+  });
+  if (res.status === 404) {
+    return { removed: false, alreadyGone: true }; // idempotent; do NOT re-resolve
+  }
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale delete node failed (${res.status})`, 502);
+  }
+  return { removed: true, alreadyGone: false };
+}

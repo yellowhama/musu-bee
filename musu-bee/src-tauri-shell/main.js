@@ -218,6 +218,7 @@ function connectorApprovalGateForUi(connector) {
 }
 let fleetFilter = "all";
 let lastFleetIsEmpty = true;
+let lastFleetNodes = []; // last rendered node list (for this-PC IP lookups, etc.)
 let lastPrivateMeshStatus = null;
 let lastReleaseProofResult = null;
 let lastReleaseProofTarget = null;
@@ -2844,6 +2845,7 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
   // empty = no nodes at all, or only this PC
   const isEmpty = nodes.length === 0 || others.length === 0;
   lastFleetIsEmpty = isEmpty;
+  lastFleetNodes = nodes;
   // Onboarding: do NOT auto-open the Add-PC panel on an empty fleet. Adding a PC
   // is infrastructure setup (Headscale) — pushing a first-time user there before
   // they've felt the product (give-a-task → walk-away → get-pinged) is the wrong
@@ -2991,6 +2993,36 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     meshBadge.textContent = mesh.label;
     meshBadge.title = mesh.title;
     li.appendChild(meshBadge);
+
+    // Rename (WS-2c): resolve→confirm-by-id. We fetch the authoritative node
+    // list, match THIS row by name+IP, and rename by the returned Headscale id —
+    // never by the row's possibly-stale name. Ambiguous match → refuse (the
+    // server enforces the same, this is a first-line UX guard).
+    const renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.className = "node-rename";
+    renameBtn.textContent = "Rename";
+    renameBtn.title = `Rename ${n.node_name}`;
+    renameBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      renameNodeFlow(n);
+    });
+    li.appendChild(renameBtn);
+
+    // Remove (WS-2c Phase 2) — one-way; never on this PC (use Disconnect for
+    // that). The server also refuses self-eviction; this just hides the button.
+    if (!n.is_this_pc) {
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "node-remove";
+      removeBtn.textContent = "Remove";
+      removeBtn.title = `Remove ${n.node_name} from the fleet`;
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeNodeFlow(n);
+      });
+      li.appendChild(removeBtn);
+    }
 
     if (verifyCommand) {
       const verifyActions = document.createElement("span");
@@ -4354,6 +4386,167 @@ $("set-signout")?.addEventListener("click", (e) => signOut(e.currentTarget));
 $("set-signin")?.addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("set-help")?.addEventListener("click", openHelp);
 $("set-theme")?.addEventListener("change", (e) => applyTheme(e.currentTarget.value));
+
+// Disconnect this machine from the mesh — distinct from Sign out (cloud). Runs
+// `tailscale down` via private_mesh_leave only when the active tailnet is ours
+// (a personal tailnet is preserved server-side). Confirm first; a task running
+// here can lose its result callback over the mesh.
+async function disconnectMesh(btn) {
+  const ok = window.confirm(
+    "Disconnect this machine from your private network?\n\n" +
+      "• Your other machines won't be able to reach it.\n" +
+      "• A task running on this machine may not be able to send its result back.\n" +
+      "• This does NOT sign you out — reconnect by logging in or rejoining.\n\n" +
+      "A personal (non-MUSU) tailnet is never touched."
+  );
+  if (!ok) return;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await invoke("private_mesh_leave");
+    const wbox = $("diag-warnings");
+    if (wbox && res && res.ok === false && res.error) {
+      wbox.hidden = false;
+      wbox.textContent = `Disconnect: ${String(res.error).slice(0, 200)}`;
+    }
+    announce("Disconnected this machine from the mesh", true);
+  } catch (err) {
+    const wbox = $("diag-warnings");
+    if (wbox) {
+      wbox.hidden = false;
+      wbox.textContent = `Disconnect failed: ${String(err)}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    refresh();
+    loadDiagnostics();
+  }
+}
+$("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.currentTarget));
+
+// Rename a fleet machine (WS-2c, resolve→confirm-by-id). Fetch the authoritative
+// node list, match this row by name AND tailnet IP, rename by the returned
+// Headscale id. Refuse if the row matches zero or more than one live node (the
+// row's name/IP may be stale; the server enforces the same — this is the UX guard
+// against renaming the wrong machine).
+async function renameNodeFlow(node) {
+  let listRes;
+  try {
+    listRes = await invoke("mesh_node_list");
+  } catch (err) {
+    window.alert(`Couldn't load the machine list: ${String(err)}`);
+    return;
+  }
+  let nodes = [];
+  try {
+    nodes = JSON.parse(listRes?.output || "{}").nodes || [];
+  } catch {
+    window.alert("Couldn't read the machine list (unexpected response).");
+    return;
+  }
+  const rowName = (node.node_name || "").trim();
+  const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
+  // Match by name AND IP when we have an IP; require a single unambiguous match.
+  const matches = nodes.filter((m) => {
+    const nameOk = (m.name || "").trim() === rowName;
+    const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
+    return nameOk && ipOk;
+  });
+  if (matches.length === 0) {
+    window.alert(`Couldn't find "${rowName}" in your fleet right now — it may have changed. Refresh and try again.`);
+    return;
+  }
+  if (matches.length > 1) {
+    window.alert(`More than one machine matches "${rowName}". Renaming is blocked to avoid changing the wrong one.`);
+    return;
+  }
+  const target = matches[0];
+  const newName = window.prompt(`Rename "${target.name}" to:`, target.name);
+  if (newName == null) return;
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === target.name) return;
+  try {
+    const res = await invoke("mesh_node_rename", { nodeId: target.id, newName: trimmed });
+    if (res && res.ok === false) {
+      window.alert(`Rename failed: ${String(res.error || "unknown error").slice(0, 200)}`);
+    } else {
+      announce(`Renamed ${target.name} to ${trimmed}`);
+    }
+  } catch (err) {
+    window.alert(`Rename failed: ${String(err)}`);
+  } finally {
+    refresh();
+  }
+}
+
+// Remove a machine from the fleet (WS-2c Phase 2, one-way). Same resolve→
+// confirm-by-id matching as rename, plus a typed confirmation (the user must
+// type the machine name) and this-PC's IP passed so the server can refuse
+// self-eviction. The destructive guard is server-side; this is UX defense.
+async function removeNodeFlow(node) {
+  let listRes;
+  try {
+    listRes = await invoke("mesh_node_list");
+  } catch (err) {
+    window.alert(`Couldn't load the machine list: ${String(err)}`);
+    return;
+  }
+  let nodes = [];
+  try {
+    nodes = JSON.parse(listRes?.output || "{}").nodes || [];
+  } catch {
+    window.alert("Couldn't read the machine list (unexpected response).");
+    return;
+  }
+  const rowName = (node.node_name || "").trim();
+  const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
+  const matches = nodes.filter((m) => {
+    const nameOk = (m.name || "").trim() === rowName;
+    const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
+    return nameOk && ipOk;
+  });
+  if (matches.length === 0) {
+    window.alert(`Couldn't find "${rowName}" in your fleet right now — refresh and try again.`);
+    return;
+  }
+  if (matches.length > 1) {
+    window.alert(`More than one machine matches "${rowName}". Removal is blocked to avoid removing the wrong one.`);
+    return;
+  }
+  const target = matches[0];
+  const typed = window.prompt(
+    `Remove "${target.name}" from your fleet? This is permanent — the machine must rejoin (log in again) to come back.\n\nType the machine name to confirm:`
+  );
+  if (typed == null) return;
+  if (typed.trim() !== target.name) {
+    window.alert("Name didn't match — removal cancelled.");
+    return;
+  }
+  // this-PC's own IP — REQUIRED by the server's fail-closed self-eviction guard.
+  // If we can't determine it, refuse here rather than send a request the server
+  // will (correctly) reject.
+  const thisPc = (lastFleetNodes || []).find((m) => m.is_this_pc);
+  const callerIp = thisPc ? String(thisPc.tailscale_ip || thisPc.tailnet_ip || "").trim() : "";
+  if (!callerIp) {
+    window.alert("Can't determine this PC's mesh address right now — try again once the fleet has refreshed.");
+    return;
+  }
+  try {
+    const res = await invoke("mesh_node_remove", {
+      nodeId: target.id,
+      expectedName: target.name,
+      callerIp,
+    });
+    if (res && res.ok === false) {
+      window.alert(`Remove failed: ${String(res.error || "unknown error").slice(0, 200)}`);
+    } else {
+      announce(`Removed ${target.name} from the fleet`, true);
+    }
+  } catch (err) {
+    window.alert(`Remove failed: ${String(err)}`);
+  } finally {
+    refresh();
+  }
+}
 
 // Ctrl/Cmd+, opens settings; Esc closes the topmost overlay.
 document.addEventListener("keydown", (e) => {

@@ -24,6 +24,7 @@ pub fn run() {
             cockpit_state,
             start_runtime,
             open_dashboard,
+            open_external_url,
             start_login,
             account_logout,
             private_mesh_status,
@@ -34,6 +35,10 @@ pub fn run() {
             private_mesh_create_join_key,
             private_mesh_join,
             private_mesh_join_account,
+            private_mesh_leave,
+            mesh_node_list,
+            mesh_node_rename,
+            mesh_node_remove,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -1181,6 +1186,108 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
     })
 }
 
+/// `private_mesh_leave` — disconnect THIS machine from the mesh (`tailscale down`)
+/// via `musu mesh leave --json`. Distinct from `account_logout` (cloud sign-out):
+/// leave never touches the account token, and it only runs `down` when the active
+/// tailnet is provably ours (a personal tailnet is preserved). The cockpit's
+/// "Disconnect this machine" button lives separately from Sign out.
+#[tauri::command]
+fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh leave timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_list` — the account's fleet nodes (id+name+ips+online) as JSON,
+/// via `musu mesh node list --json`. The cockpit parses `output` to drive the
+/// rename picker (resolve→confirm-by-id: the id here is what rename keys on).
+#[tauri::command]
+fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(&command, &["mesh", "node", "list", "--json"], ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node list timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_rename` — rename a fleet node BY ID via `musu mesh node rename`.
+/// The server re-asserts the node still belongs to this account before renaming
+/// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
+#[tauri::command]
+fn mesh_node_rename(node_id: String, new_name: String) -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "node", "rename", "--node-id", &node_id, "--new-name", &new_name, "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| format!("failed to run {} mesh node rename: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node rename timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
+/// `mesh_node_remove` — ONE-WAY evict a fleet node via `musu mesh node remove`.
+/// The server refuses to remove this machine itself (caller_ip) and requires the
+/// confirmed name to still match (WS-2c Phase 2, Critic HIGH-3 + optimistic
+/// concurrency). caller_ip is the cockpit's own tailnet IP when known.
+#[tauri::command]
+fn mesh_node_remove(
+    node_id: String,
+    expected_name: String,
+    caller_ip: Option<String>,
+) -> Result<PrivateMeshJoinDesktopResult, String> {
+    let command = musu_command_path();
+    let mut args: Vec<String> = vec![
+        "mesh".into(),
+        "node".into(),
+        "remove".into(),
+        "--node-id".into(),
+        node_id,
+        "--expected-name".into(),
+        expected_name,
+    ];
+    if let Some(ip) = caller_ip.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        args.push("--caller-ip".into());
+        args.push(ip.to_string());
+    }
+    args.push("--json".into());
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let result = run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT)
+        .map_err(|err| format!("failed to run {} mesh node remove: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} mesh node remove timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: result.status_success,
+        error: if result.status_success { None } else { Some(combined.clone()) },
+        output: combined,
+    })
+}
+
 #[tauri::command]
 fn private_mesh_release_proof_target(
     target_node: String,
@@ -1339,6 +1446,53 @@ fn open_dashboard() -> Result<CommandResult, String> {
     Ok(CommandResult {
         ok: true,
         message: "dashboard opened".to_string(),
+        output: url,
+    })
+}
+
+/// Open an external URL in the user's default browser (the cockpit's Help/docs
+/// link). Same OS dispatch as `open_dashboard`, but the URL comes from the shell,
+/// so it is validated strictly: only absolute https:// URLs are allowed. This
+/// prevents shelling out a malformed or non-web URL (e.g. `file:`, `cmd`, args
+/// with spaces/quotes) via the `start` shell built-in.
+#[tauri::command]
+fn open_external_url(url: String) -> Result<CommandResult, String> {
+    let url = url.trim();
+    // Strict allowlist: a plain https URL with no shell-meaningful chars. `%` is
+    // blocked too because the Windows path routes through `cmd /C start`, which
+    // expands `%VAR%` on its command line before launching (an info-leak / URL-
+    // rewrite vector that Rust's arg-quoting can't escape). This also rejects
+    // percent-encoded URLs (%20 etc.) — fine for a fixed docs/help link; if a
+    // caller ever needs percent-encoding, switch the Windows path off `cmd`
+    // (ShellExecuteW / opener crate) instead of relaxing this.
+    let valid = url.starts_with("https://")
+        && url.len() <= 2048
+        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>' || c == '%');
+    if !valid {
+        return Err("refusing to open a non-https or malformed URL".to_string());
+    }
+    let url = url.to_string();
+
+    let mut command = if cfg!(target_os = "windows") {
+        let mut command = std::process::Command::new("cmd");
+        command.arg("/C").arg("start").arg("").arg(&url);
+        command
+    } else if cfg!(target_os = "macos") {
+        let mut command = std::process::Command::new("open");
+        command.arg(&url);
+        command
+    } else {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(&url);
+        command
+    };
+
+    command
+        .spawn()
+        .map_err(|err| format!("failed to open url: {err}"))?;
+    Ok(CommandResult {
+        ok: true,
+        message: "url opened".to_string(),
         output: url,
     })
 }

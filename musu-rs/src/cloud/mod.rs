@@ -138,6 +138,46 @@ pub struct MeshJoinKey {
     pub tailnet: String,
 }
 
+/// One node in the owner's fleet, as returned by `POST /api/account/mesh-node-action`
+/// {action:"list"}. `id` is the authoritative Headscale node id — rename keys on it
+/// (resolve→confirm-by-id; never re-resolve by name/IP, WS-2c Critic HIGH-1).
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNode {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub ips: Vec<String>,
+    #[serde(default)]
+    pub online: bool,
+    #[serde(default)]
+    pub last_seen: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNodeList {
+    #[serde(default)]
+    pub nodes: Vec<MeshNode>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNodeRenamed {
+    pub node: MeshNodeRenamedInner,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNodeRenamedInner {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MeshNodeRemoved {
+    #[serde(default)]
+    pub removed: bool,
+    #[serde(default)]
+    pub already_gone: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
@@ -1103,6 +1143,75 @@ impl MusuCloud {
             return Err(cloud_api_error("Failed to request mesh join key", &url, resp).await);
         }
 
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/account/mesh-node-action {action:"list"} — the owner's fleet
+    /// nodes (id+name+ips+online), scoped server-side to the account. The id is
+    /// the Headscale node id rename must use (resolve→confirm-by-id, WS-2c).
+    pub async fn list_mesh_nodes(&self) -> Result<MeshNodeList> {
+        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-node-action", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({ "action": "list" }))
+            .send()
+            .await?;
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to list mesh nodes", &url, resp).await);
+        }
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/account/mesh-node-action {action:"rename"} — rename a node BY ID.
+    /// The server re-asserts the node still belongs to the account before renaming
+    /// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
+    pub async fn rename_mesh_node(&self, node_id: &str, new_name: &str) -> Result<MeshNodeRenamed> {
+        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-node-action", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({
+                "action": "rename",
+                "node_id": node_id,
+                "new_name": new_name,
+            }))
+            .send()
+            .await?;
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to rename mesh node", &url, resp).await);
+        }
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/account/mesh-node-action {action:"remove"} — ONE-WAY evict a node
+    /// BY ID. `expected_name` is the name the user confirmed (optimistic
+    /// concurrency); `caller_ip` lets the server refuse evicting this machine
+    /// itself (WS-2c HIGH-3). Server enforces owner-scope + idempotent 404.
+    pub async fn remove_mesh_node(
+        &self,
+        node_id: &str,
+        expected_name: &str,
+        caller_ip: Option<&str>,
+    ) -> Result<MeshNodeRemoved> {
+        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-node-action", self.base_url);
+        let mut body = serde_json::json!({
+            "action": "remove",
+            "node_id": node_id,
+            "expected_name": expected_name,
+        });
+        if let Some(ip) = caller_ip {
+            body["caller_ip"] = serde_json::Value::String(ip.to_string());
+        }
+        let resp = self.client.post(&url).bearer_auth(token).json(&body).send().await?;
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to remove mesh node", &url, resp).await);
+        }
         Ok(resp.json().await?)
     }
 
