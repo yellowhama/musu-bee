@@ -3361,6 +3361,15 @@ async function refresh() {
   const localOnly = auth === "Local Only";
   const bridgeOk = status.bridge_status === "ok";
 
+  // Keep the account affordances (settings Sign in/out, account menu) in sync on
+  // EVERY poll, driven by cockpit_state's auth_status. Previously these only
+  // updated via desktop_status (loadDiagnostics), which isn't called after login
+  // — so the Settings "Sign in" stayed visible even though the main screen had
+  // flipped to Connected. cockpit_state already carries auth_status, so this is
+  // the single source that flips both surfaces together.
+  window.__lastStatus = status;
+  syncAccountAffordances(status);
+
   if (!connected && !localOnly && !bridgeOk) {
     // Not connected and no local bridge → show the connecting / device-flow screen.
     let marker = null;
@@ -4403,8 +4412,12 @@ function syncAccountAffordances(status) {
   for (const id of ["m-signin", "set-signin"]) {
     const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
   }
-  const ver = status?.version ? `MUSU ${status.version}` : "—";
-  const sv = $("set-version"); if (sv) sv.textContent = ver;
+  // Only update the version when this status snapshot carries it (desktop_status
+  // does; the cheap cockpit_state does not). Don't blank it to "—" on a
+  // cockpit_state-driven sync.
+  if (status?.version) {
+    const sv = $("set-version"); if (sv) sv.textContent = `MUSU ${status.version}`;
+  }
 }
 
 $("account-btn")?.addEventListener("click", (e) => {
