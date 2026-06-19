@@ -49,7 +49,11 @@ param(
     [switch]$InstallCert,
     [switch]$SkipBuild,
     [switch]$KeepStage,
-    [switch]$DryRun
+    [switch]$DryRun,
+    # Before building, bump the prerelease counter in VERSION (rc.N → rc.N+1) so
+    # this release's MSIX 4th segment rises and App Installer actually auto-updates.
+    # The fix for "every build shipped 1.15.0.0 so auto-update never fired."
+    [switch]$BumpVersion
 )
 
 Set-StrictMode -Version Latest
@@ -108,19 +112,38 @@ function Invoke-Checked {
 }
 
 function Normalize-Version([string]$RawVersion) {
+    # MSIX needs a 4-segment numeric version (Major.Minor.Build.Revision) and the
+    # 4th segment is what drives App Installer auto-update (it updates only when
+    # the version RISES). We must NOT collapse a prerelease counter to .0 — that's
+    # the bug that froze every build at 1.15.0.0. Map the prerelease number into
+    # the 4th segment so 1.15.0-rc.1 → 1.15.0.1, rc.2 → 1.15.0.2, etc., giving a
+    # monotonic auto-update signal per rc.
     $trimmed = $RawVersion.Trim()
-    $core = $trimmed.Split("-", 2)[0].Split("+", 2)[0]
+    $split = $trimmed.Split("+", 2)[0]            # drop build metadata (+...)
+    $coreAndPre = $split.Split("-", 2)
+    $core = $coreAndPre[0]
+    $pre = if ($coreAndPre.Count -eq 2) { $coreAndPre[1] } else { "" }
+
     $parts = $core.Split(".")
     foreach ($part in $parts) {
         if ($part -notmatch "^\d+$") {
             throw "Version '$trimmed' must reduce to numeric segments for MSIX."
         }
     }
-    if ($parts.Count -eq 3) {
-        return "$core.0"
+
+    # Extract a numeric counter from the prerelease tag (e.g. "rc.1" → 1, "beta3" → 3).
+    $preNum = 0
+    if ($pre -and ($pre -match "(\d+)")) {
+        $preNum = [int]$Matches[1]
     }
+
     if ($parts.Count -eq 4) {
+        # Already fully specified (e.g. an explicit -Version 1.15.0.1).
         return $core
+    }
+    if ($parts.Count -eq 3) {
+        # 3 segments + prerelease counter → 4th segment carries the rc number.
+        return "$core.$preNum"
     }
     throw "Version '$trimmed' must have 3 or 4 numeric segments for MSIX."
 }
@@ -314,8 +337,29 @@ if (-not $SkipBuild) {
 }
 Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
 
+# -BumpVersion: increment the prerelease counter in VERSION before reading it, so
+# each release rises (rc.1 → rc.2 → …) and App Installer auto-update actually
+# fires. Skipped when an explicit -Version is passed or in -DryRun.
+$versionPath = Join-Path $repoRoot "VERSION"
+if ($BumpVersion -and -not $Version) {
+    $raw = (Get-Content -LiteralPath $versionPath -Raw).Trim()
+    if ($raw -match "^(?<core>\d+\.\d+\.\d+)-(?<tag>[a-zA-Z]+)\.(?<n>\d+)$") {
+        $bumped = "{0}-{1}.{2}" -f $Matches.core, $Matches.tag, ([int]$Matches.n + 1)
+    } elseif ($raw -match "^(?<core>\d+\.\d+\.)(?<patch>\d+)$") {
+        $bumped = "{0}{1}" -f $Matches.core, ([int]$Matches.patch + 1)
+    } else {
+        throw "Cannot auto-bump VERSION '$raw' (expected X.Y.Z-tag.N or X.Y.Z)."
+    }
+    if ($DryRun) {
+        Write-Step "[dry-run] would bump VERSION $raw → $bumped"
+    } else {
+        Set-Content -LiteralPath $versionPath -Value $bumped -NoNewline
+        Write-Step "Bumped VERSION $raw → $bumped"
+    }
+}
+
 if (-not $Version) {
-    $Version = Normalize-Version (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw)
+    $Version = Normalize-Version (Get-Content -LiteralPath $versionPath -Raw)
 } else {
     $Version = Normalize-Version $Version
 }
