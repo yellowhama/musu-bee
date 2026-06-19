@@ -16,8 +16,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   approver_not_allowlisted: "Your account is not allowed to approve devices.",
   invalid_approve_request: "Enter a valid device code (XXXX-XXXX).",
   device_code_not_found: "That code was not found. Check it and try again.",
-  device_code_expired: "That code has expired. Start `musu login` again.",
-  device_code_locked: "Too many attempts on that code. Start `musu login` again.",
+  device_code_expired: "That code has expired. Start sign-in again from the MUSU app.",
+  device_code_locked: "Too many attempts on that code. Start sign-in again from the MUSU app.",
   device_code_not_pending: "That code was already used or approved.",
   device_code_store_failed: "Server storage error. Try again shortly.",
 };

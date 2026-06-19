@@ -45,10 +45,7 @@ export default async function LinkDevicePage({ searchParams }: LinkPageProps) {
         {hasCode ? (
           "Confirm to sign this app in to your MUSU account."
         ) : (
-          <>
-            Enter the code shown in your terminal by <code>musu login</code> to authorize this
-            machine.
-          </>
+          "Enter the code shown in the MUSU app to sign it in to your account."
         )}
       </p>
       <LinkApprovalForm initialUserCode={prefill} hasCode={hasCode} />
