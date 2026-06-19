@@ -25,6 +25,7 @@ pub fn run() {
             start_runtime,
             open_dashboard,
             open_external_url,
+            check_for_updates,
             start_login,
             account_logout,
             private_mesh_status,
@@ -85,9 +86,20 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder};
     use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 
+    // A resident control center's tray menu: open, check for updates, restart,
+    // and an explicit Quit (the window's X only hides to tray, so Quit must be
+    // reachable here — a background task runner that can't be quit is a footgun).
     let show = MenuItemBuilder::with_id("show", "Open MUSU").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-    let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
+    let updates = MenuItemBuilder::with_id("updates", "Check for updates").build(app)?;
+    let restart = MenuItemBuilder::with_id("restart", "Restart MUSU").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit MUSU").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&show])
+        .separator()
+        .items(&[&updates, &restart])
+        .separator()
+        .items(&[&quit])
+        .build()?;
 
     let _tray = TrayIconBuilder::with_id("musu-tray")
         .icon(app.default_window_icon().unwrap().clone())
@@ -96,6 +108,10 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => reveal_main_window(app),
+            "updates" => {
+                let _ = check_for_updates();
+            }
+            "restart" => app.restart(),
             "quit" => app.exit(0),
             _ => {}
         })
@@ -1495,6 +1511,42 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
         ok: true,
         message: "url opened".to_string(),
         output: url,
+    })
+}
+
+/// `check_for_updates` — trigger an immediate App Installer update from the
+/// hosted .appinstaller (the same one auto-update polls). MSIX/App Installer is
+/// the update channel; `Add-AppxPackage -AppInstallerFile <url>` makes it fetch
+/// and apply a newer version now instead of waiting for the poll. The cockpit's
+/// "Check for updates" button (Settings → About) and tray menu call this.
+/// Best-effort: returns the launcher result; the actual install proceeds in
+/// App Installer's own UI.
+#[tauri::command]
+fn check_for_updates() -> Result<CommandResult, String> {
+    const APPINSTALLER_URL: &str =
+        "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu.appinstaller";
+    // Windows-only update channel (MSIX). On other OSes there's nothing to do.
+    if !cfg!(target_os = "windows") {
+        return Ok(CommandResult {
+            ok: false,
+            message: "updates are managed by the OS package manager on this platform".to_string(),
+            output: String::new(),
+        });
+    }
+    // Ask App Installer to (re)install from the hosted .appinstaller; with
+    // ForceUpdateFromAnyVersion it applies the hosted version if it differs.
+    let ps = format!(
+        "Add-AppxPackage -AppInstallerFile '{APPINSTALLER_URL}'"
+    );
+    let result = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", &ps])
+        .spawn()
+        .map_err(|err| format!("failed to launch update: {err}"))?;
+    let _ = result;
+    Ok(CommandResult {
+        ok: true,
+        message: "checking for updates via App Installer".to_string(),
+        output: APPINSTALLER_URL.to_string(),
     })
 }
 

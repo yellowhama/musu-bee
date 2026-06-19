@@ -4428,6 +4428,20 @@ $("settings-modal")?.addEventListener("click", (e) => {
 $("set-signout")?.addEventListener("click", (e) => signOut(e.currentTarget));
 $("set-signin")?.addEventListener("click", (e) => startSignIn(e.currentTarget));
 $("set-help")?.addEventListener("click", openHelp);
+$("set-check-update")?.addEventListener("click", async () => {
+  const el = $("set-update-state");
+  const prev = el ? el.textContent : "";
+  if (el) el.textContent = "Checking…";
+  try {
+    await invoke("check_for_updates");
+    if (el) el.textContent = "Checking via App Installer…";
+    announce("Checking for updates");
+  } catch (err) {
+    if (el) el.textContent = prev || "Auto-updates on launch";
+    const wbox = $("diag-warnings");
+    if (wbox) { wbox.hidden = false; wbox.textContent = `Update check: ${String(err)}`; }
+  }
+});
 $("set-theme")?.addEventListener("change", (e) => applyTheme(e.currentTarget.value));
 
 // Disconnect this machine from the mesh — distinct from Sign out (cloud). Runs
