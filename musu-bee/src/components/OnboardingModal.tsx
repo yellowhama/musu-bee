@@ -1,44 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { DESKTOP_INSTALL_SCRIPT_URL, DESKTOP_MSIX_URL } from "@/lib/publicRelease";
 
-const MUSU_PORT_DEFAULT_URL = "http://localhost:24682";
+// The real install path (matches /download): PowerShell one-liner trusts the
+// self-signed beta cert + installs the MSIX, which Windows registers for 24h
+// auto-update. The desktop app (cockpit) then connects to the local bridge
+// automatically — there is NO separate "run a port command" step and no
+// localhost:24682 listener (that was a stale design that never shipped). Once
+// the Store release lands the cert step disappears entirely.
+const INSTALL_ONE_LINER = `irm https://musu.pro/install.ps1 | iex`;
 
-type Platform = "windows" | "linux" | "mac";
-type Step = "welcome" | "install" | "run" | "verify" | "done";
-
-const PLATFORM_ICONS: Record<Platform, string> = {
-  windows: "🪟",
-  linux: "🐧",
-  mac: "🍎",
-};
-
-const INSTALL_COMMANDS: Record<Platform, { label: string; cmd: string }[]> = {
-  windows: [
-    {
-      label: "PowerShell (Administrator)",
-      cmd: `irm https://get.musu.pro/port | iex`,
-    },
-  ],
-  linux: [
-    {
-      label: "Terminal",
-      cmd: `curl -fsSL https://get.musu.pro/port | sh`,
-    },
-  ],
-  mac: [
-    {
-      label: "Terminal",
-      cmd: `curl -fsSL https://get.musu.pro/port | sh`,
-    },
-  ],
-};
-
-const RUN_COMMANDS: Record<Platform, string> = {
-  windows: `musu-port`,
-  linux: `musu-port`,
-  mac: `musu-port`,
-};
+type Step = "welcome" | "install" | "done";
 
 interface OnboardingModalProps {
   onComplete: (deviceName: string) => void;
@@ -152,52 +125,25 @@ export default function OnboardingModal({
   onSkip,
 }: OnboardingModalProps) {
   const [step, setStep] = useState<Step>("welcome");
-  const [platform, setPlatform] = useState<Platform>("windows");
-  const [verifyStatus, setVerifyStatus] = useState<
-    "idle" | "checking" | "ok" | "fail"
-  >("idle");
-  const [detectedName, setDetectedName] = useState<string>("");
+  const [isWindows, setIsWindows] = useState(true);
 
-  // Detect platform on mount
+  // The desktop app is Windows-only today (MSIX). Detect non-Windows so we can
+  // point those users at the download page rather than a PowerShell command
+  // they can't run.
   useEffect(() => {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes("mac")) setPlatform("mac");
-    else if (ua.includes("linux")) setPlatform("linux");
-    else setPlatform("windows");
+    setIsWindows(!/mac|linux|android/i.test(navigator.userAgent));
   }, []);
 
   const stepIndex: Record<Step, number> = {
     welcome: 0,
     install: 1,
-    run: 2,
-    verify: 3,
-    done: 4,
+    done: 2,
   };
-  const totalSteps = 4;
-
-  const checkConnection = useCallback(async () => {
-    setVerifyStatus("checking");
-    try {
-      const res = await fetch(`${MUSU_PORT_DEFAULT_URL}/status`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const name: string =
-          data?.hostname ?? data?.device_name ?? data?.name ?? "My device";
-        setDetectedName(name);
-        setVerifyStatus("ok");
-      } else {
-        setVerifyStatus("fail");
-      }
-    } catch {
-      setVerifyStatus("fail");
-    }
-  }, []);
+  const totalSteps = 2;
 
   const handleComplete = useCallback(() => {
-    onComplete(detectedName || "My device");
-  }, [onComplete, detectedName]);
+    onComplete("This PC");
+  }, [onComplete]);
 
   return (
     <div
@@ -260,8 +206,8 @@ export default function OnboardingModal({
           </button>
         </div>
 
-        {step !== "welcome" && step !== "done" && (
-          <StepIndicator current={stepIndex[step] - 1} total={totalSteps - 1} />
+        {step === "install" && (
+          <StepIndicator current={stepIndex[step] - 1} total={totalSteps} />
         )}
 
         {/* Step: Welcome */}
@@ -276,7 +222,7 @@ export default function OnboardingModal({
                 lineHeight: 1.3,
               }}
             >
-              Connect your first device
+              Install MUSU on this PC
             </h2>
             <p
               style={{
@@ -286,9 +232,10 @@ export default function OnboardingModal({
                 marginBottom: 28,
               }}
             >
-              MUSU lets AI across multiple computers work as one team.
+              MUSU lets AI across your computers work as one team.
               <br />
-              To get started, install <strong style={{ color: "var(--fg1)" }}>musu-port</strong> on this device.
+              Install the desktop app — it connects automatically and keeps
+              itself up to date.
             </p>
             <div
               style={{
@@ -300,9 +247,9 @@ export default function OnboardingModal({
               }}
             >
               {[
-                { icon: "📦", text: "Install musu-port (1 min)" },
-                { icon: "▶️", text: "Run it in the background" },
-                { icon: "✅", text: "Verify the connection and start" },
+                { icon: "📋", text: "Copy one PowerShell command" },
+                { icon: "📦", text: "It installs the MUSU app (~1 min)" },
+                { icon: "✅", text: "Open MUSU — it connects on its own" },
               ].map(({ icon, text }) => (
                 <div
                   key={text}
@@ -339,7 +286,7 @@ export default function OnboardingModal({
           </div>
         )}
 
-        {/* Step: Install */}
+        {/* Step: Install (one-liner → MSIX) */}
         {step === "install" && (
           <div>
             <h2
@@ -350,59 +297,39 @@ export default function OnboardingModal({
                 marginBottom: 6,
               }}
             >
-              Install musu-port
+              Install MUSU
             </h2>
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--fg3)",
-                marginBottom: 20,
-              }}
-            >
-              Pick your operating system and run the command.
-            </p>
-
-            {/* Platform selector */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                marginBottom: 20,
-              }}
-            >
-              {(["windows", "linux", "mac"] as Platform[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  style={{
-                    flex: 1,
-                    background: platform === p ? "var(--bg-card)" : "var(--bg-card)",
-                    border: `1px solid ${platform === p ? "var(--accent)" : "var(--border-default)"}`,
-                    color: platform === p ? "var(--fg-accent)" : "var(--fg3)",
-                    borderRadius: 8,
-                    padding: "8px 4px",
-                    fontSize: 13,
-                    cursor: "pointer",
-                    textAlign: "center",
-                    transition: "all 0.15s",
-                  }}
+            {isWindows ? (
+              <>
+                <p style={{ fontSize: 13, color: "var(--fg3)", marginBottom: 20 }}>
+                  Open <strong style={{ color: "var(--fg1)" }}>PowerShell</strong>{" "}
+                  and run this. It trusts the beta certificate and installs the
+                  app (asks for admin once).
+                </p>
+                <CodeBlock label="PowerShell" cmd={INSTALL_ONE_LINER} />
+                <p style={{ fontSize: 12, color: "var(--fg3)", lineHeight: 1.6, marginBottom: 8 }}>
+                  When it finishes, open <strong style={{ color: "var(--fg1)" }}>MUSU</strong>{" "}
+                  from the Start menu. It connects to this PC automatically — no
+                  extra command to run.
+                </p>
+                <a
+                  href={DESKTOP_MSIX_URL}
+                  style={{ fontSize: 12, color: "var(--fg-accent)", textDecoration: "none" }}
                 >
-                  {PLATFORM_ICONS[p]} {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
+                  Prefer to download the installer instead? →
+                </a>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: "var(--fg3)", marginBottom: 20, lineHeight: 1.6 }}>
+                  The MUSU desktop app is currently Windows-only. Open this page
+                  on a Windows PC, or grab the installer script below.
+                </p>
+                <CodeBlock label="Install script" cmd={DESKTOP_INSTALL_SCRIPT_URL} />
+              </>
+            )}
 
-            {INSTALL_COMMANDS[platform].map(({ label, cmd }) => (
-              <CodeBlock key={label} label={label} cmd={cmd} />
-            ))}
-
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                marginTop: 24,
-              }}
-            >
+            <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               <button
                 onClick={() => setStep("welcome")}
                 style={{
@@ -419,7 +346,7 @@ export default function OnboardingModal({
                 ← Back
               </button>
               <button
-                onClick={() => setStep("run")}
+                onClick={() => setStep("done")}
                 style={{
                   flex: 2,
                   background: "var(--accent)",
@@ -438,298 +365,50 @@ export default function OnboardingModal({
           </div>
         )}
 
-        {/* Step: Run */}
-        {step === "run" && (
+        {/* Step: Done */}
+        {step === "done" && (
           <div>
+            <div style={{ fontSize: 40, marginBottom: 12, textAlign: "center" }}>✅</div>
             <h2
               style={{
                 fontSize: 20,
                 fontWeight: 700,
                 color: "var(--fg1)",
-                marginBottom: 6,
-              }}
-            >
-              Run musu-port
-            </h2>
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--fg3)",
-                marginBottom: 20,
-              }}
-            >
-              After installation, run the command below. It will keep running in the background.
-            </p>
-
-            <CodeBlock
-              label="Run command"
-              cmd={RUN_COMMANDS[platform]}
-            />
-
-            <div
-              style={{
-                background: "var(--bg-base)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: 8,
-                padding: "12px 14px",
-                marginTop: 8,
-                marginBottom: 20,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--fg3)",
-                  marginBottom: 6,
-                  fontWeight: 600,
-                }}
-              >
-                Example output
-              </div>
-              <pre
-                style={{
-                  margin: 0,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  fontSize: 12,
-                  color: "var(--status-online)",
-                  lineHeight: 1.5,
-                }}
-              >
-                {`musu-port v0.x.x starting...
-Listening on http://0.0.0.0:24682
-Ready ✓`}
-              </pre>
-            </div>
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setStep("install")}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "1px solid var(--border-default)",
-                  color: "var(--fg3)",
-                  borderRadius: 10,
-                  padding: "11px",
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                ← Back
-              </button>
-              <button
-                onClick={() => {
-                  setStep("verify");
-                  setVerifyStatus("idle");
-                }}
-                style={{
-                  flex: 2,
-                  background: "var(--accent)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "11px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                It is running →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step: Verify */}
-        {step === "verify" && (
-          <div>
-            <h2
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                color: "var(--fg1)",
-                marginBottom: 6,
-              }}
-            >
-              Verify connection
-            </h2>
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--fg3)",
-                marginBottom: 24,
-              }}
-            >
-              Check whether musu-port is running correctly.
-            </p>
-
-            <div
-              style={{
-                border: "1px solid var(--border-default)",
-                borderRadius: 12,
-                padding: "20px",
+                marginBottom: 8,
                 textAlign: "center",
-                marginBottom: 20,
-                background: "var(--bg-base)",
               }}
             >
-              {verifyStatus === "idle" && (
-                <>
-                  <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-                  <div style={{ fontSize: 14, color: "var(--fg2)" }}>
-                    Click verify connection
-                  </div>
-                </>
-              )}
-              {verifyStatus === "checking" && (
-                <>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "50%",
-                      border: "3px solid var(--border-default)",
-                      borderTopColor: "var(--accent)",
-                      margin: "0 auto 12px",
-                      animation: "spin 0.8s linear infinite",
-                    }}
-                  />
-                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                  <div style={{ fontSize: 14, color: "var(--fg2)" }}>
-                    Checking localhost:24682...
-                  </div>
-                </>
-              )}
-              {verifyStatus === "ok" && (
-                <>
-                  <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: "var(--musu-status-online)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Connected!
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--fg3)" }}>
-                    Device name:{" "}
-                    <strong style={{ color: "var(--fg1)" }}>
-                      {detectedName}
-                    </strong>
-                  </div>
-                </>
-              )}
-              {verifyStatus === "fail" && (
-                <>
-                  <div style={{ fontSize: 36, marginBottom: 10 }}>❌</div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "var(--musu-status-error)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    Connection failed
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--fg3)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Make sure musu-port is running.
-                    <br />
-                    Port 24682 must be open.
-                  </div>
-                </>
-              )}
-            </div>
-
-            {verifyStatus !== "ok" && (
-              <button
-                onClick={checkConnection}
-                disabled={verifyStatus === "checking"}
-                style={{
-                  width: "100%",
-                  background:
-                    verifyStatus === "checking" ? "var(--bg-overlay)" : "var(--accent)",
-                  color: verifyStatus === "checking" ? "var(--fg3)" : "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "12px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor:
-                    verifyStatus === "checking" ? "not-allowed" : "pointer",
-                  marginBottom: 10,
-                }}
-              >
-                {verifyStatus === "checking"
-                  ? "Checking..."
-                  : verifyStatus === "fail"
-                  ? "Try again"
-                  : "Verify connection"}
-              </button>
-            )}
-
-            {verifyStatus === "ok" && (
-              <button
-                onClick={handleComplete}
-                style={{
-                  width: "100%",
-                  background: "rgba(34, 197, 94, 0.35)",
-                  color: "#fff",
-                  border: "1px solid var(--musu-status-online)",
-                  borderRadius: 10,
-                  padding: "12px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  marginBottom: 10,
-                }}
-              >
-                Start MUSU →
-              </button>
-            )}
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setStep("run")}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "1px solid var(--border-default)",
-                  color: "var(--fg3)",
-                  borderRadius: 10,
-                  padding: "10px",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                ← Back
-              </button>
-              {verifyStatus !== "ok" && (
-                <button
-                  onClick={onSkip}
-                  style={{
-                    flex: 1,
-                    background: "transparent",
-                    border: "1px solid var(--border-default)",
-                    color: "var(--fg3)",
-                    borderRadius: 10,
-                    padding: "10px",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  Connect later
-                </button>
-              )}
-            </div>
+              You&apos;re set
+            </h2>
+            <p
+              style={{
+                fontSize: 13,
+                color: "var(--fg2)",
+                lineHeight: 1.6,
+                marginBottom: 24,
+                textAlign: "center",
+              }}
+            >
+              Open <strong style={{ color: "var(--fg1)" }}>MUSU</strong> from the
+              Start menu whenever you want to give this PC a task. It stays
+              connected in the background and updates itself.
+            </p>
+            <button
+              onClick={handleComplete}
+              style={{
+                width: "100%",
+                background: "var(--accent)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                padding: "13px",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Start MUSU →
+            </button>
           </div>
         )}
       </div>

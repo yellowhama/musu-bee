@@ -129,15 +129,14 @@ export const INSTALL_COMMANDS = [
     platform: "Windows",
     label: "1-Liner (PowerShell)",
     status: "live",
-    detail:
-      "iwr https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.ps1 -useb | iex",
+    detail: "irm https://musu.pro/install.ps1 | iex",
   },
   {
     platform: "Linux / macOS",
-    label: "1-Liner (Bash)",
-    status: "live",
+    label: "Coming soon",
+    status: "planned",
     detail:
-      "curl -sSf https://raw.githubusercontent.com/yellowhama/musu-bee/main/install.sh | bash",
+      "The MUSU desktop app is Windows-only today. Linux/macOS builds are planned — for now, run MUSU on a Windows PC.",
   },
 ] as const;
 
