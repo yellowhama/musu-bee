@@ -1457,7 +1457,7 @@ fn open_dashboard() -> Result<CommandResult, String> {
         command
     };
 
-    command
+    no_window(&mut command)
         .spawn()
         .map_err(|err| format!("failed to open dashboard: {err}"))?;
     Ok(CommandResult {
@@ -1504,7 +1504,7 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
         command
     };
 
-    command
+    no_window(&mut command)
         .spawn()
         .map_err(|err| format!("failed to open url: {err}"))?;
     Ok(CommandResult {
@@ -1538,11 +1538,11 @@ fn check_for_updates() -> Result<CommandResult, String> {
     let ps = format!(
         "Add-AppxPackage -AppInstallerFile '{APPINSTALLER_URL}'"
     );
-    let result = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &ps])
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps]);
+    no_window(&mut cmd)
         .spawn()
         .map_err(|err| format!("failed to launch update: {err}"))?;
-    let _ = result;
     Ok(CommandResult {
         ok: true,
         message: "checking for updates via App Installer".to_string(),
@@ -1567,7 +1567,7 @@ fn open_release_evidence_folder(path: String) -> Result<CommandResult, String> {
         command
     };
 
-    command
+    no_window(&mut command)
         .spawn()
         .map_err(|err| format!("failed to open release evidence folder: {err}"))?;
     Ok(CommandResult {
