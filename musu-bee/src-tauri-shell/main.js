@@ -2785,7 +2785,7 @@ function showConnecting(marker) {
   } else if (status === "awaiting-device-approval") {
     setConn("connecting", "Connecting…");
     $("connecting-detail").textContent =
-      "We opened your browser — click “Register this machine” there to finish.";
+      "We opened your browser — click “Sign in” there to finish.";
     if (signinBtn) signinBtn.hidden = flowPending;
   } else {
     setConn("connecting", "Connecting…");
