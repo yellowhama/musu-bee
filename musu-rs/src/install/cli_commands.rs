@@ -4928,8 +4928,14 @@ fn clear_standard_handle_inheritance() {
 fn open_url(url: &str) -> Result<()> {
     #[cfg(windows)]
     let mut cmd = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         let mut c = std::process::Command::new("cmd");
         c.args(["/C", "start", "", url]);
+        // CREATE_NO_WINDOW: do not flash a console window when opening the browser
+        // (e.g. the device-flow approval URL on a logged-out launch). The cockpit's
+        // own no-window flag does NOT inherit to this grandchild.
+        c.creation_flags(CREATE_NO_WINDOW);
         c
     };
 

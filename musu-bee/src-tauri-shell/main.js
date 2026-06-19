@@ -3361,6 +3361,15 @@ async function refresh() {
   const localOnly = auth === "Local Only";
   const bridgeOk = status.bridge_status === "ok";
 
+  // Keep the account affordances (settings Sign in/out, account menu) in sync on
+  // EVERY poll, driven by cockpit_state's auth_status. Previously these only
+  // updated via desktop_status (loadDiagnostics), which isn't called after login
+  // — so the Settings "Sign in" stayed visible even though the main screen had
+  // flipped to Connected. cockpit_state already carries auth_status, so this is
+  // the single source that flips both surfaces together.
+  window.__lastStatus = status;
+  syncAccountAffordances(status);
+
   if (!connected && !localOnly && !bridgeOk) {
     // Not connected and no local bridge → show the connecting / device-flow screen.
     let marker = null;
@@ -4403,8 +4412,12 @@ function syncAccountAffordances(status) {
   for (const id of ["m-signin", "set-signin"]) {
     const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
   }
-  const ver = status?.version ? `MUSU ${status.version}` : "—";
-  const sv = $("set-version"); if (sv) sv.textContent = ver;
+  // Only update the version when this status snapshot carries it (desktop_status
+  // does; the cheap cockpit_state does not). Don't blank it to "—" on a
+  // cockpit_state-driven sync.
+  if (status?.version) {
+    const sv = $("set-version"); if (sv) sv.textContent = `MUSU ${status.version}`;
+  }
 }
 
 $("account-btn")?.addEventListener("click", (e) => {
@@ -4485,38 +4498,48 @@ $("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.curr
 // Headscale id. Refuse if the row matches zero or more than one live node (the
 // row's name/IP may be stale; the server enforces the same — this is the UX guard
 // against renaming the wrong machine).
-async function renameNodeFlow(node) {
+// Resolve a fleet ROW (from the bridge dashboard) to the single authoritative
+// Headscale node it refers to (resolve→confirm-by-id). Fetches the live node
+// list and matches by name AND tailnet IP, refusing on zero/multiple matches so
+// rename/remove never act on the wrong (or a stale) machine. Returns the matched
+// node, or null after alerting the user. Shared by rename + remove (the matching
+// logic was identical in both — one source of truth for "which node is this row").
+async function resolveFleetNodeForRow(node, actionVerb) {
   let listRes;
   try {
     listRes = await invoke("mesh_node_list");
   } catch (err) {
     window.alert(`Couldn't load the machine list: ${String(err)}`);
-    return;
+    return null;
   }
   let nodes = [];
   try {
     nodes = JSON.parse(listRes?.output || "{}").nodes || [];
   } catch {
     window.alert("Couldn't read the machine list (unexpected response).");
-    return;
+    return null;
   }
   const rowName = (node.node_name || "").trim();
   const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
-  // Match by name AND IP when we have an IP; require a single unambiguous match.
   const matches = nodes.filter((m) => {
     const nameOk = (m.name || "").trim() === rowName;
     const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
     return nameOk && ipOk;
   });
   if (matches.length === 0) {
-    window.alert(`Couldn't find "${rowName}" in your fleet right now — it may have changed. Refresh and try again.`);
-    return;
+    window.alert(`Couldn't find "${rowName}" in your fleet right now — refresh and try again.`);
+    return null;
   }
   if (matches.length > 1) {
-    window.alert(`More than one machine matches "${rowName}". Renaming is blocked to avoid changing the wrong one.`);
-    return;
+    window.alert(`More than one machine matches "${rowName}". ${actionVerb} is blocked to avoid acting on the wrong one.`);
+    return null;
   }
-  const target = matches[0];
+  return matches[0];
+}
+
+async function renameNodeFlow(node) {
+  const target = await resolveFleetNodeForRow(node, "Renaming");
+  if (!target) return;
   const newName = window.prompt(`Rename "${target.name}" to:`, target.name);
   if (newName == null) return;
   const trimmed = newName.trim();
@@ -4540,36 +4563,8 @@ async function renameNodeFlow(node) {
 // type the machine name) and this-PC's IP passed so the server can refuse
 // self-eviction. The destructive guard is server-side; this is UX defense.
 async function removeNodeFlow(node) {
-  let listRes;
-  try {
-    listRes = await invoke("mesh_node_list");
-  } catch (err) {
-    window.alert(`Couldn't load the machine list: ${String(err)}`);
-    return;
-  }
-  let nodes = [];
-  try {
-    nodes = JSON.parse(listRes?.output || "{}").nodes || [];
-  } catch {
-    window.alert("Couldn't read the machine list (unexpected response).");
-    return;
-  }
-  const rowName = (node.node_name || "").trim();
-  const rowIp = String(node.tailscale_ip || node.tailnet_ip || "").trim();
-  const matches = nodes.filter((m) => {
-    const nameOk = (m.name || "").trim() === rowName;
-    const ipOk = rowIp ? (m.ips || []).includes(rowIp) : true;
-    return nameOk && ipOk;
-  });
-  if (matches.length === 0) {
-    window.alert(`Couldn't find "${rowName}" in your fleet right now — refresh and try again.`);
-    return;
-  }
-  if (matches.length > 1) {
-    window.alert(`More than one machine matches "${rowName}". Removal is blocked to avoid removing the wrong one.`);
-    return;
-  }
-  const target = matches[0];
+  const target = await resolveFleetNodeForRow(node, "Removal");
+  if (!target) return;
   const typed = window.prompt(
     `Remove "${target.name}" from your fleet? This is permanent — the machine must rejoin (log in again) to come back.\n\nType the machine name to confirm:`
   );
