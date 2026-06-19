@@ -3,8 +3,8 @@ import PublicSiteShell from "@/components/PublicSiteShell";
 import { INSTALL_COMMANDS } from "@/lib/publicSiteContent";
 
 export const metadata: Metadata = {
-  title: "Install MUSU Port",
-  description: "Install the MUSU port on Windows, Linux, or macOS.",
+  title: "Install MUSU",
+  description: "Install the MUSU desktop app on Windows in one line.",
 };
 
 export default function InstallPage() {
@@ -14,8 +14,9 @@ export default function InstallPage() {
         <div style={eyebrowStyle}>INSTALL</div>
         <h1 style={titleStyle}>The fastest way to connect a machine to MUSU</h1>
         <p style={descStyle}>
-          The most compelling install story on the public site should be simple: install port on the
-          device, bring it online, and see it appear in the control plane.
+          Install the MUSU desktop app on the device, open it, and watch it
+          appear in your fleet. One PowerShell line — it trusts the beta
+          certificate and installs the app for you.
         </p>
 
         <div style={{ display: "grid", gap: 18, marginTop: 32 }}>
