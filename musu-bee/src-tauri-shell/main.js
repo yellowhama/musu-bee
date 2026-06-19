@@ -220,6 +220,7 @@ let fleetFilter = "all";
 let lastFleetIsEmpty = true;
 let lastFleetNodes = []; // last rendered node list (for this-PC IP lookups, etc.)
 let lastThisPcPrograms = null; // this PC's ollama/comfyui/adapter snapshot
+let lastAutoOpenedApprovalUrl = null; // device-flow approval URL we already opened
 let lastPrivateMeshStatus = null;
 let lastReleaseProofResult = null;
 let lastReleaseProofTarget = null;
@@ -2754,8 +2755,21 @@ function showConnecting(marker) {
     const link = $("approve-link");
     link.href = url;
     link.hidden = false;
+    // Auto-open the approval URL once so the user just clicks "Register this
+    // machine" in the browser (the code is already in the URL — no typing). The
+    // visible link stays as a fallback if the browser didn't open. Guard against
+    // re-opening on every poll tick.
+    if (lastAutoOpenedApprovalUrl !== url) {
+      lastAutoOpenedApprovalUrl = url;
+      try {
+        invoke("open_external_url", { url }).catch(() => {});
+      } catch {
+        /* fallback: the user clicks the visible Approve link */
+      }
+    }
   } else {
     $("approve-link").hidden = true;
+    lastAutoOpenedApprovalUrl = null;
   }
 
   // Sign-in button: shown when device-flow is NOT actively pending (failed, or
@@ -2770,7 +2784,8 @@ function showConnecting(marker) {
     if (signinBtn) signinBtn.hidden = false;
   } else if (status === "awaiting-device-approval") {
     setConn("connecting", "Connecting…");
-    $("connecting-detail").textContent = "Waiting for you to approve at musu.pro…";
+    $("connecting-detail").textContent =
+      "We opened your browser — click “Register this machine” there to finish.";
     if (signinBtn) signinBtn.hidden = flowPending;
   } else {
     setConn("connecting", "Connecting…");

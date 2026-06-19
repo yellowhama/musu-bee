@@ -64,15 +64,19 @@
         <div class="connecting-glyph" aria-hidden="true">
           <span></span><span></span><span></span>
         </div>
-        <h2>Approve this computer to connect</h2>
+        <h2>Register this machine to your account</h2>
+        <p id="connecting-detail" class="muted">
+          We opened your browser — click "Register this machine" there to finish.
+        </p>
+        <a id="approve-link" class="btn-primary" href="#" target="_blank" rel="noopener" hidden
+          >Open the approval page <span class="arr">→</span></a
+        >
+        <!-- fallback pairing code: only needed if the approval page didn't open
+             with the code prefilled (then enter it manually on musu.pro/link) -->
         <div id="connecting-code" class="code-box" hidden>
-          <span class="code-label">pairing code</span>
+          <span class="code-label">if asked, enter this code</span>
           <strong id="code-value">—</strong>
         </div>
-        <p id="connecting-detail" class="muted">Starting</p>
-        <a id="approve-link" class="btn-primary" href="#" target="_blank" rel="noopener" hidden
-          >Approve in browser <span class="arr">→</span></a
-        >
         <!-- manual (re)login: shown when device-flow is idle/failed so the user
              can start sign-in without restarting the app -->
         <button id="signin-btn" class="btn-primary" type="button" hidden>
