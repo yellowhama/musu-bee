@@ -22,7 +22,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   device_code_store_failed: "Server storage error. Try again shortly.",
 };
 
-export default function LinkApprovalForm({ initialUserCode }: { initialUserCode: string }) {
+export default function LinkApprovalForm({
+  initialUserCode,
+  hasCode = false,
+}: {
+  initialUserCode: string;
+  hasCode?: boolean;
+}) {
   const [userCode, setUserCode] = useState(initialUserCode);
   const [state, setState] = useState<ApproveState>({ kind: "idle" });
 
@@ -66,6 +72,27 @@ export default function LinkApprovalForm({ initialUserCode }: { initialUserCode:
           You can return to the terminal — `musu login` will complete automatically.
         </p>
       </div>
+    );
+  }
+
+  // One-click path: MUSU put the code in the URL, so the user just confirms.
+  // No code field to read or type — a single "Register this machine" button.
+  if (hasCode) {
+    return (
+      <form onSubmit={handleSubmit} style={{ marginTop: 24, maxWidth: 360 }}>
+        {state.kind === "error" ? (
+          <p role="alert" style={{ color: "#b00020", marginBottom: 12 }}>
+            {state.message}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={state.kind === "submitting"}
+          style={{ padding: "12px 24px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}
+        >
+          {state.kind === "submitting" ? "Registering…" : "Register this machine"}
+        </button>
+      </form>
     );
   }
 
