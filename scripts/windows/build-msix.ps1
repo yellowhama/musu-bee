@@ -50,10 +50,13 @@ param(
     [switch]$SkipBuild,
     [switch]$KeepStage,
     [switch]$DryRun,
-    # Before building, bump the prerelease counter in VERSION (rc.N → rc.N+1) so
-    # this release's MSIX 4th segment rises and App Installer actually auto-updates.
-    # The fix for "every build shipped 1.15.0.0 so auto-update never fired."
-    [switch]$BumpVersion
+    # Auto-bump is ON BY DEFAULT: every real build increments VERSION's prerelease
+    # counter (rc.N → rc.N+1) so the MSIX 4th segment rises and App Installer
+    # actually auto-updates. The fix for "every build shipped 1.15.0.0 so
+    # auto-update never fired." Pass -NoBump to opt out (e.g. to re-cut the exact
+    # same version). Bump is always skipped for -DryRun, -SkipBuild, and explicit
+    # -Version (see below).
+    [switch]$NoBump
 )
 
 Set-StrictMode -Version Latest
@@ -337,11 +340,14 @@ if (-not $SkipBuild) {
 }
 Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
 
-# -BumpVersion: increment the prerelease counter in VERSION before reading it, so
-# each release rises (rc.1 → rc.2 → …) and App Installer auto-update actually
-# fires. Skipped when an explicit -Version is passed or in -DryRun.
+# Auto-bump (ON by default): increment the prerelease counter in VERSION before
+# reading it, so each release rises (rc.1 → rc.2 → …) and App Installer
+# auto-update actually fires. Skipped for -NoBump, -DryRun, -SkipBuild, or an
+# explicit -Version (those don't produce a new shippable build that needs a new
+# number — DryRun/SkipBuild especially must never mutate VERSION).
 $versionPath = Join-Path $repoRoot "VERSION"
-if ($BumpVersion -and -not $Version) {
+$shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild
+if ($shouldBump) {
     $raw = (Get-Content -LiteralPath $versionPath -Raw).Trim()
     if ($raw -match "^(?<core>\d+\.\d+\.\d+)-(?<tag>[a-zA-Z]+)\.(?<n>\d+)$") {
         $bumped = "{0}-{1}.{2}" -f $Matches.core, $Matches.tag, ([int]$Matches.n + 1)
@@ -350,12 +356,8 @@ if ($BumpVersion -and -not $Version) {
     } else {
         throw "Cannot auto-bump VERSION '$raw' (expected X.Y.Z-tag.N or X.Y.Z)."
     }
-    if ($DryRun) {
-        Write-Step "[dry-run] would bump VERSION $raw → $bumped"
-    } else {
-        Set-Content -LiteralPath $versionPath -Value $bumped -NoNewline
-        Write-Step "Bumped VERSION $raw → $bumped"
-    }
+    Set-Content -LiteralPath $versionPath -Value $bumped -NoNewline
+    Write-Step "Auto-bumped VERSION $raw → $bumped"
 }
 
 if (-not $Version) {
