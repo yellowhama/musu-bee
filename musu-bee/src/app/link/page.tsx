@@ -33,17 +33,17 @@ export default async function LinkDevicePage({ searchParams }: LinkPageProps) {
   const params = await searchParams;
   const prefill = prefillUserCode(params.user_code ?? params.code);
   // When MUSU opened this page itself, the code is already in the URL — the user
-  // shouldn't type anything, just confirm "register this machine".
+  // shouldn't type anything, just confirm the sign-in.
   const hasCode = prefill.length > 0;
 
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>
-        {hasCode ? "Register this machine" : "Link a device"}
+        {hasCode ? "Sign in to MUSU" : "Link a device"}
       </h1>
       <p style={{ marginTop: 12, lineHeight: 1.5 }}>
         {hasCode ? (
-          "Add this computer to your MUSU account so your machines can work together."
+          "Confirm to sign this app in to your MUSU account."
         ) : (
           <>
             Enter the code shown in your terminal by <code>musu login</code> to authorize this

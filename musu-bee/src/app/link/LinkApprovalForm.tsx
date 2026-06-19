@@ -66,17 +66,19 @@ export default function LinkApprovalForm({
   if (state.kind === "approved") {
     return (
       <div role="status" style={{ marginTop: 24 }}>
-        <p style={{ fontWeight: 600 }}>Device approved.</p>
+        <p style={{ fontWeight: 600 }}>Signed in.</p>
         <p>
-          {state.nodeName ? `"${state.nodeName}" is now linked. ` : "Your device is now linked. "}
-          You can return to the terminal — `musu login` will complete automatically.
+          This app is now signed in to your MUSU account. You can return to MUSU — it will finish
+          automatically.
         </p>
       </div>
     );
   }
 
-  // One-click path: MUSU put the code in the URL, so the user just confirms.
-  // No code field to read or type — a single "Register this machine" button.
+  // One-click path: MUSU put the code in the URL, so the user just confirms the
+  // sign-in. No code field to read or type — a single "Sign in" button. (This
+  // is the LOGIN step; adding this machine to the fleet is a separate action in
+  // the app after sign-in.)
   if (hasCode) {
     return (
       <form onSubmit={handleSubmit} style={{ marginTop: 24, maxWidth: 360 }}>
@@ -90,7 +92,7 @@ export default function LinkApprovalForm({
           disabled={state.kind === "submitting"}
           style={{ padding: "12px 24px", fontSize: 16, fontWeight: 600, cursor: "pointer" }}
         >
-          {state.kind === "submitting" ? "Registering…" : "Register this machine"}
+          {state.kind === "submitting" ? "Signing in…" : "Sign in to this app"}
         </button>
       </form>
     );
