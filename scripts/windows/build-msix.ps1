@@ -56,7 +56,13 @@ param(
     # auto-update never fired." Pass -NoBump to opt out (e.g. to re-cut the exact
     # same version). Bump is always skipped for -DryRun, -SkipBuild, and explicit
     # -Version (see below).
-    [switch]$NoBump
+    [switch]$NoBump,
+    # Memory-safe builds are ON BY DEFAULT: cargo compiles one crate at a time
+    # (CARGO_BUILD_JOBS=1) with a larger compiler stack (RUST_MIN_STACK) so the
+    # release LTO of the large lib.rs (~7.5k lines) does not exhaust RAM/paging
+    # and crash rustc with STATUS_STACK_BUFFER_OVERRUN / "out of memory". Pass
+    # -FastBuild on a machine with ample RAM to restore parallel codegen.
+    [switch]$FastBuild
 )
 
 Set-StrictMode -Version Latest
@@ -79,7 +85,10 @@ function Invoke-Checked {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [Parameter()][string[]]$ArgumentList = @(),
-        [Parameter()][string]$WorkingDirectory
+        [Parameter()][string]$WorkingDirectory,
+        # Per-invocation environment overrides (e.g. memory limits for cargo).
+        # Restored to their prior values in finally so the parent env is clean.
+        [Parameter()][hashtable]$Environment = @{}
     )
 
     $rendered = ($ArgumentList | ForEach-Object {
@@ -89,6 +98,9 @@ function Invoke-Checked {
     if ($DryRun) {
         if ($WorkingDirectory) {
             Write-Host "[dry-run] pushd $WorkingDirectory"
+        }
+        foreach ($k in $Environment.Keys) {
+            Write-Host ("[dry-run] `$env:{0} = {1}" -f $k, $Environment[$k])
         }
         Write-Host "[dry-run] $FilePath $rendered"
         if ($WorkingDirectory) {
@@ -101,6 +113,14 @@ function Invoke-Checked {
         Push-Location $WorkingDirectory
     }
 
+    # Snapshot then apply env overrides; finally restores to avoid leaking
+    # memory-limit vars into the rest of the build (e.g. the Tauri npm step).
+    $savedEnv = @{}
+    foreach ($k in $Environment.Keys) {
+        $savedEnv[$k] = [Environment]::GetEnvironmentVariable($k)
+        Set-Item -LiteralPath ("Env:{0}" -f $k) -Value ([string]$Environment[$k])
+    }
+
     try {
         & $FilePath @ArgumentList
         if ($LASTEXITCODE -ne 0) {
@@ -108,6 +128,13 @@ function Invoke-Checked {
         }
     }
     finally {
+        foreach ($k in $Environment.Keys) {
+            if ($null -eq $savedEnv[$k]) {
+                Remove-Item -LiteralPath ("Env:{0}" -f $k) -ErrorAction SilentlyContinue
+            } else {
+                Set-Item -LiteralPath ("Env:{0}" -f $k) -Value $savedEnv[$k]
+            }
+        }
         if ($WorkingDirectory) {
             Pop-Location
         }
@@ -340,13 +367,19 @@ if (-not $SkipBuild) {
 }
 Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
 
-# Auto-bump (ON by default): increment the prerelease counter in VERSION before
-# reading it, so each release rises (rc.1 → rc.2 → …) and App Installer
-# auto-update actually fires. Skipped for -NoBump, -DryRun, -SkipBuild, or an
-# explicit -Version (those don't produce a new shippable build that needs a new
-# number — DryRun/SkipBuild especially must never mutate VERSION).
+# Auto-bump (ON by default): increment the prerelease counter in VERSION so each
+# release rises (rc.1 → rc.2 → …) and App Installer auto-update actually fires.
+# Skipped for -NoBump, -DryRun, -SkipBuild, or an explicit -Version (those don't
+# produce a new shippable build that needs a new number).
+#
+# The bump is COMPUTED here but only WRITTEN to disk AFTER a successful build
+# (see "Commit the bumped VERSION" below). A failed build must not mutate VERSION
+# — otherwise a crash mid-compile leaves the file ahead of any shipped artifact,
+# and the next attempt double-bumps. $Version (used by packaging) carries the
+# bumped value in-memory so this build targets the right number regardless.
 $versionPath = Join-Path $repoRoot "VERSION"
 $shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild
+$pendingVersionWrite = $null
 if ($shouldBump) {
     $raw = (Get-Content -LiteralPath $versionPath -Raw).Trim()
     if ($raw -match "^(?<core>\d+\.\d+\.\d+)-(?<tag>[a-zA-Z]+)\.(?<n>\d+)$") {
@@ -356,12 +389,15 @@ if ($shouldBump) {
     } else {
         throw "Cannot auto-bump VERSION '$raw' (expected X.Y.Z-tag.N or X.Y.Z)."
     }
-    Set-Content -LiteralPath $versionPath -Value $bumped -NoNewline
-    Write-Step "Auto-bumped VERSION $raw → $bumped"
+    $pendingVersionWrite = $bumped
+    Write-Step "Auto-bump computed VERSION $raw → $bumped (written after build succeeds)"
 }
 
 if (-not $Version) {
-    $Version = Normalize-Version (Get-Content -LiteralPath $versionPath -Raw)
+    # Prefer the in-memory bumped value so the build targets the new number; fall
+    # back to the on-disk VERSION when not bumping.
+    $effectiveRaw = if ($pendingVersionWrite) { $pendingVersionWrite } else { (Get-Content -LiteralPath $versionPath -Raw) }
+    $Version = Normalize-Version $effectiveRaw
 } else {
     $Version = Normalize-Version $Version
 }
@@ -386,20 +422,35 @@ $startupExe = Join-Path $musuRsDir "target\$Configuration\$StartupExecutable"
 $desktopExe = Join-Path $tauriDir "target\$Configuration\$ApplicationExecutable"
 $generatedCertPath = Join-Path $OutputDir ("{0}_cert.pfx" -f $IdentityName)
 
+# Memory-safe build env (default ON; -FastBuild restores parallel codegen).
+# CARGO_BUILD_JOBS=1 → one rustc at a time so two release-LTO crates don't peak
+# RAM simultaneously. RUST_MIN_STACK=64MiB → headroom for the large lib.rs so
+# rustc doesn't blow its thread stack (STATUS_STACK_BUFFER_OVERRUN). Applied
+# only to the build commands and restored afterwards by Invoke-Checked.
+$buildEnv = @{}
+if (-not $FastBuild) {
+    $buildEnv["CARGO_BUILD_JOBS"] = "1"
+    $buildEnv["RUST_MIN_STACK"] = "67108864"
+}
+
 if (-not $SkipBuild) {
-    Write-Step "Building packaged runtime executables"
+    if ($FastBuild) {
+        Write-Step "Building packaged runtime executables (FastBuild: parallel codegen)"
+    } else {
+        Write-Step "Building packaged runtime executables (memory-safe: 1 job, 64MiB stack)"
+    }
     $buildArgs = @("build", "--bin", "musu", "--bin", "musu-startup")
     if ($Configuration -eq "release") {
         $buildArgs += "--release"
     }
-    Invoke-Checked -FilePath "cargo" -ArgumentList $buildArgs -WorkingDirectory $musuRsDir
+    Invoke-Checked -FilePath "cargo" -ArgumentList $buildArgs -WorkingDirectory $musuRsDir -Environment $buildEnv
 
     Write-Step "Building Tauri desktop executable"
     $desktopBuildArgs = @("run", "tauri", "--", "build", "--no-bundle")
     if ($Configuration -eq "debug") {
         $desktopBuildArgs += "--debug"
     }
-    Invoke-Checked -FilePath "npm" -ArgumentList $desktopBuildArgs -WorkingDirectory $musuBeeDir
+    Invoke-Checked -FilePath "npm" -ArgumentList $desktopBuildArgs -WorkingDirectory $musuBeeDir -Environment $buildEnv
 }
 
 if (-not $DryRun -and -not (Test-Path -LiteralPath $musuExe)) {
@@ -410,6 +461,15 @@ if (-not $DryRun -and -not (Test-Path -LiteralPath $startupExe)) {
 }
 if (-not $DryRun -and -not (Test-Path -LiteralPath $desktopExe)) {
     throw "$ApplicationExecutable not found at $desktopExe"
+}
+
+# Commit the bumped VERSION only after the build succeeded AND all three
+# executables exist. Any failure above throws before this line, so VERSION stays
+# untouched and the next attempt re-bumps from the same base (no double-bump, no
+# orphan version ahead of the last shipped artifact).
+if ($pendingVersionWrite) {
+    Set-Content -LiteralPath $versionPath -Value $pendingVersionWrite -NoNewline
+    Write-Step "VERSION committed → $pendingVersionWrite"
 }
 
 $resolvedIcon = Resolve-OptionalPath $SourceIconPath
