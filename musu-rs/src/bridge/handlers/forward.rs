@@ -638,6 +638,13 @@ fn relay_fallback_route_evidence(
         .map(|outcome| outcome.attempted)
         .unwrap_or(false);
     let payload_transport_proven = payload_queue.map(|outcome| outcome.proven).unwrap_or(false);
+    // W-2: the relay KV submission was accepted and stored. Read the queue
+    // outcome's `stored` flag directly (set from the server's `stored=true`),
+    // NOT `payload_id.is_some()` — a stored response may omit the record body,
+    // which would falsely look dropped. NOT `attempted` (set even on failed
+    // submits) and NOT `failure_class` (a stored payload still carries the
+    // benign relay_target_polling_not_implemented class).
+    let payload_transport_stored = payload_queue.map(|outcome| outcome.stored).unwrap_or(false);
     let payload_transport_failure_class = if issued {
         payload_queue
             .and_then(|outcome| outcome.failure_class.clone())
@@ -670,6 +677,7 @@ fn relay_fallback_route_evidence(
         payload_transport_attempted,
         payload_transport_proven,
         payload_transport_failure_class,
+        payload_transport_stored,
     }
 }
 
@@ -1244,7 +1252,9 @@ pub async fn receive_callback(
     State(state): State<AppState>,
     Json(cb): Json<TaskCallback>,
 ) -> Result<StatusCode> {
-    apply_task_callback(&state, &cb).await.map(|_| StatusCode::OK)
+    apply_task_callback(&state, &cb)
+        .await
+        .map(|_| StatusCode::OK)
 }
 
 /// Core callback application shared by the HTTP handler and the relay drain.
@@ -1732,7 +1742,9 @@ mod tests {
 
         // Payload is the sha256 of the serialized callback — round-trips through
         // the decoder's integrity gate.
-        let decoded = BASE64_STANDARD.decode(req.payload_base64.as_bytes()).unwrap();
+        let decoded = BASE64_STANDARD
+            .decode(req.payload_base64.as_bytes())
+            .unwrap();
         assert_eq!(
             req.payload_sha256.as_deref(),
             Some(hex::encode(Sha256::digest(&decoded)).as_str())
@@ -1776,7 +1788,9 @@ mod tests {
             .unwrap();
         assert_eq!(row.try_get::<String, _>("status").unwrap(), "done");
         assert_eq!(
-            row.try_get::<Option<String>, _>("output").unwrap().as_deref(),
+            row.try_get::<Option<String>, _>("output")
+                .unwrap()
+                .as_deref(),
             Some("ok")
         );
     }
@@ -2305,6 +2319,7 @@ mod tests {
         let payload_queue = crate::bridge::rendezvous::RelayPayloadQueueOutcome {
             attempted: true,
             proven: false,
+            stored: true,
             failure_class: Some(
                 crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED.to_string(),
             ),
@@ -2335,5 +2350,43 @@ mod tests {
             evidence.payload_transport_failure_class.as_deref(),
             Some(crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED)
         );
+        // W-2: a queued payload carries a payload_id → stored=true, and since the
+        // lease was issued the task is genuinely in flight (relay_payload_stored).
+        // The benign polling-not-implemented failure_class must NOT mask this.
+        assert!(evidence.payload_transport_stored);
+        assert!(evidence.relay_payload_stored());
+    }
+
+    #[test]
+    fn failed_relay_payload_submit_is_not_stored() {
+        // W-2 HIGH-1 regression guard: a FAILED relay submission (no payload_id)
+        // sets attempted=true but must report stored=false / relay_payload_stored
+        // = false, so the sender returns 500 (retryable) instead of a 202 for a
+        // task that never reached the relay queue.
+        let target = peer("192.168.1.10:8070", None);
+        let relay = crate::bridge::rendezvous::RelayLeaseFallback {
+            status: crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued,
+            lease_issued: true,
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: vec![],
+            lease_id: Some("relay-lease-test".to_string()),
+            failure_class: None,
+        };
+        let payload_queue = crate::bridge::rendezvous::RelayPayloadQueueOutcome::failed(
+            "relay_payload_queue_missing_session_id",
+        );
+
+        let evidence = relay_fallback_route_evidence(
+            &relay,
+            &target,
+            &[],
+            Some("remote_command"),
+            Some(&payload_queue),
+        );
+
+        assert!(evidence.lease_issued);
+        assert!(evidence.payload_transport_attempted);
+        assert!(!evidence.payload_transport_stored);
+        assert!(!evidence.relay_payload_stored());
     }
 }

@@ -264,19 +264,25 @@ pub async fn run_company(
                 }
                 Err(e) => {
                     crate::bridge::router::record_failure(&e.route_peer.addr);
-                    // W-1 C-1 fix: bind a relay-queued task to its executor on the
+                    // W-1 C-1 fix: bind a relay-stored task to its executor on the
                     // failed-direct path too (see tasks.rs for the full rationale).
                     // Without this, a relay-forwarded task's reverse callback hits
                     // forwarded_to_node = NULL and is rejected as a forgery.
-                    let relay_queued = e
+                    //
+                    // W-2: gate on `relay_payload_stored()` (not the weaker
+                    // `payload_transport_attempted`) and only treat the task as
+                    // queued if the binding UPDATE succeeded — otherwise the
+                    // reverse callback can never land and a 202 would lie.
+                    let relay_stored = e
                         .relay_fallback
                         .as_ref()
-                        .map(|relay| relay.lease_issued && relay.payload_transport_attempted)
+                        .map(|relay| relay.relay_payload_stored())
                         .unwrap_or(false);
-                    if relay_queued {
+                    let mut relay_queued = false;
+                    if relay_stored {
                         let executor_node =
                             crate::bridge::route_evidence::target_node_id(&e.route_peer);
-                        if let Err(err) = sqlx::query(
+                        match sqlx::query(
                             "UPDATE route_executions \
                              SET forwarded_to_node = ? WHERE task_id = ?",
                         )
@@ -285,11 +291,13 @@ pub async fn run_company(
                         .execute(&state.pool)
                         .await
                         {
-                            tracing::warn!(
+                            Ok(_) => relay_queued = true,
+                            Err(err) => tracing::warn!(
                                 task_id = %task_id,
                                 err = %err,
-                                "failed to record relay executor binding (forwarded_to_node)"
-                            );
+                                "failed to record relay executor binding (forwarded_to_node); \
+                                 reverse callback would be rejected, so NOT reporting queued"
+                            ),
                         }
                     }
                     let musu_home = state
@@ -329,10 +337,21 @@ pub async fn run_company(
                             "failed to write bridge route evidence"
                         ),
                     }
-                    return Err(MusuError::Internal(format!(
-                        "forward_to_peer: {}",
-                        e.message
-                    )));
+                    // W-2 sender-state alignment (see tasks.rs for the full
+                    // rationale): a relay-queued task is in flight, not failed.
+                    // Stay 'pending' and answer 202 queued; only a forward that
+                    // never reached an executor is a hard error.
+                    if !relay_queued {
+                        return Err(MusuError::Internal(format!(
+                            "forward_to_peer: {}",
+                            e.message
+                        )));
+                    }
+                    tracing::info!(
+                        task_id = %task_id,
+                        executor = %crate::bridge::route_evidence::target_node_id(&e.route_peer),
+                        "direct forward failed but task relayed via KV; awaiting reverse callback"
+                    );
                 }
             }
         }

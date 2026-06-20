@@ -76,6 +76,29 @@ pub struct RouteRelayFallbackEvidence {
     pub payload_transport_proven: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload_transport_failure_class: Option<String>,
+    /// W-2: the relay payload was accepted and stored in the relay KV queue
+    /// (the submission returned a payload_id). This is the ONLY reliable
+    /// "the task is genuinely in flight via relay" signal: `attempted` is set
+    /// even on a failed/missing-session submission, and `proven` is reserved
+    /// for a future transport-proof path that production never sets today, so
+    /// neither distinguishes a stored payload from a dropped one. A queued
+    /// submission additionally carries a benign `payload_transport_failure_class`
+    /// of `relay_target_polling_not_implemented` (the target drains via poll),
+    /// so failure_class also cannot gate "stored". `stored` is the field that
+    /// can.
+    #[serde(default)]
+    pub payload_transport_stored: bool,
+}
+
+impl RouteRelayFallbackEvidence {
+    /// W-2: true iff a relay lease was issued AND the payload was actually
+    /// stored in the relay KV queue. Sender-state alignment (202 queued vs
+    /// 500) and the W-1 executor-binding write both gate on this so they
+    /// agree on exactly one definition of "the task reached an executor via
+    /// relay and will return its result through the reverse callback".
+    pub fn relay_payload_stored(&self) -> bool {
+        self.lease_issued && self.payload_transport_stored
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -333,6 +356,7 @@ fn cloud_relay_fallback(
         payload_transport_attempted: evidence.payload_transport_attempted,
         payload_transport_proven: evidence.payload_transport_proven,
         payload_transport_failure_class: evidence.payload_transport_failure_class.clone(),
+        payload_transport_stored: evidence.payload_transport_stored,
     }
 }
 
@@ -771,6 +795,7 @@ pub fn record_relay_payload_delivery_route_evidence(
             payload_transport_attempted: true,
             payload_transport_proven: true,
             payload_transport_failure_class: None,
+            payload_transport_stored: true,
         }),
         relay_transport_proof: None,
         relay_payload_delivery_proof: Some(proof),
@@ -898,6 +923,7 @@ pub fn record_release_relay_payload_delivery_route_evidence(
             payload_transport_attempted: true,
             payload_transport_proven: true,
             payload_transport_failure_class: None,
+            payload_transport_stored: true,
         }),
         relay_transport_proof: Some(transport_proof),
         relay_payload_delivery_proof: Some(proof),
@@ -1319,6 +1345,7 @@ mod tests {
                 payload_transport_attempted: false,
                 payload_transport_proven: false,
                 payload_transport_failure_class: None,
+                payload_transport_stored: false,
             }),
             relay_transport_proof: None,
             relay_payload_delivery_proof: None,
@@ -1788,6 +1815,7 @@ mod tests {
             payload_transport_failure_class: Some(
                 RELAY_PAYLOAD_TRANSPORT_NOT_IMPLEMENTED.to_string(),
             ),
+            payload_transport_stored: false,
         };
         let value = serde_json::to_value(&fallback).unwrap();
 
