@@ -198,10 +198,15 @@ fn relay_payload_poller_sleep_duration(
 }
 
 fn relay_payload_poller_enabled() -> bool {
-    matches!(
-        std::env::var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER").as_deref(),
-        Ok("1") | Ok("true") | Ok("yes")
-    )
+    // Default ON: relay is now the standard cross-machine fallback when direct/
+    // tailnet reach fails, so a machine must receive relayed tasks without the
+    // user setting any env (배관 숨김 — the user should never hand-edit a poller
+    // flag to make their other PC reachable). Explicit opt-OUT only:
+    // MUSU_ENABLE_RELAY_PAYLOAD_POLLER=0|false|no disables it.
+    match std::env::var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER").as_deref() {
+        Ok("0") | Ok("false") | Ok("no") | Ok("off") => false,
+        _ => true,
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
