@@ -628,6 +628,25 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /data-fleet-count="stale"/);
   assert.match(html, /data-fleet-count="offline"/);
   assert.match(html, /No Tailscale\.com signup required/);
+  // W-5: the primary "just log in on the other PC" surface is the happy path,
+  // and it appears BEFORE the docker/Headscale enrollment steps (now collapsed
+  // into an opt-in Advanced disclosure). New machines join on login alone.
+  assert.match(html, /id="add-pc-primary"/);
+  assert.match(html, /install MUSU on the other machine and\s+sign in with this same account/);
+  assert.match(html, /joins your fleet automatically/);
+  assert.match(html, /no Docker, no control host, no pass file/);
+  assert.match(html, /id="add-pc-advanced"/);
+  assert.match(html, /Advanced: self-host your own control host \(optional\)/);
+  // The docker/device-pass enrollment steps must live UNDER the Advanced
+  // disclosure, not on the primary surface — assert source order.
+  assert.ok(
+    html.indexOf('id="add-pc-primary"') < html.indexOf('class="add-pc-steps"'),
+    "primary add-PC surface must precede the advanced enrollment steps",
+  );
+  assert.ok(
+    html.indexOf('id="add-pc-advanced"') < html.indexOf('class="add-pc-steps"'),
+    "the docker/device-pass steps must be wrapped in the Advanced disclosure",
+  );
   assert.match(html, /Headscale \+ Caddy HTTPS \+ embedded DERP/);
   // Add PC step 1 is an in-app action now (input + Generate bundle button driving
   // the private_mesh_bootstrap IPC), not a copied `musu mesh bootstrap` command.
