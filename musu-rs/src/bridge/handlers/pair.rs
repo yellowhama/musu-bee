@@ -26,7 +26,11 @@ pub struct PairingStore {
 struct PairingOffer {
     node_name: String,
     node_url: String,
-    token: String,
+    // Pairing carries NO token. It only registers a peer ADDRESS; cross-machine
+    // auth is the account-wide mesh bearer (C-1, ~/.musu/mesh.env), not anything
+    // exchanged here. The old `token` field held the offering node's bridge token
+    // but the acceptor always discarded it (dead since C-1) — removed so the
+    // offer never carries a credential in memory.
     created_at: Instant,
     ttl: Duration,
 }
@@ -37,7 +41,7 @@ impl PairingStore {
     }
 
     /// Generate a new 6-char pairing code.
-    pub async fn create_offer(&self, node_name: String, node_url: String, token: String) -> String {
+    pub async fn create_offer(&self, node_name: String, node_url: String) -> String {
         let code = generate_code();
         let mut store = self.inner.lock().await;
         // Cleanup expired
@@ -47,7 +51,6 @@ impl PairingStore {
             PairingOffer {
                 node_name,
                 node_url,
-                token,
                 created_at: Instant::now(),
                 ttl: Duration::from_secs(300), // 5 minutes
             },
@@ -55,12 +58,12 @@ impl PairingStore {
         code
     }
 
-    /// Consume a pairing code. Returns `(node_name, node_url, token)` if valid.
-    pub async fn accept_offer(&self, code: &str) -> Option<(String, String, String)> {
+    /// Consume a pairing code. Returns `(node_name, node_url)` if valid.
+    pub async fn accept_offer(&self, code: &str) -> Option<(String, String)> {
         let mut store = self.inner.lock().await;
         if let Some(offer) = store.remove(code) {
             if offer.created_at.elapsed() < offer.ttl {
-                return Some((offer.node_name, offer.node_url, offer.token));
+                return Some((offer.node_name, offer.node_url));
             }
         }
         None
@@ -91,11 +94,7 @@ pub async fn create_pair_offer(State(state): State<AppState>) -> Result<Json<Pai
     let node_url = crate::bridge::services::advertised_bridge_http_url(&state.config);
     let code = state
         .pairing
-        .create_offer(
-            state.config.node_name.clone(),
-            node_url,
-            state.config.token.clone(),
-        )
+        .create_offer(state.config.node_name.clone(), node_url)
         .await;
 
     tracing::info!(code = %code, "pairing offer created");
@@ -130,7 +129,7 @@ pub async fn accept_pair(
     let offer = state.pairing.accept_offer(&req.code).await;
 
     match offer {
-        Some((peer_name, peer_url, _token)) => {
+        Some((peer_name, peer_url)) => {
             // Register the joining node as a peer.
             let addr = peer_url
                 .trim_start_matches("http://")

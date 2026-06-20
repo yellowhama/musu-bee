@@ -1180,6 +1180,17 @@ async fn run_join_account(opts: PrivateMeshJoinAccountOpts) -> Result<()> {
     let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
     let key = cloud.request_mesh_join_key().await?;
 
+    // Persist the account-wide mesh bearer (if the server issued one) so the
+    // local bridge loads it as peer_token and finally accepts cross-machine
+    // forward/callback from sibling machines of this account. Written before the
+    // join so a successful join leaves a usable credential on disk; skipped on
+    // dry-run. Absent bearer = older server → keep legacy per-machine behavior.
+    if !opts.dry_run {
+        if let Some(bearer) = key.mesh_bearer.as_deref().filter(|b| !b.is_empty()) {
+            crate::install::token::write_mesh_bearer(&home, bearer)?;
+        }
+    }
+
     // Reuse the existing login_server + authkey join path. No device-add pass,
     // no new join logic: run_join handles https policy, /health, `tailscale up`,
     // config persistence, and the join evidence event.

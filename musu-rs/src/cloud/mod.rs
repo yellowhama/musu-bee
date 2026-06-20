@@ -136,6 +136,13 @@ pub struct MeshJoinKey {
     pub login_server: String,
     pub authkey: String,
     pub tailnet: String,
+    /// Account-wide shared bridge bearer (hex), deterministic from the owner's
+    /// key on the server. Every machine of the same account receives the SAME
+    /// value, so cross-machine forward/callback finally authenticate. Absent if
+    /// the server has no mesh-bearer secret configured (older deploy) — the CLI
+    /// then keeps its existing per-machine token behavior.
+    #[serde(default)]
+    pub mesh_bearer: Option<String>,
 }
 
 /// One node in the owner's fleet, as returned by `POST /api/account/mesh-node-action`
