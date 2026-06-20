@@ -65,9 +65,25 @@
 
 ---
 
-## S급 기준 검증 (해외 레퍼런스 대비)
+## S급 기준 (해외 레퍼런스 비교, 2026-06-21 deep-research 확정)
 
-Wave 1 완료 후, fleet 오케스트레이션 차별성을 해외 레퍼런스(Tailscale/Warp/Raycast 등 "내 기기를 하나로" 류)와 비교 리서치 → 격차 식별 → Wave 2.5 후보 도출. **이 비교는 Wave 1 루프가 실제로 돈 다음에 의미 있음** (패널: 안 도는 제품 폴리시는 fragility에 립스틱).
+레퍼런스 근거로 "이 제품의 S급 바"를 확정. 출처: Tailscale(온보딩), NetBird/ZeroTier(self-host mesh), Warp Oz/Sculptor/Open Interpreter/GitHub Agent HQ(AI 오케스트레이션), Microsoft/SSL.com(코드사인).
+
+| 축 | S급 바 | MUSU 격차 | Wave |
+|---|---|---|---|
+| 온보딩 | Tailscale: 설치→2머신 ~2분, config 0, 중앙게이트 무 | "설치+같은계정=자동합류"(W-5) 맞춰감. relay 완전 은닉 + ~5분 목표(AI실행 단계 가산) 명시 | 0/1 |
+| 신뢰 | SmartScreen 무경고 첫 실행 | 🔴 자체서명=강한 차단. **EV는 죽은 카드**(2024 instant-reputation loophole 폐지) | 2 |
+| 기기 UX | 기기목록+live상태(online/working/last-seen/stable name) | cockpit S-tier 작업과 정합 | 0/2 |
+| 업데이트 | Tauri 풀바이너리(delta 아님) + 버전 핸드셰이크 | G0-2 버전정합(완료) + cockpit↔bridge↔relay fail-fast 핸드셰이크 | 0/2 |
+
+**계획 정정 (리서치 발견)**:
+1. 🔴 **인증서: EV 아님, Azure Trusted Signing(~$120/yr) 우선** — EV loophole 죽음. **단 OQ#1: 한국 개인개발자 자격 미확인**(US/Canada만 확정). 막히면 OV(~$215/yr Sectigo/Certum) 폴백. **Wave 2 비용/접근을 정하기 전 해소 필수.** MSIX Store 경로가 서명 우회 가능한지도(OQ#3, Store ID 등록됨) 확인.
+2. 🌊 **신규 "차별성 가시화" Wave** — 헤드라인을 "AI agent orchestration"(red ocean, Warp/Devin 약한 클론으로 보임) → **"네 물리 PC들을 하나로, SaaS 없이"**(blue ocean, 레퍼런스 누구도 3축 다 못 가짐: Tailscale=AI무, Open Interpreter/Sculptor=단일머신, Warp Oz=클라우드)로 재포지셔닝. 온보딩 카피+fleet view에 명시.
+3. ✅ **버전 핸드셰이크가 실측 페인** — 리서치가 "cockpit 옛 MSIX 스폰" 사건([[reference-musu-cockpit-spawns-installed-msix]])을 짚음. G0-2가 그 토대. fail-fast "업데이트 필요" 핸드셰이크 후보.
+
+**과투자 제외 (4고객 self-contained 규모)**: EV 인증서, delta 업데이트 인프라, SaaS 텔레메트리, 풀 CI 매트릭스, 멀티리전 relay. 코드사인만이 빠지면 안 되는 table-stakes.
+
+**OQ (해소 필요)**: (1) Trusted Signing 한국 자격 → 서명 비용 결정. (2) relay가 엔드유저 첫 실행에 zero-config인가(서버측 토큰이 온보딩 경로로 새는가). (3) Store 경로가 서명 우회하는가.
 
 ---
 
