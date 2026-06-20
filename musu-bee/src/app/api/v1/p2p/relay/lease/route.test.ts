@@ -147,49 +147,42 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.relay_lease_store_configured, true);
     assert.equal(body.relay_lease_store_backend, "file");
     assert.equal(body.relay_lease_store_release_grade, false);
+    // Store-and-forward lease is gated by its OWN preconditions (relay disabled,
+    // missing url/entitlement) — NOT by the QUIC-tunnel (B) readiness flags. The
+    // (B) blockers must no longer appear here: that merge was exactly why a
+    // store-and-forward lease could never be issued (두 머신이 relay로 안 붙음).
     assert.match(body.blockers.join(","), /relay_disabled/);
-    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
-    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
 
-test("denies env-only relay fallback lease until payload endpoint is wired", async () => {
+test("issues a store-and-forward relay lease once env policy is enabled", async () => {
   await withRelayEnv(async () => {
-    const { POST } = await loadModule("env-only-deny");
+    const { POST } = await loadModule("env-only-issue");
     enableRelayLeasePolicy();
 
     const res = await POST(postReq(leaseRequest));
-    assert.equal(res.status, 409);
+    // The whole point of the (A)/(B) split: with relay enabled + url +
+    // entitlement set and the payload QUEUE wired, a store-and-forward lease is
+    // now ISSUED (200), instead of being permanently blocked by QUIC-tunnel
+    // readiness flags. This is the cross-machine path that works without Tailscale.
     const body = (await res.json()) as {
       lease_issued: boolean;
       owner_scoped: boolean;
-      relay_transport_wired: boolean;
-      relay_connect_endpoint_wired: boolean;
-      relay_payload_endpoint_wired: boolean;
       relay_payload_queue_endpoint_wired: boolean;
-      relay_default_data_path: boolean;
       relay_lease_store_configured: boolean;
-      relay_lease_store_backend: string;
-      relay_lease_store_release_grade: boolean;
       blockers: string[];
     };
-    assert.equal(body.lease_issued, false);
+    assert.equal(res.status, 201);
+    assert.equal(body.lease_issued, true);
     assert.equal(body.owner_scoped, true);
-    assert.equal(body.relay_transport_wired, false);
-    assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
-    assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_configured, true);
-    assert.equal(body.relay_lease_store_backend, "file");
-    assert.equal(body.relay_lease_store_release_grade, false);
-    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
-    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.deepEqual(body.blockers, []);
   });
 });
 

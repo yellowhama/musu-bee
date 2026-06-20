@@ -37,7 +37,26 @@ const RelayLeaseRequestSchema = z.object({
   failure_class: z.string().min(1).nullable().optional(),
 }).passthrough();
 
-function relayPolicyBlockers(input: {
+/**
+ * Two relay transports share this lease endpoint:
+ *   (A) store-and-forward — payload is base64'd into the KV queue
+ *       (/p2p/relay/payload) and the target polls it out. Fully implemented
+ *       end-to-end (sender + queue + receiver poller). No QUIC needed.
+ *   (B) release-grade QUIC tunnel — real-time bytes over WSS/QUIC. Not built;
+ *       intentionally out of scope (the self-built tunnel direction was dropped).
+ *
+ * The blockers were previously merged: the (B) QUIC-readiness flags
+ * (relay_transport_not_wired / relay_tunnel_runtime_not_implemented /
+ * relay_transport_kind_not_release_grade / relay_payload_endpoint_not_wired)
+ * gated (A)'s lease too, so a store-and-forward lease could NEVER be issued —
+ * which is exactly why "두 머신이 relay로 안 붙음". Split them: (A) leases need
+ * only the real preconditions below; the (B) checks move to a separate gate used
+ * only when a caller actually requests the QUIC tunnel.
+ *
+ * This is the cross-machine path that works WITHOUT Tailscale: musu's own relay
+ * queue carries the task when direct/tailnet reach fails.
+ */
+function storeAndForwardLeaseBlockers(input: {
   direct_path_failed: boolean;
   attempted_route_kinds: RelayRouteKind[];
 }): string[] {
@@ -45,17 +64,9 @@ function relayPolicyBlockers(input: {
   if (!envEnabled("MUSU_P2P_RELAY_ENABLED")) {
     blockers.push("relay_disabled");
   }
-  if (!relayTransportWired()) {
-    blockers.push("relay_transport_not_wired");
-  }
-  if (!relayTunnelRuntimeImplemented()) {
-    blockers.push("relay_tunnel_runtime_not_implemented");
-  }
-  if (!relayTransportKindReleaseGrade()) {
-    blockers.push("relay_transport_kind_not_release_grade");
-  }
-  if (!relayPayloadEndpointWired()) {
-    blockers.push("relay_payload_endpoint_not_wired");
+  // The payload QUEUE (not the QUIC tunnel) is what store-and-forward needs.
+  if (!relayPayloadQueueEndpointWired()) {
+    blockers.push("relay_payload_queue_endpoint_not_wired");
   }
   if (!relayUrl()) {
     blockers.push("relay_url_not_configured");
@@ -73,6 +84,30 @@ function relayPolicyBlockers(input: {
     blockers.push("direct_route_attempt_required_before_relay");
   }
   return blockers;
+}
+
+/**
+ * Additional preconditions for the release-grade (B) QUIC tunnel. Only checked
+ * when a caller explicitly opts into the QUIC transport (not built yet, so this
+ * still blocks — by design). Kept separate so it never gates store-and-forward.
+ */
+function releaseGradeTunnelBlockers(): string[] {
+  const blockers: string[] = [];
+  if (!relayTransportWired()) blockers.push("relay_transport_not_wired");
+  if (!relayTunnelRuntimeImplemented())
+    blockers.push("relay_tunnel_runtime_not_implemented");
+  if (!relayTransportKindReleaseGrade())
+    blockers.push("relay_transport_kind_not_release_grade");
+  if (!relayPayloadEndpointWired())
+    blockers.push("relay_payload_endpoint_not_wired");
+  return blockers;
+}
+
+function relayPolicyBlockers(input: {
+  direct_path_failed: boolean;
+  attempted_route_kinds: RelayRouteKind[];
+}): string[] {
+  return storeAndForwardLeaseBlockers(input);
 }
 
 function publicLease<T extends { owner_key: string }>(lease: T): Omit<T, "owner_key"> {
