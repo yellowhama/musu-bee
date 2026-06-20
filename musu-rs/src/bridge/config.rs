@@ -64,6 +64,17 @@ pub struct BridgeConfig {
 }
 
 impl BridgeConfig {
+    /// The bearer this machine presents to a SIBLING machine on cross-machine
+    /// forward/callback. Prefers the account-wide mesh bearer (peer_token, the
+    /// same value on every machine of the account) so the receiver — which
+    /// validates against its own identical mesh bearer (auth.rs peer_token) —
+    /// accepts it. Falls back to this machine's own token for legacy single-
+    /// secret setups (where every machine shares MUSU_BRIDGE_TOKEN manually).
+    /// This is the send-side half of the cross-machine 401 fix.
+    pub fn outbound_peer_bearer(&self) -> &str {
+        self.peer_token.as_deref().unwrap_or(&self.token)
+    }
+
     /// Load from env. Performs boot-time validation per wiki/491 §4.
     pub fn from_env() -> Result<Self> {
         let env_mode = env::var("MUSU_ENV").unwrap_or_default();
@@ -92,7 +103,17 @@ impl BridgeConfig {
             }
         }
 
-        let peer_token = env::var("MUSU_TOKEN").ok().filter(|t| !t.is_empty());
+        // peer_token = the credential a REMOTE machine may present (distinct from
+        // this machine's own `token`). Precedence: explicit MUSU_TOKEN env, then
+        // the account-wide mesh bearer written by `musu mesh join-account`
+        // (~/.musu/mesh.env). The mesh bearer is identical on every machine of
+        // the account, so once joined, cross-machine forward/callback present a
+        // bearer this side accepts here — the fix for "every cross-machine task
+        // 401s". Falls back to None (legacy) when neither is set.
+        let peer_token = env::var("MUSU_TOKEN")
+            .ok()
+            .filter(|t| !t.is_empty())
+            .or_else(|| crate::install::token::read_mesh_bearer(&musu_home));
 
         let bridge_host = env::var("BRIDGE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
         // Port 0 = OS assigns a free port dynamically.

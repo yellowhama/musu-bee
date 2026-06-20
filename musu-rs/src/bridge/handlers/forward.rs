@@ -609,8 +609,12 @@ pub async fn accept_forwarded_task(
                 .unwrap_or_else(crate::bridge::handlers::tasks::default_adapter_type),
             callback_url: req.callback_url.clone(),
             source_task_id: Some(req.source_task_id.clone()),
-            // Shared mesh token so the result callback to the source node authenticates.
-            callback_token: Some(state.config.token.clone()),
+            // Shared mesh bearer so the result callback to the source node
+            // authenticates: the source validates the callback against its own
+            // peer_token, which is the SAME account-wide mesh bearer. Previously
+            // this sent the target's own per-machine token → callback 401 → source
+            // task stuck pending forever (the mirror of the forward bug).
+            callback_token: Some(state.config.outbound_peer_bearer().to_string()),
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn forwarded task: {e}")))?;
@@ -835,7 +839,7 @@ pub async fn forward_to_peer_with_retry(
                 &state.http_client,
                 candidate,
                 task.clone(),
-                &state.config.token,
+                state.config.outbound_peer_bearer(),
             )
             .await
             {
