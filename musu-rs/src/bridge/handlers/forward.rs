@@ -253,7 +253,202 @@ pub fn forwarded_task_from_relay_payload(
 
 const RELAY_PAYLOAD_SCHEMA: &str = "musu.relay_payload_envelope.v1";
 const RELAY_PAYLOAD_KIND_FORWARDED_TASK: &str = "forwarded_task_envelope";
+/// W-1 §S-2: payload_kind for a result callback travelling the REVERSE
+/// direction (executor → original source) through the relay KV queue.
+pub const RELAY_PAYLOAD_KIND_TASK_CALLBACK: &str = "task_callback_envelope";
+
+/// W-1 §S-2: strict mirror of [`forwarded_task_from_relay_payload`] for the
+/// reverse callback envelope. Used by the drain path when `payload_kind ==
+/// task_callback_envelope` to recover a verified [`TaskCallback`] that the
+/// executor queued for the original source node.
+///
+/// Same structural gauntlet as the forward path: claimed status, target match
+/// (this node is the original source — the callback's destination), claimant
+/// match, kind match, base64/bytes/sha256 integrity. THEN the decode-side
+/// consistency checks that make a forged callback unprofitable:
+///
+///   - `cb.node == payload.source_node_id` — the executor's self-declared
+///     identity in the callback body MUST match the relay-asserted submitter
+///     of the payload. A peer cannot queue a callback "from" a node it is not.
+///
+/// The DB-side executor binding (`cb.node == route_executions.forwarded_to_node`
+/// for `cb.source_task_id`) is enforced separately at receive time (T5), so a
+/// same-account peer that *could* still queue a syntactically valid callback
+/// for someone else's task is rejected there because we never forwarded that
+/// task to it. This function owns the in-payload half of that defense.
+pub fn callback_from_relay_payload(
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    expected_target_node_id: &str,
+) -> std::result::Result<TaskCallback, String> {
+    let expected_target_node_id = expected_target_node_id.trim();
+    if expected_target_node_id.is_empty() {
+        return Err("relay_callback_expected_target_missing".to_string());
+    }
+    if payload.status.trim() != "claimed" {
+        return Err("relay_callback_not_claimed".to_string());
+    }
+    if payload.target_node_id.trim() != expected_target_node_id {
+        return Err("relay_callback_target_mismatch".to_string());
+    }
+    if let Some(claimed_by) = payload.claimed_by.as_deref() {
+        if claimed_by.trim() != expected_target_node_id {
+            return Err("relay_callback_claimant_mismatch".to_string());
+        }
+    }
+    if payload.payload_kind.trim() != RELAY_PAYLOAD_KIND_TASK_CALLBACK {
+        return Err("relay_callback_kind_unsupported".to_string());
+    }
+
+    let payload_base64 = payload
+        .payload_base64
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "relay_callback_missing_payload_bytes".to_string())?;
+    let decoded = BASE64_STANDARD
+        .decode(payload_base64.as_bytes())
+        .map_err(|_| "relay_callback_base64_decode_failed".to_string())?;
+    if payload.payload_bytes != decoded.len() as u64 {
+        return Err("relay_callback_bytes_mismatch".to_string());
+    }
+    let actual_sha256 = hex::encode(Sha256::digest(&decoded));
+    if !actual_sha256.eq_ignore_ascii_case(payload.payload_sha256.trim()) {
+        return Err("relay_callback_sha256_mismatch".to_string());
+    }
+
+    let cb: TaskCallback = serde_json::from_slice(&decoded)
+        .map_err(|_| "relay_callback_task_callback_decode_failed".to_string())?;
+    // S-2 executor-identity consistency: the callback body's `node` (who claims
+    // to have executed the task) MUST be the relay-asserted submitter. This is
+    // the in-payload half of the executor-binding defense; the DB half (was this
+    // task actually forwarded to that node?) is enforced at receive time (T5).
+    if cb.node.trim() != payload.source_node_id.trim() {
+        return Err("relay_callback_executor_mismatch".to_string());
+    }
+    // Structural validity guard (NOT a session-correlation defense): a callback
+    // riding a real relay session must name a source task. Note `TaskCallback`
+    // carries no session_id field, so unlike the forward decoder this cannot bind
+    // cb→payload.session_id; the authoritative task binding is the DB executor
+    // gate in `apply_task_callback` (forwarded_to_node = cb.node), not this check.
+    if !payload.session_id.trim().is_empty() && cb.source_task_id.trim().is_empty() {
+        return Err("relay_callback_missing_source_task".to_string());
+    }
+    if !task_callback_status_is_terminal(cb.status.trim()) {
+        return Err("relay_callback_status_not_terminal".to_string());
+    }
+
+    Ok(cb)
+}
 const RELAY_PAYLOAD_ID_FRAGMENT_MAX_CHARS: usize = 96;
+
+/// W-1 §S-3/§S-4: build the reverse-direction relay payload request that
+/// carries a [`TaskCallback`] from the executor back to the original sender.
+///
+/// Pure (no I/O) so it is unit-testable. `source_node_id` is THIS executor;
+/// `target_node_id` is the original sender (the callback's destination). The
+/// payload is the same sha256-bound base64 envelope shape as the forward path,
+/// but with `payload_kind = task_callback_envelope` so the drain side routes it
+/// to [`callback_from_relay_payload`] (T7), not the forwarded-task decoder.
+fn relay_request_for_callback(
+    source_node_id: &str,
+    target_node_id: &str,
+    session_id: &str,
+    lease_id: &str,
+    cb: &TaskCallback,
+) -> std::result::Result<crate::cloud::P2pRelayPayloadRequest, String> {
+    let payload_json =
+        serde_json::to_vec(cb).map_err(|_| "relay_callback_queue_serialize_failed".to_string())?;
+    let payload_sha256 = hex::encode(Sha256::digest(&payload_json));
+    let payload_base64 = BASE64_STANDARD.encode(&payload_json);
+
+    Ok(crate::cloud::P2pRelayPayloadRequest {
+        schema: RELAY_PAYLOAD_SCHEMA.to_string(),
+        session_id: session_id.to_string(),
+        lease_id: lease_id.to_string(),
+        source_node_id: source_node_id.to_string(),
+        target_node_id: target_node_id.to_string(),
+        tunnel_id: relay_payload_tunnel_id(session_id, lease_id),
+        payload_kind: RELAY_PAYLOAD_KIND_TASK_CALLBACK.to_string(),
+        payload_base64,
+        payload_sha256: Some(payload_sha256),
+        candidate_route_kinds: vec![crate::cloud::RouteKind::Relay],
+        attempted_route_kinds: vec![],
+    })
+}
+
+/// W-1 §S-3/§S-4: queue a result callback through the relay KV when the direct
+/// callback POST to the original sender failed (the sender is NAT'd/loopback).
+///
+/// Self-contained (does NOT take `AppState`): the runner's `fire_callback` has
+/// no handler state, so this resolves the account cloud client from `musu_home`
+/// and runs its OWN reverse lease (S-3, separate from the forward's lease) then
+/// submits the callback envelope. Best-effort: any failure is logged and the
+/// callback simply remains undelivered (the source can re-poll / re-drive),
+/// never a panic. Returns Ok(()) only when the payload was accepted+stored.
+pub async fn queue_callback_via_relay(
+    musu_home: &std::path::Path,
+    source_node_id: &str,
+    target_node_id: &str,
+    session_id: &str,
+    cb: &TaskCallback,
+) -> std::result::Result<(), String> {
+    let target_node_id = target_node_id.trim();
+    let session_id = session_id.trim();
+    if target_node_id.is_empty() || session_id.is_empty() {
+        return Err("relay_callback_queue_missing_context".to_string());
+    }
+    let token = crate::cloud::token::load_token(musu_home)
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| "relay_callback_queue_no_account_token".to_string())?;
+    let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
+
+    // S-3: request a reverse lease (executor → original sender). This is a
+    // distinct lease from the forward's; reusing the forward lease would let a
+    // single grant authorize traffic in both directions, which the security
+    // Critic flagged. direct_path_failed=true marks this as a post-direct
+    // fallback so the server applies the connect_pro_fallback_only policy.
+    let lease_req = crate::cloud::P2pRelayLeaseRequest {
+        session_id: session_id.to_string(),
+        source_node_id: source_node_id.to_string(),
+        target_node_id: target_node_id.to_string(),
+        requested_capability: Some("task_callback".to_string()),
+        attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
+        direct_path_failed: true,
+        failure_class: Some("callback_direct_post_failed".to_string()),
+    };
+    let lease = cloud
+        .request_relay_lease(&lease_req)
+        .await
+        .map_err(|e| format!("relay_callback_lease_request_failed: {e}"))?;
+    if !lease.lease_issued {
+        return Err("relay_callback_lease_not_issued".to_string());
+    }
+    let lease_id = lease
+        .lease
+        .as_ref()
+        .map(|l| l.lease_id.clone())
+        .filter(|id| !id.trim().is_empty())
+        .ok_or_else(|| "relay_callback_lease_missing_id".to_string())?;
+
+    let payload =
+        relay_request_for_callback(source_node_id, target_node_id, session_id, &lease_id, cb)?;
+    let response = cloud
+        .submit_relay_payload(&payload)
+        .await
+        .map_err(|e| format!("relay_callback_payload_submit_failed: {e}"))?;
+    if response.ok && response.accepted && response.stored {
+        tracing::info!(
+            source_task_id = %cb.source_task_id,
+            target_node_id,
+            session_id,
+            "callback queued via relay KV after direct delivery failed"
+        );
+        Ok(())
+    } else {
+        Err("relay_callback_payload_not_stored".to_string())
+    }
+}
 
 fn relay_payload_identifier_fragment(value: &str) -> String {
     let mut out = String::new();
@@ -443,6 +638,13 @@ fn relay_fallback_route_evidence(
         .map(|outcome| outcome.attempted)
         .unwrap_or(false);
     let payload_transport_proven = payload_queue.map(|outcome| outcome.proven).unwrap_or(false);
+    // W-2: the relay KV submission was accepted and stored. Read the queue
+    // outcome's `stored` flag directly (set from the server's `stored=true`),
+    // NOT `payload_id.is_some()` — a stored response may omit the record body,
+    // which would falsely look dropped. NOT `attempted` (set even on failed
+    // submits) and NOT `failure_class` (a stored payload still carries the
+    // benign relay_target_polling_not_implemented class).
+    let payload_transport_stored = payload_queue.map(|outcome| outcome.stored).unwrap_or(false);
     let payload_transport_failure_class = if issued {
         payload_queue
             .and_then(|outcome| outcome.failure_class.clone())
@@ -475,6 +677,7 @@ fn relay_fallback_route_evidence(
         payload_transport_attempted,
         payload_transport_proven,
         payload_transport_failure_class,
+        payload_transport_stored,
     }
 }
 
@@ -615,6 +818,13 @@ pub async fn accept_forwarded_task(
             // this sent the target's own per-machine token → callback 401 → source
             // task stuck pending forever (the mirror of the forward bug).
             callback_token: Some(state.config.outbound_peer_bearer().to_string()),
+            // W-1: relay-callback context. When the direct callback POST to the
+            // source fails (source is NAT'd/loopback), fire_callback queues the
+            // result back through the relay KV queue. The reverse envelope targets
+            // the ORIGINAL sender (req.source_node) and reuses the forward's
+            // rendezvous session to bind the callback to this task.
+            callback_target_node_id: Some(req.source_node.clone()),
+            callback_session_id: req.rendezvous_session_id.clone(),
         })
         .await
         .map_err(|e| MusuError::Internal(format!("spawn forwarded task: {e}")))?;
@@ -1022,11 +1232,43 @@ fn task_callback_status_is_terminal(status: &str) -> bool {
     matches!(status, "done" | "failed" | "cancelled")
 }
 
+/// Terminal outcome of applying a [`TaskCallback`] to local state.
+///
+/// `Applied` → the row transitioned and SSE was broadcast. `DuplicateNoOp` →
+/// the task was already terminal (idempotent late/duplicate callback). Both are
+/// success from the caller's perspective; the axum handler maps both to 200.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TaskCallbackOutcome {
+    Applied,
+    DuplicateNoOp,
+}
+
 /// POST /api/tasks/callback — receive task result from a peer.
+///
+/// Thin axum wrapper over [`apply_task_callback`] so the in-process relay drain
+/// path (T7) can finalize a verified callback without re-entering the HTTP
+/// stack. Both outcomes map to 200.
 pub async fn receive_callback(
     State(state): State<AppState>,
     Json(cb): Json<TaskCallback>,
 ) -> Result<StatusCode> {
+    apply_task_callback(&state, &cb)
+        .await
+        .map(|_| StatusCode::OK)
+}
+
+/// Core callback application shared by the HTTP handler and the relay drain.
+///
+/// W-1 §S-1 (DB-side executor binding): the atomic UPDATE additionally gates on
+/// `forwarded_to_node = cb.node`, so a callback only finalizes a task that this
+/// node actually forwarded to the node now claiming the result. A same-account
+/// peer cannot mark someone else's pending task done — it never appears as that
+/// task's `forwarded_to_node`. The gate lives inside the UPDATE's WHERE (not a
+/// separate SELECT) so there is no TOCTOU window (pattern-toctou-atomic-update).
+pub async fn apply_task_callback(
+    state: &AppState,
+    cb: &TaskCallback,
+) -> Result<TaskCallbackOutcome> {
     tracing::info!(
         source_task_id = %cb.source_task_id,
         remote_task_id = %cb.remote_task_id,
@@ -1047,15 +1289,17 @@ pub async fn receive_callback(
     }
 
     // Update the original route_execution row with the remote result, but ONLY
-    // if it is not already in a terminal state. The runner retries the callback
-    // up to 3× and a task may be re-forwarded, so a duplicate/late callback can
+    // if it is not already in a terminal state AND the claiming node is the one
+    // we actually forwarded the task to. The runner retries the callback up to
+    // 3× and a task may be re-forwarded, so a duplicate/late callback can
     // otherwise clobber a row that was already cancelled/failed/done — silently
-    // flipping the recorded outcome and re-broadcasting SSE. Gate on status and
-    // dispatch on rows_affected (pattern-toctou-atomic-update).
+    // flipping the recorded outcome and re-broadcasting SSE. Gate on status +
+    // executor binding and dispatch on rows_affected (pattern-toctou-atomic-update).
     let update_result = sqlx::query(
         "UPDATE route_executions SET status = ?, output = ?, error = ?, \
          exit_code = ?, duration_sec = ?, updated_at = ? \
-         WHERE task_id = ? AND status NOT IN ('done', 'failed', 'cancelled')",
+         WHERE task_id = ? AND status NOT IN ('done', 'failed', 'cancelled') \
+         AND forwarded_to_node = ?",
     )
     .bind(&cb.status)
     .bind(&cb.output)
@@ -1064,41 +1308,77 @@ pub async fn receive_callback(
     .bind(cb.duration_sec)
     .bind(chrono::Utc::now().timestamp())
     .bind(&cb.source_task_id)
+    .bind(&cb.node)
     .execute(&state.pool)
     .await
     .map_err(MusuError::Sqlx)?;
     if update_result.rows_affected() == 0 {
-        // 0 rows means either the task does not exist OR it is already terminal.
-        // Distinguish the two so a duplicate/late callback on a finalized task is
-        // an idempotent no-op (200), not a spurious NotFound, and does NOT
-        // re-broadcast SSE for the now-clobbered-prevented row.
-        let already_terminal = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM route_executions \
-             WHERE task_id = ? AND status IN ('done', 'failed', 'cancelled')",
+        // 0 rows means one of: (a) task already terminal, (b) task unknown,
+        // (c) executor-binding mismatch (forged/misrouted callback). Probe the
+        // row to give each case the right disposition. The probe is read-only
+        // and post-hoc — the authoritative gate already ran in the UPDATE WHERE,
+        // so a racing legitimate UPDATE cannot be undone by this branch.
+        let bound: Option<(String, Option<String>)> = sqlx::query_as(
+            "SELECT status, forwarded_to_node FROM route_executions \
+             WHERE task_id = ? LIMIT 1",
         )
         .bind(&cb.source_task_id)
-        .fetch_one(&state.pool)
+        .fetch_optional(&state.pool)
         .await
-        .map_err(MusuError::Sqlx)?
-            > 0;
-        if already_terminal {
-            tracing::info!(
-                source_task_id = %cb.source_task_id,
-                remote_task_id = %cb.remote_task_id,
-                "ignoring duplicate/late callback for already-terminal task"
-            );
-            // Idempotent no-op: do not re-broadcast SSE or overwrite the row.
-            return Ok(StatusCode::OK);
+        .map_err(MusuError::Sqlx)?;
+        match bound {
+            None => {
+                tracing::warn!(
+                    source_task_id = %cb.source_task_id,
+                    remote_task_id = %cb.remote_task_id,
+                    "rejected task callback for unknown source task"
+                );
+                return Err(MusuError::NotFound(format!(
+                    "source task {} not found",
+                    cb.source_task_id
+                )));
+            }
+            Some((status, _)) if task_callback_status_is_terminal(&status) => {
+                tracing::info!(
+                    source_task_id = %cb.source_task_id,
+                    remote_task_id = %cb.remote_task_id,
+                    "ignoring duplicate/late callback for already-terminal task"
+                );
+                // Idempotent no-op: do not re-broadcast SSE or overwrite the row.
+                return Ok(TaskCallbackOutcome::DuplicateNoOp);
+            }
+            Some((_, None)) => {
+                // Non-terminal row exists but has NO executor binding yet. This is
+                // NOT forgery evidence: the forward-time binding write may have
+                // failed/raced (C-1/Finding-4), or a callback arrived before the
+                // binding landed. Returning BadRequest here would let the relay
+                // drain permanently drop a legitimate result. Return a RETRIABLE
+                // error so the source can re-drive / the executor can re-deliver.
+                tracing::warn!(
+                    source_task_id = %cb.source_task_id,
+                    remote_task_id = %cb.remote_task_id,
+                    claimed_node = %cb.node,
+                    "task callback arrived before executor binding was recorded; retriable"
+                );
+                return Err(MusuError::Internal(
+                    "executor binding not yet recorded for this task".into(),
+                ));
+            }
+            Some((_, Some(bound_node))) => {
+                // Non-terminal row with a CONCRETE binding that does not match the
+                // claimant: this is a genuine forged/misrouted callback. Reject.
+                tracing::warn!(
+                    source_task_id = %cb.source_task_id,
+                    remote_task_id = %cb.remote_task_id,
+                    claimed_node = %cb.node,
+                    bound_node = %bound_node,
+                    "rejected task callback: executor binding mismatch"
+                );
+                return Err(MusuError::BadRequest(
+                    "callback executor does not match the task's forwarded node".into(),
+                ));
+            }
         }
-        tracing::warn!(
-            source_task_id = %cb.source_task_id,
-            remote_task_id = %cb.remote_task_id,
-            "rejected task callback for unknown source task"
-        );
-        return Err(MusuError::NotFound(format!(
-            "source task {} not found",
-            cb.source_task_id
-        )));
     }
 
     let callback_context = sqlx::query(
@@ -1201,7 +1481,7 @@ pub async fn receive_callback(
             .with_assigned_pc(Some(&cb.node)),
     );
 
-    Ok(StatusCode::OK)
+    Ok(TaskCallbackOutcome::Applied)
 }
 
 #[cfg(test)]
@@ -1280,7 +1560,9 @@ mod tests {
                 exit_code INTEGER,
                 duration_sec REAL,
                 started_at INTEGER,
-                updated_at INTEGER
+                updated_at INTEGER,
+                forwarded_to_node TEXT,
+                remote_task_id TEXT
             )",
         )
         .execute(&pool)
@@ -1415,6 +1697,226 @@ mod tests {
             Ok(event) => assert_ne!(event.task_id, "missing-source-task"),
             Err(other) => panic!("unexpected callback event receive error: {other:?}"),
         }
+    }
+
+    // ── W-1 §S-1: receive-side executor binding (DB half) ────────────────────
+
+    async fn insert_forwarded_row(
+        pool: &sqlx::SqlitePool,
+        task_id: &str,
+        status: &str,
+        forwarded_to_node: Option<&str>,
+    ) {
+        sqlx::query(
+            "INSERT INTO route_executions (
+                task_id, company_id, channel, sender_id, input_hash, status,
+                created_at, updated_at, forwarded_to_node
+            ) VALUES (?, NULL, 'ceo', 'operator', 'hash', ?, 10, 10, ?)",
+        )
+        .bind(task_id)
+        .bind(status)
+        .bind(forwarded_to_node)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    #[test]
+    fn relay_request_for_callback_binds_hash_kind_and_reverse_direction() {
+        let cb = sample_callback("exec-node");
+        let req = relay_request_for_callback(
+            "exec-node",   // source = executor (callback sender)
+            "source-node", // target = original sender (callback destination)
+            "session-1",
+            "rev-lease-1",
+            &cb,
+        )
+        .expect("callback request");
+
+        // Reverse direction: executor is the source, original sender is target.
+        assert_eq!(req.source_node_id, "exec-node");
+        assert_eq!(req.target_node_id, "source-node");
+        assert_eq!(req.session_id, "session-1");
+        assert_eq!(req.lease_id, "rev-lease-1");
+        assert_eq!(req.payload_kind, RELAY_PAYLOAD_KIND_TASK_CALLBACK);
+
+        // Payload is the sha256 of the serialized callback — round-trips through
+        // the decoder's integrity gate.
+        let decoded = BASE64_STANDARD
+            .decode(req.payload_base64.as_bytes())
+            .unwrap();
+        assert_eq!(
+            req.payload_sha256.as_deref(),
+            Some(hex::encode(Sha256::digest(&decoded)).as_str())
+        );
+        let round_trip: TaskCallback = serde_json::from_slice(&decoded).unwrap();
+        assert_eq!(round_trip.node, "exec-node");
+        assert_eq!(round_trip.source_task_id, cb.source_task_id);
+    }
+
+    #[tokio::test]
+    async fn apply_task_callback_applies_when_executor_binding_matches() {
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        // Build state FIRST so boot-orphan recovery (which flips pending→failed)
+        // runs on the empty table; then insert the live pending row.
+        let state = callback_test_state(pool.clone(), tmp.path()).await;
+        // Task was forwarded to "studio-pc"; a callback from "studio-pc" is legit.
+        insert_forwarded_row(&pool, "bound-task", "pending", Some("studio-pc")).await;
+
+        let outcome = apply_task_callback(
+            &state,
+            &TaskCallback {
+                source_task_id: "bound-task".to_string(),
+                remote_task_id: "remote-1".to_string(),
+                status: "done".to_string(),
+                output: Some("ok".to_string()),
+                error: None,
+                exit_code: Some(0),
+                duration_sec: Some(2.0),
+                node: "studio-pc".to_string(),
+            },
+        )
+        .await
+        .expect("callback should apply");
+        assert_eq!(outcome, TaskCallbackOutcome::Applied);
+
+        let row = sqlx::query("SELECT status, output FROM route_executions WHERE task_id = ?")
+            .bind("bound-task")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(row.try_get::<String, _>("status").unwrap(), "done");
+        assert_eq!(
+            row.try_get::<Option<String>, _>("output")
+                .unwrap()
+                .as_deref(),
+            Some("ok")
+        );
+    }
+
+    #[tokio::test]
+    async fn apply_task_callback_rejects_executor_binding_mismatch() {
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        // Build state first (orphan recovery on empty table), then insert the row.
+        let state = callback_test_state(pool.clone(), tmp.path()).await;
+        // Task was forwarded to "studio-pc", but "attacker-pc" tries to finalize it.
+        insert_forwarded_row(&pool, "victim-task", "pending", Some("studio-pc")).await;
+        let mut events = state.sse_broadcaster.subscribe();
+        while events.try_recv().is_ok() {}
+
+        let result = apply_task_callback(
+            &state,
+            &TaskCallback {
+                source_task_id: "victim-task".to_string(),
+                remote_task_id: "remote-evil".to_string(),
+                status: "done".to_string(),
+                output: Some("forged result".to_string()),
+                error: None,
+                exit_code: Some(0),
+                duration_sec: Some(0.1),
+                node: "attacker-pc".to_string(),
+            },
+        )
+        .await;
+
+        match result {
+            Err(MusuError::BadRequest(message)) => {
+                assert!(message.contains("executor does not match"));
+            }
+            other => panic!("expected executor-binding rejection, got {other:?}"),
+        }
+        // Row must remain untouched (still pending, no forged output, no SSE).
+        let row = sqlx::query("SELECT status, output FROM route_executions WHERE task_id = ?")
+            .bind("victim-task")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(row.try_get::<String, _>("status").unwrap(), "pending");
+        assert_eq!(row.try_get::<Option<String>, _>("output").unwrap(), None);
+        assert!(matches!(events.try_recv(), Err(TryRecvError::Empty)));
+    }
+
+    #[tokio::test]
+    async fn apply_task_callback_unbound_row_is_retriable_not_forgery() {
+        // C-2: a non-terminal row with forwarded_to_node = NULL must NOT be
+        // rejected as forgery (BadRequest) — the binding write may have raced or
+        // the callback may have arrived first. It must be a RETRIABLE Internal
+        // error so the relay drain does not permanently drop a real result.
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        let state = callback_test_state(pool.clone(), tmp.path()).await;
+        // No forwarded_to_node binding (NULL).
+        insert_forwarded_row(&pool, "unbound-task", "pending", None).await;
+
+        let result = apply_task_callback(
+            &state,
+            &TaskCallback {
+                source_task_id: "unbound-task".to_string(),
+                remote_task_id: "remote-1".to_string(),
+                status: "done".to_string(),
+                output: Some("real result".to_string()),
+                error: None,
+                exit_code: Some(0),
+                duration_sec: Some(1.0),
+                node: "studio-pc".to_string(),
+            },
+        )
+        .await;
+
+        match result {
+            Err(MusuError::Internal(message)) => {
+                assert!(message.contains("binding not yet recorded"));
+            }
+            other => panic!("expected retriable Internal, got {other:?}"),
+        }
+        // Row stays pending (not clobbered) — a retry can still finalize it.
+        let row = sqlx::query("SELECT status FROM route_executions WHERE task_id = ?")
+            .bind("unbound-task")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(row.try_get::<String, _>("status").unwrap(), "pending");
+    }
+
+    #[tokio::test]
+    async fn apply_task_callback_duplicate_on_terminal_is_idempotent_noop() {
+        let tmp = TempDir::new().unwrap();
+        let pool = callback_test_pool().await;
+        let state = callback_test_state(pool.clone(), tmp.path()).await;
+        // Already terminal (done). A redelivered callback must be a no-op.
+        // (done survives orphan recovery, but keep insert-after-state for parity.)
+        insert_forwarded_row(&pool, "settled-task", "done", Some("studio-pc")).await;
+        let mut events = state.sse_broadcaster.subscribe();
+        while events.try_recv().is_ok() {}
+
+        let outcome = apply_task_callback(
+            &state,
+            &TaskCallback {
+                source_task_id: "settled-task".to_string(),
+                remote_task_id: "remote-dup".to_string(),
+                status: "failed".to_string(), // would-be clobber to failed
+                output: Some("late clobber".to_string()),
+                error: Some("nope".to_string()),
+                exit_code: Some(1),
+                duration_sec: Some(9.0),
+                node: "studio-pc".to_string(),
+            },
+        )
+        .await
+        .expect("duplicate callback should be a no-op, not an error");
+        assert_eq!(outcome, TaskCallbackOutcome::DuplicateNoOp);
+
+        // Original terminal state preserved — no clobber, no SSE re-broadcast.
+        let row = sqlx::query("SELECT status, output FROM route_executions WHERE task_id = ?")
+            .bind("settled-task")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(row.try_get::<String, _>("status").unwrap(), "done");
+        assert_eq!(row.try_get::<Option<String>, _>("output").unwrap(), None);
+        assert!(matches!(events.try_recv(), Err(TryRecvError::Empty)));
     }
 
     #[test]
@@ -1687,6 +2189,122 @@ mod tests {
         );
     }
 
+    // ── W-1 §S-2: reverse callback decoder (forged-callback defense) ──────────
+
+    fn sample_callback(node: &str) -> TaskCallback {
+        TaskCallback {
+            source_task_id: "source-task-123".to_string(),
+            remote_task_id: "remote-task-456".to_string(),
+            status: "done".to_string(),
+            output: Some("result body".to_string()),
+            error: None,
+            exit_code: Some(0),
+            duration_sec: Some(1.5),
+            node: node.to_string(),
+        }
+    }
+
+    /// Build a claimed relay-payload record carrying a `task_callback_envelope`.
+    /// `submitter` is the relay-asserted source_node_id (the executor that
+    /// queued the callback); `destination` is the original source node that is
+    /// draining it.
+    fn relay_payload_record_for_callback(
+        cb: &TaskCallback,
+        submitter: &str,
+        destination: &str,
+    ) -> crate::cloud::P2pRelayPayloadStoredRecord {
+        let payload_json = serde_json::to_vec(cb).expect("callback json");
+        crate::cloud::P2pRelayPayloadStoredRecord {
+            payload_id: "cb-payload-1".to_string(),
+            session_id: "session-1".to_string(),
+            lease_id: "rev-lease-1".to_string(),
+            source_node_id: submitter.to_string(),
+            target_node_id: destination.to_string(),
+            relay_url: "wss://relay.musu.pro/connect".to_string(),
+            tunnel_id: "relay-payload-session-revlease".to_string(),
+            payload_kind: RELAY_PAYLOAD_KIND_TASK_CALLBACK.to_string(),
+            payload_bytes: payload_json.len() as u64,
+            payload_sha256: hex::encode(Sha256::digest(&payload_json)),
+            status: "claimed".to_string(),
+            relay_default_data_path: false,
+            release_grade: false,
+            transport_kind: "relay_payload_queue_preview".to_string(),
+            created_at: "2026-06-20T00:00:00Z".to_string(),
+            expires_at: "2026-06-20T00:05:00Z".to_string(),
+            claimed_by: Some(destination.to_string()),
+            claimed_at: Some("2026-06-20T00:00:01Z".to_string()),
+            delivered_at: None,
+            payload_base64: Some(BASE64_STANDARD.encode(&payload_json)),
+            candidate_route_kinds: vec![crate::cloud::RouteKind::Relay],
+            attempted_route_kinds: vec![],
+        }
+    }
+
+    #[test]
+    fn relay_callback_decoder_accepts_claimed_callback_for_local_target() {
+        // executor "exec-node" queues a callback for original source "source-node".
+        let cb = sample_callback("exec-node");
+        let record = relay_payload_record_for_callback(&cb, "exec-node", "source-node");
+
+        let decoded =
+            callback_from_relay_payload(&record, "source-node").expect("decoded callback");
+        assert_eq!(decoded.source_task_id, "source-task-123");
+        assert_eq!(decoded.node, "exec-node");
+        assert_eq!(decoded.status, "done");
+    }
+
+    #[test]
+    fn relay_callback_decoder_rejects_forged_executor_identity() {
+        // A same-account peer "attacker-node" claims a result for a task, but the
+        // callback body says it was executed by "exec-node" — i.e. it is lying
+        // about who it is. source_node_id (relay-asserted submitter) is the
+        // attacker; cb.node disagrees → rejected.
+        let cb = sample_callback("exec-node");
+        let record = relay_payload_record_for_callback(&cb, "attacker-node", "source-node");
+        assert_eq!(
+            callback_from_relay_payload(&record, "source-node").unwrap_err(),
+            "relay_callback_executor_mismatch"
+        );
+    }
+
+    #[test]
+    fn relay_callback_decoder_rejects_target_kind_and_hash_tampering() {
+        let cb = sample_callback("exec-node");
+        let mut record = relay_payload_record_for_callback(&cb, "exec-node", "source-node");
+
+        // Wrong destination — this node is not the callback's target.
+        assert_eq!(
+            callback_from_relay_payload(&record, "other-node").unwrap_err(),
+            "relay_callback_target_mismatch"
+        );
+
+        // Forwarded-task kind must NOT be accepted by the callback decoder.
+        record.payload_kind = RELAY_PAYLOAD_KIND_FORWARDED_TASK.to_string();
+        assert_eq!(
+            callback_from_relay_payload(&record, "source-node").unwrap_err(),
+            "relay_callback_kind_unsupported"
+        );
+
+        // Restore kind, then tamper the hash → integrity failure.
+        record.payload_kind = RELAY_PAYLOAD_KIND_TASK_CALLBACK.to_string();
+        record.payload_sha256 = "00".repeat(32);
+        assert_eq!(
+            callback_from_relay_payload(&record, "source-node").unwrap_err(),
+            "relay_callback_sha256_mismatch"
+        );
+    }
+
+    #[test]
+    fn relay_callback_decoder_rejects_non_terminal_status() {
+        let mut cb = sample_callback("exec-node");
+        cb.status = "running".to_string();
+        let record = relay_payload_record_for_callback(&cb, "exec-node", "source-node");
+        assert_eq!(
+            callback_from_relay_payload(&record, "source-node").unwrap_err(),
+            "relay_callback_status_not_terminal"
+        );
+    }
+
     #[test]
     fn issued_relay_fallback_records_payload_queue_attempt_gap() {
         let target = peer("192.168.1.10:8070", None);
@@ -1701,6 +2319,7 @@ mod tests {
         let payload_queue = crate::bridge::rendezvous::RelayPayloadQueueOutcome {
             attempted: true,
             proven: false,
+            stored: true,
             failure_class: Some(
                 crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED.to_string(),
             ),
@@ -1731,5 +2350,43 @@ mod tests {
             evidence.payload_transport_failure_class.as_deref(),
             Some(crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED)
         );
+        // W-2: a queued payload carries a payload_id → stored=true, and since the
+        // lease was issued the task is genuinely in flight (relay_payload_stored).
+        // The benign polling-not-implemented failure_class must NOT mask this.
+        assert!(evidence.payload_transport_stored);
+        assert!(evidence.relay_payload_stored());
+    }
+
+    #[test]
+    fn failed_relay_payload_submit_is_not_stored() {
+        // W-2 HIGH-1 regression guard: a FAILED relay submission (no payload_id)
+        // sets attempted=true but must report stored=false / relay_payload_stored
+        // = false, so the sender returns 500 (retryable) instead of a 202 for a
+        // task that never reached the relay queue.
+        let target = peer("192.168.1.10:8070", None);
+        let relay = crate::bridge::rendezvous::RelayLeaseFallback {
+            status: crate::bridge::rendezvous::RelayLeaseFallbackStatus::Issued,
+            lease_issued: true,
+            policy: Some("connect_pro_fallback_only".to_string()),
+            blockers: vec![],
+            lease_id: Some("relay-lease-test".to_string()),
+            failure_class: None,
+        };
+        let payload_queue = crate::bridge::rendezvous::RelayPayloadQueueOutcome::failed(
+            "relay_payload_queue_missing_session_id",
+        );
+
+        let evidence = relay_fallback_route_evidence(
+            &relay,
+            &target,
+            &[],
+            Some("remote_command"),
+            Some(&payload_queue),
+        );
+
+        assert!(evidence.lease_issued);
+        assert!(evidence.payload_transport_attempted);
+        assert!(!evidence.payload_transport_stored);
+        assert!(!evidence.relay_payload_stored());
     }
 }

@@ -527,6 +527,142 @@ pub async fn drain_relay_payloads(
     ))
 }
 
+/// W-1 §T7: decode + apply a claimed relay payload according to its kind.
+///
+/// Returns `Ok(Some(task_id))` for a forwarded task (the new local task id),
+/// `Ok(None)` for an applied callback (no new task spawned — it finalized an
+/// existing row), or `Err(failure_class)` if the payload could not be decoded
+/// or applied. The forged-callback defenses live in the decoders/apply layer
+/// (S-2 in `callback_from_relay_payload`, S-1 DB binding in `apply_task_callback`).
+async fn accept_relay_payload_by_kind(
+    state: &AppState,
+    actor_ip: IpAddr,
+    audit_path: &'static str,
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    target_node_id: &str,
+) -> std::result::Result<Option<String>, String> {
+    if payload.payload_kind.trim() == forward::RELAY_PAYLOAD_KIND_TASK_CALLBACK {
+        // Reverse callback: decode (S-2 in-payload checks) then apply (S-1 DB
+        // executor binding). A forged callback is rejected by one of the two.
+        let cb = forward::callback_from_relay_payload(payload, target_node_id)?;
+        forward::apply_task_callback(state, &cb).await.map(|_| None).map_err(|err| {
+            // Preserve the underlying error class so logs distinguish a forged
+            // callback (BadRequest) from a not-yet-bound retriable case (Internal)
+            // from a DB error (Sqlx). H-2.
+            tracing::warn!(
+                source_task_id = %cb.source_task_id,
+                err = %err,
+                "relay callback apply failed"
+            );
+            format!("relay_payload_callback_apply_failed:{err}")
+        })
+    } else {
+        // Default: forwarded task → accept into the local runner.
+        let task = forward::forwarded_task_from_relay_payload(payload, target_node_id)?;
+        forward::accept_forwarded_task(state, actor_ip, "POST", audit_path, task, None)
+            .await
+            .map(|response| Some(response.task_id))
+            .map_err(|_| "relay_payload_forward_accept_failed".to_string())
+    }
+}
+
+/// W-1 §T7: shared mark-delivered + route-evidence flow for an accepted relay
+/// payload (forwarded task OR callback). Extracted so both kinds run the exact
+/// same delivery acknowledgement against the relay KV — there is no kind-specific
+/// delivery behaviour, only kind-specific acceptance (above).
+async fn mark_payload_delivered_and_record(
+    state: &AppState,
+    cloud: &crate::cloud::MusuCloud,
+    payload: &crate::cloud::P2pRelayPayloadStoredRecord,
+    target_node_id: &str,
+    payload_started: std::time::Instant,
+    item: &mut RelayPayloadDrainItem,
+    report: &mut RelayPayloadDrainReport,
+) {
+    let delivery = crate::cloud::P2pRelayPayloadDeliveryRequest {
+        schema: RELAY_PAYLOAD_DELIVERY_SCHEMA.to_string(),
+        payload_id: payload.payload_id.clone(),
+        target_node_id: target_node_id.to_string(),
+    };
+    match tokio::time::timeout(drain_timeout(), cloud.mark_relay_payload_delivered(&delivery)).await
+    {
+        Ok(Ok(delivery_response)) if delivery_response.ok && delivery_response.delivered => {
+            let proof = delivery_response
+                .delivery_proof
+                .as_ref()
+                .map(delivery_proof_from_cloud_proof)
+                .or_else(|| {
+                    delivery_response
+                        .payload
+                        .as_ref()
+                        .and_then(delivery_proof_from_delivered_payload)
+                });
+            if let Some(proof) = proof {
+                let route_record = record_target_relay_payload_delivery_route_evidence(
+                    musu_home_from_state(state),
+                    payload,
+                    proof.clone(),
+                    delivery_response.relay_transport_proof.as_ref(),
+                    crate::bridge::route_evidence::elapsed_ms(payload_started.elapsed()),
+                );
+                match route_record {
+                    Ok(record) => {
+                        item.route_evidence_recorded = true;
+                        item.route_evidence_path = Some(record.path.display().to_string());
+                        match tokio::time::timeout(
+                            drain_timeout(),
+                            crate::bridge::route_evidence::submit_recorded_route_evidence_if_configured(
+                                musu_home_from_state(state),
+                                &record,
+                            ),
+                        )
+                        .await
+                        {
+                            Ok(Ok(
+                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::Submitted,
+                            )) => {
+                                item.route_evidence_submitted = true;
+                            }
+                            Ok(Ok(
+                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::SkippedNoToken,
+                            )) => {
+                                item.route_evidence_failure_class = Some(
+                                    "relay_route_evidence_submit_skipped_no_token".to_string(),
+                                );
+                            }
+                            Ok(Err(_)) => {
+                                item.route_evidence_failure_class =
+                                    Some("relay_route_evidence_submit_failed".to_string());
+                            }
+                            Err(_) => {
+                                item.route_evidence_failure_class =
+                                    Some("relay_route_evidence_submit_timeout".to_string());
+                            }
+                        }
+                    }
+                    Err(failure_class) => {
+                        item.route_evidence_failure_class = Some(failure_class);
+                    }
+                }
+                item.delivery_proof = Some(proof);
+                item.delivered = true;
+                report.delivered_count += 1;
+            } else {
+                item.failure_class = Some("relay_payload_delivery_proof_missing".to_string());
+            }
+        }
+        Ok(Ok(_)) => {
+            item.failure_class = Some("relay_payload_delivery_not_confirmed".to_string());
+        }
+        Ok(Err(_)) => {
+            item.failure_class = Some("relay_payload_delivery_failed".to_string());
+        }
+        Err(_) => {
+            item.failure_class = Some("relay_payload_delivery_timeout".to_string());
+        }
+    }
+}
+
 pub async fn drain_relay_payloads_for_local_target(
     state: &AppState,
     actor_ip: IpAddr,
@@ -601,114 +737,30 @@ pub async fn drain_relay_payloads_for_local_target(
     for payload in claim_response.payloads {
         let payload_started = std::time::Instant::now();
         let mut item = drain_item_from_payload(&payload);
-        match forward::forwarded_task_from_relay_payload(&payload, &target_node_id) {
-            Ok(task) => match forward::accept_forwarded_task(
-                state, actor_ip, "POST", audit_path, task, None,
-            )
-            .await
-            {
-                Ok(response) => {
-                    item.accepted = true;
-                    item.task_id = Some(response.task_id);
-                    report.accepted_count += 1;
-                    let delivery = crate::cloud::P2pRelayPayloadDeliveryRequest {
-                        schema: RELAY_PAYLOAD_DELIVERY_SCHEMA.to_string(),
-                        payload_id: payload.payload_id.clone(),
-                        target_node_id: target_node_id.clone(),
-                    };
-                    match tokio::time::timeout(
-                        drain_timeout(),
-                        cloud.mark_relay_payload_delivered(&delivery),
-                    )
-                    .await
-                    {
-                        Ok(Ok(delivery_response))
-                            if delivery_response.ok && delivery_response.delivered =>
-                        {
-                            let proof = delivery_response
-                                .delivery_proof
-                                .as_ref()
-                                .map(delivery_proof_from_cloud_proof)
-                                .or_else(|| {
-                                    delivery_response
-                                        .payload
-                                        .as_ref()
-                                        .and_then(delivery_proof_from_delivered_payload)
-                                });
-                            if let Some(proof) = proof {
-                                let route_record =
-                                    record_target_relay_payload_delivery_route_evidence(
-                                        musu_home_from_state(state),
-                                        &payload,
-                                        proof.clone(),
-                                        delivery_response.relay_transport_proof.as_ref(),
-                                        crate::bridge::route_evidence::elapsed_ms(
-                                            payload_started.elapsed(),
-                                        ),
-                                    );
-                                match route_record {
-                                    Ok(record) => {
-                                        item.route_evidence_recorded = true;
-                                        item.route_evidence_path =
-                                            Some(record.path.display().to_string());
-                                        match tokio::time::timeout(
-                                            drain_timeout(),
-                                            crate::bridge::route_evidence::submit_recorded_route_evidence_if_configured(
-                                                musu_home_from_state(state),
-                                                &record,
-                                            ),
-                                        )
-                                        .await
-                                        {
-                                            Ok(Ok(
-                                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::Submitted,
-                                            )) => {
-                                                item.route_evidence_submitted = true;
-                                            }
-                                            Ok(Ok(
-                                                crate::bridge::route_evidence::RouteEvidenceSubmitOutcome::SkippedNoToken,
-                                            )) => {
-                                                item.route_evidence_failure_class =
-                                                    Some("relay_route_evidence_submit_skipped_no_token".to_string());
-                                            }
-                                            Ok(Err(_)) => {
-                                                item.route_evidence_failure_class =
-                                                    Some("relay_route_evidence_submit_failed".to_string());
-                                            }
-                                            Err(_) => {
-                                                item.route_evidence_failure_class =
-                                                    Some("relay_route_evidence_submit_timeout".to_string());
-                                            }
-                                        }
-                                    }
-                                    Err(failure_class) => {
-                                        item.route_evidence_failure_class = Some(failure_class);
-                                    }
-                                }
-                                item.delivery_proof = Some(proof);
-                                item.delivered = true;
-                                report.delivered_count += 1;
-                            } else {
-                                item.failure_class =
-                                    Some("relay_payload_delivery_proof_missing".to_string());
-                            }
-                        }
-                        Ok(Ok(_)) => {
-                            item.failure_class =
-                                Some("relay_payload_delivery_not_confirmed".to_string());
-                        }
-                        Ok(Err(_)) => {
-                            item.failure_class = Some("relay_payload_delivery_failed".to_string());
-                        }
-                        Err(_) => {
-                            item.failure_class = Some("relay_payload_delivery_timeout".to_string());
-                        }
-                    }
-                }
-                Err(_) => {
-                    item.failure_class = Some("relay_payload_forward_accept_failed".to_string());
-                }
-            },
+
+        // W-1 §T7: dispatch by payload_kind. A forwarded task is accepted into
+        // the local runner; a task_callback_envelope is applied to the local
+        // route_executions row (closing the relay round-trip). Both share the
+        // same mark-delivered + route-evidence flow once accepted.
+        let accept =
+            accept_relay_payload_by_kind(state, actor_ip, audit_path, &payload, &target_node_id)
+                .await;
+        match accept {
+            Ok(task_id) => {
+                item.accepted = true;
+                item.task_id = task_id;
+                report.accepted_count += 1;
+                mark_payload_delivered_and_record(
+                    state,
+                    &cloud,
+                    &payload,
+                    &target_node_id,
+                    payload_started,
+                    &mut item,
+                    &mut report,
+                )
+                .await;
+            }
             Err(failure_class) => {
                 item.failure_class = Some(failure_class);
             }

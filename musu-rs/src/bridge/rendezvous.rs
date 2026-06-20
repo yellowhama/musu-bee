@@ -126,6 +126,13 @@ impl RelayLeaseFallback {
 pub struct RelayPayloadQueueOutcome {
     pub attempted: bool,
     pub proven: bool,
+    /// W-2: the relay server confirmed the payload was stored in the KV queue
+    /// (`response.ok && accepted && stored`). This is set directly from the
+    /// server's `stored` flag — NOT inferred from `payload_id`, because a
+    /// `stored=true` response may legitimately omit the record body, which
+    /// would otherwise make a genuinely in-flight task look dropped and force a
+    /// spurious 500 on the sender.
+    pub stored: bool,
     pub failure_class: Option<String>,
     pub payload_id: Option<String>,
     pub payload_sha256: Option<String>,
@@ -137,6 +144,7 @@ impl RelayPayloadQueueOutcome {
         Self {
             attempted: false,
             proven: false,
+            stored: false,
             failure_class: None,
             payload_id: None,
             payload_sha256: None,
@@ -148,6 +156,7 @@ impl RelayPayloadQueueOutcome {
         Self {
             attempted: true,
             proven: false,
+            stored: false,
             failure_class: Some(failure_class.into()),
             payload_id: None,
             payload_sha256: None,
@@ -163,6 +172,10 @@ impl RelayPayloadQueueOutcome {
         Self {
             attempted: true,
             proven: false,
+            // queued() is only constructed from a `response.ok && accepted &&
+            // stored` arm, so reaching here means the server confirmed storage
+            // regardless of whether it echoed the record body.
+            stored: true,
             failure_class: Some(
                 crate::bridge::route_evidence::RELAY_TARGET_POLLING_NOT_IMPLEMENTED.to_string(),
             ),

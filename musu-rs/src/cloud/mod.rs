@@ -1022,6 +1022,10 @@ pub struct RouteRelayFallbackEvidence {
     pub payload_transport_proven: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload_transport_failure_class: Option<String>,
+    /// W-2: payload accepted and stored in the relay KV queue. See the
+    /// local `RouteRelayFallbackEvidence::payload_transport_stored` doc.
+    #[serde(default)]
+    pub payload_transport_stored: bool,
 }
 
 impl MusuCloud {
@@ -1157,7 +1161,10 @@ impl MusuCloud {
     /// nodes (id+name+ips+online), scoped server-side to the account. The id is
     /// the Headscale node id rename must use (resolve→confirm-by-id, WS-2c).
     pub async fn list_mesh_nodes(&self) -> Result<MeshNodeList> {
-        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
         let url = format!("{}/api/account/mesh-node-action", self.base_url);
         let resp = self
             .client
@@ -1176,7 +1183,10 @@ impl MusuCloud {
     /// The server re-asserts the node still belongs to the account before renaming
     /// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
     pub async fn rename_mesh_node(&self, node_id: &str, new_name: &str) -> Result<MeshNodeRenamed> {
-        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
         let url = format!("{}/api/account/mesh-node-action", self.base_url);
         let resp = self
             .client
@@ -1205,7 +1215,10 @@ impl MusuCloud {
         expected_name: &str,
         caller_ip: Option<&str>,
     ) -> Result<MeshNodeRemoved> {
-        let token = self.token.as_ref().ok_or_else(|| anyhow!("Not logged in"))?;
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
         let url = format!("{}/api/account/mesh-node-action", self.base_url);
         let mut body = serde_json::json!({
             "action": "remove",
@@ -1215,7 +1228,13 @@ impl MusuCloud {
         if let Some(ip) = caller_ip {
             body["caller_ip"] = serde_json::Value::String(ip.to_string());
         }
-        let resp = self.client.post(&url).bearer_auth(token).json(&body).send().await?;
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&body)
+            .send()
+            .await?;
         if !resp.status().is_success() {
             return Err(cloud_api_error("Failed to remove mesh node", &url, resp).await);
         }

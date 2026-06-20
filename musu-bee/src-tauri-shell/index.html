@@ -204,6 +204,30 @@
               </div>
             </div>
           </div>
+          <div id="add-pc-primary" class="add-pc-primary">
+            <p class="add-pc-primary-lede">
+              Adding a PC takes one step: install MUSU on the other machine and
+              sign in with this same account. It joins your fleet automatically
+              &mdash; no Docker, no control host, no pass file to copy.
+            </p>
+            <ol class="add-pc-quicksteps">
+              <li>On the other PC, download MUSU from <code>musu.pro</code> and run the installer.</li>
+              <li>Open MUSU there and sign in with the same account you use here.</li>
+              <li>It appears under &ldquo;Your machines&rdquo; above once both machines are online &mdash; give it a task.</li>
+            </ol>
+            <p class="add-pc-primary-hint">
+              Signed in there but it&rsquo;s not showing up yet? It retries the
+              join on its own &mdash; use &ldquo;Run local check&rdquo; above for
+              proof, or &ldquo;Having trouble?&rdquo; for the raw
+              <code>musu mesh</code> commands.
+            </p>
+          </div>
+          <details id="add-pc-advanced" class="add-pc-advanced">
+            <summary>Advanced: self-host your own control host (optional)</summary>
+            <p class="add-pc-advanced-note">
+              Most people never need this. Use it only if you run your own
+              Headscale control host instead of MUSU&rsquo;s managed mesh.
+            </p>
           <ol class="add-pc-steps">
             <li>
               <span class="step-kicker">Control host</span>
@@ -275,6 +299,7 @@
               <p>Want release-grade proof that the two machines really reached each other? Copy the target PC&rsquo;s physical-evidence file over (its path goes in &ldquo;Release evidence&rdquo; above), then click <strong>Run release proof</strong> there. No command to type — MUSU runs it and shows a plain verdict. Skip this and the mesh still works; you just get software-route proof instead of release-grade.</p>
             </li>
           </ol>
+          </details>
         </div>
         <!-- First-task aha (one-time): shown after the user's first successful
              task. A quiet one-line badge — no modal, no confetti (this is a

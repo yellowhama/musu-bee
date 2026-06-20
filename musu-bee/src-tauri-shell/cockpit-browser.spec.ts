@@ -413,6 +413,16 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
   const addPcPanel = page.locator("#add-pc-panel");
   await expect(addPcPanel).toBeVisible();
   await expect(addPcPanel.getByText("No Tailscale.com signup required.")).toBeVisible();
+  // W-5: the primary surface is the happy path — "just log in on the other PC".
+  // It is visible without any disclosure; the docker/device-pass enrollment is
+  // collapsed into the Advanced disclosure below it.
+  await expect(addPcPanel.locator("#add-pc-primary")).toBeVisible();
+  await expect(addPcPanel.getByText("joins your fleet automatically")).toBeVisible();
+  await expect(addPcPanel.getByText("no Docker, no control host, no pass file")).toBeVisible();
+  await expect(addPcPanel.locator("#add-pc-advanced")).toBeAttached();
+  // The docker/Headscale steps are hidden until Advanced is expanded.
+  await expect(addPcPanel.locator("#bootstrap-server-url")).toBeHidden();
+  await addPcPanel.locator("#add-pc-advanced > summary").click();
   await expect(addPcPanel.locator("#bootstrap-server-url")).toBeVisible();
   await expect(addPcPanel.getByRole("button", { name: "Generate bundle" })).toBeVisible();
   await expect(addPcPanel.getByRole("button", { name: "Start control host" })).toBeVisible();
@@ -459,10 +469,13 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
   await expect
     .poll(() => page.evaluate(() => (window as any).__copiedText || ""))
     .toContain("musu.device_add.musu.20260615-120000.json");
-  await expect(addPcPanel.getByText("Copy that generated pass file to each target PC")).toBeVisible();
-  await expect(addPcPanel.getByText("musu mesh join --device-add-pass")).toBeVisible();
+  // W-5: these assertions referenced copy ("Copy that generated pass file…",
+  // "musu mesh join --device-add-pass", "musu mesh release-proof --target-node")
+  // that the earlier hide-the-pipes work already removed from index.html — they
+  // were stale dead asserts (the strings exist nowhere in the rendered DOM).
+  // Replaced with the copy that the Advanced enrollment steps actually render.
+  await expect(addPcPanel.getByText("Install MUSU on the target PC from musu.pro")).toBeVisible();
   await expect(addPcPanel.getByText("Release proof", { exact: true })).toBeVisible();
-  await expect(addPcPanel.getByText("musu mesh release-proof --target-node")).toBeVisible();
   await addPcPanel.getByRole("button", { name: "Run local check" }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__doctorCalls || 0)).toBe(1);
   await expect(page.locator("#mesh-proof-strip-detail")).toContainText("DERP probe ok");

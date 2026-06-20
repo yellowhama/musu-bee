@@ -14,7 +14,7 @@ use sqlx::{Row, SqlitePool};
 
 use crate::core::schema::{
     SCHEMA_V1_STATEMENTS, SCHEMA_V2_ALTER_STATEMENTS, SCHEMA_V3_ALTER_STATEMENTS,
-    SCHEMA_V4_STATEMENTS,
+    SCHEMA_V4_STATEMENTS, SCHEMA_V5_ALTER_STATEMENTS,
 };
 
 /// Schema version this build expects. Bumped per R-phase:
@@ -22,7 +22,9 @@ use crate::core::schema::{
 ///   - R5 (wiki/495) ships v2 — 6 additive NULLable columns on route_executions.
 ///   - W12 (wiki/511) ships v3 — 1 additive NULLable column on audit_log.
 ///   - W9 (wiki/512) ships v4 — workflows + workflow_steps tables.
-pub const EXPECTED_SCHEMA_VERSION: u32 = 4;
+///   - W-1 ships v5 — 2 additive NULLable columns on route_executions
+///     (forwarded_to_node, remote_task_id) for relay-callback executor binding.
+pub const EXPECTED_SCHEMA_VERSION: u32 = 5;
 
 /// Read `PRAGMA user_version`. Returns 0 on a fresh DB.
 pub async fn current_version(pool: &SqlitePool) -> Result<u32> {
@@ -160,6 +162,40 @@ async fn apply_v4(pool: &SqlitePool) -> Result<()> {
     Ok(())
 }
 
+/// Apply schema_v5: 2 ALTER TABLE statements on route_executions in one tx.
+/// Adds `forwarded_to_node` + `remote_task_id` (both NULLable). W-1 §S-1.
+///
+/// Same idempotent pattern as apply_v2/v3: `ALTER TABLE ADD COLUMN` is not
+/// DDL-idempotent, so read existing column names from `pragma_table_info`
+/// and SKIP any column that already exists — keeps re-runs a true no-op
+/// under concurrent-boot races.
+async fn apply_v5(pool: &SqlitePool) -> Result<()> {
+    let existing: Vec<(String,)> =
+        sqlx::query_as("SELECT name FROM pragma_table_info('route_executions')")
+            .fetch_all(pool)
+            .await
+            .context("read route_executions table_info")?;
+    let existing: std::collections::HashSet<String> = existing.into_iter().map(|r| r.0).collect();
+
+    let mut tx = pool.begin().await.context("begin v5 tx")?;
+    for stmt in SCHEMA_V5_ALTER_STATEMENTS {
+        let col = stmt
+            .split_whitespace()
+            .nth(5)
+            .expect("malformed v5 ALTER statement");
+        if existing.contains(col) {
+            tracing::debug!(column = col, "v5: column already present, skipping ALTER");
+            continue;
+        }
+        sqlx::query(stmt)
+            .execute(&mut *tx)
+            .await
+            .with_context(|| format!("apply v5 DDL: {}", stmt))?;
+    }
+    tx.commit().await.context("commit v5 tx")?;
+    Ok(())
+}
+
 /// Run the migration ladder up to EXPECTED_SCHEMA_VERSION. Idempotent.
 /// Returns the post-migration version.
 pub async fn run(pool: &SqlitePool) -> Result<u32> {
@@ -173,6 +209,7 @@ pub async fn run(pool: &SqlitePool) -> Result<u32> {
             2 => apply_v2(pool).await?,
             3 => apply_v3(pool).await?,
             4 => apply_v4(pool).await?,
+            5 => apply_v5(pool).await?,
             _ => {
                 anyhow::bail!("unknown schema version: {v} (max known = {EXPECTED_SCHEMA_VERSION})")
             }
@@ -304,6 +341,85 @@ mod tests {
             output.is_none(),
             "new col `output` must be NULL on legacy row"
         );
+    }
+
+    /// W-1: v4→v5 ladder adds 2 NULLable columns to route_executions.
+    #[tokio::test]
+    async fn v4_to_v5_apply_adds_2_cols() {
+        let pool = mem_pool().await;
+        // Take the DB up to v4 via the ladder, then apply v5.
+        for v in 1..=4 {
+            match v {
+                1 => apply_v1(&pool).await.unwrap(),
+                2 => apply_v2(&pool).await.unwrap(),
+                3 => apply_v3(&pool).await.unwrap(),
+                4 => apply_v4(&pool).await.unwrap(),
+                _ => unreachable!(),
+            }
+            set_version(&pool, v).await.unwrap();
+        }
+        apply_v5(&pool).await.unwrap();
+        set_version(&pool, 5).await.unwrap();
+
+        let rows: Vec<(String,)> = sqlx::query_as(
+            "SELECT name FROM pragma_table_info('route_executions') WHERE name IN \
+             ('forwarded_to_node','remote_task_id')",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(rows.len(), 2, "expected 2 new cols; got: {:?}", rows);
+    }
+
+    /// W-1: v5 idempotent — re-running apply_v5 on an already-migrated DB
+    /// is a no-op (existing-column skip), not a duplicate-column error.
+    #[tokio::test]
+    async fn v5_idempotent_double_apply() {
+        let pool = mem_pool().await;
+        run(&pool).await.unwrap();
+        // run() took us to EXPECTED (5). A second direct apply_v5 must skip
+        // both columns (already present) and NOT error.
+        apply_v5(&pool).await.expect("v5 re-apply must be a no-op");
+        let v = run(&pool).await.unwrap();
+        assert_eq!(v, EXPECTED_SCHEMA_VERSION);
+    }
+
+    /// W-1: v5 preserves existing rows; new cols default to NULL on legacy rows.
+    #[tokio::test]
+    async fn v5_preserves_existing_rows() {
+        let pool = mem_pool().await;
+        // Take DB to v4, insert a row, then run() up to v5.
+        for v in 1..=4 {
+            match v {
+                1 => apply_v1(&pool).await.unwrap(),
+                2 => apply_v2(&pool).await.unwrap(),
+                3 => apply_v3(&pool).await.unwrap(),
+                4 => apply_v4(&pool).await.unwrap(),
+                _ => unreachable!(),
+            }
+            set_version(&pool, v).await.unwrap();
+        }
+        sqlx::query(
+            "INSERT INTO route_executions \
+             (task_id, channel, sender_id, input_hash, status, created_at) \
+             VALUES ('keep-me-v5', 'ch', 's', 'h', 'done', 100)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let post = run(&pool).await.unwrap();
+        assert_eq!(post, EXPECTED_SCHEMA_VERSION);
+
+        let (task_id, fwd, remote): (String, Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT task_id, forwarded_to_node, remote_task_id \
+             FROM route_executions WHERE task_id = 'keep-me-v5'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(task_id, "keep-me-v5");
+        assert!(fwd.is_none(), "forwarded_to_node must be NULL on legacy row");
+        assert!(remote.is_none(), "remote_task_id must be NULL on legacy row");
     }
 
     #[tokio::test]
