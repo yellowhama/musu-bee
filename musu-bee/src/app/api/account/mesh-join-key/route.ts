@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import { checkMeshJoinRateLimit } from "@/lib/meshJoinRateLimit";
+import { deriveMeshBearer } from "@/lib/meshBearer";
 import {
   HeadscaleProvisioningError,
   headscaleUserNameForOwnerKey,
@@ -113,9 +114,16 @@ export async function POST(req: NextRequest) {
       nowMs: Date.now(),
     });
 
-    // Audit (M-1): who enrolled, when. Never log the key or the owner token.
+    // Account-wide mesh bearer: deterministic from owner_key, so every machine
+    // of this owner receives the SAME bearer (the cross-machine bridge auth that
+    // the per-machine random tokens could never agree on). Empty when no server
+    // secret is configured — the CLI then falls back to its existing behavior.
+    const meshBearer = deriveMeshBearer(ownerKey);
+
+    // Audit (M-1): who enrolled, when. Never log the key, the owner token, or
+    // the mesh bearer.
     console.log(
-      `[mesh-join-key] minted tailnet=${result.tailnet} ttl=${joinKeyTtlSeconds()}s`
+      `[mesh-join-key] minted tailnet=${result.tailnet} ttl=${joinKeyTtlSeconds()}s mesh_bearer=${meshBearer ? "issued" : "unconfigured"}`
     );
 
     return NextResponse.json({
@@ -123,6 +131,8 @@ export async function POST(req: NextRequest) {
       login_server: result.loginServer,
       authkey: result.authkey,
       tailnet: result.tailnet,
+      // Shared cross-machine bridge bearer (hex). Absent if server secret unset.
+      ...(meshBearer ? { mesh_bearer: meshBearer } : {}),
     });
   } catch (err) {
     if (err instanceof HeadscaleProvisioningError) {
