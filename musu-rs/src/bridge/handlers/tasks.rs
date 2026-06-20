@@ -332,6 +332,9 @@ pub async fn delegate(
                     callback_url: None,
                     source_task_id: None,
                     callback_token: None,
+                    // Local task — no cross-machine callback, so no relay context.
+                    callback_target_node_id: None,
+                    callback_session_id: None,
                 })
                 .await
                 .map_err(|e| MusuError::Internal(format!("spawn_task: {e}")))?;
@@ -367,6 +370,31 @@ pub async fn delegate(
             {
                 Ok(report) => {
                     crate::bridge::router::record_success(&report.route_peer.addr);
+                    // W-1 §S-1: bind this task to the node we actually forwarded
+                    // it to. `report.response.node` is the executor's own claimed
+                    // identity (the same value it will sign a relay callback with),
+                    // so T5's executor-binding check compares the callback's
+                    // `source_node_id` against this column to reject forged
+                    // same-account callbacks. Best-effort UPDATE: a DB hiccup here
+                    // must not fail an otherwise-successful forward (the callback
+                    // path degrades to direct-only, never to a forgery window).
+                    if let Err(err) = sqlx::query(
+                        "UPDATE route_executions \
+                         SET forwarded_to_node = ?, remote_task_id = ? \
+                         WHERE task_id = ?",
+                    )
+                    .bind(&report.response.node)
+                    .bind(&report.response.task_id)
+                    .bind(&task_id)
+                    .execute(&state.pool)
+                    .await
+                    {
+                        tracing::warn!(
+                            task_id = %task_id,
+                            err = %err,
+                            "failed to record executor binding (forwarded_to_node)"
+                        );
+                    }
                     let musu_home = state
                         .config
                         .nodes_toml_path
@@ -409,6 +437,41 @@ pub async fn delegate(
                 }
                 Err(e) => {
                     crate::bridge::router::record_failure(&e.route_peer.addr);
+                    // W-1 C-1 fix: when the direct forward failed but the task was
+                    // queued onto the relay KV (lease issued + payload transport
+                    // attempted), the executor still ran it and will return its
+                    // result via the REVERSE relay callback. Bind the task to that
+                    // executor now — the direct-success branch never runs on this
+                    // path, so without this the reverse callback's executor-binding
+                    // gate (forwarded_to_node = cb.node) matches NULL and the
+                    // legitimate result is rejected as a forgery, leaving the task
+                    // pending forever. The executor's self-declared callback node
+                    // name equals the peer name we routed to (mesh nodes share a
+                    // single node_name across nodes.toml + MUSU_NODE_NAME).
+                    let relay_queued = e
+                        .relay_fallback
+                        .as_ref()
+                        .map(|relay| relay.lease_issued && relay.payload_transport_attempted)
+                        .unwrap_or(false);
+                    if relay_queued {
+                        let executor_node =
+                            crate::bridge::route_evidence::target_node_id(&e.route_peer);
+                        if let Err(err) = sqlx::query(
+                            "UPDATE route_executions \
+                             SET forwarded_to_node = ? WHERE task_id = ?",
+                        )
+                        .bind(&executor_node)
+                        .bind(&task_id)
+                        .execute(&state.pool)
+                        .await
+                        {
+                            tracing::warn!(
+                                task_id = %task_id,
+                                err = %err,
+                                "failed to record relay executor binding (forwarded_to_node)"
+                            );
+                        }
+                    }
                     let musu_home = state
                         .config
                         .nodes_toml_path

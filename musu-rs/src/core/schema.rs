@@ -154,6 +154,28 @@ pub const SCHEMA_V4_STATEMENTS: &[&str] = &[
     "CREATE INDEX IF NOT EXISTS idx_workflow_steps_status   ON workflow_steps(status, assigned_pc)",
 ];
 
+/// Schema-v5 ALTER TABLE statements — W-1 §S-1 (relay-callback executor binding).
+///
+/// Adds two NULLable columns to route_executions so the bridge can prove WHICH
+/// node it forwarded a task to. When a relay callback later arrives claiming a
+/// result for this task, T5's executor-binding check rejects it unless the
+/// claimed `source_node_id` matches `forwarded_to_node` — closing the forged
+/// same-account callback hole the security Critic flagged (a peer cannot mark
+/// a pending task done unless the bridge actually forwarded that task to it).
+///
+/// Both NULLable, no DEFAULT — existing rows (and all *local* tasks, which are
+/// never forwarded) keep NULL. Same idempotent ALTER pattern as v2/v3.
+///
+/// 2 cols:
+///   - `forwarded_to_node` TEXT — node_name this task was forwarded to (the
+///     authoritative executor). NULL = local task / not yet forwarded.
+///   - `remote_task_id`    TEXT — task_id the remote node assigned on accept.
+///     NULL = local / forward not yet acknowledged. Correlation/debug aid.
+pub const SCHEMA_V5_ALTER_STATEMENTS: &[&str] = &[
+    "ALTER TABLE route_executions ADD COLUMN forwarded_to_node TEXT",
+    "ALTER TABLE route_executions ADD COLUMN remote_task_id    TEXT",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;

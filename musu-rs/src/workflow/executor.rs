@@ -160,6 +160,8 @@ pub async fn execute_workflow(state: &AppState, workflow_id: &str) -> Result<(),
                         callback_url: None,
                         source_task_id: None,
                         callback_token: None,
+                        callback_target_node_id: None,
+                        callback_session_id: None,
                     })
                     .await
                 {

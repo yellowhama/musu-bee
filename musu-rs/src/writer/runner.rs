@@ -108,6 +108,19 @@ pub struct TaskSpec {
     /// `/api/tasks/callback` rejects the result and the original task row stays
     /// `pending` forever — the cross-machine result never reaches the cockpit.
     pub callback_token: Option<String>,
+    /// W-1 relay-callback context. When the direct callback POST fails (the
+    /// source is NAT'd / loopback-bound), `fire_callback` falls back to queuing
+    /// the result through the relay KV queue — symmetric to the forwarded-task
+    /// relay path. These carry the binding the reverse envelope needs:
+    ///   - callback_target_node_id: the ORIGINAL sender (this callback's target).
+    ///     `None` for local tasks → relay fallback is skipped (mirror of the
+    ///     `callback_url`-None early return).
+    ///   - callback_session_id / callback_lease context is requested fresh at
+    ///     fire time (executor→sender reverse lease), so only the target node id
+    ///     and the executor's own node id (this machine, available from config)
+    ///     are needed here. session_id ties the callback to the forwarded task.
+    pub callback_target_node_id: Option<String>,
+    pub callback_session_id: Option<String>,
 }
 
 /// Registry entry. Holds the cancel notifier so DELETE handler can signal.
@@ -358,6 +371,7 @@ fn fire_callback(
         None => return,
     };
     let token = spec.callback_token.clone();
+    let node_name = callback_node_name();
     let cb = crate::bridge::handlers::forward::TaskCallback {
         source_task_id: spec
             .source_task_id
@@ -369,8 +383,13 @@ fn fire_callback(
         error: error.map(|s| s.to_string()),
         exit_code,
         duration_sec,
-        node: callback_node_name(),
+        node: node_name.clone(),
     };
+    // W-1 §S-4: reverse-relay fallback context. When the direct POST fails (the
+    // source is NAT'd/loopback-bound), queue the result back through the relay
+    // KV addressed to the ORIGINAL sender on the same rendezvous session.
+    let relay_target_node = spec.callback_target_node_id.clone();
+    let relay_session_id = spec.callback_session_id.clone();
     tokio::spawn(async move {
         let client = reqwest::Client::new();
         for attempt in 0..3u32 {
@@ -397,8 +416,57 @@ fn fire_callback(
             }
             tokio::time::sleep(std::time::Duration::from_secs(1 << attempt)).await;
         }
-        tracing::error!(url = %url, "callback failed after 3 attempts");
+        tracing::error!(url = %url, "direct callback failed after 3 attempts");
+
+        // S-4: direct delivery exhausted → fall back to the relay KV queue, but
+        // only when we have the reverse-route context (a forwarded task carrying
+        // the original sender's node id + the rendezvous session). Local tasks
+        // and direct-only routes lack these and simply give up here.
+        match (relay_target_node, relay_session_id) {
+            (Some(target_node), Some(session_id)) => {
+                let musu_home = relay_callback_musu_home();
+                match crate::bridge::handlers::forward::queue_callback_via_relay(
+                    &musu_home,
+                    &node_name,
+                    &target_node,
+                    &session_id,
+                    &cb,
+                )
+                .await
+                {
+                    Ok(()) => tracing::info!(
+                        target_node = %target_node,
+                        "callback delivered via relay KV after direct failure"
+                    ),
+                    Err(class) => tracing::error!(
+                        target_node = %target_node,
+                        failure_class = %class,
+                        "relay-fallback callback also failed; result undelivered"
+                    ),
+                }
+            }
+            _ => {
+                tracing::warn!(
+                    "no reverse-relay context for failed callback; result undelivered"
+                );
+            }
+        }
     });
+}
+
+/// Resolve the MUSU home dir for relay-fallback cloud calls, mirroring
+/// `core::mod`'s resolver: `MUSU_HOME` env, else `~/.musu` (cwd-relative
+/// fallback only when no home dir is resolvable). Kept local so `fire_callback`
+/// needs no `AppState`.
+fn relay_callback_musu_home() -> std::path::PathBuf {
+    if let Ok(dir) = std::env::var("MUSU_HOME") {
+        if !dir.trim().is_empty() {
+            return std::path::PathBuf::from(dir);
+        }
+    }
+    dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join(".musu")
 }
 
 /// Drive one task end-to-end. This runs inside `tokio::spawn`.
@@ -1329,6 +1397,8 @@ mod tests {
             callback_url: None,
             source_task_id: None,
             callback_token: None,
+            callback_target_node_id: None,
+            callback_session_id: None,
         }
     }
 
@@ -1488,6 +1558,8 @@ mod tests {
                 callback_url: None,
                 source_task_id: None,
                 callback_token: None,
+                callback_target_node_id: None,
+                callback_session_id: None,
             })
             .await
             .unwrap();
@@ -1522,6 +1594,8 @@ exit 2"#
                 callback_url: None,
                 source_task_id: None,
                 callback_token: None,
+                callback_target_node_id: None,
+                callback_session_id: None,
             })
             .await
             .unwrap();
@@ -1557,6 +1631,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                 callback_url: None,
                 source_task_id: None,
                 callback_token: None,
+                callback_target_node_id: None,
+                callback_session_id: None,
             })
             .await
             .unwrap();
@@ -1598,6 +1674,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     callback_url: None,
                     source_task_id: None,
                     callback_token: None,
+                    callback_target_node_id: None,
+                    callback_session_id: None,
                 })
                 .await
                 .unwrap();
@@ -1640,6 +1718,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     callback_url: None,
                     source_task_id: None,
                     callback_token: None,
+                    callback_target_node_id: None,
+                    callback_session_id: None,
                 })
                 .await
                 .unwrap();
@@ -1676,6 +1756,8 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
                     callback_url: None,
                     source_task_id: None,
                     callback_token: None,
+                    callback_target_node_id: None,
+                    callback_session_id: None,
                 })
                 .await
                 .unwrap();

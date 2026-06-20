@@ -53,6 +53,8 @@ pub async fn handle_chat(
             callback_url: None,
             source_task_id: None,
             callback_token: None,
+            callback_target_node_id: None,
+            callback_session_id: None,
         })
         .await
         .map_err(|e| MusuError::Internal(format!("Failed to spawn AI task: {e}")))?;
