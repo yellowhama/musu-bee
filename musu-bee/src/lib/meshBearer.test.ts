@@ -33,7 +33,7 @@ function withEnv(env: Record<string, string | undefined>, fn: () => void) {
 
 async function load() {
   // Fresh import each call so env is read at call time (functions read env live).
-  return await import("./meshBearer.ts");
+  return await import("./meshBearer");
 }
 
 test("same owner_key yields the same bearer (account-wide shared secret)", async () => {

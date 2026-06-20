@@ -93,6 +93,24 @@ pub fn write_mesh_bearer(home: &Path, bearer: &str) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
     }
+    // Windows is the actual target OS; without this the shared account bearer
+    // (which authenticates process-spawning forwards) is world-readable. Mirror
+    // ensure_bridge_token's icacls hardening so mesh.env matches bridge.env.
+    #[cfg(windows)]
+    {
+        let user = windows_acl_principal()?;
+        let output = std::process::Command::new("icacls")
+            .arg(&path)
+            .arg("/inheritance:r")
+            .arg("/grant:r")
+            .arg(format!("{user}:F"))
+            .output()
+            .context("spawn icacls")?;
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("icacls failed for mesh.env: {}", err.trim());
+        }
+    }
     Ok(())
 }
 

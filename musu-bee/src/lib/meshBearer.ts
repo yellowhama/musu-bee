@@ -9,11 +9,19 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * cross-machine forward 401'd because sender sent its own random token and the
  * receiver only knew its own).
  *
+ * Scope note (Auditor MEDIUM-2): owner_key derives from the single-owner control
+ * token the device-flow issues to every machine of the deployment, so the bearer
+ * is in practice DEPLOYMENT-wide under musu's documented single-owner model — not
+ * cryptographically per-account. That is correct for musu (one owner = one
+ * deployment = one fleet). If the server ever becomes multi-tenant, owner_key must
+ * move to a per-account identity (user_id), or distinct accounts would share one
+ * bearer and could forward process-spawning tasks to each other.
+ *
  * Design (per Phase-1 strategic gate + security Critic):
  *  - DETERMINISTIC from owner_key, so the server never has to store or sync it:
  *    mesh_bearer = HMAC-SHA256(server_secret, owner_key). Same owner_key (same
- *    account, derived from the device-flow control token) → same bearer on every
- *    machine. The cloud hands it out at mesh-join time; the bridge keeps a real
+ *    deployment owner, derived from the device-flow control token) → same bearer
+ *    on every machine. The cloud hands it out at mesh-join time; the bridge keeps a real
  *    bearer check (NOT removed — Critic NO-GO'd removing app auth, since a
  *    forwarded task spawns processes = RCE-equivalent). headscale/WireGuard is
  *    the network layer; this bearer is the authorization layer.
