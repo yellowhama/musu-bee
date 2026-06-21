@@ -214,6 +214,28 @@ function Assert-VersionSourcesCoherent {
             $mismatches += "  - $($c.Name): could not locate a version string"
         }
     }
+
+    # Extra check: DESKTOP_SETUP_EXE_URL in publicRelease.ts hardcodes the NSIS
+    # artifact filename MUSU_<numeric>_x64-setup.exe. Tauri's NSIS bundler strips
+    # the prerelease tag, so the filename carries only major.minor.patch. This URL
+    # is NOT one of the three version-string checks above (it's a filename, not a
+    # version literal), so it would silently 404 on the next numeric-version
+    # graduation if left unguarded. Verify its numeric prefix matches the
+    # major.minor.patch of the expected version.
+    $publicReleasePath = Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts"
+    $expectedNumeric = ($ExpectedVersion -split "-", 2)[0].Trim()
+    if (Test-Path -LiteralPath $publicReleasePath) {
+        $prContent = Get-Content -LiteralPath $publicReleasePath -Raw
+        if ($prContent -match 'MUSU_(\d+\.\d+\.\d+)_x64-setup\.exe') {
+            $urlNumeric = $Matches[1]
+            if ($urlNumeric -ne $expectedNumeric) {
+                $mismatches += "  - publicRelease.ts DESKTOP_SETUP_EXE_URL: 'MUSU_$urlNumeric' (expected 'MUSU_$expectedNumeric')"
+            }
+        }
+        # If the URL constant isn't present or uses a different shape, skip — only
+        # flag an actual numeric mismatch, not absence.
+    }
+
     if ($mismatches.Count -gt 0) {
         throw @"
 Version sources drifted from VERSION ($ExpectedVersion):
@@ -448,15 +470,23 @@ if (-not $Version) {
     $Version = Normalize-Version $effectiveRaw
 
     # Coherence gate (only when version derives from VERSION, not an explicit
-    # -Version override): the three restated sources must equal the on-disk VERSION
-    # BASE (pre-bump). In bump mode VERSION will advance to the next rc AFTER a
-    # successful build, at which point the three sources are expected to be updated
-    # to the new base before the next release. Comparing against the base catches
-    # the historical drift (sources frozen behind VERSION) without false-failing on
-    # the one-step bump lead.
+    # -Version override): the three restated sources must equal the version this
+    # build will actually EMBED. In bump mode the MSIX is packaged at the bumped
+    # number ($pendingVersionWrite) while CARGO_PKG_VERSION comes from Cargo.toml;
+    # if we compared against the pre-bump base, the sources could lag the MSIX by
+    # one rc and /health would report a different version than the installed
+    # package announces (a version-identity split). So compare against the bumped
+    # value when bumping: this forces the operator to advance Cargo.toml/
+    # tauri.conf.json/publicRelease.ts to the bumped rc BEFORE the bump build, so
+    # MSIX and CARGO_PKG_VERSION always agree. Non-bump builds compare against the
+    # on-disk VERSION as-is.
     if (-not $SkipVersionCheck) {
-        $baseVersion = (Get-Content -LiteralPath $versionPath -Raw).Trim()
-        Assert-VersionSourcesCoherent -ExpectedVersion $baseVersion -RepoRoot $repoRoot
+        $expectedSourceVersion = if ($pendingVersionWrite) {
+            $pendingVersionWrite
+        } else {
+            (Get-Content -LiteralPath $versionPath -Raw).Trim()
+        }
+        Assert-VersionSourcesCoherent -ExpectedVersion $expectedSourceVersion -RepoRoot $repoRoot
     }
 } else {
     $Version = Normalize-Version $Version
