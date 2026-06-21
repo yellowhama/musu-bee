@@ -94,7 +94,6 @@ fn spawn_bridge(port: u16, db_path: &Path, companies_dir: &Path, token: &str) ->
         .env("BRIDGE_PORT", port.to_string())
         .env("MUSU_BRIDGE_DB_PATH", db_path)
         .env("MUSU_COMPANIES_DIR", companies_dir)
-        .env("MUSU_PYTHON_BRIDGE_PORT", "8071")
         .env("MUSU_DISABLE_RATE_LIMIT", "1")
         .env("RUST_LOG", "warn")
         .stdout(Stdio::null())

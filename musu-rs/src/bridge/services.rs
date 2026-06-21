@@ -1,14 +1,17 @@
 //! Local service registry for dynamic port allocation and service discovery.
 //!
-//! Internal musu services (Python facade, musu-worker, musu-port, musu-brainai)
-//! register themselves here with dynamically allocated ports.  The Rust bridge
+//! Internal musu services (musu-worker, musu-port, musu-brainai) register
+//! themselves here with dynamically allocated ports.  The Rust bridge
 //! discovers them by name, falling back to well-known defaults when no
 //! registration file exists.
+//!
+//! (The Python facade was removed in the self-contained refactor; the registry
+//! is name-agnostic, so older `facade.json` records, if present, are simply
+//! never discovered.)
 //!
 //! **Storage layout:**
 //! ```text
 //! ~/.musu/services/
-//!   facade.json
 //!   worker.json
 //!   port.json
 //!   brainai.json

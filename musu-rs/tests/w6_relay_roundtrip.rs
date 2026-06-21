@@ -564,7 +564,6 @@ fn spawn_bridge_for_relay(
         .env("BRIDGE_HOST", "127.0.0.1")
         .env("BRIDGE_PORT", port.to_string())
         .env("MUSU_BRIDGE_DB_PATH", db_path)
-        .env("MUSU_PYTHON_BRIDGE_PORT", "8071")
         .env("MUSU_DISABLE_RATE_LIMIT", "1")
         // Poller enabled (default ON) but the 30s floor means we drive the
         // drain route directly; this just confirms enabling it is harmless.
