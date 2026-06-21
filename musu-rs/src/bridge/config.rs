@@ -34,7 +34,6 @@ impl AuthMode {
 pub struct BridgeConfig {
     pub bridge_host: String,
     pub bridge_port: u16,
-    pub python_facade_port: u16,
     pub public_url: Option<String>,
     pub node_name: String,
     pub db_path: PathBuf,
@@ -122,10 +121,6 @@ impl BridgeConfig {
             .ok()
             .and_then(|p| p.parse().ok())
             .unwrap_or(0);
-        let python_facade_port: u16 = env::var("MUSU_PYTHON_BRIDGE_PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or(8071);
 
         let public_url = env::var("MUSU_BRIDGE_PUBLIC_URL")
             .ok()
@@ -226,7 +221,6 @@ impl BridgeConfig {
         Ok(Self {
             bridge_host,
             bridge_port,
-            python_facade_port,
             public_url,
             node_name,
             db_path,

@@ -30,9 +30,6 @@ pub enum MusuError {
     #[error("rate limited: {0}")]
     RateLimited(String),
 
-    #[error("upstream error: {0}")]
-    Upstream(String),
-
     #[error("not implemented: {0}")]
     NotImplemented(String),
 
@@ -58,7 +55,6 @@ impl MusuError {
             MusuError::NotFound(_) => StatusCode::NOT_FOUND,
             MusuError::Conflict(_) => StatusCode::CONFLICT,
             MusuError::RateLimited(_) => StatusCode::TOO_MANY_REQUESTS,
-            MusuError::Upstream(_) => StatusCode::BAD_GATEWAY,
             MusuError::NotImplemented(_) => StatusCode::NOT_IMPLEMENTED,
             MusuError::Internal(_)
             | MusuError::Sqlx(_)
@@ -75,7 +71,6 @@ impl MusuError {
             MusuError::NotFound(_) => "not_found",
             MusuError::Conflict(_) => "conflict",
             MusuError::RateLimited(_) => "rate_limited",
-            MusuError::Upstream(_) => "upstream_error",
             MusuError::NotImplemented(_) => "not_implemented",
             MusuError::Internal(_) => "internal",
             MusuError::Sqlx(_) => "db_error",
@@ -94,9 +89,6 @@ impl IntoResponse for MusuError {
             | MusuError::Io(_)
             | MusuError::Anyhow(_) => {
                 tracing::error!(error = %self, code = self.code(), "request failed");
-            }
-            MusuError::Upstream(_) => {
-                tracing::warn!(error = %self, code = self.code(), "facade upstream error");
             }
             _ => {
                 tracing::debug!(error = %self, code = self.code(), "request rejected");
