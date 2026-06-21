@@ -6,7 +6,9 @@
 
 ## 왜 W-3가 필요한가
 
-현재 설치된 desktop 바이너리는 **rc.4 기반 = relay 코드(W-1/W-2) 없음**. cockpit이 설치된 WindowsApps 패키지의 `musu.exe`를 spawn하므로([[reference-musu-cockpit-spawns-installed-msix]]), relay를 실기기에서 쓰려면 **MSIX 재빌드 + 양쪽 머신 재설치**가 필수. W-4(2머신 E2E)의 선행 조건.
+현재 설치된 desktop 바이너리는 **rc.1 기반 = relay 코드(W-1/W-2) 없음**(2026-06-22 클린 재설치 실측: 패키지 매니페스트는 1.15.0.6이나 `/health`가 `"version":"1.15.0-rc.1"` + `"disk_free_pct":0.0`(옛 스텁) + `"relay":null` 자백 = published .msix가 매니페스트만 bump되고 바이너리는 rc.1 박제). cockpit이 설치된 WindowsApps 패키지의 `musu.exe`를 spawn하므로([[reference-musu-cockpit-spawns-installed-msix]]), relay를 실기기에서 쓰려면 **MSIX 재빌드 + 양쪽 머신 재설치**가 필수. W-4(2머신 E2E)의 선행 조건.
+
+**rc.7 재빌드 주의(2026-06-22 실측)**: auto-bump(rc.6→rc.7)는 VERSION만 in-memory 계산하고, version-coherence 게이트가 Cargo.toml/tauri.conf.json/publicRelease.ts가 아직 rc.6이라 빌드를 중단시킨다(게이트가 인코딩 안전 위해 소스 자동 재작성 안 함 — 의도된 설계). 따라서 **4소스(VERSION 포함)를 손으로 rc.7 정렬한 뒤 `-NoBump`로 빌드**해야 한다. (4소스 정렬 후엔 auto-bump가 rc.7→rc.8을 또 올리므로 `-NoBump` 필수.)
 
 ## 핵심 사실 (build-msix.ps1 실측)
 
