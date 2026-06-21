@@ -46,8 +46,8 @@
 | ID | 무엇 | 상태 |
 |---|---|---|
 | **W-3** | rc.N MSIX 재빌드+양머신 설치 (relay 코드 탑재) | 절차서 완성, **Hugh 빌드 실행** |
-| **W-4** | 2머신 relay E2E 실증 (Tailscale 무관 증명) | hugh-main online 필요 → 현재 BLOCKED |
-| **(루프-토큰)** | forward/callback/pairing 토큰 비대칭 살아있으면 수정 | W-4 중 발견 시 |
+| **W-4** | 2머신 relay E2E 실증 (Tailscale 무관 증명) | **순수 하드웨어 게이트** (코드 OK). hugh-main online + **양머신 `musu mesh join-account` 선행** 필요 |
+| ~~(루프-토큰)~~ ✅ | ~~토큰 비대칭 수정~~ | **C-1이 이미 해결**(2026-06-21 조사 확정). 패널 인용 forward.rs:838/pair.rs:133은 stale 라인. 현재 송신=`config.rs:74-76` mesh bearer 우선, 수신=`auth.rs:204-208` mesh bearer 수락. relay는 in-process 주입이라 per-node 401 불가. **전제: 양머신 mesh.env 존재**(없으면 per-machine 폴백=패널 재현 401 원인). Wave 1 코드 장애물 0. |
 
 ### Wave 2 — 축소된 신뢰폴리시 (self-contained 유지, 사용자 수용)
 4고객→공개 유통 전환 시점에. 외부의존 0.
@@ -58,10 +58,10 @@
 | **T2-2** | 로컬 파일 크래시 로그 (Sentry 아님) + panic hook | 오프라인 동작, 벤더 0. 사용자 첨부형 |
 | **T2-3** | atomic release.ps1 (CI provider 의존 아님) | 단일 스크립트로 "업로드 1개 누락→링크 깨짐" 해결 |
 
-### 후순위 (GA 블로커 아님, 별도)
-- Python 사이드카(8071) Rust 포팅 — V25+. 명시적 번들로 "숨김" 해소가 우선.
-- T2 MCP 툴 5개 "not ported" 스텁, `/api/nodes/discovered` 미구현 빈 UI.
-- `/health` 가짜 disk_free_pct(0.0)·null relay.
+### 후순위 (GA 블로커 아님, 별도) — 2026-06-21 조사로 정밀화
+- **Python 사이드카(8071)**: 제거는 구조상 **1줄 수술** (`bridge/mod.rs:202` `.fallback(facade::proxy)` 삭제 + `facade.rs` + `config.rs:125` port). 무거운 로직(indexer search `index_search.rs`, writer/task-runner `writer/mod.rs`)은 **이미 Rust 네이티브**. 잔존 proxy 대상 = 미등록 `/api/*`(legacy agent/dashboard/activity read) = thin CRUD 추정. 🔴 **단 Python은 spawn/health-check/supervise 안 됨**(없으면 502) — self-contained 위반의 핵심. 남은 일: (1) fallback 히트 로깅으로 실제 PROXIED 인벤토리 확정 → (2) 잔존 포팅(가벼움) OR (3) GA에 명시적 번들 시 musu.toml supervise + :8071 readiness 추가 필수. [[feedback-no-python]].
+- **T2 MCP 툴 5개**(list_agents/get_agent/get_dashboard/list_runs/get_activity): proxy도 안 타는 **dead 스텁**(`control/mod.rs:289-328`, T2_BODY 문자열 반환). 포팅 or GA 컷 결정 — 사이드카 제거를 막지 않음.
+- `/api/nodes/discovered` 미구현 빈 UI. `/health` 가짜 disk_free_pct(0.0)·null relay(`health.rs:23-25,72-76`).
 
 ---
 
