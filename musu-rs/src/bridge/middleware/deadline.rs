@@ -30,8 +30,8 @@ pub const HEADER_NAME: &str = "x-musu-deadline-unix-ms";
 /// network transit back to caller. Master plan §9.5.
 const BUFFER_MS: i64 = 50;
 
-/// Newtype stored in request extensions so handlers and the facade proxy
-/// can read and propagate the deadline.
+/// Newtype stored in request extensions so handlers can read and propagate
+/// the deadline.
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)] // Inner field read by integration tests + downstream W9/W13 handlers.
 pub struct DeadlineMs(pub i64);
@@ -66,7 +66,7 @@ pub async fn deadline_middleware(mut req: Request, next: Next) -> Response {
         }
     };
 
-    // Inject into extensions for downstream (facade proxy, audit, handlers).
+    // Inject into extensions for downstream (audit, handlers).
     req.extensions_mut().insert(DeadlineMs(deadline_ms));
 
     let now_ms = chrono::Utc::now().timestamp_millis();

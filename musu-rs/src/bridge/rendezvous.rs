@@ -917,7 +917,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 8070,
-            python_facade_port: 8071,
             public_url: Some("http://100.64.1.5:8070".to_string()),
             node_name: "test-node".to_string(),
             db_path: ":memory:".into(),
@@ -997,7 +996,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 8070,
-            python_facade_port: 8071,
             public_url: Some("http://127.0.0.1:8070".to_string()),
             node_name: "test-node".to_string(),
             db_path: ":memory:".into(),
@@ -1205,7 +1203,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 8070,
-            python_facade_port: 8071,
             public_url: Some("http://127.0.0.1:8070".to_string()),
             node_name: "source-node".to_string(),
             db_path: ":memory:".into(),

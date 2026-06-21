@@ -42,8 +42,8 @@ use axum::Router;
 
 use super::AppState;
 
-/// Build the native-route Router. Everything NOT matched here falls
-/// through to the facade reverse-proxy in `bridge::mod`.
+/// Build the native-route Router. Everything NOT matched here returns 404
+/// (the legacy Python sidecar reverse-proxy fallback was removed).
 pub fn native_router() -> Router<AppState> {
     Router::new()
         .route("/health", get(health::get_health))

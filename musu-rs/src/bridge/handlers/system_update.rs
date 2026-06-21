@@ -225,7 +225,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 0,
-            python_facade_port: 0,
             public_url: None,
             node_name: "test".to_string(),
             db_path: ":memory:".into(),

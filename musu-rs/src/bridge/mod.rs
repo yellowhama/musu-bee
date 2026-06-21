@@ -1,12 +1,12 @@
 //! Bridge module entry. Wires config → state → axum router → listener.
 //!
-//! wiki/491 §3 module layout, §4 auth, §6 facade, §8.5 rate-limit.
+//! wiki/491 §3 module layout, §4 auth, §8.5 rate-limit.
 //!
 //! Middleware order (wiki/491 §8.5, updated wiki/511 W12):
 //!   request_id → deadline → rate_limit → auth → audit_setup → handler
 //! Rate-limit BEFORE auth so DoS attacks don't consume auth budget.
-//! Facade is the Router fallback — auth runs unconditionally before it
-//! (C-SEC-3 invariant).
+//! Unmatched routes return 404 (the legacy Python sidecar reverse-proxy
+//! facade fallback was removed; all served endpoints are native Rust routes).
 
 pub mod audit;
 pub mod auth;
@@ -14,7 +14,6 @@ pub mod config;
 pub mod db;
 pub mod dedup;
 pub mod error;
-pub mod facade;
 pub mod handlers;
 pub mod middleware;
 pub mod rate_limit;
@@ -97,7 +96,6 @@ pub async fn run() -> Result<()> {
     tracing::info!(
         bridge_host = %cfg.bridge_host,
         bridge_port = cfg.bridge_port,
-        python_facade_port = cfg.python_facade_port,
         auth_mode = cfg.env.as_str(),
         localhost_auth_required = cfg.localhost_auth_required,
         version = env!("CARGO_PKG_VERSION"),
@@ -195,11 +193,14 @@ pub async fn run() -> Result<()> {
     // cloud queue polling loop.
     handlers::relay_payload::start_relay_payload_poller_if_enabled(state.clone());
 
-    // Build the native router (matched endpoints) + facade fallback.
+    // Build the native router. All served endpoints are native Rust routes;
+    // unmatched /api/* paths return 404 (the legacy Python sidecar reverse-proxy
+    // facade was removed — it forwarded to 127.0.0.1:8071, a hidden Python
+    // runtime dependency that violated the self-contained-product posture and
+    // which the desktop cockpit never called).
     let native = handlers::native_router();
 
     let app = native
-        .fallback(facade::proxy)
         // Middleware applied bottom-up (outermost listed last).
         .layer(axum::middleware::from_fn_with_state(
             auth_state.clone(),

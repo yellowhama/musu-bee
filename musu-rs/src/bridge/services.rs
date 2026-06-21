@@ -709,7 +709,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "0.0.0.0".to_string(),
             bridge_port: 0,
-            python_facade_port: 0,
             public_url: None,
             node_name: "test-node".to_string(),
             db_path: musu_home.join("db").join("musu.db"),
