@@ -57,6 +57,11 @@ param(
     # same version). Bump is always skipped for -DryRun, -SkipBuild, and explicit
     # -Version (see below).
     [switch]$NoBump,
+    # Escape hatch for the version-coherence gate (Cargo.toml/tauri.conf.json/
+    # publicRelease.ts must equal the VERSION base). Use only when intentionally
+    # building with a known drift; the gate exists so a package never embeds a
+    # version that lies about what was built.
+    [switch]$SkipVersionCheck,
     # Memory-safe builds are ON BY DEFAULT: cargo compiles one crate at a time
     # (CARGO_BUILD_JOBS=1) with a larger compiler stack (RUST_MIN_STACK) so the
     # release LTO of the large lib.rs (~7.5k lines) does not exhaust RAM/paging
@@ -176,6 +181,49 @@ function Normalize-Version([string]$RawVersion) {
         return "$core.$preNum"
     }
     throw "Version '$trimmed' must have 3 or 4 numeric segments for MSIX."
+}
+
+function Assert-VersionSourcesCoherent {
+    # VERSION is the authoritative source the build reads + auto-bumps. Three other
+    # files restate the same version and historically drifted (Cargo.toml/
+    # tauri.conf.json/publicRelease.ts froze at rc.1/GA while VERSION reached rc.6).
+    # We do NOT rewrite those files here — PowerShell regex on source files risks
+    # encoding corruption (see CLAUDE.md). Instead, read + compare and fail fast
+    # with an actionable message so a human fixes the stated source before shipping
+    # a package whose embedded version lies about what was built.
+    param([string]$ExpectedVersion, [string]$RepoRoot)
+
+    $checks = @(
+        @{ Name = "Cargo.toml";       Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "tauri.conf.json";  Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
+        @{ Name = "publicRelease.ts"; Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' }
+    )
+    $mismatches = @()
+    foreach ($c in $checks) {
+        if (-not (Test-Path -LiteralPath $c.Path)) {
+            $mismatches += "  - $($c.Name): file not found at $($c.Path)"
+            continue
+        }
+        $content = Get-Content -LiteralPath $c.Path -Raw
+        if ($content -match $c.Regex) {
+            $found = $Matches[1]
+            if ($found -ne $ExpectedVersion) {
+                $mismatches += "  - $($c.Name): '$found' (expected '$ExpectedVersion')"
+            }
+        } else {
+            $mismatches += "  - $($c.Name): could not locate a version string"
+        }
+    }
+    if ($mismatches.Count -gt 0) {
+        throw @"
+Version sources drifted from VERSION ($ExpectedVersion):
+$($mismatches -join "`n")
+Fix the stated file(s) to match VERSION, then rebuild. (Edit by hand or in an
+editor — this script deliberately does NOT rewrite source files to avoid
+encoding corruption.)
+"@
+    }
+    Write-Step "Version coherence OK: Cargo.toml / tauri.conf.json / publicRelease.ts all = $ExpectedVersion"
 }
 
 function Resolve-OptionalPath([string]$PathValue) {
@@ -398,6 +446,18 @@ if (-not $Version) {
     # back to the on-disk VERSION when not bumping.
     $effectiveRaw = if ($pendingVersionWrite) { $pendingVersionWrite } else { (Get-Content -LiteralPath $versionPath -Raw) }
     $Version = Normalize-Version $effectiveRaw
+
+    # Coherence gate (only when version derives from VERSION, not an explicit
+    # -Version override): the three restated sources must equal the on-disk VERSION
+    # BASE (pre-bump). In bump mode VERSION will advance to the next rc AFTER a
+    # successful build, at which point the three sources are expected to be updated
+    # to the new base before the next release. Comparing against the base catches
+    # the historical drift (sources frozen behind VERSION) without false-failing on
+    # the one-step bump lead.
+    if (-not $SkipVersionCheck) {
+        $baseVersion = (Get-Content -LiteralPath $versionPath -Raw).Trim()
+        Assert-VersionSourcesCoherent -ExpectedVersion $baseVersion -RepoRoot $repoRoot
+    }
 } else {
     $Version = Normalize-Version $Version
 }
