@@ -36,7 +36,7 @@
 
 | ID | 무엇 | 파일(실측) | 비고 |
 |---|---|---|---|
-| **G0-1** | 번들 ID 정식 확정 | `src-tauri/tauri.conf.json:5` `com.yellowhama.musu` | **비가역 — 사용자 결정 필요** (정식 도메인/조직명). Store ID `blossompark.musu`와 정합? |
+| **G0-1** ✅ | 번들 ID `com.blossompark.musu`로 통일 | `src-tauri/tauri.conf.json:5` | **완료**. MSIX/Store identity는 이미 blossompark(build-msix.ps1:15)였고 tauri.conf만 옛 yellowhama로 어긋나 있던 정합. 비가역 신규결정 아님. GitHub repo URL `yellowhama/musu-bee`는 별개(origin)라 미변경. |
 | **G0-2** | 버전 3소스 일원화 | Cargo.toml `1.15.0-rc.1` / tauri.conf.json `1.15.0` / publicRelease.ts `1.15.0-rc.1` + 하드코딩 `MUSU_1.15.0_x64-setup.exe` URL | 단일 소스 of truth. rc 졸업 시점 사용자 결정. |
 | **G0-3** | 죽은 /pro waitlist 폼 | `src/app/pro/page.tsx` (onSubmit/action/fetch 0) | `/landing` 폼이 `/api/waitlist` POST하는 패턴 재사용. 리드 유실 방지. |
 
@@ -54,7 +54,7 @@
 
 | ID | 무엇 | self-contained 근거 |
 |---|---|---|
-| **T2-1** | OV 코드사인 인증서 (EV·하드웨어토큰 아님) | known-partner 신뢰바 충족, 하드웨어 의존 제거 |
+| ~~**T2-1**~~ | ~~OV/Trusted Signing 인증서~~ → **MS Store 서명 의존** (사용자 결정 2026-06-21) | Store가 패키지 재서명 → 별도 코드사인 인증서·비용 불필요, SmartScreen은 Store 경로에서 무효. **BLOCKER #1 해소.** 단 Store 외 직접배포(.appinstaller/.msix)는 여전히 자체서명 → Store-우선 유통으로 전환 |
 | **T2-2** | 로컬 파일 크래시 로그 (Sentry 아님) + panic hook | 오프라인 동작, 벤더 0. 사용자 첨부형 |
 | **T2-3** | atomic release.ps1 (CI provider 의존 아님) | 단일 스크립트로 "업로드 1개 누락→링크 깨짐" 해결 |
 
