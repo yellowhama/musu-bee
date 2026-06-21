@@ -57,6 +57,11 @@ param(
     # same version). Bump is always skipped for -DryRun, -SkipBuild, and explicit
     # -Version (see below).
     [switch]$NoBump,
+    # Escape hatch for the version-coherence gate (Cargo.toml/tauri.conf.json/
+    # publicRelease.ts must equal the VERSION base). Use only when intentionally
+    # building with a known drift; the gate exists so a package never embeds a
+    # version that lies about what was built.
+    [switch]$SkipVersionCheck,
     # Memory-safe builds are ON BY DEFAULT: cargo compiles one crate at a time
     # (CARGO_BUILD_JOBS=1) with a larger compiler stack (RUST_MIN_STACK) so the
     # release LTO of the large lib.rs (~7.5k lines) does not exhaust RAM/paging
@@ -176,6 +181,71 @@ function Normalize-Version([string]$RawVersion) {
         return "$core.$preNum"
     }
     throw "Version '$trimmed' must have 3 or 4 numeric segments for MSIX."
+}
+
+function Assert-VersionSourcesCoherent {
+    # VERSION is the authoritative source the build reads + auto-bumps. Three other
+    # files restate the same version and historically drifted (Cargo.toml/
+    # tauri.conf.json/publicRelease.ts froze at rc.1/GA while VERSION reached rc.6).
+    # We do NOT rewrite those files here — PowerShell regex on source files risks
+    # encoding corruption (see CLAUDE.md). Instead, read + compare and fail fast
+    # with an actionable message so a human fixes the stated source before shipping
+    # a package whose embedded version lies about what was built.
+    param([string]$ExpectedVersion, [string]$RepoRoot)
+
+    $checks = @(
+        @{ Name = "Cargo.toml";       Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "tauri.conf.json";  Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
+        @{ Name = "publicRelease.ts"; Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' }
+    )
+    $mismatches = @()
+    foreach ($c in $checks) {
+        if (-not (Test-Path -LiteralPath $c.Path)) {
+            $mismatches += "  - $($c.Name): file not found at $($c.Path)"
+            continue
+        }
+        $content = Get-Content -LiteralPath $c.Path -Raw
+        if ($content -match $c.Regex) {
+            $found = $Matches[1]
+            if ($found -ne $ExpectedVersion) {
+                $mismatches += "  - $($c.Name): '$found' (expected '$ExpectedVersion')"
+            }
+        } else {
+            $mismatches += "  - $($c.Name): could not locate a version string"
+        }
+    }
+
+    # Extra check: DESKTOP_SETUP_EXE_URL in publicRelease.ts hardcodes the NSIS
+    # artifact filename MUSU_<numeric>_x64-setup.exe. Tauri's NSIS bundler strips
+    # the prerelease tag, so the filename carries only major.minor.patch. This URL
+    # is NOT one of the three version-string checks above (it's a filename, not a
+    # version literal), so it would silently 404 on the next numeric-version
+    # graduation if left unguarded. Verify its numeric prefix matches the
+    # major.minor.patch of the expected version.
+    $publicReleasePath = Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts"
+    $expectedNumeric = ($ExpectedVersion -split "-", 2)[0].Trim()
+    if (Test-Path -LiteralPath $publicReleasePath) {
+        $prContent = Get-Content -LiteralPath $publicReleasePath -Raw
+        if ($prContent -match 'MUSU_(\d+\.\d+\.\d+)_x64-setup\.exe') {
+            $urlNumeric = $Matches[1]
+            if ($urlNumeric -ne $expectedNumeric) {
+                $mismatches += "  - publicRelease.ts DESKTOP_SETUP_EXE_URL: 'MUSU_$urlNumeric' (expected 'MUSU_$expectedNumeric')"
+            }
+        }
+        # If the URL constant isn't present or uses a different shape, skip — only
+        # flag an actual numeric mismatch, not absence.
+    }
+
+    if ($mismatches.Count -gt 0) {
+        throw @"
+Version sources drifted from VERSION ($ExpectedVersion):
+$($mismatches -join "`n")
+Fix the stated file(s) to match VERSION, then rebuild. (Edit by hand or in an
+editor — this script deliberately does NOT rewrite source files to avoid
+encoding corruption.)
+"@
+    }
+    Write-Step "Version coherence OK: Cargo.toml / tauri.conf.json / publicRelease.ts all = $ExpectedVersion"
 }
 
 function Resolve-OptionalPath([string]$PathValue) {
@@ -398,6 +468,26 @@ if (-not $Version) {
     # back to the on-disk VERSION when not bumping.
     $effectiveRaw = if ($pendingVersionWrite) { $pendingVersionWrite } else { (Get-Content -LiteralPath $versionPath -Raw) }
     $Version = Normalize-Version $effectiveRaw
+
+    # Coherence gate (only when version derives from VERSION, not an explicit
+    # -Version override): the three restated sources must equal the version this
+    # build will actually EMBED. In bump mode the MSIX is packaged at the bumped
+    # number ($pendingVersionWrite) while CARGO_PKG_VERSION comes from Cargo.toml;
+    # if we compared against the pre-bump base, the sources could lag the MSIX by
+    # one rc and /health would report a different version than the installed
+    # package announces (a version-identity split). So compare against the bumped
+    # value when bumping: this forces the operator to advance Cargo.toml/
+    # tauri.conf.json/publicRelease.ts to the bumped rc BEFORE the bump build, so
+    # MSIX and CARGO_PKG_VERSION always agree. Non-bump builds compare against the
+    # on-disk VERSION as-is.
+    if (-not $SkipVersionCheck) {
+        $expectedSourceVersion = if ($pendingVersionWrite) {
+            $pendingVersionWrite
+        } else {
+            (Get-Content -LiteralPath $versionPath -Raw).Trim()
+        }
+        Assert-VersionSourcesCoherent -ExpectedVersion $expectedSourceVersion -RepoRoot $repoRoot
+    }
 } else {
     $Version = Normalize-Version $Version
 }

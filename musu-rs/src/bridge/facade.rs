@@ -84,6 +84,18 @@ pub async fn proxy(State(state): State<AppState>, req: Request) -> Response {
         .unwrap_or("/");
     let upstream_url = format!("{}{}", upstream_base, path_and_query);
 
+    // Sidecar-removal telemetry: every line here is an /api/* path the native
+    // Rust router did NOT match and had to fall through to Python. Logging
+    // method+path of each proxied request produces the definitive PROXIED
+    // inventory we need before we can delete this fallback (server.py is not in
+    // this repo, so the proxied surface cannot be enumerated statically). Target
+    // is INFO so it shows up in normal runs; grep `facade proxied` to collect.
+    tracing::info!(
+        method = %req.method(),
+        path = %req.uri().path(),
+        "facade proxied request (un-ported /api/* → Python sidecar)"
+    );
+
     let (parts, body) = req.into_parts();
 
     // Stream the request body to the upstream via reqwest.

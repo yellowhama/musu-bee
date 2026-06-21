@@ -340,11 +340,22 @@ async fn run_github_release(home: &Path, cfg: &UpdateConfig, opts: &AutoUpdateOp
     }
 
     let token = super::token::read_bridge_token(home);
-    let _ = ipc_send(home, &ipc_request_json("freeze", Some("bridge"), &token)).await;
+    // freeze/unfreeze/start are best-effort: the real safety net is the post-swap
+    // /health poll + rollback below. But a failed `start` would otherwise be
+    // diagnosed only as a generic /health failure with no clue WHY the bridge
+    // didn't come back. Log each IPC failure at warn so the root cause (the IPC
+    // didn't land) is visible in the update log, without changing control flow.
+    if let Err(e) = ipc_send(home, &ipc_request_json("freeze", Some("bridge"), &token)).await {
+        tracing::warn!(error = %e, "auto-update: freeze IPC failed (continuing; swap proceeds)");
+    }
     let swap_outcome =
         staged_swap::perform_swap(&home.join("bin").join(super::musu_binary_name()))?;
-    let _ = ipc_send(home, &ipc_request_json("unfreeze", Some("bridge"), &token)).await;
-    let _ = ipc_send(home, &ipc_request_json("start", Some("bridge"), &token)).await;
+    if let Err(e) = ipc_send(home, &ipc_request_json("unfreeze", Some("bridge"), &token)).await {
+        tracing::warn!(error = %e, "auto-update: unfreeze IPC failed (continuing; /health will verify)");
+    }
+    if let Err(e) = ipc_send(home, &ipc_request_json("start", Some("bridge"), &token)).await {
+        tracing::warn!(error = %e, "auto-update: start IPC failed; bridge may stay down — /health poll will catch this and roll back");
+    }
 
     if matches!(swap_outcome, staged_swap::SwapOutcome::RebootRequired) {
         // Reboot scheduled; can't health-check the new binary in this process.
