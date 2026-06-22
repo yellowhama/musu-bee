@@ -57,7 +57,7 @@ fn mdns_virtual_interfaces_enabled() -> bool {
     env_truthy(MDNS_VIRTUAL_ENV)
 }
 
-fn is_virtual_mdns_interface_name(name: &str) -> bool {
+pub(crate) fn is_virtual_mdns_interface_name(name: &str) -> bool {
     let normalized = name.to_ascii_lowercase();
     normalized.contains("tailscale")
         || normalized.contains("nordlynx")

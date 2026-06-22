@@ -217,7 +217,19 @@ pub async fn run() -> Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let addr: SocketAddr = format!("{}:{}", cfg.bridge_host, cfg.bridge_port)
+    // Bind to all interfaces when the host is the loopback default, so other
+    // machines on the same LAN can reach this bridge directly (the address we
+    // advertise to the cloud registry is the LAN IP — see
+    // services::advertised_bridge_http_url). 0.0.0.0 still accepts loopback,
+    // so single-machine use is unaffected. Every request is bearer-gated
+    // (require_bearer), so opening the LAN interface does not weaken auth.
+    // An explicit non-loopback BRIDGE_HOST is honored as-is.
+    let bind_host = if cfg.bridge_host == "127.0.0.1" || cfg.bridge_host == "::1" {
+        "0.0.0.0"
+    } else {
+        cfg.bridge_host.as_str()
+    };
+    let addr: SocketAddr = format!("{}:{}", bind_host, cfg.bridge_port)
         .parse()
         .map_err(|e| anyhow::anyhow!("invalid bind address: {}", e))?;
 

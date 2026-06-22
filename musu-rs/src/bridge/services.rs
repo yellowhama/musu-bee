@@ -296,6 +296,38 @@ pub fn current_bridge_addr(cfg: &crate::bridge::config::BridgeConfig) -> String 
     format!("{}:{}", cfg.bridge_host, cfg.bridge_port)
 }
 
+/// Pick a private LAN IPv4 address other machines on the same network can
+/// actually reach, skipping virtual/VPN/tunnel interfaces (WSL, Docker,
+/// Tailscale, NordLynx, etc.) the same way the mDNS advertiser does. Returns
+/// `None` when no real LAN address exists (single offline machine), in which
+/// case the caller keeps the loopback fallback.
+///
+/// This is the fix for the cross-machine "loopback publish" bug: a desktop
+/// bridge advertises 127.0.0.1 by default, so a peer that fetches that address
+/// from the cloud registry points at its OWN loopback and can never reach us.
+/// Publishing the LAN IP lets same-LAN peers connect directly (the relay path
+/// stays as the WAN fallback). The user never configures this — the program
+/// detects its own reachable address.
+pub fn preferred_advertise_host() -> Option<String> {
+    let interfaces = local_ip_address::list_afinet_netifas().ok()?;
+    interfaces
+        .into_iter()
+        .filter(|(name, ip)| {
+            !crate::peer::mdns::is_virtual_mdns_interface_name(name) && is_private_ipv4(ip)
+        })
+        .map(|(_, ip)| ip.to_string())
+        .next()
+}
+
+/// RFC 1918 private IPv4 ranges (10/8, 172.16/12, 192.168/16). Loopback and
+/// link-local are excluded so we never re-publish an unreachable address.
+fn is_private_ipv4(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => v4.is_private(),
+        std::net::IpAddr::V6(_) => false,
+    }
+}
+
 pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> String {
     if let Some(url) = cfg.public_url.as_ref().filter(|u| !u.trim().is_empty()) {
         return url.trim_end_matches('/').to_string();
@@ -307,11 +339,19 @@ pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> 
         .and_then(|(_, port)| port.parse::<u16>().ok())
         .unwrap_or(cfg.bridge_port);
 
+    // Prefer a real LAN IP so other machines can reach us. The default
+    // bridge_host is 127.0.0.1 (loopback), which is unroutable from any other
+    // machine — publishing it is the root cause of "peer can't be reached".
+    // Fall back to loopback/hostname only when no LAN address exists.
     let host = if cfg.bridge_host == "0.0.0.0" || cfg.bridge_host == "::" {
-        hostname::get()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string()
+        preferred_advertise_host().unwrap_or_else(|| {
+            hostname::get()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
+    } else if cfg.bridge_host == "127.0.0.1" || cfg.bridge_host == "::1" {
+        preferred_advertise_host().unwrap_or_else(|| cfg.bridge_host.clone())
     } else {
         cfg.bridge_host.clone()
     };
@@ -798,6 +838,56 @@ mod tests {
     fn list_empty_dir() {
         let (_tmp, reg) = temp_registry();
         assert!(reg.list().is_empty());
+    }
+
+    #[test]
+    fn is_private_ipv4_classifies_rfc1918_and_rejects_public_loopback_v6() {
+        use std::net::IpAddr;
+        // RFC 1918 private ranges → reachable LAN candidates.
+        assert!(is_private_ipv4(&"192.168.1.154".parse::<IpAddr>().unwrap()));
+        assert!(is_private_ipv4(&"10.5.0.2".parse::<IpAddr>().unwrap()));
+        assert!(is_private_ipv4(&"172.16.0.1".parse::<IpAddr>().unwrap()));
+        // Loopback, link-local, public, and any IPv6 must NOT be advertised as a
+        // reachable LAN host (publishing them is the bug we are fixing).
+        assert!(!is_private_ipv4(&"127.0.0.1".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"169.254.10.141".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"8.8.8.8".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"::1".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"fe80::1".parse::<IpAddr>().unwrap()));
+    }
+
+    #[test]
+    fn advertised_url_keeps_explicit_non_loopback_host() {
+        // An operator who sets an explicit reachable BRIDGE_HOST is honored
+        // verbatim — we only auto-pick a LAN IP for the loopback default.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("explicit-host-home");
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "203.0.113.7".to_string(),
+            bridge_port: 7777,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+        let url = advertised_bridge_http_url(&cfg);
+        assert!(
+            url.contains("203.0.113.7"),
+            "explicit host must be preserved, got {url}"
+        );
     }
 
     #[test]
