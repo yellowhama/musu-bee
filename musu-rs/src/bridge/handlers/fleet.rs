@@ -543,7 +543,17 @@ mod tests {
         };
 
         let Json(status) = node_status(State(state)).await.unwrap();
-        assert_eq!(status.addr, "127.0.0.1:43123");
+        // This test asserts the advertised addr uses the RUNTIME registry PORT
+        // (43123), not the static config port. The HOST is now the machine's
+        // LAN IP when bridge_host is the loopback default (F-1: peers must reach
+        // us, not their own loopback), so we assert the port suffix rather than
+        // a hardcoded loopback host — keeps the test env-independent (CI / any
+        // LAN IP) while still proving the runtime-port wiring.
+        assert!(
+            status.addr.ends_with(":43123"),
+            "advertised addr should use runtime registry port 43123, got {}",
+            status.addr
+        );
         assert!(status.last_seen.is_some());
     }
 }
