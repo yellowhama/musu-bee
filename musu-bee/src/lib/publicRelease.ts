@@ -1,5 +1,5 @@
 export const PUBLIC_CONFIG_SCHEMA = "musu.public_config.v1";
-export const PUBLIC_RELEASE_VERSION = "1.15.0-rc.7";
+export const PUBLIC_RELEASE_VERSION = "1.15.0-rc.8";
 export const PUBLIC_RELEASE_METADATA_TEXT = `MUSU public release metadata: ${PUBLIC_RELEASE_VERSION}`;
 
 // Public desktop download artifacts, hosted on the fixed-tag GitHub release
