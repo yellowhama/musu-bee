@@ -554,6 +554,7 @@ fn desktop_status() -> DesktopStatus {
 /// the diagnostics drawer opens / Refresh is pressed — not 4×/min forever.
 #[derive(serde::Serialize)]
 struct CockpitState {
+    version: String,
     bridge_status: String,
     bridge_url: Option<String>,
     auth_status: String,
@@ -591,6 +592,7 @@ fn cockpit_state() -> CockpitState {
     .to_string();
 
     CockpitState {
+        version: env!("CARGO_PKG_VERSION").to_string(),
         bridge_status: bridge_status_label(
             bridge_ok,
             bridge_registry.pid_running,

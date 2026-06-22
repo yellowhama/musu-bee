@@ -3232,7 +3232,8 @@ function renderDiagnostics(status) {
   syncAccountAffordances(status);
 
   renderWarnings(status);
-  $("version").textContent = status.version ? `MUSU ${status.version}` : "";
+  // #version is set in syncAccountAffordances (called above) from status.version,
+  // shared by the cheap cockpit_state poll and this desktop_status path.
   window.__lastStatus = status;
 }
 
@@ -4412,11 +4413,19 @@ function syncAccountAffordances(status) {
   for (const id of ["m-signin", "set-signin"]) {
     const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
   }
-  // Only update the version when this status snapshot carries it (desktop_status
-  // does; the cheap cockpit_state does not). Don't blank it to "—" on a
-  // cockpit_state-driven sync.
+  // Update both version surfaces (header #version + settings #set-version) from
+  // whichever status snapshot carries it. Both cockpit_state (cheap 15s poll)
+  // and desktop_status (diagnostics drawer) now carry `version`
+  // (env!("CARGO_PKG_VERSION")), so the version shows on the normal poll without
+  // opening the diagnostics drawer. Guard so a snapshot lacking version never
+  // blanks an already-shown value.
   if (status?.version) {
-    const sv = $("set-version"); if (sv) sv.textContent = `MUSU ${status.version}`;
+    const label = `MUSU ${status.version}`;
+    const v = $("version"); if (v) v.textContent = label;
+    const sv = $("set-version"); if (sv) sv.textContent = label;
+    // Always-visible header version (no "MUSU" prefix — the brand mark is right
+    // there). This is the surface a user sees without opening any drawer/modal.
+    const av = $("app-version"); if (av) av.textContent = `v${status.version}`;
   }
 }
 
