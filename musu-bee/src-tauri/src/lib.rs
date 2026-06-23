@@ -40,6 +40,7 @@ pub fn run() {
             mesh_node_list,
             mesh_node_rename,
             mesh_node_remove,
+            complete_uninstall,
             private_mesh_release_proof_target,
             latest_release_evidence,
             latest_physical_peer_evidence,
@@ -424,6 +425,22 @@ const ADD_PC_START_CONTROL_HOST_TIMEOUT: std::time::Duration = std::time::Durati
 // `mesh join` runs `tailscale up` + a control-server /health re-check; give the
 // handshake the same headroom as create-join-key.
 const ADD_PC_JOIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+// U-B: complete uninstall runs `musu uninstall --deregister --purge` which does
+// mesh-leave (`tailscale down`), token delete, supervisor stop, and a recursive
+// directory removal. Give it real headroom — it should never time out under
+// normal operation, but a stuck `tailscale down` must not wedge the cockpit.
+const COMPLETE_UNINSTALL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(180);
+// U-B: the typed confirmation the cockpit UI requires before self-removal. The
+// handler re-checks this server-side so a tampered/replayed IPC call without the
+// exact string is refused regardless of what the UI did.
+const COMPLETE_UNINSTALL_CONFIRM: &str = "REMOVE MUSU";
+// U-B: filename of the LOCAL elevated self-removal helper shipped alongside the
+// app. Run elevated to Remove-AppxPackage (the CLI can't remove its own
+// package), untrust the cert, and clean %TEMP%. We launch the on-disk script —
+// never download+execute remote code. STATIC constant. Windows-only (the
+// package-removal path does not exist off Windows).
+#[cfg(windows)]
+const UNINSTALL_HELPER_SCRIPT: &str = "Uninstall-MUSU.ps1";
 // submit_order's outer timeout MUST exceed `musu route`'s internal HTTP submit
 // timeout (10s, cli_commands.rs). If they were equal, an order the bridge queued
 // at ~9.9s could be killed at 10.0s before run_route finished — reporting failure
@@ -1305,6 +1322,167 @@ fn mesh_node_remove(
         error: if result.status_success { None } else { Some(combined.clone()) },
         output: combined,
     })
+}
+
+/// `complete_uninstall` — U-B: the cockpit "완전 제거 (Uninstall MUSU)" button.
+/// ONE-WAY, fully destructive removal of THIS machine's MUSU install:
+///
+///  1. Runs the local CLI uninstall (`musu uninstall --deregister --purge …`)
+///     which detaches this machine from the account (mesh leave + logout) WHILE
+///     the network/token still exist, stops the bridge, and deletes `~/.musu`.
+///  2. Spawns a DETACHED + ELEVATED PowerShell helper to do the parts the CLI
+///     can't do to itself — `Remove-AppxPackage` (a process cannot remove the
+///     package it is running from), untrust the signing cert, clean `%TEMP%` —
+///     and then close the app window.
+///  3. Returns immediately; the window closes as the helper proceeds.
+///
+/// SECURITY (Critic): the elevated child is built from STATIC arguments plus the
+/// resolved on-disk script PATH only. The user-supplied `confirm` is validated
+/// here and then DISCARDED — it is never interpolated into any command line.
+/// `--i-have-a-backup` is passed to the CLI deliberately: the UI's typed
+/// confirmation IS the operator backup acknowledgement, so this is NOT a
+/// regression of the QB5 same-day-data gate (the gate exists to stop
+/// *un-acknowledged* auto-pilot deletes; here the human typed the exact
+/// destructive phrase).
+#[tauri::command]
+fn complete_uninstall(
+    app: tauri::AppHandle,
+    confirm: String,
+) -> Result<PrivateMeshJoinDesktopResult, String> {
+    // 1. Server-side re-validation of the typed confirmation. The UI gates on
+    //    this too, but never trust the renderer: a replayed/tampered IPC call
+    //    without the exact phrase is refused.
+    if confirm.trim() != COMPLETE_UNINSTALL_CONFIRM {
+        return Err(format!(
+            "complete_uninstall refused: confirmation must be exactly '{COMPLETE_UNINSTALL_CONFIRM}'."
+        ));
+    }
+
+    // 2. Local CLI uninstall (deregister + purge). All args STATIC — the typed
+    //    `confirm` is intentionally NOT forwarded. `--i-have-a-backup` is the
+    //    UI typed-confirm standing in for the backup ack (see doc above).
+    let command = musu_command_path();
+    let cli_args = [
+        "uninstall",
+        "--deregister",
+        "--purge",
+        "--i-understand-this-deletes-data",
+        "--i-have-a-backup",
+        "--json",
+    ];
+    let result = run_command_with_timeout(&command, &cli_args, COMPLETE_UNINSTALL_TIMEOUT)
+        .map_err(|err| format!("failed to run {} uninstall: {err}", command.display()))?;
+    if result.timed_out {
+        return Err(format!("{} uninstall timed out", command.display()));
+    }
+    let combined = combine_command_output(&result.stdout, &result.stderr);
+    if !result.status_success {
+        // The CLI refused (e.g., the purge gate) — do NOT proceed to the
+        // irreversible package removal. Surface the reason.
+        return Err(format!("uninstall failed: {}", combined.trim()));
+    }
+
+    // 3. Hand the package-level removal to a detached, elevated helper, then
+    //    close the app. If spawning the helper fails we still succeeded at the
+    //    local data removal — report that the package must be removed by hand.
+    let helper_spawned = spawn_elevated_uninstall_helper();
+
+    // Schedule the app exit slightly after returning so the renderer gets the
+    // result first and can show "removal in progress". Exit is unconditional —
+    // the local runtime data is already gone; staying open would be confusing.
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(1200));
+        handle.exit(0);
+    });
+
+    let output = if let Err(e) = helper_spawned {
+        format!(
+            "{combined}\n\nLocal data removed. Could not auto-launch the elevated package-removal \
+             helper ({e}). Finish by running Uninstall-MUSU.ps1 as Administrator, or remove the \
+             'MUSU' app from Windows Settings → Apps."
+        )
+    } else {
+        format!("{combined}\n\nRemoval in progress; this window will close.")
+    };
+
+    Ok(PrivateMeshJoinDesktopResult {
+        ok: true,
+        error: None,
+        output,
+    })
+}
+
+/// U-B: resolve the on-disk `Uninstall-MUSU.ps1` helper shipped with the app.
+/// Looks next to the current executable (and a `scripts/windows` sibling for
+/// dev/source layouts). Returns the first existing path. We only ever launch a
+/// LOCAL script — never download+execute remote code.
+#[cfg(windows)]
+fn resolve_uninstall_helper_script() -> Option<std::path::PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    // Production resolution is restricted to dirs that sit beside the installed
+    // exe (system-protected under MSIX WindowsApps). The helper runs ELEVATED, so
+    // we must never resolve it from a user-writable location in a shipped build —
+    // a planted Uninstall-MUSU.ps1 would otherwise execute with admin rights
+    // (dual-audit security MEDIUM, 2026-06-23).
+    let mut candidates = vec![
+        dir.join(UNINSTALL_HELPER_SCRIPT),
+        dir.join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+    ];
+    // dev/source tree only: musu-bee/src-tauri/target/<profile>/<exe> →
+    // repo-root/scripts/windows. Gated to debug builds so the user-writable
+    // target/ dir is never an elevated-script source in a release MSIX.
+    #[cfg(debug_assertions)]
+    candidates.push(
+        dir.join("..").join("..").join("..").join("..").join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+    );
+    candidates.into_iter().find(|p| p.exists())
+}
+
+/// U-B: spawn the elevated, detached PowerShell helper that performs the
+/// package-level removal the CLI cannot do to itself. Mirrors Install-MUSU.ps1's
+/// `Start-Process powershell -Verb RunAs` self-elevation, but launches the LOCAL
+/// on-disk `Uninstall-MUSU.ps1` (`-File`), never remote code.
+///
+/// CRITICAL (Critic, no-injection guarantee): every argument is either a STATIC
+/// compile-time constant or the resolved on-disk script PATH. No user input —
+/// not the typed `confirm`, not any fleet/account string — is ever placed on
+/// this command line. The script path is passed as a discrete `-ArgumentList`
+/// element (PowerShell array), not string-concatenated, so a path with spaces
+/// cannot break argument boundaries.
+#[cfg(windows)]
+fn spawn_elevated_uninstall_helper() -> Result<(), String> {
+    let script = resolve_uninstall_helper_script()
+        .ok_or_else(|| format!("could not locate {UNINSTALL_HELPER_SCRIPT} next to the app"))?;
+    let script_str = script.to_string_lossy().to_string();
+
+    // Outer (current-rights) shell: Start-Process the elevated child detached.
+    // The elevated child runs the LOCAL script via -File with -Force (the
+    // cockpit already collected the typed confirmation). Build the -ArgumentList
+    // as a PowerShell array; the script path is a single-quoted literal element.
+    // single-quote escaping: PowerShell escapes a literal ' by doubling it.
+    let script_lit = script_str.replace('\'', "''");
+    let outer = format!(
+        "Start-Process -FilePath 'powershell' -Verb RunAs -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{script_lit}','-Force')"
+    );
+
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-Command", &outer])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    no_window(&mut cmd)
+        .spawn()
+        .map(|_child| ())
+        .map_err(|err| format!("spawn elevated uninstall helper: {err}"))
+}
+
+/// Non-Windows: the MSIX/Store package-removal path does not apply. The CLI
+/// `--purge` already removed the local data; there is no package to evict.
+#[cfg(not(windows))]
+fn spawn_elevated_uninstall_helper() -> Result<(), String> {
+    Ok(())
 }
 
 #[tauri::command]

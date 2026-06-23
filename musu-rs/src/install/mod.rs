@@ -99,6 +99,29 @@ pub struct UninstallOpts {
     #[arg(long)]
     pub i_have_a_backup: bool,
 
+    /// U-B: also detach this machine from the account BEFORE stopping the
+    /// bridge — `mesh leave` (tailscale down, foreign-tailnet-safe) and
+    /// `logout` (delete `~/.musu/token`). Both are best-effort: a failure is
+    /// logged into the summary and never aborts the uninstall. Ordering is
+    /// load-bearing — these run while the network + token still exist, ahead
+    /// of `--purge` which deletes that token.
+    #[arg(long)]
+    pub deregister: bool,
+
+    /// U-B: print the MSIX self-removal command payload as JSON and exit
+    /// without doing anything else. A CLI cannot `Remove-AppxPackage` its own
+    /// package, so this hands the package family + signing-cert thumbprint +
+    /// temp dir to an external elevated helper (Uninstall-MUSU.ps1). Only
+    /// meaningful under a packaged (Store/MSIX) runtime identity.
+    #[arg(long)]
+    pub print_removal_command: bool,
+
+    /// U-B: emit the uninstall step summary as machine-readable JSON on stdout
+    /// (in addition to / instead of the human summary on stderr). The cockpit
+    /// `complete_uninstall` handler passes this so it can parse the outcome.
+    #[arg(long)]
+    pub json: bool,
+
     /// Override the install root. Used by tests with a tempdir.
     #[arg(long, hide = true)]
     pub musu_home: Option<std::path::PathBuf>,

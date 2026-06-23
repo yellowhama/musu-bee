@@ -509,6 +509,43 @@
             <button id="set-help" type="button">Help &amp; docs</button>
           </div>
         </section>
+        <section class="settings-section">
+          <h3>위험 구역 (Danger zone)</h3>
+          <p class="settings-hint">이 기기에서 MUSU를 완전히 제거합니다. 데이터가 삭제되고 이 기기가 계정에서 제거됩니다. 다른 기기는 영향받지 않습니다.</p>
+          <div class="settings-actions">
+            <button id="set-uninstall" type="button" class="btn-danger">완전 제거 (Uninstall MUSU)</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- U-B: complete-uninstall confirmation. Destructive + one-way, so it
+         requires BOTH an explicit checkbox AND typing the exact phrase
+         `REMOVE MUSU` before the action button enables. Korean-first copy. -->
+    <div id="uninstall-modal" class="modal-backdrop" hidden>
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="uninstall-title">
+        <div class="modal-head">
+          <h2 id="uninstall-title">MUSU 완전 제거</h2>
+          <button id="uninstall-cancel-x" class="modal-close" type="button" aria-label="취소">✕</button>
+        </div>
+        <p class="settings-hint">
+          이 작업은 되돌릴 수 없습니다. 이 기기의 MUSU 데이터(데이터베이스·설정·로그)가 삭제되고,
+          이 기기가 계정의 기기 목록에서 제거됩니다. <strong>다른 기기는 영향받지 않습니다.</strong>
+        </p>
+        <label class="uninstall-ack">
+          <input id="uninstall-ack-check" type="checkbox" />
+          <span>데이터가 삭제되고 이 기기가 계정에서 제거됨을 이해합니다.</span>
+        </label>
+        <label class="uninstall-type">
+          <span>계속하려면 <code>REMOVE MUSU</code> 를 입력하세요.</span>
+          <input id="uninstall-type-input" type="text" autocomplete="off" autocapitalize="off"
+                 spellcheck="false" placeholder="REMOVE MUSU" aria-label="REMOVE MUSU 입력" />
+        </label>
+        <p id="uninstall-error" class="settings-hint" role="alert" hidden></p>
+        <div class="settings-actions">
+          <button id="uninstall-cancel" type="button">취소</button>
+          <button id="uninstall-confirm" type="button" class="btn-danger" disabled>완전 제거</button>
+        </div>
       </div>
     </div>
 

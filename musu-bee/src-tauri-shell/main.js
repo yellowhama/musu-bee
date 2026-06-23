@@ -4502,6 +4502,77 @@ async function disconnectMesh(btn) {
 }
 $("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.currentTarget));
 
+// ── complete uninstall (U-B) ────────────────────────────────────────────────
+// Fully destructive, one-way removal of THIS machine's MUSU install. Distinct
+// from Sign out (cloud only) and Disconnect (mesh only): this deletes local data
+// AND detaches this machine from the account AND removes the app. Gated behind a
+// checkbox AND a typed phrase; the Rust handler re-validates the phrase server-
+// side, so the UI gate is convenience, not the security boundary.
+const UNINSTALL_PHRASE = "REMOVE MUSU";
+
+function uninstallReady() {
+  const checked = $("uninstall-ack-check")?.checked === true;
+  const typed = ($("uninstall-type-input")?.value || "").trim() === UNINSTALL_PHRASE;
+  return checked && typed;
+}
+
+function syncUninstallButton() {
+  const btn = $("uninstall-confirm");
+  if (btn) btn.disabled = !uninstallReady();
+}
+
+function setUninstallModalOpen(open) {
+  const modal = $("uninstall-modal");
+  if (!modal) return;
+  modal.hidden = !open;
+  if (open) {
+    setSettingsOpen(false);
+    // reset the gate each time it opens — never carry a prior ack/typing.
+    const chk = $("uninstall-ack-check");
+    if (chk) chk.checked = false;
+    const inp = $("uninstall-type-input");
+    if (inp) inp.value = "";
+    const err = $("uninstall-error");
+    if (err) { err.hidden = true; err.textContent = ""; }
+    syncUninstallButton();
+    inp?.focus();
+  }
+}
+
+async function confirmUninstall(btn) {
+  if (!uninstallReady()) return; // defensive — button should be disabled
+  if (btn) btn.disabled = true;
+  const err = $("uninstall-error");
+  if (err) { err.hidden = true; err.textContent = ""; }
+  try {
+    announce("Removing MUSU from this machine", true);
+    // The handler runs the destructive CLI uninstall, spawns the elevated
+    // package-removal helper, and schedules the app to close. We may never get
+    // here if the window closes first; that's expected.
+    await invoke("complete_uninstall", { confirm: UNINSTALL_PHRASE });
+    if (err) {
+      err.hidden = false;
+      err.textContent = "제거를 진행 중입니다. 이 창은 곧 닫힙니다.";
+    }
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (err) {
+      err.hidden = false;
+      err.textContent = `제거 실패: ${String(e).slice(0, 300)}`;
+    }
+  }
+}
+
+$("set-uninstall")?.addEventListener("click", () => setUninstallModalOpen(true));
+$("uninstall-cancel")?.addEventListener("click", () => setUninstallModalOpen(false));
+$("uninstall-cancel-x")?.addEventListener("click", () => setUninstallModalOpen(false));
+$("uninstall-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "uninstall-modal") setUninstallModalOpen(false); // backdrop
+});
+$("uninstall-ack-check")?.addEventListener("change", syncUninstallButton);
+$("uninstall-type-input")?.addEventListener("input", syncUninstallButton);
+$("uninstall-confirm")?.addEventListener("click", (e) => confirmUninstall(e.currentTarget));
+
 // Rename a fleet machine (WS-2c, resolve→confirm-by-id). Fetch the authoritative
 // node list, match this row by name AND tailnet IP, rename by the returned
 // Headscale id. Refuse if the row matches zero or more than one live node (the
