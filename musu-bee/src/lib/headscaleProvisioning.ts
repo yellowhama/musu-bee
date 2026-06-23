@@ -551,3 +551,60 @@ export async function deleteNodeForUser(args: {
   }
   return { removed: true, alreadyGone: false };
 }
+
+/**
+ * Remove THIS machine's own node from the mesh — the uninstall / self-deregister
+ * path (U-C). This is a SIBLING of `deleteNodeForUser` that is identical in every
+ * destructive-safety respect EXCEPT it deliberately OMITS the caller_ip
+ * self-eviction guard: here, evicting the requesting machine is the entire point
+ * (the operator is uninstalling MUSU from this PC). It is reachable ONLY via the
+ * distinct `remove-self` action; the normal `remove` path keeps its fail-closed
+ * self-guard, which remains impossible to toggle off (Critic HIGH-2 — there is no
+ * `allowSelf` boolean on `deleteNodeForUser`).
+ *
+ * EVERYTHING ELSE is preserved verbatim:
+ *  - owner-scope re-assert via `listNodesForUser` (cross-tenant barrier),
+ *  - `expectedName` optimistic-concurrency 409 (don't delete a node that was
+ *    renamed/replaced out from under the confirmation),
+ *  - idempotent 404 → alreadyGone, NEVER re-resolving by name/IP.
+ *
+ * The ONLY missing block, relative to `deleteNodeForUser`, is the
+ * caller_ip requirement + this-PC refusal (lines that throw 400). Auditors:
+ * this is the one and only place where the self-eviction guard is intentionally
+ * absent, and it is gated behind owner-scope + the dedicated action.
+ */
+export async function deleteSelfNodeForUser(args: {
+  cfg: HeadscaleClientConfig;
+  userId: string;
+  nodeId: string;
+  expectedName: string;
+}): Promise<{ removed: boolean; alreadyGone: boolean }> {
+  const { cfg, userId, nodeId, expectedName } = args;
+  const owned = await listNodesForUser(cfg, userId);
+  const target = owned.find((n) => n.id === nodeId);
+  if (!target) {
+    // Not in the owner's fleet → either already removed or never theirs.
+    return { removed: false, alreadyGone: true };
+  }
+  // Optimistic concurrency: the confirmed name must still match (don't delete a
+  // node that was renamed/replaced out from under the confirmation).
+  if (expectedName && target.name !== expectedName) {
+    throw new HeadscaleProvisioningError(
+      "node changed since you confirmed (name no longer matches); refusing to remove",
+      409
+    );
+  }
+  // NOTE: the caller_ip self-eviction guard from deleteNodeForUser is
+  // intentionally NOT present here — see the function doc. Self-removal IS the
+  // intent on this path.
+  const res = await headscaleFetch(cfg, `/api/v1/node/${encodeURIComponent(nodeId)}`, {
+    method: "DELETE",
+  });
+  if (res.status === 404) {
+    return { removed: false, alreadyGone: true }; // idempotent; do NOT re-resolve
+  }
+  if (!res.ok) {
+    throw new HeadscaleProvisioningError(`headscale delete node failed (${res.status})`, 502);
+  }
+  return { removed: true, alreadyGone: false };
+}

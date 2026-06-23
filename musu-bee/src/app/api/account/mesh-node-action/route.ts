@@ -6,6 +6,7 @@ import { checkMeshJoinRateLimit } from "@/lib/meshJoinRateLimit";
 import {
   HeadscaleProvisioningError,
   deleteNodeForUser,
+  deleteSelfNodeForUser,
   ensureHeadscaleUser,
   headscaleUserNameForOwnerKey,
   listNodesForUser,
@@ -22,13 +23,18 @@ export const runtime = "nodejs";
  * token, exactly like mesh-join-key. The owner_key derives the acct Headscale
  * user; ALL node operations are scoped to that user's id at the control plane.
  *
- * Three actions (resolve→confirm-by-id flow, Critic HIGH-1/HIGH-2/HIGH-3):
+ * Four actions (resolve→confirm-by-id flow, Critic HIGH-1/HIGH-2/HIGH-3):
  *  - {action:"list"}                          → the owner's nodes
  *  - {action:"rename", node_id, new_name}     → rename, re-asserting ownership by id
  *  - {action:"remove", node_id, expected_name, caller_ip?} → ONE-WAY evict, with
  *    owner-scope + name optimistic-concurrency + server-side this-PC refusal
  *    (caller_ip) + idempotent 404. Node deletion is gated; the destructive
  *    safety lives in deleteNodeForUser, never in the client.
+ *  - {action:"remove-self", node_id, expected_name} → U-C self-deregister on
+ *    uninstall. SAME owner-scope + name optimistic-concurrency + idempotent 404,
+ *    but the this-PC refusal is deliberately ABSENT (evicting this machine is the
+ *    point). It calls the dedicated `deleteSelfNodeForUser`; the normal `remove`
+ *    path's self-guard is untouched and cannot be toggled off (HIGH-2).
  *
  * The Headscale admin key is global (all users); the server-derived `?user=`
  * scope + per-action ownership re-assert in headscaleProvisioning are the sole
@@ -52,6 +58,15 @@ const RequestSchema = z.discriminatedUnion("action", [
       expected_name: z.string().min(1).max(63),
       // The caller's own tailnet IP, so the server can refuse self-eviction.
       caller_ip: z.string().max(64).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("remove-self"),
+      node_id: z.string().min(1).max(64).regex(/^\d+$/, "node_id must be numeric"),
+      // The name the resolver read alongside the id — optimistic-concurrency
+      // guard. NO caller_ip: self-eviction is the intent (U-C uninstall).
+      expected_name: z.string().min(1).max(63),
     })
     .strict(),
 ]);
@@ -127,6 +142,23 @@ export async function POST(req: NextRequest) {
       // Audit: who renamed what (no secrets, no owner token).
       console.log(`[mesh-node-action] rename node=${updated.id} → ${updated.name}`);
       return NextResponse.json({ ok: true, node: { id: updated.id, name: updated.name } });
+    }
+
+    if (parsed.data.action === "remove-self") {
+      // U-C self-deregister (uninstall). Same owner-scope + optimistic-concurrency
+      // + idempotent 404 as `remove`, but the this-PC self-guard is intentionally
+      // absent (deleteSelfNodeForUser) — evicting this machine is the intent.
+      const result = await deleteSelfNodeForUser({
+        cfg,
+        userId: user.id,
+        nodeId: parsed.data.node_id,
+        expectedName: parsed.data.expected_name,
+      });
+      // Audit: one-way op — log node id + result (no secrets).
+      console.log(
+        `[mesh-node-action] remove-self node=${parsed.data.node_id} removed=${result.removed} alreadyGone=${result.alreadyGone}`
+      );
+      return NextResponse.json({ ok: true, removed: result.removed, already_gone: result.alreadyGone });
     }
 
     // remove (one-way) — destructive safety enforced server-side in deleteNodeForUser.

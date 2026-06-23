@@ -1241,6 +1241,39 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
+    /// POST /api/account/mesh-node-action {action:"remove-self"} — U-C self
+    /// deregister on uninstall. Removes THIS machine's own node BY ID.
+    /// `expected_name` is the name read alongside the id (optimistic concurrency).
+    /// Unlike `remove`, there is NO `caller_ip`: self-eviction is the intent, so
+    /// the server's this-PC refusal is deliberately absent on this path
+    /// (deleteSelfNodeForUser). Owner-scope + idempotent 404 still enforced.
+    pub async fn remove_self_mesh_node(
+        &self,
+        node_id: &str,
+        expected_name: &str,
+    ) -> Result<MeshNodeRemoved> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-node-action", self.base_url);
+        let resp = self
+            .client
+            .post(&url)
+            .bearer_auth(token)
+            .json(&serde_json::json!({
+                "action": "remove-self",
+                "node_id": node_id,
+                "expected_name": expected_name,
+            }))
+            .send()
+            .await?;
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to self-deregister mesh node", &url, resp).await);
+        }
+        Ok(resp.json().await?)
+    }
+
     /// GET /api/v1/nodes to list sibling nodes.
     pub async fn list_nodes(&self) -> Result<Vec<RegistryNode>> {
         let token = self
