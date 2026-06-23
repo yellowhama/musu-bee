@@ -9,9 +9,12 @@
 #   [5/5] clean %TEMP%\musu-install
 #
 # This does NOT touch other machines on the account. Cloud self-deregister
-# (removing this node from the account registry) is a separate server task
-# (U-C); until it ships, this machine may linger as a ghost node until removed
-# from another machine's cockpit fleet view.
+# (removing THIS node from the account registry) ships as U-C and runs inside
+# step [1/5]: the CLI uninstall is invoked with --deregister, which evicts this
+# machine's mesh node from the cloud control plane while the tailnet IP and
+# account token are still live. If that step fails (offline, token gone), the
+# CLI reports it loudly and this machine may linger as a ghost node until it is
+# removed manually from another machine's cockpit fleet view.
 #
 # Self-elevates (mirrors Install-MUSU.ps1): if not admin, it re-launches itself
 # from its own file path inside an elevated PowerShell.
