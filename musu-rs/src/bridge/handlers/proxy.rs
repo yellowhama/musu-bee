@@ -291,10 +291,17 @@ async fn proxy_to_peer_url(
     let mut headers = reqwest::header::HeaderMap::new();
     copy_request_headers(&parts.headers, &mut headers);
 
-    // Forward Bearer token from our configuration so the peer accepts it
+    // Cross-machine file proxy MUST present the account-wide mesh bearer (C-1),
+    // not this machine's local bridge token, or the peer 401s every file op.
+    // insert (not append) replaces the inbound bearer (valid only to THIS bridge)
+    // with the mesh bearer the sibling accepts.
     headers.insert(
         reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_str(&format!("Bearer {}", state.config.token)).unwrap(),
+        reqwest::header::HeaderValue::from_str(&format!(
+            "Bearer {}",
+            state.config.outbound_peer_bearer()
+        ))
+        .unwrap(),
     );
 
     let method = match reqwest::Method::from_bytes(parts.method.as_str().as_bytes()) {
