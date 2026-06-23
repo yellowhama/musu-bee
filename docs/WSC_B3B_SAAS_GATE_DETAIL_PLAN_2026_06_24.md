@@ -20,7 +20,7 @@ human reviewer would catch it. B-3b makes it a CI gate.
   false-positive guards.
 - `.github/workflows/saas-gate.yml` — `pull_request → main`, extracts ADDED lines
   from each file's `patch` (lines starting `+`, not `+++`), runs the unit tests
-  (`node --test scripts/saas-gate/` — fixes the design-gate's un-wired-tests gap),
+  (`node --test scripts/saas-gate/*.test.cjs` — fixes the design-gate's un-wired-tests gap),
   then evaluates and `setFailed` with per-violation detail + remediation hint.
 
 ### What it flags vs allows (the precision that matters)
@@ -43,7 +43,7 @@ human reviewer would catch it. B-3b makes it a CI gate.
     substrings — pattern uses anchored import/host shapes, not bare substrings.
 
 ## Verification (the bar: zero false positives on existing code)
-- `node --test scripts/saas-gate/` → **9/9 pass** (incl. 3 false-positive guards).
+- `node --test scripts/saas-gate/*.test.cjs` → **9/9 pass** (incl. 3 false-positive guards).
 - Swept ALL **407 product files** on main through the evaluator (full content as
   added lines) → **0 violations, pass:true**. The gate does not block any existing
   legitimate code.
