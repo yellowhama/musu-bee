@@ -1,0 +1,106 @@
+name: SaaS Route Gate
+
+# B-3b: machine enforcement of the self-contained-product invariant. Fails a PR
+# when a NEW line in product code (musu-bee/src, musu-rs/src) introduces a
+# required dependency on a paid third-party SaaS (Sentry, AWS, hosted OpenAI,
+# fly.io, etc.). Env-gated optionals (@supabase/supabase-js, @vercel/kv) and the
+# local OpenAI-compatible protocol are allowed. See scripts/saas-gate/evaluate.cjs.
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  saas-gate:
+    name: saas-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run evaluator unit tests
+        run: node --test scripts/saas-gate/
+
+      - name: Evaluate product code for required SaaS dependencies
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { evaluateSaasGate } = require(
+              `${process.env.GITHUB_WORKSPACE}/scripts/saas-gate/evaluate.cjs`
+            );
+
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("This gate only supports pull_request events.");
+              return;
+            }
+
+            const ghFiles = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            // Extract ADDED lines from each file's unified-diff patch. Lines that
+            // start with "+" (but not the "+++" file header) are additions.
+            const addedLinesFromPatch = (patch) => {
+              if (!patch) return [];
+              return patch
+                .split("\n")
+                .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+                .map((l) => l.slice(1));
+            };
+
+            const files = ghFiles
+              .filter((f) => f.status !== "removed")
+              .map((f) => ({
+                filename: f.filename,
+                addedLines: addedLinesFromPatch(f.patch),
+              }));
+
+            const result = evaluateSaasGate({ files });
+
+            const toBulletList = (items) =>
+              items.length === 0
+                ? "- (none)"
+                : items.map((item) => `- \`${item}\``).join("\n");
+
+            await core.summary
+              .addHeading("SaaS Route Gate")
+              .addRaw(`Product files touched: **${result.productFilesTouched ? "yes" : "no"}**\n\n`)
+              .addRaw(`Gate result: **${result.pass ? "pass" : "fail"}**\n\n`)
+              .addRaw("Scanned product files:\n")
+              .addRaw(`${toBulletList(result.scannedFiles)}\n\n`)
+              .addRaw("Violations:\n")
+              .addRaw(
+                result.violations.length === 0
+                  ? "- (none)\n"
+                  : result.violations
+                      .map((v) => `- \`${v.file}\` — ${v.token}: \`${v.line}\``)
+                      .join("\n") + "\n"
+              )
+              .write();
+
+            if (!result.pass) {
+              core.setFailed(
+                [
+                  "SaaS route gate failed: product code added a required third-party SaaS dependency.",
+                  "musu must run from a user install alone (self-contained-product invariant).",
+                  "If the integration is genuinely optional, gate it behind an env-var check",
+                  "(e.g. isXConfigured()) with a graceful fallback, or add it to",
+                  "ALLOWED_OPTIONAL_SPECIFIERS in scripts/saas-gate/evaluate.cjs with rationale.",
+                  "",
+                  ...result.violations.map((v) => `  - ${v.file}: ${v.token} (${v.line})`),
+                ].join("\n")
+              );
+            }
