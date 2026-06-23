@@ -35,63 +35,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DoctorStatusCard from "../../components/DoctorStatusCard";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
+import {
+  type FleetNodeStatus,
+  type FleetDashboard,
+  type NodeState,
+  nodeState,
+  stateLabel,
+} from "@/lib/fleetState";
 
 const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 30_000;
 
-// ---- Types (match musu-rs fleet.rs FleetDashboard / FleetNodeStatus) -------
-
-interface FleetNodeStatus {
-  name: string;
-  addr: string;
-  healthy: boolean;
-  reachable_via?: string | null; // "direct" | "relay" | absent
-  is_self: boolean;
-  last_seen?: string | null;
-  status_error?: string | null;
-  tasks_running: number;
-  tasks_pending: number;
-  shared_dirs: string[];
-  version: string;
-}
-
-interface FleetDashboard {
-  this_node: FleetNodeStatus;
-  peers: FleetNodeStatus[];
-  total_nodes: number;
-  online_nodes: number;
-  total_tasks_running: number;
-  total_tasks_pending: number;
-}
+// ---- Types -----------------------------------------------------------------
+// FleetNodeStatus / FleetDashboard / NodeState + nodeState()/stateLabel() now
+// live in @/lib/fleetState (shared with /m/[id] so the 3-state derivation cannot
+// drift between web surfaces). Page-local types stay here.
 
 interface AgentSummary {
   id: string;
   name: string;
-}
-
-// ---- Status derivation ----------------------------------------------------
-
-type NodeState = "online" | "relay" | "offline";
-
-// Derive the display bucket from the bridge's healthy + reachable_via fields.
-//   healthy                       → online (direct route confirmed)
-//   !healthy && reachable_via=relay → relay  (reachable over relay, not offline)
-//   otherwise                     → offline
-function nodeState(node: FleetNodeStatus): NodeState {
-  if (node.healthy) return "online";
-  if (node.reachable_via === "relay") return "relay";
-  return "offline";
-}
-
-function stateLabel(state: NodeState): string {
-  switch (state) {
-    case "online":
-      return "online";
-    case "relay":
-      return "relay";
-    default:
-      return "offline";
-  }
 }
 
 // ---- Inline primitives (StatusDot) ----------------------------------------
@@ -264,7 +226,10 @@ function AddPcWizard({
     setAgentsFallback(false);
     (async () => {
       try {
-        const res = await fetch(`${BRIDGE_URL}/api/agents`);
+        // WS-A A-1: use the Next proxy route (relative), not the bridge directly.
+        // `${BRIDGE_URL}/api/agents` is the retired Python-era shape; the canonical
+        // surface is the local `/api/agents` route handler.
+        const res = await fetch(`/api/agents`);
         if (!alive) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Array<{ id: string; name: string }>;
@@ -290,10 +255,13 @@ function AddPcWizard({
     setSubmitting(true);
     setError(null);
     try {
-      // Per F-R7 + OQ: body keys MUST be exactly ["name","url","agents"];
-      // NO `version` field (server defaults it).
+      // WS-A A-1: route through the canonical Next proxy `/api/nodes/pair`
+      // (→ bridge `POST /api/nodes/add`, NodeAddRequest{name,url,tailscale_ip?,agents}).
+      // The old `${BRIDGE_URL}/api/admin/pair/accept` is a Python-era path musu-rs
+      // never served (the wizard's name+url+agents IS the node-add operation).
+      // Body keys stay ["name","url","agents"] — already matches NodeAddRequest.
       const body = { name, url, agents };
-      const res = await fetch(`${BRIDGE_URL}/api/admin/pair/accept`, {
+      const res = await fetch(`/api/nodes/pair`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
