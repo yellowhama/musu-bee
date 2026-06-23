@@ -13,8 +13,12 @@ const NEXT_APP_ROUTE_HANDLER_RE =
 
 const DESIGN_APPROVED_TOKEN_RE = /\bDesign:\s*Approved\b/i;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
-const PAPERCLIP_ISSUE_URL_RE =
-  /\/issues\/(?:MUS-\d+|[0-9a-fA-F-]{36})(?:[/?#]|$)/i;
+// Design-brief issue URL. musu uses its own trackers (musu-system / musu-brain /
+// musu-website-co GitHub issues) — Paperclip was dropped, so a plain numeric
+// GitHub `/issues/<n>` path is accepted alongside the legacy `MUS-<n>` and UUID
+// forms. The gate's intent is unchanged: a real brief issue URL must be present.
+const DESIGN_BRIEF_ISSUE_URL_RE =
+  /\/issues\/(?:MUS-\d+|[0-9a-fA-F-]{36}|\d+)(?:[/?#]|$)/i;
 const ARTIFACT_URL_RE = /\.(?:pen|png)(?:[?#][^\s)]*)?$/i;
 
 function extractUrls(text) {
@@ -39,8 +43,8 @@ function evaluateDesignGate({ changedFiles, prBody }) {
 
   const checks = {
     hasDesignApprovedToken: DESIGN_APPROVED_TOKEN_RE.test(body),
-    hasPaperclipIssueReference: urls.some((url) =>
-      PAPERCLIP_ISSUE_URL_RE.test(url)
+    hasDesignBriefIssueReference: urls.some((url) =>
+      DESIGN_BRIEF_ISSUE_URL_RE.test(url)
     ),
     hasArtifactLink: urls.some((url) => ARTIFACT_URL_RE.test(url)),
   };
@@ -49,8 +53,8 @@ function evaluateDesignGate({ changedFiles, prBody }) {
   if (!checks.hasDesignApprovedToken) {
     missingRequirements.push("`Design: Approved` token");
   }
-  if (!checks.hasPaperclipIssueReference) {
-    missingRequirements.push("Paperclip brief issue URL");
+  if (!checks.hasDesignBriefIssueReference) {
+    missingRequirements.push("design brief issue URL");
   }
   if (!checks.hasArtifactLink) {
     missingRequirements.push("artifact URL ending in `.pen` or `.png`");

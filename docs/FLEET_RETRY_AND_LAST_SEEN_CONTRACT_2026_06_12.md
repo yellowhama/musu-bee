@@ -115,6 +115,27 @@ Relay-reachable state (F-3, 2026-06-23):
   `reachable_via`; `fleet_node_from_bridge_value` maps both so `list_fleet`
   delivers them to the cockpit shell.
 
+Web-surface reconnect completion (WS-A, 2026-06-24):
+
+- The web side now derives the three-state from a single shared module
+  `musu-bee/src/lib/fleetState.ts` (`FleetNodeStatus`/`FleetDashboard`/`NodeState`
+  + `nodeState()`/`stateLabel()`), imported by BOTH `app/fleet/page.tsx` and
+  `app/m/[id]/page.tsx`. The two web pages can no longer drift from each other.
+- `app/m/[id]/page.tsx` was also on the phantom shape (`GET /api/machines/{id}` +
+  dead `/api/watch/subscribe?table=machines|resource_requests` SSE). Repointed to
+  `GET /api/fleet/status` filtered by node **name** (FleetNodeStatus has no `id`
+  field — it is keyed by `name`; fleet cards link `/m/${node.name}`). GPU/capacity
+  bars + active-requests dropped (FleetNodeStatus carries none).
+- AddPcWizard (in `app/fleet/page.tsx`) was hitting `${BRIDGE_URL}/api/agents` and
+  `${BRIDGE_URL}/api/admin/pair/accept` (neither served by musu-rs). Repointed to
+  the relative Next proxy routes `/api/agents` and `/api/nodes/pair` (the latter
+  forwards to bridge `/api/nodes/add`; the wizard's name+url+agents IS node-add).
+- The `runtime-polling-contract` test was loosened to allow polling-only axis
+  pages (no SSE at all is the strongest form of "no unbounded browser auto-retry").
+- The `design-gate` dropped its dead Paperclip dependency; the design-brief issue
+  URL check now accepts musu's own trackers (musu-system / musu-brain /
+  musu-website-co), including plain numeric GitHub `/issues/<n>`.
+
 ## Verification
 
 Focused checks cover:

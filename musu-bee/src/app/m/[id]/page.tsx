@@ -1,56 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+// Machine detail page (/m/[id]). WS-A A-2: repointed off the retired Python-era
+// `GET /api/machines/{id}` (musu-bridge shape, never served by musu-rs) onto the
+// real `GET /api/fleet/status` (FleetDashboard), filtered by node NAME — the
+// route param `id` IS the node name (the fleet page links `/m/${node.name}`;
+// FleetNodeStatus has no separate id field).
+//
+// The 3-state (online / relay / offline) derivation is imported from
+// @/lib/fleetState — the SAME helper the /fleet page uses, so the two web
+// surfaces cannot drift (THREE-surface invariant; see
+// docs/FLEET_RETRY_AND_LAST_SEEN_CONTRACT_2026_06_12.md).
+//
+// FleetNodeStatus carries no GPU/CPU/mem capacity and no active-requests list
+// (those were Python-era fields), so the old Capacity bars + Active-requests
+// section are gone. Refresh is 30s low-duty polling; the old
+// `/api/watch/subscribe?table=machines|resource_requests` EventSources are
+// removed (those watch tables do not exist in musu-rs — they only errored).
+
+import { useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
+import { getBridgeUrl } from "@/lib/bridge-config";
+import {
+  type FleetDashboard,
+  type FleetNodeStatus,
+  nodeState,
+  stateLabel,
+} from "@/lib/fleetState";
 
-interface MachineCapacity {
-  gpu_models: string[];
-  gpu_vram_total_gb: number;
-  gpu_vram_free_gb: number;
-  cpu_cores: number;
-  cpu_idle_pct: number;
-  mem_total_gb: number;
-  mem_free_gb: number;
-  runtime_classes: string[];
-  last_heartbeat_at: string | null;
-}
-
-interface ActiveRequest {
-  id: string;
-  agent_id: string;
-  company_id: string | null;
-  priority: number;
-  status: string;
-  bound_at: string | null;
-  created_at: string;
-}
-
-interface MachineDetail {
-  id: string;
-  hostname: string;
-  os: string;
-  arch: string;
-  status: string;
-  last_seen_at: string | null;
-  capacity: MachineCapacity | null;
-  active_requests: ActiveRequest[];
-}
-
-const BRIDGE_URL = process.env.NEXT_PUBLIC_MUSU_BRIDGE_URL || "http://localhost:8070";
+const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 30_000;
 
-function StatusDot({ status }: { status: string }) {
+function StatusDot({ node }: { node: FleetNodeStatus }) {
+  const state = nodeState(node);
   const color =
-    status === "online" || status === "running" || status === "bound"
+    state === "online"
       ? "var(--status-online)"
-      : status === "draining" || status === "pending"
+      : state === "relay"
         ? "var(--status-warn)"
         : "var(--status-error)";
   return (
     <span
-      aria-label={`status-${status}`}
+      aria-label={`status-${state}`}
       style={{
         display: "inline-block",
         width: 10,
@@ -64,84 +55,49 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-function Bar({ label, used, total, unit }: { label: string; used: number; total: number; unit: string }) {
-  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--fg2)" }}>
-        <span>{label}</span>
-        <span>
-          {used.toFixed(1)} / {total.toFixed(1)} {unit} ({pct}%)
-        </span>
-      </div>
-      <div
-        style={{
-          height: 6,
-          background: "var(--border-default)",
-          borderRadius: 3,
-          overflow: "hidden",
-          marginTop: 4,
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background: pct > 90 ? "var(--status-error)" : pct > 60 ? "var(--status-warn)" : "var(--status-online)",
-            transition: "width 200ms",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function MachinePage() {
   const params = useParams<{ id: string }>();
   const machineId = params?.id || "";
-  const [data, setData] = useState<MachineDetail | null>(null);
+  const [node, setNode] = useState<FleetNodeStatus | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const fetchInFlightRef = useRef(false);
 
-  const fetchData = useCallback(async (signal?: AbortSignal) => {
-    if (!machineId) return;
-    if (fetchInFlightRef.current) return;
-    fetchInFlightRef.current = true;
-    try {
-      const resp = await fetch(`${BRIDGE_URL}/api/machines/${machineId}`, { signal });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = (await resp.json()) as MachineDetail;
-      if (signal?.aborted) return;
-      setData(json);
-      setError(null);
-      setLastUpdated(new Date().toLocaleTimeString());
-    } catch (e) {
-      if (!signal?.aborted) setError(e instanceof Error ? e.message : "Failed to fetch");
-      if (signal) throw e;
-    } finally {
-      fetchInFlightRef.current = false;
-    }
-  }, [machineId]);
+  const fetchData = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!machineId) return;
+      if (fetchInFlightRef.current) return;
+      fetchInFlightRef.current = true;
+      try {
+        const resp = await fetch(`${BRIDGE_URL}/api/fleet/status`, { signal });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const dash = (await resp.json()) as FleetDashboard;
+        if (signal?.aborted) return;
+        // The route param is the node name. Match against this_node + peers.
+        const all = [dash.this_node, ...dash.peers];
+        const match = all.find((n) => n.name === machineId) ?? null;
+        setNode(match);
+        setNotFound(match === null);
+        setError(null);
+        setLastUpdated(new Date().toLocaleTimeString());
+      } catch (e) {
+        if (!signal?.aborted)
+          setError(e instanceof Error ? e.message : "Failed to fetch");
+        if (signal) throw e;
+      } finally {
+        fetchInFlightRef.current = false;
+      }
+    },
+    [machineId],
+  );
 
-  useLowDutyPolling(fetchData, { enabled: Boolean(machineId), intervalMs: REFRESH_INTERVAL });
-
-  const wake = useCallback(() => {
-    void fetchData();
-  }, [fetchData]);
-
-  // These streams affect this machine. The bounded hook prevents the browser's
-  // unbounded EventSource auto-retry loop from running in the background.
-  useBoundedEventSource({
+  useLowDutyPolling(fetchData, {
     enabled: Boolean(machineId),
-    url: `${BRIDGE_URL}/api/watch/subscribe?table=resource_requests`,
-    onMessage: wake,
+    intervalMs: REFRESH_INTERVAL,
   });
-  useBoundedEventSource({
-    enabled: Boolean(machineId),
-    url: `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
-    onMessage: wake,
-  });
+
+  const state = node ? nodeState(node) : null;
 
   return (
     <div
@@ -162,12 +118,14 @@ export default function MachinePage() {
               Machine axis · /m/{machineId}
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 700, margin: "8px 0 0", display: "flex", alignItems: "center" }}>
-              {data ? <StatusDot status={data.status} /> : null}
-              {data?.hostname || machineId}
+              {node ? <StatusDot node={node} /> : null}
+              {node?.name || machineId}
             </h1>
-            {data && (
+            {node && state && (
               <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
-                {data.os} · {data.arch} · status: <strong style={{ color: "var(--fg1)" }}>{data.status}</strong>
+                {node.addr} · v{node.version} · state:{" "}
+                <strong style={{ color: "var(--fg1)" }}>{stateLabel(state)}</strong>
+                {node.is_self && <> · this PC</>}
               </div>
             )}
             {lastUpdated && (
@@ -177,7 +135,7 @@ export default function MachinePage() {
             )}
           </div>
           <button
-            onClick={() => window.location.href = `/m/${machineId}/workstation`}
+            onClick={() => (window.location.href = `/m/${machineId}/workstation`)}
             style={{
               background: "var(--musu-color-brand-accent)",
               color: "var(--fg-on-accent)",
@@ -228,111 +186,95 @@ export default function MachinePage() {
         </div>
       )}
 
-      {data?.capacity && (
+      {notFound && !error && (
+        <div
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
+            borderRadius: 12,
+            padding: "16px 20px",
+            marginBottom: 24,
+            color: "var(--fg3)",
+            fontSize: 13,
+          }}
+        >
+          No node named <strong style={{ color: "var(--fg1)" }}>{machineId}</strong> in
+          the current fleet. It may be offline or removed.{" "}
+          <a href="/fleet" style={{ color: "var(--musu-color-brand-accent)" }}>
+            Back to fleet
+          </a>
+        </div>
+      )}
+
+      {node && (
         <section style={{ marginBottom: 32 }}>
-          <h2 style={sectionHeader}>Capacity</h2>
+          <h2 style={sectionHeader}>Status</h2>
           <div
             style={{
               background: "var(--bg-card)",
               border: "1px solid var(--border-default)",
               borderRadius: 12,
               padding: "20px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gap: 16,
             }}
           >
-            {data.capacity.gpu_vram_total_gb > 0 && (
-              <Bar
-                label={`GPU VRAM${data.capacity.gpu_models.length ? ` (${data.capacity.gpu_models.join(", ")})` : ""}`}
-                used={data.capacity.gpu_vram_total_gb - data.capacity.gpu_vram_free_gb}
-                total={data.capacity.gpu_vram_total_gb}
-                unit="GB"
-              />
-            )}
-            <Bar
-              label="Memory"
-              used={data.capacity.mem_total_gb - data.capacity.mem_free_gb}
-              total={data.capacity.mem_total_gb}
-              unit="GB"
+            <Stat label="Tasks running" value={String(node.tasks_running)} />
+            <Stat label="Tasks pending" value={String(node.tasks_pending)} />
+            <Stat
+              label="Reachable via"
+              value={node.reachable_via ?? (node.healthy ? "direct" : "—")}
             />
-            <div style={{ fontSize: 12, color: "var(--fg2)", marginTop: 8 }}>
-              CPU: {data.capacity.cpu_cores} cores · idle {data.capacity.cpu_idle_pct.toFixed(0)}%
-              {data.capacity.runtime_classes.length > 0 && (
-                <> · runtimes: {data.capacity.runtime_classes.join(", ")}</>
-              )}
-            </div>
+            <Stat label="Last seen" value={node.last_seen ?? "—"} />
+            {node.status_error && (
+              <Stat label="Probe error" value={node.status_error} />
+            )}
           </div>
         </section>
       )}
 
-      {data?.capacity === null && (
+      {node && node.shared_dirs.length > 0 && (
         <section style={{ marginBottom: 32 }}>
-          <h2 style={sectionHeader}>Capacity</h2>
+          <h2 style={sectionHeader}>Shared directories</h2>
           <div
             style={{
               background: "var(--bg-card)",
               border: "1px solid var(--border-default)",
               borderRadius: 12,
               padding: "16px 20px",
-              color: "var(--fg3)",
               fontSize: 13,
+              color: "var(--fg2)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
             }}
           >
-            No capacity heartbeat received yet. Bridge will report on next tick.
-          </div>
-        </section>
-      )}
-
-      {data && (
-        <section>
-          <h2 style={sectionHeader}>
-            Active requests ({data.active_requests.length})
-          </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {data.active_requests.map((r) => (
-              <div
-                key={r.id}
-                data-testid={`request-${r.id}`}
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border-default)",
-                  borderRadius: 12,
-                  padding: "12px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <StatusDot status={r.status} />
-                  <span style={{ fontFamily: "monospace", color: "var(--fg2)" }}>{r.id.slice(0, 8)}</span>
-                  <span style={{ color: "var(--fg1)", fontWeight: 600 }}>{r.status}</span>
-                  {r.priority !== 0 && <span style={{ color: "var(--fg2)" }}>prio={r.priority}</span>}
-                </div>
-                <div style={{ display: "flex", gap: 12, color: "var(--fg3)" }}>
-                  {r.company_id && (
-                    <a
-                      href={`/c/${r.company_id}`}
-                      style={{ color: "var(--musu-color-brand-accent)" }}
-                    >
-                      {r.company_id}
-                    </a>
-                  )}
-                  <span>{r.agent_id}</span>
-                </div>
-              </div>
+            {node.shared_dirs.map((d) => (
+              <span key={d} style={{ fontFamily: "monospace" }}>
+                {d}
+              </span>
             ))}
-            {data.active_requests.length === 0 && (
-              <div style={{ color: "var(--fg3)", padding: 16 }}>
-                No active requests on this machine.
-              </div>
-            )}
           </div>
         </section>
       )}
 
-      {!data && !error && (
+      {!node && !error && !notFound && (
         <div style={{ color: "var(--fg3)", textAlign: "center", padding: 48 }}>Loading...</div>
       )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--fg3)", textTransform: "uppercase", letterSpacing: 1 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--fg1)", marginTop: 4, wordBreak: "break-word" }}>
+        {value}
+      </div>
     </div>
   );
 }
