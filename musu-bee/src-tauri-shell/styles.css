@@ -479,6 +479,12 @@ body {
   background: var(--online);
   box-shadow: 0 0 12px -2px var(--online-glow);
 }
+/* F-3 HIGH-A: relay = reachable over the relay (yellow), distinct from both
+   online (green/direct) and offline (red). Mirrors the web page's
+   --status-warn (StatusDot relay branch) so all three surfaces agree. */
+.fleet-row.relay::before {
+  background: var(--warn);
+}
 
 .fleet-row .node-dot {
   position: relative;
@@ -490,6 +496,9 @@ body {
 }
 .fleet-row.online .node-dot {
   background: var(--online);
+}
+.fleet-row.relay .node-dot {
+  background: var(--warn);
 }
 .fleet-row.online .node-dot::after {
   content: "";
@@ -551,6 +560,7 @@ body {
   color: var(--ink-faint);
 }
 .node-status.ok { color: var(--online); }
+.node-status.relay { color: var(--warn); }
 .node-status.off { color: var(--ink-faint); }
 
 .node-network {

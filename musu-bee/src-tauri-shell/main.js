@@ -277,6 +277,29 @@ function nodeIsOnline(node, thisPcBridgeOk) {
   return !nodeStatusError(node) && isOnline(node?.last_seen);
 }
 
+// F-3 HIGH-A: a peer with a direct route down BUT reachable_via="relay" is
+// reachable over the relay, NOT offline. The web page (fleet/page.tsx
+// nodeState) and CLI (cli_commands.rs) both read the same `reachable_via`
+// field; the cockpit must agree or it shows "(probe failed)"/offline where the
+// other two surfaces show "relay"/yellow. Keep this a pure read of the field
+// the bridge already emits — do NOT conflate with mesh.state (tailscale label).
+function nodeReachableViaRelay(node) {
+  return String(node?.reachable_via || "") === "relay";
+}
+
+// Single source of truth for the 3-state fleet status, used by BOTH the
+// order-target <select> and the renderFleet <li> so they cannot drift (the
+// exact bug class F-3 HIGH-A). Mirrors fleet/page.tsx nodeState():
+//   online  → direct route confirmed (or this PC's bridge up)
+//   relay   → direct route down but reachable over the relay
+//   offline → neither
+// "targetable" = state !== "offline" (a relay peer IS reachable via forward).
+function nodeFleetState(node, thisPcBridgeOk) {
+  if (nodeIsOnline(node, thisPcBridgeOk)) return "online";
+  if (nodeReachableViaRelay(node)) return "relay";
+  return "offline";
+}
+
 function orderTargetIsAvailable(target) {
   const value = String(target || "");
   if (!value) return true;
@@ -2799,6 +2822,7 @@ function applyFleetFilter() {
   const counts = {
     all: rows.length,
     online: 0,
+    relay: 0,
     targetable: 0,
     "this-pc": 0,
     stale: 0,
@@ -2886,11 +2910,15 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     sel.appendChild(any);
     for (const n of nodes) {
       const statusError = nodeStatusError(n);
-      const online = nodeIsOnline(n, thisPcBridgeOk);
+      const fleetState = nodeFleetState(n, thisPcBridgeOk);
+      const online = fleetState === "online";
+      const relay = fleetState === "relay";
+      // A relay peer is reachable via forward — targetable like an online one.
+      const targetable = fleetState !== "offline";
       const mesh = meshLabelForNode(n);
       const opt = document.createElement("option");
       opt.value = n.node_name;
-      opt.disabled = !online;
+      opt.disabled = !targetable;
       opt.dataset.thisPc = n.is_this_pc ? "true" : "false";
       opt.dataset.meshState = mesh.state;
       opt.dataset.meshLabel = mesh.label;
@@ -2900,7 +2928,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
         n.control_server_verified === true || n.control_server_verified === "true" ? "true" : "false";
       opt.textContent = n.is_this_pc
         ? `${n.node_name} (this PC${online ? "" : " unavailable"})`
-        : `${n.node_name}${online ? "" : statusError ? ` (${statusError})` : " (offline)"}`;
+        : relay
+          ? `${n.node_name} (relay)`
+          : `${n.node_name}${online ? "" : statusError ? ` (${statusError})` : " (offline)"}`;
       sel.appendChild(opt);
     }
     if ([...sel.options].some((o) => o.value === prev && !o.disabled)) {
@@ -2915,7 +2945,11 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // THIS PC's liveness = the local bridge being up (not an unconditional true —
     // if the bridge is down while the window is open, this PC is NOT online).
     const statusError = nodeStatusError(n);
-    const online = nodeIsOnline(n, thisPcBridgeOk);
+    const fleetState = nodeFleetState(n, thisPcBridgeOk);
+    const online = fleetState === "online";
+    const relay = fleetState === "relay";
+    // A relay peer is reachable via forward — selectable like an online one.
+    const targetable = fleetState !== "offline";
     const seen = relTime(n.last_seen);
     const stale = !online && Boolean(seen);
     const mesh = meshLabelForNode(n);
@@ -2927,9 +2961,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     const releaseProofCommand = exactReleaseProofCommandForTarget(releaseProofTarget);
     const physicalPeerEvidenceCommand = physicalPeerEvidenceCommandForTarget(releaseProofTarget);
     const li = document.createElement("li");
-    li.className = `fleet-row ${online ? "online" : "offline"}`;
-    li.dataset.fleetState = online ? "online" : "offline";
-    li.dataset.fleetTargetable = online ? "true" : "false";
+    li.className = `fleet-row ${fleetState}`;
+    li.dataset.fleetState = fleetState;
+    li.dataset.fleetTargetable = targetable ? "true" : "false";
     li.dataset.fleetThisPc = n.is_this_pc ? "true" : "false";
     li.dataset.fleetStale = stale ? "true" : "false";
     li.dataset.meshState = mesh.state;
@@ -2939,19 +2973,23 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // machine, give it work." Keyboard-accessible (Enter/Space).
     li.tabIndex = 0;
     li.setAttribute("role", "button");
-    li.setAttribute("aria-disabled", online ? "false" : "true");
+    li.setAttribute("aria-disabled", targetable ? "false" : "true");
     li.setAttribute(
       "aria-label",
-      online
-        ? `Send an order to ${n.node_name || "this machine"}`
-        : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
+      relay
+        ? `Send an order to ${n.node_name || "this machine"} (reachable via relay)`
+        : online
+          ? `Send an order to ${n.node_name || "this machine"}`
+          : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
     );
-    if (!online) {
+    if (relay) {
+      li.title = `Reachable via relay${seen ? ` — last seen ${seen}` : ""}`;
+    } else if (!online) {
       li.title = statusError || (seen ? `Last seen ${seen}` : "Asleep or off");
     }
     li.dataset.node = n.node_name || "";
     const selectThisMachine = () => {
-      if (!online) return;
+      if (!targetable) return;
       const sel = $("order-target");
       if (sel && [...sel.options].some((o) => o.value === li.dataset.node && !o.disabled)) {
         sel.value = li.dataset.node;
@@ -3010,14 +3048,16 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // not enough — never rely on color alone, web.dev offline-UX). "Ready" when
     // online and targetable, otherwise the human last-seen / asleep state.
     const statusLabel = document.createElement("span");
-    statusLabel.className = `node-status ${online ? "ok" : "off"}`;
+    statusLabel.className = `node-status ${online ? "ok" : relay ? "relay" : "off"}`;
     statusLabel.textContent = online
       ? "Ready"
-      : statusError
-        ? "Needs attention"
-        : seen
-          ? `Last seen ${seen}`
-          : "Asleep or off";
+      : relay
+        ? "Ready (relay)"
+        : statusError
+          ? "Needs attention"
+          : seen
+            ? `Last seen ${seen}`
+            : "Asleep or off";
     li.appendChild(statusLabel);
 
     const meshBadge = document.createElement("span");

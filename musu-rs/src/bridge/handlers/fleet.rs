@@ -7,8 +7,21 @@
 
 use axum::extract::State;
 use axum::Json;
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
+
+/// Freshness window for the "relay-reachable" verdict (F-3).
+///
+/// A peer whose direct probe fails is still shown as relay-reachable (yellow,
+/// not offline) if the cloud registry saw a heartbeat within this many seconds.
+/// The registry heartbeat TTL is 120s (see cloud/mod.rs `heartbeat_ttl_seconds`,
+/// the publish payload sends 120). We use 300s ≈ 2.5×TTL: it tolerates 1-2
+/// missed beats (transient packet loss) but a node the registry has already
+/// expired (its record is gone past TTL) will not be falsely shown reachable —
+/// once the registry drops the node, `peer_last_seen` returns no recent stamp.
+/// Do NOT widen this to 600s: that would paint a registry-dead node "relay" for
+/// up to 10 minutes.
+const RELAY_FRESH_SECS: i64 = 300;
 
 use crate::bridge::error::{MusuError, Result};
 use crate::bridge::AppState;
@@ -86,6 +99,13 @@ pub struct FleetNodeStatus {
     pub name: String,
     pub addr: String,
     pub healthy: bool,
+    /// How this node is reachable: `"direct"` (probe succeeded or self),
+    /// `"relay"` (direct probe failed but the registry has a recent heartbeat),
+    /// or absent/`None` (offline — neither direct nor relay-fresh). `healthy`
+    /// remains `false` for a relay peer; this field distinguishes "reachable via
+    /// relay" from "truly offline" for the cockpit / CLI status indicators.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reachable_via: Option<String>,
     pub is_self: bool,
     pub last_seen: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -132,13 +152,37 @@ fn peer_meta_bool(peer: &ResolvedPeer, key: &str) -> Option<bool> {
         .and_then(|v| v.as_bool())
 }
 
+/// Decide whether a peer whose direct probe failed is still relay-reachable.
+///
+/// Pure function over the peer's last-seen RFC3339 stamp (from the cloud
+/// registry heartbeat, normalized by [`peer_last_seen`]) and a "now" instant.
+/// Returns `Some("relay")` when the stamp parses and is within
+/// [`RELAY_FRESH_SECS`] of `now`; otherwise `None` (offline). No last_seen →
+/// `None` (preserves the offline-with-no-fabrication contract).
+fn relay_verdict(last_seen: Option<&str>, now: DateTime<Utc>) -> Option<String> {
+    let stamp = last_seen?;
+    let parsed = DateTime::parse_from_rfc3339(stamp).ok()?;
+    let age = now.signed_duration_since(parsed.with_timezone(&Utc));
+    if age.num_seconds() >= 0 && age.num_seconds() <= RELAY_FRESH_SECS {
+        Some("relay".to_string())
+    } else {
+        None
+    }
+}
+
 fn peer_fallback_status(peer: &ResolvedPeer, status_error: impl Into<String>) -> FleetNodeStatus {
+    let last_seen = peer_last_seen(peer);
+    // Direct probe failed; if the registry still has a fresh heartbeat the peer
+    // is reachable over relay, not offline. healthy STAYS false (no direct
+    // route) — reachable_via carries the distinction.
+    let reachable_via = relay_verdict(last_seen.as_deref(), Utc::now());
     FleetNodeStatus {
         name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
         addr: peer.addr.clone(),
         healthy: false,
+        reachable_via,
         is_self: false,
-        last_seen: peer_last_seen(peer),
+        last_seen,
         status_error: Some(status_error.into()),
         tailscale_ip: peer_meta_string(peer, "tailscale_ip"),
         mesh_mode: peer_meta_string(peer, "mesh_mode"),
@@ -156,6 +200,38 @@ fn local_mesh_status(
     musu_home: &std::path::Path,
 ) -> crate::install::private_mesh::PrivateMeshStatusReport {
     crate::install::private_mesh::build_status_report(musu_home)
+}
+
+/// Roll up the fleet dashboard counters from the per-peer statuses.
+///
+/// Returns `(online_nodes, total_tasks_running, total_tasks_pending)`, seeded
+/// with self (online starts at 1; the local task counts are passed in).
+///
+/// Deliberate asymmetry (HIGH-2): `online_nodes` counts a relay-reachable peer
+/// (`reachable_via == "relay"`) as online so the cockpit doesn't hide a peer we
+/// can still relay to — but task totals are summed ONLY for `healthy` peers. A
+/// relay peer's direct probe FAILED, so we have no trustworthy task counts for
+/// it (the fallback status reports 0/0); summing those would fabricate "0 tasks"
+/// as if confirmed. Do NOT "harmonize" these two — the online count and the task
+/// totals answer different questions.
+fn tally_fleet(
+    peer_statuses: &[FleetNodeStatus],
+    local_running: u32,
+    local_pending: u32,
+) -> (u32, u32, u32) {
+    let mut total_running = local_running;
+    let mut total_pending = local_pending;
+    let mut online = 1u32; // self
+    for ns in peer_statuses {
+        if ns.healthy || ns.reachable_via.as_deref() == Some("relay") {
+            online += 1;
+        }
+        if ns.healthy {
+            total_running += ns.tasks_running;
+            total_pending += ns.tasks_pending;
+        }
+    }
+    (online, total_running, total_pending)
 }
 
 // ── F3 handlers ─────────────────────────────────────────────────────
@@ -202,6 +278,7 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
             .trim_start_matches("https://")
             .to_string(),
         healthy: true,
+        reachable_via: Some("direct".to_string()),
         is_self: true,
         last_seen: Some(Utc::now().to_rfc3339()),
         status_error: None,
@@ -247,6 +324,11 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
                         Ok(mut ns) => {
                             ns.last_seen.get_or_insert_with(|| Utc::now().to_rfc3339());
                             ns.status_error = None;
+                            // MED-2: the prober reached the peer directly, so its
+                            // verdict overrides whatever the peer self-reported
+                            // (node_status answers "direct" by default, but a peer
+                            // can't know how WE reach it — the prober does).
+                            ns.reachable_via = Some("direct".to_string());
                             ns
                         }
                         Err(_) => peer_fallback_status(peer, "node status unreadable"),
@@ -258,16 +340,8 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     });
     let peer_statuses: Vec<FleetNodeStatus> = futures_util::future::join_all(probes).await;
 
-    let mut total_running = local_running;
-    let mut total_pending = local_pending;
-    let mut online = 1u32; // self
-    for ns in &peer_statuses {
-        if ns.healthy {
-            online += 1;
-            total_running += ns.tasks_running;
-            total_pending += ns.tasks_pending;
-        }
-    }
+    let (online, total_running, total_pending) =
+        tally_fleet(&peer_statuses, local_running, local_pending);
 
     let total_nodes = 1 + peer_statuses.len();
 
@@ -316,6 +390,12 @@ pub async fn node_status(State(state): State<AppState>) -> Result<Json<FleetNode
             .trim_start_matches("https://")
             .to_string(),
         healthy: true,
+        // Self answering a peer's probe: from our own vantage we are reachable
+        // directly. The PROBER on the other side overwrites this with its own
+        // verdict (see the probe success branch in `fleet_status`), so this is
+        // only the default the requesting peer sees if it somehow trusts our
+        // self-report.
+        reachable_via: Some("direct".to_string()),
         is_self: false,
         last_seen: Some(Utc::now().to_rfc3339()),
         status_error: None,
@@ -425,6 +505,110 @@ mod tests {
             peer_last_seen(&peer).as_deref(),
             Some("2026-06-12T03:22:03+00:00")
         );
+    }
+
+    /// Build a minimal peer status for tally tests.
+    fn status(healthy: bool, reachable_via: Option<&str>, running: u32, pending: u32) -> FleetNodeStatus {
+        FleetNodeStatus {
+            name: "peer".into(),
+            addr: "127.0.0.1:1".into(),
+            healthy,
+            reachable_via: reachable_via.map(str::to_string),
+            is_self: false,
+            last_seen: None,
+            status_error: None,
+            tailscale_ip: None,
+            mesh_mode: None,
+            route_label: None,
+            control_server_url: None,
+            control_server_verified: None,
+            tasks_running: running,
+            tasks_pending: pending,
+            shared_dirs: vec![],
+            version: "test".into(),
+        }
+    }
+
+    #[test]
+    fn relay_verdict_fresh_last_seen_is_relay() {
+        let now = Utc::now();
+        let last_seen = (now - chrono::Duration::seconds(60)).to_rfc3339();
+        assert_eq!(
+            relay_verdict(Some(&last_seen), now).as_deref(),
+            Some("relay")
+        );
+    }
+
+    #[test]
+    fn relay_verdict_stale_last_seen_is_offline() {
+        let now = Utc::now();
+        let last_seen = (now - chrono::Duration::hours(2)).to_rfc3339();
+        assert_eq!(relay_verdict(Some(&last_seen), now), None);
+    }
+
+    #[test]
+    fn relay_verdict_no_last_seen_is_offline() {
+        let now = Utc::now();
+        assert_eq!(relay_verdict(None, now), None);
+    }
+
+    #[test]
+    fn relay_verdict_boundary_exactly_fresh_is_relay() {
+        // A stamp exactly RELAY_FRESH_SECS old is still relay (inclusive).
+        let now = Utc::now();
+        let last_seen = (now - chrono::Duration::seconds(RELAY_FRESH_SECS)).to_rfc3339();
+        assert_eq!(
+            relay_verdict(Some(&last_seen), now).as_deref(),
+            Some("relay")
+        );
+    }
+
+    #[test]
+    fn peer_fallback_status_fresh_heartbeat_is_relay_not_offline() {
+        // Fresh registry heartbeat (epoch ~now-60s) → relay-reachable, but
+        // healthy stays false (direct probe failed).
+        let recent = (Utc::now() - chrono::Duration::seconds(60)).timestamp();
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "10.0.0.9:8070".to_string(),
+            name: Some("wan-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({ "last_health_at": recent })),
+        };
+        let status = peer_fallback_status(&peer, "node status probe failed");
+        assert!(!status.healthy, "relay peer is not healthy");
+        assert_eq!(status.reachable_via.as_deref(), Some("relay"));
+    }
+
+    #[test]
+    fn peer_fallback_status_stale_heartbeat_is_offline() {
+        let stale = (Utc::now() - chrono::Duration::hours(2)).timestamp();
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "10.0.0.10:8070".to_string(),
+            name: Some("dead-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: Some(serde_json::json!({ "last_health_at": stale })),
+        };
+        let status = peer_fallback_status(&peer, "node status probe failed");
+        assert!(!status.healthy);
+        assert_eq!(status.reachable_via, None, "stale peer is offline, not relay");
+    }
+
+    #[test]
+    fn tally_counts_relay_peer_online_but_excludes_its_tasks() {
+        // A relay peer increments online_nodes but its (untrusted) task counts
+        // are NOT summed; a stale/offline peer increments neither.
+        let peers = vec![
+            status(true, Some("direct"), 3, 1),  // healthy: online + tasks
+            status(false, Some("relay"), 9, 9),  // relay: online only, tasks ignored
+            status(false, None, 5, 5),           // offline: neither
+        ];
+        let (online, running, pending) = tally_fleet(&peers, 2, 4);
+        // self(1) + healthy(1) + relay(1) = 3 online
+        assert_eq!(online, 3);
+        // local 2 + healthy peer 3 = 5; relay/offline task counts excluded
+        assert_eq!(running, 5);
+        // local 4 + healthy peer 1 = 5
+        assert_eq!(pending, 5);
     }
 
     #[test]

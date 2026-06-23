@@ -321,9 +321,10 @@ pub async fn run() -> Result<()> {
         );
     }
 
-    // Relay payload fallback target polling is opt-in. The default desktop
-    // profile stays request-driven so idle CPU evidence is not polluted by a
-    // cloud queue polling loop.
+    // Relay payload fallback target polling is ON by default (relay is the
+    // standard cross-machine fallback); it is opt-OUT only via
+    // MUSU_ENABLE_RELAY_PAYLOAD_POLLER. The poller's own capped idle backoff
+    // keeps idle CPU low so the default desktop profile stays quiet.
     handlers::relay_payload::start_relay_payload_poller_if_enabled(state.clone());
 
     // Build the native router. All served endpoints are native Rust routes;
