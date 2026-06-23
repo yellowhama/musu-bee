@@ -1,8 +1,10 @@
-//! Bounded target-side relay payload drain and opt-in low-duty poller.
+//! Bounded target-side relay payload drain and default-on low-duty poller.
 //!
-//! The HTTP drain remains request-driven. The poller is disabled by default and
-//! must keep explicit sleep/backoff/cancellation evidence so Store-candidate
-//! idle CPU runs can prove the default profile stays quiet.
+//! The HTTP drain remains request-driven. The poller is ON by default (relay is
+//! the standard cross-machine fallback) and opt-OUT only via
+//! MUSU_ENABLE_RELAY_PAYLOAD_POLLER=0|false|no|off. It keeps explicit
+//! sleep/backoff/cancellation evidence so Store-candidate idle CPU runs can
+//! prove the default profile still stays quiet while idle.
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
@@ -424,7 +426,7 @@ fn record_target_relay_payload_delivery_route_evidence(
 pub fn start_relay_payload_poller_if_enabled(state: AppState) {
     if !relay_payload_poller_enabled() {
         tracing::info!(
-            "relay payload poller disabled; set MUSU_ENABLE_RELAY_PAYLOAD_POLLER=1 to enable target-side relay fallback polling"
+            "relay payload poller disabled via MUSU_ENABLE_RELAY_PAYLOAD_POLLER opt-out; unset it (or set any value other than 0/false/no/off) to restore the default-on target-side relay fallback polling"
         );
         return;
     }
@@ -689,7 +691,7 @@ pub async fn drain_relay_payloads_for_local_target(
         error: None,
         payloads: Vec::new(),
         next_steps: vec![
-            "keep the relay payload poller disabled by default for Store-candidate idle CPU evidence",
+            "keep the default-on relay payload poller's idle backoff intact so Store-candidate idle CPU evidence stays quiet",
             "do not mark relay transport release-grade until QUIC/TLS payload transit proof exists",
             "rerun hosted P2P evidence after production KV/Upstash and relay proof are in place",
         ],

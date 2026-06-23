@@ -133,7 +133,21 @@ impl ServiceRegistry {
 
     /// Discover a service by name.
     ///
-    /// Returns `None` when no registration file exists or it fails to parse.
+    /// Returns `None` when no registration file exists, it fails to parse, or
+    /// the recorded PID is no longer alive (G-1: a stale record for a crashed
+    /// bridge on an old dynamic port must not be handed to callers — doctor /
+    /// cockpit would health-check the dead port and report failure even though a
+    /// live bridge is listening on a new port).
+    ///
+    /// MED-1 — deliberate asymmetry vs [`ServiceRegistry::cleanup_stale`]:
+    /// `discover` treats `pid == None` as ALIVE (keeps the record), whereas
+    /// `cleanup_stale` treats `pid == None` as stale (GCs the record). A READ
+    /// must not destroy a record it cannot disprove — a service that just
+    /// registered may not have flushed its PID yet, and dropping it on read
+    /// would brick discovery for a live service. `cleanup_stale` is a GC pass
+    /// that reclaims un-ownable records (V28 H3: a null-pid record was once
+    /// un-cleanable and permanently bricked discovery); reclaiming on the GC
+    /// path is safe because the live bridge re-registers on boot.
     pub fn discover(&self, name: &str) -> Option<ServiceRecord> {
         let path = self.path_for(name);
         let data = match fs::read_to_string(&path) {
@@ -143,12 +157,25 @@ impl ServiceRegistry {
                 return None;
             }
         };
-        match serde_json::from_str::<ServiceRecord>(&data) {
-            Ok(rec) => Some(rec),
+        let rec = match serde_json::from_str::<ServiceRecord>(&data) {
+            Ok(rec) => rec,
             Err(e) => {
                 tracing::debug!(name = %name, error = %e, "corrupt service record");
+                return None;
+            }
+        };
+        // Drop records whose owning process is provably dead. `None` (legacy
+        // format / pre-flush) is treated as alive — see the asymmetry note above.
+        match rec.pid {
+            Some(pid) if !is_pid_alive(pid) => {
+                tracing::debug!(
+                    name = %name,
+                    pid = pid,
+                    "ignoring stale service record on discover (pid dead)"
+                );
                 None
             }
+            _ => Some(rec),
         }
     }
 
@@ -939,6 +966,37 @@ mod tests {
         assert!(
             reg.discover("ghost").is_none(),
             "null-pid record should be cleaned up"
+        );
+    }
+
+    /// G-1: discover() drops a record whose PID is provably dead, WITHOUT a
+    /// cleanup_stale() pass — the read path itself gates on liveness so doctor /
+    /// cockpit never receive a dead bridge's old port.
+    #[test]
+    fn discover_drops_dead_pid() {
+        let (_tmp, reg) = temp_registry();
+        let mut rec = sample_record("bridge");
+        rec.pid = Some(4_000_000_000); // almost certainly not a live PID
+        reg.register(&rec).unwrap();
+
+        assert!(
+            reg.discover("bridge").is_none(),
+            "discover must not return a record whose PID is dead"
+        );
+    }
+
+    /// G-1 / MED-1: discover() keeps a null-pid record (treated as alive). A
+    /// record we cannot disprove must survive a READ — only cleanup_stale GCs it.
+    #[test]
+    fn discover_keeps_null_pid() {
+        let (_tmp, reg) = temp_registry();
+        let mut rec = sample_record("bridge");
+        rec.pid = None;
+        reg.register(&rec).unwrap();
+
+        assert!(
+            reg.discover("bridge").is_some(),
+            "discover must keep a null-pid record (alive-by-default on read)"
         );
     }
 
