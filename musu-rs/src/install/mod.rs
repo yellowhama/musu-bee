@@ -25,6 +25,9 @@ pub mod dry_run;
 pub mod package_status;
 pub mod platform;
 pub mod private_mesh;
+// U-A: boot-time reconcile of stale legacy runtime binaries in ~/.musu/bin
+// after an MSIX update. PURE planner + thin executor; never touches user data.
+pub mod reconcile;
 pub mod room_work_orders;
 pub mod runner;
 pub mod schema_gate;
