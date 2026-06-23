@@ -208,8 +208,12 @@ pub async fn add(
         }
     });
     let mut req_b = client.post(&accept_url);
-    if !state.config.token.is_empty() {
-        req_b = req_b.bearer_auth(&state.config.token);
+    // Cross-machine accept-peer MUST use the account-wide mesh bearer (C-1), not
+    // the local bridge token, or the sibling 401s and reciprocal peering never
+    // completes (peer_acceptance silently false).
+    let peer_bearer = state.config.outbound_peer_bearer();
+    if !peer_bearer.is_empty() {
+        req_b = req_b.bearer_auth(peer_bearer);
     }
     let peer_acceptance =
         match timeout(Duration::from_secs(10), req_b.json(&accept_body).send()).await {

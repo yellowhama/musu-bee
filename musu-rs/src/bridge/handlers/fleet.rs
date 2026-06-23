@@ -219,7 +219,12 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     // Query peers.
     let peers = resolve_all_peers(musu_home);
     let client = &state.http_client;
-    let token = &state.config.token;
+    // Cross-machine probe MUST use the account-wide mesh bearer (C-1), not this
+    // machine's local bridge token — a sibling validates the bearer against its
+    // OWN token, so the local token 401s and the peer is wrongly shown offline.
+    // outbound_peer_bearer() returns the mesh bearer (peer_token), falling back
+    // to the local token only when no mesh bearer is configured.
+    let token = state.config.outbound_peer_bearer();
 
     // Probe every peer CONCURRENTLY. Serial probing made this O(peers × 3s):
     // a few offline peers (each blocking the full 3s timeout) pushed total
