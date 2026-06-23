@@ -19,6 +19,8 @@ const {
   ACCOUNT_SELF_ISOLATION_POLICY,
   HeadscaleProvisioningError,
   createOneTimePreauthKey,
+  deleteNodeForUser,
+  deleteSelfNodeForUser,
   ensureHeadscaleUser,
   ensureSelfIsolationPolicy,
   headscaleUserNameForAccount,
@@ -279,4 +281,173 @@ test("provisionMeshJoinKey: invalid account id rejected before any fetch", async
       err instanceof HeadscaleProvisioningError && err.status === 400
   );
   assert.equal(calls.length, 0, "no Headscale call on invalid input");
+});
+
+// ── deleteSelfNodeForUser (U-C self-deregister) ──────────────────────────────
+// SIBLING of deleteNodeForUser that omits ONLY the caller_ip self-eviction guard.
+// Keeps: owner-scope re-assert, expected_name 409, idempotent 404.
+
+const SELF_USER = "5";
+// One node owned by SELF_USER, listed control-plane-filtered by user id.
+function listOneSelfNode(name: string, ips: string[] = ["100.64.0.5"]) {
+  return () => ({
+    json: {
+      nodes: [
+        {
+          id: "100",
+          givenName: name,
+          user: { id: SELF_USER, name: `acct-x` },
+          ipAddresses: ips,
+        },
+      ],
+    },
+  });
+}
+
+test("deleteSelfNodeForUser: owner-scoped delete succeeds (no caller_ip needed)", async () => {
+  const { fetchImpl, calls } = fakeFetch([
+    listOneSelfNode("this-pc"),
+    (c) => {
+      // The DELETE keys on the node id; no caller_ip is involved on this path.
+      assert.equal(c.init.method, "DELETE");
+      assert.match(c.url, /\/api\/v1\/node\/100$/);
+      return { status: 200, json: {} };
+    },
+  ]);
+  const res = await deleteSelfNodeForUser({
+    cfg: { ...CFG, fetchImpl },
+    userId: SELF_USER,
+    nodeId: "100",
+    expectedName: "this-pc",
+  });
+  assert.deepEqual(res, { removed: true, alreadyGone: false });
+  // First call is the owner-scoped list (?user=<id>) — the cross-tenant barrier.
+  assert.match(calls[0].url, /\/api\/v1\/node\?user=5/);
+  assert.equal(calls[0].init.method, "GET");
+});
+
+test("deleteSelfNodeForUser: deletes THIS PC even when the node carries its own tailnet IP (no self-guard)", async () => {
+  // The whole point of U-C: the node we remove IS this machine. The normal
+  // `remove` path would refuse on a matching caller_ip; remove-self must NOT.
+  const { fetchImpl } = fakeFetch([
+    listOneSelfNode("this-pc", ["100.64.0.5"]),
+    () => ({ status: 200, json: {} }),
+  ]);
+  const res = await deleteSelfNodeForUser({
+    cfg: { ...CFG, fetchImpl },
+    userId: SELF_USER,
+    nodeId: "100",
+    expectedName: "this-pc",
+  });
+  assert.deepEqual(res, { removed: true, alreadyGone: false });
+});
+
+test("deleteSelfNodeForUser: node not in owner's fleet → alreadyGone (idempotent, no DELETE)", async () => {
+  const { fetchImpl, calls } = fakeFetch([
+    // List returns a node owned by a DIFFERENT user → filtered out → empty fleet.
+    () => ({
+      json: {
+        nodes: [
+          { id: "100", givenName: "other", user: { id: "999" }, ipAddresses: [] },
+        ],
+      },
+    }),
+  ]);
+  const res = await deleteSelfNodeForUser({
+    cfg: { ...CFG, fetchImpl },
+    userId: SELF_USER,
+    nodeId: "100",
+    expectedName: "this-pc",
+  });
+  assert.deepEqual(res, { removed: false, alreadyGone: true });
+  assert.equal(calls.length, 1, "must NOT issue a DELETE when the node isn't owned");
+});
+
+test("deleteSelfNodeForUser: expected_name mismatch → 409 (optimistic concurrency), no DELETE", async () => {
+  const { fetchImpl, calls } = fakeFetch([
+    listOneSelfNode("renamed-since"),
+  ]);
+  await assert.rejects(
+    deleteSelfNodeForUser({
+      cfg: { ...CFG, fetchImpl },
+      userId: SELF_USER,
+      nodeId: "100",
+      expectedName: "this-pc",
+    }),
+    (err: unknown) =>
+      err instanceof HeadscaleProvisioningError && err.status === 409
+  );
+  assert.equal(calls.length, 1, "must NOT DELETE on a name mismatch");
+});
+
+test("deleteSelfNodeForUser: Headscale 404 on DELETE → idempotent alreadyGone, no re-resolve", async () => {
+  const { fetchImpl, calls } = fakeFetch([
+    listOneSelfNode("this-pc"),
+    () => ({ status: 404, json: { message: "not found" } }),
+  ]);
+  const res = await deleteSelfNodeForUser({
+    cfg: { ...CFG, fetchImpl },
+    userId: SELF_USER,
+    nodeId: "100",
+    expectedName: "this-pc",
+  });
+  assert.deepEqual(res, { removed: false, alreadyGone: true });
+  assert.equal(calls.length, 2, "404 must NOT trigger a name/IP re-resolution");
+});
+
+test("deleteSelfNodeForUser: DELETE 5xx → 502 surfaced", async () => {
+  const { fetchImpl } = fakeFetch([
+    listOneSelfNode("this-pc"),
+    () => ({ status: 500, json: { message: "boom" } }),
+  ]);
+  await assert.rejects(
+    deleteSelfNodeForUser({
+      cfg: { ...CFG, fetchImpl },
+      userId: SELF_USER,
+      nodeId: "100",
+      expectedName: "this-pc",
+    }),
+    (err: unknown) =>
+      err instanceof HeadscaleProvisioningError && err.status === 502
+  );
+});
+
+// ── regression guard: the sibling did NOT weaken the original self-guard ──────
+
+test("deleteNodeForUser (regression): still REFUSES to remove this PC (self-guard intact)", async () => {
+  // Target carries the caller_ip → the fail-closed self-guard must fire (400).
+  // This proves adding deleteSelfNodeForUser left the normal path's guard armed.
+  const { fetchImpl, calls } = fakeFetch([
+    listOneSelfNode("this-pc", ["100.64.0.5"]),
+  ]);
+  await assert.rejects(
+    deleteNodeForUser({
+      cfg: { ...CFG, fetchImpl },
+      userId: SELF_USER,
+      nodeId: "100",
+      expectedName: "this-pc",
+      callerIp: "100.64.0.5",
+    }),
+    (err: unknown) =>
+      err instanceof HeadscaleProvisioningError && err.status === 400
+  );
+  assert.equal(calls.length, 1, "self-guard must refuse BEFORE any DELETE");
+});
+
+test("deleteNodeForUser (regression): still requires caller_ip (fail-closed), 400 when omitted", async () => {
+  const { fetchImpl, calls } = fakeFetch([
+    listOneSelfNode("this-pc", ["100.64.0.5"]),
+  ]);
+  await assert.rejects(
+    deleteNodeForUser({
+      cfg: { ...CFG, fetchImpl },
+      userId: SELF_USER,
+      nodeId: "100",
+      expectedName: "this-pc",
+      // no callerIp
+    }),
+    (err: unknown) =>
+      err instanceof HeadscaleProvisioningError && err.status === 400
+  );
+  assert.equal(calls.length, 1, "missing caller_ip must refuse BEFORE any DELETE");
 });

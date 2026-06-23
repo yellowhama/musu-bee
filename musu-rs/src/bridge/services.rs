@@ -1,14 +1,17 @@
 //! Local service registry for dynamic port allocation and service discovery.
 //!
-//! Internal musu services (Python facade, musu-worker, musu-port, musu-brainai)
-//! register themselves here with dynamically allocated ports.  The Rust bridge
+//! Internal musu services (musu-worker, musu-port, musu-brainai) register
+//! themselves here with dynamically allocated ports.  The Rust bridge
 //! discovers them by name, falling back to well-known defaults when no
 //! registration file exists.
+//!
+//! (The Python facade was removed in the self-contained refactor; the registry
+//! is name-agnostic, so older `facade.json` records, if present, are simply
+//! never discovered.)
 //!
 //! **Storage layout:**
 //! ```text
 //! ~/.musu/services/
-//!   facade.json
 //!   worker.json
 //!   port.json
 //!   brainai.json
@@ -130,7 +133,21 @@ impl ServiceRegistry {
 
     /// Discover a service by name.
     ///
-    /// Returns `None` when no registration file exists or it fails to parse.
+    /// Returns `None` when no registration file exists, it fails to parse, or
+    /// the recorded PID is no longer alive (G-1: a stale record for a crashed
+    /// bridge on an old dynamic port must not be handed to callers — doctor /
+    /// cockpit would health-check the dead port and report failure even though a
+    /// live bridge is listening on a new port).
+    ///
+    /// MED-1 — deliberate asymmetry vs [`ServiceRegistry::cleanup_stale`]:
+    /// `discover` treats `pid == None` as ALIVE (keeps the record), whereas
+    /// `cleanup_stale` treats `pid == None` as stale (GCs the record). A READ
+    /// must not destroy a record it cannot disprove — a service that just
+    /// registered may not have flushed its PID yet, and dropping it on read
+    /// would brick discovery for a live service. `cleanup_stale` is a GC pass
+    /// that reclaims un-ownable records (V28 H3: a null-pid record was once
+    /// un-cleanable and permanently bricked discovery); reclaiming on the GC
+    /// path is safe because the live bridge re-registers on boot.
     pub fn discover(&self, name: &str) -> Option<ServiceRecord> {
         let path = self.path_for(name);
         let data = match fs::read_to_string(&path) {
@@ -140,12 +157,25 @@ impl ServiceRegistry {
                 return None;
             }
         };
-        match serde_json::from_str::<ServiceRecord>(&data) {
-            Ok(rec) => Some(rec),
+        let rec = match serde_json::from_str::<ServiceRecord>(&data) {
+            Ok(rec) => rec,
             Err(e) => {
                 tracing::debug!(name = %name, error = %e, "corrupt service record");
+                return None;
+            }
+        };
+        // Drop records whose owning process is provably dead. `None` (legacy
+        // format / pre-flush) is treated as alive — see the asymmetry note above.
+        match rec.pid {
+            Some(pid) if !is_pid_alive(pid) => {
+                tracing::debug!(
+                    name = %name,
+                    pid = pid,
+                    "ignoring stale service record on discover (pid dead)"
+                );
                 None
             }
+            _ => Some(rec),
         }
     }
 
@@ -293,6 +323,38 @@ pub fn current_bridge_addr(cfg: &crate::bridge::config::BridgeConfig) -> String 
     format!("{}:{}", cfg.bridge_host, cfg.bridge_port)
 }
 
+/// Pick a private LAN IPv4 address other machines on the same network can
+/// actually reach, skipping virtual/VPN/tunnel interfaces (WSL, Docker,
+/// Tailscale, NordLynx, etc.) the same way the mDNS advertiser does. Returns
+/// `None` when no real LAN address exists (single offline machine), in which
+/// case the caller keeps the loopback fallback.
+///
+/// This is the fix for the cross-machine "loopback publish" bug: a desktop
+/// bridge advertises 127.0.0.1 by default, so a peer that fetches that address
+/// from the cloud registry points at its OWN loopback and can never reach us.
+/// Publishing the LAN IP lets same-LAN peers connect directly (the relay path
+/// stays as the WAN fallback). The user never configures this — the program
+/// detects its own reachable address.
+pub fn preferred_advertise_host() -> Option<String> {
+    let interfaces = local_ip_address::list_afinet_netifas().ok()?;
+    interfaces
+        .into_iter()
+        .filter(|(name, ip)| {
+            !crate::peer::mdns::is_virtual_mdns_interface_name(name) && is_private_ipv4(ip)
+        })
+        .map(|(_, ip)| ip.to_string())
+        .next()
+}
+
+/// RFC 1918 private IPv4 ranges (10/8, 172.16/12, 192.168/16). Loopback and
+/// link-local are excluded so we never re-publish an unreachable address.
+fn is_private_ipv4(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => v4.is_private(),
+        std::net::IpAddr::V6(_) => false,
+    }
+}
+
 pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> String {
     if let Some(url) = cfg.public_url.as_ref().filter(|u| !u.trim().is_empty()) {
         return url.trim_end_matches('/').to_string();
@@ -304,11 +366,19 @@ pub fn advertised_bridge_http_url(cfg: &crate::bridge::config::BridgeConfig) -> 
         .and_then(|(_, port)| port.parse::<u16>().ok())
         .unwrap_or(cfg.bridge_port);
 
+    // Prefer a real LAN IP so other machines can reach us. The default
+    // bridge_host is 127.0.0.1 (loopback), which is unroutable from any other
+    // machine — publishing it is the root cause of "peer can't be reached".
+    // Fall back to loopback/hostname only when no LAN address exists.
     let host = if cfg.bridge_host == "0.0.0.0" || cfg.bridge_host == "::" {
-        hostname::get()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string()
+        preferred_advertise_host().unwrap_or_else(|| {
+            hostname::get()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+        })
+    } else if cfg.bridge_host == "127.0.0.1" || cfg.bridge_host == "::1" {
+        preferred_advertise_host().unwrap_or_else(|| cfg.bridge_host.clone())
     } else {
         cfg.bridge_host.clone()
     };
@@ -709,7 +779,6 @@ mod tests {
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "0.0.0.0".to_string(),
             bridge_port: 0,
-            python_facade_port: 0,
             public_url: None,
             node_name: "test-node".to_string(),
             db_path: musu_home.join("db").join("musu.db"),
@@ -799,6 +868,56 @@ mod tests {
     }
 
     #[test]
+    fn is_private_ipv4_classifies_rfc1918_and_rejects_public_loopback_v6() {
+        use std::net::IpAddr;
+        // RFC 1918 private ranges → reachable LAN candidates.
+        assert!(is_private_ipv4(&"192.168.1.154".parse::<IpAddr>().unwrap()));
+        assert!(is_private_ipv4(&"10.5.0.2".parse::<IpAddr>().unwrap()));
+        assert!(is_private_ipv4(&"172.16.0.1".parse::<IpAddr>().unwrap()));
+        // Loopback, link-local, public, and any IPv6 must NOT be advertised as a
+        // reachable LAN host (publishing them is the bug we are fixing).
+        assert!(!is_private_ipv4(&"127.0.0.1".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"169.254.10.141".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"8.8.8.8".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"::1".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(&"fe80::1".parse::<IpAddr>().unwrap()));
+    }
+
+    #[test]
+    fn advertised_url_keeps_explicit_non_loopback_host() {
+        // An operator who sets an explicit reachable BRIDGE_HOST is honored
+        // verbatim — we only auto-pick a LAN IP for the loopback default.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let musu_home = tmp.path().join("explicit-host-home");
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "203.0.113.7".to_string(),
+            bridge_port: 7777,
+            public_url: None,
+            node_name: "test-node".to_string(),
+            db_path: musu_home.join("db").join("musu.db"),
+            audit_db_path: musu_home.join("data").join("audit.db"),
+            nodes_toml_path: musu_home.join("nodes.toml"),
+            token: String::new(),
+            peer_token: None,
+            localhost_auth_required: false,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+        let url = advertised_bridge_http_url(&cfg);
+        assert!(
+            url.contains("203.0.113.7"),
+            "explicit host must be preserved, got {url}"
+        );
+    }
+
+    #[test]
     fn cleanup_stale_removes_dead_pids() {
         let (_tmp, reg) = temp_registry();
 
@@ -847,6 +966,37 @@ mod tests {
         assert!(
             reg.discover("ghost").is_none(),
             "null-pid record should be cleaned up"
+        );
+    }
+
+    /// G-1: discover() drops a record whose PID is provably dead, WITHOUT a
+    /// cleanup_stale() pass — the read path itself gates on liveness so doctor /
+    /// cockpit never receive a dead bridge's old port.
+    #[test]
+    fn discover_drops_dead_pid() {
+        let (_tmp, reg) = temp_registry();
+        let mut rec = sample_record("bridge");
+        rec.pid = Some(4_000_000_000); // almost certainly not a live PID
+        reg.register(&rec).unwrap();
+
+        assert!(
+            reg.discover("bridge").is_none(),
+            "discover must not return a record whose PID is dead"
+        );
+    }
+
+    /// G-1 / MED-1: discover() keeps a null-pid record (treated as alive). A
+    /// record we cannot disprove must survive a READ — only cleanup_stale GCs it.
+    #[test]
+    fn discover_keeps_null_pid() {
+        let (_tmp, reg) = temp_registry();
+        let mut rec = sample_record("bridge");
+        rec.pid = None;
+        reg.register(&rec).unwrap();
+
+        assert!(
+            reg.discover("bridge").is_some(),
+            "discover must keep a null-pid record (alive-by-default on read)"
         );
     }
 

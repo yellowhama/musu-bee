@@ -24,14 +24,18 @@ function prefillUserCode(value: string | undefined): string {
 }
 
 export default async function LinkDevicePage({ searchParams }: LinkPageProps) {
-  const user = await getUser();
-  if (!user) {
-    // Logged-out users must sign in first; return here afterwards.
-    redirect(`/auth/login?next=${encodeURIComponent("/link")}`);
-  }
-
   const params = await searchParams;
   const prefill = prefillUserCode(params.user_code ?? params.code);
+
+  const user = await getUser();
+  if (!user) {
+    // Logged-out users must sign in first; return here afterwards. CRITICAL:
+    // preserve the device code through the login round-trip — otherwise the
+    // user lands back on /link with no code, sees the manual "Enter the code"
+    // form, and MUSU has already moved on (no code to type). Carry it in `next`.
+    const returnTo = prefill ? `/link?code=${encodeURIComponent(prefill)}` : "/link";
+    redirect(`/auth/login?next=${encodeURIComponent(returnTo)}`);
+  }
   // When MUSU opened this page itself, the code is already in the URL — the user
   // shouldn't type anything, just confirm the sign-in.
   const hasCode = prefill.length > 0;

@@ -192,16 +192,29 @@ test("Tauri shell refresh uses one-shot low-duty scheduling", () => {
   assert.match(shellText, /setTimeout\(runScheduledRefresh,\s*delayMs\)/);
 });
 
-test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {
+test("dashboard axis pages never use raw browser-auto-retry EventSource", () => {
+  // Contract intent: no page may spin up a raw `new EventSource(...)` (whose
+  // unbounded browser auto-retry loop runs forever in the background). A page
+  // satisfies this by EITHER using the bounded hook OR using no SSE at all
+  // (pure low-duty polling). F-3 repointed fleet + /m/[id] off the phantom
+  // `/api/watch/subscribe` tables onto `/api/fleet/status` polling, so they
+  // carry no EventSource at all — which is the strongest form of compliance.
   const fleetText = source("src/app/fleet/page.tsx");
   const companyText = source("src/app/c/[id]/page.tsx");
   const machineText = source("src/app/m/[id]/page.tsx");
   const tasksText = source("src/components/TasksPanel.tsx");
 
   for (const text of [fleetText, companyText, machineText, tasksText]) {
-    assert.match(text, /useBoundedEventSource/);
+    // Never the raw, unbounded form. This is the actual contract: no page may
+    // construct a browser EventSource directly (its auto-retry loop is unbounded).
     assert.doesNotMatch(text, /new EventSource\(/);
     assert.doesNotMatch(text, /Browser auto-retries/);
+    // If the page actually CALLS the SSE hook, it must be the bounded one. A page
+    // that mentions "EventSource" only in a comment (e.g. documenting that the
+    // old subscription was removed in favor of polling) is compliant.
+    if (/useBoundedEventSource\s*\(/.test(text)) {
+      assert.match(text, /from ["']@\/lib\/useBoundedEventSource["']/);
+    }
   }
 });
 

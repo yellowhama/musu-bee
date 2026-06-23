@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closure — Web Fleet Reconnect + Verification Infra (WS-A/B/C) · 2026-06-24</title>
+<style>
+  :root {
+    --bg: #0e0f12; --card: #16181d; --line: #262a31; --fg: #e8eaed;
+    --fg2: #aab1bd; --fg3: #6b7280; --accent: #ffa602; --ok: #34d399;
+    --warn: #ff9800; --err: #ef4444; --mono: ui-monospace, "Cascadia Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, "Segoe UI", "Pretendard", sans-serif;
+    line-height: 1.6; padding: 0 0 80px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 48px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 32px; }
+  h1 { font-size: 28px; margin: 0 0 8px; }
+  h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15px; color: var(--fg2); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .sub { color: var(--fg3); font-size: 14px; }
+  code, .mono { font-family: var(--mono); font-size: 13px; }
+  code { background: #1f2329; padding: 1px 5px; border-radius: 4px; color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--fg3); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+  .ok { background: rgba(52,211,153,.15); color: var(--ok); }
+  .warn { background: rgba(255,152,0,.15); color: var(--warn); }
+  .pend { background: rgba(107,114,128,.2); color: var(--fg3); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; margin: 12px 0; }
+  ul { padding-left: 20px; } li { margin: 4px 0; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .d-online { background: var(--ok); } .d-relay { background: var(--warn); } .d-offline { background: var(--err); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Web Fleet Reconnect + Verification Infrastructure</h1>
+  <div class="sub">Closure · WS-A / WS-B / WS-C · 2026-06-24 · master plan <code>cosmic-honking-cake.md</code></div>
+</header>
+
+<p>The musu.pro web fleet surface was still calling retired Python-era (musu-bridge)
+endpoints that the Rust runtime (musu-rs) never served, so the fleet page 404'd,
+PC pairing failed, and the machine-detail page rendered nothing. This block
+reconnected all three web call sites onto the real <code>/api/fleet/status</code>
+and <code>/api/nodes/pair</code> endpoints, fixed two stale CI gates that were
+enforcing dead dependencies, and stood up the verification infrastructure for the
+hardware-gated E2Es.</p>
+
+<h2>What shipped</h2>
+<table>
+  <tr><th>ID</th><th>Change</th><th>Files</th><th>Status</th></tr>
+  <tr><td>A-1</td><td>AddPcWizard: <code>${BRIDGE_URL}/api/agents</code> → relative <code>/api/agents</code>; <code>/api/admin/pair/accept</code> → canonical <code>/api/nodes/pair</code> (→ bridge <code>/api/nodes/add</code>). Body unchanged.</td><td><code>app/fleet/page.tsx</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>A-2</td><td>/m/[id]: phantom <code>/api/machines/{id}</code> → <code>/api/fleet/status</code> filtered by node <b>name</b>; dropped GPU/capacity + active-requests + dead watch SSE.</td><td><code>app/m/[id]/page.tsx</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>shared</td><td>Extracted <code>FleetNodeStatus</code>/<code>FleetDashboard</code>/<code>nodeState()</code>/<code>stateLabel()</code> so both web surfaces derive the 3-state from one helper (anti-drift).</td><td><code>lib/fleetState.ts</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>gate-1</td><td>design-gate: dropped dead Paperclip dependency; accept musu-own tracker issue URLs incl. numeric GitHub <code>/issues/&lt;n&gt;</code>. 7/7 tests.</td><td><code>scripts/design-gate/*.cjs</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>gate-2</td><td>runtime-polling contract: allow polling-only pages (no SSE) — the strongest form of "no unbounded auto-retry". 20/20 tests.</td><td><code>runtime-polling-contract.test.ts</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>WS-B</td><td>Fleet 3-state E2E playbook, uninstall lifecycle checklist, rc.9 build note (PID-lock trap).</td><td><code>docs/E2E_*.md</code></td><td><span class="pill ok">done</span></td></tr>
+  <tr><td>WS-C</td><td>Deferral classification (W-7 / B-7 / U-C-b / B-3b).</td><td><code>docs/WSC_DEFERRAL_QUEUE_*.md</code></td><td><span class="pill ok">done</span></td></tr>
+</table>
+
+<h2>The 3-state model (now on all surfaces)</h2>
+<div class="card">
+  <p><span class="dot d-online"></span><b>online</b> — direct probe succeeded (<code>healthy</code>).<br>
+  <span class="dot d-relay"></span><b>relay</b> — direct probe failed but registry heartbeat fresh (≤300s); still targetable over the relay.<br>
+  <span class="dot d-offline"></span><b>offline</b> — direct probe failed AND no fresh heartbeat.</p>
+  <p class="sub">THREE render surfaces (web page / CLI / cockpit shell) derive this from the same
+  <code>healthy</code> + <code>reachable_via</code> wire fields. The web side is now a single
+  <code>@/lib/fleetState</code> helper used by both <code>/fleet</code> and <code>/m/[id]</code>,
+  so they cannot drift.</p>
+</div>
+
+<h2>Review trail (agent-team)</h2>
+<h3>Critic — system-architect (findings resolved)</h3>
+<table>
+  <tr><th>#</th><th>Finding</th><th>Resolution</th></tr>
+  <tr><td>H-1</td><td>Is AddPcWizard's name+url+agents UX node-add or pair-code-accept?</td><td>node-add — endpoint swap only, body matches <code>NodeAddRequest</code>.</td></tr>
+  <tr><td>H-2</td><td>Does /m/[id] route param match a FleetNodeStatus field?</td><td>No <code>id</code> field — keyed by <b>name</b>; filter on name (card links <code>/m/${node.name}</code>).</td></tr>
+  <tr><td>H-3</td><td>FleetNodeStatus has no GPU/capacity/active-requests</td><td>Dropped those sections; show tasks/version/last-seen/reachable-via.</td></tr>
+  <tr><td>H-4</td><td>m/[id] 3-state = 4th drifting surface?</td><td>Shared <code>@/lib/fleetState</code> helper — structurally cannot drift.</td></tr>
+  <tr><td>H-5</td><td>Dead SSE removal leaves a refresh gap?</td><td>30s low-duty polling covers it (same as page.tsx F-3).</td></tr>
+</table>
+<p class="sub">Note: the Critic subagent died on a transient API 500 mid-run; the orchestrator
+resolved all five questions directly by code inspection (file:line evidence in the master plan).</p>
+
+<h3>Auditor (self-audit, clean)</h3>
+<ul>
+  <li>No live phantom endpoints remain (only migration comments).</li>
+  <li>Pairing body passthrough confirmed (<code>/api/nodes/pair</code> reads JSON → forwards to <code>/api/nodes/add</code>).</li>
+  <li>THREE-surface invariant held via the shared helper; CLI + cockpit shell already aligned in PR #23.</li>
+  <li><code>/m/[id]/workstation</code> sub-page verified to make no API calls (button safe).</li>
+</ul>
+
+<h2>Verification</h2>
+<table>
+  <tr><th>Check</th><th>Result</th></tr>
+  <tr><td><code>next build --webpack</code></td><td><span class="pill ok">pass</span> /fleet + /m/[id] compile</td></tr>
+  <tr><td><code>tsc --noEmit</code></td><td><span class="pill ok">pass</span></td></tr>
+  <tr><td>design-gate (CI + local evaluate.cjs)</td><td><span class="pill ok">pass</span> all 3 tokens</td></tr>
+  <tr><td>runtime-polling / routes / p2p</td><td><span class="pill ok">pass</span> 20 / 0 / 0 fail</td></tr>
+  <tr><td>Vercel deploy / Playwright E2E</td><td><span class="pill ok">pass</span></td></tr>
+  <tr><td>2-machine fleet 3-state flip; uninstall lifecycle</td><td><span class="pill pend">user-gated</span> playbooks ready</td></tr>
+</table>
+
+<h2>Decisions recorded</h2>
+<ul>
+  <li><b>Paperclip dropped</b> — musu uses its own trackers (musu-system / musu-brain / musu-website-co). The design-gate was a stale dependency, fixed not bypassed. Design brief lives at <a href="https://github.com/yellowhama/musu-website-co/issues/2">musu-website-co#2</a>.</li>
+  <li><b>Stale-gate pattern</b> — two CI gates (design-gate, runtime-polling) enforced dead requirements that F-3's correct refactor exposed. Both fixed to enforce the real <i>intent</i> while admitting the better implementation.</li>
+</ul>
+
+<h2>Carried forward</h2>
+<ul>
+  <li>Hardware E2Es: 2-machine fleet 3-state flip + uninstall lifecycle (playbooks shipped; needs rc.9 on two machines).</li>
+  <li>Deferrals (<code>WSC_DEFERRAL_QUEUE</code>): W-7 server source_node_id auth (prod-deploy gate), B-7 login env copy, U-C-b node_name persist, B-3b SaaS route gate.</li>
+</ul>
+
+</div>
+</body>
+</html>

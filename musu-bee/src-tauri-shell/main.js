@@ -277,6 +277,29 @@ function nodeIsOnline(node, thisPcBridgeOk) {
   return !nodeStatusError(node) && isOnline(node?.last_seen);
 }
 
+// F-3 HIGH-A: a peer with a direct route down BUT reachable_via="relay" is
+// reachable over the relay, NOT offline. The web page (fleet/page.tsx
+// nodeState) and CLI (cli_commands.rs) both read the same `reachable_via`
+// field; the cockpit must agree or it shows "(probe failed)"/offline where the
+// other two surfaces show "relay"/yellow. Keep this a pure read of the field
+// the bridge already emits — do NOT conflate with mesh.state (tailscale label).
+function nodeReachableViaRelay(node) {
+  return String(node?.reachable_via || "") === "relay";
+}
+
+// Single source of truth for the 3-state fleet status, used by BOTH the
+// order-target <select> and the renderFleet <li> so they cannot drift (the
+// exact bug class F-3 HIGH-A). Mirrors fleet/page.tsx nodeState():
+//   online  → direct route confirmed (or this PC's bridge up)
+//   relay   → direct route down but reachable over the relay
+//   offline → neither
+// "targetable" = state !== "offline" (a relay peer IS reachable via forward).
+function nodeFleetState(node, thisPcBridgeOk) {
+  if (nodeIsOnline(node, thisPcBridgeOk)) return "online";
+  if (nodeReachableViaRelay(node)) return "relay";
+  return "offline";
+}
+
 function orderTargetIsAvailable(target) {
   const value = String(target || "");
   if (!value) return true;
@@ -2799,6 +2822,7 @@ function applyFleetFilter() {
   const counts = {
     all: rows.length,
     online: 0,
+    relay: 0,
     targetable: 0,
     "this-pc": 0,
     stale: 0,
@@ -2886,11 +2910,15 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     sel.appendChild(any);
     for (const n of nodes) {
       const statusError = nodeStatusError(n);
-      const online = nodeIsOnline(n, thisPcBridgeOk);
+      const fleetState = nodeFleetState(n, thisPcBridgeOk);
+      const online = fleetState === "online";
+      const relay = fleetState === "relay";
+      // A relay peer is reachable via forward — targetable like an online one.
+      const targetable = fleetState !== "offline";
       const mesh = meshLabelForNode(n);
       const opt = document.createElement("option");
       opt.value = n.node_name;
-      opt.disabled = !online;
+      opt.disabled = !targetable;
       opt.dataset.thisPc = n.is_this_pc ? "true" : "false";
       opt.dataset.meshState = mesh.state;
       opt.dataset.meshLabel = mesh.label;
@@ -2900,7 +2928,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
         n.control_server_verified === true || n.control_server_verified === "true" ? "true" : "false";
       opt.textContent = n.is_this_pc
         ? `${n.node_name} (this PC${online ? "" : " unavailable"})`
-        : `${n.node_name}${online ? "" : statusError ? ` (${statusError})` : " (offline)"}`;
+        : relay
+          ? `${n.node_name} (relay)`
+          : `${n.node_name}${online ? "" : statusError ? ` (${statusError})` : " (offline)"}`;
       sel.appendChild(opt);
     }
     if ([...sel.options].some((o) => o.value === prev && !o.disabled)) {
@@ -2915,7 +2945,11 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // THIS PC's liveness = the local bridge being up (not an unconditional true —
     // if the bridge is down while the window is open, this PC is NOT online).
     const statusError = nodeStatusError(n);
-    const online = nodeIsOnline(n, thisPcBridgeOk);
+    const fleetState = nodeFleetState(n, thisPcBridgeOk);
+    const online = fleetState === "online";
+    const relay = fleetState === "relay";
+    // A relay peer is reachable via forward — selectable like an online one.
+    const targetable = fleetState !== "offline";
     const seen = relTime(n.last_seen);
     const stale = !online && Boolean(seen);
     const mesh = meshLabelForNode(n);
@@ -2927,9 +2961,9 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     const releaseProofCommand = exactReleaseProofCommandForTarget(releaseProofTarget);
     const physicalPeerEvidenceCommand = physicalPeerEvidenceCommandForTarget(releaseProofTarget);
     const li = document.createElement("li");
-    li.className = `fleet-row ${online ? "online" : "offline"}`;
-    li.dataset.fleetState = online ? "online" : "offline";
-    li.dataset.fleetTargetable = online ? "true" : "false";
+    li.className = `fleet-row ${fleetState}`;
+    li.dataset.fleetState = fleetState;
+    li.dataset.fleetTargetable = targetable ? "true" : "false";
     li.dataset.fleetThisPc = n.is_this_pc ? "true" : "false";
     li.dataset.fleetStale = stale ? "true" : "false";
     li.dataset.meshState = mesh.state;
@@ -2939,19 +2973,23 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // machine, give it work." Keyboard-accessible (Enter/Space).
     li.tabIndex = 0;
     li.setAttribute("role", "button");
-    li.setAttribute("aria-disabled", online ? "false" : "true");
+    li.setAttribute("aria-disabled", targetable ? "false" : "true");
     li.setAttribute(
       "aria-label",
-      online
-        ? `Send an order to ${n.node_name || "this machine"}`
-        : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
+      relay
+        ? `Send an order to ${n.node_name || "this machine"} (reachable via relay)`
+        : online
+          ? `Send an order to ${n.node_name || "this machine"}`
+          : `${n.node_name || "this machine"} is not targetable: ${statusError || (seen ? `last seen ${seen}` : "offline")}`
     );
-    if (!online) {
+    if (relay) {
+      li.title = `Reachable via relay${seen ? ` — last seen ${seen}` : ""}`;
+    } else if (!online) {
       li.title = statusError || (seen ? `Last seen ${seen}` : "Asleep or off");
     }
     li.dataset.node = n.node_name || "";
     const selectThisMachine = () => {
-      if (!online) return;
+      if (!targetable) return;
       const sel = $("order-target");
       if (sel && [...sel.options].some((o) => o.value === li.dataset.node && !o.disabled)) {
         sel.value = li.dataset.node;
@@ -3010,14 +3048,16 @@ function renderFleet(nodes, thisPcActivity, thisPcBridgeOk) {
     // not enough — never rely on color alone, web.dev offline-UX). "Ready" when
     // online and targetable, otherwise the human last-seen / asleep state.
     const statusLabel = document.createElement("span");
-    statusLabel.className = `node-status ${online ? "ok" : "off"}`;
+    statusLabel.className = `node-status ${online ? "ok" : relay ? "relay" : "off"}`;
     statusLabel.textContent = online
       ? "Ready"
-      : statusError
-        ? "Needs attention"
-        : seen
-          ? `Last seen ${seen}`
-          : "Asleep or off";
+      : relay
+        ? "Ready (relay)"
+        : statusError
+          ? "Needs attention"
+          : seen
+            ? `Last seen ${seen}`
+            : "Asleep or off";
     li.appendChild(statusLabel);
 
     const meshBadge = document.createElement("span");
@@ -3232,7 +3272,8 @@ function renderDiagnostics(status) {
   syncAccountAffordances(status);
 
   renderWarnings(status);
-  $("version").textContent = status.version ? `MUSU ${status.version}` : "";
+  // #version is set in syncAccountAffordances (called above) from status.version,
+  // shared by the cheap cockpit_state poll and this desktop_status path.
   window.__lastStatus = status;
 }
 
@@ -4412,11 +4453,19 @@ function syncAccountAffordances(status) {
   for (const id of ["m-signin", "set-signin"]) {
     const el = $(id); if (el) el.hidden = signedIn || loginInProgress;
   }
-  // Only update the version when this status snapshot carries it (desktop_status
-  // does; the cheap cockpit_state does not). Don't blank it to "—" on a
-  // cockpit_state-driven sync.
+  // Update both version surfaces (header #version + settings #set-version) from
+  // whichever status snapshot carries it. Both cockpit_state (cheap 15s poll)
+  // and desktop_status (diagnostics drawer) now carry `version`
+  // (env!("CARGO_PKG_VERSION")), so the version shows on the normal poll without
+  // opening the diagnostics drawer. Guard so a snapshot lacking version never
+  // blanks an already-shown value.
   if (status?.version) {
-    const sv = $("set-version"); if (sv) sv.textContent = `MUSU ${status.version}`;
+    const label = `MUSU ${status.version}`;
+    const v = $("version"); if (v) v.textContent = label;
+    const sv = $("set-version"); if (sv) sv.textContent = label;
+    // Always-visible header version (no "MUSU" prefix — the brand mark is right
+    // there). This is the surface a user sees without opening any drawer/modal.
+    const av = $("app-version"); if (av) av.textContent = `v${status.version}`;
   }
 }
 
@@ -4492,6 +4541,77 @@ async function disconnectMesh(btn) {
   }
 }
 $("set-mesh-disconnect")?.addEventListener("click", (e) => disconnectMesh(e.currentTarget));
+
+// ── complete uninstall (U-B) ────────────────────────────────────────────────
+// Fully destructive, one-way removal of THIS machine's MUSU install. Distinct
+// from Sign out (cloud only) and Disconnect (mesh only): this deletes local data
+// AND detaches this machine from the account AND removes the app. Gated behind a
+// checkbox AND a typed phrase; the Rust handler re-validates the phrase server-
+// side, so the UI gate is convenience, not the security boundary.
+const UNINSTALL_PHRASE = "REMOVE MUSU";
+
+function uninstallReady() {
+  const checked = $("uninstall-ack-check")?.checked === true;
+  const typed = ($("uninstall-type-input")?.value || "").trim() === UNINSTALL_PHRASE;
+  return checked && typed;
+}
+
+function syncUninstallButton() {
+  const btn = $("uninstall-confirm");
+  if (btn) btn.disabled = !uninstallReady();
+}
+
+function setUninstallModalOpen(open) {
+  const modal = $("uninstall-modal");
+  if (!modal) return;
+  modal.hidden = !open;
+  if (open) {
+    setSettingsOpen(false);
+    // reset the gate each time it opens — never carry a prior ack/typing.
+    const chk = $("uninstall-ack-check");
+    if (chk) chk.checked = false;
+    const inp = $("uninstall-type-input");
+    if (inp) inp.value = "";
+    const err = $("uninstall-error");
+    if (err) { err.hidden = true; err.textContent = ""; }
+    syncUninstallButton();
+    inp?.focus();
+  }
+}
+
+async function confirmUninstall(btn) {
+  if (!uninstallReady()) return; // defensive — button should be disabled
+  if (btn) btn.disabled = true;
+  const err = $("uninstall-error");
+  if (err) { err.hidden = true; err.textContent = ""; }
+  try {
+    announce("Removing MUSU from this machine", true);
+    // The handler runs the destructive CLI uninstall, spawns the elevated
+    // package-removal helper, and schedules the app to close. We may never get
+    // here if the window closes first; that's expected.
+    await invoke("complete_uninstall", { confirm: UNINSTALL_PHRASE });
+    if (err) {
+      err.hidden = false;
+      err.textContent = "제거를 진행 중입니다. 이 창은 곧 닫힙니다.";
+    }
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (err) {
+      err.hidden = false;
+      err.textContent = `제거 실패: ${String(e).slice(0, 300)}`;
+    }
+  }
+}
+
+$("set-uninstall")?.addEventListener("click", () => setUninstallModalOpen(true));
+$("uninstall-cancel")?.addEventListener("click", () => setUninstallModalOpen(false));
+$("uninstall-cancel-x")?.addEventListener("click", () => setUninstallModalOpen(false));
+$("uninstall-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "uninstall-modal") setUninstallModalOpen(false); // backdrop
+});
+$("uninstall-ack-check")?.addEventListener("change", syncUninstallButton);
+$("uninstall-type-input")?.addEventListener("input", syncUninstallButton);
+$("uninstall-confirm")?.addEventListener("click", (e) => confirmUninstall(e.currentTarget));
 
 // Rename a fleet machine (WS-2c, resolve→confirm-by-id). Fetch the authoritative
 // node list, match this row by name AND tailnet IP, rename by the returned

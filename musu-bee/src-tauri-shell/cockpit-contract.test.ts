@@ -2804,3 +2804,103 @@ test("body-zone arbiter: fleet-empty and task-feed are never both visible (WS-1a
   await new Promise((r) => setTimeout(r, 0));
   dom.window.close();
 });
+
+// ── U-B: complete uninstall gate ─────────────────────────────────────────────
+
+test("complete-uninstall button is gated behind checkbox AND typed phrase", async () => {
+  const dom = loadShellDom();
+  const win = dom.window as any;
+  const doc = dom.window.document;
+  const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
+
+  win.__TAURI__.core.invoke = async (command: string, args?: Record<string, unknown>) => {
+    calls.push({ command, args });
+    return {};
+  };
+
+  // Open the modal via the Danger-zone button.
+  (doc.getElementById("set-uninstall") as HTMLElement).click();
+  const modal = doc.getElementById("uninstall-modal") as HTMLElement;
+  assert.equal(modal.hidden, false, "uninstall modal opens");
+
+  const confirmBtn = doc.getElementById("uninstall-confirm") as HTMLButtonElement;
+  const ack = doc.getElementById("uninstall-ack-check") as HTMLInputElement;
+  const typed = doc.getElementById("uninstall-type-input") as HTMLInputElement;
+
+  assert.equal(confirmBtn.disabled, true, "confirm disabled on open");
+
+  // Only checkbox → still disabled.
+  ack.checked = true;
+  ack.dispatchEvent(new dom.window.Event("change"));
+  assert.equal(confirmBtn.disabled, true, "checkbox alone does not enable");
+
+  // Wrong phrase → still disabled.
+  typed.value = "remove musu"; // wrong case
+  typed.dispatchEvent(new dom.window.Event("input"));
+  assert.equal(confirmBtn.disabled, true, "wrong phrase does not enable");
+
+  // Exact phrase + checkbox → enabled.
+  typed.value = "REMOVE MUSU";
+  typed.dispatchEvent(new dom.window.Event("input"));
+  assert.equal(confirmBtn.disabled, false, "checkbox + exact phrase enables");
+
+  // Clicking invokes complete_uninstall with the exact phrase.
+  confirmBtn.click();
+  // Drain the async confirmUninstall continuation (await invoke → DOM write)
+  // before closing the window so it doesn't leak past the test boundary.
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+  const call = calls.find((c) => c.command === "complete_uninstall");
+  assert.ok(call, "complete_uninstall invoked");
+  assert.equal((call!.args as any).confirm, "REMOVE MUSU", "exact phrase forwarded");
+
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
+
+test("complete-uninstall modal resets its gate each time it opens", async () => {
+  const dom = loadShellDom();
+  const win = dom.window as any;
+  const doc = dom.window.document;
+  win.__TAURI__.core.invoke = async () => ({});
+
+  const ack = doc.getElementById("uninstall-ack-check") as HTMLInputElement;
+  const typed = doc.getElementById("uninstall-type-input") as HTMLInputElement;
+  const confirmBtn = doc.getElementById("uninstall-confirm") as HTMLButtonElement;
+
+  // Open, satisfy the gate, then cancel.
+  (doc.getElementById("set-uninstall") as HTMLElement).click();
+  ack.checked = true; ack.dispatchEvent(new dom.window.Event("change"));
+  typed.value = "REMOVE MUSU"; typed.dispatchEvent(new dom.window.Event("input"));
+  assert.equal(confirmBtn.disabled, false);
+  (doc.getElementById("uninstall-cancel") as HTMLElement).click();
+  assert.equal((doc.getElementById("uninstall-modal") as HTMLElement).hidden, true);
+
+  // Re-open → ack cleared, input cleared, button disabled again.
+  (doc.getElementById("set-uninstall") as HTMLElement).click();
+  assert.equal(ack.checked, false, "ack reset on re-open");
+  assert.equal(typed.value, "", "typed phrase reset on re-open");
+  assert.equal(confirmBtn.disabled, true, "confirm disabled again on re-open");
+
+  await new Promise((r) => setTimeout(r, 0));
+  dom.window.close();
+});
+
+test("complete_uninstall handler re-validates the typed phrase server-side", () => {
+  // The Rust handler is the security boundary; assert the source enforces the
+  // exact-phrase re-check and never forwards the user string to the elevated
+  // child (no-injection guarantee).
+  const lib = source("src-tauri/src/lib.rs");
+  assert.match(lib, /fn complete_uninstall\(/);
+  assert.match(lib, /confirm\.trim\(\) != COMPLETE_UNINSTALL_CONFIRM/);
+  assert.match(lib, /const COMPLETE_UNINSTALL_CONFIRM: &str = "REMOVE MUSU";/);
+  // CLI args are a static array; the user confirm is NOT among them.
+  assert.match(lib, /"--deregister",\s*"--purge",\s*"--i-understand-this-deletes-data",\s*"--i-have-a-backup",\s*"--json",/);
+  // The elevated helper launches the LOCAL script (-File), not remote code.
+  assert.match(lib, /Start-Process -FilePath 'powershell' -Verb RunAs/);
+  assert.doesNotMatch(lib, /DownloadString/);
+  // U-C seam exists in the CLI uninstall, not invented as a fake endpoint.
+  const un = source("../musu-rs/src/install/uninstall.rs");
+  assert.match(un, /U-C SEAM: cloud self-deregister/);
+  assert.doesNotMatch(un, /https?:\/\/[^"]*remove-self/);
+});

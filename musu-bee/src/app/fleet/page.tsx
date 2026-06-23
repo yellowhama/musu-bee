@@ -1,85 +1,73 @@
 "use client";
 import { getBridgeUrl } from '../../lib/bridge-config';
 
-// V23.4 T2-C — Fleet view (per wiki/434 rev-2).
+// V23.4 T2-C — Fleet view. Repointed in F-3 (HIGH-1, Option A) from the phantom
+// `GET /api/machines` (musu-bridge Python shape, never implemented in musu-rs —
+// the page 404'd) to the EXISTING `GET /api/fleet/status` (musu-rs
+// fleet.rs:fleet_status, returns FleetDashboard).
 //
-// Single-file client component (OQ-CRIT-3, Critic C-T2C-6): inline StatusDot,
-// Bar, PcCapacityCard, AddPcWizard + main FleetPage. Mirrors the single-file
-// convention of `/c/[id]/page.tsx` (250 LOC) and `/m/[id]/page.tsx` (309 LOC).
+// Single-file client component: inline StatusDot, PcStatusCard, AddPcWizard +
+// main FleetPage. Mirrors the single-file convention of `/c/[id]/page.tsx` and
+// `/m/[id]/page.tsx`.
 //
 // Vocab discipline (no K8s leakage; see [[feedback-no-yagni-architecture]]):
 //   musu uses PC + peer + workflow + capacity + pairing.
-//   Do NOT introduce K8s nouns here (see vocabulary-audit.ts for the
-//   banned-pattern list).
 //
-// Data source: bridge `GET /api/machines` returns `{ machines: [...], count }`
-// where each machine has `{ id, hostname, os, arch, status, last_seen_at,
-// capacity: {gpu_vram_total_gb, gpu_vram_free_gb, mem_total_gb, mem_free_gb,
-// cpu_cores, cpu_idle_pct, ...} | null, inflight_requests: int }`. Note the
-// musu-bridge axis_routes.py shape uses *_gb, NOT *_mb as the spec body
-// loosely indicated — ground-truth wins (see Builder FINDINGS).
+// Data source: bridge `GET /api/fleet/status` returns the FleetDashboard:
+//   { this_node: FleetNodeStatus, peers: FleetNodeStatus[],
+//     total_nodes, online_nodes, total_tasks_running, total_tasks_pending }
+// where FleetNodeStatus = { name, addr, healthy, reachable_via?, is_self,
+//   last_seen?, status_error?, tasks_running, tasks_pending, shared_dirs[],
+//   version, ... }. `reachable_via` is "direct" | "relay" | absent. A node with
+//   healthy=false but reachable_via="relay" is reachable over the relay and is
+//   shown as a distinct yellow "relay" state — NOT offline (F-3).
 //
-// Refresh: low-duty 30s polling + single EventSource on `machines` table
-// (OQ-CRIT-4 drops `machine_capacity` SSE; polling covers slow-moving capacity). The
-// alive-guard inside useEffect prevents setState after unmount (C-T2C-4),
-// mirroring /m/[id]/page.tsx:106,113-115.
+// FleetNodeStatus carries NO GPU/CPU/memory capacity (that lived only in the old
+// Python machine shape), so the capacity bars are dropped here rather than
+// fabricated. Per-node load is shown via tasks_running / tasks_pending instead.
+//
+// Refresh: low-duty 30s polling (useLowDutyPolling). The old EventSource
+// subscription to `/api/watch/subscribe?table=machines` is removed — that
+// endpoint does not exist in musu-rs, so it only produced errors. Fleet status
+// is slow-moving; polling covers it.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DoctorStatusCard from "../../components/DoctorStatusCard";
-import { useBoundedEventSource } from "@/lib/useBoundedEventSource";
 import { useLowDutyPolling } from "@/lib/useLowDutyPolling";
+import {
+  type FleetNodeStatus,
+  type FleetDashboard,
+  type NodeState,
+  nodeState,
+  stateLabel,
+} from "@/lib/fleetState";
 
 const BRIDGE_URL = getBridgeUrl();
 const REFRESH_INTERVAL = 30_000;
 
-// ---- Types ----------------------------------------------------------------
-
-interface FleetCapacity {
-  gpu_models: string[];
-  gpu_vram_total_gb: number;
-  gpu_vram_free_gb: number;
-  cpu_cores: number;
-  cpu_idle_pct: number;
-  mem_total_gb: number;
-  mem_free_gb: number;
-  runtime_classes: string[];
-  last_heartbeat_at: string | null;
-}
-
-interface FleetMachine {
-  id: string;
-  hostname: string;
-  os: string;
-  arch: string;
-  status: string; // "online" | "offline" | "stale" | etc — bridge-authoritative
-  last_seen_at: string | null;
-  capacity: FleetCapacity | null;
-  inflight_requests: number;
-}
-
-interface MachinesListResponse {
-  machines: FleetMachine[];
-  count: number;
-}
+// ---- Types -----------------------------------------------------------------
+// FleetNodeStatus / FleetDashboard / NodeState + nodeState()/stateLabel() now
+// live in @/lib/fleetState (shared with /m/[id] so the 3-state derivation cannot
+// drift between web surfaces). Page-local types stay here.
 
 interface AgentSummary {
   id: string;
   name: string;
 }
 
-// ---- Inline primitives (StatusDot, Bar) -----------------------------------
+// ---- Inline primitives (StatusDot) ----------------------------------------
 
-function StatusDot({ status }: { status: string }) {
+function StatusDot({ state }: { state: NodeState }) {
   const color =
-    status === "online" || status === "running" || status === "bound"
+    state === "online"
       ? "var(--status-online)"
-      : status === "draining" || status === "pending" || status === "stale"
+      : state === "relay"
         ? "var(--status-warn)"
         : "var(--status-error)";
   return (
     <span
-      aria-label={`status-${status}`}
+      aria-label={`status-${state}`}
       style={{
         display: "inline-block",
         width: 10,
@@ -93,77 +81,20 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-function Bar({
-  label,
-  used,
-  total,
-  unit,
-}: {
-  label: string;
-  used: number;
-  total: number;
-  unit: string;
-}) {
-  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 11,
-          color: "var(--fg2)",
-        }}
-      >
-        <span>{label}</span>
-        <span>
-          {used.toFixed(1)} / {total.toFixed(1)} {unit} ({pct}%)
-        </span>
-      </div>
-      <div
-        style={{
-          height: 5,
-          background: "var(--border-default)",
-          borderRadius: 3,
-          overflow: "hidden",
-          marginTop: 3,
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background:
-              pct > 90
-                ? "var(--status-error)"
-                : pct > 60
-                  ? "var(--status-warn)"
-                  : "var(--status-online)",
-            transition: "width 200ms",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
+// ---- PcStatusCard ---------------------------------------------------------
 
-// ---- PcCapacityCard -------------------------------------------------------
-
-function PcCapacityCard({ machine }: { machine: FleetMachine }) {
+function PcStatusCard({ node }: { node: FleetNodeStatus }) {
   const router = useRouter();
-  const cap = machine.capacity;
-  const gpuUsed = cap ? cap.gpu_vram_total_gb - cap.gpu_vram_free_gb : 0;
-  const memUsed = cap ? cap.mem_total_gb - cap.mem_free_gb : 0;
-  const cpuUsedPct = cap ? Math.max(0, 100 - cap.cpu_idle_pct) : 0;
+  const state = nodeState(node);
 
   return (
     <div
-      data-testid={`pc-${machine.id}`}
-      onClick={() => router.push(`/m/${machine.id}`)}
+      data-testid={`pc-${node.name}`}
+      onClick={() => router.push(`/m/${encodeURIComponent(node.name)}`)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          router.push(`/m/${machine.id}`);
+          router.push(`/m/${encodeURIComponent(node.name)}`);
         }
       }}
       role="button"
@@ -192,7 +123,7 @@ function PcCapacityCard({ machine }: { machine: FleetMachine }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-          <StatusDot status={machine.status} />
+          <StatusDot state={state} />
           <div style={{ minWidth: 0 }}>
             <div
               style={{
@@ -204,10 +135,16 @@ function PcCapacityCard({ machine }: { machine: FleetMachine }) {
                 whiteSpace: "nowrap",
               }}
             >
-              {machine.hostname || machine.id}
+              {node.name}
+              {node.is_self && (
+                <span style={{ fontSize: 11, color: "var(--fg3)", fontWeight: 400 }}>
+                  {" "}
+                  (this PC)
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 11, color: "var(--fg3)" }}>
-              {machine.os} · {machine.arch} · {machine.status}
+              {node.addr} · {stateLabel(state)}
             </div>
           </div>
         </div>
@@ -224,35 +161,33 @@ function PcCapacityCard({ machine }: { machine: FleetMachine }) {
             marginLeft: 8,
           }}
         >
-          {machine.inflight_requests} active
+          {stateLabel(state)}
         </span>
       </div>
 
-      {cap ? (
-        <div>
-          {cap.gpu_vram_total_gb > 0 && (
-            <Bar
-              label={
-                cap.gpu_models.length > 0
-                  ? `GPU VRAM (${cap.gpu_models.join(", ")})`
-                  : "GPU VRAM"
-              }
-              used={gpuUsed}
-              total={cap.gpu_vram_total_gb}
-              unit="GB"
-            />
-          )}
-          <Bar label="Memory" used={memUsed} total={cap.mem_total_gb} unit="GB" />
-          <Bar
-            label={`CPU (${cap.cpu_cores} cores)`}
-            used={cpuUsedPct}
-            total={100}
-            unit="%"
-          />
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          fontSize: 12,
+          color: "var(--fg2)",
+        }}
+      >
+        <span>{node.tasks_running} running</span>
+        <span>{node.tasks_pending} pending</span>
+        <span>
+          {node.shared_dirs.length} dir{node.shared_dirs.length === 1 ? "" : "s"} shared
+        </span>
+      </div>
+
+      {state === "relay" && (
+        <div style={{ fontSize: 11, color: "var(--status-warn)", marginTop: 8 }}>
+          Reachable over relay (no direct route).
         </div>
-      ) : (
-        <div style={{ fontSize: 12, color: "var(--fg3)", padding: "8px 0" }}>
-          No capacity heartbeat yet.
+      )}
+      {state === "offline" && node.status_error && (
+        <div style={{ fontSize: 11, color: "var(--fg3)", marginTop: 8 }}>
+          {node.status_error}
         </div>
       )}
     </div>
@@ -291,7 +226,10 @@ function AddPcWizard({
     setAgentsFallback(false);
     (async () => {
       try {
-        const res = await fetch(`${BRIDGE_URL}/api/agents`);
+        // WS-A A-1: use the Next proxy route (relative), not the bridge directly.
+        // `${BRIDGE_URL}/api/agents` is the retired Python-era shape; the canonical
+        // surface is the local `/api/agents` route handler.
+        const res = await fetch(`/api/agents`);
         if (!alive) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Array<{ id: string; name: string }>;
@@ -317,10 +255,13 @@ function AddPcWizard({
     setSubmitting(true);
     setError(null);
     try {
-      // Per F-R7 + OQ: body keys MUST be exactly ["name","url","agents"];
-      // NO `version` field (server defaults it).
+      // WS-A A-1: route through the canonical Next proxy `/api/nodes/pair`
+      // (→ bridge `POST /api/nodes/add`, NodeAddRequest{name,url,tailscale_ip?,agents}).
+      // The old `${BRIDGE_URL}/api/admin/pair/accept` is a Python-era path musu-rs
+      // never served (the wizard's name+url+agents IS the node-add operation).
+      // Body keys stay ["name","url","agents"] — already matches NodeAddRequest.
       const body = { name, url, agents };
-      const res = await fetch(`${BRIDGE_URL}/api/admin/pair/accept`, {
+      const res = await fetch(`/api/nodes/pair`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -521,7 +462,7 @@ function AddPcWizard({
 // ---- FleetPage (main) -----------------------------------------------------
 
 export default function FleetPage() {
-  const [machines, setMachines] = useState<FleetMachine[]>([]);
+  const [nodes, setNodes] = useState<FleetNodeStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -531,11 +472,15 @@ export default function FleetPage() {
     if (fetchInFlightRef.current) return;
     fetchInFlightRef.current = true;
     try {
-      const resp = await fetch(`${BRIDGE_URL}/api/machines`, { signal });
+      const resp = await fetch(`${BRIDGE_URL}/api/fleet/status`, { signal });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = (await resp.json()) as MachinesListResponse;
+      const dashboard = (await resp.json()) as FleetDashboard;
       if (signal?.aborted) return;
-      setMachines(json.machines || []);
+      // this_node first, then peers — self always leads the list.
+      const all = dashboard.this_node
+        ? [dashboard.this_node, ...(dashboard.peers || [])]
+        : dashboard.peers || [];
+      setNodes(all);
       setError(null);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (e) {
@@ -547,13 +492,6 @@ export default function FleetPage() {
   }, []);
 
   useLowDutyPolling(fetchData, { intervalMs: REFRESH_INTERVAL });
-
-  useBoundedEventSource({
-    url: `${BRIDGE_URL}/api/watch/subscribe?table=machines`,
-    onMessage: () => {
-      void fetchData();
-    },
-  });
 
   return (
     <div
@@ -635,7 +573,7 @@ export default function FleetPage() {
         </div>
       )}
 
-      {machines.length > 0 ? (
+      {nodes.length > 0 ? (
         <div
           style={{
             display: "grid",
@@ -643,8 +581,8 @@ export default function FleetPage() {
             gap: 16,
           }}
         >
-          {machines.map((m) => (
-            <PcCapacityCard key={m.id} machine={m} />
+          {nodes.map((n) => (
+            <PcStatusCard key={n.name} node={n} />
           ))}
         </div>
       ) : !error ? (

@@ -5371,15 +5371,17 @@ pub async fn run_status(opts: StatusOpts) -> Result<()> {
     // Peers
     if let Some(peers) = fleet["peers"].as_array() {
         for peer in peers {
-            let icon = if peer["healthy"].as_bool().unwrap_or(false) {
-                "\u{2705}"
+            // F-3 HIGH-2: a peer with healthy=false but reachable_via="relay" is
+            // reachable over the relay, NOT offline. Read the same fields the
+            // cockpit reads so CLI and cockpit agree on the 3-state status.
+            let healthy = peer["healthy"].as_bool().unwrap_or(false);
+            let relay = peer["reachable_via"].as_str() == Some("relay");
+            let (icon, label) = if healthy {
+                ("\u{2705}", "healthy")
+            } else if relay {
+                ("\u{1f7e1}", "relay")
             } else {
-                "\u{274c}"
-            };
-            let label = if peer["healthy"].as_bool().unwrap_or(false) {
-                "healthy"
-            } else {
-                "offline"
+                ("\u{274c}", "offline")
             };
             println!(
                 "  {} {} ({})    {} running, {} pending",

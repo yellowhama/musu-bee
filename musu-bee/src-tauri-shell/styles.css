@@ -228,6 +228,18 @@ body {
   font-size: 12px;
   letter-spacing: 0.3px;
 }
+/* always-visible app version line in the header brand block */
+.app-version {
+  margin: 1px 0 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: var(--ink-faint);
+  opacity: 0.7;
+}
+.app-version:empty {
+  display: none;
+}
 
 /* connection signal — pill that reads at a glance */
 .conn {
@@ -467,6 +479,12 @@ body {
   background: var(--online);
   box-shadow: 0 0 12px -2px var(--online-glow);
 }
+/* F-3 HIGH-A: relay = reachable over the relay (yellow), distinct from both
+   online (green/direct) and offline (red). Mirrors the web page's
+   --status-warn (StatusDot relay branch) so all three surfaces agree. */
+.fleet-row.relay::before {
+  background: var(--warn);
+}
 
 .fleet-row .node-dot {
   position: relative;
@@ -478,6 +496,9 @@ body {
 }
 .fleet-row.online .node-dot {
   background: var(--online);
+}
+.fleet-row.relay .node-dot {
+  background: var(--warn);
 }
 .fleet-row.online .node-dot::after {
   content: "";
@@ -539,6 +560,7 @@ body {
   color: var(--ink-faint);
 }
 .node-status.ok { color: var(--online); }
+.node-status.relay { color: var(--warn); }
 .node-status.off { color: var(--ink-faint); }
 
 .node-network {
@@ -3024,6 +3046,40 @@ body {
 .settings-actions button:hover { border-color: var(--amber); }
 .settings-actions .btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .settings-actions .btn-danger:hover { border-color: var(--bad); }
+.settings-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.settings-actions button:disabled:hover { border-color: var(--line); }
+
+/* U-B: complete-uninstall confirmation gate (checkbox + typed phrase). */
+.uninstall-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.uninstall-ack input { margin-top: 3px; }
+.uninstall-type {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+.uninstall-type code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--bad);
+}
+.uninstall-type input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  background: var(--bg-1);
+  color: var(--ink);
+}
+.uninstall-type input:focus { outline: none; border-color: var(--bad); }
+#uninstall-error { color: var(--bad); }
 
 /* ── WS-1a step3: visual re-order (non-destructive) ─────────────────────────
    Re-sequence the cockpit into 3 zones — fleet status strip (top), activity

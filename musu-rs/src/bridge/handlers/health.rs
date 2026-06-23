@@ -67,11 +67,45 @@ pub async fn get_health_ready(State(state): State<AppState>) -> Json<serde_json:
     }))
 }
 
-/// Best-effort disk free percent for the volume containing `path`.
-/// Returns None on platforms / errors we can't handle. Not load-bearing.
+/// Best-effort disk free percent (0.0–100.0) for the volume containing `path`.
+/// Returns None on platforms / errors we can't handle. Not load-bearing — a
+/// None or error here must never fail the health check.
+#[cfg(windows)]
+fn disk_free_percent(path: &std::path::Path) -> Option<f64> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+    // GetDiskFreeSpaceExW accepts a directory/file path and reports the free
+    // and total bytes of the volume that contains it. Use the db path's parent
+    // dir (the path itself may be a file); fall back to the path as given.
+    let dir = path.parent().unwrap_or(path);
+
+    // Wide, NUL-terminated path for the W API.
+    let mut wide: Vec<u16> = dir.as_os_str().encode_wide().collect();
+    wide.push(0);
+
+    let mut free_to_caller: u64 = 0;
+    let mut total: u64 = 0;
+    // SAFETY: pointers are valid for the duration of the call; out-params are
+    // local stack variables; the path buffer is NUL-terminated.
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut free_to_caller,
+            &mut total,
+            std::ptr::null_mut(),
+        )
+    };
+    if ok == 0 || total == 0 {
+        return None;
+    }
+    Some((free_to_caller as f64 / total as f64) * 100.0)
+}
+
+#[cfg(not(windows))]
 fn disk_free_percent(_path: &std::path::Path) -> Option<f64> {
-    // R1 placeholder: returning 0.0 is acceptable for /health; R-cleanup
-    // adds proper sysinfo crate-backed measurement. Python health does
-    // the same kind of approximation.
-    Some(0.0)
+    // Non-Windows builds (CI/tooling) have no native measurement wired; musu
+    // ships Windows-first. Return None rather than a fabricated 0.0 so the
+    // field is honestly absent instead of a misleading "disk full" signal.
+    None
 }

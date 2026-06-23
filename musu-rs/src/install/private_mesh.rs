@@ -3114,6 +3114,21 @@ fn read_private_mesh_config(path: &Path) -> Option<PrivateMeshConfig> {
     toml::from_str(&body).ok()
 }
 
+/// U-C: the persisted local tailnet IP recorded by `mesh join`/`verify`
+/// (`private_mesh.toml` → verification.local_tailnet_ip), if present and
+/// non-empty. The uninstall self-deregister prefers this over a live
+/// `tailscale ip` call: it is recorded at join/verify time, survives a stopped
+/// tailscaled, and avoids depending on the `tailscale` CLI being on PATH during
+/// uninstall. Returns `None` when there is no mesh config or no recorded IP.
+pub fn persisted_local_tailnet_ip(musu_home: &Path) -> Option<String> {
+    let config = read_private_mesh_config(&musu_home.join(PRIVATE_MESH_CONFIG))?;
+    config
+        .verification
+        .local_tailnet_ip
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct CaddySite {
     site_address: String,

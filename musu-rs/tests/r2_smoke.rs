@@ -66,7 +66,6 @@ fn spawn_bridge(
         .env("BRIDGE_PORT", port.to_string())
         .env("MUSU_BRIDGE_DB_PATH", db_path)
         .env("MUSU_COMPANIES_DIR", companies_dir)
-        .env("MUSU_PYTHON_BRIDGE_PORT", "8071") // unused (no facade calls in smoke)
         .env("MUSU_DISABLE_RATE_LIMIT", "1")
         .env("RUST_LOG", "warn")
         .stdout(Stdio::null())
