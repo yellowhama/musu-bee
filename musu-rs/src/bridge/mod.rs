@@ -88,6 +88,127 @@ fn cloud_registration_sleep_duration(
         + Duration::from_millis(jitter_ms)
 }
 
+/// Spawn the background task that hot-reloads `~/.musu/mesh.env` into the
+/// running bridge's [`AuthState`] without a restart.
+///
+/// Two channels feed `AuthState::swap_peer_token` (which itself rejects
+/// empty/None candidates — Critic A3):
+///   1. A `notify` watcher on the PARENT DIR (musu_home), NonRecursive,
+///      filtered to `mesh.env` events, debounced ~300ms. This is the fast
+///      path — picks up `musu mesh join-account` within a few hundred ms.
+///   2. A 45s `tokio::time::interval` that unconditionally re-reads. This is
+///      the correctness backstop: if the watcher backend dies (or never
+///      initializes), the bearer is still eventually picked up.
+///
+/// Watcher init failure is logged via `tracing::error!` and does NOT abort:
+/// the periodic re-read alone is sufficient for correctness, and local-token
+/// auth is unaffected either way.
+fn spawn_mesh_bearer_watcher(auth_state: AuthState) {
+    use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+
+    let home = match crate::install::resolve_musu_home_from_env() {
+        Ok(h) => h,
+        Err(e) => {
+            // musu_home is unresolvable (no HOME/USERPROFILE/MUSU_HOME). The
+            // bridge can still serve local-token auth; we simply cannot watch a
+            // mesh.env we can't locate. Log and skip — do NOT abort boot.
+            tracing::error!(error = %e,
+                "mesh-bearer watcher: musu_home unresolved; mesh.env hot-reload disabled");
+            return;
+        }
+    };
+
+    tokio::spawn(async move {
+        let notify = Arc::new(tokio::sync::Notify::new());
+        let dirty = Arc::new(std::sync::Mutex::new(false));
+
+        // Keep the watcher alive for the lifetime of this task by moving it
+        // into the loop scope below. If init fails we proceed with the
+        // periodic path only.
+        let watcher: Option<RecommendedWatcher> = {
+            let notify_cb = notify.clone();
+            let dirty_cb = dirty.clone();
+            match RecommendedWatcher::new(
+                move |event_result: notify::Result<notify::Event>| {
+                    let event = match event_result {
+                        Ok(e) => e,
+                        Err(e) => {
+                            tracing::warn!(error = %e, "mesh-bearer watcher event error");
+                            return;
+                        }
+                    };
+                    // Only react to events touching `mesh.env` itself (the dir
+                    // also holds bridge.env, nodes.toml, the db dir, etc.).
+                    let touches_mesh_env = event.paths.iter().any(|p| {
+                        p.file_name()
+                            .and_then(|n| n.to_str())
+                            .map(|n| n == "mesh.env")
+                            .unwrap_or(false)
+                    });
+                    if !touches_mesh_env {
+                        return;
+                    }
+                    *dirty_cb.lock().unwrap() = true;
+                    notify_cb.notify_one();
+                },
+                notify::Config::default(),
+            ) {
+                Ok(mut w) => match w.watch(&home, RecursiveMode::NonRecursive) {
+                    Ok(()) => {
+                        tracing::info!(dir = %home.display(), "mesh-bearer watcher active");
+                        Some(w)
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, dir = %home.display(),
+                            "mesh-bearer watcher: watch() failed; relying on periodic re-read");
+                        None
+                    }
+                },
+                Err(e) => {
+                    tracing::error!(error = %e,
+                        "mesh-bearer watcher: init failed; relying on periodic re-read");
+                    None
+                }
+            }
+        };
+        // Bind so the watcher (if any) is not dropped early.
+        let _watcher = watcher;
+
+        let mut interval = tokio::time::interval(Duration::from_secs(45));
+        // First tick fires immediately — that performs the initial pickup for a
+        // bridge that booted just after a join wrote mesh.env.
+        loop {
+            tokio::select! {
+                _ = notify.notified() => {
+                    // Debounce: coalesce a burst (write -> rename -> attrib)
+                    // into a single re-read. 300ms is plenty for the atomic
+                    // temp+rename publish.
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                    let do_read = {
+                        let mut d = dirty.lock().unwrap();
+                        let v = *d;
+                        *d = false;
+                        v
+                    };
+                    if do_read {
+                        auth_state.swap_peer_token(
+                            crate::install::token::read_mesh_bearer(&home),
+                        );
+                    }
+                }
+                _ = interval.tick() => {
+                    // Unconditional backstop re-read. swap_peer_token no-ops on
+                    // None/empty, so a missing mesh.env never clears a good
+                    // bearer.
+                    auth_state.swap_peer_token(
+                        crate::install::token::read_mesh_bearer(&home),
+                    );
+                }
+            }
+        }
+    });
+}
+
 /// Entry point invoked from `main.rs` for `musu bridge`.
 pub async fn run() -> Result<()> {
     let cfg = BridgeConfig::from_env()?;
@@ -170,6 +291,18 @@ pub async fn run() -> Result<()> {
 
     let auth_state = AuthState::from_config(&cfg);
     let rate_limit_state = RateLimitState::new(cfg.rate_limit_per_min, cfg.rate_limit_disabled);
+
+    // Hot-reload of the account-wide mesh bearer (~/.musu/mesh.env).
+    //
+    // A bridge started BEFORE `musu mesh join-account` writes mesh.env holds
+    // peer_token = None and 401s every cross-machine sibling until manually
+    // restarted (peer_token was read once at config load). join-account is a
+    // separate process and cannot signal the running bridge, so a file watch is
+    // the only channel. We mirror indexer::watch's notify pattern and ALSO run
+    // a periodic re-read as the correctness backstop if the watcher backend
+    // dies. Watcher init failure is logged and swallowed — local-token auth
+    // still works, so it must never abort bridge boot.
+    spawn_mesh_bearer_watcher(auth_state.clone());
 
     // W15: Universal Clipboard broadcast monitor.
     //

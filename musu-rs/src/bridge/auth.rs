@@ -13,7 +13,7 @@
 //! Port-from: `musu-bridge/middleware.py::TokenAuthMiddleware`.
 
 use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use axum::extract::{ConnectInfo, Request, State};
 use axum::http::{Method, StatusCode};
@@ -27,10 +27,19 @@ use super::config::BridgeConfig;
 
 /// State held by the auth middleware. Tokens are stored as `String` (zeroizing
 /// is a R3 hardening item; for R1 the secret never leaves the process).
+///
+/// `peer_token` is the account-wide mesh bearer. It lives behind an
+/// `Arc<RwLock<...>>` cell so a background watcher (see `bridge::mod`) can
+/// hot-swap it when `~/.musu/mesh.env` is (re)written by `musu mesh
+/// join-account`, WITHOUT restarting the bridge. A bridge started before the
+/// account is joined would otherwise hold `peer_token = None` forever and 401
+/// every cross-machine sibling. The cell type is the swap channel; `arc-swap`
+/// is deliberately NOT pulled in — `std::sync::RwLock` is sufficient for a
+/// secret read on every request and written at most every few seconds.
 #[derive(Debug, Clone)]
 pub struct AuthState {
     pub token: Arc<String>,
-    pub peer_token: Option<Arc<String>>,
+    pub peer_token: Arc<RwLock<Option<Arc<String>>>>,
     pub localhost_auth_required: bool,
 }
 
@@ -38,8 +47,33 @@ impl AuthState {
     pub fn from_config(cfg: &BridgeConfig) -> Self {
         Self {
             token: Arc::new(cfg.token.clone()),
-            peer_token: cfg.peer_token.as_ref().map(|t| Arc::new(t.clone())),
+            peer_token: Arc::new(RwLock::new(
+                cfg.peer_token.as_ref().map(|t| Arc::new(t.clone())),
+            )),
             localhost_auth_required: cfg.localhost_auth_required,
+        }
+    }
+
+    /// Hot-swap the account-wide mesh bearer (peer_token) at runtime.
+    ///
+    /// Critic A3 (HIGH) — empty-swap guard: a `None` or trimmed-empty candidate
+    /// is REJECTED without taking the write lock. A missing/emptied `mesh.env`
+    /// (deleted file, blanked value, mid-rotation truncation) must NEVER clear a
+    /// previously-good bearer and must NEVER install `Some("")` (an empty
+    /// `Some` would make `ct_compare` accept an empty bearer — see
+    /// require_bearer's empty-token reject at request time, but defense in
+    /// depth keeps it out of the cell entirely). Per confirmed facts the mesh
+    /// bearer has NO guaranteed minimum length, so this path enforces NON-EMPTY
+    /// only — no `>=32` floor (a floor would reject short-but-valid bearers and
+    /// break the existing roundtrip test).
+    pub fn swap_peer_token(&self, candidate: Option<String>) {
+        let value = match candidate {
+            Some(v) if !v.trim().is_empty() => v,
+            // None or empty/whitespace → preserve the existing bearer.
+            _ => return,
+        };
+        if let Ok(mut guard) = self.peer_token.write() {
+            *guard = Some(Arc::new(value));
         }
     }
 }
@@ -200,8 +234,15 @@ pub async fn require_bearer(State(state): State<AuthState>, req: Request, next: 
         return next.run(req).await;
     }
 
-    // V23.2-B1 secondary peer-sync token.
-    if let Some(peer) = &state.peer_token {
+    // V23.2-B1 secondary peer-sync token (account-wide mesh bearer).
+    // The cell is hot-swappable; take a read guard, clone the inner Arc out,
+    // then DROP the guard before the constant-time compare so we never hold the
+    // lock across an await or across ct_compare.
+    let peer = {
+        let guard = state.peer_token.read().ok();
+        guard.and_then(|g| g.clone())
+    };
+    if let Some(peer) = peer {
         if ct_compare(token.as_bytes(), peer.as_bytes()) {
             return next.run(req).await;
         }
@@ -445,5 +486,116 @@ mod tests {
     fn ct_compare_diff_len() {
         assert!(!ct_compare(b"abc", b"abcd"));
         assert!(!ct_compare(b"", b"abc"));
+    }
+
+    // ---- hot-swap peer_token (Critic A3 empty-swap guard) ----
+
+    /// Build a bare AuthState with the given peer bearer for swap tests.
+    fn auth_state_with_peer(peer: Option<&str>) -> AuthState {
+        AuthState {
+            token: Arc::new("a".repeat(32)),
+            peer_token: Arc::new(RwLock::new(peer.map(|p| Arc::new(p.to_string())))),
+            localhost_auth_required: true,
+        }
+    }
+
+    fn peer_snapshot(state: &AuthState) -> Option<String> {
+        state
+            .peer_token
+            .read()
+            .unwrap()
+            .as_ref()
+            .map(|a| a.as_str().to_string())
+    }
+
+    #[test]
+    fn swap_empty_string_preserves_existing() {
+        let state = auth_state_with_peer(Some("goodbearer123"));
+        state.swap_peer_token(Some(String::new()));
+        assert_eq!(
+            peer_snapshot(&state),
+            Some("goodbearer123".to_string()),
+            "Some(\"\") must NOT clear a previously-set bearer"
+        );
+    }
+
+    #[test]
+    fn swap_whitespace_preserves_existing() {
+        let state = auth_state_with_peer(Some("goodbearer123"));
+        state.swap_peer_token(Some("   ".to_string()));
+        assert_eq!(
+            peer_snapshot(&state),
+            Some("goodbearer123".to_string()),
+            "Some(\"  \") must NOT clear a previously-set bearer"
+        );
+    }
+
+    #[test]
+    fn swap_none_preserves_existing() {
+        let state = auth_state_with_peer(Some("goodbearer123"));
+        state.swap_peer_token(None);
+        assert_eq!(
+            peer_snapshot(&state),
+            Some("goodbearer123".to_string()),
+            "None must NOT clear a previously-set bearer"
+        );
+    }
+
+    #[test]
+    fn swap_valid_installs_bearer() {
+        // Starts with no peer bearer (the bug: bridge booted pre-join).
+        let state = auth_state_with_peer(None);
+        assert_eq!(peer_snapshot(&state), None);
+        state.swap_peer_token(Some("validbearer123".to_string()));
+        assert_eq!(peer_snapshot(&state), Some("validbearer123".to_string()));
+    }
+
+    #[test]
+    fn require_bearer_accepts_swapped_in_bearer() {
+        use axum::body::Body;
+        use axum::http::header::AUTHORIZATION;
+
+        let state = auth_state_with_peer(None);
+        state.swap_peer_token(Some("validbearer123".to_string()));
+
+        // A request carrying the swapped-in mesh bearer must compare-equal.
+        let req = Request::builder()
+            .method(Method::POST)
+            .uri("/api/tasks")
+            .header(AUTHORIZATION, "Bearer validbearer123")
+            .body(Body::empty())
+            .unwrap();
+        let token = parse_bearer(
+            req.headers()
+                .get(AUTHORIZATION)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
+        let peer = {
+            let guard = state.peer_token.read().ok();
+            guard.and_then(|g| g.clone())
+        }
+        .expect("peer bearer installed");
+        assert!(
+            ct_compare(token.as_bytes(), peer.as_bytes()),
+            "swapped-in bearer must be accepted by ct_compare"
+        );
+    }
+
+    #[test]
+    fn wrong_bearer_still_rejected_after_swap() {
+        let state = auth_state_with_peer(None);
+        state.swap_peer_token(Some("validbearer123".to_string()));
+        let peer = {
+            let guard = state.peer_token.read().ok();
+            guard.and_then(|g| g.clone())
+        }
+        .expect("peer bearer installed");
+        // A different bearer of equal length must not compare-equal, and the
+        // primary token must also reject it.
+        assert!(!ct_compare(b"WRONGbearer123", peer.as_bytes()));
+        assert!(!ct_compare(b"WRONGbearer123", state.token.as_bytes()));
     }
 }
