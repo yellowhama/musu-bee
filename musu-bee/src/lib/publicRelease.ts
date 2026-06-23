@@ -21,6 +21,13 @@ export const DESKTOP_CERT_URL = `${DESKTOP_RELEASE_BASE}/blossompark.musu.cer`;
 // in a single elevated run, so the beta user never types a certificate command.
 // (Removed entirely once the Store release ships — Store re-signs the package.)
 export const DESKTOP_INSTALL_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/Install-MUSU.ps1`;
+// One-line uninstaller, served at /uninstall.ps1 (mirror of the installer):
+//     irm https://musu.pro/uninstall.ps1 | iex
+// Proxies the canonical Uninstall-MUSU.ps1 from the same fixed GitHub release —
+// single source of truth, kept in lockstep with the pinned package family + cert
+// thumbprint the CLI's --print-removal-command emits. (Removed once the Store
+// release ships — Store owns the uninstall lifecycle.)
+export const DESKTOP_UNINSTALL_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/Uninstall-MUSU.ps1`;
 // Classic double-click installer (NSIS .exe). Bundles the WebView2 offline
 // installer, so it works on a clean PC with no prerequisites. For users who
 // prefer a familiar "download the .exe and run it" flow over the one-line PS.
