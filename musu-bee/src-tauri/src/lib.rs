@@ -857,6 +857,12 @@ struct FleetNode {
     status_error: Option<String>,
     public_url: String,
     is_this_pc: bool,
+    /// Direct-probe health from the bridge `/api/fleet/status` shape (F-3).
+    healthy: bool,
+    /// `"direct"` | `"relay"` | `None` — how the node is reachable. A relay node
+    /// has `healthy == false` but `reachable_via == Some("relay")`, which the
+    /// cockpit renders as a distinct "relay" state (yellow) rather than offline.
+    reachable_via: Option<String>,
     tailscale_ip: Option<String>,
     mesh_mode: Option<String>,
     route_label: Option<String>,
@@ -1916,6 +1922,8 @@ fn fleet_node_from_bridge_value(value: &serde_json::Value, is_this_pc: bool) -> 
         last_seen: json_string(value, &["last_seen"]).unwrap_or_default(),
         status_error: json_string(value, &["status_error"]),
         is_this_pc,
+        healthy: json_bool(value, &["healthy"]).unwrap_or(false),
+        reachable_via: json_string(value, &["reachable_via"]),
         tailscale_ip: json_string(value, &["tailscale_ip"]),
         mesh_mode: json_string(value, &["mesh_mode"]),
         route_label: json_string(value, &["route_label"]),
