@@ -88,7 +88,7 @@ fn detect_runtime_mode() -> DistributionMode {
 }
 
 #[cfg(windows)]
-fn has_package_identity() -> bool {
+pub(crate) fn has_package_identity() -> bool {
     use std::ptr::null_mut;
     use windows_sys::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
     use windows_sys::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName;

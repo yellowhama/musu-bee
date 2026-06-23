@@ -3036,6 +3036,40 @@ body {
 .settings-actions button:hover { border-color: var(--amber); }
 .settings-actions .btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .settings-actions .btn-danger:hover { border-color: var(--bad); }
+.settings-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.settings-actions button:disabled:hover { border-color: var(--line); }
+
+/* U-B: complete-uninstall confirmation gate (checkbox + typed phrase). */
+.uninstall-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.uninstall-ack input { margin-top: 3px; }
+.uninstall-type {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+.uninstall-type code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--bad);
+}
+.uninstall-type input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  background: var(--bg-1);
+  color: var(--ink);
+}
+.uninstall-type input:focus { outline: none; border-color: var(--bad); }
+#uninstall-error { color: var(--bad); }
 
 /* ── WS-1a step3: visual re-order (non-destructive) ─────────────────────────
    Re-sequence the cockpit into 3 zones — fleet status strip (top), activity

@@ -120,6 +120,11 @@ pub async fn run_startup(mode: LaunchMode) -> Result<()> {
         "musu startup launching packaged bridge runtime"
     );
 
+    // U-A: reconcile stale legacy runtime binaries left in ~/.musu/bin by a
+    // prior direct-download install after this MSIX build supersedes them.
+    // Fail-open: returns () and must never block reaching bridge::run().
+    crate::install::reconcile::run_reconcile(&musu_home);
+
     // HARD-1: only the explicit user-open path drives device-flow. Service/logon
     // boot stays bridge-only — see module docs.
     if mode == LaunchMode::UserOpen {
