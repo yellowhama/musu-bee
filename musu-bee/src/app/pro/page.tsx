@@ -6,7 +6,12 @@ export const metadata: Metadata = {
   description: "Connect your devices and let your AI team do the work.",
 };
 
-export default function ProLandingPage() {
+export default async function ProLandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ waitlist?: string }>;
+}) {
+  const waitlistStatus = (await searchParams)?.waitlist;
   // VibeCode Aesthetics for V2
   const colors = {
     bgBase: "#251714", // Deep Espresso
@@ -67,12 +72,22 @@ export default function ProLandingPage() {
           Turn your scattered laptops and desktops into one powerful AI team. Just tell the AI what to do, and it will automatically find the right machine for the job and show you the results visually.
         </p>
 
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <form style={{ display: "flex", width: "100%", maxWidth: 400, gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          <form
+            action="/api/waitlist?from=/pro"
+            method="post"
+            style={{ display: "flex", width: "100%", maxWidth: 400, gap: 8 }}
+          >
+            <label htmlFor="pro-waitlist-email" style={{ display: "none" }}>
+              Early access email
+            </label>
             <input
+              id="pro-waitlist-email"
+              name="email"
               type="email"
               placeholder="Enter your email for early access"
               required
+              autoComplete="email"
               style={{
                 flex: 1,
                 background: colors.bgSurface,
@@ -101,6 +116,22 @@ export default function ProLandingPage() {
               Join Waitlist
             </button>
           </form>
+
+          {waitlistStatus === "ok" ? (
+            <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 600 }}>
+              You&apos;re on the list — we&apos;ll be in touch when your access is ready.
+            </div>
+          ) : null}
+          {waitlistStatus === "invalid_email" ? (
+            <div style={{ color: "#F87171", fontSize: 14 }}>
+              That email doesn&apos;t look right. Please check it and try again.
+            </div>
+          ) : null}
+          {waitlistStatus === "error" ? (
+            <div style={{ color: "#F87171", fontSize: 14 }}>
+              Couldn&apos;t join the waitlist right now. Please try again in a moment.
+            </div>
+          ) : null}
         </div>
       </section>
 
