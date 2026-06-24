@@ -6,6 +6,13 @@ const PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT: &str =
 const PHYSICAL_PEER_EVIDENCE_MAX_AGE_SECONDS: i64 = 86_400;
 const PHYSICAL_PEER_EVIDENCE_FUTURE_SKEW_SECONDS: i64 = 300;
 
+/// Hosted .appinstaller — the update channel App Installer auto-update polls and
+/// the same URL the cockpit's in-app probe reads to compare versions. Hoisted to
+/// a module-level const (L-8) so `check_for_updates` (the apply action) and
+/// `probe_update` (the version probe) provably target the SAME URL.
+const APPINSTALLER_URL: &str =
+    "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu.appinstaller";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -26,6 +33,8 @@ pub fn run() {
             open_dashboard,
             open_external_url,
             check_for_updates,
+            probe_update,
+            restart_app,
             start_login,
             account_logout,
             private_mesh_status,
@@ -1709,8 +1718,6 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
 /// App Installer's own UI.
 #[tauri::command]
 fn check_for_updates() -> Result<CommandResult, String> {
-    const APPINSTALLER_URL: &str =
-        "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu.appinstaller";
     // Windows-only update channel (MSIX). On other OSes there's nothing to do.
     if !cfg!(target_os = "windows") {
         return Ok(CommandResult {
@@ -1719,21 +1726,248 @@ fn check_for_updates() -> Result<CommandResult, String> {
             output: String::new(),
         });
     }
-    // Ask App Installer to (re)install from the hosted .appinstaller; with
-    // ForceUpdateFromAnyVersion it applies the hosted version if it differs.
-    let ps = format!(
-        "Add-AppxPackage -AppInstallerFile '{APPINSTALLER_URL}'"
-    );
-    let mut cmd = std::process::Command::new("powershell");
-    cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps]);
+    // Open the .appinstaller in the App Installer UI via its protocol handler.
+    //
+    // We deliberately do NOT use `Add-AppxPackage -AppInstallerFile` here: that
+    // CLI path fails with HRESULT 0x80073D02 ("resource in use") because the
+    // cockpit is its OWN running package — Windows can't replace a packaged app's
+    // files while that app is running. The App Installer UI, by contrast, owns the
+    // close-and-update lifecycle: it prompts the user, shuts the running app down,
+    // applies the newer package, and relaunches — exactly what self-update needs.
+    // (Found in live rc.12→rc.13 toast test: apply silently failed + relaunch
+    // still showed the old version; ms-appinstaller protocol resolves it.)
+    let proto = format!("ms-appinstaller:?source={APPINSTALLER_URL}");
+    let mut cmd = std::process::Command::new("cmd");
+    cmd.args(["/C", "start", "", &proto]);
     no_window(&mut cmd)
         .spawn()
-        .map_err(|err| format!("failed to launch update: {err}"))?;
+        .map_err(|err| format!("failed to open App Installer: {err}"))?;
     Ok(CommandResult {
         ok: true,
-        message: "checking for updates via App Installer".to_string(),
-        output: APPINSTALLER_URL.to_string(),
+        message: "opening App Installer to apply the update".to_string(),
+        output: proto,
     })
+}
+
+/// The in-app update probe result the cockpit toast (U-2) and settings surface
+/// (U-3) consume. Mirrors the CommandResult/CockpitState shape (`ok` + `message`
+/// for graceful failure, plus the typed fields the UI renders). All failures are
+/// graceful: `ok:false, update_available:false` — never an Err that throws in JS.
+#[derive(serde::Serialize)]
+struct UpdateProbe {
+    update_available: bool,
+    current: String,
+    available: Option<String>,
+    ok: bool,
+    message: String,
+}
+
+/// Port of `Normalize-Version` (scripts/windows/build-msix.ps1:149-184) into a
+/// numeric 4-tuple `[major, minor, build, revision]`. MUST match the build's
+/// normalization so the probe compares like-for-like against the hosted MSIX
+/// version. Rules (ps1:156-182):
+///   - strip build metadata after the first `+`
+///   - split into core/prerelease on the first `-`
+///   - core: dot-split; if 4 numeric segments, use them as-is; if 3, the 4th
+///     octet carries the prerelease counter (the FIRST run of digits in the
+///     prerelease tag, e.g. `rc.11` → 11, `beta3` → 3); no prerelease → 0
+///   - any non-numeric core segment is treated as 0 (defensive; the build throws,
+///     but the probe must never panic on a malformed hosted/embedded string)
+/// Comparison is numeric per-octet — NEVER string compare ("1.15.0.9" >
+/// "1.15.0.11" lexically is the trap H-1 calls out).
+fn version_to_tuple(v: &str) -> [u64; 4] {
+    let trimmed = v.trim();
+    let without_meta = trimmed.split('+').next().unwrap_or("");
+    let mut core_pre = without_meta.splitn(2, '-');
+    let core = core_pre.next().unwrap_or("");
+    let pre = core_pre.next().unwrap_or("");
+
+    let mut octets = [0u64; 4];
+    let mut count = 0usize;
+    for (i, seg) in core.split('.').enumerate() {
+        if i >= 4 {
+            break;
+        }
+        octets[i] = seg.trim().parse::<u64>().unwrap_or(0);
+        count = i + 1;
+    }
+
+    // 4 explicit core segments → already fully specified (ps1:175-178); leave the
+    // parsed 4th octet. With exactly 3 core segments, fold the prerelease counter
+    // into the 4th octet (ps1:179-182): the FIRST contiguous run of digits.
+    if count == 3 {
+        octets[3] = first_digit_run(pre);
+    }
+    octets
+}
+
+/// First contiguous run of ASCII digits in `s` as a number (`rc.11` → 11,
+/// `beta3` → 3, `` / no digits → 0). Mirrors the ps1 `$pre -match "(\d+)"`
+/// (build-msix.ps1:171-173) without a regex dep (H-2: no new crates).
+fn first_digit_run(s: &str) -> u64 {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() && !bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    let start = i;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    if start == i {
+        0
+    } else {
+        s[start..i].parse::<u64>().unwrap_or(0)
+    }
+}
+
+/// Update decision (H-1 + H-1b): compare as a numeric tuple, hosted must be
+/// strictly GREATER than current for an update to be offered. If the 3-part CORE
+/// (major.minor.build) differs, the core ordering decides — this is the rc→GA
+/// backstop so a higher GA core surfaces regardless of the 4th octet (OS 24h is
+/// the ultimate backstop). When cores are equal, compare the 4th octet.
+///
+/// The direction guard matters: without it, an installed canary (e.g. 1.16.0)
+/// against a single `desktop-latest` channel still on stable (1.15.0) would show
+/// a spurious "update available" DOWNGRADE toast (App Installer would refuse it,
+/// but the prompt is misleading). Found in WS-U code audit 2026-06-24.
+fn update_is_available(current: &str, hosted: &str) -> bool {
+    let cur = version_to_tuple(current);
+    let host = version_to_tuple(hosted);
+    if cur[..3] != host[..3] {
+        // Cores differ: the higher core wins. Only offer when hosted core > current.
+        return host[..3] > cur[..3];
+    }
+    // Cores equal: compare the 4th octet (rc number) numerically.
+    host[3] > cur[3]
+}
+
+/// Extract the ROOT `<AppInstaller Version="...">` attribute value from the
+/// .appinstaller XML (M-4: the canonical update-decision authority, NOT the first
+/// bare `Version=`). Anchors on the `<AppInstaller` element, then reads the
+/// `Version="` attribute that follows it — plain string ops, no regex/xml crate.
+fn parse_appinstaller_version(xml: &str) -> Option<String> {
+    let elem = xml.find("<AppInstaller")?;
+    let rest = &xml[elem..];
+    // Stay within the AppInstaller start-tag so we don't pick up a nested
+    // element's Version (e.g. <MainPackage Version=...>). The start tag ends at
+    // the first '>'.
+    let tag_end = rest.find('>').unwrap_or(rest.len());
+    let tag = &rest[..tag_end];
+    let key = "Version=\"";
+    let key_at = tag.find(key)?;
+    let after = &tag[key_at + key.len()..];
+    let close = after.find('"')?;
+    let value = after[..close].trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
+}
+
+/// `probe_update` — in-app version probe (U-1). Reads the hosted .appinstaller
+/// over HTTP via PowerShell `Invoke-RestMethod` (mirrors the existing
+/// `check_for_updates` PowerShell idiom, lib.rs apply path — NO new Cargo deps,
+/// H-2), parses the root `<AppInstaller Version>` (M-4), normalizes both sides to
+/// the MSIX 4-tuple (H-1), and decides via `update_is_available` (H-1b).
+///
+/// Graceful on every path (L-5): off-Windows → `ok:false`; under
+/// `debug_assertions` (dev) → early-return `update_available:false` to silence the
+/// toast; network/parse failure → `ok:false, update_available:false` with a
+/// reason in `message`. NEVER returns Err / panics — the toast simply stays
+/// hidden, and the OS 24h auto-update remains the backstop.
+#[tauri::command]
+fn probe_update() -> Result<UpdateProbe, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+
+    // Dev builds: never nag (no real MSIX install to update). L-5.
+    if cfg!(debug_assertions) {
+        return Ok(UpdateProbe {
+            update_available: false,
+            current,
+            available: None,
+            ok: false,
+            message: "update probe disabled in dev build".to_string(),
+        });
+    }
+
+    // Windows-only update channel (MSIX). Mirror check_for_updates off-Windows.
+    if !cfg!(target_os = "windows") {
+        return Ok(UpdateProbe {
+            update_available: false,
+            current,
+            available: None,
+            ok: false,
+            message: "updates are managed by the OS package manager on this platform".to_string(),
+        });
+    }
+
+    let not_available = |message: String| -> Result<UpdateProbe, String> {
+        Ok(UpdateProbe {
+            update_available: false,
+            current: current.clone(),
+            available: None,
+            ok: false,
+            message,
+        })
+    };
+
+    // HTTP GET the .appinstaller via PowerShell (same channel idiom as the apply
+    // action). -UseBasicParsing for headless reliability. NOTE: `.Content` is a
+    // Byte[] for GitHub release assets (Content-Type: application/octet-stream),
+    // and PowerShell prints a Byte[] to stdout as one decimal-per-line ("60\n63\n
+    // ...") — NOT the XML text. So Rust's from_utf8_lossy would see digits, never
+    // "<AppInstaller", and the probe would always report up-to-date (toast never
+    // shows). Decode the bytes to a UTF-8 string explicitly so stdout carries the
+    // real XML. (Found in live rc.12→rc.13 toast test; unit tests passed because
+    // they fed the parser real XML directly, bypassing this stdout path.)
+    let ps = format!(
+        "[System.Text.Encoding]::UTF8.GetString((Invoke-WebRequest -Uri '{APPINSTALLER_URL}' -UseBasicParsing -TimeoutSec 15).Content)"
+    );
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-WindowStyle",
+        "Hidden",
+        "-Command",
+        &ps,
+    ]);
+    let output = match no_window(&mut cmd).output() {
+        Ok(o) => o,
+        Err(err) => return not_available(format!("update check failed: {err}")),
+    };
+    if !output.status.success() {
+        return not_available("update check failed: hosted manifest unreachable".to_string());
+    }
+    let body = String::from_utf8_lossy(&output.stdout);
+    let hosted = match parse_appinstaller_version(&body) {
+        Some(v) => v,
+        None => return not_available("update check failed: could not parse manifest".to_string()),
+    };
+
+    let available = update_is_available(&current, &hosted);
+    Ok(UpdateProbe {
+        update_available: available,
+        current,
+        available: Some(hosted),
+        ok: true,
+        message: if available {
+            "update available".to_string()
+        } else {
+            "up to date".to_string()
+        },
+    })
+}
+
+/// Restart the cockpit (U-2 step-2 "지금 다시 시작"). The tray menu restarts via
+/// `app.restart()` directly (lib.rs tray handler), but JS can only reach it
+/// through a command — so expose the same call. Used after `check_for_updates`
+/// has applied an update and the user opts to relaunch into the new version.
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    app.restart();
 }
 
 #[tauri::command]
@@ -5685,11 +5919,91 @@ mod tests {
         parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
-        sha256_hex, startup_marker_path, summarize_process_ownership,
-        update_release_evidence_trust, verify_sidecar_for_file, write_json_sidecar_for_file,
+        parse_appinstaller_version, sha256_hex, startup_marker_path, summarize_process_ownership,
+        update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
+        version_to_tuple, write_json_sidecar_for_file,
         PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate,
         PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
+
+    // WS-U version-compare tests. The normalization rules these assert are the
+    // exact port of `Normalize-Version` (scripts/windows/build-msix.ps1:149-184):
+    // strip +meta, split core/pre on first '-', 3-part core folds the prerelease
+    // counter into the 4th octet, comparison is numeric per-octet (never lexical).
+    #[test]
+    fn version_to_tuple_folds_rc_into_fourth_octet() {
+        // build-msix.ps1:179-182 — 3-part core + "rc.11" → 4th octet 11.
+        assert_eq!(version_to_tuple("1.15.0-rc.11"), [1, 15, 0, 11]);
+        // build-msix.ps1:160 — no prerelease → 4th octet 0.
+        assert_eq!(version_to_tuple("1.15.0"), [1, 15, 0, 0]);
+        // build-msix.ps1:157 — build metadata after '+' is dropped.
+        assert_eq!(version_to_tuple("1.15.0-rc.3+build.99"), [1, 15, 0, 3]);
+        // build-msix.ps1:175-178 — explicit 4-part core kept as-is.
+        assert_eq!(version_to_tuple("1.15.0.7"), [1, 15, 0, 7]);
+        // build-msix.ps1:171-173 — first digit run only ("beta3" → 3).
+        assert_eq!(version_to_tuple("2.0.0-beta3"), [2, 0, 0, 3]);
+    }
+
+    #[test]
+    fn update_available_same_core_compares_fourth_octet() {
+        // Spec case: rc.11 vs rc.12 → true (newer 4th octet).
+        assert!(update_is_available("1.15.0-rc.11", "1.15.0-rc.12"));
+        // Spec case: rc.11 vs rc.11 → false (identical).
+        assert!(!update_is_available("1.15.0-rc.11", "1.15.0-rc.11"));
+        // Hosted older 4th octet → false (no downgrade prompt).
+        assert!(!update_is_available("1.15.0-rc.12", "1.15.0-rc.11"));
+    }
+
+    #[test]
+    fn update_available_lexical_trap_uses_numeric_compare() {
+        // Spec case (H-1 lexical trap): "1.15.0.9" > "1.15.0.11" as STRINGS, but
+        // 11 > 9 numerically → update IS available.
+        assert!(update_is_available("1.15.0-rc.9", "1.15.0-rc.11"));
+        // And the reverse must NOT trigger (9 < 11).
+        assert!(!update_is_available("1.15.0-rc.11", "1.15.0-rc.9"));
+    }
+
+    #[test]
+    fn update_available_core_differs_overrides_fourth_octet() {
+        // Spec case: 1.15.0 vs 1.16.0 → true (core differs).
+        assert!(update_is_available("1.15.0", "1.16.0"));
+        // H-1b backstop: GA 1.15.0 (=1.15.0.0) installed, hosted rc 1.15.0.11 has
+        // a LOWER... no — same core, so 4th-octet rule: 11 > 0 → true.
+        assert!(update_is_available("1.15.0", "1.15.0-rc.11"));
+        // H-1b the harder direction: installed rc 1.15.0.11, hosted GA 1.16.0 —
+        // core differs → true regardless of 4th octet (0 < 11 would be false
+        // under naive octet compare, but core-differs wins).
+        assert!(update_is_available("1.15.0-rc.11", "1.16.0"));
+    }
+
+    #[test]
+    fn update_available_never_offers_a_downgrade() {
+        // WS-U code audit 2026-06-24: a canary install (higher core) against a
+        // desktop-latest channel still on stable (lower core) must NOT show a
+        // "update available" toast — that would be a misleading downgrade prompt.
+        assert!(!update_is_available("1.16.0", "1.15.0"));
+        // Same major.minor, lower build core hosted → no downgrade.
+        assert!(!update_is_available("1.15.1", "1.15.0"));
+        // Sanity: the legitimate upgrade direction still fires.
+        assert!(update_is_available("1.15.0", "1.16.0"));
+    }
+
+    #[test]
+    fn parse_appinstaller_version_reads_root_attribute() {
+        // M-4: anchor on root <AppInstaller Version=...>, not a nested element's.
+        let xml = r#"<?xml version="1.0"?>
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018"
+    Uri="https://example/musu.appinstaller" Version="1.15.0.12">
+  <MainPackage Name="musu" Version="9.9.9.9" Publisher="CN=x" />
+</AppInstaller>"#;
+        assert_eq!(parse_appinstaller_version(xml).as_deref(), Some("1.15.0.12"));
+    }
+
+    #[test]
+    fn parse_appinstaller_version_graceful_on_garbage() {
+        assert_eq!(parse_appinstaller_version("not xml at all"), None);
+        assert_eq!(parse_appinstaller_version("<AppInstaller Uri=\"x\">"), None);
+    }
 
     const TEST_MARKER: &str = "musu-desktop-command-capture-ok";
 

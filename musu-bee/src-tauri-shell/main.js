@@ -4860,3 +4860,103 @@ document.addEventListener("visibilitychange", () => {
     runScheduledRefresh();
   }
 });
+
+// ── WS-U: in-app update toast ────────────────────────────────────────────────
+// MSIX can't self-replace, so the cockpit probes the hosted .appinstaller and,
+// when a newer version is available, surfaces a toast that (1) triggers the OS
+// update via the existing `check_for_updates` apply action, then (2) offers a
+// restart once the install is in flight. The probe runs once at startup and every
+// 6h thereafter (the OS still auto-updates on its own 24h cycle as the backstop),
+// wrapped in try/catch so a probe failure never disturbs the cockpit.
+const UPDATE_PROBE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+// Session flag: once the user dismisses with "나중에", don't re-show this session.
+let updateToastDismissed = false;
+
+// U-3: keep the settings "Updates" line in sync with the probe outcome.
+function syncUpdateSettings(probe) {
+  const el = $("set-update-state");
+  if (!el || !probe) return;
+  if (probe.update_available && probe.available) {
+    el.textContent = `v${probe.available} 사용 가능`;
+  } else if (probe.ok) {
+    el.textContent = `최신 버전 (v${probe.current})`;
+  }
+  // On a graceful failure (ok:false, not dev/off-Windows-specific) leave the
+  // existing text untouched rather than blanking a useful value.
+}
+
+function showUpdateToast(available) {
+  const toast = $("update-toast");
+  if (!toast || updateToastDismissed) return;
+  const msg = $("update-toast-msg");
+  const apply = $("update-toast-apply");
+  const restart = $("update-toast-restart");
+  // Reset to step 1 (apply) in case a prior cycle left it on step 2.
+  if (msg) msg.textContent = `새 버전 v${available} 사용 가능`;
+  if (apply) apply.hidden = false;
+  if (restart) restart.hidden = true;
+  toast.hidden = false;
+  toast.classList.add("pulse-once");
+  announce(`새 버전 v${available} 사용 가능 — 지금 적용할 수 있습니다.`);
+}
+
+function hideUpdateToast() {
+  const toast = $("update-toast");
+  if (toast) toast.hidden = true;
+}
+
+// Apply → open the App Installer UI, which owns the close→update→relaunch
+// lifecycle. A running MSIX app can't replace its own files (Add-AppxPackage
+// fails 0x80073D02), so check_for_updates hands off to App Installer via the
+// ms-appinstaller protocol. App Installer prompts, closes MUSU, applies the new
+// version, and relaunches — so there is NO separate in-app "restart" step.
+$("update-toast-apply")?.addEventListener("click", async () => {
+  const apply = $("update-toast-apply");
+  const restart = $("update-toast-restart");
+  const msg = $("update-toast-msg");
+  if (apply) apply.disabled = true;
+  try {
+    const res = await invoke("check_for_updates");
+    if (res?.ok) {
+      // App Installer window is now open; it will close MUSU and relaunch into
+      // the new version. The in-app restart button is not needed (App Installer
+      // handles the relaunch), so keep it hidden.
+      if (msg) msg.textContent = "App Installer에서 업데이트를 진행하세요";
+      if (apply) apply.hidden = true;
+      if (restart) restart.hidden = true;
+      announce("App Installer 창에서 업데이트를 진행하세요. 완료되면 MUSU가 다시 시작됩니다.", true);
+    }
+  } catch (err) {
+    if (msg) msg.textContent = `업데이트 적용 실패: ${String(err)}`;
+  } finally {
+    if (apply) apply.disabled = false;
+  }
+});
+
+// (The earlier two-step "restart" button was removed: after the ms-appinstaller
+// change, App Installer owns the close→update→relaunch lifecycle, so the toast
+// never surfaces an in-app restart. The restart_app Tauri command stays
+// registered for potential tray/settings reuse, but no toast button invokes it.)
+
+// "나중에" → dismiss for this session (no re-show).
+$("update-toast-later")?.addEventListener("click", () => {
+  updateToastDismissed = true;
+  hideUpdateToast();
+});
+
+async function runUpdateProbe() {
+  try {
+    const probe = await invoke("probe_update");
+    if (!probe) return;
+    syncUpdateSettings(probe);
+    if (probe.update_available && probe.available) {
+      showUpdateToast(probe.available);
+    }
+  } catch {
+    // Graceful: a probe failure must never disturb the cockpit. The OS 24h
+    // auto-update remains the backstop.
+  }
+}
+
+runUpdateProbe();
+setInterval(runUpdateProbe, UPDATE_PROBE_INTERVAL_MS);
