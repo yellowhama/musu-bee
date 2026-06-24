@@ -4,6 +4,28 @@
 > 출처: W-1 security review Finding 2 (MEDIUM). 별도 워크스트림 — **musu-bee 서버(Next.js API) 변경 = production 배포 게이트**.
 > ⚠️ 이 문서는 설계서. 구현 전 사용자 승인 + (서버 인증 모델 변경이므로) Phase -1 전략 게이트 검토 권장.
 
+---
+
+## ✅ 종결 (2026-06-25) — Phase -1 RED + M1 가드 구현, deferral 닫힘
+
+**판정**: Phase -1 전략 게이트(business-panel 4인: Christensen/Taleb/Kim&Mauborgne/Drucker) 만장일치 **🔴 RED** — 전면 W-7(per-node PKI = Opt-B)은 **musu 스케일에 빌드하지 말 것**. 이유:
+
+1. **위협이 신뢰 경계 안**: W-7이 막는 "같은 account 노드가 다른 같은-account 노드 사칭"은 **단일 소유자 모델에서 존재하지 않는 위협**(한 사람이 account의 모든 노드를 소유). 그 결과(위조 callback)는 이미 **W-1 소비자측 executor 바인딩**이 거부.
+2. **Opt-B는 C-1 token 단일화를 부분 되돌림**: per-node 키는 C-1(account-wide shared bearer, cross-machine 401 근본수정)과 충돌. `cloud/mod.rs:140-145` "같은 account의 모든 머신이 동일 값 받음". no-YAGNI 게이트 위반.
+
+**조건부 RED** — 사용자 결정으로 **M1 값싼 가드만** 채택:
+
+- **구현(2026-06-25)**: `route.ts` POST에서 `matchedLease` 객체를 캡처하고 `matchedLease.source_node_id/target_node_id == body`를 **로컬 명시 단언**. 불일치 → 409 `relay_payload_lease_node_mismatch`. **새 primitive 0, 스키마 무변경.** (Opt-A의 핵심을 명시화한 형태.)
+- **Critic 판정(system-architect)**: M1 갭은 **이미 닫혀 있었음(ALREADY_CLOSED)**. `queryRelayLeases`가 body의 source/target을 필터 술어로 넘기고 lease store가 엄격 동일성 필터를 `find()` 전에 적용하므로, 불일치 쌍은 후보에서 빠져 409. 새 가드는 **현재 도달 불가능**. **가치는 refactor 트립와이어**(향후 query 필터가 빠지거나 zod `.min(1)`이 완화되면 갭 재오픈 방지) + 회귀 테스트.
+- **테스트**: 블랙박스 회귀 2개 추가(불일치 source / 불일치 target → 409). 13/13 통과 + tsc 0. 화이트박스 단언 라인은 store 모킹 seam 없어 도달 불가 → 무당짓 회피 위해 트립와이어 주석으로 명시(억지 테스트 안 만듦).
+- **production write 경로 단일성 확인**: `createRelayPayload`/`appendRelayPayload` production 호출처 = route.ts 1곳뿐(나머지 전부 `.test.ts`). M1 단언이 write 경로 전역 커버.
+
+**열린 채로 두는 것(설계상)**: 같은-쌍 spoof(호출자가 실제로 다른 노드)는 per-node 신원이 있어야 막힘 — Phase -1 RED로 빌드 안 함.
+
+**🔁 재오픈 트리거 (H1, 영구 불필요 아님)**: musu deployment가 **멀티테넌트**(한 deployment가 1인 초과 소유자 서빙)가 되면 — mesh bearer가 deployment-wide라(`meshBearer.ts:12-18`) cross-account 격리 + W-7이 **하나의 새 위협 모델로 동시 재오픈**. 그 날 Phase -1 게이트 재실행.
+
+**L1 doc 정정**: 본 문서/이력에서 "#35"는 정확히 **C-1 token 단일화**. relay payload 무결성은 cryptographic signature 아니라 **sha256/base64 바인딩**.
+
 ## 결함 (코드 실측)
 
 `POST /api/v1/p2p/relay/payload` (`musu-bee/src/app/api/v1/p2p/relay/payload/route.ts:88-164`):
