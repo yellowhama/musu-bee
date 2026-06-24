@@ -1,6 +1,6 @@
 [package]
 name = "musu-desktop"
-version = "1.15.0-rc.9"
+version = "1.15.0-rc.14"
 description = "MUSU desktop shell for the local AI operations runtime"
 authors = ["Yellowhama"]
 license = "Proprietary"

@@ -317,6 +317,20 @@
           </p>
         </div>
 
+        <!-- WS-U: in-app update toast. Hidden by default; the 6h probe shows it
+             when a newer hosted version is available. "지금 적용" opens the App
+             Installer UI (via ms-appinstaller), which owns close→update→relaunch —
+             so there is no separate in-app restart button.
+             role=status so assistive tech is informed when it appears. -->
+        <div id="update-toast" class="first-task-aha" role="status" aria-live="polite" hidden>
+          <span class="aha-dot" aria-hidden="true"></span>
+          <p class="aha-copy">
+            <span id="update-toast-msg">새 버전 사용 가능</span>
+            <button id="update-toast-apply" class="btn-link" type="button">지금 적용</button>
+            <button id="update-toast-later" class="btn-link" type="button">나중에</button>
+          </p>
+        </div>
+
         <ul id="fleet-list" class="fleet-list" aria-label="Your machines"></ul>
         <p id="fleet-filter-empty" class="fleet-filter-empty" hidden>No machines match.</p>
 
