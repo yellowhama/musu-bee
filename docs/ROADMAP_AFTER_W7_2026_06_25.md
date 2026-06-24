@@ -18,6 +18,36 @@
 
 ---
 
+## 🔴 U-FIX (P0, 신규 — 2026-06-25 실측 확정) 인-앱 업데이트 = ms-appinstaller 프로토콜 차단 딜레마
+
+**증상**: cockpit 토스트 "업데이트" → App Installer 창 뜸 → **"앱 패키지를 열 수 없음"**.
+
+**근본 원인 (App Installer 창 에러 메시지 + deploy 로그로 확정)**:
+- App Installer 창 명시: **"ms-appinstaller 프로토콜이 비활성화되었습니다. 공급업체에 웹링크 업데이트를 요청하세요. aka.ms/ms-appinstaller-direct-link..."**
+- deploy 로그(`AppXDeploymentServer/Operational`): 오늘 musu `UpdateUsingAppInstallerOperation` 시도 **0건** (마지막 성공=어제 12→13). = 배포 작업 시작 전, 프로토콜 단계에서 OS가 차단.
+- **Microsoft가 ms-appinstaller: 프로토콜을 보안상 기본 비활성화**(2022 멀웨어 악용 대응, MSRC). Windows 업데이트로 이 머신에 정책 적용됨 → rc.12→13은 됐는데 지금 차단.
+- ❌ 인증서 문제 아님(`.cer` CurrentUser 신뢰 넣어도 무효 — deploy 도달 전 차단). ❌ 버전/호스팅 정상.
+
+**구조적 딜레마 (lib.rs:1729-1738 주석에 박혀있음)**:
+- `Add-AppxPackage -AppInstallerFile` (CLI) → `0x80073D02` "실행 중 교체 불가"(cockpit 자기 자신 교체 못 함).
+- → 그래서 `ms-appinstaller:` 프로토콜로 우회(`lib.rs:1739`) → **그 프로토콜이 OS 차단.**
+- **양쪽 다 막힘.** 이게 진짜 U-FIX.
+
+**근본 수정 설계 후보 (다음 세션 agent-team, Critic 게이트):**
+1. **`.msix` 직접 다운로드 + `Add-AppxPackage`(프로토콜 무관)** — cockpit 자기교체 0x80073D02는 별도 프로세스/재시작 핸드오프로 회피(다운로드는 cockpit, 설치는 detached helper가 cockpit 종료 후 실행+재기동). self-contained, 무료. **유력.**
+2. ms-appinstaller 프로토콜 **재활성화**(레지스트리/정책) — 사용자 머신 정책 건드림, 멀웨어 벡터 재오픈, self-contained 위반. ❌ 비권장.
+3. winget/Store 채널 경유 — Store 등록(blossompark.musu 있음) 활용하나 Store 심사 의존. GA 후보.
+- ⚠️ Critic(security-engineer): detached helper의 권한/경로/서명 검증. lazy-solution: helper는 PowerShell 1-스크립트로 충분(새 바이너리 X).
+- 검증: rc.15 → 13/14 머신 토스트 업데이트 실클릭 성공(실설치 E2E). "단위테스트≠실동작" — 이 건이 정확한 증거(cargo/Critic/Auditor 다 통과했으나 프로토콜 차단은 실설치만 발견).
+
+**즉시 우회 (이 머신 14 올리기 — 프로토콜 안 거침, `.cer`는 이미 CurrentUser 신뢰됨)**:
+```
+powershell -Command "irm https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu-desktop-x64.msix -OutFile $env:TEMP\m.msix; Add-AppxPackage $env:TEMP\m.msix"
+```
+→ cockpit 떠 있으면 0x80073D02 날 수 있음. 그땐 cockpit/musu 종료 후 재실행.
+
+---
+
 ## 1. 사용자 게이트 — 하드웨어 E2E (P1, 코드 끝, 환경만 남음)
 
 플레이북 준비 완료, 사용자 2머신 환경에서만 실행 가능.
