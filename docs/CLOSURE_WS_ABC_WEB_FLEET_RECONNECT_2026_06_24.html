@@ -112,10 +112,21 @@ resolved all five questions directly by code inspection (file:line evidence in t
   <li><b>Stale-gate pattern</b> — two CI gates (design-gate, runtime-polling) enforced dead requirements that F-3's correct refactor exposed. Both fixed to enforce the real <i>intent</i> while admitting the better implementation.</li>
 </ul>
 
+<h2>Follow-up block (master plan II, 2026-06-24)</h2>
+<table>
+  <tr><th>Track</th><th>Outcome</th><th>Status</th></tr>
+  <tr><td>1 — stale PR cleanup</td><td>Closed #2/#3/#4 (superseded landing-gate evidence, gate already live) + #6 (re-introduced dropped Paperclip — conflict). Merged #15 — revived the dead <code>/pro</code> waitlist form (no <code>action</code> → lost every lead) by wiring it to <code>/api/waitlist</code> with status messaging. Brief <a href="https://github.com/yellowhama/musu-website-co/issues/3">musu-website-co#3</a>.</td><td><span class="pill ok">merged</span></td></tr>
+  <tr><td>2 — B-3b SaaS route gate</td><td>First CI enforcement of the self-contained-product invariant (was review-only). <code>scripts/saas-gate/</code> scans added lines in product code for required SaaS; env-gated optionals (supabase, vercel/kv) allowed; 3 false-positive guards tested. Swept all 407 product files → 0 violations. PR #24.</td><td><span class="pill ok">PR #24</span></td></tr>
+  <tr><td>3 — rc.9 verify</td><td><code>cargo check musu-rs</code> → <code>Checking musu-rs v1.15.0-rc.9 … Finished</code> (3m52s). MSIX build + 2-machine install remain user-gated.</td><td><span class="pill ok">compiles</span></td></tr>
+</table>
+<p class="sub">Stale-gate pattern recurred: B-3b's own CI tripped on <code>node --test &lt;dir&gt;</code>
+(Node 22 MODULE_NOT_FOUND) — fixed to the <code>*.test.cjs</code> glob. Same class as the
+design-gate / runtime-polling stale-gate fixes above.</p>
+
 <h2>Carried forward</h2>
 <ul>
   <li>Hardware E2Es: 2-machine fleet 3-state flip + uninstall lifecycle (playbooks shipped; needs rc.9 on two machines).</li>
-  <li>Deferrals (<code>WSC_DEFERRAL_QUEUE</code>): W-7 server source_node_id auth (prod-deploy gate), B-7 login env copy, U-C-b node_name persist, B-3b SaaS route gate.</li>
+  <li>Deferrals (<code>WSC_DEFERRAL_QUEUE</code>): W-7 server source_node_id auth (prod-deploy gate), B-7 login env copy, U-C-b node_name persist. <s>B-3b SaaS route gate</s> — done (track 2 above).</li>
 </ul>
 
 </div>
