@@ -185,7 +185,12 @@ pub enum PeerSource {
 ///   3. Manual peers
 ///   4. nodes.toml
 ///
-/// Deduplicates by addr (first source wins).
+/// Deduplicates by addr (first source wins). NOTE: this intentionally keeps
+/// multiple records that share a node NAME but differ by addr (e.g. a machine
+/// re-registered on a new ephemeral port) — routing/failover in
+/// `bridge::router::select_peer_for_route` relies on trying alternate addrs for
+/// the same name. The fleet DISPLAY path collapses same-name ghosts separately
+/// (see `bridge::handlers::fleet`); do not add a name-collapse here.
 pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     let mut seen = std::collections::HashSet::new();
     let mut result = Vec::new();
