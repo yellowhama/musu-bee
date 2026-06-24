@@ -4944,19 +4944,39 @@ $("update-toast-later")?.addEventListener("click", () => {
   hideUpdateToast();
 });
 
+// One-shot, self-rearming, cancellable scheduling — mirrors the cockpit's
+// scheduleRefresh pattern (NOT setInterval): a slow probe can't overlap, and the
+// timer pauses while the window is hidden (a minimized tray app polling is waste).
+let updateProbeTimer = null;
 async function runUpdateProbe() {
+  updateProbeTimer = null;
+  if (document.hidden) return;
   try {
     const probe = await invoke("probe_update");
-    if (!probe) return;
-    syncUpdateSettings(probe);
-    if (probe.update_available && probe.available) {
-      showUpdateToast(probe.available);
+    if (probe) {
+      syncUpdateSettings(probe);
+      if (probe.update_available && probe.available) {
+        showUpdateToast(probe.available);
+      }
     }
   } catch {
     // Graceful: a probe failure must never disturb the cockpit. The OS 24h
     // auto-update remains the backstop.
   }
+  scheduleUpdateProbe(UPDATE_PROBE_INTERVAL_MS);
+}
+function scheduleUpdateProbe(delayMs = UPDATE_PROBE_INTERVAL_MS) {
+  if (updateProbeTimer || document.hidden) return;
+  updateProbeTimer = setTimeout(runUpdateProbe, delayMs);
+}
+function clearUpdateProbeTimer() {
+  if (!updateProbeTimer) return;
+  clearTimeout(updateProbeTimer);
+  updateProbeTimer = null;
 }
 
-runUpdateProbe();
-setInterval(runUpdateProbe, UPDATE_PROBE_INTERVAL_MS);
+runUpdateProbe(); // probe once at startup, then it self-rearms every 6h
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearUpdateProbeTimer();
+  else scheduleUpdateProbe(UPDATE_PROBE_INTERVAL_MS);
+});
