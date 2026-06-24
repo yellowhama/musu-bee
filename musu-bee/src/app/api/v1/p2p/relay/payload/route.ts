@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let relayUrl: string | undefined;
+  let matchedLease: Awaited<ReturnType<typeof queryRelayLeases>>[number] | undefined;
   try {
     const leases = await queryRelayLeases({
       owner_key: principal.owner_key,
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
       source_node_id: parsed.data.source_node_id,
       target_node_id: parsed.data.target_node_id,
     });
-    relayUrl = leases.find((lease) => lease.lease_id === parsed.data.lease_id)?.relay_url;
+    matchedLease = leases.find((lease) => lease.lease_id === parsed.data.lease_id);
   } catch (error) {
     return NextResponse.json(
       {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!relayUrl) {
+  if (!matchedLease) {
     return NextResponse.json(
       {
         ok: false,
@@ -148,6 +148,32 @@ export async function POST(req: NextRequest) {
       { status: 409 }
     );
   }
+
+  // M1 defense-in-depth (W-7 RED, lease-bound guard): queryRelayLeases already
+  // filters candidates by source/target, so a mismatched pair never reaches here
+  // today. Assert the binding LOCALLY against the found lease so a future refactor
+  // that drops a query filter (or relaxes the zod .min(1) guards) cannot silently
+  // re-open same-account injection OUTSIDE an owner-created node pair. This does
+  // NOT stop same-pair spoofing (caller actually being a different node) — that
+  // needs per-node identity, which the Phase -1 panel ruled out at musu scale.
+  // Do not delete this as "dead code" without re-deriving the closure.
+  if (
+    matchedLease.source_node_id !== parsed.data.source_node_id ||
+    matchedLease.target_node_id !== parsed.data.target_node_id
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        stored: false,
+        error: "relay_payload_lease_node_mismatch",
+        owner_scoped: true,
+      },
+      { status: 409 }
+    );
+  }
+
+  const relayUrl = matchedLease.relay_url;
 
   let payload;
   try {

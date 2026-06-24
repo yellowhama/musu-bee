@@ -780,6 +780,54 @@ test("KV relay payload store rejects delivery before claim", async () => {
   });
 });
 
+test("does not store relay payload when declared source_node_id does not match an owner lease (M1)", async () => {
+  await withRelayEnv(async () => {
+    // seedLease binds the lease to source=node-a, target=node-b.
+    await seedLease("lease-m1-source");
+    const { GET, POST } = await loadModule("m1-source-mismatch");
+    const res = await POST(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({ lease_id: "lease-m1-source", source_node_id: "node-c" })
+      )
+    );
+    // The lease store filters candidates by source/target, so a mismatched
+    // declared source never matches the owner lease and is rejected before any
+    // payload is stored. This is the user-facing guarantee M1 protects.
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as { ok: boolean; error: string; stored: boolean };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "relay_payload_lease_not_found");
+    assert.equal(body.stored, false);
+
+    const getRes = await GET(bearerReq("http://localhost/api/v1/p2p/relay/payload"));
+    const getBody = (await getRes.json()) as { count: number };
+    assert.equal(getBody.count, 0);
+  });
+});
+
+test("does not store relay payload when declared target_node_id does not match an owner lease (M1)", async () => {
+  await withRelayEnv(async () => {
+    await seedLease("lease-m1-target");
+    const { GET, POST } = await loadModule("m1-target-mismatch");
+    const res = await POST(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({ lease_id: "lease-m1-target", target_node_id: "node-d" })
+      )
+    );
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as { ok: boolean; error: string; stored: boolean };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "relay_payload_lease_not_found");
+    assert.equal(body.stored, false);
+
+    const getRes = await GET(bearerReq("http://localhost/api/v1/p2p/relay/payload"));
+    const getBody = (await getRes.json()) as { count: number };
+    assert.equal(getBody.count, 0);
+  });
+});
+
 test("rejects relay payload hash mismatch", async () => {
   await withRelayEnv(async () => {
     await seedLease("lease-hash");
