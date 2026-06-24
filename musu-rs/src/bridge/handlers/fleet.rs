@@ -152,6 +152,47 @@ fn peer_meta_bool(peer: &ResolvedPeer, key: &str) -> Option<bool> {
         .and_then(|v| v.as_bool())
 }
 
+/// Collapse peers that share the same non-empty name down to the single freshest
+/// record (newest `peer_last_seen`), preserving first-seen order. Fixes the
+/// ghost-node accumulation where a machine re-registered on a new ephemeral port
+/// surfaces as several dead same-name records. DISPLAY-ONLY: routing keeps every
+/// addr (see `resolve_all_peers` doc). Peers with no name are never merged.
+fn collapse_peers_by_name_for_display(peers: Vec<ResolvedPeer>) -> Vec<ResolvedPeer> {
+    use std::collections::HashMap;
+    let mut best_for_name: HashMap<String, usize> = HashMap::new();
+    let mut out: Vec<ResolvedPeer> = Vec::with_capacity(peers.len());
+
+    let parse = |s: &str| DateTime::parse_from_rfc3339(s).ok().map(|d| d.with_timezone(&Utc));
+
+    for peer in peers {
+        let name = peer.name.as_deref().unwrap_or("").trim().to_string();
+        if name.is_empty() {
+            out.push(peer);
+            continue;
+        }
+        match best_for_name.get(&name).copied() {
+            None => {
+                best_for_name.insert(name, out.len());
+                out.push(peer);
+            }
+            Some(idx) => {
+                let incoming = peer_last_seen(&peer).as_deref().and_then(parse);
+                let existing = peer_last_seen(&out[idx]).as_deref().and_then(parse);
+                let replace = match (incoming, existing) {
+                    (Some(a), Some(b)) => a > b,
+                    (Some(_), None) => true,
+                    _ => false, // existing wins ties / when incoming has no stamp
+                };
+                if replace {
+                    out[idx] = peer;
+                }
+            }
+        }
+    }
+
+    out
+}
+
 /// Decide whether a peer whose direct probe failed is still relay-reachable.
 ///
 /// Pure function over the peer's last-seen RFC3339 stamp (from the cloud
@@ -293,8 +334,14 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
         version: env!("CARGO_PKG_VERSION").to_string(),
     };
 
-    // Query peers.
-    let peers = resolve_all_peers(musu_home);
+    // Query peers, then collapse same-name ghosts for the DISPLAY/tally. A
+    // machine that re-registered on a new ephemeral port (BRIDGE_PORT=0) appears
+    // as multiple same-name records that linger in the 7-day cache; without this
+    // collapse one machine shows up as N dead "offline" nodes and inflates
+    // total_nodes. We dedup here (fleet read path) rather than in
+    // resolve_all_peers because routing/failover (bridge::router) deliberately
+    // keeps every addr per name to try alternates.
+    let peers = collapse_peers_by_name_for_display(resolve_all_peers(musu_home));
     let client = &state.http_client;
     // Cross-machine probe MUST use the account-wide mesh bearer (C-1), not this
     // machine's local bridge token — a sibling validates the bearer against its
@@ -488,6 +535,32 @@ mod tests {
             peer_last_seen(&peer).as_deref(),
             Some("2026-06-12T01:02:03+00:00")
         );
+    }
+
+    #[test]
+    fn collapse_for_display_keeps_freshest_same_name_and_never_merges_nameless() {
+        use crate::peer::discovery::{PeerSource, ResolvedPeer};
+        let mk = |addr: &str, name: Option<&str>, last_seen: Option<&str>| ResolvedPeer {
+            addr: addr.to_string(),
+            name: name.map(str::to_string),
+            source: PeerSource::Cache,
+            meta: last_seen.map(|s| serde_json::json!({ "last_seen": s })),
+        };
+        let collapsed = collapse_peers_by_name_for_display(vec![
+            // hugh-main re-registered on 3 ephemeral ports; only the freshest stays.
+            mk("192.168.1.192:3032", Some("hugh-main"), Some("2026-06-20T00:00:00+00:00")),
+            mk("192.168.1.192:2957", Some("hugh-main"), Some("2026-06-24T00:00:00+00:00")), // live
+            mk("192.168.1.192:7203", Some("hugh-main"), None),
+            // two distinct names + two nameless peers all survive.
+            mk("10.0.0.5:8070", Some("studio-pc"), None),
+            mk("10.0.0.9:1", None, None),
+            mk("10.0.0.9:2", None, None),
+        ]);
+        // hugh-main(1) + studio-pc(1) + 2 nameless = 4
+        assert_eq!(collapsed.len(), 4);
+        let hugh = collapsed.iter().find(|p| p.name.as_deref() == Some("hugh-main")).unwrap();
+        assert_eq!(hugh.addr, "192.168.1.192:2957", "freshest port wins");
+        assert_eq!(collapsed.iter().filter(|p| p.name.is_none()).count(), 2, "nameless not merged");
     }
 
     #[test]
