@@ -45,16 +45,73 @@ function Test-IsAdmin {
 if (-not (Test-IsAdmin)) {
     Write-Host "MUSU install needs administrator rights to trust the beta certificate." -ForegroundColor Yellow
     Write-Host "Re-launching elevated..." -ForegroundColor Yellow
-    # Re-fetch + run the script in an elevated PowerShell. This works whether we
-    # were started from a file OR piped via `irm ... | iex` (in which case there
-    # is no $PSCommandPath to re-launch). We re-download from the canonical SelfUrl
-    # and pipe to iex inside the elevated shell.
-    $inner = "`$ErrorActionPreference='Stop'; iex ((New-Object Net.WebClient).DownloadString('$SelfUrl'))"
-    $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
-    Start-Process powershell -Verb RunAs -ArgumentList @(
-        "-ExecutionPolicy", "Bypass", "-NoProfile", "-EncodedCommand", $b64
-    )
+
+    # Decide HOW to re-launch elevated. Two cases:
+    #   (a) We were started from a real file on disk ($PSCommandPath is set) — e.g.
+    #       a local dev/test run or a saved copy. Re-launch THAT SAME file with -File.
+    #       This avoids the elevated child silently re-downloading musu.pro's published
+    #       script, which would run code different from the local file under test.
+    #   (b) We were piped via `irm ... | iex` (no $PSCommandPath). There is no file to
+    #       re-launch, so we re-download from the canonical SelfUrl and pipe to iex
+    #       inside the elevated shell.
+    # Either way, the elevated child re-enters this script and Test-IsAdmin is true for
+    # it (it runs with the Administrator token), so it falls through past this block —
+    # there is no self-elevation infinite loop.
+    #
+    # Either way, the re-entered elevated child reaches the script-scope `trap` below,
+    # which keeps a terminating error visible: an elevated child runs in a NEW window
+    # that otherwise closes the instant the script returns, hiding the failure from the
+    # user. The trap pauses (Read-Host) on error so the user can read it — but only in
+    # interactive, attended runs. In -NoLaunch / non-interactive (CI) runs it must NOT
+    # pause, or the install would hang forever waiting on input no one will give.
+    if ($PSCommandPath) {
+        # Case (a): re-run the local file as-is, preserving -NoLaunch when set.
+        $childArgs = @(
+            "-ExecutionPolicy", "Bypass", "-NoProfile",
+            "-File", $PSCommandPath
+        )
+        if ($NoLaunch) { $childArgs += "-NoLaunch" }
+        Start-Process powershell -Verb RunAs -ArgumentList $childArgs
+    } else {
+        # Case (b): irm|iex — re-fetch from canonical SelfUrl and run in the elevated
+        # shell. We deliberately do NOT add a try/catch + pause around the run here:
+        # the script we download IS this same script, which already installs a
+        # script-scope `trap` (see below) that keeps the failure on screen with a
+        # single conditional pause. Wrapping it again would pause twice.
+        #
+        # We re-run the downloaded text as a script block invoked with `&` (NOT plain
+        # `iex`), because the downloaded script begins with a param() block: a plain
+        # `iex` re-declares $NoLaunch from that param() and resets it to its default,
+        # silently dropping a -NoLaunch the user asked for. Invoking it as a script
+        # block lets us BIND -NoLaunch through the param() block so the inner trap honors
+        # the non-interactive / unattended contract.
+        $noLaunchArg = if ($NoLaunch) { " -NoLaunch" } else { "" }
+        $inner = "`$ErrorActionPreference='Stop'; & ([scriptblock]::Create((New-Object Net.WebClient).DownloadString('$SelfUrl')))$noLaunchArg"
+        $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+        Start-Process powershell -Verb RunAs -ArgumentList @(
+            "-ExecutionPolicy", "Bypass", "-NoProfile", "-EncodedCommand", $b64
+        )
+    }
     return
+}
+
+# From here on we run with the Administrator token (either we were already admin, or
+# the elevated child re-entered this script). When the elevated child was launched via
+# `-File` (local-file case in the self-elevation block above), it runs in a NEW window
+# that closes the moment the script ends — so any terminating error below would vanish
+# before the user could read it. This script-scope trap keeps the failure on screen by
+# pausing, but ONLY in attended runs: in -NoLaunch / non-interactive (CI) shells it
+# must not block on input. After (optionally) pausing it `break`s, which terminates the
+# script and propagates the original terminating error so the non-zero exit semantics are
+# preserved. This single trap also serves the irm|iex path, since that path re-runs THIS
+# same script (as a script block), so the trap is present there too — exactly one pause.
+trap {
+    Write-Host ""
+    Write-Host "MUSU install failed: $($_.Exception.Message)" -ForegroundColor Red
+    if (-not $NoLaunch -and [Environment]::UserInteractive) {
+        Read-Host 'Press Enter to close'
+    }
+    break
 }
 
 $work = Join-Path $env:TEMP "musu-install"
@@ -75,10 +132,40 @@ if ($actualThumb -ne $expectedThumb) {
     throw "Certificate thumbprint mismatch. Expected $expectedThumb but got $actualThumb. Aborting install — do NOT trust this certificate."
 }
 Write-Host "    thumbprint OK ($actualThumb)" -ForegroundColor DarkGray
+# Trust the cert in BOTH stores, but only AFTER the pinned-thumbprint check above —
+# the same verified cert object/file is used for both imports, so the pin still gates
+# everything that gets trusted.
+#   - TrustedPeople: required for Add-AppxPackage to accept a self-signed MSIX.
+#   - Root: on some machines TrustedPeople alone is not enough and Add-AppxPackage
+#     still fails with 0x800B0109 (A certificate chain could not be built to a
+#     trusted root authority). Adding the cert as a trusted root closes that gap.
+#     install-msix.ps1 (the dev-side installer) adds Root for the same reason.
 Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
 
 Write-Host "[3/4] Installing MUSU (with auto-update)..." -ForegroundColor Cyan
-Add-AppxPackage -AppInstallerFile "$ReleaseBase/$AppInstallerFileName"
+# Add-AppxPackage can still fail with 0x800B0109 (untrusted cert chain) even after the
+# cert is trusted — e.g. store propagation timing, or a deeper machine trust-policy
+# issue. Catch it explicitly to give the user an actionable message instead of a raw
+# HRESULT. Mirrors install-msix.ps1's 0x800B0109 handling. Because we already trusted
+# the cert in BOTH Root and TrustedPeople above, a 0x800B0109 here means "trusted in
+# both stores and STILL rejected" — a deeper problem, reflected in the message.
+try {
+    Add-AppxPackage -AppInstallerFile "$ReleaseBase/$AppInstallerFileName"
+} catch {
+    $msg = $_.Exception.Message
+    if ($msg -match "0x800B0109") {
+        Write-Host ""
+        Write-Host "Certificate trust error (0x800B0109) while installing the package." -ForegroundColor Red
+        Write-Host "This script already trusted the signing certificate in BOTH the Root and" -ForegroundColor Yellow
+        Write-Host "TrustedPeople LocalMachine stores, so a failure here points to a deeper" -ForegroundColor Yellow
+        Write-Host "machine trust-policy issue. Try: reboot and re-run this installer; if it" -ForegroundColor Yellow
+        Write-Host "still fails, install the certificate manually (double-click" -ForegroundColor Yellow
+        Write-Host "$certPath, 'Install Certificate' -> Local Machine -> Trusted Root) and retry." -ForegroundColor Yellow
+        Write-Host ""
+    }
+    throw
+}
 
 if ($NoLaunch) {
     Write-Host "[4/4] Skipping auto-start (-NoLaunch)." -ForegroundColor DarkGray

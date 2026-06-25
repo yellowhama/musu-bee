@@ -211,6 +211,39 @@ fn relay_verdict(last_seen: Option<&str>, now: DateTime<Utc>) -> Option<String> 
     }
 }
 
+/// Outcome of a direct probe against a peer's `/api/fleet/node-status`, after the
+/// HTTP/await layer has resolved. Pure input to [`map_probe_response`] so the
+/// probe→status decision is testable without reqwest/timeout/join_all.
+enum ProbeOutcome {
+    /// Peer answered 2xx and the body parsed into a `FleetNodeStatus`.
+    Parsed(FleetNodeStatus),
+    /// Peer answered 2xx but the body could not be parsed.
+    Unreadable,
+    /// Send failed, timed out, or returned a non-success status.
+    Failed,
+}
+
+/// Decide a peer's fleet status from a resolved probe outcome (pure).
+///
+/// - `Parsed`: the prober reached the peer DIRECTLY, so we override the peer's
+///   self-report — `reachable_via` is forced to `"direct"` (MED-2: the peer
+///   can't know how WE reach it), `last_seen` is filled if absent, and any
+///   stale `status_error` is cleared.
+/// - `Unreadable` / `Failed`: defer to [`peer_fallback_status`], which judges
+///   relay-vs-offline from the registry heartbeat freshness.
+fn map_probe_response(peer: &ResolvedPeer, outcome: ProbeOutcome) -> FleetNodeStatus {
+    match outcome {
+        ProbeOutcome::Parsed(mut ns) => {
+            ns.last_seen.get_or_insert_with(|| Utc::now().to_rfc3339());
+            ns.status_error = None;
+            ns.reachable_via = Some("direct".to_string());
+            ns
+        }
+        ProbeOutcome::Unreadable => peer_fallback_status(peer, "node status unreadable"),
+        ProbeOutcome::Failed => peer_fallback_status(peer, "node status probe failed"),
+    }
+}
+
 fn peer_fallback_status(peer: &ResolvedPeer, status_error: impl Into<String>) -> FleetNodeStatus {
     let last_seen = peer_last_seen(peer);
     // Direct probe failed; if the registry still has a fresh heartbeat the peer
@@ -359,30 +392,25 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
     let probes = peers.iter().map(|peer| {
         let url = format!("http://{}/api/fleet/node-status", peer.addr);
         async move {
-            match client
+            // Resolve the HTTP/await layer into a pure ProbeOutcome, then let
+            // map_probe_response (tested) decide the FleetNodeStatus. Keeping the
+            // decision pure means the direct-override + last_seen-insert + fallback
+            // routing is unit-tested without reqwest/timeout/join_all.
+            let outcome = match client
                 .get(&url)
                 .bearer_auth(token)
                 .timeout(std::time::Duration::from_secs(3))
                 .send()
                 .await
             {
-                Ok(resp) if resp.status().is_success() => {
-                    match resp.json::<FleetNodeStatus>().await {
-                        Ok(mut ns) => {
-                            ns.last_seen.get_or_insert_with(|| Utc::now().to_rfc3339());
-                            ns.status_error = None;
-                            // MED-2: the prober reached the peer directly, so its
-                            // verdict overrides whatever the peer self-reported
-                            // (node_status answers "direct" by default, but a peer
-                            // can't know how WE reach it — the prober does).
-                            ns.reachable_via = Some("direct".to_string());
-                            ns
-                        }
-                        Err(_) => peer_fallback_status(peer, "node status unreadable"),
-                    }
-                }
-                _ => peer_fallback_status(peer, "node status probe failed"),
-            }
+                Ok(resp) if resp.status().is_success() => match resp.json::<FleetNodeStatus>().await
+                {
+                    Ok(ns) => ProbeOutcome::Parsed(ns),
+                    Err(_) => ProbeOutcome::Unreadable,
+                },
+                _ => ProbeOutcome::Failed,
+            };
+            map_probe_response(peer, outcome)
         }
     });
     let peer_statuses: Vec<FleetNodeStatus> = futures_util::future::join_all(probes).await;
@@ -705,6 +733,57 @@ mod tests {
             Some("node status unreadable")
         );
         assert_eq!(status.tailscale_ip.as_deref(), Some("100.64.0.73"));
+    }
+
+    #[test]
+    fn map_probe_response_parsed_forces_direct_and_fills_last_seen() {
+        // A successful direct probe: the prober's verdict overrides the peer's
+        // self-report (MED-2). The peer claims "relay" with no last_seen and a
+        // stale error; map_probe_response must force reachable_via="direct",
+        // fill last_seen, and clear status_error — WITHOUT touching the
+        // heartbeat-fallback path.
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "10.0.0.5:8070".to_string(),
+            name: Some("studio-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: None,
+        };
+        let mut parsed = status(true, Some("relay"), 4, 2);
+        parsed.last_seen = None;
+        parsed.status_error = Some("stale self-reported error".into());
+
+        let out = map_probe_response(&peer, ProbeOutcome::Parsed(parsed));
+
+        assert!(out.healthy, "parsed body's own healthy flag is preserved");
+        assert_eq!(
+            out.reachable_via.as_deref(),
+            Some("direct"),
+            "prober overrides peer's self-reported reachable_via"
+        );
+        assert!(out.last_seen.is_some(), "last_seen filled when absent");
+        assert_eq!(out.status_error, None, "stale self-reported error cleared");
+        // The real payload's task counts survive (only routing fields are forced).
+        assert_eq!(out.tasks_running, 4);
+        assert_eq!(out.tasks_pending, 2);
+    }
+
+    #[test]
+    fn map_probe_response_unreadable_falls_back_to_heartbeat_offline() {
+        // 2xx but unparseable body → fallback path. With no/stale heartbeat the
+        // peer is offline (relay-vs-offline is peer_fallback_status's job, already
+        // covered; here we assert the routing reaches it with the right error).
+        let peer = crate::peer::discovery::ResolvedPeer {
+            addr: "10.0.0.6:8070".to_string(),
+            name: Some("garbled-pc".to_string()),
+            source: crate::peer::discovery::PeerSource::Cache,
+            meta: None,
+        };
+
+        let out = map_probe_response(&peer, ProbeOutcome::Unreadable);
+
+        assert!(!out.healthy, "unreadable body is never healthy");
+        assert_eq!(out.reachable_via, None, "no heartbeat → offline");
+        assert_eq!(out.status_error.as_deref(), Some("node status unreadable"));
     }
 
     #[test]
