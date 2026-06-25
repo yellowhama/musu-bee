@@ -1800,19 +1800,24 @@ fn check_for_updates(app: tauri::AppHandle) -> Result<CommandResult, String> {
 ///      `finally` block can ALWAYS relaunch MUSU — the new version on success,
 ///      the still-installed old version on any failure. The cockpit has already
 ///      exited; this guarantees the user is never left with the app vanished.
-///   3. Wait for the cockpit (PID `cockpit_pid`) to exit — bounded 30s — THEN
-///      poll/kill every remaining package process (musu-desktop + the musu
-///      bridge). Waiting on the cockpit PID alone is insufficient: the bridge
-///      also holds the packaged files, so Add-AppxPackage hits 0x80073D02 until
-///      ALL of them are gone (found in live rc.15→rc.16 toast test — the helper
-///      relaunched but the install silently failed on the still-running bridge).
+///   3. Wait for the cockpit (PID `cockpit_pid`) to exit — bounded 30s — so the
+///      helper's `app.exit(0)` has taken effect before we install.
 ///   4. Download the hosted .msix (bounded 120s) to a temp file.
-///   5. `Add-AppxPackage` (per-user, unelevated — cert already trusted). NO
-///      `-ForceUpdateFromAnyVersion` (audit finding B: that defeats Windows'
-///      monotonic-version guard → downgrade vector); plain install still updates
-///      forward and refuses downgrades.
+///   5. `Add-AppxPackage -ForceTargetApplicationShutdown` (per-user, unelevated
+///      — cert already trusted). This is the FIX for the recurring 0x80073D02
+///      "resource in use": instead of a manual kill-loop over a fixed process
+///      name list (which missed lock-holders — adapter children, AV, explorer —
+///      and left the install failing on hugh-main, found in the live rc.18→rc.19
+///      toast test), we let the OS shut down EVERY running instance of the
+///      package and replace it atomically. That is the OS-managed update path,
+///      not "kill some processes then install over them". Pairs with
+///      `-ForceUpdateFromAnyVersion` so the in-app update applies even when the
+///      hosted version's monotonic ordering is ambiguous (rc tags); downgrade is
+///      gated upstream by the probe (only offers a strictly-newer hosted build).
 ///   6. Relaunch via `explorer.exe shell:AppsFolder\<aumid>` (user session, not
-///      elevated). Runs in `finally` so it fires on success AND failure.
+///      elevated). Runs in `finally` so it fires on success AND failure. The
+///      helper runs from `$env:TEMP` (outside the package) so
+///      `-ForceTargetApplicationShutdown` never terminates the helper itself.
 /// Kept as a pure string builder (no spawn) so it is unit-testable.
 fn update_helper_script(cockpit_pid: u32) -> String {
     // Single-quoted PS literals for the consts (URLs/identity have no quotes, so
@@ -1826,15 +1831,9 @@ fn update_helper_script(cockpit_pid: u32) -> String {
            if ($p) {{ $aumid = $p.PackageFamilyName + '!' + (Get-AppxPackageManifest $p).Package.Applications.Application.Id }} }} catch {{}} \
          try {{ \
            try {{ Wait-Process -Id {pid} -Timeout 30 -ErrorAction SilentlyContinue }} catch {{}} \
-           for ($i=0; $i -lt 20; $i++) {{ \
-             $alive = Get-Process -Name 'musu-desktop','musu','musud' -ErrorAction SilentlyContinue; \
-             if (-not $alive) {{ break }}; \
-             $alive | Stop-Process -Force -ErrorAction SilentlyContinue; \
-             Start-Sleep -Milliseconds 500; \
-           }} \
            $msix = Join-Path $env:TEMP 'musu-update.msix'; \
            Invoke-WebRequest -Uri '{msix_url}' -OutFile $msix -UseBasicParsing -TimeoutSec 120; \
-           Add-AppxPackage -Path $msix; \
+           Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion -ForceTargetApplicationShutdown; \
            Remove-Item $msix -ErrorAction SilentlyContinue; \
            $np = Get-AppxPackage -Name '{identity}'; \
            if ($np) {{ $aumid = $np.PackageFamilyName + '!' + (Get-AppxPackageManifest $np).Package.Applications.Application.Id }} \
@@ -6050,13 +6049,9 @@ mod tests {
             !script.contains("ms-appinstaller:"),
             "must NOT use the OS-disabled ms-appinstaller protocol"
         );
-        // 3. Installs directly via Add-AppxPackage (per-user, unelevated) and does
-        //    NOT use -ForceUpdateFromAnyVersion (audit B: that allows downgrade).
+        // 3. Installs directly via Add-AppxPackage (per-user, unelevated) with
+        //    OS-managed replacement of the running package (V31 fix).
         assert!(script.contains("Add-AppxPackage"), "must install the .msix directly");
-        assert!(
-            !script.contains("ForceUpdateFromAnyVersion"),
-            "must NOT defeat the OS monotonic-version guard (downgrade vector)"
-        );
         // 4. Resolves the package by its stable identity name and relaunches via
         //    the shell AUMID (user session), not by exe path / elevated.
         assert!(
@@ -6074,13 +6069,23 @@ mod tests {
         assert!(script.contains("finally"), "relaunch must be in finally (always fires)");
         assert!(script.contains("Start-Transcript"), "must log for post-failure diagnosis");
         assert!(script.contains("-TimeoutSec 120"), "download must be bounded");
-        // 6. Live-install fix: waiting on the cockpit PID alone is insufficient —
-        //    the bridge (musu.exe) also holds the package files, so Add-AppxPackage
-        //    hits 0x80073D02 unless EVERY package process is gone. Must poll/kill
-        //    both musu-desktop and musu before installing.
+        // 6. V31 fix for the recurring 0x80073D02: a manual kill-loop over a fixed
+        //    process-name list missed lock-holders (adapter children, AV, explorer)
+        //    and the install failed on hugh-main. We now let the OS shut down EVERY
+        //    running package instance and replace it atomically — the OS-managed
+        //    update path. Assert the force flags are present and the brittle manual
+        //    kill-loop is GONE.
         assert!(
-            script.contains("Get-Process -Name 'musu-desktop','musu','musud'"),
-            "must wait for ALL package processes (cockpit + bridge + supervisor), not just the cockpit PID"
+            script.contains("-ForceTargetApplicationShutdown"),
+            "must let the OS terminate all running package instances (fixes 0x80073D02)"
+        );
+        assert!(
+            script.contains("-ForceUpdateFromAnyVersion"),
+            "must apply the hosted build regardless of rc-tag version ordering"
+        );
+        assert!(
+            !script.contains("Stop-Process"),
+            "must NOT manual-kill processes — the OS-managed shutdown replaces the brittle kill-loop"
         );
     }
 

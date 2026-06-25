@@ -570,6 +570,41 @@ pub async fn run() -> Result<()> {
                     cycle_ok = false;
                     tracing::warn!(err = %e, "musu.pro registration failed");
                 } else {
+                    // V31: AUTO-RECONCILE the account mesh bearer. NOTE this runs
+                    // only when register_node SUCCEEDED — a node that can't reach
+                    // musu.pro can't reconcile either, but it also can't appear in
+                    // the fleet, so the coupling is benign (Auditor MEDIUM). If
+                    // MUSU_MESH_BEARER is set in the env, read_mesh_bearer returns
+                    // that override and the in-process AuthState ignores the file,
+                    // so a file write here won't change the live value until
+                    // restart (Auditor LOW) — non-default deployment path.
+                    // A reinstalled machine boots holding its per-machine token (not
+                    // the shared account bearer) and mutually 401s its peers. Each
+                    // heartbeat we fetch the canonical account bearer (pure-HMAC, no preauth,
+                    // not rate-limited — GET /api/account/mesh-bearer) and write it
+                    // ONLY if it differs from what's on disk (compare-then-write:
+                    // avoids needless DPAPI rewrites + watcher churn). The 45s
+                    // mesh.env watcher then hot-reloads it — no restart. Best-effort:
+                    // a failure never aborts the heartbeat (offline-tolerant). Never
+                    // logs the bearer value.
+                    match cloud.request_mesh_bearer().await {
+                        Ok(Some(fetched)) => {
+                            let current =
+                                crate::install::token::read_mesh_bearer(&musu_home);
+                            if current.as_deref() != Some(fetched.as_str()) {
+                                match crate::install::token::write_mesh_bearer(&musu_home, &fetched) {
+                                    Ok(()) => tracing::info!(
+                                        "mesh bearer reconciled from account registry (was {})",
+                                        if current.is_some() { "stale/mismatched" } else { "absent" }
+                                    ),
+                                    Err(e) => tracing::warn!(err = %e, "mesh bearer write failed (continuing)"),
+                                }
+                            }
+                        }
+                        Ok(None) => {} // server secret unconfigured — keep current bearer
+                        Err(e) => tracing::debug!(err = %e, "mesh bearer fetch failed (continuing)"),
+                    }
+
                     // 2. Discover peers
                     match cloud.list_nodes().await {
                         Ok(siblings) => {
