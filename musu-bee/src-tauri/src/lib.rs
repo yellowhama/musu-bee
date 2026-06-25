@@ -54,7 +54,6 @@ pub fn run() {
             open_external_url,
             check_for_updates,
             probe_update,
-            restart_app,
             start_login,
             account_logout,
             private_mesh_status,
@@ -2060,15 +2059,6 @@ fn probe_update() -> Result<UpdateProbe, String> {
             "up to date".to_string()
         },
     })
-}
-
-/// Restart the cockpit (U-2 step-2 "지금 다시 시작"). The tray menu restarts via
-/// `app.restart()` directly (lib.rs tray handler), but JS can only reach it
-/// through a command — so expose the same call. Used after `check_for_updates`
-/// has applied an update and the user opts to relaunch into the new version.
-#[tauri::command]
-fn restart_app(app: tauri::AppHandle) {
-    app.restart();
 }
 
 #[tauri::command]
