@@ -4942,8 +4942,7 @@ $("update-toast-apply")?.addEventListener("click", async () => {
 });
 
 // (No in-app "restart" button: the detached update helper owns the
-// close→install→relaunch lifecycle and relaunches MUSU via the shell AUMID.
-// restart_app stays registered for tray/settings reuse, but no toast invokes it.)
+// close→install→relaunch lifecycle and relaunches MUSU via the shell AUMID.)
 
 // "나중에" → dismiss for this session (no re-show).
 $("update-toast-later")?.addEventListener("click", () => {

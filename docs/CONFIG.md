@@ -79,6 +79,15 @@ These guard the Next.js operator-facing API routes that proxy worker process or 
 
 ## Cloud Registry and Relay
 
+> **End users do NOT set any of these to log in.** Logging in is the
+> device-flow: run `musu login` (or click **Sign in** in the cockpit), then
+> approve the device in the browser at `musu.pro/link`. The cockpit obtains and
+> stores the account token automatically. The variables below — especially
+> `MUSU_P2P_CONTROL_TOKEN*` and `MUSU_DEVICE_APPROVER_USER_IDS` — are
+> **server-side operator secrets** (set as Vercel deploy env on the hosted
+> `musu.pro` control plane), not client login settings. A user never needs to
+> export a token to sign in. (B-7)
+
 | Name | Default | Required | Description |
 |------|---------|----------|-------------|
 | `MUSU_TOKEN` | *(empty)* | No | Account-level token from musu.pro. Enables cloud peer discovery and relay auth. |
