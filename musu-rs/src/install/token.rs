@@ -16,6 +16,112 @@
 use anyhow::{anyhow, Context, Result};
 use std::path::Path;
 
+/// Line key for the Windows DPAPI-encrypted mesh bearer. Its base64 value is a
+/// `CryptProtectData` (CurrentUser scope) blob of the raw bearer. NOTE: this key
+/// STARTS WITH `MUSU_MESH_BEARER`, so the reader MUST check this (more-specific)
+/// prefix BEFORE the legacy `MUSU_MESH_BEARER=` prefix — both via exact
+/// `strip_prefix` where the trailing `=` disambiguates (Critic H-2).
+#[cfg(windows)]
+const MESH_BEARER_DPAPI_KEY: &str = "MUSU_MESH_BEARER_DPAPI=";
+
+/// Windows DPAPI wrap of `plaintext` under the CurrentUser key (entropy=null).
+/// Returns the protected blob bytes (copied into a Rust `Vec`); the OS-allocated
+/// output buffer is `LocalFree`d before return (Critic M-2). CurrentUser (not
+/// LocalMachine) is intentional: only this Windows account can decrypt, which is
+/// exactly the cross-account-file-access defense we want.
+#[cfg(windows)]
+fn dpapi_protect(plaintext: &[u8]) -> Result<Vec<u8>> {
+    use windows_sys::Win32::Security::Cryptography::{CryptProtectData, CRYPT_INTEGER_BLOB};
+    use windows_sys::Win32::Foundation::LocalFree;
+
+    let mut in_blob = CRYPT_INTEGER_BLOB {
+        cbData: plaintext.len() as u32,
+        pbData: plaintext.as_ptr() as *mut u8,
+    };
+    let mut out_blob = CRYPT_INTEGER_BLOB {
+        cbData: 0,
+        pbData: std::ptr::null_mut(),
+    };
+    // SAFETY: in_blob borrows `plaintext` for the duration of the call; out_blob
+    // is OS-allocated and we LocalFree it below after copying.
+    let ok = unsafe {
+        CryptProtectData(
+            &mut in_blob,
+            std::ptr::null(),       // szDataDescr
+            std::ptr::null_mut(),   // pOptionalEntropy (none — YAGNI per Critic INFO)
+            std::ptr::null_mut(),   // pvReserved
+            std::ptr::null_mut(),   // pPromptStruct
+            0,                      // dwFlags (0 = CurrentUser)
+            &mut out_blob,
+        )
+    };
+    if ok == 0 {
+        // GetLastError immediately after — do not insert Win32 calls here (F-3).
+        let code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        anyhow::bail!("CryptProtectData failed (os error {code})");
+    }
+    // Auditor F-1: a null/empty out blob with ok!=0 is a degenerate API outcome;
+    // from_raw_parts(null, _) is UB even for len 0. Turn it into a clean Err.
+    if out_blob.pbData.is_null() || out_blob.cbData == 0 {
+        anyhow::bail!("CryptProtectData returned success but an empty blob");
+    }
+    // Copy out, then free the OS buffer.
+    let blob = unsafe {
+        std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize).to_vec()
+    };
+    unsafe {
+        LocalFree(out_blob.pbData as *mut core::ffi::c_void);
+    }
+    Ok(blob)
+}
+
+/// Windows DPAPI unwrap. Returns the recovered plaintext bytes (copied into a
+/// Rust `Vec`); the OS-allocated plaintext buffer is zeroized then `LocalFree`d
+/// before return (Critic M-2). Errors propagate so callers can distinguish
+/// "present but undecryptable" from "absent" (Critic H-1).
+#[cfg(windows)]
+fn dpapi_unprotect(blob: &[u8]) -> Result<Vec<u8>> {
+    use windows_sys::Win32::Security::Cryptography::{CryptUnprotectData, CRYPT_INTEGER_BLOB};
+    use windows_sys::Win32::Foundation::LocalFree;
+
+    let mut in_blob = CRYPT_INTEGER_BLOB {
+        cbData: blob.len() as u32,
+        pbData: blob.as_ptr() as *mut u8,
+    };
+    let mut out_blob = CRYPT_INTEGER_BLOB {
+        cbData: 0,
+        pbData: std::ptr::null_mut(),
+    };
+    let ok = unsafe {
+        CryptUnprotectData(
+            &mut in_blob,
+            std::ptr::null_mut(),   // ppszDataDescr
+            std::ptr::null_mut(),   // pOptionalEntropy
+            std::ptr::null_mut(),   // pvReserved
+            std::ptr::null_mut(),   // pPromptStruct
+            0,                      // dwFlags
+            &mut out_blob,
+        )
+    };
+    if ok == 0 {
+        // GetLastError immediately after — do not insert Win32 calls here (F-3).
+        let code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        anyhow::bail!("CryptUnprotectData failed (os error {code})");
+    }
+    // Auditor F-1: guard null/empty before from_raw_parts (UB on null even len 0).
+    if out_blob.pbData.is_null() || out_blob.cbData == 0 {
+        anyhow::bail!("CryptUnprotectData returned success but an empty blob");
+    }
+    let len = out_blob.cbData as usize;
+    let plaintext = unsafe { std::slice::from_raw_parts(out_blob.pbData, len).to_vec() };
+    // Zeroize the OS plaintext buffer before freeing (best-effort).
+    unsafe {
+        std::ptr::write_bytes(out_blob.pbData, 0, len);
+        LocalFree(out_blob.pbData as *mut core::ffi::c_void);
+    }
+    Ok(plaintext)
+}
+
 /// Resolve the bridge bearer token. Returns `None` if neither source yields a
 /// non-empty value. Callers decide whether absence is an error (control needs
 /// it; uninstall/auto-update tolerate `None` and let musud reject).
@@ -64,6 +170,78 @@ pub fn read_mesh_bearer(home: &Path) -> Option<String> {
             continue;
         }
         let line = line.strip_prefix("export ").unwrap_or(line);
+
+        // Critic H-2: check the MORE-SPECIFIC `MUSU_MESH_BEARER_DPAPI=` prefix
+        // FIRST. The trailing `=` in each `strip_prefix` is what keeps the two
+        // keys from colliding — never weaken either to a non-`=` match.
+        #[cfg(windows)]
+        if let Some(rest) = line.strip_prefix(MESH_BEARER_DPAPI_KEY) {
+            let b64 = rest.trim_matches(|c| c == '"' || c == '\'');
+            if b64.is_empty() {
+                continue;
+            }
+            use base64::Engine as _;
+            let blob = match base64::engine::general_purpose::STANDARD.decode(b64) {
+                Ok(b) => b,
+                Err(e) => {
+                    // Critic H-1: a present DPAPI line we can't even decode is a
+                    // corrupted-bearer condition — log loudly, do NOT masquerade
+                    // as "absent". Recovery: re-run `musu mesh join-account`.
+                    tracing::error!(
+                        path = %env_path.display(),
+                        error = %e,
+                        "mesh.env MUSU_MESH_BEARER_DPAPI base64 decode failed; \
+                         cross-machine auth will fall back to the per-machine \
+                         token. Recover with `musu mesh join-account`."
+                    );
+                    return None;
+                }
+            };
+            match dpapi_unprotect(&blob) {
+                Ok(plain) => match String::from_utf8(plain) {
+                    Ok(s) => {
+                        let val = s.trim().to_string();
+                        if !val.is_empty() {
+                            return Some(val);
+                        }
+                        continue;
+                    }
+                    Err(_) => {
+                        tracing::error!(
+                            path = %env_path.display(),
+                            "mesh.env DPAPI plaintext was not valid UTF-8"
+                        );
+                        return None;
+                    }
+                },
+                Err(e) => {
+                    // Critic H-1: present-but-undecryptable (SID/profile change,
+                    // blob corruption). Loud error + per-machine fallback.
+                    tracing::error!(
+                        path = %env_path.display(),
+                        error = %e,
+                        "mesh.env DPAPI decrypt failed (profile/SID change or \
+                         corruption); cross-machine auth falls back to the \
+                         per-machine token. Recover with `musu mesh join-account`."
+                    );
+                    return None;
+                }
+            }
+        }
+
+        // Critic M-1: a Unix box reading a Windows-written DPAPI line can't
+        // decrypt it. Warn loudly instead of silently degrading.
+        #[cfg(not(windows))]
+        if line.strip_prefix("MUSU_MESH_BEARER_DPAPI=").is_some() {
+            tracing::warn!(
+                path = %env_path.display(),
+                "mesh.env was written on Windows (DPAPI-encrypted); cannot \
+                 decrypt on this OS. Re-run `musu mesh join-account` on this \
+                 machine to issue a native bearer."
+            );
+            continue;
+        }
+
         if let Some(rest) = line.strip_prefix("MUSU_MESH_BEARER=") {
             let val = rest.trim_matches(|c| c == '"' || c == '\'');
             if !val.is_empty() {
@@ -81,12 +259,23 @@ pub fn read_mesh_bearer(home: &Path) -> Option<String> {
 pub fn write_mesh_bearer(home: &Path, bearer: &str) -> Result<()> {
     let path = home.join("mesh.env");
     let tmp = home.join("mesh.env.tmp");
-    let body = format!(
+    const MESH_ENV_HEADER: &str =
         "# musu mesh environment — generated by `musu mesh join-account`.\n\
          # Account-wide shared bridge bearer. Same on every machine of this\n\
-         # account; that is intentional — it is how cross-machine tasks auth.\n\
-         MUSU_MESH_BEARER={bearer}\n"
-    );
+         # account; that is intentional — it is how cross-machine tasks auth.\n";
+
+    // Body differs per-OS (Critic M-2): Windows stores the bearer DPAPI-encrypted
+    // (CurrentUser) so a stolen/cloud-synced mesh.env is useless off this account;
+    // Unix keeps plaintext+0600 (DPAPI is Windows-only — keyring is YAGNI here).
+    #[cfg(windows)]
+    let body = {
+        use base64::Engine as _;
+        let blob = dpapi_protect(bearer.as_bytes())?;
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&blob);
+        format!("{MESH_ENV_HEADER}{MESH_BEARER_DPAPI_KEY}{b64}\n")
+    };
+    #[cfg(not(windows))]
+    let body = format!("{MESH_ENV_HEADER}MUSU_MESH_BEARER={bearer}\n");
 
     // Critic A2/A6 + Windows-ACL-first ordering:
     //
@@ -369,6 +558,131 @@ mod tests {
         assert_eq!(read_mesh_bearer(&home), Some("from-env".to_string()));
         std::env::remove_var("MUSU_MESH_BEARER");
         assert_eq!(read_mesh_bearer(&home), Some("from-file".to_string()));
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// Legacy plaintext `MUSU_MESH_BEARER=` lines must keep reading on BOTH OSes
+    /// (hot-reload backward-compat — Critic H-1 / WS-2). A pre-DPAPI install's
+    /// mesh.env must never brick after the encryption change.
+    #[test]
+    fn legacy_plaintext_mesh_env_still_reads() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_MESH_BEARER");
+        let home = std::env::temp_dir().join("musu-rs-token-test-mesh-legacy");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+        // Hand-write a legacy plaintext line (NOT via write_mesh_bearer, which
+        // would DPAPI-encrypt on Windows).
+        std::fs::write(
+            home.join("mesh.env"),
+            "# legacy\nMUSU_MESH_BEARER=legacyplain123\n",
+        )
+        .ok();
+        assert_eq!(
+            read_mesh_bearer(&home),
+            Some("legacyplain123".to_string()),
+            "legacy plaintext mesh.env must still read"
+        );
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// Critic H-2: a DPAPI line must NEVER be returned verbatim as a plaintext
+    /// bearer. The `MUSU_MESH_BEARER_DPAPI=` prefix starts with the legacy
+    /// `MUSU_MESH_BEARER` key; the trailing `=` is what disambiguates. This test
+    /// guards against a future weakening of the legacy `strip_prefix`.
+    #[test]
+    fn dpapi_line_never_returned_as_plaintext_bearer() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_MESH_BEARER");
+        let home = std::env::temp_dir().join("musu-rs-token-test-mesh-dpapi-noverbatim");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+        let fake_b64 = "QUJDREVGRw=="; // base64("ABCDEFG"), NOT a real DPAPI blob
+        std::fs::write(
+            home.join("mesh.env"),
+            format!("MUSU_MESH_BEARER_DPAPI={fake_b64}\n"),
+        )
+        .ok();
+        // On Windows: base64 decodes but dpapi_unprotect fails on the bogus blob
+        // → None (loud log). On Unix: the DPAPI line is warned+skipped → None.
+        // EITHER WAY, the base64 string must never come back as the bearer.
+        let result = read_mesh_bearer(&home);
+        assert_ne!(
+            result,
+            Some(fake_b64.to_string()),
+            "DPAPI base64 blob must never be returned verbatim as a bearer"
+        );
+        assert_eq!(result, None, "undecryptable/foreign DPAPI line yields None");
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// Windows-only: write→read DPAPI round-trip, and the raw bearer must NOT
+    /// appear in the on-disk file (it's encrypted).
+    #[cfg(windows)]
+    #[test]
+    fn mesh_bearer_dpapi_roundtrips_and_encrypts_at_rest() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_MESH_BEARER");
+        let home = std::env::temp_dir().join("musu-rs-token-test-mesh-dpapi-rt");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+
+        let secret = "supersecretbearer9876";
+        write_mesh_bearer(&home, secret).expect("write dpapi mesh bearer");
+        // Round-trips through DPAPI decrypt.
+        assert_eq!(read_mesh_bearer(&home), Some(secret.to_string()));
+        // The plaintext secret must NOT be on disk; the DPAPI key must be.
+        let body = std::fs::read_to_string(home.join("mesh.env")).expect("read file");
+        assert!(
+            !body.contains(secret),
+            "raw bearer must not appear in mesh.env at rest"
+        );
+        assert!(
+            body.contains("MUSU_MESH_BEARER_DPAPI="),
+            "DPAPI line key must be present"
+        );
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// Windows-only: a legacy plaintext file is migrated to DPAPI format on the
+    /// next write_mesh_bearer (re-join/rotate), and still reads correctly.
+    #[cfg(windows)]
+    #[test]
+    fn legacy_plaintext_migrates_to_dpapi_on_rewrite() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_MESH_BEARER");
+        let home = std::env::temp_dir().join("musu-rs-token-test-mesh-migrate");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+
+        std::fs::write(home.join("mesh.env"), "MUSU_MESH_BEARER=oldplain\n").ok();
+        assert_eq!(read_mesh_bearer(&home), Some("oldplain".to_string()));
+        // Re-join with a rotated bearer → now DPAPI-encrypted.
+        write_mesh_bearer(&home, "rotated456").expect("rewrite");
+        let body = std::fs::read_to_string(home.join("mesh.env")).expect("read");
+        assert!(body.contains("MUSU_MESH_BEARER_DPAPI="), "migrated to DPAPI");
+        assert!(!body.contains("rotated456"), "new bearer encrypted at rest");
+        assert_eq!(read_mesh_bearer(&home), Some("rotated456".to_string()));
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    /// Auditor F-2: a DPAPI line whose value is not valid base64 must hit the
+    /// decode-failure branch (loud log + None), never fall through to the legacy
+    /// plaintext branch and return garbage. Covers the H-1 base64-fail sub-path.
+    #[test]
+    fn dpapi_line_invalid_base64_returns_none() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("MUSU_MESH_BEARER");
+        let home = std::env::temp_dir().join("musu-rs-token-test-mesh-badb64");
+        let _ = std::fs::remove_dir_all(&home);
+        std::fs::create_dir_all(&home).ok();
+        std::fs::write(
+            home.join("mesh.env"),
+            "MUSU_MESH_BEARER_DPAPI=!!!not-valid-base64!!!\n",
+        )
+        .ok();
+        // Windows: base64 decode fails → None. Unix: DPAPI line warned+skipped → None.
+        assert_eq!(read_mesh_bearer(&home), None);
         let _ = std::fs::remove_dir_all(&home);
     }
 
