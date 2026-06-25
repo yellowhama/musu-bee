@@ -98,7 +98,7 @@ test("failed-card retry resubmits the stored order tuple, not the current compos
   assert.match(text, /expected\.fingerprint !== \(current\?\.fingerprint \|\| ""\)/);
   assert.match(text, /li\.dataset\.orderBoundaryFingerprint = contract\.fingerprint/);
   assert.match(text, /function orderBoundaryFingerprintDiffReason\(expected, current\)/);
-  assert.match(text, /changed\.push\("tailnet IP changed"\)/);
+  assert.match(text, /changed\.push\("this PC's address changed"\)/);
   assert.match(text, /changed\.push\("control server changed"\)/);
   assert.match(text, /Retry blocked: execution boundary changed/);
   assert.match(text, /Retry blocked: execution boundary identity changed within/);
@@ -230,7 +230,7 @@ test("retry fails closed before native IPC when the stored execution boundary ch
   assert.equal((doc.querySelector("#order-target") as HTMLSelectElement).value, "studio-pc");
   assert.equal((doc.querySelector("#order-target-disclosure") as HTMLElement).dataset.boundary, "external");
   assert.match(doc.querySelector("#order-target-disclosure")?.textContent || "", /Review only/);
-  assert.match(blocked.textContent || "", /changed from Private Mesh to external/);
+  assert.match(blocked.textContent || "", /changed from Secure to external/);
 
   await new Promise((resolve) => setTimeout(resolve, 0));
   dom.window.close();
@@ -296,9 +296,9 @@ test("retry fails closed before native IPC when Private Mesh peer fingerprint ch
   assert.ok(blocked);
   assert.equal(blocked.dataset.orderBoundary, "private");
   assert.equal(blocked.dataset.retryDisabled, "true");
-  assert.equal(blocked.querySelector(".task-boundary")?.textContent, "Private Mesh");
-  assert.match(blocked.textContent || "", /identity changed within Private Mesh/);
-  assert.match(blocked.textContent || "", /tailnet IP changed/);
+  assert.equal(blocked.querySelector(".task-boundary")?.textContent, "Secure");
+  assert.match(blocked.textContent || "", /identity changed within Secure/);
+  assert.match(blocked.textContent || "", /this PC's address changed/);
   assert.equal((blocked.querySelector(".task-review-target") as HTMLElement).hidden, false);
 
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -627,7 +627,7 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(html, /data-fleet-count="this-pc"/);
   assert.match(html, /data-fleet-count="stale"/);
   assert.match(html, /data-fleet-count="offline"/);
-  assert.match(html, /No Tailscale\.com signup required/);
+  assert.match(html, /No extra signup required/);
   // W-5: the primary "just log in on the other PC" surface is the happy path,
   // and it appears BEFORE the docker/Headscale enrollment steps (now collapsed
   // into an opt-in Advanced disclosure). New machines join on login alone.
@@ -754,8 +754,8 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /function orderTargetBoundary\(option\)/);
   assert.match(text, /function updateOrderTargetDisclosure\(\)/);
   assert.match(text, /Retry preserves auto-route instead of re-reading the dropdown/);
-  assert.match(text, /No Tailscale\.com signup is required/);
-  assert.match(text, /Run Private Mesh proof before treating it as release evidence/);
+  assert.match(text, /No extra signup is required/);
+  assert.match(text, /Verify the secure connection before treating it as release evidence/);
   assert.match(text, /opt\.dataset\.meshState = mesh\.state/);
   assert.match(text, /\$\("order-target"\)\?\.addEventListener\("change", updateOrderTargetDisclosure\)/);
   assert.match(text, /function classifyConnectorCandidate\(value\)/);
@@ -2255,9 +2255,9 @@ test("fleet rows distinguish MUSU Private Mesh from external or unclassified tai
     '[data-node="unclassified-tailnet"][data-mesh-state="mesh-needed"] .node-network'
   );
 
-  assert.equal(privateBadge?.textContent, "Private Mesh");
-  assert.equal(externalBadge?.textContent, "External Tailnet");
-  assert.equal(missingBadge?.textContent, "Mesh setup needed");
+  assert.equal(privateBadge?.textContent, "Secure");
+  assert.equal(externalBadge?.textContent, "External");
+  assert.equal(missingBadge?.textContent, "Setup needed");
   assert.equal(
     doc
       .querySelector('[data-node="studio-pc"] .node-verify-copy')
@@ -2477,14 +2477,14 @@ test("order composer discloses selected target execution boundary", async () => 
   select.value = "studio-pc";
   select.dispatchEvent(new win.Event("change", { bubbles: true }));
   assert.equal(disclosure.dataset.boundary, "private");
-  assert.match(disclosure.textContent || "", /Private Mesh/);
-  assert.match(disclosure.textContent || "", /No Tailscale\.com signup is required/);
+  assert.match(disclosure.textContent || "", /Secure connection/);
+  assert.match(disclosure.textContent || "", /No extra signup is required/);
 
   select.value = "managed-tailnet";
   select.dispatchEvent(new win.Event("change", { bubbles: true }));
   assert.equal(disclosure.dataset.boundary, "external");
   assert.match(disclosure.textContent || "", /External route/);
-  assert.match(disclosure.textContent || "", /Run Private Mesh proof/);
+  assert.match(disclosure.textContent || "", /Verify the secure connection/);
 
   select.value = "lan-box";
   select.dispatchEvent(new win.Event("change", { bubbles: true }));
@@ -2557,13 +2557,13 @@ test("task card preserves the target execution boundary captured at send time", 
   assert.equal(calls.find((call) => call.command === "submit_order")?.args?.target, "studio-pc");
   assert.equal(card.dataset.orderTarget, "studio-pc");
   assert.equal(card.dataset.orderBoundary, "private");
-  assert.equal(boundary.textContent, "Private Mesh");
-  assert.match(boundary.title, /No Tailscale\.com signup is required/);
+  assert.equal(boundary.textContent, "Secure");
+  assert.match(boundary.title, /No extra signup is required/);
   (card.querySelector(".task-details") as HTMLButtonElement).click();
   const meta = card.querySelector(".task-meta") as HTMLElement;
   assert.match(meta.textContent || "", /Boundary/);
-  assert.match(meta.textContent || "", /Private Mesh/);
-  assert.match(meta.textContent || "", /No Tailscale\.com signup is required/);
+  assert.match(meta.textContent || "", /Secure/);
+  assert.match(meta.textContent || "", /No extra signup is required/);
   assert.equal((doc.querySelector("#order-target-disclosure") as HTMLElement).dataset.boundary, "auto");
 
   await new Promise((resolve) => setTimeout(resolve, 0));

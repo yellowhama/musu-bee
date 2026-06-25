@@ -338,20 +338,20 @@ function orderTargetBoundary(option) {
   if (meshState === "private") {
     return {
       boundary: "private",
-      text: `Private Mesh: this order targets ${option.value} over MUSU-managed Headscale/private routing. No Tailscale.com signup is required.`,
+      text: `Secure connection: this order targets ${option.value} over MUSU's own private connection. No extra signup is required.`,
       fingerprint,
     };
   }
   if (meshState === "external") {
     return {
       boundary: "external",
-      text: `External route: ${option.value} is reachable through a non-MUSU or unverified tailnet. Run Private Mesh proof before treating it as release evidence.`,
+      text: `External route: ${option.value} is reachable through a connection MUSU doesn't manage or hasn't verified. Verify the secure connection before treating it as release evidence.`,
       fingerprint,
     };
   }
   return {
     boundary: "unverified",
-    text: `Unverified route: ${option.value} is online, but MUSU has not verified a Private Mesh route for it. Use verify/proof before release claims.`,
+    text: `Unverified route: ${option.value} is online, but MUSU has not verified a secure connection to it. Verify it before release claims.`,
     fingerprint,
   };
 }
@@ -383,7 +383,7 @@ function orderBoundaryLabel(boundary) {
     case "local":
       return "local";
     case "private":
-      return "Private Mesh";
+      return "Secure";
     case "external":
       return "external";
     default:
@@ -427,8 +427,8 @@ function orderBoundaryFingerprintDiffReason(expected, current) {
   const changed = [];
   if (before.target !== after.target) changed.push("target changed");
   if (before.thisPc !== after.thisPc) changed.push("local/remote role changed");
-  if (before.meshState !== after.meshState) changed.push("mesh state changed");
-  if (before.tailnetIp !== after.tailnetIp) changed.push("tailnet IP changed");
+  if (before.meshState !== after.meshState) changed.push("connection state changed");
+  if (before.tailnetIp !== after.tailnetIp) changed.push("this PC's address changed");
   if (before.controlServerUrl !== after.controlServerUrl) changed.push("control server changed");
   if (before.controlServerVerified !== after.controlServerVerified) {
     changed.push("control-server verification changed");
@@ -439,9 +439,9 @@ function orderBoundaryFingerprintDiffReason(expected, current) {
 function retryBoundaryChangedMessage(expected, current) {
   if (expected?.boundary === current?.boundary) {
     const reason = orderBoundaryFingerprintDiffReason(expected, current);
-    return `Retry blocked: execution boundary identity changed within ${orderBoundaryLabel(current?.boundary)} (${reason}). Re-select the target or run Private Mesh proof before retrying.`;
+    return `Retry blocked: execution boundary identity changed within ${orderBoundaryLabel(current?.boundary)} (${reason}). Re-select the target or verify the secure connection before retrying.`;
   }
-  return `Retry blocked: execution boundary changed from ${orderBoundaryLabel(expected.boundary)} to ${orderBoundaryLabel(current?.boundary)}. Re-select the target or run Private Mesh proof before retrying.`;
+  return `Retry blocked: execution boundary changed from ${orderBoundaryLabel(expected.boundary)} to ${orderBoundaryLabel(current?.boundary)}. Re-select the target or verify the secure connection before retrying.`;
 }
 
 function updateOrderTargetDisclosure() {
@@ -537,37 +537,37 @@ function meshLabelForNode(n) {
     if (controlUrl && controlVerified) {
       return {
         state: "private",
-        label: "Private Mesh",
-        title: `MUSU Headscale control plane verified: ${controlUrl}`,
+        label: "Secure",
+        title: `Secure private connection verified: ${controlUrl}`,
       };
     }
     return {
       state: "mesh-needed",
-      label: "Mesh setup needed",
-      title: "MUSU Headscale mode is present, but the control server is not verified.",
+      label: "Setup needed",
+      title: "A secure connection is set up, but it hasn't been verified yet.",
     };
   }
 
   if (mode === "external_tailscale_opt_in" || mode === "external_tailnet") {
     return {
       state: "external",
-      label: "External Tailnet",
-      title: "This route depends on an explicitly chosen external managed tailnet.",
+      label: "External",
+      title: "This route depends on an external network you chose to use.",
     };
   }
 
   if (hasTailnetRoute) {
     return {
       state: "mesh-needed",
-      label: "Mesh setup needed",
-      title: "Tailnet routing exists, but MUSU Private Mesh control-plane evidence is missing.",
+      label: "Setup needed",
+      title: "A network route exists, but the secure connection isn't verified yet.",
     };
   }
 
   return {
     state: "lan",
     label: "LAN",
-    title: "Local LAN route; no tailnet control-plane dependency detected.",
+    title: "Local network route on this site.",
   };
 }
 
@@ -1684,7 +1684,7 @@ async function runReleaseProof() {
   };
   if (!targetNode) return fail("Pick the target machine in the order bar first.");
   if (!/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(targetIp))
-    return fail("Enter the peer's tailnet IP (100.64.0.0/10).");
+    return fail("Enter this PC's address (100.64.0.0/10).");
   if (!controlUrl) return fail("Enter your control server URL.");
   if (!evidencePath) return fail("Check the target PC's physical evidence file first.");
 
@@ -1854,6 +1854,12 @@ function renderReleaseProofEvidence(result, target, state = "idle") {
 
   strip.hidden = state === "idle" && !result;
   strip.dataset.state = state;
+  // WS-1 (Critic H-2/OQ-1): the release-evidence strip is now a demoted
+  // <details>. When a proof actually runs (non-idle + visible), auto-expand so
+  // the dev/verification user sees live status; otherwise it stays collapsed.
+  if (strip.tagName === "DETAILS") {
+    strip.open = !strip.hidden && state !== "idle";
+  }
   if (title) {
     title.textContent =
       state === "running"
@@ -2194,7 +2200,7 @@ function renderPrivateMeshStatus(status) {
   const derpSummary = [derpLabel, derpProbeLabel].filter(Boolean).join(" · ");
   if (!status?.ok) {
     state = "error";
-    if (title) title.textContent = "Mesh status unavailable";
+    if (title) title.textContent = "Connection status unavailable";
     if (detail) detail.textContent = status?.error || "Run diagnostics or `musu mesh doctor --json`.";
   } else if (releaseGrade) {
     state = "ready";
@@ -2202,22 +2208,22 @@ function renderPrivateMeshStatus(status) {
     if (detail) detail.textContent = `${routeLabel} · callback verified${ip ? ` · ${ip}` : ""}${derpSummary ? ` · ${derpSummary}` : ""}`;
   } else if (mode === "musu_headscale" && controlVerified) {
     state = "partial";
-    if (title) title.textContent = "Private Mesh joined";
-    if (detail) detail.textContent = `${control} verified${ip ? ` · ${ip}` : ""}${derpSummary ? ` · ${derpSummary}` : ""}. Route proof still required.`;
+    if (title) title.textContent = "Connection joined";
+    if (detail) detail.textContent = `${control} verified${ip ? ` · ${ip}` : ""}${derpSummary ? ` · ${derpSummary}` : ""}. Route check still required.`;
   } else if (mode === "external_tailscale_opt_in") {
     state = "warning";
-    if (title) title.textContent = "External tailnet detected";
-    if (detail) detail.textContent = "This machine is not on MUSU's no-signup Private Mesh path.";
+    if (title) title.textContent = "External network detected";
+    if (detail) detail.textContent = "This machine is not on MUSU's no-signup secure connection.";
   } else if (meshAutoJoinInFlight) {
     state = "running";
-    if (title) title.textContent = "Connecting to your mesh…";
+    if (title) title.textContent = "Connecting your PCs…";
     if (detail) detail.textContent = "Joining the fleet for your account. This is automatic after sign-in.";
   } else {
-    // Logged in but not yet on the mesh: with account-auto-join the cockpit
+    // Logged in but not yet connected: with account-auto-join the cockpit
     // reconnects on its own. Frame it as connecting, not a manual setup chore.
     state = "needed";
-    if (title) title.textContent = "Connecting to your mesh…";
-    if (detail) detail.textContent = "Signing this PC into your private mesh automatically.";
+    if (title) title.textContent = "Connecting your PCs…";
+    if (detail) detail.textContent = "Signing this PC into your private connection automatically.";
   }
 
   const step = derpProbeRan && derpProbeDetail
@@ -2617,7 +2623,7 @@ async function runMeshJoin() {
     if (resultEl) {
       if (r && r.ok) {
         resultEl.dataset.state = "ok";
-        resultEl.textContent = "Joined the MUSU Private Mesh. This PC is now part of the fleet — refresh to see it.";
+        resultEl.textContent = "Connected securely. This PC is now part of the fleet — refresh to see it.";
       } else {
         resultEl.dataset.state = "error";
         resultEl.textContent = (r && r.error) || "Join failed. Check the pass file path and that the control host is online.";

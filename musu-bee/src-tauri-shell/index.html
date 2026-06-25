@@ -127,17 +127,18 @@
           <span class="mesh-status-dot" aria-hidden="true"></span>
           <div>
             <strong id="mesh-proof-strip-title">Private connection</strong>
-            <p id="mesh-proof-strip-detail">Checking that machines reach each other only through your own private network…</p>
+            <p id="mesh-proof-strip-detail">Checking that your PCs reach each other only over your own private link…</p>
             <p id="mesh-proof-strip-proof" class="mesh-status-proof" hidden></p>
             <p id="mesh-proof-strip-diagnostic" class="mesh-status-diagnostic" hidden></p>
           </div>
           <button type="button" data-mesh-copy-proof disabled>Copy proof</button>
         </div>
-        <div id="release-evidence-strip" class="release-evidence-strip" data-state="idle" hidden>
+        <details id="release-evidence-strip" class="release-evidence-strip" data-state="idle" hidden>
+          <summary>Release evidence (advanced)</summary>
           <span class="mesh-status-dot" aria-hidden="true"></span>
           <div>
             <strong id="release-evidence-title">Release evidence</strong>
-            <p id="release-evidence-detail">Run proof on a Private Mesh peer to generate evidence.</p>
+            <p id="release-evidence-detail">Run a check on a connected PC to generate evidence.</p>
             <p id="release-evidence-readiness" class="release-evidence-readiness" hidden></p>
             <p id="release-evidence-next" class="release-evidence-next" hidden></p>
             <!-- The plain-language verdict above is the primary surface. The full
@@ -167,7 +168,7 @@
                  + the checked evidence file feed private_mesh_release_proof_target. -->
             <div class="release-proof-run">
               <label class="release-evidence-input" for="release-proof-target-ip">
-                <span>Peer tailnet IP (100.x.y.z)</span>
+                <span>This PC's address (100.x.y.z)</span>
                 <input id="release-proof-target-ip" type="text" placeholder="100.64.0.x" autocomplete="off" />
               </label>
               <label class="release-evidence-input" for="release-proof-control-url">
@@ -183,17 +184,17 @@
             <button type="button" data-copy-release-evidence disabled>Copy evidence</button>
             <button type="button" data-copy-release-next-action disabled>Copy next</button>
           </div>
-        </div>
+        </details>
         <div id="add-pc-panel" class="add-pc-panel" aria-label="Add another PC" hidden>
           <div class="add-pc-head">
-            <span>No Tailscale.com signup required.</span>
-            <strong>MUSU Private Mesh</strong>
+            <span>No extra signup required.</span>
+            <strong>Secure connection</strong>
           </div>
           <div id="mesh-status-card" class="mesh-status-card" data-state="checking">
             <span class="mesh-status-dot" aria-hidden="true"></span>
             <div>
-              <strong id="mesh-status-title">Checking mesh status</strong>
-              <p id="mesh-status-detail">Looking for local Private Mesh evidence.</p>
+              <strong id="mesh-status-title">Checking connection</strong>
+              <p id="mesh-status-detail">Checking the secure link between your PCs.</p>
               <p id="mesh-status-proof" class="mesh-status-proof" hidden></p>
               <p id="mesh-status-next" class="mesh-status-next" hidden></p>
               <div class="mesh-status-actions">
@@ -230,7 +231,7 @@
             <summary>Advanced: self-host your own control host (optional)</summary>
             <p class="add-pc-advanced-note">
               Most people never need this. Use it only if you run your own
-              Headscale control host instead of MUSU&rsquo;s managed mesh.
+              Headscale control host instead of MUSU&rsquo;s managed secure connection.
             </p>
           <ol class="add-pc-steps">
             <li>

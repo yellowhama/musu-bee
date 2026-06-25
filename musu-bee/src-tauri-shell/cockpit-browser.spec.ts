@@ -412,7 +412,7 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Add PC" }).click();
   const addPcPanel = page.locator("#add-pc-panel");
   await expect(addPcPanel).toBeVisible();
-  await expect(addPcPanel.getByText("No Tailscale.com signup required.")).toBeVisible();
+  await expect(addPcPanel.getByText("No extra signup required.")).toBeVisible();
   // W-5: the primary surface is the happy path — "just log in on the other PC".
   // It is visible without any disclosure; the docker/device-pass enrollment is
   // collapsed into the Advanced disclosure below it.
@@ -639,10 +639,10 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
   const card = page.locator('[data-task="task-proof-1"]');
   await expect(card).toBeVisible();
   await expect(card.locator(".task-route")).toHaveText("to studio-pc");
-  await expect(card.locator(".task-boundary")).toHaveText("Private Mesh");
+  await expect(card.locator(".task-boundary")).toHaveText("Secure");
   await expect(card.locator(".task-boundary")).toHaveAttribute(
     "title",
-    /No Tailscale\.com signup is required/
+    /No extra signup is required/
   );
   await expect(card.locator(".task-proof-summary")).toContainText("returned from studio-pc");
   await expect(card.locator(".task-proof-summary")).toContainText("lan · success · bearer route");
@@ -688,8 +688,8 @@ async function renderProofScenario(page: import("@playwright/test").Page) {
 
   await card.getByRole("button", { name: "Details" }).click();
   await expect(card.getByText("Boundary", { exact: true })).toBeVisible();
-  await expect(card.getByText("Private Mesh").last()).toBeVisible();
-  await expect(card.getByText(/No Tailscale\.com signup is required/)).toBeVisible();
+  await expect(card.getByText("Secure").last()).toBeVisible();
+  await expect(card.getByText(/No extra signup is required/)).toBeVisible();
   await expect(card.getByText("Remote task")).toBeVisible();
   await expect(card.getByText("remote-task-9")).toBeVisible();
   await expect(card.getByText("Callback node")).toBeVisible();
@@ -785,13 +785,13 @@ test("desktop shell discloses target execution boundary before send", async ({ p
 
   await target.selectOption("studio-pc");
   await expect(disclosure).toHaveAttribute("data-boundary", "private");
-  await expect(disclosure).toContainText("Private Mesh");
-  await expect(disclosure).toContainText("No Tailscale.com signup is required");
+  await expect(disclosure).toContainText("Secure connection");
+  await expect(disclosure).toContainText("No extra signup is required");
 
   await target.selectOption("managed-tailnet");
   await expect(disclosure).toHaveAttribute("data-boundary", "external");
   await expect(disclosure).toContainText("External route");
-  await expect(disclosure).toContainText("Run Private Mesh proof");
+  await expect(disclosure).toContainText("Verify the secure connection");
 
   await target.selectOption("lan-box");
   await expect(disclosure).toHaveAttribute("data-boundary", "unverified");
@@ -823,7 +823,7 @@ test("retry resubmits the original order target even when the dropdown changed",
   const card = page.locator('[data-task="task-proof-1"]');
   await expect(card).toHaveClass(/failed/);
   await expect(card.locator(".task-route")).toHaveText("to studio-pc");
-  await expect(card.locator(".task-boundary")).toHaveText("Private Mesh");
+  await expect(card.locator(".task-boundary")).toHaveText("Secure");
   await expect(card.locator(".task-detail")).toHaveText("error: adapter rejected the order");
 
   await page.getByLabel("Target machine").selectOption("");
@@ -856,7 +856,7 @@ test("retry fails closed when the stored execution boundary changed", async ({ p
 
   const card = page.locator('[data-task="task-proof-1"]');
   await expect(card).toHaveClass(/failed/);
-  await expect(card.locator(".task-boundary")).toHaveText("Private Mesh");
+  await expect(card.locator(".task-boundary")).toHaveText("Secure");
 
   await page.evaluate(async (seen) => {
     (window as any).__fleetOverride = [
@@ -889,7 +889,7 @@ test("retry fails closed when the stored execution boundary changed", async ({ p
   await expect(blocked).toBeVisible();
   await expect(blocked.locator(".task-boundary")).toHaveText("external");
   await expect(blocked.locator(".task-detail")).toContainText(
-    "changed from Private Mesh to external"
+    "changed from Secure to external"
   );
   await expect(blocked.getByRole("button", { name: "Retry" })).toBeHidden();
   await expect(blocked.getByRole("button", { name: "Review target" })).toBeVisible();
@@ -918,7 +918,7 @@ test("retry fails closed when Private Mesh peer identity changed", async ({ page
 
   const card = page.locator('[data-task="task-proof-1"]');
   await expect(card).toHaveClass(/failed/);
-  await expect(card.locator(".task-boundary")).toHaveText("Private Mesh");
+  await expect(card.locator(".task-boundary")).toHaveText("Secure");
 
   await page.evaluate(async (seen) => {
     (window as any).__fleetOverride = [
@@ -952,11 +952,11 @@ test("retry fails closed when Private Mesh peer identity changed", async ({ page
     hasText: "Retry blocked: execution boundary identity changed",
   });
   await expect(blocked).toBeVisible();
-  await expect(blocked.locator(".task-boundary")).toHaveText("Private Mesh");
+  await expect(blocked.locator(".task-boundary")).toHaveText("Secure");
   await expect(blocked.locator(".task-detail")).toContainText(
-    "identity changed within Private Mesh"
+    "identity changed within Secure"
   );
-  await expect(blocked.locator(".task-detail")).toContainText("tailnet IP changed");
+  await expect(blocked.locator(".task-detail")).toContainText("this PC's address changed");
   await expect(blocked.getByRole("button", { name: "Retry" })).toBeHidden();
   await expect(blocked.getByRole("button", { name: "Review target" })).toBeVisible();
 });
