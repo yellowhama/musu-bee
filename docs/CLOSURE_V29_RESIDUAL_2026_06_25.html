@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V29 잔여 마무리 — Closure (2026-06-25)</title>
+<style>
+  :root{--bg:#0f1115;--surface:#181b22;--surface2:#21252e;--text:#e6e9ef;--muted:#9aa3b2;--accent:#24c8db;--ok:#3fb950;--warn:#d29922;--high:#f85149;--line:#2d333b}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 -apple-system,Segoe UI,Roboto,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);padding:clamp(1rem,3vw,3rem)}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:clamp(1.5rem,4vw,2.2rem);margin:0 0 .25rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:1.25rem;margin:2.2rem 0 .8rem;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.4rem 0 .5rem;color:var(--accent)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.8rem;margin:1rem 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem}
+  .card .k{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  .card .v{font-size:1.3rem;font-weight:600;margin-top:.2rem}
+  table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.92rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+  code{background:var(--surface2);padding:.1rem .4rem;border-radius:4px;font-size:.85em;color:#c9d1d9}
+  .pill{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.78rem;font-weight:600}
+  .ok{background:rgba(63,185,80,.15);color:var(--ok)} .high{background:rgba(248,81,73,.15);color:var(--high)} .warn{background:rgba(210,153,34,.15);color:var(--warn)} .accent{background:rgba(36,200,219,.13);color:var(--accent)}
+  ul{padding-left:1.2rem} li{margin:.25rem 0}
+  .note{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:.8rem 1rem;margin:1rem 0;color:var(--muted)}
+  footer{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>V29 잔여 마무리 — Closure</h1>
+  <p class="sub">2026-06-25 · agent-team /loop · 마스터 <code>V29_RESIDUAL_MASTER_PLAN_2026_06_25.md</code></p>
+
+  <div class="grid">
+    <div class="card"><div class="k">머지된 PR</div><div class="v">3 <span class="pill accent">#29 #30 #31</span></div></div>
+    <div class="card"><div class="k">WS 완료</div><div class="v">4 / 4</div></div>
+    <div class="card"><div class="k">사용자 게이트 잔여</div><div class="v">1 <span class="pill warn">W-4 E2E</span></div></div>
+    <div class="card"><div class="k">production 배포</div><div class="v">0</div></div>
+  </div>
+
+  <h2>무엇을 했나</h2>
+  <table>
+    <thead><tr><th>WS</th><th>내용</th><th>PR</th><th>검증</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>WS-2</b><br><span class="pill ok">완료</span></td>
+        <td>mesh.env bearer <b>DPAPI at-rest 암호화</b> (N-3). Windows <code>CryptProtectData</code>(CurrentUser); Unix 평문 유지; 레거시 평문 silent 마이그레이션; watcher <code>spawn_blocking</code>.</td>
+        <td>#29</td>
+        <td><code>cargo test --lib install::token</code> 15/15 (실 DPAPI round-trip + 디스크 평문 부재 단언)</td>
+      </tr>
+      <tr>
+        <td><b>WS-1</b><br><span class="pill ok">완료</span></td>
+        <td>cockpit <b>네트워킹 jargon 강등</b> (D-1 재정의). 사용자向 카피 평이체 + release-evidence <code>&lt;details&gt;</code> 강등(proof 시 자동확장). 기능 100% 보존.</td>
+        <td>#30</td>
+        <td>load-bearing 토큰 grep-count byte-identical + <code>test:tauri-shell</code> 50/53(baseline 3 제외) + Playwright CI green</td>
+      </tr>
+      <tr>
+        <td><b>WS-4</b><br><span class="pill ok">완료</span></td>
+        <td><b>N-1</b>: dead <code>restart_app</code> Tauri 커맨드 제거(JS 호출 0).</td>
+        <td>#31</td>
+        <td><code>cargo check</code> clean, dangling ref 0</td>
+      </tr>
+      <tr>
+        <td><b>WS-3</b><br><span class="pill ok">완료</span></td>
+        <td><b>B-7</b>: <code>CONFIG.md</code>에 "사용자는 로그인에 env 불필요 — device-flow(<code>musu login</code>→브라우저 승인)" 명시. operator env(<code>MUSU_P2P_CONTROL_TOKEN*</code> 등)는 server-side임을 분명히.</td>
+        <td>#31</td>
+        <td>operator env 테이블은 stale 아님 확인(Vercel/test 컨텍스트) → 명확화 1줄</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>agent-team 게이트가 잡은 것</h2>
+  <table>
+    <thead><tr><th>WS</th><th>게이트</th><th>발견</th></tr></thead>
+    <tbody>
+      <tr><td>WS-2</td><td>security-engineer Critic</td><td><span class="pill high">3 HIGH</span> — crypto 선택은 옳음, 전부 에러처리: decrypt 실패 loud-log(H-1), DPAPI 라인 먼저 체크(H-2), spawn_blocking(H-3)</td></tr>
+      <tr><td>WS-2</td><td>silent-failure-hunter Auditor</td><td>SHIP-WITH-FIXES: FFI null-guard(F-1), 누락 테스트(F-2) → 반영</td></tr>
+      <tr><td>WS-1</td><td>system-architect Critic</td><td><span class="pill high">3 HIGH</span> — <code>"private"/"external"</code>는 display 아닌 <b>state enum 토큰</b>(H-1), <code>&lt;details&gt;</code> 가시성 제어 상호작용(H-2), 버튼 배선(H-3)</td></tr>
+      <tr><td>WS-1</td><td>quality-engineer Auditor</td><td><span class="pill high">BLOCK</span> — 카피 reword가 그 카피 pin하는 contract+Playwright 테스트를 깸. 테스트 미갱신 → 갱신 후 통과</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <b>이번 사이클 핵심 교훈:</b> UI 카피를 reword하면 그 문자열을 단언(pin)하는 contract·E2E 테스트도
+    같은 변경에서 갱신해야 한다. WS-1에서 카피만 바꾸고 테스트를 안 고쳐 Auditor가 BLOCK.
+    "단위테스트≠실동작"의 거울상 — 의도된 reword라도 계약 테스트를 안 맞추면 깨진다.
+    메모리: <code>feedback-reword-update-pinned-tests</code>.
+  </div>
+
+  <h2>D-1 전제 교정 (Phase 0)</h2>
+  <p>D-1은 원래 "cockpit KVM 강등"이었으나, Researcher가 레포 전체 grep으로 <b>KVM/원격제어 코드 0개</b>를 확인.
+  cockpit은 이미 task-delegation-first(order box + task feed 척추). 진짜 secondary 노이즈는 KVM이 아니라
+  Private Mesh/Headscale 네트워킹 jargon. → 사용자 결정으로 <b>jargon 강등</b>으로 재정의.</p>
+
+  <h2>남은 것</h2>
+  <ul>
+    <li><span class="pill warn">사용자 게이트</span> <b>W-4 2머신 relay E2E</b> — 코드 끝, 2머신 환경 필요. 다른 머신 rc.18 설치 후 사용자 실행. 플레이북 <code>E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md</code>.</li>
+    <li>N-2(probe 6h)·N-1 일부는 이미 완료/무해 처리됨.</li>
+  </ul>
+
+  <footer>
+    문서: <code>V29_RESIDUAL_MASTER_PLAN</code> · <code>WS1_COCKPIT_JARGON_DEMOTE_DETAIL</code> · <code>WS2_MESH_ENV_DPAPI_DETAIL</code> (모두 2026-06-25).
+    main HEAD: PR #29/#30/#31 머지. 🤖 Claude Code.
+  </footer>
+</div>
+</body>
+</html>
