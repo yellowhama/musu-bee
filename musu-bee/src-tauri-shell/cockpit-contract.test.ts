@@ -771,8 +771,16 @@ test("fleet view has local targetable/stale/online/offline filters with count ch
   assert.match(text, /renderConnectorRegistry\(\)/);
   assert.match(text, /\$\("connector-review-form"\)\?\.addEventListener\("submit"/);
   assert.match(text, /function applyFleetFilter\(\)/);
-  assert.match(text, /li\.dataset\.fleetState = online \? "online" : "offline"/);
-  assert.match(text, /li\.dataset\.fleetTargetable = online \? "true" : "false"/);
+  // F-3 HIGH-A: fleetState is the 3-state (online/relay/offline) result of
+  // nodeFleetState(), NOT the old 2-state `online ? "online" : "offline"`
+  // ternary. The <li> dataset must carry that 3-state value so a relay peer
+  // renders as reachable, not offline. Targetable derives from state !== offline.
+  assert.match(text, /function nodeFleetState\(node, thisPcBridgeOk\)/);
+  assert.match(text, /const fleetState = nodeFleetState\(n, thisPcBridgeOk\)/);
+  assert.match(text, /const relay = fleetState === "relay"/);
+  assert.match(text, /const targetable = fleetState !== "offline"/);
+  assert.match(text, /li\.dataset\.fleetState = fleetState/);
+  assert.match(text, /li\.dataset\.fleetTargetable = targetable \? "true" : "false"/);
   assert.match(text, /li\.dataset\.fleetThisPc = n\.is_this_pc \? "true" : "false"/);
   assert.match(text, /li\.dataset\.fleetStale = stale \? "true" : "false"/);
   assert.match(text, /function meshLabelForNode\(n\)/);
@@ -2361,15 +2369,28 @@ test("local fleet rendering does not fabricate stale last-seen timestamps", () =
   assert.match(main, /function nodeStatusError\(node\)/);
   assert.match(main, /function nodeIsOnline\(node, thisPcBridgeOk\)/);
   assert.match(main, /return !nodeStatusError\(node\) && isOnline\(node\?\.last_seen\)/);
-  assert.match(main, /const online = nodeIsOnline\(n, thisPcBridgeOk\)/);
+  // online is now derived from the 3-state nodeFleetState() (online/relay/offline)
+  // — nodeIsOnline() still gates "online" inside nodeFleetState(), so liveness is
+  // still driven by real last_seen, never a fabricated timestamp.
+  assert.match(main, /const fleetState = nodeFleetState\(n, thisPcBridgeOk\)/);
+  assert.match(main, /const online = fleetState === "online"/);
   assert.match(main, /statusError\s*\|\|\s*\(seen\s*\?\s*`seen \$\{seen\}`\s*:\s*"offline"\)/);
   assert.doesNotMatch(cli, /Duration::days\(30\)/);
   assert.doesNotMatch(cli, /last_seen":\s*if healthy/);
   assert.match(cli, /"last_seen":\s*p\.get\("last_seen"\)/);
   assert.match(cli, /"status_error":\s*p\.get\("status_error"\)/);
-  assert.match(fleet, /Err\(_\)\s*=>\s*peer_fallback_status\(peer,\s*"node status unreadable"\)/);
-  assert.doesNotMatch(fleet, /Err\(_\)\s*=>\s*FleetNodeStatus\s*\{[\s\S]*?healthy:\s*true/);
+  // An unreadable/failed probe defers to peer_fallback_status() rather than
+  // fabricating a healthy node — the probe outcome is mapped through the
+  // ProbeOutcome enum (Unreadable/Failed), and the fallback judges
+  // relay-vs-offline from the registry heartbeat without inventing last_seen.
+  assert.match(fleet, /ProbeOutcome::Unreadable\s*=>\s*peer_fallback_status\(peer,\s*"node status unreadable"\)/);
+  assert.match(fleet, /ProbeOutcome::Failed\s*=>\s*peer_fallback_status\(peer,\s*"node status probe failed"\)/);
+  // peer_fallback_status must NEVER fabricate a healthy node; in its body
+  // healthy stays false (the lazy match stops at the first `healthy:` line),
+  // and last_seen comes from the real peer heartbeat, never Utc::now().
+  assert.match(fleet, /fn peer_fallback_status[\s\S]*?let last_seen = peer_last_seen\(peer\)/);
   assert.match(fleet, /fn peer_fallback_status[\s\S]*?healthy:\s*false/);
+  assert.doesNotMatch(fleet, /fn peer_fallback_status\([^)]*\)[^{]*\{[^}]*?healthy:\s*true/);
 });
 
 test("fleet row shows unreadable status without pretending stale seen timestamp", async () => {
@@ -2900,7 +2921,11 @@ test("complete_uninstall handler re-validates the typed phrase server-side", () 
   assert.match(lib, /Start-Process -FilePath 'powershell' -Verb RunAs/);
   assert.doesNotMatch(lib, /DownloadString/);
   // U-C seam exists in the CLI uninstall, not invented as a fake endpoint.
+  // The cloud self-deregister is a real step driven by cloud_deregister_self();
+  // assert both the U-C marker comment and the actual call so the seam can't be
+  // faked, and confirm no remote "remove-self" URL is fabricated.
   const un = source("../musu-rs/src/install/uninstall.rs");
-  assert.match(un, /U-C SEAM: cloud self-deregister/);
+  assert.match(un, /U-C[^\n]*cloud self-deregister/);
+  assert.match(un, /cloud_deregister_self\(&home\)/);
   assert.doesNotMatch(un, /https?:\/\/[^"]*remove-self/);
 });

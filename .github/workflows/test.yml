@@ -50,6 +50,9 @@ jobs:
       - name: P2P control-plane tests
         run: npm run test:p2p
 
+      - name: Cockpit shell contract tests
+        run: npm run test:tauri-shell
+
   rust:
     name: Rust core tests
     runs-on: ubuntu-latest
