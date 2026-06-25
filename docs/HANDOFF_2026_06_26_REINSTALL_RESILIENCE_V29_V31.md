@@ -28,18 +28,34 @@ musu fleet이 **재설치/포트변경/업데이트에도 손 안 대고 복원*
 4. **토스트 helper**: OS가 패키지 인스턴스 종료(`-ForceTargetApplicationShutdown`), 수동 kill 금지.
    helper는 `$env:TEMP`(패키지 밖)라 자기 안 죽음.
 
+## ✅ 해소됨 (2026-06-26 실측)
+- ✅ **양쪽 머신 rc.20 설치 완료**(사용자 확인 "양쪽다 설치됨. 20"). 닭-달걀 닫힘. 이 머신 실측:
+  `Get-AppxPackage blossompark.musu` = `1.15.0.20`, 실행 중 musu.exe 경로 =
+  `...blossompark.musu_1.15.0.20_x64...\musu.exe` (rc.20 바이너리 라이브).
+- ✅ **install.ps1 0x8008020C root cause 해결**: 정식 자산 `musu-desktop-x64.msix`가 옛 rc.18을
+  담고 있었음 → rc.20 재업로드(28087754 bytes), 정식 다운로드 경로 content-length 실측 일치 확인.
+  메모리 `reference-musu-desktop-latest-canonical-asset` 참조.
+- ✅ **W-4 2머신 fleet E2E 실증 완료**(무당짓 금지, 양방향 authed 실측 2026-06-26):
+  `this_node=hugh_second(192.168.1.154:2954)` ↔ `peer=hugh-main(192.168.1.192:9497)`, **둘 다
+  rc.20·healthy·reachable_via=direct**, `total_nodes=2 online_nodes=2`. 같은 64-hex mesh bearer로
+  **양방향 cross-machine `/api/fleet/status` 401 없이** 성공(V31 정합 직접 증거). hugh-main `/health=200`
+  (LAN direct 4ms). **V30 자가정합 증거**: hugh-main이 재설치로 포트 9497로 바뀌었어도 node_name으로
+  잡힘(레지스트리 진실원천). 남은 건 relay-fallback(LAN 차단 시 노랑) flip 시나리오뿐 — direct/online은 실증됨.
+
 ## ⚠️ 미해결 / 다음 행동
-1. 🔴 **hugh-main rc.20 1회 진입**(사용자 게이트, 닭-달걀): 옛 코드라 원격 route bearer 불일치 401 →
-   자가치유 코드가 아직 없음. 첫 진입은 그 머신에서 `irm https://musu.pro/install.ps1 | iex`(cert 신뢰
-   [2/4]+MSIX 설치 [3/4] 한 번에, admin self-elevate). **rc.20 되면 그 다음부터 영구 자동정합.**
-2. 🟡 **install.ps1 "저번에 안 됐다" 미진단**: 사용자가 그 머신 실행 출력을 안 줘서 root cause 미확보.
-   install.ps1은 cert 신뢰를 하는데도 실패라면 별도 버그. **다음: 그 머신 `[1/4]~[4/4]` 출력 확보 →
-   thumbprint mismatch(호스팅 cer) / 권한(elevation) / 0x80073D02 중 어느 단계인지.**
-3. 🟡 **W-4 2머신 relay E2E**: 양쪽 rc.20 후 direct→relay→offline flip 검증(플레이북
-   `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`). 1번 해소가 전제.
-4. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
+1. 🟡 **W-4 relay-fallback flip만 잔여**: direct/online은 실증 완료(위). 남은 건 LAN bind 차단으로
+   direct 실패 유도 → 노랑 "relay" → heartbeat 만료 → offline 3-state 전이 검증(플레이북
+   `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`). 일상 사용엔 direct가 항상 우선이라 우선순위 낮음.
+2. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
+   `write_mesh_bearer`를 부른다(compare-then-write, watcher churn 회피 — 의도된 설계). 따라서 **이미
+   올바른 평문 bearer를 가진 기존 머신은 영영 평문**으로 남고 DPAPI 암호화가 retroactive 적용 안 됨.
+   실측: 이 머신 mesh.env = `MUSU_MESH_BEARER=ec597d…`(평문, DPAPI 키 없음)인데 bearer는 정상 동작.
+   **이건 버그 아님 — 재설치/재join/서버 rotate 시에만 DPAPI write 발생(=새 머신은 항상 DPAPI).**
+   기존 머신 retroactive hardening이 필요하면 별도 후속(예: ensure가 평문 키 감지 시 1회 강제 재write,
+   또는 `musu mesh reseal` 커맨드). 다음 에이전트는 "평문=버그"로 오진 말 것.
+3. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
    신뢰로 안 풀림 — Authenticode/평판 필요). "베타 cert" 에러(MSIX 전용)와 혼동 주의. GA에 EV/Store.
-5. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
+4. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
 
 ## 검증 방법 (무당짓 금지)
 - `cd musu-rs && cargo test --lib` → 517 pass. `cd musu-bee/src-tauri && cargo test --lib update_helper` → 1 pass.
