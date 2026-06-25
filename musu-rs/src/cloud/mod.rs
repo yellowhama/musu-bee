@@ -1157,6 +1157,39 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
+    /// GET /api/account/mesh-bearer — V31: fetch ONLY the account's shared mesh
+    /// bearer (deterministic HMAC of the owner key), with NO Headscale preauth
+    /// provisioning and NO rate limit. The bridge heartbeat calls this to
+    /// auto-reconcile `~/.musu/mesh.env` so a reinstalled machine (holding its
+    /// per-machine token) self-heals to the account bearer without a manual join.
+    /// Returns the 64-hex bearer, or `None` if the server secret is unconfigured
+    /// (503) — callers then keep their existing bearer.
+    pub async fn request_mesh_bearer(&self) -> Result<Option<String>> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!("{}/api/account/mesh-bearer", self.base_url);
+
+        let resp = self.client.get(&url).bearer_auth(token).send().await?;
+
+        // 503 = server secret unset → no account bearer to issue; not an error
+        // the caller should treat as failure (it just keeps its current bearer).
+        if resp.status().as_u16() == 503 {
+            return Ok(None);
+        }
+        if !resp.status().is_success() {
+            return Err(cloud_api_error("Failed to request mesh bearer", &url, resp).await);
+        }
+
+        #[derive(serde::Deserialize)]
+        struct MeshBearerResponse {
+            mesh_bearer: Option<String>,
+        }
+        let body: MeshBearerResponse = resp.json().await?;
+        Ok(body.mesh_bearer.filter(|b| !b.is_empty()))
+    }
+
     /// POST /api/account/mesh-node-action {action:"list"} — the owner's fleet
     /// nodes (id+name+ips+online), scoped server-side to the account. The id is
     /// the Headscale node id rename must use (resolve→confirm-by-id, WS-2c).
