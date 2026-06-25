@@ -4905,11 +4905,14 @@ function hideUpdateToast() {
   if (toast) toast.hidden = true;
 }
 
-// Apply → open the App Installer UI, which owns the close→update→relaunch
-// lifecycle. A running MSIX app can't replace its own files (Add-AppxPackage
-// fails 0x80073D02), so check_for_updates hands off to App Installer via the
-// ms-appinstaller protocol. App Installer prompts, closes MUSU, applies the new
-// version, and relaunches — so there is NO separate in-app "restart" step.
+// Apply → fully self-contained, one-click update. check_for_updates spawns a
+// detached helper (downloads the .msix, waits for this cockpit to exit, installs
+// per-user, relaunches), then exits MUSU. The user does NOTHING else — no App
+// Installer window, no manual steps. We deliberately do NOT use the
+// ms-appinstaller: protocol (Windows disables it by default → "protocol
+// disabled"), nor in-process Add-AppxPackage (0x80073D02, can't replace own
+// running files). MUSU will close within ~1s of clicking and reopen at the new
+// version a few seconds later.
 $("update-toast-apply")?.addEventListener("click", async () => {
   const apply = $("update-toast-apply");
   const restart = $("update-toast-restart");
@@ -4918,25 +4921,23 @@ $("update-toast-apply")?.addEventListener("click", async () => {
   try {
     const res = await invoke("check_for_updates");
     if (res?.ok) {
-      // App Installer window is now open; it will close MUSU and relaunch into
-      // the new version. The in-app restart button is not needed (App Installer
-      // handles the relaunch), so keep it hidden.
-      if (msg) msg.textContent = "App Installer에서 업데이트를 진행하세요";
+      // The detached helper is running and MUSU is about to exit (the Rust side
+      // calls app.exit after spawning it). No in-app restart button needed — the
+      // helper relaunches us. Show a closing message; the window will vanish.
+      if (msg) msg.textContent = "업데이트를 적용하는 중… MUSU가 곧 다시 시작됩니다";
       if (apply) apply.hidden = true;
       if (restart) restart.hidden = true;
-      announce("App Installer 창에서 업데이트를 진행하세요. 완료되면 MUSU가 다시 시작됩니다.", true);
+      announce("업데이트를 내려받아 적용하는 중입니다. MUSU가 잠시 후 자동으로 다시 시작됩니다.", true);
     }
   } catch (err) {
     if (msg) msg.textContent = `업데이트 적용 실패: ${String(err)}`;
-  } finally {
     if (apply) apply.disabled = false;
   }
 });
 
-// (The earlier two-step "restart" button was removed: after the ms-appinstaller
-// change, App Installer owns the close→update→relaunch lifecycle, so the toast
-// never surfaces an in-app restart. The restart_app Tauri command stays
-// registered for potential tray/settings reuse, but no toast button invokes it.)
+// (No in-app "restart" button: the detached update helper owns the
+// close→install→relaunch lifecycle and relaunches MUSU via the shell AUMID.
+// restart_app stays registered for tray/settings reuse, but no toast invokes it.)
 
 // "나중에" → dismiss for this session (no re-show).
 $("update-toast-later")?.addEventListener("click", () => {

@@ -13,6 +13,26 @@ const PHYSICAL_PEER_EVIDENCE_FUTURE_SKEW_SECONDS: i64 = 300;
 const APPINSTALLER_URL: &str =
     "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu.appinstaller";
 
+/// Hosted .msix — the actual package the in-app update downloads and installs
+/// directly. Same release base as APPINSTALLER_URL. We install this directly
+/// (Add-AppxPackage) rather than via `ms-appinstaller:?source=` because Windows
+/// disables the ms-appinstaller: protocol by default (2022 MSRC malware
+/// hardening) → the protocol path dies with "ms-appinstaller protocol disabled".
+/// Direct .msix install is protocol-free. Self-update lifecycle (cockpit can't
+/// replace its own running files → 0x80073D02) is handled by a detached helper
+/// that waits for cockpit exit before installing. See `check_for_updates`.
+const DESKTOP_MSIX_URL: &str =
+    "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu-desktop-x64.msix";
+
+/// Installed package identity name (NOT the family name) — the stable key the
+/// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
+/// installed package and derive its AUMID (`<PackageFamilyName>!<appId>`) for
+/// relaunch. Resolving the family + appId at runtime (rather than hardcoding the
+/// publisher-hash family) means a re-sign can't stale the relaunch. A packaged
+/// app must be launched via the shell (explorer.exe shell:AppsFolder\<aumid>),
+/// NOT by exe path, so it lands in the user (not elevated) session.
+const PACKAGE_IDENTITY_NAME: &str = "blossompark.musu";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -119,7 +139,7 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => reveal_main_window(app),
             "updates" => {
-                let _ = check_for_updates();
+                let _ = check_for_updates(app.clone());
             }
             "restart" => app.restart(),
             "quit" => app.exit(0),
@@ -1709,15 +1729,16 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
     })
 }
 
-/// `check_for_updates` — trigger an immediate App Installer update from the
-/// hosted .appinstaller (the same one auto-update polls). MSIX/App Installer is
-/// the update channel; `Add-AppxPackage -AppInstallerFile <url>` makes it fetch
-/// and apply a newer version now instead of waiting for the poll. The cockpit's
-/// "Check for updates" button (Settings → About) and tray menu call this.
-/// Best-effort: returns the launcher result; the actual install proceeds in
-/// App Installer's own UI.
+/// `check_for_updates` — apply the hosted update now, protocol-free. Spawns a
+/// detached PowerShell helper (download the hosted .msix, wait for every package
+/// process to exit, Add-AppxPackage per-user, relaunch by AUMID), then exits the
+/// cockpit so its files free up for the install. The cockpit's "Check for
+/// updates" button (Settings → About) and tray menu call this. Returns once the
+/// helper is spawned; the install + relaunch happen in that detached process.
+/// (We do NOT use the ms-appinstaller: protocol — Windows disables it by default
+/// — nor in-process Add-AppxPackage — 0x80073D02 on the running package.)
 #[tauri::command]
-fn check_for_updates() -> Result<CommandResult, String> {
+fn check_for_updates(app: tauri::AppHandle) -> Result<CommandResult, String> {
     // Windows-only update channel (MSIX). On other OSes there's nothing to do.
     if !cfg!(target_os = "windows") {
         return Ok(CommandResult {
@@ -1726,27 +1747,107 @@ fn check_for_updates() -> Result<CommandResult, String> {
             output: String::new(),
         });
     }
-    // Open the .appinstaller in the App Installer UI via its protocol handler.
-    //
-    // We deliberately do NOT use `Add-AppxPackage -AppInstallerFile` here: that
-    // CLI path fails with HRESULT 0x80073D02 ("resource in use") because the
-    // cockpit is its OWN running package — Windows can't replace a packaged app's
-    // files while that app is running. The App Installer UI, by contrast, owns the
-    // close-and-update lifecycle: it prompts the user, shuts the running app down,
-    // applies the newer package, and relaunches — exactly what self-update needs.
-    // (Found in live rc.12→rc.13 toast test: apply silently failed + relaunch
-    // still showed the old version; ms-appinstaller protocol resolves it.)
-    let proto = format!("ms-appinstaller:?source={APPINSTALLER_URL}");
-    let mut cmd = std::process::Command::new("cmd");
-    cmd.args(["/C", "start", "", &proto]);
+
+    // Protocol-free self-update. Two dead ends ruled this design:
+    //   1. `Add-AppxPackage` from THIS process → 0x80073D02 ("resource in use"):
+    //      the cockpit is its own running package and can't replace its own files.
+    //   2. `ms-appinstaller:?source=` protocol → Windows disables it by default
+    //      (2022 MSRC malware hardening): "ms-appinstaller protocol disabled".
+    // Both confirmed on a live install. The fix: spawn a DETACHED PowerShell
+    // helper that outlives this process, then exit the cockpit so its files free
+    // up. The helper waits for the cockpit PID to die, downloads the .msix,
+    // installs it per-user (no elevation — the cert is already trusted from first
+    // install), and relaunches via the shell AUMID (so the app lands in the user
+    // session, not an elevated one). Mirrors spawn_musu_startup_open's detached
+    // pattern + Install-MUSU.ps1's AUMID relaunch.
+    let pid = std::process::id();
+    let helper = update_helper_script(pid);
+
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-WindowStyle",
+        "Hidden",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        &helper,
+    ])
+    .stdin(std::process::Stdio::null())
+    .stdout(std::process::Stdio::null())
+    .stderr(std::process::Stdio::null());
     no_window(&mut cmd)
         .spawn()
-        .map_err(|err| format!("failed to open App Installer: {err}"))?;
+        .map_err(|err| format!("failed to spawn update helper: {err}"))?;
+
+    // Release our package files so the detached helper's Add-AppxPackage can
+    // replace them. The helper is already waiting on our PID. Give the spawn a
+    // beat to register, then exit; the helper relaunches us at the new version.
+    std::thread::sleep(std::time::Duration::from_millis(600));
+    app.exit(0);
+
     Ok(CommandResult {
         ok: true,
-        message: "opening App Installer to apply the update".to_string(),
-        output: proto,
+        message: "downloading and applying the update; the app will restart".to_string(),
+        output: DESKTOP_MSIX_URL.to_string(),
     })
+}
+
+/// Build the detached PowerShell self-update script. Steps, in order:
+///   1. Transcript-log to %TEMP%\musu-update.log so a failed update leaves a
+///      diagnosable breadcrumb (audit finding E: never fail silently).
+///   2. Resolve the CURRENTLY-installed AUMID *before* touching anything, so the
+///      `finally` block can ALWAYS relaunch MUSU — the new version on success,
+///      the still-installed old version on any failure. The cockpit has already
+///      exited; this guarantees the user is never left with the app vanished.
+///   3. Wait for the cockpit (PID `cockpit_pid`) to exit — bounded 30s — THEN
+///      poll/kill every remaining package process (musu-desktop + the musu
+///      bridge). Waiting on the cockpit PID alone is insufficient: the bridge
+///      also holds the packaged files, so Add-AppxPackage hits 0x80073D02 until
+///      ALL of them are gone (found in live rc.15→rc.16 toast test — the helper
+///      relaunched but the install silently failed on the still-running bridge).
+///   4. Download the hosted .msix (bounded 120s) to a temp file.
+///   5. `Add-AppxPackage` (per-user, unelevated — cert already trusted). NO
+///      `-ForceUpdateFromAnyVersion` (audit finding B: that defeats Windows'
+///      monotonic-version guard → downgrade vector); plain install still updates
+///      forward and refuses downgrades.
+///   6. Relaunch via `explorer.exe shell:AppsFolder\<aumid>` (user session, not
+///      elevated). Runs in `finally` so it fires on success AND failure.
+/// Kept as a pure string builder (no spawn) so it is unit-testable.
+fn update_helper_script(cockpit_pid: u32) -> String {
+    // Single-quoted PS literals for the consts (URLs/identity have no quotes, so
+    // they cannot break out of the literal — no injection surface).
+    format!(
+        "$ErrorActionPreference='Stop'; \
+         $log = Join-Path $env:TEMP 'musu-update.log'; \
+         Start-Transcript -Path $log -Force -ErrorAction SilentlyContinue | Out-Null; \
+         $aumid = $null; \
+         try {{ $p = Get-AppxPackage -Name '{identity}'; \
+           if ($p) {{ $aumid = $p.PackageFamilyName + '!' + (Get-AppxPackageManifest $p).Package.Applications.Application.Id }} }} catch {{}} \
+         try {{ \
+           try {{ Wait-Process -Id {pid} -Timeout 30 -ErrorAction SilentlyContinue }} catch {{}} \
+           for ($i=0; $i -lt 20; $i++) {{ \
+             $alive = Get-Process -Name 'musu-desktop','musu','musud' -ErrorAction SilentlyContinue; \
+             if (-not $alive) {{ break }}; \
+             $alive | Stop-Process -Force -ErrorAction SilentlyContinue; \
+             Start-Sleep -Milliseconds 500; \
+           }} \
+           $msix = Join-Path $env:TEMP 'musu-update.msix'; \
+           Invoke-WebRequest -Uri '{msix_url}' -OutFile $msix -UseBasicParsing -TimeoutSec 120; \
+           Add-AppxPackage -Path $msix; \
+           Remove-Item $msix -ErrorAction SilentlyContinue; \
+           $np = Get-AppxPackage -Name '{identity}'; \
+           if ($np) {{ $aumid = $np.PackageFamilyName + '!' + (Get-AppxPackageManifest $np).Package.Applications.Application.Id }} \
+         }} catch {{ Write-Output ('update failed: ' + $_.Exception.Message) }} \
+         finally {{ \
+           if ($aumid) {{ Start-Process 'explorer.exe' -ArgumentList ('shell:AppsFolder\\' + $aumid) }} \
+           Stop-Transcript -ErrorAction SilentlyContinue | Out-Null; \
+         }}",
+        pid = cockpit_pid,
+        msix_url = DESKTOP_MSIX_URL,
+        identity = PACKAGE_IDENTITY_NAME,
+    )
 }
 
 /// The in-app update probe result the cockpit toast (U-2) and settings surface
@@ -5920,8 +6021,9 @@ mod tests {
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
         parse_appinstaller_version, sha256_hex, startup_marker_path, summarize_process_ownership,
-        update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
-        version_to_tuple, write_json_sidecar_for_file,
+        update_helper_script, update_is_available, update_release_evidence_trust,
+        verify_sidecar_for_file, version_to_tuple, write_json_sidecar_for_file,
+        DESKTOP_MSIX_URL, PACKAGE_IDENTITY_NAME,
         PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate,
         PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
@@ -5942,6 +6044,54 @@ mod tests {
         assert_eq!(version_to_tuple("1.15.0.7"), [1, 15, 0, 7]);
         // build-msix.ps1:171-173 — first digit run only ("beta3" → 3).
         assert_eq!(version_to_tuple("2.0.0-beta3"), [2, 0, 0, 3]);
+    }
+
+    #[test]
+    fn update_helper_script_has_protocol_free_self_update_invariants() {
+        let script = update_helper_script(4242);
+        // 1. Waits for THIS cockpit PID to exit before installing (else 0x80073D02).
+        assert!(
+            script.contains("Wait-Process -Id 4242"),
+            "must wait on the passed cockpit PID: {script}"
+        );
+        // 2. Downloads the hosted .msix (protocol-free — no ms-appinstaller:).
+        assert!(script.contains(DESKTOP_MSIX_URL), "must fetch the hosted .msix");
+        assert!(
+            !script.contains("ms-appinstaller:"),
+            "must NOT use the OS-disabled ms-appinstaller protocol"
+        );
+        // 3. Installs directly via Add-AppxPackage (per-user, unelevated) and does
+        //    NOT use -ForceUpdateFromAnyVersion (audit B: that allows downgrade).
+        assert!(script.contains("Add-AppxPackage"), "must install the .msix directly");
+        assert!(
+            !script.contains("ForceUpdateFromAnyVersion"),
+            "must NOT defeat the OS monotonic-version guard (downgrade vector)"
+        );
+        // 4. Resolves the package by its stable identity name and relaunches via
+        //    the shell AUMID (user session), not by exe path / elevated.
+        assert!(
+            script.contains(&format!("Get-AppxPackage -Name '{PACKAGE_IDENTITY_NAME}'")),
+            "must resolve the installed package by identity name"
+        );
+        assert!(
+            script.contains("shell:AppsFolder\\"),
+            "must relaunch via shell AUMID so the app lands in the user session"
+        );
+        // 5. Audit E: never vanish silently. Relaunch is in a `finally` (fires on
+        //    success AND failure), AUMID is captured BEFORE install (so a failed
+        //    install still relaunches the old version), and a transcript log is
+        //    left as a breadcrumb. Download is bounded so it can't hang forever.
+        assert!(script.contains("finally"), "relaunch must be in finally (always fires)");
+        assert!(script.contains("Start-Transcript"), "must log for post-failure diagnosis");
+        assert!(script.contains("-TimeoutSec 120"), "download must be bounded");
+        // 6. Live-install fix: waiting on the cockpit PID alone is insufficient —
+        //    the bridge (musu.exe) also holds the package files, so Add-AppxPackage
+        //    hits 0x80073D02 unless EVERY package process is gone. Must poll/kill
+        //    both musu-desktop and musu before installing.
+        assert!(
+            script.contains("Get-Process -Name 'musu-desktop','musu','musud'"),
+            "must wait for ALL package processes (cockpit + bridge + supervisor), not just the cockpit PID"
+        );
     }
 
     #[test]
