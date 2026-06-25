@@ -1,7 +1,35 @@
-# 핸드오프 — 재설치 복원력 (V29→V31), 2026-06-26
+# 핸드오프 — 재설치 복원력 (V29→V31) + V33 잔여 마무리, 2026-06-26
 
 > 다른 에이전트/엔지니어용. 이번 세션(2026-06-25~26)에 main에 들어간 것, 미해결, 다음 행동.
-> main HEAD `f9eadede`, 버전 **rc.20**, 열린 PR 0, 트리 clean.
+> main HEAD `f9eadede`(V29-31). **V33은 브랜치 `feat/v33-residual-finalize`(5커밋, main 미머지 — push 대기).**
+> 버전 **rc.20**.
+
+## V33 잔여 마무리 (브랜치 feat/v33-residual-finalize, 2026-06-26)
+사용자 /goal: W-4 relay-fallback + GA EV/Store 잔여를 마스터→투두→/loop 구현. Phase 0 리서치로 8 WS로 분해.
+| WS | 무엇 | 커밋 |
+|----|------|------|
+| WS-1 | stale `Yellowhama.MUSU`→`blossompark.musu` 식별자 정합(7 scripts; runtime detection OR-compat, canonical artifact hard-replace, fixture 6 교체). 호환 5 audit 스크립트 보존. | 91af8801 |
+| WS-2 | 버전 일관성 게이트에 `src-tauri\Cargo.toml` 추가(사각지대 제거, dry-run 실증) | d7a337d8 |
+| WS-3 | `Install-MUSU.ps1` 견고화 4종(Root cert/0x800B0109 핸들/elevated 에러 trap+pause/PSCommandPath 분기). +버그: irm\|iex param() 리셋이 `$NoLaunch` 날리던 latent 버그 scriptblock 바인딩으로 수정. thumbprint 핀 보존. | b16060bc |
+| WS-4 | Store 문서 정합 — **실측: prepare-store-submission-bundle.ps1은 VERSION 추종(하드코딩 없음)**, 1.13.0.0은 옛 디스크 산출물. 남은 blocker 전부 외부 게이트. | c902b554 |
+| WS-5a | `fleet.rs` probe→fallback 통합테스트 — `map_probe_response`(ProbeOutcome enum) 추출 + MED-2 direct-override 테스트 2개(0 커버리지였음). cargo 519/519. | b16060bc |
+| WS-5b | E2E 3-state 플레이북 정정 — "transited:true relay forward" 모순 제거(표시 flip≠relay 라우팅, router.rs:170 relay 미구현). | 91af8801 |
+| WS-6 | 테스트 안전망 복구(audit 발견) — cockpit-contract RED 3개(전부 drift, 의미 보존 갱신, #53 보안 7종 보존) + `test:tauri-shell` CI 연결 + meshBearer/신규 mesh-bearer route.test.ts CI 연결. cockpit 53/53. | 1fb6d564 |
+| WS-7 | GA EV 직접서명 설계 큐잉(`GA_EV_SIGNING_DESIGN_2026_06_26.md`, Store 메인·EV 대안). | 91af8801 |
+
+**V33 독립 감사(quality-engineer Auditor): SHIP — 0 HIGH / 0 MEDIUM.** 전체 diff 코드 실측 재확인:
+WS-3 보안(핀 보존+Root는 게이트 AFTER+0x800B0109 rethrow+pause 가드+무한루프 없음), WS-6 #53 보안 단언
+net-강화(cloud_deregister_self 추가), RED-3은 진짜 test-drift(코드가 앞서감). 519/53/4 통과, 9 PS 파싱 0 에러.
+
+**V33 핵심 배운 것**: (1) **fleet 3-state는 표시/판정 레이어일 뿐 — 실제 task 라우팅은 relay 미선택**
+(router.rs:170, QUIC 터널 미구현). "노랑=relay 표시" ≠ "relay로 forward". 플레이북이 이걸 혼동했었음.
+(2) `irm|iex`로 받은 스크립트의 `param()` 블록은 호출자 switch를 **재선언/리셋** → scriptblock 바인딩 필요.
+(3) cockpit-contract 류 source-string-pin 테스트는 리팩터에 drift — 정확한 문자열 대신 **의미**를 단언해야.
+(4) V33 다음 단계는 `NEXT_STEPS_V34_2026_06_26.md`.
+
+---
+
+## (V29-31) TL;DR (한 문장)
 
 ## TL;DR (한 문장)
 musu fleet이 **재설치/포트변경/업데이트에도 손 안 대고 복원**되도록 4겹 근본수정을 머지했고

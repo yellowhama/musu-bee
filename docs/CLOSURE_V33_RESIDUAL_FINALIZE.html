@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MUSU V33 잔여 마무리 — Closure</title>
+<style>
+  :root {
+    --bg: #0f1115; --surface: #171a21; --surface2: #1e222b; --fg: #e6e9ef;
+    --fg-dim: #9aa3b2; --accent: #6ea8fe; --green: #5dd39e; --amber: #f0b86e;
+    --red: #f08a8a; --border: #2a2f3a; --mono: ui-monospace, "Cascadia Code", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font-family: system-ui, "Segoe UI", sans-serif; line-height: 1.6;
+    font-size: 15px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .4rem; letter-spacing: -.02em; }
+  .sub { color: var(--fg-dim); font-size: .92rem; }
+  .verdict { display: inline-block; background: var(--green); color: #06281c;
+    font-weight: 700; padding: .25rem .7rem; border-radius: .4rem; font-size: .85rem;
+    margin-top: .8rem; }
+  h2 { font-size: 1.2rem; margin: 2.4rem 0 .9rem; padding-top: 1.2rem;
+    border-top: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .88rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--border);
+    vertical-align: top; }
+  th { color: var(--fg-dim); font-weight: 600; font-size: .8rem; text-transform: uppercase;
+    letter-spacing: .04em; }
+  code { font-family: var(--mono); background: var(--surface2); padding: .1rem .35rem;
+    border-radius: .3rem; font-size: .85em; color: var(--accent); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: .6rem;
+    padding: 1rem 1.2rem; margin: 1rem 0; }
+  .ws { font-weight: 700; color: var(--accent); }
+  ul { margin: .5rem 0; padding-left: 1.3rem; }
+  li { margin: .25rem 0; }
+  .ok { color: var(--green); } .warn { color: var(--amber); } .crit { color: var(--red); }
+  .metric { display: inline-block; background: var(--surface2); border-radius: .4rem;
+    padding: .4rem .8rem; margin: .3rem .4rem .3rem 0; font-family: var(--mono);
+    font-size: .85rem; }
+  .metric b { color: var(--green); }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border);
+    color: var(--fg-dim); font-size: .82rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>MUSU V33 — 잔여 마무리 (Closure)</h1>
+  <div class="sub">W-4 검증 · GA Store 준비 · 식별자 정합 · 테스트 안전망 복구 — 2026-06-26</div>
+  <div class="sub">브랜치 <code>feat/v33-residual-finalize</code> · 5 커밋 · rc.20</div>
+  <div class="verdict">독립 감사(quality-engineer): SHIP — 0 HIGH / 0 MEDIUM</div>
+</header>
+
+<h2>왜 (Context)</h2>
+<p>V29~V31(재설치 복원력) 완료 + 양쪽 머신 rc.20 실증 후, 사용자 /goal로 남은 2항목
+(W-4 relay-fallback flip + GA EV/Store)을 마스터→투두→/loop으로 구현. Phase 0 리서치 3건으로
+두 항목이 실은 <b>8 워크스트림</b>임이 드러났고, 누적 code audit이 <b>test-wiring 2 구멍</b>
+(production 0 HIGH)을 발견. 사용자 결정으로 Store 준비/W-4 테스트/audit 갭을 코드로 완결하고,
+외부 게이트(EV 인증서·실제 Partner Center 제출·2머신 flip·QUIC transport·재업로드)는 큐잉.</p>
+
+<h2>완료된 8 워크스트림</h2>
+<table>
+<thead><tr><th>WS</th><th>무엇</th><th>커밋</th></tr></thead>
+<tbody>
+<tr><td class="ws">WS-1</td><td>stale <code>Yellowhama.MUSU</code>→<code>blossompark.musu</code> 식별자 정합(7 스크립트). runtime detection은 blossompark-first OR-compat(구 패키지 잔존 머신 호환), canonical artifact(cert 파일명/AUMID)는 hard-replace, fixture 6은 current-package 교체. 호환 5 audit 스크립트 보존.</td><td><code>91af8801</code></td></tr>
+<tr><td class="ws">WS-2</td><td>버전 일관성 게이트에 <code>src-tauri\Cargo.toml</code> 추가(4번째 소스, 사각지대 제거). dry-run 실증: rc.20 통과 + 변조 시 mismatch 잡힘.</td><td><code>d7a337d8</code></td></tr>
+<tr><td class="ws">WS-3</td><td><code>Install-MUSU.ps1</code> 견고화 4종 — Root에도 cert(핀 검증 AFTER), 0x800B0109 try/catch+rethrow, elevated 자식창 trap+pause(비대화형 가드), 로컬파일 <code>$PSCommandPath -File</code> vs irm|iex scriptblock 분기. <span class="warn">부수 버그: irm|iex param() 재선언이 <code>$NoLaunch</code> 리셋하던 latent 버그를 scriptblock 바인딩으로 수정.</span></td><td><code>b16060bc</code></td></tr>
+<tr><td class="ws">WS-4</td><td>Store 문서 정합. <span class="warn">실측 발견: prepare-store-submission-bundle.ps1은 버전 하드코딩 없음 — build-msix 호출(VERSION 추종)+Find-LatestMsixArtifact.</span> 1.13.0.0은 옛 디스크 산출물이지 스크립트 결함 아님. 남은 blocker 전부 외부 게이트.</td><td><code>c902b554</code></td></tr>
+<tr><td class="ws">WS-5a</td><td><code>fleet.rs</code> probe→fallback 통합테스트. probe 응답 변환을 순수함수 <code>map_probe_response</code>(ProbeOutcome enum)로 추출, MED-2 direct-override(0 커버리지였음) 테스트 2개. lazy-ladder: 순수함수 재테스트 안 함.</td><td><code>b16060bc</code></td></tr>
+<tr><td class="ws">WS-5b</td><td>E2E 3-state 플레이북 정정 — "transited:true relay forward" 모순 제거. <b>표시 flip ≠ relay 라우팅</b>(router.rs:170 relay 미선택, QUIC 터널 미구현).</td><td><code>91af8801</code></td></tr>
+<tr><td class="ws">WS-6</td><td>테스트 안전망 복구(audit 발견). cockpit-contract RED 3개는 전부 test-drift(코드가 앞서감) → 의미 기반 갱신. <b>#53 보안 단언 7종 보존 + cloud_deregister_self 추가로 net-강화</b>. <code>test:tauri-shell</code> CI 연결 + meshBearer/신규 mesh-bearer route.test.ts CI 연결.</td><td><code>1fb6d564</code></td></tr>
+<tr><td class="ws">WS-7</td><td>GA EV 직접서명 설계 큐잉(<code>GA_EV_SIGNING_DESIGN_2026_06_26.md</code>). Store 메인 경로, EV 대안 트랙(인증서 확보가 트리거).</td><td><code>91af8801</code></td></tr>
+</tbody>
+</table>
+
+<h2>검증 (무당짓 금지, 실측)</h2>
+<div class="card">
+  <span class="metric">cargo --lib: <b>519 / 0</b></span>
+  <span class="metric">cockpit-contract: <b>53 / 0</b></span>
+  <span class="metric">mesh-bearer route: <b>4 / 0</b></span>
+  <span class="metric">test:routes: <b>40 / 0</b></span>
+  <span class="metric">test:p2p: <b>124 / 0</b></span>
+  <span class="metric">PS 파싱(9): <b>0 error</b></span>
+  <p style="margin:.7rem 0 0;color:var(--fg-dim);font-size:.85rem">
+  2머신 direct/online 실증(2026-06-26): hugh_second ↔ hugh-main 양방향 healthy/direct,
+  같은 64-hex mesh bearer로 cross-machine authed 401 없음.</p>
+</div>
+
+<h2>독립 감사 (Auditor) 결과</h2>
+<p><b class="ok">SHIP — 0 HIGH / 0 MEDIUM.</b> quality-engineer가 전체 diff(17파일 +574/-69)를 Builder
+보고 대신 코드 실측으로 재확인. 핵심:</p>
+<ul>
+<li><b>WS-3 보안</b>: thumbprint 핀 <code>65F5926…</code> byte-identical+우회 불가, Root import 핀 게이트 AFTER, 0x800B0109 무조건 rethrow, pause는 <code>-NoLaunch</code>/비대화형 가드, self-elevation 무한루프 없음, scriptblock-bind가 param 리셋 버그 실제 수정.</li>
+<li><b>WS-6 #53</b>: uninstall 보안 단언 7+ 전부 보존, U-C 단언은 <code>cloud_deregister_self(&amp;home)</code> 추가로 net-강화. RED-3은 live main.js 3-state 코드와 일치하는 진짜 drift 수정(가짜-green 아님).</li>
+<li><b>WS-1</b>: cert 파일명 hard-replace가 build-msix 생성 이름과 일치, OR-compat 보존, fixture는 current-package(legacy 회귀 무력화 아님).</li>
+<li><b>WS-2/5a</b>: 정규식이 <code>[package].version</code>만 정확히 매치, 리팩터 동작 보존(3 mutation 순서·에러 문자열 동일).</li>
+</ul>
+
+<h2>다음 단계 (외부/큐잉)</h2>
+<p>상세: <code>NEXT_STEPS_V34_2026_06_26.md</code></p>
+<ul>
+<li><span class="crit">🔴 외부 게이트</span> — W-4 relay/offline 표시 flip 실측(direct/online은 완료), Store 실제 제출(Partner Center+MS 리뷰), Install-MUSU rc.20 재업로드+클린머신 실측.</li>
+<li><span class="warn">🟡 코드 대공사</span> — relay transport 실구현(V34, router가 relay 선택+QUIC 터널, 별도 마스터+Phase-1), EV 직접서명(인증서 확보 시), DPAPI retroactive(선택).</li>
+<li><span style="color:var(--green)">🟢 정리</span> — GitHub repo slug <code>yellowhama/musu-bee</code>(별도 결정), 멀티테넌트 트립와이어(장기).</li>
+</ul>
+
+<footer>
+MUSU V33 잔여 마무리 · 브랜치 <code>feat/v33-residual-finalize</code> · agent-team
+(Researcher×3 → Critic → Builder×4 → Auditor → Scribe) · /loop 자율.<br>
+관련: <code>HANDOFF_2026_06_26_REINSTALL_RESILIENCE_V29_V31.md</code> ·
+<code>NEXT_STEPS_V34_2026_06_26.md</code> · <code>GA_EV_SIGNING_DESIGN_2026_06_26.md</code> ·
+<code>E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md</code>(V33 정정).
+</footer>
+</div>
+</body>
+</html>
