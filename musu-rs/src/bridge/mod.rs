@@ -191,18 +191,32 @@ fn spawn_mesh_bearer_watcher(auth_state: AuthState) {
                         v
                     };
                     if do_read {
-                        auth_state.swap_peer_token(
-                            crate::install::token::read_mesh_bearer(&home),
-                        );
+                        // Critic H-3 (WS-2): read_mesh_bearer now decrypts via
+                        // DPAPI on Windows — an OS crypto syscall that can touch
+                        // the user profile / master key. Run it off the async
+                        // worker so a slow unlock can't stall this select! loop.
+                        let home_r = home.clone();
+                        let bearer = tokio::task::spawn_blocking(move || {
+                            crate::install::token::read_mesh_bearer(&home_r)
+                        })
+                        .await
+                        .ok()
+                        .flatten();
+                        auth_state.swap_peer_token(bearer);
                     }
                 }
                 _ = interval.tick() => {
                     // Unconditional backstop re-read. swap_peer_token no-ops on
                     // None/empty, so a missing mesh.env never clears a good
-                    // bearer.
-                    auth_state.swap_peer_token(
-                        crate::install::token::read_mesh_bearer(&home),
-                    );
+                    // bearer. spawn_blocking for the same DPAPI reason as above.
+                    let home_r = home.clone();
+                    let bearer = tokio::task::spawn_blocking(move || {
+                        crate::install::token::read_mesh_bearer(&home_r)
+                    })
+                    .await
+                    .ok()
+                    .flatten();
+                    auth_state.swap_peer_token(bearer);
                 }
             }
         }
