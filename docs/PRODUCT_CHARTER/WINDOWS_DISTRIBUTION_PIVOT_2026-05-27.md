@@ -28,6 +28,22 @@ As of 2026-05-27:
 - It is still blocked on product-name reservation, current-version package regeneration, Partner Center app submission, Microsoft certification, and restricted-capability review.
 - The prepared 2026-05-27 `1.13.0.0` submission bundle is now a template and must be regenerated for the current `1.15.0-rc.1` release target before submission.
 
+2026-06-26 update (V33):
+
+- **현재 릴리스 타깃 = `1.15.0-rc.20`** (VERSION 권위 소스). 위 `1.15.0-rc.1` 언급은 2026-05-29
+  시점 값이며, 현재는 rc.20.
+- **번들 재생성은 코드 결함이 아니라 "아직 빌드/제출 안 함"이다 (실측 확인)**:
+  `scripts/windows/prepare-store-submission-bundle.ps1`은 버전을 하드코딩하지 않는다 — build-msix.ps1을
+  호출(VERSION 자동 추종)하고 `Find-LatestMsixArtifact`로 방금 빌드한 산출물을 집는다. 따라서
+  `-SkipBuild` 없이 실행하면 **항상 현재 VERSION으로 번들을 생성**한다. 디스크에 남아있는 `1.13.0.0`
+  번들은 옛 산출물일 뿐, 스크립트가 1.13을 박는 게 아니다.
+- 따라서 남은 Store blocker는 전부 **외부/operator 게이트**(코드 아님): product-name 예약, 현재버전 번들
+  실제 생성·검증, Partner Center 제출, MS 인증, restricted-capability(`runFullTrust` +
+  `nonUserConfigurableStartupTasks`) 리뷰. 코드/스크립트 측 준비는 정합 완료.
+- V33 정합분: 식별자 드리프트(`Yellowhama.MUSU`→`blossompark.musu`) 정리(WS-1), 버전 일관성 게이트에
+  `src-tauri\Cargo.toml` 추가(WS-2). 이로써 번들 생성 시 버전 사각지대 제거.
+- EV 직접서명 대안 트랙은 `docs/GA_EV_SIGNING_DESIGN_2026_06_26.md`에 큐잉(Store와 상호 배타 아님).
+
 ## Why this pivot exists
 
 The current Windows path works like an operator bootstrapper:
