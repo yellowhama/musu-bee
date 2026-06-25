@@ -191,13 +191,50 @@ pub enum PeerSource {
 /// `bridge::router::select_peer_for_route` relies on trying alternate addrs for
 /// the same name. The fleet DISPLAY path collapses same-name ghosts separately
 /// (see `bridge::handlers::fleet`); do not add a name-collapse here.
+/// V30 WS-A (Critic H-2 / Auditor MEDIUM): reconcile a manual peer list against
+/// the live registry (node_name → current addr). Drops only TRUE reinstall
+/// ghosts — a manual record whose name the registry knows but at a DIFFERENT
+/// address. Records the registry doesn't know (LAN-only manual peers) and
+/// nameless ad-hoc records are always kept. The caller MUST guard with a
+/// non-empty registry: an empty registry snapshot means "no info", never "all
+/// peers gone", so this fn is a no-op when `registry` is empty (every name maps
+/// to nothing → `None => true` keeps everything). Returns (reconciled, pruned).
+pub fn reconcile_manual_against_registry(
+    mut manual: ManualPeerList,
+    registry: &std::collections::HashMap<String, String>,
+) -> (ManualPeerList, usize) {
+    let before = manual.peers.len();
+    manual.peers.retain(|p| match &p.name {
+        Some(name) => match registry.get(name) {
+            // same name, different addr in registry → stale reinstall ghost, drop
+            Some(reg_addr) => reg_addr == &p.addr,
+            // name not in registry → LAN-only manual peer, keep
+            None => true,
+        },
+        None => true, // nameless ad-hoc peer, keep
+    });
+    let pruned = before - manual.peers.len();
+    (manual, pruned)
+}
+
 pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     let mut seen = std::collections::HashSet::new();
     let mut result = Vec::new();
 
-    // Source 1: cached registry
+    // V30 WS-A (Critic H-1, option a): the cached musu.pro registry is the
+    // SOURCE OF TRUTH for any node it knows. We collect the set of registered
+    // node names from the cache (Source 1), then DROP any manual / nodes.toml
+    // record whose name is already registered — those are stale addresses left
+    // over from a reinstall that changed the node's ephemeral port. The registry
+    // holds the node's CURRENT address; identity is the (server-unique) node
+    // NAME, not host:port. A manual/nodes.toml record survives ONLY when its
+    // name is NOT in the registry (a genuine LAN-only peer) or has no name.
+    let mut registry_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    // Source 1: cached registry (authoritative)
     if let Some(cache) = CachedRegistry::load(musu_home) {
         for node in &cache.nodes {
+            registry_names.insert(node.name.clone());
             if seen.insert(node.addr.clone()) {
                 let mut meta = node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
                 if !meta.is_object() {
@@ -219,9 +256,16 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
         }
     }
 
-    // Source 2: manual peers
+    // Source 2: manual peers — skip any whose name the registry already owns
+    // (stale reinstall ghost). Keep name=None ad-hoc peers and names the
+    // registry doesn't know (true LAN-only manual peers).
     let manual = ManualPeerList::load(musu_home);
     for peer in &manual.peers {
+        if let Some(name) = &peer.name {
+            if registry_names.contains(name) {
+                continue; // registry is authoritative for this node's address
+            }
+        }
         if seen.insert(peer.addr.clone()) {
             result.push(ResolvedPeer {
                 addr: peer.addr.clone(),
@@ -248,6 +292,12 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
         }
         if let Ok(file) = toml::from_str::<NodesToml>(&text) {
             for (name, entry) in &file.nodes {
+                // V30 WS-A: registry is authoritative — skip nodes.toml entries
+                // whose name the registry already owns (same reinstall-ghost rule
+                // as manual peers above).
+                if registry_names.contains(name) {
+                    continue;
+                }
                 // Extract host:port from URL (e.g., "http://192.168.1.50:8070" -> "192.168.1.50:8070")
                 let scheme =
                     reqwest::Url::parse(&entry.url)
@@ -381,6 +431,128 @@ mod tests {
         assert_eq!(peers.len(), 2); // deduped
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// V30 WS-A: the registry is authoritative. A reinstall ghost — the SAME
+    /// node name in the registry (new port) and in manual_peers (old dead port,
+    /// `meta:None`) — must resolve to ONLY the registry address. The stale manual
+    /// port is dropped, so status/routing never probe the dead port.
+    #[test]
+    fn resolve_drops_manual_when_name_in_registry() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        // Registry knows hugh-main at the CURRENT port (with a real heartbeat).
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "192.168.1.192:8001".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: None,
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        // manual_peers still has the dead pre-reinstall port (nameless-of-last-
+        // resort would be meta:None; here it carries the same name).
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:2957".into(), Some("hugh-main".into())); // stale ghost
+        manual.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        let hugh: Vec<_> = peers
+            .iter()
+            .filter(|p| p.name.as_deref() == Some("hugh-main"))
+            .collect();
+        assert_eq!(hugh.len(), 1, "exactly one hugh-main addr survives");
+        assert_eq!(hugh[0].addr, "192.168.1.192:8001", "registry addr wins");
+        assert!(
+            !peers.iter().any(|p| p.addr == "192.168.1.192:2957"),
+            "stale reinstall-ghost port must be excluded"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// V30 WS-A: a genuine LAN-only manual peer (name NOT in the registry) must
+    /// survive — the registry-authority rule only drops names the registry owns.
+    #[test]
+    fn resolve_keeps_manual_when_name_absent_from_registry() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "192.168.1.192:8001".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: None,
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let mut manual = ManualPeerList::default();
+        manual.add("10.0.0.42:9999".into(), Some("lan-only-box".into())); // not in registry
+        manual.add("10.0.0.43:9999".into(), None); // nameless ad-hoc
+        manual.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        assert!(
+            peers.iter().any(|p| p.addr == "10.0.0.42:9999"),
+            "LAN-only manual peer (name not in registry) must survive"
+        );
+        assert!(
+            peers.iter().any(|p| p.addr == "10.0.0.43:9999"),
+            "nameless ad-hoc manual peer must survive"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// V30 WS-A (Auditor MEDIUM): an EMPTY registry must be a no-op — a registry
+    /// fetch that returns zero nodes means "no info", never "delete everything".
+    #[test]
+    fn prune_noop_on_empty_registry() {
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:2957".into(), Some("hugh-main".into()));
+        manual.add("10.0.0.42:9999".into(), Some("lan-box".into()));
+        manual.add("10.0.0.43:1".into(), None);
+        let empty: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let (out, pruned) = reconcile_manual_against_registry(manual, &empty);
+        assert_eq!(pruned, 0, "empty registry must prune nothing");
+        assert_eq!(out.peers.len(), 3, "all manual peers preserved");
+    }
+
+    /// V30 WS-A (Auditor MEDIUM): the core data-loss guard. A reinstall ghost
+    /// (same name, different addr than the registry) is dropped; a LAN-only peer
+    /// (name absent from registry), a nameless peer, and the node's CURRENT addr
+    /// (same name + same addr) are all kept.
+    #[test]
+    fn prune_removes_stale_same_name_keeps_lan_only() {
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:2957".into(), Some("hugh-main".into())); // ghost (old port)
+        manual.add("192.168.1.192:8001".into(), Some("hugh-main".into())); // current (matches registry)
+        manual.add("10.0.0.42:9999".into(), Some("lan-box".into())); // not in registry
+        manual.add("10.0.0.43:1".into(), None); // nameless ad-hoc
+
+        let mut registry = std::collections::HashMap::new();
+        registry.insert("hugh-main".to_string(), "192.168.1.192:8001".to_string());
+
+        let (out, pruned) = reconcile_manual_against_registry(manual, &registry);
+        assert_eq!(pruned, 1, "exactly the stale ghost is removed");
+        let addrs: Vec<&str> = out.peers.iter().map(|p| p.addr.as_str()).collect();
+        assert!(!addrs.contains(&"192.168.1.192:2957"), "stale ghost dropped");
+        assert!(addrs.contains(&"192.168.1.192:8001"), "current addr kept");
+        assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
+        assert!(addrs.contains(&"10.0.0.43:1"), "nameless peer kept");
     }
 
     #[test]
