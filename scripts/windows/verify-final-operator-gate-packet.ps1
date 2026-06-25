@@ -586,7 +586,7 @@ try {
                     "VERSION",
                     "SHA256SUMS.txt",
                     ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix",
-                    ".local-build\msix\output\Yellowhama.MUSU_cert.cer",
+                    ".local-build\msix\output\blossompark.musu_cert.cer",
                     "scripts\windows\install-and-verify-msix.ps1",
                     "scripts\windows\capture-msix-install-evidence.ps1",
                     "scripts\windows\measure-musu-idle-cpu.ps1",

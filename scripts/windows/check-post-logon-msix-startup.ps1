@@ -49,7 +49,10 @@ if ($LASTEXITCODE -ne 0) {
     throw "musu package-status failed via $aliasPath"
 }
 $packageStatus = $packageRaw | ConvertFrom-Json
-$pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+$pkg = Get-AppxPackage -Name blossompark.musu -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $pkg) {
+    $pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+}
 $packageFamilyName = if ($pkg) { $pkg.PackageFamilyName } else { $null }
 $persistedStartup = Get-PersistedStartupRegistration -PackageFamilyName $packageFamilyName -TaskId ([string]$packageStatus.startup_task_id)
 

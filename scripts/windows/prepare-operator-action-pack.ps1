@@ -245,7 +245,7 @@ spending a 60s post-route CPU sample.
 
     $storeFiles = @(
         "musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix",
-        "Yellowhama.MUSU_cert.cer",
+        "blossompark.musu_cert.cer",
         "bundle.json",
         "submission-notes.txt",
         "partner-center-capability-justification.md",

@@ -180,7 +180,7 @@ function Invoke-ReleaseStep {
 
 function Start-MusuDesktopApp {
     $app = Get-StartApps | Where-Object {
-        $_.Name -eq "MUSU" -or $_.AppID -like "Yellowhama.MUSU_*"
+        $_.Name -eq "MUSU" -or $_.AppID -like "blossompark.musu_*" -or $_.AppID -like "Yellowhama.MUSU_*"
     } | Select-Object -First 1
     if (-not $app) {
         throw "Unable to find installed MUSU Start menu app for desktop-open CPU evidence."
@@ -376,7 +376,7 @@ function Invoke-RuntimeCleanup {
     }
 
     $desktopProcesses = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+        [string]$_.CommandLine -like "*blossompark.musu*" -or [string]$_.CommandLine -like "*Yellowhama.MUSU*"
     })
     foreach ($process in $desktopProcesses) {
         try {
@@ -389,7 +389,7 @@ function Invoke-RuntimeCleanup {
     }
     Start-Sleep -Milliseconds 500
     $remainingDesktop = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+        [string]$_.CommandLine -like "*blossompark.musu*" -or [string]$_.CommandLine -like "*Yellowhama.MUSU*"
     })
 
     $cleanup = [pscustomobject]@{

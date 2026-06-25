@@ -3867,7 +3867,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     scenarios = @(
         [pscustomobject]@{
             scenario = "startup-open"
-            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU"; sample_delay_seconds = 2.0 }
+            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"; sample_delay_seconds = 2.0 }
             measurement = (New-RuntimeMeasurement)
         },
         [pscustomobject]@{
@@ -3882,7 +3882,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         },
         [pscustomobject]@{
             scenario = "desktop-open"
-            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU" }
+            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU" }
             measurement = (New-RuntimeMeasurement)
         },
         [pscustomobject]@{
@@ -3928,11 +3928,11 @@ function New-MsixInstallEvidence {
         operator_machine = "VERIFIER-TEST"
         operator_user = "verifier-test"
         package_path = "F:\workspace\musu-bee\.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"
-        package_name = "Yellowhama.MUSU"
+        package_name = "blossompark.musu"
         artifact_version = "1.15.0.0"
-        package_full_name = "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        package_full_name = "blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc"
         installed_version = "1.15.0.0"
-        install_location = "C:\Program Files\WindowsApps\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc"
         startup_task_id = "MusuBridgeStartup"
         startup_enabled = "true"
         startup_immediate_registration = "false"
@@ -3951,7 +3951,7 @@ function New-MsixInstallEvidence {
         alternate_alias_sources = if ($Shadowed) { @($shadowPath) } else { @() }
         alias_remediation = if ($Shadowed) { "Move WindowsApps before the shadowing PATH entry." } else { $null }
         start_menu_entry = $true
-        expected_start_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+        expected_start_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"
         startup_conflict_count = 0
         alias_shadowing_count = if ($Shadowed) { 1 } else { 0 }
         legacy_conflict_count = if ($Shadowed) { 1 } else { 0 }

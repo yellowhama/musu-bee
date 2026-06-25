@@ -265,7 +265,7 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-rea
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
-Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
+Start-Process explorer.exe 'shell:AppsFolder\blossompark.musu_f5h38pf4yt4gc!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
