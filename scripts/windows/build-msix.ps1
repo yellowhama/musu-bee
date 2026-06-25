@@ -184,9 +184,11 @@ function Normalize-Version([string]$RawVersion) {
 }
 
 function Assert-VersionSourcesCoherent {
-    # VERSION is the authoritative source the build reads + auto-bumps. Three other
-    # files restate the same version and historically drifted (Cargo.toml/
-    # tauri.conf.json/publicRelease.ts froze at rc.1/GA while VERSION reached rc.6).
+    # VERSION is the authoritative source the build reads + auto-bumps. Four other
+    # files restate the same version and historically drifted (musu-rs\Cargo.toml/
+    # src-tauri\Cargo.toml/tauri.conf.json/publicRelease.ts froze at rc.1/GA while
+    # VERSION reached rc.6). src-tauri\Cargo.toml was a blind spot until V33 (it was
+    # kept in lockstep by hand but never gate-checked).
     # We do NOT rewrite those files here — PowerShell regex on source files risks
     # encoding corruption (see CLAUDE.md). Instead, read + compare and fail fast
     # with an actionable message so a human fixes the stated source before shipping
@@ -194,9 +196,10 @@ function Assert-VersionSourcesCoherent {
     param([string]$ExpectedVersion, [string]$RepoRoot)
 
     $checks = @(
-        @{ Name = "Cargo.toml";       Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
-        @{ Name = "tauri.conf.json";  Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
-        @{ Name = "publicRelease.ts"; Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' }
+        @{ Name = "Cargo.toml";              Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "src-tauri\Cargo.toml";    Path = (Join-Path $RepoRoot "musu-bee\src-tauri\Cargo.toml");           Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "tauri.conf.json";         Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
+        @{ Name = "publicRelease.ts";        Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' }
     )
     $mismatches = @()
     foreach ($c in $checks) {
@@ -245,7 +248,7 @@ editor — this script deliberately does NOT rewrite source files to avoid
 encoding corruption.)
 "@
     }
-    Write-Step "Version coherence OK: Cargo.toml / tauri.conf.json / publicRelease.ts all = $ExpectedVersion"
+    Write-Step "Version coherence OK: Cargo.toml / src-tauri\Cargo.toml / tauri.conf.json / publicRelease.ts all = $ExpectedVersion"
 }
 
 function Resolve-OptionalPath([string]$PathValue) {
