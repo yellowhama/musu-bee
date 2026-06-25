@@ -455,32 +455,35 @@ pub async fn run() -> Result<()> {
             };
         let cloud_heartbeat_interval_secs = cloud_heartbeat_interval_secs_from_env();
 
-        let mdns_enabled = matches!(
+        // V30 WS-B (Critic CRITICAL): mDNS ADVERTISING is now unconditional so a
+        // freshly-(re)installed node is discoverable on the LAN with zero manual
+        // env setup. The old `MUSU_ENABLE_MDNS` opt-in gate left reinstalled
+        // nodes silent (they never advertised), so peers couldn't find them.
+        // Advertising is cheap and the safe daemon (new_musu_mdns_daemon) already
+        // prunes the problematic IPv6/Tailscale/virtual interfaces that originally
+        // caused the stall — so the gate over-corrected by killing advertise too.
+        // The heavier periodic BROWSE loop below stays behind the env gate to
+        // keep idle CPU down; only advertising must always run.
+        let mdns_browse_enabled = matches!(
             std::env::var("MUSU_ENABLE_MDNS").as_deref(),
             Ok("1") | Ok("true") | Ok("yes")
         );
 
-        // mDNS remains available, but it is opt-in for the Store-candidate
-        // desktop path after Windows/Tailscale adapter failures were observed
-        // to stall bridge health checks.
         let my_name_for_mdns = cfg.node_name.clone();
         let token_for_mdns = token.clone();
         let mdns_port = actual_port;
-        let _mdns_daemon = if mdns_enabled {
+        let _mdns_daemon =
             match crate::peer::mdns::start_advertiser(&my_name_for_mdns, mdns_port, &token_for_mdns)
             {
-                Ok(d) => Some(d),
+                Ok(d) => {
+                    tracing::info!(port = mdns_port, "mDNS advertiser started (LAN auto-discovery)");
+                    Some(d)
+                }
                 Err(e) => {
                     tracing::warn!(err = %e, "failed to start mDNS advertiser");
                     None
                 }
-            }
-        } else {
-            tracing::info!(
-                "mDNS discovery disabled; set MUSU_ENABLE_MDNS=1 to enable LAN auto-discovery"
-            );
-            None
-        };
+            };
 
         let musu_home_clone = musu_home.clone();
         let token_clone = token.clone();
@@ -499,7 +502,7 @@ pub async fn run() -> Result<()> {
         tokio::spawn(async move {
             let _daemon_handle = _mdns_daemon; // keep alive
             tracing::info!(
-                mdns_enabled,
+                mdns_browse_enabled,
                 cloud_heartbeat_interval_secs,
                 "starting low-duty musu.pro cloud registration loop"
             );
@@ -513,7 +516,7 @@ pub async fn run() -> Result<()> {
 
                 let mut cycle_ok = true;
 
-                if mdns_enabled {
+                if mdns_browse_enabled {
                     // Discover LAN peers via mDNS first.
                     crate::peer::mdns::auto_register_peers_with_cancellation(
                         &musu_home_clone,
@@ -609,7 +612,13 @@ pub async fn run() -> Result<()> {
                                     }
 
                                     cached_nodes.push(crate::peer::discovery::CachedNode {
-                                        node_id: node.node_name.clone(), // using name as id
+                                        // V30 WS-A: node_name IS the stable identity. The
+                                        // musu.pro registry enforces per-owner node_name
+                                        // uniqueness (sha256(owner_key+node_name) row id;
+                                        // re-register upserts the same row — see
+                                        // nodeRegistryStore.ts), so the address is a mutable
+                                        // attribute hanging off the name, never the identity.
+                                        node_id: node.node_name.clone(),
                                         name: node.node_name.clone(),
                                         addr: peer_addr.clone(),
                                         capabilities: vec![],
@@ -625,6 +634,47 @@ pub async fn run() -> Result<()> {
                                 }
                             }
 
+                            // V30 WS-A (Critic H-2): reconcile manual_peers.toml
+                            // against the live registry. A reinstall gives a node
+                            // a new port; the old manual entry (same name, dead
+                            // addr) must be pruned so routing/status stop probing
+                            // it. GUARDS: (1) only when siblings is non-empty — an
+                            // empty success must never wipe peers; (2) prune a
+                            // manual record ONLY when its name appears in the
+                            // registry with a DIFFERENT addr (true reinstall
+                            // ghost); a name absent from the registry is a
+                            // LAN-only manual peer and is left untouched. Re-load
+                            // immediately before save to narrow the RMW race with
+                            // a concurrent `peer add` (Critic M-1).
+                            let mut pruned = 0usize;
+                            if !cached_nodes.is_empty() {
+                                let registry: std::collections::HashMap<String, String> =
+                                    cached_nodes
+                                        .iter()
+                                        .map(|n| (n.name.clone(), n.addr.clone()))
+                                        .collect();
+                                // Re-load from disk immediately before reconcile to
+                                // narrow the RMW race with a concurrent `peer add`
+                                // (Critic M-1), then fold in this cycle's in-memory
+                                // additions so they aren't lost. Pure-fn reconcile
+                                // (tested in discovery.rs) drops only stale ghosts.
+                                let mut fresh = crate::peer::discovery::ManualPeerList::load(&musu_home);
+                                for p in &list.peers {
+                                    if !fresh.peers.iter().any(|q| q.addr == p.addr) {
+                                        fresh.peers.push(p.clone());
+                                    }
+                                }
+                                let (reconciled, n) =
+                                    crate::peer::discovery::reconcile_manual_against_registry(
+                                        fresh, &registry,
+                                    );
+                                pruned = n;
+                                if pruned > 0 {
+                                    list = reconciled;
+                                    tracing::info!(pruned, "pruned stale reinstall-ghost manual peers");
+                                }
+                            }
+
                             // Persist CachedRegistry
                             let cache = crate::peer::discovery::CachedRegistry {
                                 nodes: cached_nodes,
@@ -635,7 +685,7 @@ pub async fn run() -> Result<()> {
                                 tracing::error!(err = %e, "failed to save cached registry");
                             }
 
-                            if added > 0 {
+                            if added > 0 || pruned > 0 {
                                 if let Err(e) = list.save(&musu_home) {
                                     tracing::error!(err = %e, "failed to save discovered peers");
                                 }
