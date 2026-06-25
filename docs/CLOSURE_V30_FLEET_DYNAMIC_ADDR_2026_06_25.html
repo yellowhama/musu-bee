@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V30 fleet 동적 주소 추상화 — Closure (2026-06-25)</title>
+<style>
+  :root{--bg:#0f1115;--surface:#181b22;--surface2:#21252e;--text:#e6e9ef;--muted:#9aa3b2;--accent:#24c8db;--ok:#3fb950;--warn:#d29922;--high:#f85149;--line:#2d333b}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 -apple-system,Segoe UI,Roboto,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);padding:clamp(1rem,3vw,3rem)}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:clamp(1.5rem,4vw,2.2rem);margin:0 0 .25rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2rem}
+  h2{font-size:1.25rem;margin:2.2rem 0 .8rem;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;margin:1rem 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem}
+  .card .k{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+  .card .v{font-size:1.3rem;font-weight:600;margin-top:.2rem}
+  table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.92rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+  code{background:var(--surface2);padding:.1rem .4rem;border-radius:4px;font-size:.85em;color:#c9d1d9}
+  .pill{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.78rem;font-weight:600}
+  .ok{background:rgba(63,185,80,.15);color:var(--ok)} .high{background:rgba(248,81,73,.15);color:var(--high)} .warn{background:rgba(210,153,34,.15);color:var(--warn)} .accent{background:rgba(36,200,219,.13);color:var(--accent)}
+  ul{padding-left:1.2rem} li{margin:.25rem 0}
+  .note{background:var(--surface);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:.8rem 1rem;margin:1rem 0;color:var(--muted)}
+  .ev{background:var(--surface);border-left:3px solid var(--ok);border-radius:0 8px 8px 0;padding:.8rem 1rem;margin:1rem 0}
+  footer{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>V30 — fleet 동적 주소 추상화</h1>
+  <p class="sub">2026-06-25 · agent-team /loop · 마스터 <code>V30_FLEET_DYNAMIC_ADDR_MASTER_PLAN_2026_06_25.md</code> · PR #32 · rc.19</p>
+
+  <div class="grid">
+    <div class="card"><div class="k">근본 버그</div><div class="v">2 <span class="pill ok">FIXED</span></div></div>
+    <div class="card"><div class="k">테스트</div><div class="v">517/517</div></div>
+    <div class="card"><div class="k">릴리스</div><div class="v">rc.19 <span class="pill accent">실증</span></div></div>
+    <div class="card"><div class="k">서버 배포</div><div class="v">0</div></div>
+  </div>
+
+  <h2>왜 (사용자 보고)</h2>
+  <p>hugh-main을 재설치하니 새 ephemeral 포트를 받았고, 이 머신 fleet에서 "안 잡힘". musu.pro 레지스트리는
+  새 주소(<code>:8001</code>)를 알았으나 <code>musu status</code>와 라우팅은 <b>죽은 옛 포트(<code>:2957</code>)</b>를
+  계속 찔렀음. 사용자 요구(verbatim): <i>"포트가 달라서 모르겠어요가 아니라. musu.pro 서버를 써서
+  연결을 하던지. 동적 운영을 시키던지 추상화를 시켜"</i> + <i>"mDNS 광고 안 됨 이것도 이유 찾고 제대로 고쳐"</i>.</p>
+
+  <h2>근본 원인 &amp; 수정</h2>
+  <table>
+    <thead><tr><th>버그</th><th>근본 원인</th><th>수정</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>stale-addr</b><br>(WS-A)</td>
+        <td>node identity가 <b>host:port에 묶임</b>. <code>status</code>/라우팅이 레지스트리 대신
+        <code>manual_peers.toml</code>(append-only, 재설치마다 새 포트 누적 — 5개 stale)만 읽음.
+        <code>resolve_all_peers</code>가 addr-키 dedup이라 같은 이름 다른 포트가 다 살아남음.</td>
+        <td>레지스트리(cache)가 <b>그 이름의 현재 주소 진실원천</b>. same-name stale를 status·라우팅
+        양쪽에서 배제(공유 <code>resolve_all_peers</code>). heartbeat가 ghost prune(빈 레지스트리 no-op
+        가드, LAN-only 보존). node_name=안정 식별자(서버 uniqueness 강제).</td>
+      </tr>
+      <tr>
+        <td><b>mDNS 미광고</b><br>(WS-B)</td>
+        <td>advertiser가 <code>MUSU_ENABLE_MDNS</code> opt-in 게이트(기본 OFF), 설치가 안 켬 →
+        재설치 노드가 광고 안 함. browse는 무조건이라 비대칭.</td>
+        <td>광고 <b>무조건화</b>. 안전 daemon이 IPv6/Tailscale/가상NIC를 이미 거름. 무거운 주기
+        browse만 게이트 유지(idle-CPU).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="ev">
+    <b>✅ 실측 (rc.19, 이 머신만 업데이트):</b> <code>musu status</code>가 hugh-main을
+    <code>192.168.1.192:8001</code>(레지스트리의 <b>현재</b> 주소) + <code>healthy:true</code> +
+    <code>reachable_via:direct</code>로 잡음 — 이전 죽은 <code>:2957</code> "node status probe failed"에서.
+    stale ghost 포트는 사라짐. <b>한쪽만 새 코드여도 추상화가 작동.</b>
+  </div>
+
+  <h2>agent-team 게이트</h2>
+  <table>
+    <thead><tr><th>게이트</th><th>발견</th></tr></thead>
+    <tbody>
+      <tr><td>Researcher ×2</td><td>stale-addr 소스(manual_peers.toml append-only) + mDNS 게이트 root cause file:line 확정</td></tr>
+      <tr><td>system-architect Critic</td><td><span class="pill high">3 HIGH</span> — 라우팅 tie-break이 lexicographic addr라 display만 고치면 실제 연결 여전히 실패(H-1), prune 빈-레지스트리 데이터유실(H-2), node_name uniqueness 미검증(H-3)</td></tr>
+      <tr><td>quality-engineer Auditor</td><td>SHIP-WITH-FIXES — prune을 테스트 가능한 순수 함수로 추출 요구 → 반영(데이터유실 가드 테스트로 잠금)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <b>핵심 검증(H-1):</b> 모든 라우팅/프록시 경로(route_task, proxy.rs, ws_proxy.rs, file_proxy.rs,
+    fleet_status)가 같은 <code>resolve_all_peers</code>를 거침 → stale addr가 라우팅 후보에 아예 안
+    들어감. 사용자 진짜 목표(<b>연결</b>)가 충족, display만 고친 게 아님.
+  </div>
+
+  <h2>남은 것</h2>
+  <ul>
+    <li><span class="pill warn">사용자</span> <b>hugh-main rc.19 토스트 업데이트</b> — 그 머신 앞에서 트레이 "업데이트 확인"→토스트→클릭. 양쪽 rc.19면 서로 동적 추종 + mDNS LAN 발견.</li>
+    <li><span class="pill warn">사용자</span> <b>W-4 2머신 relay E2E</b> — 양쪽 rc.19 후 direct→relay→offline flip 검증(플레이북 준비됨).</li>
+  </ul>
+
+  <footer>
+    문서: <code>V30_FLEET_DYNAMIC_ADDR_MASTER_PLAN</code> · <code>WSA_FLEET_REGISTRY_SOURCE_DETAIL</code>.
+    PR #32 머지(main) + rc.19 빌드·호스팅(desktop-latest). 메모리 <code>reference-musu-fleet-registry-authority</code>. 🤖 Claude Code.
+  </footer>
+</div>
+</body>
+</html>
