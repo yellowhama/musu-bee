@@ -81,6 +81,7 @@ type NodeRegistryKvClient = KvScriptClient & {
 
 const KV_NODE_REGISTRY_PREFIX = "musu:node-registry:v1:";
 const DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days, refreshed on each register
+const DEFAULT_HEARTBEAT_TTL_SECONDS = 15 * 60; // current-presence window
 const DEFAULT_MAX_NODES_PER_OWNER = 1000;
 const MAX_NODE_NAME_CHARS = 128;
 const MAX_URL_CHARS = 512;
@@ -107,9 +108,10 @@ async function kvGet<T>(key: string): Promise<T | null> {
 // Atomic Lua mirroring roomWorkOrderStore: Redis runs each EVAL single-threaded,
 // so concurrent registers for the same owner serialize and cannot lose updates
 // or duplicate a node_name. Storage is one JSON-encoded array per owner under
-// ownerKey() with an EX expiry. Freshness uses the same `now <= expires_at`
+// ownerKey() with an EX expiry. Retention uses the same `now <= expires_at`
 // string comparison as nodeFresh(); ISO-8601 UTC `Z` timestamps are fixed-width
-// and compare correctly as strings.
+// and compare correctly as strings. Current presence is stricter: listNodes()
+// also gates on last_seen via nodeHeartbeatFresh().
 //
 // UPSERT: drop any existing row with the same node_name, prepend the new row,
 // keep only still-fresh rows up to max_records, and refresh the key TTL.
@@ -245,6 +247,18 @@ export function nodeRegistryTtlSeconds(): number {
   }
   // Floor 60s, ceil 30 days.
   return Math.min(Math.max(parsed, 60), 30 * 24 * 60 * 60);
+}
+
+export function nodeRegistryHeartbeatTtlSeconds(): number {
+  const parsed = Number.parseInt(
+    process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC ?? "",
+    10
+  );
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_HEARTBEAT_TTL_SECONDS;
+  }
+  // Floor 60s, ceil 24h. This is presence freshness, not storage retention.
+  return Math.min(Math.max(parsed, 60), 24 * 60 * 60);
 }
 
 function maxNodesPerOwner(): number {
@@ -414,6 +428,19 @@ export function isStoredNode(value: unknown): value is StoredNode {
 function nodeFresh(node: StoredNode): boolean {
   const millis = Date.parse(node.expires_at);
   return Number.isFinite(millis) && millis >= Date.now();
+}
+
+function nodeHeartbeatFresh(node: StoredNode): boolean {
+  const millis = Date.parse(node.last_seen);
+  if (!Number.isFinite(millis)) {
+    return false;
+  }
+  const now = Date.now();
+  const maxFutureSkewMs = 60_000;
+  return (
+    millis <= now + maxFutureSkewMs &&
+    now - millis <= nodeRegistryHeartbeatTtlSeconds() * 1000
+  );
 }
 
 function nodeHasUsablePublicUrl(node: StoredNode): boolean {
@@ -665,5 +692,6 @@ export async function listNodes(owner: string): Promise<StoredNode[]> {
   return (await getOwnerNodes(owner))
     .filter((node) => node.owner_key === owner)
     .filter(nodeFresh)
+    .filter(nodeHeartbeatFresh)
     .filter(nodeHasUsablePublicUrl);
 }

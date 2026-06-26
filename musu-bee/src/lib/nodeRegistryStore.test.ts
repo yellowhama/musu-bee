@@ -6,6 +6,7 @@ import {
   deleteNodeByName,
   isStoredNode,
   listNodes,
+  nodeRegistryHeartbeatTtlSeconds,
   nodeRegistryId,
   publicRegistryNode,
   registerNode,
@@ -117,6 +118,7 @@ afterEach(() => {
   __setNodeRegistryKvClientForTest(null);
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
+  delete process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC;
 });
 
 test("register then list shows the node with RegistryNode shape", async () => {
@@ -296,6 +298,51 @@ test("listNodes hides legacy rows with unusable public_url", async () => {
   assert.equal(nodes.length, 1);
   assert.equal(nodes[0]!.node_name, "alpha");
   assert.ok(!nodes.some((node) => node.node_name === "legacy-loopback"));
+});
+
+test("listNodes hides rows whose last_seen exceeds the heartbeat presence TTL", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = "60";
+
+  await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha.example.com",
+  });
+
+  const ownerAKey = "musu:node-registry:v1:" + encodeURIComponent(OWNER_A);
+  const raw = JSON.parse(fake.store.get(ownerAKey) ?? "[]") as StoredNode[];
+  const stored = raw[0]!;
+  fake.store.set(
+    ownerAKey,
+    JSON.stringify([
+      {
+        ...stored,
+        last_seen: new Date(Date.now() - 120_000).toISOString(),
+        expires_at: new Date(Date.now() + 60 * 60_000).toISOString(),
+      },
+    ])
+  );
+
+  const nodes = await listNodes(OWNER_A);
+  assert.equal(nodes.length, 0, "stale heartbeat row is hidden from current presence");
+  assert.equal(
+    await deleteNodeByName(OWNER_A, "alpha"),
+    true,
+    "hidden stale rows remain operator-cleanupable by node_name"
+  );
+});
+
+test("nodeRegistryHeartbeatTtlSeconds defaults and clamps the presence window", () => {
+  delete process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC;
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 15 * 60);
+
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = "1";
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 60);
+
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = String(48 * 60 * 60);
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 24 * 60 * 60);
 });
 
 test("deleteNodeByName removes a legacy unusable row inside owner scope", async () => {

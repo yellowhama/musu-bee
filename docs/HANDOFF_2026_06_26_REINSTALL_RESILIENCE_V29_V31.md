@@ -140,6 +140,13 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   당긴다. 실제 `/api/tasks/forward` POST는 한 후보씩만 보내므로 stale 첫 후보의 지연은 줄이되 중복 실행은
   만들지 않는다. 남은 증명은 두 물리 머신에서 stale-first 후보 재현 + reachable LAN 후보 선점 + task
   중복 없음 확인이다.
+- ✅ **V34 server registry presence TTL 1차 bonding**:
+  `nodeRegistryStore.ts::listNodes`는 이제 storage retention(`expires_at`,
+  `MUSU_NODE_REGISTRY_TTL_SEC`, default 7일)과 current presence freshness(`last_seen`,
+  `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, default 15분)를 분리한다. 따라서 stale cloud row를
+  보관/삭제 가능 상태로 남길 수는 있지만, heartbeat TTL을 넘긴 row는 `/api/v1/nodes` discovery/current
+  fleet presence로 내려가지 않는다. `deleteNodeByName` / `DELETE /api/v1/nodes/[nodeName]`는 숨겨진
+  stale row cleanup을 계속 허용한다.
 - ✅ **packaged evidence**: `scripts\windows\build-msix.ps1 -Configuration release -StartupContract
   local-sideload-manual -GenerateCert -KeepStage -NoBump`로 `musu_1.15.0.21_x64_local-sideload-manual.msix`
   재컷, 로컬 hosted-name copy `musu-desktop-x64.msix`와 `musu.appinstaller`도 1.15.0.21 기준으로 갱신됨.
@@ -153,7 +160,7 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   이번 local-sideload rc.21 package readiness와는 별도 gate.
 - ✅ **musu.pro registry source deploy-readiness**: `musu-bee` registry guard test
   `npx tsx --test src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts`
-  27/27 통과. `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
+  31/31 통과(heartbeat presence TTL + hidden stale cleanup coverage 포함). `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
   `/api/v1/nodes/register`, `/api/v1/nodes/[nodeName]` dynamic route 포함).
   실제 `musu.pro` production deploy는 owner-gated라 이번 세션에서 실행하지 않음.
 - ✅ **cloud stale row cleanup 경로 추가**: 신규 `DELETE /api/v1/nodes/[nodeName]` route와
@@ -195,8 +202,9 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
    `powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName hugh-main -Json`.
    통과 조건: `advertised_public_url_remote_usable=true`,
    `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
-2. 🔴 **musu.pro production registry deploy 미실행**: source는 write/list guard와 legacy invalid-row filter가
-   통과했지만, live `https://musu.pro`는 아직 stale `hugh-main` loopback row를 반환한다. owner-gated
+2. 🔴 **musu.pro production registry deploy 미실행**: source는 write/list guard, legacy invalid-row filter,
+   heartbeat presence TTL filter가 통과했지만, live `https://musu.pro`는 아직 stale `hugh-main` loopback
+   row를 반환한다. owner-gated
    deploy 후 `musu nodes --json --include-unusable`에서 remote `127.0.0.1` row가 사라지거나 main 재등록으로
    LAN/private-mesh URL이 보여야 한다. deploy 후 stale row만 남으면:
    새 CLI가 포함된 소스/패키지에서는 `musu nodes --json --delete hugh-main`, 옛 rc.20 이하 패키지만

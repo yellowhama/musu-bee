@@ -8529,12 +8529,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `node_name` while rejecting relay/failed/loopback candidates. `forward.rs`
   now runs a short read-only `/api/fleet/node-status` preflight over the first
   direct route candidates and moves reachable candidates ahead of stale ones
-  before sending a single `/api/tasks/forward` POST. Search terms should include
+  before sending a single `/api/tasks/forward` POST. Server registry `listNodes`
+  now separates 7-day storage retention from current presence by filtering
+  `last_seen` with `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC` /
+  `nodeRegistryHeartbeatTtlSeconds`, while `deleteNodeByName` still removes hidden
+  stale rows. Search terms should include
   `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
   `resolve_expands_cached_registry_candidate_endpoints`,
   `observed_source_ip`, `x-forwarded-for`, `local_lan_advertise_hosts`,
   `local_candidate_endpoints_for_route_hosts`, `candidate_endpoints`, and
   `single public_url self-report`, `route_preflight_url_for_peer`,
-  `reorder_route_candidates_by_preflight`, and `stale first candidate`.
+  `reorder_route_candidates_by_preflight`, `nodeRegistryHeartbeatTtlSeconds`,
+  `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`, and
+  `stale first candidate`.
 
 **End of WIKI_INDEX.md.**
