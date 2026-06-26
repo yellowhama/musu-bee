@@ -55,8 +55,15 @@ reachable via the WAN relay forward path. Fleet status therefore carries a
 - `direct` (green / "online"): the direct probe succeeded. `healthy == true`.
 - `relay` (yellow / "relay"): the direct probe failed BUT the registry heartbeat
   is fresh (`now - last_seen <= RELAY_FRESH_SECS`, currently 300s ≈ 2.5× the
-  120s registry heartbeat TTL). `healthy == false` but the peer is targetable —
-  delegated work routes to it over the relay.
+  120s registry heartbeat TTL). `healthy == false` but the peer is marked
+  targetable in the UI.
+  ⚠️ **V33 정정 (2026-06-26)**: 이 3-state는 **표시/판정 레이어**일 뿐이다. "targetable"은
+  "heartbeat가 신선해 곧 복구될 것으로 **표시**"한다는 의미이지, 그 상태에서 delegate한 work가
+  실제로 relay 경로로 forward된다는 뜻이 **아니다**. 실제 라우팅(`router.rs::select_peer_for_route`,
+  L170-171)은 **relay를 선택하지 않는다 — relay/QUIC 터널 transport가 아직 미구현**
+  (`relay_transport_wired == false`). direct 경로가 복구되기 전까지 실제 forward는 가지 않는다.
+  relay transport 실구현은 별도 후속(V34, `NEXT_STEPS_V34_2026_06_26.md` N-4)이며, 그것이 되어야
+  "delegated work routes over the relay"가 비로소 참이 된다.
 - `offline` (red): direct probe failed AND no fresh heartbeat (or no `last_seen`
   evidence at all).
 
