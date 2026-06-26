@@ -11,7 +11,7 @@ Scope: current `feat/v33-residual-finalize` work after the fleet stale-registry 
 | INFO | Public install channel is now rc.21. | Production deploy `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2` is aliased to `https://musu.pro`; `verify-musu-pro-install-channel.ps1 -Json` passes with `ok=true`, `failure_count=0`; live `/api/health`, `/api/public-config`, `/install.ps1`, `/repair-fleet.ps1`, and `desktop-latest` canary all publish the rc.21 install/repair channel. | Keep this verifier in the release gate; do not treat HTTP 200 alone as install readiness. |
 | INFO | The stale loopback registry row is no longer present in current second-machine registry evidence. | Strict `verify-fleet-audit-contract.ps1 -Json` passes with `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`, `online_nodes=1`, `direct_healthy_nodes=1`. | Still prove the physical main PC separately after installing/restarting rc.21 there. |
 | MED | Brain version coherence is a pin+VCS gate, not a native product-semver gate. | `musu-brain.pin.json` pins `product_version=1.15.0-rc.21` and Go `vcs.revision=f7678af71d281a10df64c79e4eda6bc77ef8a719` from clean `F:\musu_2nd_brain` HEAD (`feat/brain-self-improvement`); current Go chip does not expose a `musu-brain --version` product contract. | Add native version surface in the brain chip or release metadata, then enforce it in MSIX build. |
-| MED | Brain ingest token file is bootstrapped, but ACL verification is not yet a release gate. | Tauri writes `~/.musu/brain/runtime/musu-ingest.token` and does not log the token. Existing owner-only ACL hardening covers other sensitive files, not this new one yet. | Add owner-only ACL set+verify for the token file and include it in the fleet/desktop verifier. |
+| MED | Brain ingest token ACL now has source hardening and an explicit verifier gate, but packaged first-run proof is still missing. | Tauri restricts `~/.musu/brain/runtime/musu-ingest.token` when writing or reusing the token. `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` now fails if the token is absent and checks owner-only ACL when present. Current second-machine runtime has not produced the token yet, so default fleet audit skips this optional brain gate. | Launch packaged rc.21 after this build, confirm brain first-run creates the token, then rerun `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` and capture the evidence. |
 | INFO | The sidecar build gate now catches dirty or moving brain checkouts. | During validation, an intermediate dirty brain checkout produced `vcs.modified=true` and `--brain-only` correctly refused it. After brain advanced to clean commit `f7678af7`, the pin was updated. | Keep this gate: fail fast on HEAD mismatch, dirty repo, or dirty Go build info. |
 | LOW | Brain sidecar health probe is loopback status-based. | Tauri skips spawning if `http://127.0.0.1:8080/health` is already healthy. A non-brain local service on the same port would be rare but possible. | Tighten probe to validate the expected health body or a lightweight version endpoint. |
 
@@ -28,7 +28,7 @@ The brain integration is now a real product bonding pass rather than a thesis on
 - Fleet `relay` remains a display/freshness state only. It is not a delegated-work routing path until relay transport is implemented and proven.
 - Fleet registry `public_url` must be remote-usable. Loopback, localhost, wildcard, and port-0 are invalid fleet truth.
 - `musu nodes --delete <nodeName>` deletes only the caller's owner-scoped cloud registry row and treats absent JSON 404 as an idempotent "already absent" result.
-- Brain is a hidden product chip, not a user-managed dependency. The installed product owns lifecycle, data root, token bootstrap, and UX.
+- Brain is a hidden product chip, not a user-managed dependency. The installed product owns lifecycle, data root, token bootstrap, token ACL, and UX.
 - Brain data root is `~/.musu/brain`, never MSIX LocalState.
 - MUSU writes copies into brain for recall/search. `musu.db` and brain markdown store are not physically merged into one source of truth.
 
@@ -45,11 +45,13 @@ Passed:
 - Final brain-only rebuild passed after pinning clean `F:\musu_2nd_brain` HEAD `f7678af71d281a10df64c79e4eda6bc77ef8a719`; `go version -m` reports `vcs.modified=false`.
 - Tauri targeted tests:
   `parses_knowledge_auth_token_without_logging_context`,
+  `writes_knowledge_token_without_losing_secret_value`,
   `tauri_bundle_config_includes_runtime_sidecar`.
 - Production install channel verifier after deploy `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`: `verify-musu-pro-install-channel.ps1 -Json` passed with `ok=true`, `failure_count=0`; the verifier now also covers `/repair-fleet.ps1`. Direct live probe of `https://musu.pro/repair-fleet.ps1` returned HTTP 200, length 7195, with `musu.fleet_node_public_url_repair.v1` and `ExpectedNodeName` present.
-- Strict fleet audit verifier: `verify-fleet-audit-contract.ps1 -Json` passed with `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`.
+- Strict fleet audit verifier: `verify-fleet-audit-contract.ps1 -Json` passed with `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`; default mode reports the brain ingest token ACL gate as skipped when the token is not present.
 - PR #34 status checks: code/test/deploy checks passed; `design-gate` remains the only failing check.
 - `git diff --check`.
+- Source hardening: Tauri now restricts `~/.musu/brain/runtime/musu-ingest.token` before writing it on Windows and re-applies the restriction when reusing an existing token.
 - MUSU index sync after this refresh: `indexed 3304 files (3827 symbols)`.
 - MUSU recall/search proof: query `fleet rc21 brain sidecar knowledge ingest` returned this audit doc.
 
@@ -64,7 +66,7 @@ Not completed locally:
 1. Get explicit design approval on issue #35, then update PR #34 from `Design: Pending` to `Design: Approved` with the approval comment URL and rerun `design-gate`.
 2. On the main PC, install/restart rc.21 from `irm https://musu.pro/install.ps1 | iex`, run `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`, and capture physical two-machine direct-route proof.
 3. After main is reachable, run the W-4 relay-display flip test: direct blocked -> relay-display only -> heartbeat expiry -> offline, with `online_nodes` staying direct-only.
-4. Add a token ACL verifier and packaged first-run brain ingest proof before calling the brain bonding release-grade.
+4. Capture packaged first-run brain evidence: launch the desktop, confirm the brain sidecar initializes `~/.musu/brain`, then run `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` and record the ACL/health evidence before calling the brain bonding release-grade.
 5. Add a native brain version surface or release metadata so the brain chip can graduate from pin+VCS coherence to product-semver coherence.
 6. Rerun `node scripts/build-tauri-sidecars.mjs --brain-only` and verify `go version -m` reports `vcs.modified=false` whenever the brain chip advances.
 7. Sync the changed repo into MUSU brain index and verify recall for `fleet rc21 brain sidecar knowledge ingest`.

@@ -225,6 +225,11 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   public route `https://musu.pro/repair-fleet.ps1`는 같은 canonical script를
   `desktop-latest` release asset에서 proxy하므로, main PC에서는 repo 복사 없이
   `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`를 실행하면 된다.
+- ✅ **brain ingest token ACL source hardening**: Tauri knowledge sidecar bootstrap은
+  `~\.musu\brain\runtime\musu-ingest.token`을 Windows에서 쓰기 전에 `icacls /inheritance:r /grant:r <current-user>:F`로
+  제한하고, 기존 token을 재사용할 때도 ACL을 다시 좁힌다. `verify-fleet-audit-contract.ps1`에는
+  `-RequireBrainToken` gate가 추가되어 packaged first-run 이후 token 존재와 ACL을 강제 검증할 수 있다.
+  현재 second runtime에는 token이 아직 없어 기본 fleet audit은 이 brain gate를 skip한다.
 - ✅ **pasted audit 5건 회귀 verifier 추가**: 신규
   `scripts\windows\verify-fleet-audit-contract.ps1`. package identity, bridge health,
   `bridge.json` raw bind vs doctor bind, self advertised/cloud URL remote-usability,
@@ -259,17 +264,20 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
 4. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
    → 노랑 "relay" 표시(display-only, `online_nodes`/targetable 제외) → heartbeat 만료 → offline 3-state 전이
    검증(플레이북 `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`).
-5. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
+5. 🟡 **brain first-run evidence 잔여**: 새 build/package를 실행해 `~\.musu\brain\runtime\musu-ingest.token`이
+   생성되는지 확인한 뒤 `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`을 통과시켜야
+   brain bonding을 release-grade로 부를 수 있다.
+6. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
    `write_mesh_bearer`를 부른다(compare-then-write, watcher churn 회피 — 의도된 설계). 따라서 **이미
    올바른 평문 bearer를 가진 기존 머신은 영영 평문**으로 남고 DPAPI 암호화가 retroactive 적용 안 됨.
    실측: 이 머신 mesh.env = `MUSU_MESH_BEARER=ec597d…`(평문, DPAPI 키 없음)인데 bearer는 정상 동작.
    **이건 버그 아님 — 재설치/재join/서버 rotate 시에만 DPAPI write 발생(=새 머신은 항상 DPAPI).**
    기존 머신 retroactive hardening이 필요하면 별도 후속(예: ensure가 평문 키 감지 시 1회 강제 재write,
    또는 `musu mesh reseal` 커맨드). 다음 에이전트는 "평문=버그"로 오진 말 것.
-6. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
+7. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
    신뢰로 안 풀림 — Authenticode/평판 필요). "베타 cert" 에러(MSIX 전용)와 혼동 주의. GA에 EV/Store.
-7. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
-8. 🟡 **brain bonding release-grade proof 필요**: sidecar 번들/버전 pin/lifecycle/task ingest 코드는 1차
+8. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
+9. 🟡 **brain bonding release-grade proof 필요**: sidecar 번들/버전 pin/lifecycle/task ingest 코드는 1차
    구현됐지만, packaged MSIX first-run에서 `~/.musu/brain` 생성, token ACL, loopback health, 실제
    source ingest evidence를 아직 못 닫았다. Go brain chip semver surface도 아직 없어 pin+VCS gate로
    대체 중이다.

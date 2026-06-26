@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$AllowRemoteRegistryWarnings,
+    [switch]$RequireBrainToken,
     [switch]$SelfTestRemoteUsable,
     [switch]$Json
 )
@@ -340,6 +341,8 @@ Add-CheckFromCondition `
 
 $keyAcl = Test-RestrictedAcl -Path (Join-Path $env:USERPROFILE ".musu\tls\key.pem")
 $meshAcl = Test-RestrictedAcl -Path (Join-Path $env:USERPROFILE ".musu\private_mesh.toml")
+$brainTokenPath = Join-Path $env:USERPROFILE ".musu\brain\runtime\musu-ingest.token"
+$brainTokenAcl = Test-RestrictedAcl -Path $brainTokenPath
 Add-CheckFromCondition `
     -Name "tls_key_acl_restricted" `
     -Condition ([bool]$keyAcl.ok) `
@@ -350,6 +353,25 @@ Add-CheckFromCondition `
     -Condition ([bool]$meshAcl.ok) `
     -PassMessage "private_mesh.toml ACL is restricted." `
     -FailMessage "private_mesh.toml ACL is not restricted: $($meshAcl.summary)"
+if ([bool]$brainTokenAcl.exists) {
+    Add-CheckFromCondition `
+        -Name "brain_ingest_token_acl_restricted" `
+        -Condition ([bool]$brainTokenAcl.ok) `
+        -PassMessage "brain runtime/musu-ingest.token ACL is restricted." `
+        -FailMessage "brain runtime/musu-ingest.token ACL is not restricted: $($brainTokenAcl.summary)"
+}
+elseif ($RequireBrainToken) {
+    Add-Check `
+        -Name "brain_ingest_token_acl_restricted" `
+        -Status "fail" `
+        -Message "brain runtime/musu-ingest.token is missing; launch the packaged desktop first-run path, then rerun without skipping the brain gate."
+}
+else {
+    Add-Check `
+        -Name "brain_ingest_token_acl_restricted" `
+        -Status "pass" `
+        -Message "brain runtime/musu-ingest.token is not present; ACL gate skipped because -RequireBrainToken was not set."
+}
 
 if ($remoteCloudWarnings.Count -gt 0) {
     $message = ($remoteCloudWarnings | ForEach-Object { "$($_.node_name)=$($_.public_url)" }) -join ", "
@@ -388,6 +410,8 @@ $evidence = [pscustomobject]@{
     online_nodes = $onlineNodes
     direct_healthy_nodes = $directHealthy
     remote_cloud_warning_count = $remoteCloudWarningCount
+    brain_token_required = [bool]$RequireBrainToken
+    brain_token_present = [bool]$brainTokenAcl.exists
     checks = $checkArray
 }
 

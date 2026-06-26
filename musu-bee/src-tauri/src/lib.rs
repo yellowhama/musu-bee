@@ -6033,6 +6033,7 @@ fn ensure_knowledge_workspace_and_token(
         .map(|token| !token.trim().is_empty())
         .unwrap_or(false)
     {
+        restrict_knowledge_token_permissions(&token_path)?;
         return Ok(());
     }
     if let Some(parent) = token_path.parent() {
@@ -6070,13 +6071,98 @@ fn ensure_knowledge_workspace_and_token(
     }
     let token = parse_knowledge_token(&result.stdout)
         .ok_or_else(|| "musu-brain auth issue did not return a token".to_string())?;
-    std::fs::write(&token_path, token).map_err(|err| {
-        format!(
-            "failed to write knowledge token file {}: {err}",
-            token_path.display()
-        )
-    })?;
+    write_restricted_knowledge_token(&token_path, &token)?;
     Ok(())
+}
+
+fn write_restricted_knowledge_token(path: &std::path::Path, token: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::io::Write as _;
+
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+            .map_err(|err| {
+                format!(
+                    "failed to open knowledge token file {}: {err}",
+                    path.display()
+                )
+            })?;
+        restrict_knowledge_token_permissions(path)?;
+        file.write_all(token.as_bytes()).map_err(|err| {
+            format!(
+                "failed to write knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        std::fs::write(path, token).map_err(|err| {
+            format!(
+                "failed to write knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+        restrict_knowledge_token_permissions(path)
+    }
+}
+
+fn restrict_knowledge_token_permissions(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).map_err(|err| {
+            format!(
+                "failed to chmod 600 knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+    }
+
+    #[cfg(windows)]
+    {
+        restrict_acl_to_current_user(path)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn restrict_acl_to_current_user(path: &std::path::Path) -> Result<(), String> {
+    let user = windows_acl_principal()?;
+    let output = std::process::Command::new("icacls")
+        .arg(path)
+        .arg("/inheritance:r")
+        .arg("/grant:r")
+        .arg(format!("{user}:F"))
+        .output()
+        .map_err(|err| format!("failed to spawn icacls for {}: {err}", path.display()))?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "icacls failed for knowledge token file {}: {}",
+            path.display(),
+            err.trim()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String, String> {
+    let user = std::env::var("USERNAME").map_err(|_| "USERNAME env var missing".to_string())?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
 }
 
 fn parse_knowledge_token(stdout: &str) -> Option<String> {
@@ -6272,9 +6358,9 @@ mod tests {
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
         sha256_hex, startup_marker_path, summarize_process_ownership, update_helper_script,
         update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
-        version_to_tuple, write_json_sidecar_for_file, PrivateMeshReleaseProofDesktopResult,
-        ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL, PACKAGE_IDENTITY_NAME,
-        PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
+        version_to_tuple, write_json_sidecar_for_file, write_restricted_knowledge_token,
+        PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL,
+        PACKAGE_IDENTITY_NAME, PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
 
     // WS-U version-compare tests. The normalization rules these assert are the
@@ -8203,6 +8289,19 @@ mod tests {
             crate::parse_knowledge_token(stdout).as_deref(),
             Some("test-token-value")
         );
+    }
+
+    #[test]
+    fn writes_knowledge_token_without_losing_secret_value() {
+        let home = make_temp_home("knowledge-token-write");
+        let token_path = home.join("brain").join("runtime").join("musu-ingest.token");
+        std::fs::create_dir_all(token_path.parent().unwrap()).unwrap();
+
+        write_restricted_knowledge_token(&token_path, "secret-token-value")
+            .expect("knowledge token write should succeed");
+
+        let stored = std::fs::read_to_string(&token_path).expect("token file should be readable");
+        assert_eq!(stored, "secret-token-value");
     }
 
     #[test]

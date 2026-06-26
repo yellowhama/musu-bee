@@ -8598,6 +8598,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `repair_fleet_script`, `repo-free fleet repair`, `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`, and
   `ExpectedNodeName hugh-main`.
 
+- 2026-06-27 brain ingest token ACL gate:
+  Tauri now restricts `~/.musu/brain/runtime/musu-ingest.token` before writing it on Windows
+  and re-restricts the file when reusing an existing token. `verify-fleet-audit-contract.ps1`
+  now has `-RequireBrainToken`, which makes the brain token presence + restricted ACL a
+  hard verifier gate after packaged first-run. Default fleet audit keeps passing on machines
+  that have not launched the brain bootstrap yet by reporting the brain gate as skipped.
+  Search terms should include `musu-ingest.token`, `RequireBrainToken`,
+  `brain_ingest_token_acl_restricted`, `knowledge token ACL`, and
+  `~/.musu/brain/runtime/musu-ingest.token`.
+
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
   approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;
