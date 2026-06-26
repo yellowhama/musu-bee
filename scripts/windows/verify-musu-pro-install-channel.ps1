@@ -69,6 +69,18 @@ function Get-RegexGroup {
     return $m.Groups[1].Value
 }
 
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+    throw "Unsupported public VERSION format: $PublicVersion"
+}
+
 function Invoke-TextGet {
     param([Parameter(Mandatory = $true)][string]$Url)
 
@@ -116,6 +128,7 @@ if (-not $SkipDesktopCanary -and -not (Test-Path -LiteralPath $CanaryScriptPath 
 
 $base = Normalize-BaseUrl -Value $BaseUrl
 $expectedVersion = (Get-Content -LiteralPath $VersionPath -Raw).Trim()
+$expectedPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $expectedVersion
 $checks = [System.Collections.Generic.List[object]]::new()
 
 $healthUrl = "$base/api/health"
@@ -222,6 +235,45 @@ try {
     }
 } catch {
     Add-Check -Checks $checks -Name "repair-fleet.ps1" -Status "fail" -Message "$repairFleetUrl failed: $($_.Exception.Message)"
+}
+
+$fleetProofUrl = "$base/fleet-proof.ps1"
+try {
+    $fleetProofResponse = Invoke-TextGet -Url $fleetProofUrl
+    $fleetProofScript = $fleetProofResponse.text
+    $proofSchemaPresent = ($fleetProofScript -match 'musu\.fleet_node_proof\.v1')
+    $repairSchemaPresent = ($fleetProofScript -match 'musu\.fleet_node_public_url_repair\.v1')
+    $proofExpectedPackage = Get-RegexGroup -Text $fleetProofScript -Pattern '\$ExpectedPackageVersion\s*=\s*"([^"]+)"'
+    $proofInstallUrlPresent = ($fleetProofScript -match 'https://musu\.pro/install\.ps1')
+    $proofRepairUrlPresent = ($fleetProofScript -match 'https://musu\.pro/repair-fleet\.ps1')
+    $proofPeerGuardPresent = ($fleetProofScript -match 'ExpectedDirectPeerName')
+    $proofBrainGatePresent = ($fleetProofScript -match 'RequireBrainToken')
+
+    if ($fleetProofResponse.status_code -ne 200) {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 status" -Status "fail" -Message "$fleetProofUrl returned HTTP $($fleetProofResponse.status_code)."
+    } else {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 status" -Status "pass" -Message "$fleetProofUrl returned HTTP 200."
+    }
+
+    if ($proofSchemaPresent -and $repairSchemaPresent) {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 schemas" -Status "pass" -Message "fleet-proof.ps1 exposes proof and repair evidence schemas."
+    } else {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 schemas" -Status "fail" -Message "fleet-proof.ps1 is missing proof or repair evidence schema markers."
+    }
+
+    if ($proofExpectedPackage -eq $expectedPackageVersion) {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 ExpectedPackageVersion" -Status "pass" -Message "fleet-proof.ps1 expects package $proofExpectedPackage."
+    } else {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 ExpectedPackageVersion" -Status "fail" -Message "fleet-proof.ps1 expects '$proofExpectedPackage', expected '$expectedPackageVersion'."
+    }
+
+    if ($proofInstallUrlPresent -and $proofRepairUrlPresent -and $proofPeerGuardPresent -and $proofBrainGatePresent) {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "pass" -Message "fleet-proof.ps1 validates install channel, repair evidence, direct peer, and brain token gates."
+    } else {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "fail" -Message "fleet-proof.ps1 is missing an install/repair/direct-peer/brain-token proof gate."
+    }
+} catch {
+    Add-Check -Checks $checks -Name "fleet-proof.ps1" -Status "fail" -Message "$fleetProofUrl failed: $($_.Exception.Message)"
 }
 
 if ($SkipDesktopCanary) {

@@ -287,10 +287,13 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
    현재 warning으로 남지 않는다. `verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json`
    실측은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`,
    `online_nodes=1`, `direct_healthy_nodes=1`. 다만 main PC 자체가 실제로 켜져 있고
-   작업 수신 가능한지는 main에서 rc.21 설치/재시작 후 확인해야 한다. main에서 실행할 검증/복구 절차:
-   `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`.
-   통과 조건: `advertised_public_url_remote_usable=true`,
-   `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
+   작업 수신 가능한지는 main에서 rc.22 설치/재시작/첫 실행 후 확인해야 한다. main에서 실행할
+   release-grade 검증 절차:
+   `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`.
+   통과 조건: `schema=musu.fleet_node_proof.v1`, `ok=true`,
+   `installed_package_version=1.15.0.22`, brain token present+restricted,
+   `advertised_public_url`/`cloud_public_url`이 loopback/wildcard가 아니고,
+   `expected_direct_peer`가 direct healthy.
 2. ✅ **musu.pro production install channel 배포 완료**:
    guarded publisher로 `desktop-latest` rc.21 assets를 업로드했고 canary가 `ok=true`, `failure_count=0`.
    Vercel remote build deploy `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`가 최신 `https://musu.pro` alias임.

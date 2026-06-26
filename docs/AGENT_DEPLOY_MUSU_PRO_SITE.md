@@ -120,8 +120,8 @@ After a production deploy, CI also runs `curl -fsS https://musu.pro/api/health`
 and `scripts\windows\verify-musu-pro-install-channel.ps1 -Json` so a green deploy
 means both the site and the live one-line installer channel were verified. The
 install-channel verifier also checks the `/api/health` `musu.site_health.v1`
-schema/version and `/repair-fleet.ps1`, so an old production site cannot pass
-just because the installer URLs return HTTP 200.
+schema/version, `/repair-fleet.ps1`, and `/fleet-proof.ps1`, so an old
+production site cannot pass just because the installer URLs return HTTP 200.
 
 The guarded publisher validates the local appinstaller/MSIX contract, versioned MSIX copy,
 installer pinned cert thumbprint, setup exe name, and uploads the current
@@ -147,6 +147,17 @@ For a known node name such as `hugh-main`, use:
 ```powershell
 & ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json
 ```
+
+For release-grade proof on a second physical PC, use the full proof wrapper
+after the install and first launch:
+
+```powershell
+& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json
+```
+
+`repair-fleet.ps1` proves URL repair; `fleet-proof.ps1` additionally proves the
+public install channel, installed MSIX version, brain token ACL, and optional
+direct peer gate.
 
 ### Step 7 — Report
 Report: the deployment `url` / `dpl_` id, the `/api/health` result, and (if used)

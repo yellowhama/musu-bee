@@ -8644,6 +8644,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `brain_token_present=true`, `0.0.0.0:11105`, `192.168.1.154:11105`,
   `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
 
+- 2026-06-27 public fleet node proof wrapper:
+  `docs/FLEET_NODE_PROOF_RUNBOOK_2026_06_27.md` records the repo-free physical
+  PC proof path for `hugh-main`. New route `https://musu.pro/fleet-proof.ps1`
+  emits `schema=musu.fleet_node_proof.v1` and wraps hosted
+  `Install-MUSU.ps1 -ValidateReleaseOnly`, hosted `repair-fleet.ps1`, installed
+  package-version proof, bridge/registry remote-usability checks, optional
+  `ExpectedDirectPeerName` direct route proof, and `RequireBrainToken` ACL proof.
+  The intended main-PC command after install and first launch is
+  `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`.
+  `verify-musu-pro-install-channel.ps1` now checks live `/fleet-proof.ps1`, so
+  old production site code cannot pass install-channel verification without the
+  full proof wrapper. Search terms should include `fleet-proof.ps1`,
+  `musu.fleet_node_proof.v1`, `ExpectedDirectPeerName`, `RequireBrainToken`,
+  `hugh-main`, `hugh_second`, `installed_package_version=1.15.0.22`,
+  `brain token ACL proof`, and `repo-free physical main proof`.
+
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
   approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;

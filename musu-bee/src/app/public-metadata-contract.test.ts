@@ -48,11 +48,13 @@ test("store public metadata verifier requires the release marker from VERSION", 
 test("public install surfaces expose the one-line Windows installer", () => {
   const command = "irm https://musu.pro/install.ps1 | iex";
   const repairCommand = "irm https://musu.pro/repair-fleet.ps1 | iex";
+  const proofCommand = "irm https://musu.pro/fleet-proof.ps1";
   const downloadSource = source("src/app/download/page.tsx");
   const installSource = source("src/app/install/page.tsx");
   const contentSource = source("src/lib/publicSiteContent.ts");
   const routeSource = source("src/app/install.ps1/route.ts");
   const repairRouteSource = source("src/app/repair-fleet.ps1/route.ts");
+  const proofRouteSource = source("src/app/fleet-proof.ps1/route.ts");
   const releaseSource = source("src/lib/publicRelease.ts");
 
   assert.ok(downloadSource.includes(command));
@@ -69,6 +71,10 @@ test("public install surfaces expose the one-line Windows installer", () => {
   assert.match(repairRouteSource, /DESKTOP_REPAIR_FLEET_SCRIPT_URL/);
   assert.match(repairRouteSource, /musu\.fleet_node_public_url_repair\.v1/);
   assert.match(repairRouteSource, /ExpectedNodeName/);
+  assert.match(proofRouteSource, /musu\.fleet_node_proof\.v1/);
+  assert.match(proofRouteSource, /ExpectedDirectPeerName/);
+  assert.match(proofRouteSource, /RequireBrainToken/);
+  assert.ok(proofRouteSource.includes(proofCommand));
 });
 
 test("Windows installer refuses stale desktop-latest release assets", () => {
@@ -127,7 +133,9 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   assert.match(installChannelVerifier, /\/api\/public-config/);
   assert.match(installChannelVerifier, /\/install\.ps1/);
   assert.match(installChannelVerifier, /\/repair-fleet\.ps1/);
+  assert.match(installChannelVerifier, /\/fleet-proof\.ps1/);
   assert.match(installChannelVerifier, /musu\.fleet_node_public_url_repair\.v1/);
+  assert.match(installChannelVerifier, /fleet_node_proof/);
   assert.match(installChannelVerifier, /canary-desktop-release\.ps1/);
   assert.match(installChannelVerifier, /ExpectedReleaseVersion/);
   assert.match(desktopPublisher, /ValidateSiteAfterUpload/);

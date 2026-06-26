@@ -15,6 +15,8 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 - Updated `Install-MUSU.ps1` to download `musu.appinstaller?rc=<expectedPackageVersion>` after it verifies `musu.pro/api/public-config`.
 - Hardened `Install-MUSU.ps1` for Windows PowerShell 5.1 execution by enabling TLS 1.2 before network calls and bracing the appinstaller URL variables (`${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`), preventing `?rc=` from being parsed as part of the variable name.
 - Relaxed `audit-appinstaller-contract.ps1` to validate the `MainPackage Uri` path leaf (`.msix`) while allowing query strings.
+- Added public `https://musu.pro/fleet-proof.ps1` as the repo-free proof wrapper for a physical second PC. It validates the hosted installer, runs hosted fleet repair, checks installed MSIX version, verifies bridge/node remote-usability, gates the brain token ACL when requested, and can require a direct peer such as `hugh_second`.
+- Extended `verify-musu-pro-install-channel.ps1` to verify live `/fleet-proof.ps1` schema, expected package version, install/repair URLs, direct-peer guard, and brain-token gate.
 - Deployed `musu.pro` production via Vercel deployment `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`, aliased to `https://musu.pro`.
 
 ## Audit Findings
@@ -28,6 +30,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 | INFO | Second PC rc.22 packaged first-run proof is now complete. | `Add-AppxPackage -AppInstallerFile .local-build\msix\output\musu.appinstaller` updated `hugh_second` from `1.15.0.21` to `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`; launching the package started `musu.exe` and `musu-desktop.exe` from the rc.22 WindowsApps path. `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed with `installed_package_version=1.15.0.22`, `expected_package_version=1.15.0.22`, `brain_token_present=true`, `bridge_bind_addr=0.0.0.0:11105`, and `advertised_public_url=http://192.168.1.154:11105`. | Keep this verifier as the local packaged proof gate. |
 | MED | Physical `hugh-main` proof is still missing. | Current completed package proof is from `hugh_second`; `hugh-main` still appears as unhealthy peer `192.168.1.192:9497` with `version=unknown`. | Install rc.22 on `hugh-main`, run repair, then prove non-loopback direct route. |
 | INFO | Fleet audit no longer allows stale installed packages. | Before the second update, the verifier failed with `installed_package_version=1.15.0.21`, `expected_package_version=1.15.0.22`; after the rc.22 install, the same default audit passes. Stale package diagnostics require explicit `-ExpectedPackageVersion <old>` or `-AllowInstalledPackageVersionMismatch`. | Keep this as a release evidence gate. |
+| INFO | Physical main proof now has a repo-free full wrapper. | `/fleet-proof.ps1` emits `musu.fleet_node_proof.v1` and includes `ExpectedNodeName`, `ExpectedDirectPeerName`, `RequireBrainToken`, hosted install validation, and hosted repair evidence. | Deploy the route, then run it on `hugh-main` after install/first launch. |
 | LOW | Release build feedback loop is too slow. | First release build used `release`, `opt-level=3`, thin LTO, `codegen-units=1`, and memory-safe 1-job mode; `musu-rs` finished in `23m 02s`. `build-msix.ps1 -NoBump -PreflightOnly` now verifies version coherence + brain pin in a few seconds before the long build path. | Run `-PreflightOnly` before full release builds; separately evaluate whether release LTO/profile settings should stay this strict for every RC cut. |
 | LOW | Existing desktop crate warning remains. | `musu-desktop` build reports `unused_mut` at `src/lib.rs:1539`. | Clean up in a separate low-risk hygiene commit. |
 
@@ -68,6 +71,7 @@ Observed warnings:
 - Public desktop release URLs are no longer just "fixed filename under `desktop-latest`"; they are fixed release asset names plus a version query cache buster.
 - App Installer manifests must carry the same version query on both the root `Uri` and `MainPackage Uri` for public install/update readiness.
 - `Install-MUSU.ps1` must verify `musu.pro/api/public-config` before downloading appinstaller, enable TLS 1.2 for legacy Windows PowerShell hosts, then fetch the appinstaller with a braced expected package-version query.
+- `/fleet-proof.ps1` is the release-grade remote PC proof surface. `repair-fleet.ps1` is still the URL repair/check primitive; it is not by itself enough to prove installed version, brain token custody, or two-machine direct routing.
 - Fleet audit release proof must prove the installed MSIX package version matches the current repo release package version. Stale installed packages may be inspected only with the explicit `-ExpectedPackageVersion <old>` or `-AllowInstalledPackageVersionMismatch` diagnostic path.
 - Packaged first-run proof requires the brain ingest token file to exist and have a restricted ACL; for rc.22 on `hugh_second`, `~/.musu/brain/runtime/musu-ingest.token` exists and is owner-only.
 - Brain sidecar coherence is currently `product_version + VCS revision + clean build info`, not native `musu-brain --version`.
@@ -77,9 +81,9 @@ Observed warnings:
 
 1. Install/launch rc.22 on `hugh-main`:
    `irm https://musu.pro/install.ps1 | iex`
-2. On `hugh-main`, run:
-   `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`
-3. Prove two-machine direct route with non-loopback `hugh-main` cloud/public URL.
+2. Launch MUSU once on `hugh-main`, then run:
+   `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`
+3. Attach the resulting `musu.fleet_node_proof.v1` JSON as the physical two-machine direct-route proof.
 4. Before giving the one-line install command to another PC, run:
    `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing https://musu.pro/install.ps1).Content)) -ValidateReleaseOnly"`
 5. Before each full release build, run:
