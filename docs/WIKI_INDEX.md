@@ -8722,8 +8722,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `scripts/design-gate/evaluate.cjs` now accepts `Design: Approved` only as a
   standalone status line. This fixes the PR-body bypass where a pending PR could
   mention `` `Design: Approved` `` inside an instruction and make design-gate
-  pass. Regression coverage lives in `scripts/design-gate/evaluate.test.cjs`.
+  pass. Regression coverage lives in `scripts/design-gate/evaluate.test.cjs`,
+  and `.github/workflows/design-gate.yml` now runs
+  `node --test scripts/design-gate/*.test.cjs` before PR evidence evaluation.
   Search terms should include `standalone status line`, `Design: Pending`,
-  `Design: Approved instruction bypass`, and `design-gate token hardening`.
+  `Design: Approved instruction bypass`, `design-gate token hardening`, and
+  `Run design-gate evaluator tests`.
 
 **End of WIKI_INDEX.md.**
