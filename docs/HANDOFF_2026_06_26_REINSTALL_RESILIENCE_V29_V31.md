@@ -29,13 +29,19 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
   `f7678af...`라서 실패했고, 이 fail-closed gate가 정상 동작했다.
 - `build-msix.ps1 -NoBump -PreflightOnly`가 추가되어 version coherence + brain pin/clean checkout을
   긴 Rust/Tauri/MSIX build 전에 빠르게 검증한다.
-- 현재 second PC에 설치된 패키지는 아직 `1.15.0.21`이다. rc.22는 hosted install/update channel에
-  올라간 상태이며, physical `hugh-main` 설치/repair/direct-route proof와 packaged first-run brain
-  token proof는 아직 남아 있다.
+- second PC는 이제 rc.22로 갱신됐다:
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`.
+  rc.21 `musu.exe`가 실행 중이라 첫 `Add-AppxPackage -AppInstallerFile`는 `0x80073D02`
+  (package in use)로 실패했고, running packaged process를 종료한 뒤 같은 appinstaller로 업데이트 성공.
+  AppsFolder AUMID launch 후 rc.22 `musu.exe` + `musu-desktop.exe`가 WindowsApps 경로에서 실행됐다.
+- packaged first-run brain token proof도 second에서 통과:
+  `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` 결과 `ok=true`,
+  `installed_package_version=1.15.0.22`, `expected_package_version=1.15.0.22`,
+  `brain_token_present=true`, `bridge_bind_addr=0.0.0.0:11105`,
+  `advertised_public_url=http://192.168.1.154:11105`.
+- 남은 외부 proof는 physical `hugh-main` 설치/repair/direct-route proof다.
 - `verify-fleet-audit-contract.ps1`는 이제 repo `VERSION`에서 expected package version을 계산해
-  installed MSIX package version과 비교한다. 따라서 현재 second PC의 기본 audit은
-  `installed_package_version=1.15.0.21`, `expected_package_version=1.15.0.22`로 실패하는 것이
-  정상이다. stale package 진단은 `-ExpectedPackageVersion 1.15.0.21` 또는
+  installed MSIX package version과 비교한다. stale package 진단은 `-ExpectedPackageVersion 1.15.0.21` 또는
   `-AllowInstalledPackageVersionMismatch`를 명시할 때만 통과/경고로 본다.
 
 상세 감사/다음 단계: `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`.
