@@ -243,6 +243,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/532 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
 | wiki/533 | Fresh MSIX primary evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | wiki/534 | CLI pipe hardening and public site deploy audit | 2026-06-02 | `RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` | active |
+| — | Agent manual — deploy the musu.pro site (Vercel CLI: pull/build/deploy; push→CI runs same CLI) | 2026-06-26 | `AGENT_DEPLOY_MUSU_PRO_SITE.md` | active |
 | wiki/535 | Packaged CLI/runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` | active |
 | wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
