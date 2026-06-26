@@ -112,6 +112,8 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   assert.match(installChannelVerifier, /schema = "musu\.install_channel\.v1"/);
   assert.match(installChannelVerifier, /\/api\/health/);
   assert.match(installChannelVerifier, /musu\.site_health\.v1/);
+  assert.match(installChannelVerifier, /health service/);
+  assert.match(installChannelVerifier, /expected boolean true/);
   assert.match(installChannelVerifier, /health version/);
   assert.match(installChannelVerifier, /\/api\/public-config/);
   assert.match(installChannelVerifier, /\/install\.ps1/);

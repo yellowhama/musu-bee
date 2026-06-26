@@ -123,17 +123,20 @@ try {
     $healthResponse = Invoke-TextGet -Url $healthUrl
     $health = $healthResponse.text | ConvertFrom-Json
     $healthSchema = [string]$health.schema
-    $healthOk = [bool]$health.ok
+    $healthOk = $health.ok
+    $healthService = [string]$health.service
     $healthVersion = [string]$health.version
 
     if ($healthResponse.status_code -ne 200) {
         Add-Check -Checks $checks -Name "health status" -Status "fail" -Message "$healthUrl returned HTTP $($healthResponse.status_code)."
     } elseif ($healthSchema -ne "musu.site_health.v1") {
         Add-Check -Checks $checks -Name "health schema" -Status "fail" -Message "$healthUrl returned schema '$healthSchema', expected 'musu.site_health.v1'."
-    } elseif (-not $healthOk) {
-        Add-Check -Checks $checks -Name "health ok" -Status "fail" -Message "$healthUrl returned ok=false."
+    } elseif (-not ($healthOk -is [bool]) -or $healthOk -ne $true) {
+        Add-Check -Checks $checks -Name "health ok" -Status "fail" -Message "$healthUrl returned ok='$healthOk', expected boolean true."
+    } elseif ($healthService -ne "musu.pro") {
+        Add-Check -Checks $checks -Name "health service" -Status "fail" -Message "$healthUrl returned service '$healthService', expected 'musu.pro'."
     } else {
-        Add-Check -Checks $checks -Name "health status" -Status "pass" -Message "$healthUrl returned ok=true with schema $healthSchema."
+        Add-Check -Checks $checks -Name "health status" -Status "pass" -Message "$healthUrl returned ok=true with schema $healthSchema and service $healthService."
     }
 
     if ($healthVersion -eq $expectedVersion) {
