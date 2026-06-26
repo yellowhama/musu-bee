@@ -25,8 +25,9 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 | INFO | Hosted installer script now validates through the actual `irm/iex` path. | Windows PowerShell 5.1 exposed that the unbraced appinstaller URL string dropped the `?rc=1.15.0.22` cache buster. The script now enables TLS 1.2 and uses braced variables; `desktop-latest` was republished with hosted `Install-MUSU.ps1` length `16587`. | Keep remote `https://musu.pro/install.ps1 -ValidateReleaseOnly` as the pre-install smoke test. |
 | INFO | Brain pin mismatch gate worked. | The first full MSIX build compiled for 23m, then failed because pin `f7678af7` did not match `F:\musu_2nd_brain` HEAD `2f03672`. After pin update, sidecar build reported `musubrain@2f03672...`. | Keep the fail-closed pin gate; add a cheap preflight before long Rust release builds. |
 | MED | Stable GitHub release asset URLs can serve stale content right after `--clobber`. | GitHub API asset metadata showed rc.22 size, while `releases/download/desktop-latest/musu-desktop-x64.msix` returned old rc.21 length until queried with `?rc=1.15.0.22`. | Keep version query cache-busting in public URLs and appinstaller manifest. |
-| MED | Packaged first-run brain proof is still missing. | Default `verify-fleet-audit-contract.ps1 -Json` passes, but `-RequireBrainToken -Json` fails because `~/.musu/brain/runtime/musu-ingest.token` is absent on current second-machine runtime. | Install/launch rc.22 package, then rerun `-RequireBrainToken` and capture ACL evidence. |
+| MED | Packaged first-run brain proof is still missing. | Current second-machine runtime has no `~/.musu/brain/runtime/musu-ingest.token`. The default audit now fails earlier on stale rc.21 package version, and `-RequireBrainToken` must pass only after rc.22 is installed and launched. | Install/launch rc.22 package, then rerun `-RequireBrainToken` and capture ACL evidence. |
 | MED | Physical `hugh-main` proof is still missing. | Current evidence is from `hugh_second`; installed package there is still `1.15.0.21` even though the public channel is rc.22. | Install rc.22 on `hugh-main`, run repair, then prove non-loopback direct route. |
+| MED | Fleet audit previously allowed stale installed packages. | The second machine still runs `blossompark.musu_1.15.0.21_x64__f5h38pf4yt4gc` while repo/public release is `1.15.0-rc.22` / package `1.15.0.22`. `verify-fleet-audit-contract.ps1` now derives the expected package version from repo `VERSION` and fails unless the installed package matches, or `-AllowInstalledPackageVersionMismatch` is explicitly supplied for diagnostics. | Keep this as a release evidence gate; install/update rc.22 before using fleet audit as release proof. |
 | LOW | Release build feedback loop is too slow. | First release build used `release`, `opt-level=3`, thin LTO, `codegen-units=1`, and memory-safe 1-job mode; `musu-rs` finished in `23m 02s`. `build-msix.ps1 -NoBump -PreflightOnly` now verifies version coherence + brain pin in a few seconds before the long build path. | Run `-PreflightOnly` before full release builds; separately evaluate whether release LTO/profile settings should stay this strict for every RC cut. |
 | LOW | Existing desktop crate warning remains. | `musu-desktop` build reports `unused_mut` at `src/lib.rs:1539`. | Clean up in a separate low-risk hygiene commit. |
 
@@ -44,12 +45,14 @@ Passed:
 - Local `npm run build`.
 - Vercel production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`.
 - `scripts/windows/verify-musu-pro-install-channel.ps1 -Json`.
-- `scripts/windows/verify-fleet-audit-contract.ps1 -Json`.
+- `scripts/windows/verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json`.
+- `scripts/windows/verify-fleet-audit-contract.ps1 -ExpectedPackageVersion 1.15.0.21 -Json` as a compatibility check for the currently installed rc.21 package.
 - PowerShell parser checks for modified Windows scripts.
 - `git diff --check`.
 
 Expected failure:
 
+- `scripts/windows/verify-fleet-audit-contract.ps1 -Json` now fails on this machine until rc.22 is installed because installed package `1.15.0.21` does not match expected `1.15.0.22`.
 - `scripts/windows/verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` fails until packaged first-run creates `~/.musu/brain/runtime/musu-ingest.token`.
 
 Observed warnings:
@@ -62,6 +65,7 @@ Observed warnings:
 - Public desktop release URLs are no longer just "fixed filename under `desktop-latest`"; they are fixed release asset names plus a version query cache buster.
 - App Installer manifests must carry the same version query on both the root `Uri` and `MainPackage Uri` for public install/update readiness.
 - `Install-MUSU.ps1` must verify `musu.pro/api/public-config` before downloading appinstaller, enable TLS 1.2 for legacy Windows PowerShell hosts, then fetch the appinstaller with a braced expected package-version query.
+- Fleet audit release proof must prove the installed MSIX package version matches the current repo release package version. Stale installed packages may be inspected only with the explicit `-ExpectedPackageVersion <old>` or `-AllowInstalledPackageVersionMismatch` diagnostic path.
 - Brain sidecar coherence is currently `product_version + VCS revision + clean build info`, not native `musu-brain --version`.
 - `desktop-latest` HTTP 200 is not release readiness. Readiness requires version/hash/content-length canary plus live `musu.pro` install-channel verification.
 
@@ -78,4 +82,5 @@ Observed warnings:
    `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing https://musu.pro/install.ps1).Content)) -ValidateReleaseOnly"`
 6. Before each full release build, run:
    `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\build-msix.ps1 -NoBump -PreflightOnly`
-7. Resolve PR #34 design-gate with explicit approval evidence.
+7. Treat `verify-fleet-audit-contract.ps1 -Json` failure on second as correct until installed package version reaches `1.15.0.22`.
+8. Resolve PR #34 design-gate with explicit approval evidence.

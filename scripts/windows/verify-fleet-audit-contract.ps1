@@ -2,12 +2,17 @@
 param(
     [switch]$AllowRemoteRegistryWarnings,
     [switch]$RequireBrainToken,
+    [string]$ExpectedPackageVersion = "",
+    [switch]$AllowInstalledPackageVersionMismatch,
     [switch]$SelfTestRemoteUsable,
     [switch]$Json
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Resolve-Path (Join-Path $scriptDir "..\..")
 
 $checks = New-Object System.Collections.Generic.List[object]
 
@@ -42,6 +47,43 @@ function Add-CheckFromCondition {
     )
 
     Add-Check -Name $Name -Status ($(if ($Condition) { "pass" } else { "fail" })) -Message ($(if ($Condition) { $PassMessage } else { $FailMessage }))
+}
+
+function Convert-ReleaseVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$ReleaseVersion)
+
+    $trimmed = $ReleaseVersion.Trim()
+    if ($trimmed -match '^(\d+\.\d+\.\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2])"
+    }
+    if ($trimmed -match '^(\d+\.\d+\.\d+)$') {
+        return "$($Matches[1]).0"
+    }
+    return ""
+}
+
+function Get-DefaultExpectedPackageVersion {
+    $versionPath = Join-Path $repoRoot "VERSION"
+    if (-not (Test-Path -LiteralPath $versionPath)) {
+        return ""
+    }
+    $releaseVersion = (Get-Content -LiteralPath $versionPath -Raw).Trim()
+    if ([string]::IsNullOrWhiteSpace($releaseVersion)) {
+        return ""
+    }
+    return Convert-ReleaseVersionToPackageVersion -ReleaseVersion $releaseVersion
+}
+
+function Get-PackageVersionFromFullName {
+    param([AllowEmptyString()][string]$PackageFullName)
+
+    if ([string]::IsNullOrWhiteSpace($PackageFullName)) {
+        return ""
+    }
+    if ($PackageFullName -match '^[^_]+_([^_]+)_') {
+        return $Matches[1]
+    }
+    return ""
 }
 
 function Invoke-MusuJson {
@@ -170,6 +212,34 @@ if ($SelfTestRemoteUsable) {
             -FailMessage "expected=$($case.expected), actual=$actual"
     }
 
+    $versionCases = @(
+        @{ release = "1.15.0-rc.22"; expected = "1.15.0.22" },
+        @{ release = "1.15.0"; expected = "1.15.0.0" },
+        @{ release = "bad-version"; expected = "" }
+    )
+    foreach ($case in $versionCases) {
+        $actual = Convert-ReleaseVersionToPackageVersion -ReleaseVersion $case.release
+        Add-CheckFromCondition `
+            -Name "package_version_from_release:$($case.release)" `
+            -Condition ($actual -eq [string]$case.expected) `
+            -PassMessage "expected=$($case.expected), actual=$actual" `
+            -FailMessage "expected=$($case.expected), actual=$actual"
+    }
+
+    $packageNameCases = @(
+        @{ full_name = "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc"; expected = "1.15.0.22" },
+        @{ full_name = ""; expected = "" },
+        @{ full_name = "malformed"; expected = "" }
+    )
+    foreach ($case in $packageNameCases) {
+        $actual = Get-PackageVersionFromFullName -PackageFullName $case.full_name
+        Add-CheckFromCondition `
+            -Name "package_version_from_full_name:$($case.full_name)" `
+            -Condition ($actual -eq [string]$case.expected) `
+            -PassMessage "expected=$($case.expected), actual=$actual" `
+            -FailMessage "expected=$($case.expected), actual=$actual"
+    }
+
     $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
     $result = @{
         schema = "musu.fleet_audit_remote_usable_selftest.v1"
@@ -243,6 +313,13 @@ $status = Invoke-MusuJson -Arguments @("status", "--json")
 $nodesDefault = Invoke-MusuJson -Arguments @("nodes", "--json")
 $nodes = Invoke-MusuJson -Arguments @("nodes", "--json", "--include-unusable")
 
+$resolvedExpectedPackageVersion = $ExpectedPackageVersion.Trim()
+if ([string]::IsNullOrWhiteSpace($resolvedExpectedPackageVersion)) {
+    $resolvedExpectedPackageVersion = Get-DefaultExpectedPackageVersion
+}
+$installedPackageFullName = [string]$packageStatus.package_full_name
+$installedPackageVersion = Get-PackageVersionFromFullName -PackageFullName $installedPackageFullName
+
 $fleet = $status.fleet
 $thisNode = $fleet.this_node
 $peers = @($fleet.peers)
@@ -255,6 +332,20 @@ Add-CheckFromCondition `
     -Condition ([string]$packageStatus.distribution -eq "store-msix" -and [bool]$packageStatus.has_package_identity) `
     -PassMessage "MUSU is running from the store-msix package identity." `
     -FailMessage "MUSU is not running from the expected store-msix package identity."
+
+if ([string]::IsNullOrWhiteSpace($resolvedExpectedPackageVersion)) {
+    Add-Check `
+        -Name "installed_package_version_matches_release" `
+        -Status "fail" `
+        -Message "Could not resolve expected package version from -ExpectedPackageVersion or repo VERSION."
+}
+else {
+    $packageVersionMatches = ($installedPackageVersion -eq $resolvedExpectedPackageVersion)
+    Add-Check `
+        -Name "installed_package_version_matches_release" `
+        -Status ($(if ($packageVersionMatches) { "pass" } elseif ($AllowInstalledPackageVersionMismatch) { "warn" } else { "fail" })) `
+        -Message ($(if ($packageVersionMatches) { "Installed package version matches expected $resolvedExpectedPackageVersion." } else { "Installed package version '$installedPackageVersion' does not match expected '$resolvedExpectedPackageVersion' (package_full_name=$installedPackageFullName)." }))
+}
 
 Add-CheckFromCondition `
     -Name "local_bridge_reachable" `
@@ -403,6 +494,8 @@ $evidence = [pscustomobject]@{
     warn_count = $warnCount
     allow_remote_registry_warnings = [bool]$AllowRemoteRegistryWarnings
     package_full_name = $packageFullName
+    installed_package_version = $installedPackageVersion
+    expected_package_version = $resolvedExpectedPackageVersion
     bridge_bind_addr = $bridgeBindAddr
     advertised_public_url = $advertisedPublicUrl
     self_node = $selfNodeName

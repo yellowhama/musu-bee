@@ -8624,14 +8624,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `irm/iex` validation then exposed an unbraced appinstaller URL interpolation bug, so
   `Install-MUSU.ps1` now enables TLS 1.2 and builds the download URL as
   `${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`; hardened
-  hosted script length is `16587`. `build-msix.ps1 -NoBump -PreflightOnly`
+  hosted script length is `16587`. Fleet audit now also fails stale installed packages:
+  the current second PC is still `1.15.0.21` while expected rc.22 package is `1.15.0.22`,
+  and stale diagnostics require explicit `-ExpectedPackageVersion` or
+  `-AllowInstalledPackageVersionMismatch`. `build-msix.ps1 -NoBump -PreflightOnly`
   now checks version coherence + brain pin/clean checkout before the long release build.
   Search terms should include
   `rc22 install channel`, `1.15.0.22`, `desktop-latest cache buster`,
   `musu.appinstaller?rc=1.15.0.22`, `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`,
   `brain pin mismatch`, `2f036728a9e6d5840634666d7442be87d302f083`, and
   `PreflightOnly`, `Enable-ModernTls`, `Install-MUSU appinstaller URL braces`,
-  `ValidateReleaseOnly remote irm iex`, `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
+  `ValidateReleaseOnly remote irm iex`, `installed_package_version_matches_release`,
+  `AllowInstalledPackageVersionMismatch`,
+  `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and

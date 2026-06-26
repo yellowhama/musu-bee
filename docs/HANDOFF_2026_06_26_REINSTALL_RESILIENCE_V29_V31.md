@@ -32,6 +32,11 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
 - 현재 second PC에 설치된 패키지는 아직 `1.15.0.21`이다. rc.22는 hosted install/update channel에
   올라간 상태이며, physical `hugh-main` 설치/repair/direct-route proof와 packaged first-run brain
   token proof는 아직 남아 있다.
+- `verify-fleet-audit-contract.ps1`는 이제 repo `VERSION`에서 expected package version을 계산해
+  installed MSIX package version과 비교한다. 따라서 현재 second PC의 기본 audit은
+  `installed_package_version=1.15.0.21`, `expected_package_version=1.15.0.22`로 실패하는 것이
+  정상이다. stale package 진단은 `-ExpectedPackageVersion 1.15.0.21` 또는
+  `-AllowInstalledPackageVersionMismatch`를 명시할 때만 통과/경고로 본다.
 
 상세 감사/다음 단계: `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`.
 
