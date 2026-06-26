@@ -8542,12 +8542,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   public `GET /api/health` contract (`musu.site_health.v1`) after live
   `https://musu.pro/api/health` returned 404. `verify-musu-pro-install-channel.ps1`
   now includes that health schema/version check, so old production site code cannot
-  pass merely because installer URLs return 200. Live install-channel evidence remains
-  stale until operator-approved `publish-desktop-latest-assets.ps1 -ConfirmUpload`
-  and production Vercel deploy: `public-config releaseVersion=1.15.0-rc.20`,
-  hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, and hosted
-  appinstaller/MainPackage remain `1.15.0.20`; local `publish-desktop-latest-assets.ps1 -DryRun`
-  passes for rc.21. Search terms should include
+  pass merely because installer URLs return 200. 2026-06-27 production follow-up
+  published guarded `desktop-latest` rc.21 assets and deployed Vercel production
+  `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`; live `verify-musu-pro-install-channel.ps1 -Json`
+  is now `ok=true`, `failure_count=0`, and fleet audit is `warn_count=0`.
+  Search terms should include
   `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
   `resolve_expands_cached_registry_candidate_endpoints`,
   `observed_source_ip`, `x-forwarded-for`, `local_lan_advertise_hosts`,
@@ -8558,26 +8557,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `IPv4-mapped loopback`, `::ffff:127.0.0.1`, `::ffff:0.0.0.0`,
   `SelfTestRemoteUsable`, `cloud_public_url_warning_flags_any_loopback_registry_row`,
   `musu.site_health.v1`, `GET /api/health`, `install-channel health version gate`,
-  `publish-desktop-latest-assets.ps1 -DryRun`, `install-channel rc20 stale`, and
+  `publish-desktop-latest-assets.ps1 -ConfirmUpload`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
+  `install-channel ok=true`, `fleet audit warn_count=0`, and
   `stale first candidate`.
 
 - 2026-06-27 continuation audit refresh:
   PR #34 current branch lineage is mergeable with code/test checks green and
   `design-gate` still failing pending a real design approval/artifact. GitHub
-  issue #35 is open with no approval comments, and live `https://musu.pro/api/health`
-  still returns 404. Local verification
+  issue #35 is open with no approval comments. Local verification
   after repairing missing npm bin shims passed
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
   at 38/38, `npm run test:public-release` at 11/11, and
-  `cargo test registry_last_seen_to_heartbeat --lib` at 1/1. `publish-desktop-latest-assets.ps1 -DryRun`
-  confirms rc.21 assets are locally ready, while live `verify-musu-pro-install-channel.ps1 -Json`
-  remains `ok=false`, `failure_count=4` because `musu.pro` `/api/health` is still
-  404, `public-config` still publishes `1.15.0-rc.20`, and hosted
-  `desktop-latest` appinstaller/MainPackage remain `1.15.0.20`. Search terms should include
+  `cargo test registry_last_seen_to_heartbeat --lib` at 1/1. Follow-up production
+  deployment published `desktop-latest` rc.21 assets, added `.vercelignore` so generated
+  Windows build artifacts do not poison Vercel deploys, and verified live
+  `verify-musu-pro-install-channel.ps1 -Json` at `ok=true`, `failure_count=0`.
+  Search terms should include
   `PR #34 design-gate`, `current branch lineage`, `38/38`, `11/11`, `1/1 registry_last_seen`,
-  `npm bin shims`, `musu.pro api health 404`, `failure_count=4`,
-  `issue #35 no approval comments`,
-  `desktop-latest rc21 local ready`, and `musu.pro rc20 live stale`.
+  `npm bin shims`, `issue #35 no approval comments`,
+  `.vercelignore`, `remote Vercel build`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
+  `desktop-latest rc21 published`, and `musu.pro install-channel ok`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and

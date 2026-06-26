@@ -173,7 +173,9 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts`
   32/32 통과(health route + heartbeat presence TTL + hidden stale cleanup coverage 포함). `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
   `/api/v1/nodes/register`, `/api/v1/nodes/[nodeName]` dynamic route 포함).
-  실제 `musu.pro` production deploy는 owner-gated라 이번 세션에서 실행하지 않음.
+  2026-06-27 continuation에서 owner-approved guarded path로 `desktop-latest` rc.21 assets를 publish하고,
+  Vercel production deployment `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`를 `musu.pro`에 alias했다.
+  `https://musu.pro/api/health`는 `musu.site_health.v1`, version `1.15.0-rc.21`로 200 OK.
 - ✅ **2026-06-27 continuation 재검증**: 로컬 `node_modules/.bin` shims가 깨져 `tsx`/`next/server`
   resolution이 실패하던 환경 문제를 `npm install`로 복구(소스/lockfile tracked diff 없음). 이후
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
@@ -218,48 +220,42 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   `private_mesh.toml` ACL, remote cloud registry row를 한 번에 판정한다. 주의: 기본
   `musu nodes --json`은 unusable row를 숨기므로 verifier는 remote registry 감사에
   `musu nodes --json --include-unusable`을 사용한다.
-  rc.21 second 실측: `-AllowRemoteRegistryWarnings -Json`은 `ok=true`, `warn_count=1`
-  (`hugh-main=http://127.0.0.1:13397` only, package `blossompark.musu_1.15.0.21_x64__f5h38pf4yt4gc`).
-  strict `-Json`은 같은 stale cloud row 때문에 의도적으로 `ok=false`, `fail_count=1`.
+  rc.21 second 실측: production follow-up 전에는 `-AllowRemoteRegistryWarnings -Json`이
+  `warn_count=1`(`hugh-main=http://127.0.0.1:13397`)였으나, `musu.pro` deploy 후 현재 strict
+  `-Json`은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`.
 
 ## ⚠️ 미해결 / 다음 행동
-1. 🔴 **hugh-main은 현재 외부 상태로 남음**: cloud registry가 아직
-   `hugh-main public_url=http://127.0.0.1:13397`, `last_seen=2026-06-26T03:30:39.874Z`를 반환.
-   hugh_second에서 `Test-NetConnection 192.168.1.192 -Port 9497`는 TCP/ping 모두 실패. 따라서
-   `musu status`는 `hugh-main`을 offline으로 정확히 표시하고 `Total: 2 nodes, 1 direct online`.
-   main PC에서 WindowsApps/rc.21 audit-hotfix 패키지를 재시작 또는 재설치해 LAN/private-mesh URL을
-   다시 publish해야 한다. main에서 실행할 검증/복구 절차:
+1. 🟡 **hugh-main 물리 머신 검증은 아직 별도**: production registry stale loopback row는 더 이상
+   현재 warning으로 남지 않는다. `verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json`
+   실측은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`,
+   `online_nodes=1`, `direct_healthy_nodes=1`. 다만 main PC 자체가 실제로 켜져 있고
+   작업 수신 가능한지는 main에서 rc.21 설치/재시작 후 확인해야 한다. main에서 실행할 검증/복구 절차:
    `powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName hugh-main -Json`.
    통과 조건: `advertised_public_url_remote_usable=true`,
    `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
-2. 🔴 **musu.pro production registry deploy 미실행**: source는 write/list guard, legacy invalid-row filter,
-   heartbeat presence TTL filter, `/api/health` route가 통과했지만, live `https://musu.pro`는 아직
-   stale `hugh-main` loopback row를 반환하고 `/api/health`도 404다. owner-gated
-   deploy 후 `musu nodes --json --include-unusable`에서 remote `127.0.0.1` row가 사라지거나 main 재등록으로
-   LAN/private-mesh URL이 보여야 한다. deploy 후 stale row만 남으면:
-   새 CLI가 포함된 소스/패키지에서는 `musu nodes --json --delete hugh-main`, 옛 rc.20 이하 패키지만
-   있는 환경에서는 `powershell -ExecutionPolicy Bypass -File scripts\windows\remove-cloud-node-registry-row.ps1 -NodeName hugh-main -Json`
-   실행 후 strict `verify-fleet-audit-contract.ps1 -Json`이 통과해야 한다.
-   추가 live install-channel 실측: `verify-musu-pro-install-channel.ps1 -Json`은 아직 `ok=false`,
-   `failure_count=4`; `health`는 404, `public-config releaseVersion=1.15.0-rc.20`, hosted `Install-MUSU.ps1`에는 `ExpectedReleaseVersion` 없음,
-   `desktop-latest` appinstaller/MainPackage는 `1.15.0.20`. 반면
-   `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK. production 사용 전
-   `publish-desktop-latest-assets.ps1 -ConfirmUpload`(operator 승인) → Vercel production deploy →
-   `verify-musu-pro-install-channel.ps1 -Json` 순서로 닫아야 한다.
-3. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
+2. ✅ **musu.pro production install channel 배포 완료**:
+   guarded publisher로 `desktop-latest` rc.21 assets를 업로드했고 canary가 `ok=true`, `failure_count=0`.
+   Vercel remote build deploy `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`가 `https://musu.pro`에 alias됨.
+   `verify-musu-pro-install-channel.ps1 -Json`은 `ok=true`, `failure_count=0`;
+   `/api/health`는 200 `musu.site_health.v1` + `1.15.0-rc.21`,
+   `/api/public-config`는 `releaseVersion=1.15.0-rc.21`,
+   `/install.ps1`는 `ExpectedReleaseVersion=1.15.0-rc.21`와 cert thumbprint를 노출한다.
+3. 🔴 **PR #34 merge gate**: GitHub code/test/deploy checks는 통과했지만 `design-gate`는 계속 실패.
+   실제 `Design: Approved` + design brief/artifact 없이는 merge하지 않는다.
+4. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
    → 노랑 "relay" 표시(display-only, `online_nodes`/targetable 제외) → heartbeat 만료 → offline 3-state 전이
    검증(플레이북 `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`).
-4. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
+5. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
    `write_mesh_bearer`를 부른다(compare-then-write, watcher churn 회피 — 의도된 설계). 따라서 **이미
    올바른 평문 bearer를 가진 기존 머신은 영영 평문**으로 남고 DPAPI 암호화가 retroactive 적용 안 됨.
    실측: 이 머신 mesh.env = `MUSU_MESH_BEARER=ec597d…`(평문, DPAPI 키 없음)인데 bearer는 정상 동작.
    **이건 버그 아님 — 재설치/재join/서버 rotate 시에만 DPAPI write 발생(=새 머신은 항상 DPAPI).**
    기존 머신 retroactive hardening이 필요하면 별도 후속(예: ensure가 평문 키 감지 시 1회 강제 재write,
    또는 `musu mesh reseal` 커맨드). 다음 에이전트는 "평문=버그"로 오진 말 것.
-5. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
+6. 🟢 **SmartScreen vs cert 구분**: unsigned NSIS .exe는 SmartScreen "알 수 없는 게시자" 경고(cert
    신뢰로 안 풀림 — Authenticode/평판 필요). "베타 cert" 에러(MSIX 전용)와 혼동 주의. GA에 EV/Store.
-6. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
-7. 🟡 **brain bonding release-grade proof 필요**: sidecar 번들/버전 pin/lifecycle/task ingest 코드는 1차
+7. 🟢 **V32 닫힘**: NSIS .exe는 일반 Win32라 cert 무관 — "NSIS에 cert 박기"는 헛수고로 판정(Researcher).
+8. 🟡 **brain bonding release-grade proof 필요**: sidecar 번들/버전 pin/lifecycle/task ingest 코드는 1차
    구현됐지만, packaged MSIX first-run에서 `~/.musu/brain` 생성, token ACL, loopback health, 실제
    source ingest evidence를 아직 못 닫았다. Go brain chip semver surface도 아직 없어 pin+VCS gate로
    대체 중이다.

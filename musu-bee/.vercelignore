@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Local Next/Vercel build artifacts
+.next/
+.vercel/output/
+out/
+
+# Desktop and test artifacts that are not part of the public web deploy
+src-tauri/target/
+.local-build/
+playwright-report/
+test-results/
+coverage/
+
+# Local-only config and logs
+.env.local
+.env.*.local
+*.log
