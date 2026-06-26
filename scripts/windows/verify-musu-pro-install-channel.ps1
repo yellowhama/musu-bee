@@ -118,6 +118,33 @@ $base = Normalize-BaseUrl -Value $BaseUrl
 $expectedVersion = (Get-Content -LiteralPath $VersionPath -Raw).Trim()
 $checks = [System.Collections.Generic.List[object]]::new()
 
+$healthUrl = "$base/api/health"
+try {
+    $healthResponse = Invoke-TextGet -Url $healthUrl
+    $health = $healthResponse.text | ConvertFrom-Json
+    $healthSchema = [string]$health.schema
+    $healthOk = [bool]$health.ok
+    $healthVersion = [string]$health.version
+
+    if ($healthResponse.status_code -ne 200) {
+        Add-Check -Checks $checks -Name "health status" -Status "fail" -Message "$healthUrl returned HTTP $($healthResponse.status_code)."
+    } elseif ($healthSchema -ne "musu.site_health.v1") {
+        Add-Check -Checks $checks -Name "health schema" -Status "fail" -Message "$healthUrl returned schema '$healthSchema', expected 'musu.site_health.v1'."
+    } elseif (-not $healthOk) {
+        Add-Check -Checks $checks -Name "health ok" -Status "fail" -Message "$healthUrl returned ok=false."
+    } else {
+        Add-Check -Checks $checks -Name "health status" -Status "pass" -Message "$healthUrl returned ok=true with schema $healthSchema."
+    }
+
+    if ($healthVersion -eq $expectedVersion) {
+        Add-Check -Checks $checks -Name "health version" -Status "pass" -Message "$healthUrl publishes $healthVersion."
+    } else {
+        Add-Check -Checks $checks -Name "health version" -Status "fail" -Message "$healthUrl publishes '$healthVersion', expected '$expectedVersion'."
+    }
+} catch {
+    Add-Check -Checks $checks -Name "health" -Status "fail" -Message "$healthUrl failed: $($_.Exception.Message)"
+}
+
 $publicConfigUrl = "$base/api/public-config"
 try {
     $publicConfigResponse = Invoke-TextGet -Url $publicConfigUrl

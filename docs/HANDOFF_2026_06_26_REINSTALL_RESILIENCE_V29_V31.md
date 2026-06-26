@@ -176,9 +176,10 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   PR #34는 current branch lineage 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
   `design-gate` 1개(실제 `Design: Approved` + design brief/artifact 필요, 임의 bypass 금지).
   GitHub issue #35는 open 상태이며 approval comment는 아직 0개다.
-  live install-channel은 재확인해도 아직 `ok=false`: `public-config releaseVersion=1.15.0-rc.20`,
+  live install-channel은 재확인해도 아직 `ok=false`, `failure_count=4`: `https://musu.pro/api/health`
+  404, `public-config releaseVersion=1.15.0-rc.20`,
   hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, hosted appinstaller/MainPackage
-  `1.15.0.20`. live `https://musu.pro/api/health`도 아직 404. 반면
+  `1.15.0.20`. 반면
   `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK.
 - ✅ **design-gate 승인 준비물 생성(승인 아님)**: PR #34의 UI 변경 범위(`/download`,
   `/install`, `/fleet`, `/dashboard/fleet`)를 `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`에
@@ -233,8 +234,8 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
    새 CLI가 포함된 소스/패키지에서는 `musu nodes --json --delete hugh-main`, 옛 rc.20 이하 패키지만
    있는 환경에서는 `powershell -ExecutionPolicy Bypass -File scripts\windows\remove-cloud-node-registry-row.ps1 -NodeName hugh-main -Json`
    실행 후 strict `verify-fleet-audit-contract.ps1 -Json`이 통과해야 한다.
-   추가 live install-channel 실측: `verify-musu-pro-install-channel.ps1 -Json`은 아직 `ok=false`;
-   `public-config releaseVersion=1.15.0-rc.20`, hosted `Install-MUSU.ps1`에는 `ExpectedReleaseVersion` 없음,
+   추가 live install-channel 실측: `verify-musu-pro-install-channel.ps1 -Json`은 아직 `ok=false`,
+   `failure_count=4`; `health`는 404, `public-config releaseVersion=1.15.0-rc.20`, hosted `Install-MUSU.ps1`에는 `ExpectedReleaseVersion` 없음,
    `desktop-latest` appinstaller/MainPackage는 `1.15.0.20`. 반면
    `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK. production 사용 전
    `publish-desktop-latest-assets.ps1 -ConfirmUpload`(operator 승인) → Vercel production deploy →

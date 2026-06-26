@@ -8535,7 +8535,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `nodeRegistryHeartbeatTtlSeconds`, while `deleteNodeByName` still removes hidden
   stale rows. `src/app/api/health/route.ts` now supplies the production workflow's
   public `GET /api/health` contract (`musu.site_health.v1`) after live
-  `https://musu.pro/api/health` returned 404. Live install-channel evidence remains
+  `https://musu.pro/api/health` returned 404. `verify-musu-pro-install-channel.ps1`
+  now includes that health schema/version check, so old production site code cannot
+  pass merely because installer URLs return 200. Live install-channel evidence remains
   stale until operator-approved `publish-desktop-latest-assets.ps1 -ConfirmUpload`
   and production Vercel deploy: `public-config releaseVersion=1.15.0-rc.20`,
   hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, and hosted
@@ -8548,8 +8550,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `single public_url self-report`, `route_preflight_url_for_peer`,
   `reorder_route_candidates_by_preflight`, `nodeRegistryHeartbeatTtlSeconds`,
   `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`,
-  `musu.site_health.v1`, `GET /api/health`, `publish-desktop-latest-assets.ps1 -DryRun`,
-  `install-channel rc20 stale`, and
+  `musu.site_health.v1`, `GET /api/health`, `install-channel health version gate`,
+  `publish-desktop-latest-assets.ps1 -DryRun`, `install-channel rc20 stale`, and
   `stale first candidate`.
 
 - 2026-06-27 continuation audit refresh:
@@ -8562,10 +8564,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   at 38/38, `npm run test:public-release` at 11/11, and
   `cargo test registry_last_seen_to_heartbeat --lib` at 1/1. `publish-desktop-latest-assets.ps1 -DryRun`
   confirms rc.21 assets are locally ready, while live `verify-musu-pro-install-channel.ps1 -Json`
-  remains `ok=false` because `musu.pro` still publishes `1.15.0-rc.20` and hosted
+  remains `ok=false`, `failure_count=4` because `musu.pro` `/api/health` is still
+  404, `public-config` still publishes `1.15.0-rc.20`, and hosted
   `desktop-latest` appinstaller/MainPackage remain `1.15.0.20`. Search terms should include
   `PR #34 design-gate`, `current branch lineage`, `38/38`, `11/11`, `1/1 registry_last_seen`,
-  `npm bin shims`, `musu.pro api health 404`, `issue #35 no approval comments`,
+  `npm bin shims`, `musu.pro api health 404`, `failure_count=4`,
+  `issue #35 no approval comments`,
   `desktop-latest rc21 local ready`, and `musu.pro rc20 live stale`.
 
 - 2026-06-27 PR #34 design approval packet:

@@ -117,7 +117,10 @@ when live `desktop-latest` has an older appinstaller version, mismatched hosted
 `Install-MUSU.ps1`, mismatched uninstaller, or wrong certificate thumbprint.
 After a production deploy, CI also runs `curl -fsS https://musu.pro/api/health`
 and `scripts\windows\verify-musu-pro-install-channel.ps1 -Json` so a green deploy
-means both the site and the live one-line installer channel were verified.
+means both the site and the live one-line installer channel were verified. The
+install-channel verifier also checks the `/api/health` `musu.site_health.v1`
+schema/version, so an old production site cannot pass just because the
+installer URLs return HTTP 200.
 
 The guarded publisher validates the local appinstaller/MSIX contract, versioned MSIX copy,
 installer pinned cert thumbprint, setup exe name, and uploads the current

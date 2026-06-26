@@ -110,6 +110,9 @@ test("production site deploy is gated by the desktop-latest release canary", () 
     assert.match(workflow, new RegExp(`- '${escapeRegExp(deployTriggerPath)}'`));
   }
   assert.match(installChannelVerifier, /schema = "musu\.install_channel\.v1"/);
+  assert.match(installChannelVerifier, /\/api\/health/);
+  assert.match(installChannelVerifier, /musu\.site_health\.v1/);
+  assert.match(installChannelVerifier, /health version/);
   assert.match(installChannelVerifier, /\/api\/public-config/);
   assert.match(installChannelVerifier, /\/install\.ps1/);
   assert.match(installChannelVerifier, /canary-desktop-release\.ps1/);
