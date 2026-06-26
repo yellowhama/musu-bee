@@ -544,9 +544,11 @@ pub async fn run() -> Result<()> {
                 let route_tailscale_ip = tailscale_ip
                     .as_deref()
                     .or(mesh_status.local_tailnet_ip.as_deref());
+                let local_lan_hosts = services::local_lan_advertise_hosts();
                 let candidate_endpoints =
-                    crate::bridge::rendezvous::local_candidate_endpoints_for_advertised_url(
+                    crate::bridge::rendezvous::local_candidate_endpoints_for_route_hosts(
                         &advertised_public_url,
+                        local_lan_hosts.iter().map(String::as_str),
                         route_tailscale_ip,
                         &observed_at,
                     );

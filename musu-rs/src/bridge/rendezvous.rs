@@ -321,9 +321,35 @@ pub fn local_candidate_endpoints_for_advertised_url(
     tailscale_ip: Option<&str>,
     observed_at: &str,
 ) -> Vec<crate::cloud::CandidateEndpoint> {
+    local_candidate_endpoints_for_route_hosts(
+        advertised,
+        std::iter::empty::<&str>(),
+        tailscale_ip,
+        observed_at,
+    )
+}
+
+pub fn local_candidate_endpoints_for_route_hosts<'a>(
+    advertised: &str,
+    lan_hosts: impl IntoIterator<Item = &'a str>,
+    tailscale_ip: Option<&str>,
+    observed_at: &str,
+) -> Vec<crate::cloud::CandidateEndpoint> {
     let mut candidates = Vec::new();
     if let Some(candidate) = candidate_endpoint_from_url(advertised, observed_at, None, None) {
         push_candidate_endpoint_unique(&mut candidates, candidate);
+    }
+    for lan_host in lan_hosts {
+        let trimmed = lan_host.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some(lan_url) = endpoint_url_with_host(advertised, trimmed) {
+            if let Some(candidate) = candidate_endpoint_from_url(&lan_url, observed_at, None, None)
+            {
+                push_candidate_endpoint_unique(&mut candidates, candidate);
+            }
+        }
     }
     if let Some(tailscale_ip) = tailscale_ip.and_then(|value| {
         let trimmed = value.trim();
@@ -984,6 +1010,37 @@ mod tests {
         ));
         assert_eq!(candidates[1].addr, "100.64.1.20:8949");
         assert!(candidates[1].public_addr.is_none());
+    }
+
+    #[test]
+    fn local_candidate_endpoints_include_all_lan_hosts_without_duplicates() {
+        let candidates = local_candidate_endpoints_for_route_hosts(
+            "http://192.168.1.154:8070",
+            ["192.168.1.154", "192.168.1.192", "10.0.0.7"],
+            Some("100.64.1.20"),
+            "2026-06-27T00:00:00Z",
+        );
+
+        let addrs: Vec<&str> = candidates
+            .iter()
+            .map(|candidate| candidate.addr.as_str())
+            .collect();
+        assert_eq!(
+            addrs,
+            vec![
+                "192.168.1.154:8070",
+                "192.168.1.192:8070",
+                "10.0.0.7:8070",
+                "100.64.1.20:8070"
+            ]
+        );
+        assert!(matches!(candidates[0].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(candidates[1].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(candidates[2].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(
+            candidates[3].kind,
+            crate::cloud::RouteKind::Tailscale
+        ));
     }
 
     #[test]

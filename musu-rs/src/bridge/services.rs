@@ -336,14 +336,29 @@ pub fn current_bridge_addr(cfg: &crate::bridge::config::BridgeConfig) -> String 
 /// stays as the WAN fallback). The user never configures this — the program
 /// detects its own reachable address.
 pub fn preferred_advertise_host() -> Option<String> {
-    let interfaces = local_ip_address::list_afinet_netifas().ok()?;
-    interfaces
-        .into_iter()
-        .filter(|(name, ip)| {
-            !crate::peer::mdns::is_virtual_mdns_interface_name(name) && is_private_ipv4(ip)
-        })
-        .map(|(_, ip)| ip.to_string())
-        .next()
+    local_lan_advertise_hosts().into_iter().next()
+}
+
+fn local_lan_advertise_hosts_from_interfaces(
+    interfaces: impl IntoIterator<Item = (String, std::net::IpAddr)>,
+) -> Vec<String> {
+    let mut hosts = Vec::new();
+    for (name, ip) in interfaces {
+        if crate::peer::mdns::is_virtual_mdns_interface_name(&name) || !is_private_ipv4(&ip) {
+            continue;
+        }
+        let host = ip.to_string();
+        if !hosts.iter().any(|existing| existing == &host) {
+            hosts.push(host);
+        }
+    }
+    hosts
+}
+
+pub fn local_lan_advertise_hosts() -> Vec<String> {
+    local_ip_address::list_afinet_netifas()
+        .map(local_lan_advertise_hosts_from_interfaces)
+        .unwrap_or_default()
 }
 
 /// RFC 1918 private IPv4 ranges (10/8, 172.16/12, 192.168/16). Loopback and
@@ -877,10 +892,47 @@ mod tests {
         // Loopback, link-local, public, and any IPv6 must NOT be advertised as a
         // reachable LAN host (publishing them is the bug we are fixing).
         assert!(!is_private_ipv4(&"127.0.0.1".parse::<IpAddr>().unwrap()));
-        assert!(!is_private_ipv4(&"169.254.10.141".parse::<IpAddr>().unwrap()));
+        assert!(!is_private_ipv4(
+            &"169.254.10.141".parse::<IpAddr>().unwrap()
+        ));
         assert!(!is_private_ipv4(&"8.8.8.8".parse::<IpAddr>().unwrap()));
         assert!(!is_private_ipv4(&"::1".parse::<IpAddr>().unwrap()));
         assert!(!is_private_ipv4(&"fe80::1".parse::<IpAddr>().unwrap()));
+    }
+
+    #[test]
+    fn local_lan_advertise_hosts_filters_virtual_and_unusable_interfaces() {
+        use std::net::IpAddr;
+
+        let hosts = local_lan_advertise_hosts_from_interfaces(vec![
+            (
+                "Ethernet".to_string(),
+                "192.168.1.154".parse::<IpAddr>().unwrap(),
+            ),
+            ("Wi-Fi".to_string(), "10.0.0.7".parse::<IpAddr>().unwrap()),
+            (
+                "Ethernet copy".to_string(),
+                "192.168.1.154".parse::<IpAddr>().unwrap(),
+            ),
+            (
+                "Tailscale".to_string(),
+                "100.64.1.20".parse::<IpAddr>().unwrap(),
+            ),
+            (
+                "vEthernet (WSL)".to_string(),
+                "172.29.80.1".parse::<IpAddr>().unwrap(),
+            ),
+            (
+                "Loopback".to_string(),
+                "127.0.0.1".parse::<IpAddr>().unwrap(),
+            ),
+            ("Public".to_string(), "8.8.8.8".parse::<IpAddr>().unwrap()),
+        ]);
+
+        assert_eq!(
+            hosts,
+            vec!["192.168.1.154".to_string(), "10.0.0.7".to_string()]
+        );
     }
 
     #[test]
