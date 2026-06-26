@@ -377,6 +377,7 @@ State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local ope
 | wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
 | — | musu-brain 통합 thesis — 완제품 1대 (메인보드+칩: brain Go 바이너리 그대로, musu가 데이터·lifecycle·UX 묶음) | 2026-06-26 | `BRAIN_INTEGRATION_THESIS_2026_06_26.md` | active |
 | — | MUSU product purpose and implementation gate — one trustworthy multi-PC work surface | 2026-06-27 | `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE_2026_06_27.md` | active |
+| — | MUSU product readiness code audit — false-online fixes, current blockers, next proof packet | 2026-06-27 | `MUSU_PRODUCT_READINESS_CODE_AUDIT_2026_06_27.md` | active |
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
 | wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
@@ -8703,5 +8704,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `DESIGN_BRIEF_PR34_FLEET_INSTALL`, `pr34-download.png`, `pr34-install.png`,
   `pr34-fleet.png`, `issue #35`, `approval requested not yet approved`, and
   `Design: Approved`.
+
+- 2026-06-27 product readiness code audit:
+  `docs/MUSU_PRODUCT_READINESS_CODE_AUDIT_2026_06_27.md` records the current
+  purpose-aligned code audit after the pasted runtime findings. The code-level
+  false-freshness bugs are fixed: registry `last_seen` is no longer replaced by
+  fetch time, loopback/wildcard/port-0 `public_url` values are rejected, unusable
+  cached registry rows do not suppress valid peers, and relay-display is not
+  counted in `online_nodes`. The audit keeps two blockers explicit: physical
+  `hugh-main` `fleet-proof.ps1` JSON and real PR #34 design approval. Search
+  terms should include `MUSU_PRODUCT_READINESS_CODE_AUDIT`,
+  `false-online fixes`, `registry_last_seen_to_heartbeat`,
+  `online_nodes_direct_only`, `hugh-main physical proof missing`,
+  `issue #35 approval missing`, and `next action packet`.
 
 **End of WIKI_INDEX.md.**
