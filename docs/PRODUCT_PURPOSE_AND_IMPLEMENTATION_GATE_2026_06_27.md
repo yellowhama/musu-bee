@@ -42,8 +42,25 @@ true and verified:
 | `last_heartbeat` was fabricated from registry fetch time | Fixed in current tree | `musu-rs/src/bridge/mod.rs` uses `registry_last_seen_to_heartbeat(&node.last_seen)` before writing `CachedNode.last_heartbeat`; `cargo test --manifest-path musu-rs\Cargo.toml --lib registry_last_seen -j 1` passed. |
 | Remote `127.0.0.1` public URL survived as route truth | Fixed in current tree | `public_url_to_remote_addr` rejects loopback/wildcard hosts; `resolve_all_peers` ignores unusable cache rows and keeps a valid same-name manual LAN peer; `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json` passed with `ok=true`, `fail_count=0`. |
 | Relay-display counted as online | Fixed in current tree | `tally_fleet()` counts only `healthy` peers; `cargo test --manifest-path musu-rs\Cargo.toml --lib tally_counts_only_direct_healthy_peers_online -j 1` passed. |
-| `bridge.json`/actual bind confusion can understate attack surface | Addressed as a contract, still needs live proof per machine | `verify-fleet-audit-contract.ps1` checks `service_registry_bind_addr`, advertised URL, and remote usability. Do not claim a specific machine fixed until its verifier JSON passes. |
-| `tls/key.pem` and `private_mesh.toml` ACLs were too broad | Verifier gate exists, live proof required per machine | `verify-fleet-audit-contract.ps1` checks both ACLs; `hugh_second` rc.22 proof passed earlier, while `hugh-main` proof is still missing. |
+| `bridge.json`/actual bind confusion can understate attack surface | Proven on `hugh_second`; still needs live proof per machine | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `bridge_bind_addr=0.0.0.0:11105`, `advertised_public_url=http://192.168.1.154:11105`, `online_nodes=1`, and `direct_healthy_nodes=1`. The same proof is still missing on `hugh-main`. |
+| `tls/key.pem` and `private_mesh.toml` ACLs were too broad | Proven on `hugh_second`; still needs live proof per machine | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `tls_key_acl_restricted`, `private_mesh_acl_restricted`, and `brain_ingest_token_acl_restricted` all passing. The same proof is still missing on `hugh-main`. |
+
+## Fresh Verification Snapshot
+
+Current `hugh_second` evidence captured on 2026-06-27 KST:
+
+- `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`: `ok=true`,
+  `fail_count=0`, `warn_count=0`.
+- Installed package: `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`.
+- Bridge bind and advertised URL are separated correctly:
+  `bridge_bind_addr=0.0.0.0:11105`, `advertised_public_url=http://192.168.1.154:11105`.
+- Fleet counts are honest: `total_nodes=2`, `online_nodes=1`,
+  `direct_healthy_nodes=1`; the remote peer is not counted online.
+- Secret custody gates pass for `tls/key.pem`, `private_mesh.toml`, and
+  `~/.musu/brain/runtime/musu-ingest.token`.
+- Service registry contract tests also pass:
+  `cargo test --manifest-path musu-rs\Cargo.toml --lib bridge::services::tests:: -j 1`
+  (`21/21`).
 
 ## System Design Boundary
 

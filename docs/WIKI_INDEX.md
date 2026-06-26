@@ -8676,13 +8676,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `registry_last_seen_to_heartbeat` preserves registry `last_seen`, remote
   loopback/wildcard `public_url` values are rejected or ignored, relay-display
   peers are not counted in `online_nodes`, and the remote-usable self-test
-  passes with `ok=true`, `fail_count=0`. The doc
+  passes with `ok=true`, `fail_count=0`. The 2026-06-27 continuation added fresh
+  `hugh_second` proof: `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`
+  passed with `bridge_bind_addr=0.0.0.0:11105`,
+  `advertised_public_url=http://192.168.1.154:11105`, `online_nodes=1`,
+  `direct_healthy_nodes=1`, and ACL gates passing for `tls/key.pem`,
+  `private_mesh.toml`, and `~/.musu/brain/runtime/musu-ingest.token`. The doc
   keeps the main constraint explicit: physical `hugh-main` proof via hosted
   `fleet-proof.ps1` is still required before claiming the two-machine product
   goal is done. Search terms should include `product purpose implementation
   gate`, `one trustworthy work surface`, `registry_last_seen_to_heartbeat`,
   `remote usable selftest`, `relay-display not online`, `hugh-main physical
-  proof`, and `musu.fleet_node_proof.v1`.
+  proof`, `bridge_bind_addr 0.0.0.0:11105`, `192.168.1.154:11105`,
+  `tls_key_acl_restricted`, `private_mesh_acl_restricted`,
+  `brain_ingest_token_acl_restricted`, and `musu.fleet_node_proof.v1`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
