@@ -52,6 +52,20 @@ test("ignores API tests under the app tree", () => {
   assert.deepEqual(result.matchedUiFiles, []);
 });
 
+test("ignores test files under UI path prefixes", () => {
+  const result = evaluateDesignGate({
+    changedFiles: [
+      "musu-bee/src/app/fleet-proof.ps1/route.test.ts",
+      "musu-bee/src/components/Sidebar.test.tsx",
+    ],
+    prBody: "",
+  });
+
+  assert.equal(result.uiTouched, false);
+  assert.equal(result.pass, true);
+  assert.deepEqual(result.matchedUiFiles, []);
+});
+
 test("passes when UI paths are touched with all required evidence", () => {
   const result = evaluateDesignGate({
     changedFiles: ["musu-bee/src/components/Sidebar.tsx"],
@@ -65,6 +79,22 @@ test("passes when UI paths are touched with all required evidence", () => {
   assert.equal(result.uiTouched, true);
   assert.equal(result.pass, true);
   assert.deepEqual(result.missingRequirements, []);
+});
+
+test("fails when Design Approved is mentioned only as an instruction", () => {
+  const result = evaluateDesignGate({
+    changedFiles: ["musu-bee/src/app/download/page.tsx"],
+    prBody: [
+      "Design: Pending",
+      "Design brief: https://github.com/yellowhama/musu-bee/issues/35",
+      "Artifact: https://example.com/pr34-download.png",
+      "After approval, update this PR body to `Design: Approved`.",
+    ].join("\n"),
+  });
+
+  assert.equal(result.uiTouched, true);
+  assert.equal(result.pass, false);
+  assert.deepEqual(result.missingRequirements, ["`Design: Approved` token"]);
 });
 
 test("accepts a plain numeric GitHub issue URL as the design brief", () => {

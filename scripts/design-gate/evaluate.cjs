@@ -10,8 +10,12 @@ const API_PATH_PREFIXES = ["musu-bee/src/app/api/"];
 
 const NEXT_APP_ROUTE_HANDLER_RE =
   /^musu-bee\/src\/app\/(?:.*\/)?route\.[jt]sx?$/;
+const TEST_FILE_RE = /(?:^|\/)[^/]+\.(?:test|spec)\.[jt]sx?$/;
 
-const DESIGN_APPROVED_TOKEN_RE = /\bDesign:\s*Approved\b/i;
+// Approval must be an explicit status line. Mentions inside prose, checklists,
+// or backticks such as "change this to `Design: Approved`" are instructions,
+// not approval evidence.
+const DESIGN_APPROVED_TOKEN_RE = /^\s*Design:\s*Approved\s*$/im;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
 // Design-brief issue URL. musu uses its own trackers (musu-system / musu-brain /
 // musu-website-co GitHub issues) — Paperclip was dropped, so a plain numeric
@@ -37,7 +41,8 @@ function evaluateDesignGate({ changedFiles, prBody }) {
     (file) =>
       UI_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)) &&
       !API_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)) &&
-      !NEXT_APP_ROUTE_HANDLER_RE.test(file)
+      !NEXT_APP_ROUTE_HANDLER_RE.test(file) &&
+      !TEST_FILE_RE.test(file)
   );
   const uiTouched = matchedUiFiles.length > 0;
 
@@ -120,6 +125,7 @@ if (require.main === module) {
 module.exports = {
   API_PATH_PREFIXES,
   NEXT_APP_ROUTE_HANDLER_RE,
+  TEST_FILE_RE,
   UI_PATH_PREFIXES,
   evaluateDesignGate,
 };
