@@ -8553,7 +8553,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `stale first candidate`.
 
 - 2026-06-27 continuation audit refresh:
-  Current HEAD `5a04f954` is mergeable on PR #34 with code/test checks green and
+  PR #34 current branch lineage is mergeable with code/test checks green and
   `design-gate` still failing pending a real design approval/artifact. GitHub
   issue #35 is open with no approval comments, and live `https://musu.pro/api/health`
   still returns 404. Local verification
@@ -8564,7 +8564,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   confirms rc.21 assets are locally ready, while live `verify-musu-pro-install-channel.ps1 -Json`
   remains `ok=false` because `musu.pro` still publishes `1.15.0-rc.20` and hosted
   `desktop-latest` appinstaller/MainPackage remain `1.15.0.20`. Search terms should include
-  `PR #34 design-gate`, `5a04f954`, `38/38`, `11/11`, `1/1 registry_last_seen`,
+  `PR #34 design-gate`, `current branch lineage`, `38/38`, `11/11`, `1/1 registry_last_seen`,
   `npm bin shims`, `musu.pro api health 404`, `issue #35 no approval comments`,
   `desktop-latest rc21 local ready`, and `musu.pro rc20 live stale`.
 

@@ -173,7 +173,7 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
   38/38 통과, `npm run test:public-release` 11/11 통과, `git diff --check` 통과.
   추가 재확인에서 `cargo test registry_last_seen_to_heartbeat --lib` 1/1 통과.
-  PR #34는 `5a04f954` 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
+  PR #34는 current branch lineage 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
   `design-gate` 1개(실제 `Design: Approved` + design brief/artifact 필요, 임의 bypass 금지).
   GitHub issue #35는 open 상태이며 approval comment는 아직 0개다.
   live install-channel은 재확인해도 아직 `ok=false`: `public-config releaseVersion=1.15.0-rc.20`,
