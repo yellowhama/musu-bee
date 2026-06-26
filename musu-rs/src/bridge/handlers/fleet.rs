@@ -99,11 +99,12 @@ pub struct FleetNodeStatus {
     pub name: String,
     pub addr: String,
     pub healthy: bool,
-    /// How this node is reachable: `"direct"` (probe succeeded or self),
-    /// `"relay"` (direct probe failed but the registry has a recent heartbeat),
-    /// or absent/`None` (offline — neither direct nor relay-fresh). `healthy`
-    /// remains `false` for a relay peer; this field distinguishes "reachable via
-    /// relay" from "truly offline" for the cockpit / CLI status indicators.
+    /// How this node is seen from this bridge: `"direct"` (probe succeeded or
+    /// self), `"relay"` (direct probe failed but the registry has a recent
+    /// heartbeat, so this is a relay/display candidate), or absent/`None`
+    /// (offline — neither direct nor relay-fresh). `healthy` remains `false`
+    /// for a relay peer; relay is not counted in `online_nodes` until real
+    /// transport proves work can move through it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reachable_via: Option<String>,
     pub is_self: bool,
@@ -162,7 +163,11 @@ fn collapse_peers_by_name_for_display(peers: Vec<ResolvedPeer>) -> Vec<ResolvedP
     let mut best_for_name: HashMap<String, usize> = HashMap::new();
     let mut out: Vec<ResolvedPeer> = Vec::with_capacity(peers.len());
 
-    let parse = |s: &str| DateTime::parse_from_rfc3339(s).ok().map(|d| d.with_timezone(&Utc));
+    let parse = |s: &str| {
+        DateTime::parse_from_rfc3339(s)
+            .ok()
+            .map(|d| d.with_timezone(&Utc))
+    };
 
     for peer in peers {
         let name = peer.name.as_deref().unwrap_or("").trim().to_string();
@@ -193,13 +198,16 @@ fn collapse_peers_by_name_for_display(peers: Vec<ResolvedPeer>) -> Vec<ResolvedP
     out
 }
 
-/// Decide whether a peer whose direct probe failed is still relay-reachable.
+/// Decide whether a peer whose direct probe failed still has fresh relay-display
+/// evidence.
 ///
 /// Pure function over the peer's last-seen RFC3339 stamp (from the cloud
 /// registry heartbeat, normalized by [`peer_last_seen`]) and a "now" instant.
 /// Returns `Some("relay")` when the stamp parses and is within
-/// [`RELAY_FRESH_SECS`] of `now`; otherwise `None` (offline). No last_seen →
-/// `None` (preserves the offline-with-no-fabrication contract).
+/// [`RELAY_FRESH_SECS`] of `now`; otherwise `None` (offline). This is a display
+/// verdict only: direct work is not proven, and `online_nodes` must not include
+/// this peer. No last_seen → `None` (preserves the offline-with-no-fabrication
+/// contract).
 fn relay_verdict(last_seen: Option<&str>, now: DateTime<Utc>) -> Option<String> {
     let stamp = last_seen?;
     let parsed = DateTime::parse_from_rfc3339(stamp).ok()?;
@@ -247,8 +255,9 @@ fn map_probe_response(peer: &ResolvedPeer, outcome: ProbeOutcome) -> FleetNodeSt
 fn peer_fallback_status(peer: &ResolvedPeer, status_error: impl Into<String>) -> FleetNodeStatus {
     let last_seen = peer_last_seen(peer);
     // Direct probe failed; if the registry still has a fresh heartbeat the peer
-    // is reachable over relay, not offline. healthy STAYS false (no direct
-    // route) — reachable_via carries the distinction.
+    // is a relay-display candidate, not direct/offline. healthy STAYS false (no
+    // direct route) — reachable_via carries the distinction without implying
+    // work can be routed.
     let reachable_via = relay_verdict(last_seen.as_deref(), Utc::now());
     FleetNodeStatus {
         name: peer.name.clone().unwrap_or_else(|| peer.addr.clone()),
@@ -281,13 +290,12 @@ fn local_mesh_status(
 /// Returns `(online_nodes, total_tasks_running, total_tasks_pending)`, seeded
 /// with self (online starts at 1; the local task counts are passed in).
 ///
-/// Deliberate asymmetry (HIGH-2): `online_nodes` counts a relay-reachable peer
-/// (`reachable_via == "relay"`) as online so the cockpit doesn't hide a peer we
-/// can still relay to — but task totals are summed ONLY for `healthy` peers. A
-/// relay peer's direct probe FAILED, so we have no trustworthy task counts for
-/// it (the fallback status reports 0/0); summing those would fabricate "0 tasks"
-/// as if confirmed. Do NOT "harmonize" these two — the online count and the task
-/// totals answer different questions.
+/// `online_nodes` means direct/healthy nodes that can be queried for work now.
+/// A relay-display peer (`reachable_via == "relay"`) is intentionally NOT
+/// counted online because direct probing failed and release-grade relay
+/// transport is not proven by the fleet status endpoint. Counting it would make
+/// the CLI/cockpit imply "work can be sent" when only a recent registry
+/// heartbeat exists.
 fn tally_fleet(
     peer_statuses: &[FleetNodeStatus],
     local_running: u32,
@@ -297,10 +305,8 @@ fn tally_fleet(
     let mut total_pending = local_pending;
     let mut online = 1u32; // self
     for ns in peer_statuses {
-        if ns.healthy || ns.reachable_via.as_deref() == Some("relay") {
-            online += 1;
-        }
         if ns.healthy {
+            online += 1;
             total_running += ns.tasks_running;
             total_pending += ns.tasks_pending;
         }
@@ -403,11 +409,12 @@ pub async fn fleet_status(State(state): State<AppState>) -> Result<Json<FleetDas
                 .send()
                 .await
             {
-                Ok(resp) if resp.status().is_success() => match resp.json::<FleetNodeStatus>().await
-                {
-                    Ok(ns) => ProbeOutcome::Parsed(ns),
-                    Err(_) => ProbeOutcome::Unreadable,
-                },
+                Ok(resp) if resp.status().is_success() => {
+                    match resp.json::<FleetNodeStatus>().await {
+                        Ok(ns) => ProbeOutcome::Parsed(ns),
+                        Err(_) => ProbeOutcome::Unreadable,
+                    }
+                }
                 _ => ProbeOutcome::Failed,
             };
             map_probe_response(peer, outcome)
@@ -576,8 +583,16 @@ mod tests {
         };
         let collapsed = collapse_peers_by_name_for_display(vec![
             // hugh-main re-registered on 3 ephemeral ports; only the freshest stays.
-            mk("192.168.1.192:3032", Some("hugh-main"), Some("2026-06-20T00:00:00+00:00")),
-            mk("192.168.1.192:2957", Some("hugh-main"), Some("2026-06-24T00:00:00+00:00")), // live
+            mk(
+                "192.168.1.192:3032",
+                Some("hugh-main"),
+                Some("2026-06-20T00:00:00+00:00"),
+            ),
+            mk(
+                "192.168.1.192:2957",
+                Some("hugh-main"),
+                Some("2026-06-24T00:00:00+00:00"),
+            ), // live
             mk("192.168.1.192:7203", Some("hugh-main"), None),
             // two distinct names + two nameless peers all survive.
             mk("10.0.0.5:8070", Some("studio-pc"), None),
@@ -586,9 +601,16 @@ mod tests {
         ]);
         // hugh-main(1) + studio-pc(1) + 2 nameless = 4
         assert_eq!(collapsed.len(), 4);
-        let hugh = collapsed.iter().find(|p| p.name.as_deref() == Some("hugh-main")).unwrap();
+        let hugh = collapsed
+            .iter()
+            .find(|p| p.name.as_deref() == Some("hugh-main"))
+            .unwrap();
         assert_eq!(hugh.addr, "192.168.1.192:2957", "freshest port wins");
-        assert_eq!(collapsed.iter().filter(|p| p.name.is_none()).count(), 2, "nameless not merged");
+        assert_eq!(
+            collapsed.iter().filter(|p| p.name.is_none()).count(),
+            2,
+            "nameless not merged"
+        );
     }
 
     #[test]
@@ -609,7 +631,12 @@ mod tests {
     }
 
     /// Build a minimal peer status for tally tests.
-    fn status(healthy: bool, reachable_via: Option<&str>, running: u32, pending: u32) -> FleetNodeStatus {
+    fn status(
+        healthy: bool,
+        reachable_via: Option<&str>,
+        running: u32,
+        pending: u32,
+    ) -> FleetNodeStatus {
         FleetNodeStatus {
             name: "peer".into(),
             addr: "127.0.0.1:1".into(),
@@ -691,21 +718,25 @@ mod tests {
         };
         let status = peer_fallback_status(&peer, "node status probe failed");
         assert!(!status.healthy);
-        assert_eq!(status.reachable_via, None, "stale peer is offline, not relay");
+        assert_eq!(
+            status.reachable_via, None,
+            "stale peer is offline, not relay"
+        );
     }
 
     #[test]
-    fn tally_counts_relay_peer_online_but_excludes_its_tasks() {
-        // A relay peer increments online_nodes but its (untrusted) task counts
-        // are NOT summed; a stale/offline peer increments neither.
+    fn tally_counts_only_direct_healthy_peers_online() {
+        // A relay-display peer is visible but not counted online because direct
+        // probing failed and relay transport is not proven by this endpoint. A
+        // stale/offline peer increments neither.
         let peers = vec![
-            status(true, Some("direct"), 3, 1),  // healthy: online + tasks
-            status(false, Some("relay"), 9, 9),  // relay: online only, tasks ignored
-            status(false, None, 5, 5),           // offline: neither
+            status(true, Some("direct"), 3, 1), // healthy: online + tasks
+            status(false, Some("relay"), 9, 9), // relay: display only
+            status(false, None, 5, 5),          // offline: neither
         ];
         let (online, running, pending) = tally_fleet(&peers, 2, 4);
-        // self(1) + healthy(1) + relay(1) = 3 online
-        assert_eq!(online, 3);
+        // self(1) + healthy(1) = 2 online; relay-display is not work-available
+        assert_eq!(online, 2);
         // local 2 + healthy peer 3 = 5; relay/offline task counts excluded
         assert_eq!(running, 5);
         // local 4 + healthy peer 1 = 5

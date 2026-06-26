@@ -3,6 +3,7 @@ use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
+use std::io::Write;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -569,7 +570,9 @@ async fn run_node_cli(action: PrivateMeshNodeAction) -> Result<()> {
             Ok(())
         }
         PrivateMeshNodeAction::Rename(opts) => {
-            let renamed = cloud.rename_mesh_node(&opts.node_id, &opts.new_name).await?;
+            let renamed = cloud
+                .rename_mesh_node(&opts.node_id, &opts.new_name)
+                .await?;
             if opts.json {
                 println!(
                     "{}",
@@ -586,7 +589,11 @@ async fn run_node_cli(action: PrivateMeshNodeAction) -> Result<()> {
         }
         PrivateMeshNodeAction::Remove(opts) => {
             let removed = cloud
-                .remove_mesh_node(&opts.node_id, &opts.expected_name, opts.caller_ip.as_deref())
+                .remove_mesh_node(
+                    &opts.node_id,
+                    &opts.expected_name,
+                    opts.caller_ip.as_deref(),
+                )
                 .await?;
             if opts.json {
                 println!(
@@ -1173,9 +1180,8 @@ fn consume_device_add_pass_file(path: &Path) -> Result<PathBuf> {
 /// This is the no-pass path behind "account login = automatic mesh join".
 async fn run_join_account(opts: PrivateMeshJoinAccountOpts) -> Result<()> {
     let home = super::resolve_musu_home(opts.musu_home.as_deref())?;
-    let token = crate::cloud::token::load_token(&home).ok_or_else(|| {
-        anyhow!("Not logged in. Run `musu login` first, then join is automatic.")
-    })?;
+    let token = crate::cloud::token::load_token(&home)
+        .ok_or_else(|| anyhow!("Not logged in. Run `musu login` first, then join is automatic."))?;
 
     let cloud = crate::cloud::MusuCloud::new(&crate::cloud::base_url_from_env(), Some(token));
     let key = cloud.request_mesh_join_key().await?;
@@ -3783,8 +3789,75 @@ fn write_private_mesh_config(path: &Path, config: &PrivateMeshConfig) -> Result<
         fs::create_dir_all(parent)?;
     }
     let body = toml::to_string_pretty(config)?;
-    fs::write(path, body)?;
+    write_restricted_private_mesh_file(path, body.as_bytes())?;
     Ok(())
+}
+
+fn write_restricted_private_mesh_file(path: &Path, body: &[u8]) -> Result<()> {
+    #[cfg(windows)]
+    {
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)?;
+        restrict_private_mesh_permissions(path)?;
+        file.write_all(body)?;
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        fs::write(path, body)?;
+        restrict_private_mesh_permissions(path)?;
+        Ok(())
+    }
+}
+
+fn restrict_private_mesh_permissions(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
+    }
+
+    #[cfg(windows)]
+    {
+        restrict_acl_to_current_user(path)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn restrict_acl_to_current_user(path: &Path) -> Result<()> {
+    let user = windows_acl_principal()?;
+    let output = Command::new("icacls")
+        .arg(path)
+        .arg("/inheritance:r")
+        .arg("/grant:r")
+        .arg(format!("{user}:F"))
+        .output()?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!(
+            "icacls failed for {}: {}",
+            path.display(),
+            err.trim()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String> {
+    let user = std::env::var("USERNAME").map_err(|_| anyhow!("USERNAME env var missing"))?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
 }
 
 #[cfg(test)]
@@ -3888,7 +3961,10 @@ fn tailnet_ownership_from_status(status_json: &str, login_server: &str) -> Tailn
         Ok(v) => v,
         Err(_) => return TailnetOwnership::Indeterminate, // can't confirm → don't down
     };
-    let backend = json.get("BackendState").and_then(|v| v.as_str()).unwrap_or("");
+    let backend = json
+        .get("BackendState")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     if backend != "Running" {
         return TailnetOwnership::Indeterminate; // not actively up → nothing of ours to down
     }
@@ -4965,23 +5041,38 @@ mod tests {
     fn ownership_same_control_host_is_ours() {
         // ControlURL form + CurrentTailnet.Name form, with scheme/port noise.
         let j = r#"{"BackendState":"Running","ControlURL":"https://mesh.musu.pro:443/"}"#;
-        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Ours);
+        assert_eq!(
+            tailnet_ownership_from_status(j, OURS),
+            TailnetOwnership::Ours
+        );
         let j2 = r#"{"BackendState":"Running","CurrentTailnet":{"Name":"mesh.musu.pro"}}"#;
-        assert_eq!(tailnet_ownership_from_status(j2, OURS), TailnetOwnership::Ours);
+        assert_eq!(
+            tailnet_ownership_from_status(j2, OURS),
+            TailnetOwnership::Ours
+        );
     }
 
     #[test]
     fn ownership_different_host_is_not_ours() {
         let j = r#"{"BackendState":"Running","ControlURL":"https://controlplane.tailscale.com"}"#;
-        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::NotOurs);
+        assert_eq!(
+            tailnet_ownership_from_status(j, OURS),
+            TailnetOwnership::NotOurs
+        );
     }
 
     #[test]
     fn ownership_unparseable_is_indeterminate_not_down() {
         // The dangerous case the Critic flagged: garbage status while on a
         // personal tailnet must NOT authorize `down`.
-        assert_eq!(tailnet_ownership_from_status("not json at all", OURS), TailnetOwnership::Indeterminate);
-        assert_eq!(tailnet_ownership_from_status("", OURS), TailnetOwnership::Indeterminate);
+        assert_eq!(
+            tailnet_ownership_from_status("not json at all", OURS),
+            TailnetOwnership::Indeterminate
+        );
+        assert_eq!(
+            tailnet_ownership_from_status("", OURS),
+            TailnetOwnership::Indeterminate
+        );
     }
 
     #[test]
@@ -4999,12 +5090,18 @@ mod tests {
     #[test]
     fn ownership_control_undetermined_is_indeterminate() {
         let j = r#"{"BackendState":"Running"}"#; // running but no control URL/name
-        assert_eq!(tailnet_ownership_from_status(j, OURS), TailnetOwnership::Indeterminate);
+        assert_eq!(
+            tailnet_ownership_from_status(j, OURS),
+            TailnetOwnership::Indeterminate
+        );
     }
 
     #[test]
     fn control_host_of_strips_scheme_port_path() {
-        assert_eq!(control_host_of("https://mesh.musu.pro:443/x"), "mesh.musu.pro");
+        assert_eq!(
+            control_host_of("https://mesh.musu.pro:443/x"),
+            "mesh.musu.pro"
+        );
         assert_eq!(control_host_of("mesh.musu.pro."), "mesh.musu.pro");
         assert_eq!(control_host_of("HTTP://Mesh.Musu.Pro"), "mesh.musu.pro");
     }

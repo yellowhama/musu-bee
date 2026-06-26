@@ -128,6 +128,13 @@ pub struct RegistryNode {
     pub meta: Option<serde_json::Value>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeleteRegistryNodeResponse {
+    pub ok: bool,
+    pub node_name: String,
+    pub deleted: bool,
+}
+
 /// Response of `POST /api/account/mesh-join-key`: a one-time Headscale preauth
 /// key bound to the caller's account, plus the login server to join. The cloud
 /// derives the account from the bearer token; the client never supplies it.
@@ -1324,6 +1331,49 @@ impl MusuCloud {
         Ok(resp.json().await?)
     }
 
+    /// DELETE /api/v1/nodes/{node_name} to remove one owner-scoped cloud
+    /// registry row. This cleans stale discovery rows only; it does not evict a
+    /// Headscale mesh node.
+    pub async fn delete_registry_node_by_name(
+        &self,
+        node_name: &str,
+    ) -> Result<DeleteRegistryNodeResponse> {
+        let token = self
+            .token
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not logged in"))?;
+        let url = format!(
+            "{}/api/v1/nodes/{}",
+            self.base_url,
+            urlencoding::encode(node_name)
+        );
+
+        let resp = self.client.delete(&url).bearer_auth(token).send().await?;
+        let status = resp.status();
+
+        if status == reqwest::StatusCode::NOT_FOUND {
+            let content_type = resp
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .map(|value| value.to_string());
+            let body = resp.text().await.unwrap_or_default();
+            if let Ok(parsed) = serde_json::from_str::<DeleteRegistryNodeResponse>(&body) {
+                return Ok(parsed);
+            }
+            let detail = summarize_cloud_error_body(content_type.as_deref(), &body);
+            return Err(anyhow!(
+                "Failed to delete registry node at {url} failed with HTTP {status}: {detail}"
+            ));
+        }
+
+        if !status.is_success() {
+            return Err(cloud_api_error("Failed to delete registry node", &url, resp).await);
+        }
+
+        Ok(resp.json().await?)
+    }
+
     fn room_presence_url(&self, room_id: &str) -> Result<reqwest::Url> {
         let mut url = reqwest::Url::parse(&self.base_url)?;
         url.path_segments_mut()
@@ -1956,6 +2006,35 @@ fn route_attempt_result_query_value(result: &RouteAttemptResult) -> &'static str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn delete_registry_node_by_name_treats_json_404_as_absent() {
+        use wiremock::matchers::{header, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/api/v1/nodes/hugh-main"))
+            .and(header("authorization", "Bearer token-a"))
+            .respond_with(ResponseTemplate::new(404).set_body_json(serde_json::json!({
+                "ok": true,
+                "node_name": "hugh-main",
+                "deleted": false
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let cloud = MusuCloud::new(&server.uri(), Some("token-a".to_string()));
+        let response = cloud
+            .delete_registry_node_by_name("hugh-main")
+            .await
+            .unwrap();
+
+        assert!(response.ok);
+        assert_eq!(response.node_name, "hugh-main");
+        assert!(!response.deleted);
+    }
 
     #[test]
     fn route_kind_serializes_to_contract_values() {

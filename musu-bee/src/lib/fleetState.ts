@@ -2,7 +2,9 @@
 // render surface (the /fleet page and the /m/[id] detail page) so the
 // THREE-surface invariant (web / CLI / cockpit shell) cannot drift on the web
 // side. See docs/FLEET_RETRY_AND_LAST_SEEN_CONTRACT_2026_06_12.md
-// §"Relay-reachable state".
+// §"Relay-reachable state". `online_nodes` is direct/healthy only; relay is a
+// separate display bucket and is not counted in online_nodes until transport
+// proof exists.
 //
 // Mirrors the bridge `FleetNodeStatus` returned by `GET /api/fleet/status`
 // (musu-rs `src/bridge/handlers/fleet.rs`). Nodes are keyed by `name` — there is
@@ -35,7 +37,7 @@ export type NodeState = "online" | "relay" | "offline";
 
 // Derive the display bucket from the bridge's healthy + reachable_via fields.
 //   healthy                          → online (direct route confirmed)
-//   !healthy && reachable_via=relay  → relay  (reachable over relay, not offline)
+//   !healthy && reachable_via=relay  → relay  (recent heartbeat, direct unproven)
 //   otherwise                        → offline
 export function nodeState(node: FleetNodeStatus): NodeState {
   if (node.healthy) return "online";

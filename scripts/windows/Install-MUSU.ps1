@@ -20,11 +20,18 @@ param(
     [string]$ReleaseBase = "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest",
     [string]$CertFileName = "blossompark.musu.cer",
     [string]$AppInstallerFileName = "musu.appinstaller",
+    # Must match repo VERSION. This turns a forgotten `desktop-latest` upload
+    # into a visible install failure instead of silently installing an old RC.
+    [string]$ExpectedReleaseVersion = "1.15.0-rc.21",
+    [string]$PublicConfigUrl = "https://musu.pro/api/public-config",
     # Canonical self-URL used to re-fetch the script when self-elevating under
     # `irm | iex` (no $PSCommandPath in that mode).
     [string]$SelfUrl = "https://musu.pro/install.ps1",
     # Unattended/CI installs: trust + install but do NOT auto-launch the app.
-    [switch]$NoLaunch
+    [switch]$NoLaunch,
+    # Verifies the public-config/appinstaller release contract without requiring
+    # elevation or modifying certificate/package state.
+    [switch]$ValidateReleaseOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,6 +47,76 @@ function Test-IsAdmin {
     $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object System.Security.Principal.WindowsPrincipal($id)
     return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+    throw "Unsupported MUSU release version '$PublicVersion'."
+}
+
+function Get-PublicConfigReleaseVersion {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 30
+    if ([int]$response.StatusCode -ne 200) {
+        throw "Public config returned HTTP $($response.StatusCode) from $Url."
+    }
+    $config = $response.Content | ConvertFrom-Json
+    if ($config.schema -ne "musu.public_config.v1") {
+        throw "Public config schema mismatch from $Url."
+    }
+    if (-not $config.releaseVersion) {
+        throw "Public config from $Url did not include releaseVersion."
+    }
+    return [string]$config.releaseVersion
+}
+
+function Get-AppInstallerVersions {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    $appMatch = [regex]::Match($text, '<AppInstaller[\s\S]*?\sVersion="([^"]+)"')
+    $mainMatch = [regex]::Match($text, '<MainPackage[\s\S]*?\sVersion="([^"]+)"')
+    if (-not $appMatch.Success) {
+        throw "Could not parse AppInstaller Version from $Path."
+    }
+    if (-not $mainMatch.Success) {
+        throw "Could not parse MainPackage Version from $Path."
+    }
+    return [pscustomobject]@{
+        AppInstallerVersion = $appMatch.Groups[1].Value
+        MainPackageVersion = $mainMatch.Groups[1].Value
+    }
+}
+
+$work = Join-Path $env:TEMP "musu-install"
+New-Item -ItemType Directory -Force $work | Out-Null
+
+Write-Host "Checking MUSU release channel..." -ForegroundColor Cyan
+$expectedPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $ExpectedReleaseVersion
+$publicReleaseVersion = Get-PublicConfigReleaseVersion -Url $PublicConfigUrl
+if ($publicReleaseVersion -ne $ExpectedReleaseVersion) {
+    throw "musu.pro is publishing releaseVersion '$publicReleaseVersion', but this installer expects '$ExpectedReleaseVersion'. Aborting so this PC does not install the wrong release."
+}
+$appInstallerPath = Join-Path $work $AppInstallerFileName
+Invoke-WebRequest "$ReleaseBase/$AppInstallerFileName" -OutFile $appInstallerPath -UseBasicParsing
+$appInstallerVersions = Get-AppInstallerVersions -Path $appInstallerPath
+if ($appInstallerVersions.AppInstallerVersion -ne $expectedPackageVersion -or
+    $appInstallerVersions.MainPackageVersion -ne $expectedPackageVersion) {
+    throw "desktop-latest appinstaller version mismatch. Expected $expectedPackageVersion but got AppInstaller=$($appInstallerVersions.AppInstallerVersion), MainPackage=$($appInstallerVersions.MainPackageVersion). Aborting so this PC does not install a stale package."
+}
+Write-Host "    release OK ($ExpectedReleaseVersion / package $expectedPackageVersion)" -ForegroundColor DarkGray
+
+if ($ValidateReleaseOnly) {
+    Write-Host "MUSU release channel validation passed." -ForegroundColor Green
+    return
 }
 
 if (-not (Test-IsAdmin)) {
@@ -107,15 +184,13 @@ if (-not (Test-IsAdmin)) {
 # same script (as a script block), so the trap is present there too — exactly one pause.
 trap {
     Write-Host ""
-    Write-Host "MUSU install failed: $($_.Exception.Message)" -ForegroundColor Red
+    $failureLabel = if ($ValidateReleaseOnly) { "MUSU release validation failed" } else { "MUSU install failed" }
+    Write-Host "$failureLabel`: $($_.Exception.Message)" -ForegroundColor Red
     if (-not $NoLaunch -and [Environment]::UserInteractive) {
         Read-Host 'Press Enter to close'
     }
     break
 }
-
-$work = Join-Path $env:TEMP "musu-install"
-New-Item -ItemType Directory -Force $work | Out-Null
 
 Write-Host "[1/4] Downloading certificate..." -ForegroundColor Cyan
 $certPath = Join-Path $work $CertFileName
@@ -151,7 +226,7 @@ Write-Host "[3/4] Installing MUSU (with auto-update)..." -ForegroundColor Cyan
 # the cert in BOTH Root and TrustedPeople above, a 0x800B0109 here means "trusted in
 # both stores and STILL rejected" — a deeper problem, reflected in the message.
 try {
-    Add-AppxPackage -AppInstallerFile "$ReleaseBase/$AppInstallerFileName"
+    Add-AppxPackage -AppInstallerFile $appInstallerPath
 } catch {
     $msg = $_.Exception.Message
     if ($msg -match "0x800B0109") {

@@ -1,0 +1,212 @@
+[CmdletBinding()]
+param(
+    [string]$BaseUrl = "https://musu.pro",
+    [string]$VersionPath,
+    [string]$CanaryScriptPath,
+    [switch]$SkipDesktopCanary,
+    [switch]$Json
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+function Join-PathParts {
+    param(
+        [Parameter(Mandatory = $true)][string]$Base,
+        [Parameter(Mandatory = $true)][string[]]$Parts
+    )
+
+    $path = $Base
+    foreach ($part in $Parts) {
+        $path = Join-Path $path $part
+    }
+    return $path
+}
+
+function Normalize-BaseUrl {
+    param([Parameter(Mandatory = $true)][string]$Value)
+    return $Value.TrimEnd("/")
+}
+
+function Convert-ContentToText {
+    param([Parameter(Mandatory = $true)]$Content)
+
+    if ($Content -is [byte[]]) {
+        return [System.Text.Encoding]::UTF8.GetString($Content)
+    }
+    return [string]$Content
+}
+
+function Add-Check {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [System.Collections.Generic.List[object]]$Checks,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Status,
+        [Parameter(Mandatory = $true)][string]$Message,
+        [object]$Details = $null
+    )
+
+    $Checks.Add([pscustomobject]@{
+        name = $Name
+        status = $Status
+        message = $Message
+        details = $Details
+    }) | Out-Null
+}
+
+function Get-RegexGroup {
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Pattern
+    )
+
+    $m = [regex]::Match($Text, $Pattern)
+    if (-not $m.Success) {
+        return $null
+    }
+    return $m.Groups[1].Value
+}
+
+function Invoke-TextGet {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $res = Invoke-WebRequest -UseBasicParsing -Uri $Url -Method Get -MaximumRedirection 5 -TimeoutSec 30
+    return [pscustomobject]@{
+        status_code = [int]$res.StatusCode
+        text = Convert-ContentToText -Content $res.Content
+    }
+}
+
+function Invoke-DesktopCanary {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    $output = & $shell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath -Json -SkipLocalArtifactLengthChecks 2>&1
+    $exitCode = $LASTEXITCODE
+    $raw = ($output | ForEach-Object { [string]$_ }) -join "`n"
+    $parsed = $null
+    try {
+        $parsed = $raw | ConvertFrom-Json
+    } catch {
+        $parsed = $null
+    }
+    return [pscustomobject]@{
+        exit_code = $exitCode
+        parsed = $parsed
+        raw = $raw
+    }
+}
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-PathParts -Base $scriptDir -Parts @("..", ".."))).Path
+if (-not $VersionPath) {
+    $VersionPath = Join-Path $repoRoot "VERSION"
+}
+if (-not $CanaryScriptPath) {
+    $CanaryScriptPath = Join-PathParts -Base $repoRoot -Parts @("scripts", "windows", "canary-desktop-release.ps1")
+}
+if (-not (Test-Path -LiteralPath $VersionPath -PathType Leaf)) {
+    throw "VERSION not found at $VersionPath"
+}
+if (-not $SkipDesktopCanary -and -not (Test-Path -LiteralPath $CanaryScriptPath -PathType Leaf)) {
+    throw "Desktop canary not found at $CanaryScriptPath"
+}
+
+$base = Normalize-BaseUrl -Value $BaseUrl
+$expectedVersion = (Get-Content -LiteralPath $VersionPath -Raw).Trim()
+$checks = [System.Collections.Generic.List[object]]::new()
+
+$publicConfigUrl = "$base/api/public-config"
+try {
+    $publicConfigResponse = Invoke-TextGet -Url $publicConfigUrl
+    $publicConfig = $publicConfigResponse.text | ConvertFrom-Json
+    $actualVersion = [string]$publicConfig.releaseVersion
+    if ($actualVersion -eq $expectedVersion) {
+        Add-Check -Checks $checks -Name "public-config releaseVersion" -Status "pass" -Message "$publicConfigUrl publishes $actualVersion."
+    } else {
+        Add-Check -Checks $checks -Name "public-config releaseVersion" -Status "fail" -Message "$publicConfigUrl publishes '$actualVersion', expected '$expectedVersion'."
+    }
+} catch {
+    Add-Check -Checks $checks -Name "public-config" -Status "fail" -Message "$publicConfigUrl failed: $($_.Exception.Message)"
+}
+
+$installUrl = "$base/install.ps1"
+try {
+    $installResponse = Invoke-TextGet -Url $installUrl
+    $script = $installResponse.text
+    $scriptVersion = Get-RegexGroup -Text $script -Pattern '\$ExpectedReleaseVersion\s*=\s*"([^"]+)"'
+    $scriptThumbprint = Get-RegexGroup -Text $script -Pattern '\$ExpectedCertThumbprint\s*=\s*"([A-Fa-f0-9]+)"'
+    $temporarilyUnavailable = ($script -match 'MUSU installer is temporarily unavailable')
+
+    if ($installResponse.status_code -ne 200) {
+        Add-Check -Checks $checks -Name "install.ps1 status" -Status "fail" -Message "$installUrl returned HTTP $($installResponse.status_code)."
+    } elseif ($temporarilyUnavailable) {
+        Add-Check -Checks $checks -Name "install.ps1 availability" -Status "fail" -Message "$installUrl returned a fail-closed unavailable script."
+    } else {
+        Add-Check -Checks $checks -Name "install.ps1 status" -Status "pass" -Message "$installUrl returned HTTP 200."
+    }
+
+    if ($scriptVersion -eq $expectedVersion) {
+        Add-Check -Checks $checks -Name "install.ps1 ExpectedReleaseVersion" -Status "pass" -Message "install.ps1 expects $scriptVersion."
+    } else {
+        Add-Check -Checks $checks -Name "install.ps1 ExpectedReleaseVersion" -Status "fail" -Message "install.ps1 expects '$scriptVersion', expected '$expectedVersion'."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($scriptThumbprint)) {
+        Add-Check -Checks $checks -Name "install.ps1 ExpectedCertThumbprint" -Status "fail" -Message "install.ps1 does not expose ExpectedCertThumbprint."
+    } else {
+        Add-Check -Checks $checks -Name "install.ps1 ExpectedCertThumbprint" -Status "pass" -Message "install.ps1 exposes a certificate thumbprint."
+    }
+} catch {
+    Add-Check -Checks $checks -Name "install.ps1" -Status "fail" -Message "$installUrl failed: $($_.Exception.Message)"
+}
+
+if ($SkipDesktopCanary) {
+    Add-Check -Checks $checks -Name "desktop-latest canary" -Status "skip" -Message "Skipped by caller."
+} else {
+    $canary = Invoke-DesktopCanary -ScriptPath $CanaryScriptPath
+    if ($canary.exit_code -eq 0) {
+        Add-Check -Checks $checks -Name "desktop-latest canary" -Status "pass" -Message "desktop-latest canary passed." -Details $canary.parsed
+    } else {
+        $failureCount = $null
+        if ($null -ne $canary.parsed) {
+            $failureCount = $canary.parsed.failure_count
+        }
+        Add-Check -Checks $checks -Name "desktop-latest canary" -Status "fail" -Message "desktop-latest canary failed with $failureCount failure(s)." -Details $canary.parsed
+    }
+}
+
+$failures = @($checks | Where-Object { $_.status -eq "fail" })
+$ok = ($failures.Count -eq 0)
+$summary = [pscustomobject]@{
+    schema = "musu.install_channel.v1"
+    ok = $ok
+    failure_count = $failures.Count
+    base_url = $base
+    expected_version = $expectedVersion
+    checks = $checks
+}
+
+if ($Json) {
+    $summary | ConvertTo-Json -Depth 12
+    if ($ok) { exit 0 } else { exit 1 }
+}
+
+foreach ($check in $checks) {
+    $mark = switch ($check.status) {
+        "pass" { "PASS" }
+        "skip" { "SKIP" }
+        default { "FAIL" }
+    }
+    Write-Host ("[{0}] {1}: {2}" -f $mark, $check.name, $check.message)
+}
+
+if ($ok) {
+    Write-Host "INSTALL CHANNEL OK: $base is ready for the one-line installer."
+    exit 0
+}
+
+Write-Host "INSTALL CHANNEL FAILED: $($failures.Count) check(s) failed."
+exit 1

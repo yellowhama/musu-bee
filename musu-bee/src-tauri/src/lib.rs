@@ -23,6 +23,10 @@ const APPINSTALLER_URL: &str =
 /// that waits for cockpit exit before installing. See `check_for_updates`.
 const DESKTOP_MSIX_URL: &str =
     "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu-desktop-x64.msix";
+const KNOWLEDGE_BASE_URL: &str = "http://127.0.0.1:8080";
+const KNOWLEDGE_ADDR: &str = "127.0.0.1:8080";
+const KNOWLEDGE_TENANT_ID: &str = "local";
+const KNOWLEDGE_WORKSPACE_ID: &str = "musu";
 
 /// Installed package identity name (NOT the family name) — the stable key the
 /// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
@@ -93,6 +97,7 @@ pub fn run() {
             // S-tier: system tray — makes MUSU a RESIDENT control center, not a
             // window you close. Left-click restores; the menu has Show + Quit.
             build_tray(app.handle())?;
+            spawn_knowledge_sidecar_autostart();
             spawn_runtime_autostart();
             Ok(())
         })
@@ -864,6 +869,7 @@ fn no_window(cmd: &mut std::process::Command) -> &mut std::process::Command {
 fn spawn_musu_startup_open() -> Result<(), String> {
     let command = musu_command_path();
     let mut cmd = std::process::Command::new(&command);
+    apply_knowledge_env(&mut cmd);
     cmd.args(["startup", "open"])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
@@ -872,6 +878,17 @@ fn spawn_musu_startup_open() -> Result<(), String> {
         .spawn()
         .map(|_child| ())
         .map_err(|err| format!("failed to spawn {} startup open: {err}", command.display()))
+}
+
+fn apply_knowledge_env(cmd: &mut std::process::Command) {
+    cmd.env("MUSU_KNOWLEDGE_INGEST", "1")
+        .env(
+            "MUSU_KNOWLEDGE_INGEST_URL",
+            format!("{KNOWLEDGE_BASE_URL}/v1/sources"),
+        )
+        .env("MUSU_KNOWLEDGE_TENANT", KNOWLEDGE_TENANT_ID)
+        .env("MUSU_KNOWLEDGE_WORKSPACE", KNOWLEDGE_WORKSPACE_ID)
+        .env("MUSU_KNOWLEDGE_TOKEN_FILE", knowledge_token_file_path());
 }
 
 /// One machine in the fleet, as the cockpit renders it. A flattened, GUI-facing
@@ -967,13 +984,13 @@ fn private_mesh_verify_target(target_ip: String) -> Result<PrivateMeshVerifyDesk
 /// `musu mesh bootstrap --server-url <url> --json` and projects its report into
 /// a desktop-friendly result the Add PC panel renders.
 #[tauri::command]
-fn private_mesh_bootstrap(
-    server_url: String,
-) -> Result<PrivateMeshBootstrapDesktopResult, String> {
+fn private_mesh_bootstrap(server_url: String) -> Result<PrivateMeshBootstrapDesktopResult, String> {
     let server_url = server_url.trim().to_string();
     // Minimal validation so the cockpit never shells out a malformed URL.
     if !(server_url.starts_with("https://") || server_url.starts_with("http://")) {
-        return Err("server_url must start with https:// (or http:// for a local test mesh)".to_string());
+        return Err(
+            "server_url must start with https:// (or http:// for a local test mesh)".to_string(),
+        );
     }
     if server_url.contains(char::is_whitespace) {
         return Err("server_url must not contain whitespace".to_string());
@@ -1087,8 +1104,9 @@ fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResul
         });
     }
 
-    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
-        .map_err(|err| format!("failed to parse `musu mesh create-join-key --json` output: {err}"))?;
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim()).map_err(|err| {
+        format!("failed to parse `musu mesh create-join-key --json` output: {err}")
+    })?;
     let str_field = |key: &str| {
         report
             .get(key)
@@ -1150,8 +1168,9 @@ fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDeskto
         });
     }
 
-    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
-        .map_err(|err| format!("failed to parse `musu mesh start-control-host --json` output: {err}"))?;
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim()).map_err(|err| {
+        format!("failed to parse `musu mesh start-control-host --json` output: {err}")
+    })?;
     let ok = report.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
     Ok(PrivateMeshStartControlHostDesktopResult {
         ok,
@@ -1177,7 +1196,9 @@ fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDeskto
 fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, String> {
     let pass_path = pass_path.trim().to_string();
     if pass_path.is_empty() {
-        return Err("Paste the path to the device-add pass file copied from the control host.".to_string());
+        return Err(
+            "Paste the path to the device-add pass file copied from the control host.".to_string(),
+        );
     }
     if !std::path::Path::new(&pass_path).is_file() {
         return Ok(PrivateMeshJoinDesktopResult {
@@ -1213,7 +1234,11 @@ fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, 
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1251,7 +1276,11 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1264,15 +1293,20 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
 #[tauri::command]
 fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
+    let result =
+        run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
+            .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh leave timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1283,15 +1317,23 @@ fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
 #[tauri::command]
 fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["mesh", "node", "list", "--json"], ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "node", "list", "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh node list timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1300,21 +1342,42 @@ fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
 /// The server re-asserts the node still belongs to this account before renaming
 /// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
 #[tauri::command]
-fn mesh_node_rename(node_id: String, new_name: String) -> Result<PrivateMeshJoinDesktopResult, String> {
+fn mesh_node_rename(
+    node_id: String,
+    new_name: String,
+) -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
     let result = run_command_with_timeout(
         &command,
-        &["mesh", "node", "rename", "--node-id", &node_id, "--new-name", &new_name, "--json"],
+        &[
+            "mesh",
+            "node",
+            "rename",
+            "--node-id",
+            &node_id,
+            "--new-name",
+            &new_name,
+            "--json",
+        ],
         ADD_PC_JOIN_TIMEOUT,
     )
-    .map_err(|err| format!("failed to run {} mesh node rename: {err}", command.display()))?;
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh node rename: {err}",
+            command.display()
+        )
+    })?;
     if result.timed_out {
         return Err(format!("{} mesh node rename timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1339,21 +1402,34 @@ fn mesh_node_remove(
         "--expected-name".into(),
         expected_name,
     ];
-    if let Some(ip) = caller_ip.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+    if let Some(ip) = caller_ip
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
         args.push("--caller-ip".into());
         args.push(ip.to_string());
     }
     args.push("--json".into());
     let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let result = run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh node remove: {err}", command.display()))?;
+    let result =
+        run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT).map_err(|err| {
+            format!(
+                "failed to run {} mesh node remove: {err}",
+                command.display()
+            )
+        })?;
     if result.timed_out {
         return Err(format!("{} mesh node remove timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1462,14 +1538,22 @@ fn resolve_uninstall_helper_script() -> Option<std::path::PathBuf> {
     // (dual-audit security MEDIUM, 2026-06-23).
     let mut candidates = vec![
         dir.join(UNINSTALL_HELPER_SCRIPT),
-        dir.join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+        dir.join("scripts")
+            .join("windows")
+            .join(UNINSTALL_HELPER_SCRIPT),
     ];
     // dev/source tree only: musu-bee/src-tauri/target/<profile>/<exe> →
     // repo-root/scripts/windows. Gated to debug builds so the user-writable
     // target/ dir is never an elevated-script source in a release MSIX.
     #[cfg(debug_assertions)]
     candidates.push(
-        dir.join("..").join("..").join("..").join("..").join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+        dir.join("..")
+            .join("..")
+            .join("..")
+            .join("..")
+            .join("scripts")
+            .join("windows")
+            .join(UNINSTALL_HELPER_SCRIPT),
     );
     candidates.into_iter().find(|p| p.exists())
 }
@@ -1698,7 +1782,18 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
     // (ShellExecuteW / opener crate) instead of relaxing this.
     let valid = url.starts_with("https://")
         && url.len() <= 2048
-        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>' || c == '%');
+        && !url.contains(|c: char| {
+            c.is_control()
+                || c == '"'
+                || c == '\''
+                || c == ' '
+                || c == '&'
+                || c == '|'
+                || c == '^'
+                || c == '<'
+                || c == '>'
+                || c == '%'
+        });
     if !valid {
         return Err("refusing to open a non-https or malformed URL".to_string());
     }
@@ -2180,8 +2275,14 @@ fn this_pc_programs() -> Result<ThisPcPrograms, String> {
         Err(_) => return Ok(ThisPcPrograms::default()),
     };
     Ok(ThisPcPrograms {
-        ollama_running: json.get("ollama_running").and_then(|v| v.as_bool()).unwrap_or(false),
-        comfyui_running: json.get("comfyui_running").and_then(|v| v.as_bool()).unwrap_or(false),
+        ollama_running: json
+            .get("ollama_running")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        comfyui_running: json
+            .get("comfyui_running")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         default_adapter: json
             .get("current_default_adapter")
             .and_then(|v| v.as_str())
@@ -5856,6 +5957,166 @@ fn spawn_runtime_autostart() {
         });
 }
 
+fn spawn_knowledge_sidecar_autostart() {
+    let _ = std::thread::Builder::new()
+        .name("musu-knowledge-autostart".to_string())
+        .spawn(|| {
+            if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+                return;
+            }
+
+            let command = knowledge_sidecar_command_path();
+            let root = knowledge_root();
+            if let Err(err) = ensure_knowledge_workspace_and_token(&command, &root) {
+                eprintln!("MUSU knowledge sidecar autostart skipped: {err}");
+                return;
+            }
+
+            let root_arg = root.to_string_lossy().to_string();
+            let mut cmd = std::process::Command::new(&command);
+            cmd.args([
+                "server",
+                "-root",
+                root_arg.as_str(),
+                "-addr",
+                KNOWLEDGE_ADDR,
+            ])
+            .env("MUSU_HOME", musu_home())
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+            if let Err(err) = no_window(&mut cmd).spawn() {
+                eprintln!(
+                    "MUSU knowledge sidecar autostart failed for {}: {err}",
+                    command.display()
+                );
+            }
+        });
+}
+
+fn ensure_knowledge_workspace_and_token(
+    command: &std::path::Path,
+    root: &std::path::Path,
+) -> Result<(), String> {
+    std::fs::create_dir_all(root)
+        .map_err(|err| format!("failed to create knowledge root {}: {err}", root.display()))?;
+    let root_arg = root.to_string_lossy().to_string();
+    let workspace_manifest = root
+        .join("workspaces")
+        .join(KNOWLEDGE_TENANT_ID)
+        .join(KNOWLEDGE_WORKSPACE_ID)
+        .join("workspace.json");
+    if !workspace_manifest.exists() {
+        let result = run_command_with_timeout(
+            command,
+            &[
+                "init",
+                "-root",
+                root_arg.as_str(),
+                "-tenant",
+                KNOWLEDGE_TENANT_ID,
+                "-workspace",
+                KNOWLEDGE_WORKSPACE_ID,
+                "-name",
+                "MUSU",
+            ],
+            std::time::Duration::from_secs(10),
+        )?;
+        if !result.status_success {
+            return Err(format!("musu-brain init failed: {}", result.status_detail));
+        }
+    }
+
+    let token_path = knowledge_token_file_path();
+    if std::fs::read_to_string(&token_path)
+        .ok()
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false)
+    {
+        return Ok(());
+    }
+    if let Some(parent) = token_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge token dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+
+    let result = run_command_with_timeout(
+        command,
+        &[
+            "auth",
+            "issue",
+            "-root",
+            root_arg.as_str(),
+            "-name",
+            "musu-ingest",
+            "-tenant",
+            KNOWLEDGE_TENANT_ID,
+            "-workspace",
+            KNOWLEDGE_WORKSPACE_ID,
+            "-ttl",
+            "0",
+        ],
+        std::time::Duration::from_secs(10),
+    )?;
+    if !result.status_success {
+        return Err(format!(
+            "musu-brain auth issue failed: {}",
+            result.status_detail
+        ));
+    }
+    let token = parse_knowledge_token(&result.stdout)
+        .ok_or_else(|| "musu-brain auth issue did not return a token".to_string())?;
+    std::fs::write(&token_path, token).map_err(|err| {
+        format!(
+            "failed to write knowledge token file {}: {err}",
+            token_path.display()
+        )
+    })?;
+    Ok(())
+}
+
+fn parse_knowledge_token(stdout: &str) -> Option<String> {
+    stdout.lines().find_map(|line| {
+        line.trim()
+            .strip_prefix("token:")
+            .map(str::trim)
+            .filter(|token| !token.is_empty())
+            .map(ToOwned::to_owned)
+    })
+}
+
+fn knowledge_root() -> std::path::PathBuf {
+    musu_home().join("brain")
+}
+
+fn knowledge_token_file_path() -> std::path::PathBuf {
+    knowledge_root().join("runtime").join("musu-ingest.token")
+}
+
+fn knowledge_sidecar_command_path() -> std::path::PathBuf {
+    match std::env::current_exe() {
+        Ok(current_exe) => {
+            sibling_exe_for_current_exe(&current_exe, knowledge_sidecar_exe_name(), |path| {
+                path.exists()
+            })
+            .unwrap_or_else(|| std::path::PathBuf::from(knowledge_sidecar_exe_name()))
+        }
+        Err(_) => std::path::PathBuf::from(knowledge_sidecar_exe_name()),
+    }
+}
+
+fn knowledge_sidecar_exe_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "musu-brain.exe"
+    } else {
+        "musu-brain"
+    }
+}
+
 fn bridge_is_healthy(home: &std::path::Path) -> bool {
     let registry = bridge_registry_status(home);
     registry
@@ -6005,15 +6266,14 @@ mod tests {
         developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
         is_packaged_desktop_runtime_path, is_tailnet_ipv4, latest_physical_peer_evidence_from_home,
         latest_release_evidence_from_home, local_os_hostname, musu_command_path_for_current_exe,
-        parse_doctor_status_summary, parse_private_mesh_desktop_status,
+        parse_appinstaller_version, parse_doctor_status_summary, parse_private_mesh_desktop_status,
         parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
-        parse_appinstaller_version, sha256_hex, startup_marker_path, summarize_process_ownership,
-        update_helper_script, update_is_available, update_release_evidence_trust,
-        verify_sidecar_for_file, version_to_tuple, write_json_sidecar_for_file,
-        DESKTOP_MSIX_URL, PACKAGE_IDENTITY_NAME,
-        PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate,
+        sha256_hex, startup_marker_path, summarize_process_ownership, update_helper_script,
+        update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
+        version_to_tuple, write_json_sidecar_for_file, PrivateMeshReleaseProofDesktopResult,
+        ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL, PACKAGE_IDENTITY_NAME,
         PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
 
@@ -6044,14 +6304,20 @@ mod tests {
             "must wait on the passed cockpit PID: {script}"
         );
         // 2. Downloads the hosted .msix (protocol-free — no ms-appinstaller:).
-        assert!(script.contains(DESKTOP_MSIX_URL), "must fetch the hosted .msix");
+        assert!(
+            script.contains(DESKTOP_MSIX_URL),
+            "must fetch the hosted .msix"
+        );
         assert!(
             !script.contains("ms-appinstaller:"),
             "must NOT use the OS-disabled ms-appinstaller protocol"
         );
         // 3. Installs directly via Add-AppxPackage (per-user, unelevated) with
         //    OS-managed replacement of the running package (V31 fix).
-        assert!(script.contains("Add-AppxPackage"), "must install the .msix directly");
+        assert!(
+            script.contains("Add-AppxPackage"),
+            "must install the .msix directly"
+        );
         // 4. Resolves the package by its stable identity name and relaunches via
         //    the shell AUMID (user session), not by exe path / elevated.
         assert!(
@@ -6066,9 +6332,18 @@ mod tests {
         //    success AND failure), AUMID is captured BEFORE install (so a failed
         //    install still relaunches the old version), and a transcript log is
         //    left as a breadcrumb. Download is bounded so it can't hang forever.
-        assert!(script.contains("finally"), "relaunch must be in finally (always fires)");
-        assert!(script.contains("Start-Transcript"), "must log for post-failure diagnosis");
-        assert!(script.contains("-TimeoutSec 120"), "download must be bounded");
+        assert!(
+            script.contains("finally"),
+            "relaunch must be in finally (always fires)"
+        );
+        assert!(
+            script.contains("Start-Transcript"),
+            "must log for post-failure diagnosis"
+        );
+        assert!(
+            script.contains("-TimeoutSec 120"),
+            "download must be bounded"
+        );
         // 6. V31 fix for the recurring 0x80073D02: a manual kill-loop over a fixed
         //    process-name list missed lock-holders (adapter children, AV, explorer)
         //    and the install failed on hugh-main. We now let the OS shut down EVERY
@@ -6141,7 +6416,10 @@ mod tests {
     Uri="https://example/musu.appinstaller" Version="1.15.0.12">
   <MainPackage Name="musu" Version="9.9.9.9" Publisher="CN=x" />
 </AppInstaller>"#;
-        assert_eq!(parse_appinstaller_version(xml).as_deref(), Some("1.15.0.12"));
+        assert_eq!(
+            parse_appinstaller_version(xml).as_deref(),
+            Some("1.15.0.12")
+        );
     }
 
     #[test]
@@ -7909,6 +8187,21 @@ mod tests {
                 .iter()
                 .any(|entry| entry.as_str() == Some("binaries/musu")),
             "Tauri package must include the MUSU runtime sidecar"
+        );
+        assert!(
+            external_bin
+                .iter()
+                .any(|entry| entry.as_str() == Some("binaries/musu-brain")),
+            "Tauri package must include the MUSU Brain knowledge sidecar"
+        );
+    }
+
+    #[test]
+    fn parses_knowledge_auth_token_without_logging_context() {
+        let stdout = "token: test-token-value\nscope: local/musu\nexpires: never\n";
+        assert_eq!(
+            crate::parse_knowledge_token(stdout).as_deref(),
+            Some("test-token-value")
         );
     }
 

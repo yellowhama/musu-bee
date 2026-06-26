@@ -1,6 +1,6 @@
 [package]
 name = "musu-rs"
-version = "1.15.0-rc.20"
+version = "1.15.0-rc.21"
 edition = "2021"
 description = "musu control plane — single-binary Rust replacement for Python musu-bridge/core/control/indexer/writer (V24, panel-reshaped)"
 license = "PROPRIETARY"

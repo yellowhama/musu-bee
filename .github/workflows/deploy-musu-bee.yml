@@ -7,12 +7,22 @@ on:
       - main
     paths:
       - 'musu-bee/**'
+      - 'VERSION'
+      - 'scripts/windows/Install-MUSU.ps1'
+      - 'scripts/windows/Uninstall-MUSU.ps1'
+      - 'scripts/windows/canary-desktop-release.ps1'
+      - 'scripts/windows/verify-musu-pro-install-channel.ps1'
       - '.github/workflows/deploy-musu-bee.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'musu-bee/**'
+      - 'VERSION'
+      - 'scripts/windows/Install-MUSU.ps1'
+      - 'scripts/windows/Uninstall-MUSU.ps1'
+      - 'scripts/windows/canary-desktop-release.ps1'
+      - 'scripts/windows/verify-musu-pro-install-channel.ps1'
       - '.github/workflows/deploy-musu-bee.yml'
 
 env:
@@ -104,6 +114,11 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://musu.pro
           NEXT_PUBLIC_AUTH_ENABLED: "true"
 
+      - name: Verify production desktop-latest release assets
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: ./scripts/windows/canary-desktop-release.ps1 -Json -SkipLocalArtifactLengthChecks
+
       - name: Deploy to Vercel
         id: deploy
         timeout-minutes: 10
@@ -111,6 +126,15 @@ jobs:
           url=$(vercel deploy --prebuilt --yes ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
         working-directory: musu-bee
+
+      - name: Verify production health
+        if: github.ref == 'refs/heads/main'
+        run: curl -fsS https://musu.pro/api/health
+
+      - name: Verify production install channel
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: ./scripts/windows/verify-musu-pro-install-channel.ps1 -Json
 
       - name: Comment PR preview URL
         if: github.event_name == 'pull_request'

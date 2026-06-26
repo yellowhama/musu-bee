@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "MUSU",
-  "version": "1.15.0-rc.20",
+  "version": "1.15.0-rc.21",
   "identifier": "com.blossompark.musu",
   "build": {
     "frontendDist": "../out",
@@ -35,7 +35,8 @@
       }
     },
     "externalBin": [
-      "binaries/musu"
+      "binaries/musu",
+      "binaries/musu-brain"
     ],
     "icon": [
       "icons/32x32.png",

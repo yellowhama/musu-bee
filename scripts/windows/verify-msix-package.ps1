@@ -139,4 +139,7 @@ if (-not $SkipSmoke) {
     powershell -ExecutionPolicy Bypass -File (Join-Path $scriptDir "smoke-packaged-startup.ps1") `
         -StartupExe $StartupExe `
         -MusuHome $MusuHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "packaged startup smoke failed with exit code $LASTEXITCODE"
+    }
 }

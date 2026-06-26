@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
 import {
   publicRegistryNode,
+  registryPublicUrlIssue,
   registerNode,
 } from "@/lib/nodeRegistryStore";
 
@@ -17,7 +18,12 @@ export const runtime = "nodejs";
 const RegisterNodeSchema = z
   .object({
     node_name: z.string().trim().min(1).max(128),
-    public_url: z.string().trim().min(1).max(512),
+    public_url: z.string().trim().min(1).max(512).superRefine((value, ctx) => {
+      const issue = registryPublicUrlIssue(value);
+      if (issue) {
+        ctx.addIssue({ code: "custom", message: issue });
+      }
+    }),
     cert_fingerprint: z.string().trim().max(256).nullable().optional(),
     machine_group: z.string().trim().max(256).nullable().optional(),
     mac_address: z.string().trim().max(256).nullable().optional(),

@@ -4,9 +4,10 @@ Reproduce the `direct → relay → offline` transition on a real installed cock
 This validates the F-3 relay-reachable fleet state end-to-end after PR #23
 (backend + cockpit + CLI) and PR #21 (web page) land.
 
-> Status: `direct`/`online` 양방향 실증 완료 (2026-06-26, 양쪽 rc.20: hugh_second ↔
-> hugh-main 둘 다 healthy/direct, cross-machine authed 401 없음 — 핸드오프
-> `HANDOFF_2026_06_26_REINSTALL_RESILIENCE_V29_V31.md` 참조). 남은 user-gated 부분은
+> Status: `direct`/`online` 양방향 실증 evidence는 2026-06-26에 확보됨(양쪽 rc.20,
+> cross-machine authed 401 없음). 단, 이후 audit에서 현재 live 상태는 hugh_second만 direct
+> online이고 hugh-main은 stale loopback cloud URL 때문에 offline으로 정정됨 — 최신 상태는
+> `HANDOFF_2026_06_26_REINSTALL_RESILIENCE_V29_V31.md` 참조. 남은 user-gated 부분은
 > `relay`/`offline` **표시(display) flip**뿐. Boundary + probe→fallback 통합 단위테스트
 > (`cargo test --lib bridge::handlers::fleet`)가 표시 판정을 커버.
 
@@ -33,7 +34,7 @@ This validates the F-3 relay-reachable fleet state end-to-end after PR #23
 | State | Trigger | Web page / CLI / cockpit shell |
 |-------|---------|--------------------------------|
 | `direct` (green "online") | direct `/api/fleet/node-status` probe succeeds | green dot, targetable, task counts shown |
-| `relay` (yellow "relay") | direct probe FAILS but registry heartbeat fresh (≤300s) | yellow dot, STILL targetable, task counts hidden (probe failed) |
+| `relay` (yellow "relay") | direct probe FAILS but registry heartbeat fresh (≤300s) | yellow dot, display-only; not counted online/targetable, task counts hidden (probe failed) |
 | `offline` (red) | direct probe fails AND heartbeat stale (>300s) or absent | red dot, NOT targetable |
 
 All three surfaces MUST agree (FLEET_RETRY_AND_LAST_SEEN_CONTRACT §"Relay-reachable state").
@@ -55,11 +56,11 @@ to the cloud registry:
 - NAT-split the two machines (move B to a different network) so the published LAN
   IP is unreachable from A but B's outbound registry heartbeat continues.
 3. Within ~30s (web/cockpit poll) machine B flips to YELLOW "relay" on A's cockpit.
-4. Confirm B is **표시상** STILL targetable (yellow dot, not red): the UI marks it
-   targetable because heartbeat is fresh. ⚠️ **단, 실제 delegate가 relay로 forward되는지는
+4. Confirm B is **표시상 relay** (yellow dot, not red) but is **not** counted in
+   `online_nodes` and is **not** work-targetable. ⚠️ **단, 실제 delegate가 relay로 forward되는지는
    검증하지 말 것** — relay transport 미구현(router.rs:170)이라 direct 복구 전까지 forward는
    안 간다. delegate A→B를 시도하면 direct 경로 실패로 실패하거나 큐잉될 수 있다(정상). 여기서
-   검증하는 것은 **노랑 표시 전이**이지 relay forward 동작이 아니다.
+   검증하는 것은 **노랑 표시 전이**와 direct-online total exclusion이지 relay forward 동작이 아니다.
 5. CLI cross-check: `musu nodes --local` on A → B shows "relay" 🟡 (NOT "offline ❌").
 
 ### Step 3 — force `offline`: let heartbeat expire
@@ -94,9 +95,9 @@ For code-only checks use `cargo check` / `cargo test --lib --no-run`.
 
 ## Pass criteria
 
-- [x] Step 1: B green on all three surfaces (web, CLI, cockpit). **실증 완료 2026-06-26**
-      (양쪽 rc.20, hugh_second ↔ hugh-main 양방향 direct/healthy).
-- [ ] Step 2: B yellow "relay" **표시** on all three; targetable로 **표시**됨(노랑 dot).
+- [x] Step 1: B green on all three surfaces (web, CLI, cockpit). **과거 evidence 확보
+      2026-06-26**. 현재 live 판정은 최신 핸드오프의 audit 상태를 우선한다.
+- [ ] Step 2: B yellow "relay" **표시** on all three; `online_nodes`/targetable에서는 제외됨.
       ⚠️ transited:true relay forward는 검증 대상 아님(relay transport 미구현 — 위 ⚠️ 참조).
 - [ ] Step 3: B red "offline" on all three after ~300s; not targetable.
 - [ ] No surface disagrees at any step (the THREE-surface invariant).

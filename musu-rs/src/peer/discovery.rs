@@ -15,6 +15,7 @@ use std::path::Path;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 // ── Cached Registry ──────────────────────────────────────────────────
 
@@ -156,6 +157,29 @@ pub fn validate_peer_addr(addr: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn is_remote_usable_addr(addr: &str) -> bool {
+    let addr = addr.trim();
+    if addr.is_empty() {
+        return false;
+    }
+    let host = if let Some(rest) = addr.strip_prefix('[') {
+        rest.find(']').map(|idx| &rest[..idx]).unwrap_or(rest)
+    } else {
+        addr.rsplit_once(':').map(|(host, _)| host).unwrap_or(addr)
+    };
+    let normalized = host
+        .trim()
+        .trim_matches(&['[', ']'][..])
+        .trim_end_matches('.');
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("localhost") {
+        return false;
+    }
+    match normalized.parse::<IpAddr>() {
+        Ok(ip) => !ip.is_loopback() && !ip.is_unspecified(),
+        Err(_) => true,
+    }
+}
+
 // ── Resolved Peer ────────────────────────────────────────────────────
 
 /// A unified peer record from any source.
@@ -234,6 +258,14 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     // Source 1: cached registry (authoritative)
     if let Some(cache) = CachedRegistry::load(musu_home) {
         for node in &cache.nodes {
+            if !is_remote_usable_addr(&node.addr) {
+                tracing::warn!(
+                    node = %node.name,
+                    addr = %node.addr,
+                    "ignoring cached registry node with non-routable addr"
+                );
+                continue;
+            }
             registry_names.insert(node.name.clone());
             if seen.insert(node.addr.clone()) {
                 let mut meta = node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
@@ -361,6 +393,17 @@ mod tests {
     }
 
     #[test]
+    fn remote_usable_addr_rejects_loopback_and_wildcard_cache_addrs() {
+        assert!(!is_remote_usable_addr("127.0.0.1:8070"));
+        assert!(!is_remote_usable_addr("localhost:8070"));
+        assert!(!is_remote_usable_addr("0.0.0.0:8070"));
+        assert!(!is_remote_usable_addr("[::1]:8070"));
+        assert!(is_remote_usable_addr("192.168.1.50:8070"));
+        assert!(is_remote_usable_addr("[fd7a:115c:a1e0::1]:8070"));
+        assert!(is_remote_usable_addr("peer.example.test:443"));
+    }
+
+    #[test]
     fn manual_peer_roundtrip() {
         let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -478,6 +521,50 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// V33 audit: old cache files written before the public_url fix may contain
+    /// `127.0.0.1:{port}` for a remote node. Such a row must not become a route
+    /// candidate and must not suppress a valid same-name manual LAN peer.
+    #[test]
+    fn resolve_ignores_unroutable_cached_registry_rows() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "127.0.0.1:13397".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "public_url": "http://127.0.0.1:13397",
+                    "last_seen": "2026-06-26T03:30:39Z"
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:9497".into(), Some("hugh-main".into()));
+        manual.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        assert!(
+            !peers.iter().any(|p| p.addr == "127.0.0.1:13397"),
+            "stale loopback cache row must not survive"
+        );
+        assert!(
+            peers
+                .iter()
+                .any(|p| p.addr == "192.168.1.192:9497" && p.name.as_deref() == Some("hugh-main")),
+            "valid manual peer must survive when the same-name cache row is unusable"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// V30 WS-A: a genuine LAN-only manual peer (name NOT in the registry) must
     /// survive — the registry-authority rule only drops names the registry owns.
     #[test]
@@ -549,7 +636,10 @@ mod tests {
         let (out, pruned) = reconcile_manual_against_registry(manual, &registry);
         assert_eq!(pruned, 1, "exactly the stale ghost is removed");
         let addrs: Vec<&str> = out.peers.iter().map(|p| p.addr.as_str()).collect();
-        assert!(!addrs.contains(&"192.168.1.192:2957"), "stale ghost dropped");
+        assert!(
+            !addrs.contains(&"192.168.1.192:2957"),
+            "stale ghost dropped"
+        );
         assert!(addrs.contains(&"192.168.1.192:8001"), "current addr kept");
         assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
         assert!(addrs.contains(&"10.0.0.43:1"), "nameless peer kept");

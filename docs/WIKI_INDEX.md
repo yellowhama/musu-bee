@@ -375,6 +375,7 @@ State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local ope
 | wiki/453 | Research — Ben AI-OS 5 skills (vault hygiene patterns) | 2026-05-18 | `RESEARCH_BEN_AI_OS_5_SKILLS_2026_05_18.md` | complete |
 | wiki/455 | Research — HTML over Markdown (Tariq) | 2026-05-18 | `RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md` | complete |
 | wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
+| — | musu-brain 통합 thesis — 완제품 1대 (메인보드+칩: brain Go 바이너리 그대로, musu가 데이터·lifecycle·UX 묶음) | 2026-06-26 | `BRAIN_INTEGRATION_THESIS_2026_06_26.md` | active |
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
 | wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
@@ -8495,5 +8496,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   remove`, `self-eviction caller_ip fail-closed`, `this_pc_programs`, `cockpit
   desktop density`, `order box de-hero`, `specialist program badge`, `Option
   C-plus`, `fleet as one device cockpit`, `command surface Claude Code MCP`.
+
+- 2026-06-26 fleet rc.21 stale-registry audit + brain bonding:
+  `docs/FLEET_AND_BRAIN_BONDING_AUDIT_NEXT_STEPS_2026_06_26.md` records the
+  qualitative audit after rc.21 fleet stale-row hardening and the first
+  `musu-brain` motherboard+chip integration pass. Search terms should include
+  `fleet rc.21 brain bonding`, `musu-brain.pin.json`, `MUSU_KNOWLEDGE_INGEST`,
+  `~/.musu/brain`, `writer::runner::finalize`, `POST /v1/sources`,
+  `pin+VCS gate`, `token ACL verifier pending`, `desktop-latest rc20 no-go`,
+  and `hugh-main loopback stale row`.
+
+- 2026-06-26 brain integration thesis implementation update:
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md` is no longer only a pre-code
+  thesis. It now records implemented bonding: Tauri externalBin sidecar,
+  sidecar build from `F:\musu_2nd_brain`, `~/.musu/brain` lifecycle, token
+  bootstrap, runtime `MUSU_KNOWLEDGE_*` env, task-completion ingest, and
+  `knowledge_*` naming to avoid the existing Rust `brain` orchestrator. Search
+  terms should include `motherboard chip`, `hidden brain`, `knowledge namespace`,
+  `no shared SQLite`, `LocalState forbidden`, and `brain native semver pending`.
 
 **End of WIKI_INDEX.md.**

@@ -16,6 +16,7 @@ $repoRoot = Get-WindowsRepoRoot $MyInvocation.MyCommand.Path
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\multi-device-test-kit"
 }
+$OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
@@ -73,7 +74,11 @@ $scriptFiles = @(
     "record-msix-install-evidence.ps1",
     "verify-multidevice-evidence.ps1",
     "record-multidevice-evidence.ps1",
-    "smoke-multidevice-beta.ps1"
+    "smoke-multidevice-beta.ps1",
+    "repair-fleet-node-public-url.ps1",
+    "verify-fleet-audit-contract.ps1",
+    "remove-cloud-node-registry-row.ps1",
+    "verify-musu-pro-install-channel.ps1"
 )
 
 foreach ($name in $scriptFiles) {
@@ -82,6 +87,14 @@ foreach ($name in $scriptFiles) {
 
 Copy-Item -LiteralPath $packagePath -Destination (Join-Path $kitMsixDir (Split-Path -Leaf $packagePath))
 Copy-Item -LiteralPath $certPath -Destination (Join-Path $kitMsixDir (Split-Path -Leaf $certPath))
+$appInstallerPath = Join-Path $repoRoot ".local-build\msix\output\musu.appinstaller"
+$hostedMsixPath = Join-Path $repoRoot ".local-build\msix\output\musu-desktop-x64.msix"
+if (Test-Path -LiteralPath $appInstallerPath) {
+    Copy-Item -LiteralPath $appInstallerPath -Destination (Join-Path $kitMsixDir "musu.appinstaller")
+}
+if (Test-Path -LiteralPath $hostedMsixPath) {
+    Copy-Item -LiteralPath $hostedMsixPath -Destination (Join-Path $kitMsixDir "musu-desktop-x64.msix")
+}
 Copy-Item -LiteralPath (Join-Path $repoRoot "VERSION") -Destination (Join-Path $kitRoot "VERSION")
 Copy-Item -LiteralPath (Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md") -Destination $kitDocsDir
 
@@ -125,6 +138,17 @@ No private signing key is included.
 ## On each Windows PC
 
 Open PowerShell in this kit directory.
+
+Before using the public one-line installer on a second PC, verify that the live
+site and GitHub `desktop-latest` assets are all serving this kit's release:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-musu-pro-install-channel.ps1 -Json
+```
+
+Do not run `irm https://musu.pro/install.ps1 | iex` while that command reports
+`ok=false`; use the packaged MSIX in this kit or wait for the release channel to
+be published.
 
 Recommended first pass before the primary peer name is known:
 
@@ -264,6 +288,8 @@ Manual fallback:
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
+powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName THIS_PC_NAME -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
 Start-Process explorer.exe 'shell:AppsFolder\blossompark.musu_f5h38pf4yt4gc!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
@@ -289,6 +315,37 @@ The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
 The scenario matrix command writes `.local-build\runtime-cpu-scenarios\*.json`.
 The route reachability command writes
 `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`.
+The fleet audit command verifies the pasted audit contract: no fabricated
+heartbeat freshness, no default exposure of remote loopback registry rows,
+direct-only online totals, raw bridge bind visibility, and restricted local
+secret ACLs. On the still-stale machine, replace `THIS_PC_NAME` with its MUSU
+node name, for example `hugh-main`, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName hugh-main -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json
+```
+
+The strict verifier:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -Json
+```
+
+must pass only after all machines have republished non-loopback cloud URLs or
+the production cloud registry has been cleaned. If a stale row remains after the
+cloud DELETE route is deployed, remove it with:
+
+```powershell
+musu nodes --json --delete STALE_NODE_NAME
+```
+
+For older packages or direct script fallback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\remove-cloud-node-registry-row.ps1 -NodeName STALE_NODE_NAME -Json
+```
+
 The wrapper cleanup command writes `.local-build\runtime-cleanup\*.json`.
 The process-attribution command writes
 `.local-build\process-ownership\*.json` unless an explicit output path is used.

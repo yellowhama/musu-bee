@@ -24,7 +24,7 @@ pub mod services;
 pub mod tls_pin;
 
 use std::io::ErrorKind;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -404,7 +404,7 @@ pub async fn run() -> Result<()> {
     svc_registry
         .register(&services::ServiceRecord {
             name: "bridge".to_string(),
-            addr: format!("{}:{}", cfg.bridge_host, actual_port),
+            addr: actual_addr.to_string(),
             pid: Some(std::process::id()),
             started_at: chrono::Utc::now().timestamp(),
             transport: services::Transport::Tcp,
@@ -472,18 +472,23 @@ pub async fn run() -> Result<()> {
         let my_name_for_mdns = cfg.node_name.clone();
         let token_for_mdns = token.clone();
         let mdns_port = actual_port;
-        let _mdns_daemon =
-            match crate::peer::mdns::start_advertiser(&my_name_for_mdns, mdns_port, &token_for_mdns)
-            {
-                Ok(d) => {
-                    tracing::info!(port = mdns_port, "mDNS advertiser started (LAN auto-discovery)");
-                    Some(d)
-                }
-                Err(e) => {
-                    tracing::warn!(err = %e, "failed to start mDNS advertiser");
-                    None
-                }
-            };
+        let _mdns_daemon = match crate::peer::mdns::start_advertiser(
+            &my_name_for_mdns,
+            mdns_port,
+            &token_for_mdns,
+        ) {
+            Ok(d) => {
+                tracing::info!(
+                    port = mdns_port,
+                    "mDNS advertiser started (LAN auto-discovery)"
+                );
+                Some(d)
+            }
+            Err(e) => {
+                tracing::warn!(err = %e, "failed to start mDNS advertiser");
+                None
+            }
+        };
 
         let musu_home_clone = musu_home.clone();
         let token_clone = token.clone();
@@ -589,20 +594,28 @@ pub async fn run() -> Result<()> {
                     // logs the bearer value.
                     match cloud.request_mesh_bearer().await {
                         Ok(Some(fetched)) => {
-                            let current =
-                                crate::install::token::read_mesh_bearer(&musu_home);
+                            let current = crate::install::token::read_mesh_bearer(&musu_home);
                             if current.as_deref() != Some(fetched.as_str()) {
-                                match crate::install::token::write_mesh_bearer(&musu_home, &fetched) {
+                                match crate::install::token::write_mesh_bearer(&musu_home, &fetched)
+                                {
                                     Ok(()) => tracing::info!(
                                         "mesh bearer reconciled from account registry (was {})",
-                                        if current.is_some() { "stale/mismatched" } else { "absent" }
+                                        if current.is_some() {
+                                            "stale/mismatched"
+                                        } else {
+                                            "absent"
+                                        }
                                     ),
-                                    Err(e) => tracing::warn!(err = %e, "mesh bearer write failed (continuing)"),
+                                    Err(e) => {
+                                        tracing::warn!(err = %e, "mesh bearer write failed (continuing)")
+                                    }
                                 }
                             }
                         }
                         Ok(None) => {} // server secret unconfigured — keep current bearer
-                        Err(e) => tracing::debug!(err = %e, "mesh bearer fetch failed (continuing)"),
+                        Err(e) => {
+                            tracing::debug!(err = %e, "mesh bearer fetch failed (continuing)")
+                        }
                     }
 
                     // 2. Discover peers
@@ -610,16 +623,29 @@ pub async fn run() -> Result<()> {
                         Ok(siblings) => {
                             let mut list = crate::peer::discovery::ManualPeerList::load(&musu_home);
                             let mut added = 0;
+                            let mut pruned = 0usize;
+                            let mut skipped_non_routable_names = Vec::new();
 
                             // Also save a CachedRegistry so we have rich metadata for routing
                             let mut cached_nodes = Vec::new();
 
                             for node in siblings {
                                 if node.node_name != my_name {
-                                    let mut peer_addr = public_url_to_addr(&node.public_url);
+                                    let mut peer_addr = public_url_to_remote_addr(&node.public_url);
                                     let mut node_meta =
                                         node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
-                                    node_meta["public_url"] = serde_json::json!(node.public_url);
+                                    let registry_public_url_remote_usable = peer_addr.is_some();
+                                    node_meta["registry_public_url"] =
+                                        serde_json::json!(node.public_url);
+                                    node_meta["public_url_remote_usable"] =
+                                        serde_json::json!(registry_public_url_remote_usable);
+                                    if registry_public_url_remote_usable {
+                                        node_meta["public_url"] =
+                                            serde_json::json!(node.public_url);
+                                    } else if let Some(obj) = node_meta.as_object_mut() {
+                                        obj.remove("public_url");
+                                    }
+                                    node_meta["last_seen"] = serde_json::json!(node.last_seen);
                                     if let Ok(url) = reqwest::Url::parse(&node.public_url) {
                                         if matches!(url.scheme(), "http" | "https") {
                                             node_meta["transport_scheme"] =
@@ -638,13 +664,25 @@ pub async fn run() -> Result<()> {
                                     if let Some(ip) =
                                         node_meta.get("tailscale_ip").and_then(|v| v.as_str())
                                     {
-                                        if tailscale_ip.is_some() {
+                                        if tailscale_ip.is_some() && is_routable_remote_host(ip) {
                                             peer_addr =
                                                 replace_public_url_host(&node.public_url, ip)
-                                                    .unwrap_or_else(|| peer_addr.clone());
+                                                    .or(peer_addr);
                                             tracing::debug!(peer = %node.node_name, ip = %ip, "Upgrading peer routing to Tailscale IP");
                                         }
                                     }
+
+                                    let Some(peer_addr) = peer_addr else {
+                                        skipped_non_routable_names.push(node.node_name.clone());
+                                        tracing::warn!(
+                                            peer = %node.node_name,
+                                            public_url = %node.public_url,
+                                            "skipping registry sibling with non-routable public_url and no usable mesh route"
+                                        );
+                                        continue;
+                                    };
+                                    let last_heartbeat =
+                                        registry_last_seen_to_heartbeat(&node.last_seen);
 
                                     cached_nodes.push(crate::peer::discovery::CachedNode {
                                         // V30 WS-A: node_name IS the stable identity. The
@@ -657,7 +695,7 @@ pub async fn run() -> Result<()> {
                                         name: node.node_name.clone(),
                                         addr: peer_addr.clone(),
                                         capabilities: vec![],
-                                        last_heartbeat: Some(chrono::Utc::now()),
+                                        last_heartbeat,
                                         meta: Some(node_meta),
                                     });
 
@@ -681,7 +719,6 @@ pub async fn run() -> Result<()> {
                             // LAN-only manual peer and is left untouched. Re-load
                             // immediately before save to narrow the RMW race with
                             // a concurrent `peer add` (Critic M-1).
-                            let mut pruned = 0usize;
                             if !cached_nodes.is_empty() {
                                 let registry: std::collections::HashMap<String, String> =
                                     cached_nodes
@@ -693,7 +730,16 @@ pub async fn run() -> Result<()> {
                                 // (Critic M-1), then fold in this cycle's in-memory
                                 // additions so they aren't lost. Pure-fn reconcile
                                 // (tested in discovery.rs) drops only stale ghosts.
-                                let mut fresh = crate::peer::discovery::ManualPeerList::load(&musu_home);
+                                for name in &skipped_non_routable_names {
+                                    let _ = prune_unroutable_manual_peers_for_name(&mut list, name);
+                                }
+                                let mut fresh =
+                                    crate::peer::discovery::ManualPeerList::load(&musu_home);
+                                let mut non_routable_pruned = 0usize;
+                                for name in &skipped_non_routable_names {
+                                    non_routable_pruned +=
+                                        prune_unroutable_manual_peers_for_name(&mut fresh, name);
+                                }
                                 for p in &list.peers {
                                     if !fresh.peers.iter().any(|q| q.addr == p.addr) {
                                         fresh.peers.push(p.clone());
@@ -703,10 +749,21 @@ pub async fn run() -> Result<()> {
                                     crate::peer::discovery::reconcile_manual_against_registry(
                                         fresh, &registry,
                                     );
-                                pruned = n;
-                                if pruned > 0 {
+                                pruned += non_routable_pruned;
+                                pruned += n;
+                                if non_routable_pruned > 0 || n > 0 {
                                     list = reconciled;
-                                    tracing::info!(pruned, "pruned stale reinstall-ghost manual peers");
+                                    if n > 0 {
+                                        tracing::info!(
+                                            pruned = n,
+                                            "pruned stale reinstall-ghost manual peers"
+                                        );
+                                    }
+                                }
+                            } else {
+                                for name in &skipped_non_routable_names {
+                                    pruned +=
+                                        prune_unroutable_manual_peers_for_name(&mut list, name);
                                 }
                             }
 
@@ -870,10 +927,73 @@ fn public_url_to_addr(public_url: &str) -> String {
         .to_string()
 }
 
+fn public_url_to_remote_addr(public_url: &str) -> Option<String> {
+    let url = reqwest::Url::parse(public_url).ok()?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return None;
+    }
+    let host = url.host_str()?;
+    if !is_routable_remote_host(host) {
+        return None;
+    }
+    let port = url.port_or_known_default()?;
+    if port == 0 {
+        return None;
+    }
+    Some(public_url_to_addr(public_url))
+}
+
+fn registry_last_seen_to_heartbeat(last_seen: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    chrono::DateTime::parse_from_rfc3339(last_seen)
+        .ok()
+        .map(|stamp| stamp.with_timezone(&chrono::Utc))
+}
+
 fn replace_public_url_host(public_url: &str, host: &str) -> Option<String> {
+    if !is_routable_remote_host(host) {
+        return None;
+    }
     let url = reqwest::Url::parse(public_url).ok()?;
     let port = url.port_or_known_default()?;
+    if port == 0 {
+        return None;
+    }
     Some(format_host_port(host, port))
+}
+
+fn is_routable_remote_host(host: &str) -> bool {
+    let normalized = host
+        .trim()
+        .trim_matches(&['[', ']'][..])
+        .trim_end_matches('.');
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("localhost") {
+        return false;
+    }
+    match normalized.parse::<IpAddr>() {
+        Ok(ip) => !ip.is_loopback() && !ip.is_unspecified(),
+        Err(_) => true,
+    }
+}
+
+fn addr_host_is_unroutable_for_remote(addr: &str) -> bool {
+    let addr = addr.trim();
+    let host = if let Some(rest) = addr.strip_prefix('[') {
+        rest.find(']').map(|idx| &rest[..idx]).unwrap_or(rest)
+    } else {
+        addr.rsplit_once(':').map(|(host, _)| host).unwrap_or(addr)
+    };
+    !is_routable_remote_host(host)
+}
+
+fn prune_unroutable_manual_peers_for_name(
+    list: &mut crate::peer::discovery::ManualPeerList,
+    name: &str,
+) -> usize {
+    let before = list.peers.len();
+    list.peers.retain(|peer| {
+        peer.name.as_deref() != Some(name) || !addr_host_is_unroutable_for_remote(&peer.addr)
+    });
+    before - list.peers.len()
 }
 
 fn format_host_port(host: &str, port: u16) -> String {
@@ -902,6 +1022,64 @@ mod tests {
             replace_public_url_host("http://[fd7a:115c:a1e0::1]:8070/", "fd7a:115c:a1e0::99"),
             Some("[fd7a:115c:a1e0::99]:8070".to_string())
         );
+    }
+
+    #[test]
+    fn public_url_to_remote_addr_rejects_local_only_hosts() {
+        assert_eq!(public_url_to_remote_addr("http://127.0.0.1:13397"), None);
+        assert_eq!(public_url_to_remote_addr("http://localhost:13397"), None);
+        assert_eq!(public_url_to_remote_addr("http://0.0.0.0:2954"), None);
+        assert_eq!(public_url_to_remote_addr("http://[::1]:2954"), None);
+        assert_eq!(public_url_to_remote_addr("http://192.168.1.192:0"), None);
+        assert_eq!(
+            replace_public_url_host("http://peer.example.test:0/", "100.64.0.5"),
+            None
+        );
+    }
+
+    #[test]
+    fn public_url_to_remote_addr_accepts_routable_hosts() {
+        assert_eq!(
+            public_url_to_remote_addr("http://192.168.1.192:9497/"),
+            Some("192.168.1.192:9497".to_string())
+        );
+        assert_eq!(
+            public_url_to_remote_addr("https://peer.example.test/fleet"),
+            Some("peer.example.test:443".to_string())
+        );
+        assert_eq!(
+            public_url_to_remote_addr("http://[fd7a:115c:a1e0::1]:8070/"),
+            Some("[fd7a:115c:a1e0::1]:8070".to_string())
+        );
+    }
+
+    #[test]
+    fn registry_last_seen_to_heartbeat_uses_registry_stamp() {
+        let raw = "2026-06-26T03:30:39.874Z";
+        let expected = chrono::DateTime::parse_from_rfc3339(raw)
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+
+        assert_eq!(registry_last_seen_to_heartbeat(raw), Some(expected));
+        assert_eq!(registry_last_seen_to_heartbeat("not-a-timestamp"), None);
+    }
+
+    #[test]
+    fn prune_unroutable_manual_peers_only_removes_named_loopback() {
+        let mut list = crate::peer::discovery::ManualPeerList::default();
+        list.add("127.0.0.1:13397".into(), Some("hugh-main".into()));
+        list.add("192.168.1.192:9497".into(), Some("hugh-main".into()));
+        list.add("127.0.0.1:15555".into(), Some("local-test".into()));
+
+        assert_eq!(
+            prune_unroutable_manual_peers_for_name(&mut list, "hugh-main"),
+            1
+        );
+
+        let addrs: Vec<&str> = list.peers.iter().map(|peer| peer.addr.as_str()).collect();
+        assert!(!addrs.contains(&"127.0.0.1:13397"));
+        assert!(addrs.contains(&"192.168.1.192:9497"));
+        assert!(addrs.contains(&"127.0.0.1:15555"));
     }
 
     #[test]

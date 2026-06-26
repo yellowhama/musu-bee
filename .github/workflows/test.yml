@@ -41,6 +41,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Public release contract tests
+        run: npm run test:public-release
+
       - name: Runtime polling contract tests
         run: npm run test:runtime-polling
 

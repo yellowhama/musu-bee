@@ -144,13 +144,16 @@ try {
         throw "bridge.env does not contain a 64-hex MUSU_BRIDGE_TOKEN"
     }
 
-    $nodeStatus = Invoke-WebRequest -Uri ("http://{0}/api/fleet/node-status" -f $addr) -UseBasicParsing -TimeoutSec 3
+    $nodeStatus = Invoke-WebRequest -Uri ("http://{0}/api/fleet/node-status" -f $loopbackAddr) -UseBasicParsing -TimeoutSec 3
     if ($nodeStatus.StatusCode -ne 200) {
         throw "Packaged startup smoke could not fetch /api/fleet/node-status"
     }
     $nodeStatusJson = $nodeStatus.Content | ConvertFrom-Json
-    if ([string]$nodeStatusJson.addr -ne $addr) {
-        throw "Node status addr mismatch: expected $addr, got $($nodeStatusJson.addr)"
+    $expectedPort = ([uri]"http://$loopbackAddr").Port
+    $nodeStatusAddr = [string]$nodeStatusJson.addr
+    $nodeStatusPort = ([uri]"http://$nodeStatusAddr").Port
+    if ($nodeStatusPort -ne $expectedPort) {
+        throw "Node status port mismatch: expected $expectedPort from $loopbackAddr, got $nodeStatusAddr"
     }
 
     Write-Step "Packaged startup smoke passed"
@@ -159,8 +162,9 @@ try {
         StartupExe     = $StartupExe
         Pid            = $proc.Id
         BridgeAddr     = $addr
+        LocalProbeAddr = $loopbackAddr
         HealthCode     = $health.StatusCode
-        NodeStatusAddr = [string]$nodeStatusJson.addr
+        NodeStatusAddr = $nodeStatusAddr
         StartupStage   = [string]$startupMarker.stage
         TokenBootstrapped = $true
     } | Format-List

@@ -19,8 +19,9 @@ import { getBridgeUrl } from '../../lib/bridge-config';
 // where FleetNodeStatus = { name, addr, healthy, reachable_via?, is_self,
 //   last_seen?, status_error?, tasks_running, tasks_pending, shared_dirs[],
 //   version, ... }. `reachable_via` is "direct" | "relay" | absent. A node with
-//   healthy=false but reachable_via="relay" is reachable over the relay and is
-//   shown as a distinct yellow "relay" state — NOT offline (F-3).
+//   healthy=false but reachable_via="relay" has recent relay-display evidence
+//   and is shown as a distinct yellow "relay" state, but is not counted in
+//   online_nodes until direct or proven relay transport is available.
 //
 // FleetNodeStatus carries NO GPU/CPU/memory capacity (that lived only in the old
 // Python machine shape), so the capacity bars are dropped here rather than
@@ -182,7 +183,7 @@ function PcStatusCard({ node }: { node: FleetNodeStatus }) {
 
       {state === "relay" && (
         <div style={{ fontSize: 11, color: "var(--status-warn)", marginTop: 8 }}>
-          Reachable over relay (no direct route).
+          Recent relay heartbeat; direct route not proven.
         </div>
       )}
       {state === "offline" && node.status_error && (
