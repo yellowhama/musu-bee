@@ -8517,14 +8517,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-27 V34 discovery/stale first bonding:
   `docs/V34_DISCOVERY_STALE_THESIS_2026_06_26.md` now records the first
-  candidate-set implementation slice. Bridge cloud heartbeat publishes
+  candidate-set implementation slices. Bridge cloud heartbeat publishes
   `meta.candidate_endpoints` from the advertised bridge URL plus Tailscale /
-  private-mesh IP when present, and `peer::discovery` expands cached registry
-  candidates into multiple route candidates for the same stable `node_name`
-  while rejecting relay/failed/loopback candidates. Search terms should include
+  private-mesh IP when present. Server registry `POST /api/v1/nodes/register`
+  adds the request's usable forwarded/source IP as `kind: "observed_source_ip"`
+  without replacing `public_url`, and rejects loopback/wildcard observed
+  candidates. `peer::discovery` expands cached registry candidates into
+  multiple route candidates for the same stable `node_name` while rejecting
+  relay/failed/loopback candidates. Search terms should include
   `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
   `resolve_expands_cached_registry_candidate_endpoints`,
-  `candidate_endpoints`, `single public_url self-report`, and
-  `observed_source_ip pending`.
+  `observed_source_ip`, `x-forwarded-for`, `candidate_endpoints`, and
+  `single public_url self-report`.
 
 **End of WIKI_INDEX.md.**

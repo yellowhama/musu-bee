@@ -36,8 +36,15 @@ function ownerKeyFor(token: string): string {
   return `token-sha256:${createHash("sha256").update(token).digest("hex")}`;
 }
 
-function postReq(body: unknown, token: string | null = TOKEN_A): NextRequest {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+function postReq(
+  body: unknown,
+  token: string | null = TOKEN_A,
+  extraHeaders: Record<string, string> = {}
+): NextRequest {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...extraHeaders,
+  };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -287,6 +294,78 @@ test("POST accepts registry public_url with remote-usable host", async () => {
       );
       assert.equal(res.status, 200, `${public_url} should be accepted`);
     }
+  });
+});
+
+test("POST adds server-observed source IP as an additive route candidate", async () => {
+  await withRegistryEnv(async () => {
+    const { POST } = await loadRegister("observed-source");
+    const res = await POST(
+      postReq(
+        {
+          node_name: "alpha",
+          public_url: "http://192.168.1.10:8070",
+          meta: {
+            candidate_endpoints: [
+              {
+                kind: "lan",
+                addr: "192.168.1.10:8070",
+                observed_at: "2026-06-27T00:00:00.000Z",
+                scheme: "http",
+              },
+            ],
+          },
+        },
+        TOKEN_A,
+        { "x-forwarded-for": "10.55.0.8, 127.0.0.1" }
+      )
+    );
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as {
+      meta: {
+        candidate_model?: string;
+        observed_source_ip?: string;
+        candidate_endpoints?: Array<Record<string, unknown>>;
+      };
+    };
+    assert.equal(body.meta.candidate_model, "v34_additive_candidate_set_v1");
+    assert.equal(body.meta.observed_source_ip, "10.55.0.8");
+    assert.equal(body.meta.candidate_endpoints?.[0]?.kind, "observed_source_ip");
+    assert.equal(body.meta.candidate_endpoints?.[0]?.addr, "10.55.0.8:8070");
+    assert.equal(body.meta.candidate_endpoints?.[0]?.scheme, "http");
+    assert.equal(
+      body.meta.candidate_endpoints?.[0]?.nat_observed_by,
+      "musu.pro/api/v1/nodes/register"
+    );
+    assert.ok(
+      body.meta.candidate_endpoints?.some(
+        (candidate) => candidate.kind === "lan" && candidate.addr === "192.168.1.10:8070"
+      )
+    );
+  });
+});
+
+test("POST ignores loopback server-observed source IP candidates", async () => {
+  await withRegistryEnv(async () => {
+    const { POST } = await loadRegister("observed-loopback");
+    const res = await POST(
+      postReq(
+        {
+          node_name: "alpha",
+          public_url: "http://192.168.1.10:8070",
+          meta: { marker: "preserved" },
+        },
+        TOKEN_A,
+        { "x-forwarded-for": "127.0.0.1" }
+      )
+    );
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as {
+      meta: Record<string, unknown>;
+    };
+    assert.equal(body.meta.marker, "preserved");
+    assert.ok(!("observed_source_ip" in body.meta));
+    assert.ok(!("candidate_endpoints" in body.meta));
   });
 });
 
