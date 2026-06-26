@@ -1,6 +1,6 @@
 {
   "name": "musu-bee",
-  "version": "1.15.0-rc.21",
+  "version": "1.15.0-rc.22",
   "private": true,
   "engines": {
     "node": ">=22.12.0"

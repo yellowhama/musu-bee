@@ -5,6 +5,30 @@
 > (main 미머지 — design-gate 승인 대기).**
 > 버전 **rc.21**.
 
+## 2026-06-27 rc.22 release-channel follow-up
+
+현재 public install channel은 **1.15.0-rc.22 / MSIX 1.15.0.22**로 올라갔다. 목적은 brain ingest
+token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제 배포하는 것.
+
+- `desktop-latest` GitHub release assets 재빌드/업로드 완료:
+  `musu-desktop-x64.msix` length `40686791`, `musu.appinstaller` length `768`,
+  `Install-MUSU.ps1` length `16143`.
+- `musu.pro` production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`가 `https://musu.pro`에 alias됨.
+- `verify-musu-pro-install-channel.ps1 -Json` 통과: `ok=true`, `failure_count=0`,
+  `/api/health` 및 `/api/public-config`는 `1.15.0-rc.22`, `/install.ps1`는
+  `ExpectedReleaseVersion="1.15.0-rc.22"`.
+- GitHub `desktop-latest` stable URL은 `--clobber` 직후 rc.21 content를 잠시 반환했다. 그래서
+  public release asset URL, generated `.appinstaller` `Uri`/`MainPackage Uri`, 그리고
+  `Install-MUSU.ps1` appinstaller download에 `?rc=1.15.0.22` cache-buster를 추가했다.
+- `musu-brain.pin.json`은 `F:\musu_2nd_brain` clean HEAD
+  `2f036728a9e6d5840634666d7442be87d302f083`로 갱신됨. 첫 rc.22 build는 pin이 옛
+  `f7678af...`라서 실패했고, 이 fail-closed gate가 정상 동작했다.
+- 현재 second PC에 설치된 패키지는 아직 `1.15.0.21`이다. rc.22는 hosted install/update channel에
+  올라간 상태이며, physical `hugh-main` 설치/repair/direct-route proof와 packaged first-run brain
+  token proof는 아직 남아 있다.
+
+상세 감사/다음 단계: `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`.
+
 ## V33 잔여 마무리 (브랜치 feat/v33-residual-finalize, 2026-06-26)
 사용자 /goal: W-4 relay-fallback + GA EV/Store 잔여를 마스터→투두→/loop 구현. Phase 0 리서치로 8 WS로 분해.
 | WS | 무엇 | 커밋 |

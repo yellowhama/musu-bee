@@ -1,9 +1,9 @@
 {
   "schema": "musu.brain_sidecar_pin.v1",
-  "product_version": "1.15.0-rc.21",
+  "product_version": "1.15.0-rc.22",
   "module_path": "musubrain",
   "main_package": "./cmd/musu-brain",
   "default_repo_hint": "F:\\musu_2nd_brain",
-  "vcs_revision": "f7678af71d281a10df64c79e4eda6bc77ef8a719",
-  "vcs_time": "2026-06-26T23:40:36+09:00"
+  "vcs_revision": "2f036728a9e6d5840634666d7442be87d302f083",
+  "vcs_time": "2026-06-27T02:35:39+09:00"
 }

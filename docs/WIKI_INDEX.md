@@ -8608,6 +8608,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `brain_ingest_token_acl_restricted`, `knowledge token ACL`, and
   `~/.musu/brain/runtime/musu-ingest.token`.
 
+- 2026-06-27 rc.22 install-channel release audit:
+  `docs/RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`
+  records the release-channel follow-up that ships the brain token ACL hardening
+  through hosted `desktop-latest` and `musu.pro`. The public channel is now
+  `1.15.0-rc.22` / `MSIX 1.15.0.22`; Vercel production deployment
+  `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR` is aliased to `https://musu.pro`;
+  `verify-musu-pro-install-channel.ps1 -Json`, desktop canary, and default fleet
+  audit pass. The first rc.22 build exposed a real brain pin mismatch
+  (`f7678af...` vs clean HEAD `2f036728...`), so `musu-brain.pin.json` now pins
+  `2f036728a9e6d5840634666d7442be87d302f083`. GitHub release asset stable URLs
+  served stale rc.21 immediately after `--clobber`, so public release URLs,
+  generated `.appinstaller` `Uri` / `MainPackage Uri`, and `Install-MUSU.ps1`
+  appinstaller download now carry `?rc=1.15.0.22`. Search terms should include
+  `rc22 install channel`, `1.15.0.22`, `desktop-latest cache buster`,
+  `musu.appinstaller?rc=1.15.0.22`, `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`,
+  `brain pin mismatch`, `2f036728a9e6d5840634666d7442be87d302f083`, and
+  `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
+
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
   approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;

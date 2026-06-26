@@ -792,8 +792,9 @@ if (-not $DryRun -and $legacyOutputMsix -ne $outputMsix -and (Test-Path -Literal
 # a sideload-only concept here.
 $appInstallerEmitted = $false
 if ($StartupContract -eq "local-sideload-manual") {
-    $appInstallerUri = "$AppInstallerBaseUrl/musu.appinstaller"
-    $hostedMsixUri = "$AppInstallerBaseUrl/$HostedMsixFileName"
+    $releaseCacheBuster = "rc=$Version"
+    $appInstallerUri = "${AppInstallerBaseUrl}/musu.appinstaller?$releaseCacheBuster"
+    $hostedMsixUri = "${AppInstallerBaseUrl}/${HostedMsixFileName}?$releaseCacheBuster"
     $appInstallerPath = Join-Path $OutputDir "musu.appinstaller"
     # The .appinstaller references the FIXED hosted name. Emit a copy of the
     # version-suffixed MSIX under that exact name (audit 2026-06-11 MEDIUM) so the

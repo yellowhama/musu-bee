@@ -3,6 +3,23 @@
 Scope: current `feat/v33-residual-finalize` work after the fleet stale-registry audit hotfix and the first
 `musu-brain` motherboard+chip bonding pass.
 
+## 2026-06-27 rc.22 Follow-up
+
+The public install channel has advanced from `1.15.0-rc.21` to `1.15.0-rc.22` (`MSIX 1.15.0.22`) so the hosted package now contains the brain ingest token ACL hardening. `desktop-latest` was rebuilt and published, and Vercel production deployment `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR` is aliased to `https://musu.pro`.
+
+Important release-channel correction: GitHub `desktop-latest` stable asset URLs can serve stale content immediately after `gh release upload --clobber`. The release contract now uses version query cache-busting (`?rc=1.15.0.22`) in `publicRelease.ts`, generated `.appinstaller` `Uri` / `MainPackage Uri`, and `Install-MUSU.ps1` appinstaller download. `audit-appinstaller-contract.ps1` validates the `.msix` URI path while allowing the query string.
+
+The brain pin is now `2f036728a9e6d5840634666d7442be87d302f083` from clean `F:\musu_2nd_brain` HEAD (`feat/brain-self-improvement`). The pin mismatch caught during the first rc.22 build was a useful gate: the long Rust build finished, then sidecar bundling refused to package an unpinned brain checkout.
+
+Current rc.22 verification:
+
+- `publish-desktop-latest-assets.ps1 -ConfirmUpload`: passed; desktop canary saw `appinstaller=1.15.0.22`, `main=1.15.0.22`, hosted MSIX length `40686791`, installer script hash match.
+- `verify-musu-pro-install-channel.ps1 -Json`: passed with `ok=true`, `failure_count=0`.
+- `verify-fleet-audit-contract.ps1 -Json`: passed with `ok=true`, `warn_count=0`.
+- `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`: still fails by design until a packaged first-run creates `~/.musu/brain/runtime/musu-ingest.token`.
+
+Detailed audit and next steps: `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`.
+
 ## Findings
 
 | Severity | Finding | Evidence | Next |

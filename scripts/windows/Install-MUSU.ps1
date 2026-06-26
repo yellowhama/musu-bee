@@ -22,7 +22,7 @@ param(
     [string]$AppInstallerFileName = "musu.appinstaller",
     # Must match repo VERSION. This turns a forgotten `desktop-latest` upload
     # into a visible install failure instead of silently installing an old RC.
-    [string]$ExpectedReleaseVersion = "1.15.0-rc.21",
+    [string]$ExpectedReleaseVersion = "1.15.0-rc.22",
     [string]$PublicConfigUrl = "https://musu.pro/api/public-config",
     # Canonical self-URL used to re-fetch the script when self-elevating under
     # `irm | iex` (no $PSCommandPath in that mode).
@@ -106,7 +106,8 @@ if ($publicReleaseVersion -ne $ExpectedReleaseVersion) {
     throw "musu.pro is publishing releaseVersion '$publicReleaseVersion', but this installer expects '$ExpectedReleaseVersion'. Aborting so this PC does not install the wrong release."
 }
 $appInstallerPath = Join-Path $work $AppInstallerFileName
-Invoke-WebRequest "$ReleaseBase/$AppInstallerFileName" -OutFile $appInstallerPath -UseBasicParsing
+$appInstallerUrl = "$ReleaseBase/$AppInstallerFileName?rc=$expectedPackageVersion"
+Invoke-WebRequest $appInstallerUrl -OutFile $appInstallerPath -UseBasicParsing
 $appInstallerVersions = Get-AppInstallerVersions -Path $appInstallerPath
 if ($appInstallerVersions.AppInstallerVersion -ne $expectedPackageVersion -or
     $appInstallerVersions.MainPackageVersion -ne $expectedPackageVersion) {
