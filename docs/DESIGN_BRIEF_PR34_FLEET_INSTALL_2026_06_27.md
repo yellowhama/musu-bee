@@ -60,8 +60,11 @@ have paired PCs in the web fleet store.
 - `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
   passed 38/38.
 - `npm run test:public-release` passed 11/11.
-- PR #34 code/test CI checks pass on head `9ddaf745`; only `design-gate` remains
-  pending actual approval evidence.
+- `cargo test registry_last_seen_to_heartbeat --lib` passed 1/1
+  (`registry_last_seen_to_heartbeat_uses_registry_stamp`).
+- PR #34 code/test CI checks pass on head `5a04f954`; only `design-gate` remains
+  pending actual approval evidence. Issue #35 is still open with no approval
+  comments as of the 2026-06-27 KST continuation recheck.
 
 ## Approval Requirements
 

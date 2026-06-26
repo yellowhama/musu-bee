@@ -172,11 +172,14 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   resolution이 실패하던 환경 문제를 `npm install`로 복구(소스/lockfile tracked diff 없음). 이후
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
   38/38 통과, `npm run test:public-release` 11/11 통과, `git diff --check` 통과.
-  PR #34는 `d938d627` 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
+  추가 재확인에서 `cargo test registry_last_seen_to_heartbeat --lib` 1/1 통과.
+  PR #34는 `5a04f954` 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
   `design-gate` 1개(실제 `Design: Approved` + design brief/artifact 필요, 임의 bypass 금지).
+  GitHub issue #35는 open 상태이며 approval comment는 아직 0개다.
   live install-channel은 재확인해도 아직 `ok=false`: `public-config releaseVersion=1.15.0-rc.20`,
   hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, hosted appinstaller/MainPackage
-  `1.15.0.20`. 반면 `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK.
+  `1.15.0.20`. live `https://musu.pro/api/health`도 아직 404. 반면
+  `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK.
 - ✅ **design-gate 승인 준비물 생성(승인 아님)**: PR #34의 UI 변경 범위(`/download`,
   `/install`, `/fleet`, `/dashboard/fleet`)를 `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`에
   정리했고, 로컬 dev server(`127.0.0.1:3000`)에서
