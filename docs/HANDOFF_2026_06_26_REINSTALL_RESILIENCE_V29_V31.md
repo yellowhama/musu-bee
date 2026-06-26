@@ -138,7 +138,8 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   `public_url` / cached route 후보가 `[::ffff:127.0.0.1]` 또는 `[::ffff:0.0.0.0]`처럼 IPv4-mapped
   IPv6로 들어와도 loopback/wildcard와 동일하게 unusable로 판정한다. TS registry(`nodeRegistryStore.ts`)
   와 Rust registry/resolver(`bridge::is_routable_remote_host`, `peer::discovery::is_remote_usable_addr`)
-  양쪽에 테스트를 추가했다.
+  양쪽에 테스트를 추가했다. 후속 보강으로 `musu doctor` / `musu nodes` 경고 helper와
+  `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable`도 같은 판정을 사용한다.
 - ✅ **V34 route candidate preflight 1차 bonding**:
   `forward_to_peer_with_retry`는 rendezvous target `candidate_endpoints`와 selected peer를 합친 뒤,
   task POST 전에 read-only `/api/fleet/node-status` preflight를 짧게 병렬 실행해 reachable 후보를 앞으로
@@ -279,6 +280,8 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   with `warn_count=1` before production cleanup if only remote stale rows remain. Strict
   `verify-fleet-audit-contract.ps1 -Json` must pass after main republishes a non-loopback URL
   and/or `musu.pro` production list filtering is deployed.
+  `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json` must stay green for loopback,
+  wildcard, IPv6 loopback, and IPv4-mapped loopback/wildcard cases.
 - desktop-latest canary: after uploading rc.21 release assets, run
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\canary-desktop-release.ps1 -Json`.
   It must return `schema=musu.desktop_release_canary.v5`, `ok=true`,

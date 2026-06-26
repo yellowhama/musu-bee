@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$AllowRemoteRegistryWarnings,
+    [switch]$SelfTestRemoteUsable,
     [switch]$Json
 )
 
@@ -92,15 +93,36 @@ function Test-RemoteUsableUrl {
     if ($uri.Port -eq 0) {
         return $false
     }
-    $hostName = ($uri.Host.Trim() -replace '^\[', '' -replace '\]$', '').TrimEnd(".").ToLowerInvariant()
+    $hostName = $uri.Host.Trim()
+    if ($hostName.StartsWith("[") -and $hostName.EndsWith("]")) {
+        $hostName = $hostName.Substring(1, $hostName.Length - 2)
+    }
+    $hostName = $hostName.TrimEnd(".").ToLowerInvariant()
     if ([string]::IsNullOrWhiteSpace($hostName) -or $hostName -eq "localhost") {
         return $false
     }
-    if ($hostName -eq "0.0.0.0" -or $hostName -eq "::" -or $hostName -eq "::1" -or $hostName -eq "0:0:0:0:0:0:0:1") {
-        return $false
-    }
-    if ($hostName -eq "127.0.0.1" -or $hostName.StartsWith("127.")) {
-        return $false
+    $ip = $null
+    if ([System.Net.IPAddress]::TryParse($hostName, [ref]$ip)) {
+        if ($ip.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork) {
+            $ipv4 = $ip.ToString()
+            if ($ipv4 -eq "0.0.0.0" -or $ipv4.StartsWith("127.")) {
+                return $false
+            }
+            return $true
+        }
+        if ($ip.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6) {
+            if ($ip.IsIPv4MappedToIPv6) {
+                $mapped = $ip.MapToIPv4().ToString()
+                if ($mapped -eq "0.0.0.0" -or $mapped.StartsWith("127.")) {
+                    return $false
+                }
+                return $true
+            }
+            if ($ip.Equals([System.Net.IPAddress]::IPv6Loopback) -or $ip.Equals([System.Net.IPAddress]::IPv6Any)) {
+                return $false
+            }
+            return $true
+        }
     }
     return $true
 }
@@ -112,6 +134,58 @@ function Test-RemoteUsableAddr {
         return $false
     }
     return Test-RemoteUsableUrl -Url ("http://{0}" -f $Addr)
+}
+
+if ($SelfTestRemoteUsable) {
+    $urlCases = @(
+        @{ url = "http://127.0.0.1:8070"; expected = $false },
+        @{ url = "http://0.0.0.0:8070"; expected = $false },
+        @{ url = "http://[::1]:8070"; expected = $false },
+        @{ url = "http://[::ffff:127.0.0.1]:8070"; expected = $false },
+        @{ url = "http://[::ffff:0.0.0.0]:8070"; expected = $false },
+        @{ url = "http://192.168.1.20:8070"; expected = $true },
+        @{ url = "https://peer.example.test"; expected = $true }
+    )
+    foreach ($case in $urlCases) {
+        $actual = Test-RemoteUsableUrl -Url $case.url
+        Add-CheckFromCondition `
+            -Name "remote_usable_url:$($case.url)" `
+            -Condition ($actual -eq [bool]$case.expected) `
+            -PassMessage "expected=$($case.expected), actual=$actual" `
+            -FailMessage "expected=$($case.expected), actual=$actual"
+    }
+
+    $addrCases = @(
+        @{ addr = "[::ffff:127.0.0.1]:8070"; expected = $false },
+        @{ addr = "[::ffff:0.0.0.0]:8070"; expected = $false },
+        @{ addr = "192.168.1.20:8070"; expected = $true }
+    )
+    foreach ($case in $addrCases) {
+        $actual = Test-RemoteUsableAddr -Addr $case.addr
+        Add-CheckFromCondition `
+            -Name "remote_usable_addr:$($case.addr)" `
+            -Condition ($actual -eq [bool]$case.expected) `
+            -PassMessage "expected=$($case.expected), actual=$actual" `
+            -FailMessage "expected=$($case.expected), actual=$actual"
+    }
+
+    $failCount = @($checks | Where-Object { $_.status -eq "fail" }).Count
+    $result = @{
+        schema = "musu.fleet_audit_remote_usable_selftest.v1"
+        ok = ($failCount -eq 0)
+        fail_count = $failCount
+        checks = @($checks.ToArray())
+    }
+    if ($Json) {
+        $result | ConvertTo-Json -Depth 6
+    }
+    else {
+        $result
+    }
+    if ($failCount -gt 0) {
+        exit 1
+    }
+    exit 0
 }
 
 function Get-JsonFile {

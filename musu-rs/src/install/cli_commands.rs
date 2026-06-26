@@ -960,7 +960,14 @@ fn is_usable_remote_public_host(host: &str) -> bool {
         return false;
     }
     match normalized.parse::<IpAddr>() {
-        Ok(ip) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V4(ip)) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V6(ip)) => {
+            if let Some(mapped) = ip.to_ipv4_mapped() {
+                !mapped.is_loopback() && !mapped.is_unspecified()
+            } else {
+                !ip.is_loopback() && !ip.is_unspecified()
+            }
+        }
         Err(_) => true,
     }
 }
@@ -6130,6 +6137,8 @@ mod tests {
         assert!(cloud_public_url_warning("http://localhost:8070", false).is_some());
         assert!(cloud_public_url_warning("http://0.0.0.0:8070", false).is_some());
         assert!(cloud_public_url_warning("http://[::1]:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://[::ffff:127.0.0.1]:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://[::ffff:0.0.0.0]:8070", false).is_some());
         assert!(cloud_public_url_warning("http://192.168.1.20:0", false).is_some());
         assert!(cloud_public_url_warning("http://192.168.1.20:8070", false).is_none());
         assert!(cloud_public_url_warning("https://peer.example.test", false).is_none());

@@ -39,7 +39,9 @@ The UI must not invent stale timestamps to force an offline rendering.
 Cloud registry `public_url` must be usable by other PCs:
 
 - `/api/v1/nodes/register` rejects non-HTTP(S), loopback, localhost, wildcard,
-  and port-0 `public_url` values before writing the registry row.
+  IPv4-mapped loopback/wildcard (`[::ffff:127.0.0.1]`,
+  `[::ffff:0.0.0.0]`), and port-0 `public_url` values before writing the
+  registry row.
 - `/api/v1/nodes` filters legacy rows with non-remote-usable `public_url` so old
   registry pollution is not returned as fleet truth.
 - `musu nodes` applies the same client-side default filter and omits remote
@@ -55,8 +57,8 @@ Cloud registry `public_url` must be usable by other PCs:
   the CLI treats it as idempotent success/already-absent, not as a fatal cleanup
   failure.
 - Local resolver/cache code treats any legacy remote loopback/wildcard registry
-  entry as unusable and does not convert it into a cached peer or fresh
-  heartbeat evidence.
+  entry, including IPv4-mapped loopback/wildcard forms, as unusable and does
+  not convert it into a cached peer or fresh heartbeat evidence.
 
 Fleet filter semantics follow that same contract:
 
@@ -234,6 +236,9 @@ Additional rc.21 stale-registry audit hotfix checks (2026-06-26):
 
 - Server registry write/list path rejects or hides non-remote-usable
   `public_url` values; resolver/cache also excludes legacy remote loopback rows.
+- 2026-06-27 follow-up: the same remote-usable rule now covers IPv4-mapped
+  loopback/wildcard forms in TS registry, Rust resolver/cache, `musu doctor` /
+  `musu nodes` warning helpers, and `verify-fleet-audit-contract.ps1`.
 - `cargo test --manifest-path musu-rs\Cargo.toml --jobs 1 --lib
   cloud::tests::delete_registry_node_by_name_treats_json_404_as_absent` passed,
   proving the cleanup CLI path treats JSON 404 as idempotent absent.

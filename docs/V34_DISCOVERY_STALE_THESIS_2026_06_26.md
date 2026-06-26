@@ -67,10 +67,13 @@ live `musu.pro`와 hosted `desktop-latest`는 아직 rc.20 상태라 `musu.pro` 
 ### 2026-06-27 IPv4-mapped loopback guard status
 Remote-usable address 판정은 IPv4-mapped IPv6도 같은 loopback/wildcard 규칙을 적용한다.
 `[::ffff:127.0.0.1]` / `[::ffff:0.0.0.0]` 같은 canonicalized URL host는 remote PC에서 유효한
-상대 주소가 아니므로 server registry write/list와 Rust resolver/cache route 후보에서 모두 제외한다.
+상대 주소가 아니므로 server registry write/list, Rust resolver/cache route 후보, CLI
+doctor/nodes warning helper, audit verifier에서 모두 제외한다.
 검증: `npx tsx --test src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts`
 31/31 통과, `cargo test public_url_to_remote_addr_rejects_local_only_hosts --lib` 1/1 통과,
-`cargo test remote_usable_addr_rejects_loopback_and_wildcard_cache_addrs --lib` 1/1 통과.
+`cargo test remote_usable_addr_rejects_loopback_and_wildcard_cache_addrs --lib` 1/1 통과,
+`cargo test cloud_public_url_warning_flags_any_loopback_registry_row --lib` 1/1 통과,
+`verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json` 통과.
 
 이 hotfix는 **거짓 online/targetable 방지**와 진단 정직성 보강이다. 아래 V34 thesis(후보-집합 race,
 observed-IP additive, TTL prune, mDNS 1순위)는 여전히 근본 설계 과제다. 현재 hugh-main은 아직

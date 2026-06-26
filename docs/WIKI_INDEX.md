@@ -8529,7 +8529,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `node_name` while rejecting relay/failed/loopback candidates. Remote-usable
   host checks now also reject IPv4-mapped loopback/wildcard hosts such as
   `[::ffff:127.0.0.1]` and `[::ffff:0.0.0.0]` in TS registry write/list and
-  Rust resolver/cache paths. `forward.rs`
+  Rust resolver/cache paths, and the same rule now covers `musu doctor` /
+  `musu nodes` warning helpers plus
+  `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable`. `forward.rs`
   now runs a short read-only `/api/fleet/node-status` preflight over the first
   direct route candidates and moves reachable candidates ahead of stale ones
   before sending a single `/api/tasks/forward` POST. Server registry `listNodes`
@@ -8554,6 +8556,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `reorder_route_candidates_by_preflight`, `nodeRegistryHeartbeatTtlSeconds`,
   `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`,
   `IPv4-mapped loopback`, `::ffff:127.0.0.1`, `::ffff:0.0.0.0`,
+  `SelfTestRemoteUsable`, `cloud_public_url_warning_flags_any_loopback_registry_row`,
   `musu.site_health.v1`, `GET /api/health`, `install-channel health version gate`,
   `publish-desktop-latest-assets.ps1 -DryRun`, `install-channel rc20 stale`, and
   `stale first candidate`.
