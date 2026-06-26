@@ -41,6 +41,7 @@ param(
     [string]$OutputDir,
     [string]$InstallScriptPath,
     [string]$UninstallScriptPath,
+    [string]$RepairFleetScriptPath,
     [string]$SetupExePath,
     [switch]$SkipLocalArtifactLengthChecks,
     [switch]$Json
@@ -79,6 +80,9 @@ if (-not $InstallScriptPath) {
 if (-not $UninstallScriptPath) {
     $UninstallScriptPath = Join-PathParts -Base $repoRoot -Parts @("scripts", "windows", "Uninstall-MUSU.ps1")
 }
+if (-not $RepairFleetScriptPath) {
+    $RepairFleetScriptPath = Join-PathParts -Base $repoRoot -Parts @("scripts", "windows", "repair-fleet-node-public-url.ps1")
+}
 if (-not $SetupExePath) {
     $SetupExePath = $null
 }
@@ -93,6 +97,9 @@ if (-not (Test-Path -LiteralPath $InstallScriptPath)) {
 }
 if (-not (Test-Path -LiteralPath $UninstallScriptPath)) {
     throw "Uninstall-MUSU.ps1 not found at $UninstallScriptPath"
+}
+if (-not (Test-Path -LiteralPath $RepairFleetScriptPath)) {
+    throw "repair-fleet-node-public-url.ps1 not found at $RepairFleetScriptPath"
 }
 
 function Convert-PublicVersionToPackageVersion {
@@ -245,6 +252,7 @@ $appInstallerTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_APPINSTALLE
 $msixTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_MSIX_URL" } | Select-Object -First 1
 $installScriptTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_INSTALL_SCRIPT_URL" } | Select-Object -First 1
 $uninstallScriptTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_UNINSTALL_SCRIPT_URL" } | Select-Object -First 1
+$repairFleetScriptTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_REPAIR_FLEET_SCRIPT_URL" } | Select-Object -First 1
 $certTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_CERT_URL" } | Select-Object -First 1
 $setupExeTarget = $targets | Where-Object { $_.Name -eq "DESKTOP_SETUP_EXE_URL" } | Select-Object -First 1
 $appInstallerCheck = [pscustomobject]@{
@@ -366,6 +374,46 @@ if ($null -eq $uninstallScriptTarget) {
     }
 }
 
+$repairFleetScriptCheck = [pscustomobject]@{
+    ok = $false
+    local_path = $RepairFleetScriptPath
+    local_sha256 = $null
+    hosted_sha256 = $null
+    local_length = $null
+    hosted_length = $null
+    hash_match = $null
+    hosted_schema_present = $false
+    hosted_expected_node_guard_present = $false
+    error = $null
+}
+if ($null -eq $repairFleetScriptTarget) {
+    $failures++
+    $repairFleetScriptCheck.error = "DESKTOP_REPAIR_FLEET_SCRIPT_URL not found in publicRelease.ts"
+} else {
+    try {
+        $localRepair = Get-LocalFileSnapshot -Path $RepairFleetScriptPath
+        $hostedRepair = Get-HostedFileSnapshot -Url $repairFleetScriptTarget.Url
+        $repairFleetScriptCheck.local_sha256 = $localRepair.sha256
+        $repairFleetScriptCheck.hosted_sha256 = $hostedRepair.sha256
+        $repairFleetScriptCheck.local_length = $localRepair.length
+        $repairFleetScriptCheck.hosted_length = $hostedRepair.length
+        $repairFleetScriptCheck.hash_match = ($localRepair.sha256 -eq $hostedRepair.sha256)
+        $repairFleetScriptCheck.hosted_schema_present = ($hostedRepair.text -match 'musu\.fleet_node_public_url_repair\.v1')
+        $repairFleetScriptCheck.hosted_expected_node_guard_present = ($hostedRepair.text -match 'ExpectedNodeName')
+        $repairFleetScriptCheck.ok = (
+            $repairFleetScriptCheck.hash_match -and
+            $repairFleetScriptCheck.hosted_schema_present -and
+            $repairFleetScriptCheck.hosted_expected_node_guard_present
+        )
+        if (-not $repairFleetScriptCheck.ok) {
+            $failures++
+        }
+    } catch {
+        $failures++
+        $repairFleetScriptCheck.error = $_.Exception.Message
+    }
+}
+
 $certCheck = [pscustomobject]@{
     ok = $null
     skipped = $false
@@ -481,7 +529,7 @@ if ($SkipLocalArtifactLengthChecks) {
 
 $ok = ($failures -eq 0)
 $summary = [pscustomobject]@{
-    schema = "musu.desktop_release_canary.v5"
+    schema = "musu.desktop_release_canary.v6"
     ok = $ok
     failure_count = $failures
     public_version = $publicVersion
@@ -493,6 +541,7 @@ $summary = [pscustomobject]@{
     appinstaller_version = $appInstallerCheck
     installer_script = $installScriptCheck
     uninstaller_script = $uninstallScriptCheck
+    repair_fleet_script = $repairFleetScriptCheck
     cert_thumbprint = $certCheck
     hosted_msix_length = $msixLengthCheck
     hosted_setup_exe_length = $setupExeLengthCheck
@@ -527,6 +576,16 @@ Write-Host ("  [{0}] {1,-26} local_len={2} hosted_len={3} hash_match={4}" -f `
     $uninstallScriptCheck.local_length,
     $uninstallScriptCheck.hosted_length,
     $uninstallScriptCheck.hash_match)
+
+$repairMark = if ($repairFleetScriptCheck.ok) { "PASS" } else { "FAIL" }
+Write-Host ("  [{0}] {1,-26} local_len={2} hosted_len={3} hash_match={4} schema={5} node_guard={6}" -f `
+    $repairMark,
+    "REPAIR_FLEET_SCRIPT",
+    $repairFleetScriptCheck.local_length,
+    $repairFleetScriptCheck.hosted_length,
+    $repairFleetScriptCheck.hash_match,
+    $repairFleetScriptCheck.hosted_schema_present,
+    $repairFleetScriptCheck.hosted_expected_node_guard_present)
 
 if ($certCheck.skipped) {
     Write-Host ("  [SKIP] {0,-26} {1}" -f "CERT_THUMBPRINT", $certCheck.error)
@@ -564,7 +623,7 @@ if ($setupExeLengthCheck.skipped) {
 
 Write-Host ""
 if ($failures -eq 0) {
-    Write-Host "CANARY OK: all assets resolve and the hosted appinstaller/installer/cert/MSIX/setup exe match the current release."
+    Write-Host "CANARY OK: all assets resolve and the hosted appinstaller/installer/repair/cert/MSIX/setup exe match the current release."
     exit 0
 } else {
     Write-Host "CANARY FAILED: $failures release check(s) failed."

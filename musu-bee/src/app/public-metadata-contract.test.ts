@@ -47,10 +47,13 @@ test("store public metadata verifier requires the release marker from VERSION", 
 
 test("public install surfaces expose the one-line Windows installer", () => {
   const command = "irm https://musu.pro/install.ps1 | iex";
+  const repairCommand = "irm https://musu.pro/repair-fleet.ps1 | iex";
   const downloadSource = source("src/app/download/page.tsx");
   const installSource = source("src/app/install/page.tsx");
   const contentSource = source("src/lib/publicSiteContent.ts");
   const routeSource = source("src/app/install.ps1/route.ts");
+  const repairRouteSource = source("src/app/repair-fleet.ps1/route.ts");
+  const releaseSource = source("src/lib/publicRelease.ts");
 
   assert.ok(downloadSource.includes(command));
   assert.match(downloadSource, /data-testid="install-one-liner"/);
@@ -61,6 +64,11 @@ test("public install surfaces expose the one-line Windows installer", () => {
   assert.ok(contentSource.includes(command));
   assert.match(routeSource, /DESKTOP_INSTALL_SCRIPT_URL/);
   assert.match(routeSource, /cache:\s*"no-store"/);
+  assert.ok(releaseSource.includes(repairCommand));
+  assert.match(releaseSource, /DESKTOP_REPAIR_FLEET_SCRIPT_URL/);
+  assert.match(repairRouteSource, /DESKTOP_REPAIR_FLEET_SCRIPT_URL/);
+  assert.match(repairRouteSource, /musu\.fleet_node_public_url_repair\.v1/);
+  assert.match(repairRouteSource, /ExpectedNodeName/);
 });
 
 test("Windows installer refuses stale desktop-latest release assets", () => {
@@ -104,6 +112,7 @@ test("production site deploy is gated by the desktop-latest release canary", () 
     "VERSION",
     "scripts/windows/Install-MUSU.ps1",
     "scripts/windows/Uninstall-MUSU.ps1",
+    "scripts/windows/repair-fleet-node-public-url.ps1",
     "scripts/windows/canary-desktop-release.ps1",
     "scripts/windows/verify-musu-pro-install-channel.ps1",
   ]) {
@@ -117,10 +126,13 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   assert.match(installChannelVerifier, /health version/);
   assert.match(installChannelVerifier, /\/api\/public-config/);
   assert.match(installChannelVerifier, /\/install\.ps1/);
+  assert.match(installChannelVerifier, /\/repair-fleet\.ps1/);
+  assert.match(installChannelVerifier, /musu\.fleet_node_public_url_repair\.v1/);
   assert.match(installChannelVerifier, /canary-desktop-release\.ps1/);
   assert.match(installChannelVerifier, /ExpectedReleaseVersion/);
   assert.match(desktopPublisher, /ValidateSiteAfterUpload/);
   assert.match(desktopPublisher, /verify-musu-pro-install-channel\.ps1/);
+  assert.match(desktopPublisher, /repair-fleet-node-public-url\.ps1/);
   assert.doesNotMatch(desktopPublisher, /Install-MUSU\.ps1[^\n]+-ValidateReleaseOnly/);
   assert.match(deployManual, /Step 3 — Production desktop-latest gate before deploy/);
   assert.match(deployManual, /Step 4 — The deploy/);

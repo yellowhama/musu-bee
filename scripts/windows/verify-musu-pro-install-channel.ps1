@@ -193,6 +193,37 @@ try {
     Add-Check -Checks $checks -Name "install.ps1" -Status "fail" -Message "$installUrl failed: $($_.Exception.Message)"
 }
 
+$repairFleetUrl = "$base/repair-fleet.ps1"
+try {
+    $repairResponse = Invoke-TextGet -Url $repairFleetUrl
+    $repairScript = $repairResponse.text
+    $repairUnavailable = ($repairScript -match 'MUSU fleet repair script (is )?temporarily unavailable')
+    $repairSchemaPresent = ($repairScript -match 'musu\.fleet_node_public_url_repair\.v1')
+    $repairNodeGuardPresent = ($repairScript -match 'ExpectedNodeName')
+
+    if ($repairResponse.status_code -ne 200) {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 status" -Status "fail" -Message "$repairFleetUrl returned HTTP $($repairResponse.status_code)."
+    } elseif ($repairUnavailable) {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 availability" -Status "fail" -Message "$repairFleetUrl returned a fail-closed unavailable script."
+    } else {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 status" -Status "pass" -Message "$repairFleetUrl returned HTTP 200."
+    }
+
+    if ($repairSchemaPresent) {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 schema" -Status "pass" -Message "repair-fleet.ps1 exposes musu.fleet_node_public_url_repair.v1."
+    } else {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 schema" -Status "fail" -Message "repair-fleet.ps1 does not expose musu.fleet_node_public_url_repair.v1."
+    }
+
+    if ($repairNodeGuardPresent) {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 ExpectedNodeName" -Status "pass" -Message "repair-fleet.ps1 exposes ExpectedNodeName."
+    } else {
+        Add-Check -Checks $checks -Name "repair-fleet.ps1 ExpectedNodeName" -Status "fail" -Message "repair-fleet.ps1 does not expose ExpectedNodeName."
+    }
+} catch {
+    Add-Check -Checks $checks -Name "repair-fleet.ps1" -Status "fail" -Message "$repairFleetUrl failed: $($_.Exception.Message)"
+}
+
 if ($SkipDesktopCanary) {
     Add-Check -Checks $checks -Name "desktop-latest canary" -Status "skip" -Message "Skipped by caller."
 } else {

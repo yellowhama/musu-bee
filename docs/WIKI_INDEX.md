@@ -8579,6 +8579,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `.vercelignore`, `remote Vercel build`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
   `desktop-latest rc21 published`, and `musu.pro install-channel ok`.
 
+- 2026-06-27 public fleet repair route:
+  `https://musu.pro/repair-fleet.ps1` now proxies the canonical
+  `scripts/windows/repair-fleet-node-public-url.ps1` from the fixed
+  `desktop-latest` release asset. This closes the repo-copy gap for the main PC:
+  after `irm https://musu.pro/install.ps1 | iex`, the operator can run
+  `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`
+  to restart/check the packaged bridge, verify LAN-usable advertised/cloud URLs,
+  and emit `musu.fleet_node_public_url_repair.v1` evidence. The release publisher
+  now uploads `repair-fleet-node-public-url.ps1`, the desktop canary is
+  `musu.desktop_release_canary.v6` and checks hosted repair script hash/schema,
+  and `verify-musu-pro-install-channel.ps1` checks live `/repair-fleet.ps1`.
+  Search terms should include `repair-fleet.ps1`,
+  `DESKTOP_REPAIR_FLEET_SCRIPT_URL`, `musu.desktop_release_canary.v6`,
+  `repair_fleet_script`, `repo-free fleet repair`, and
+  `ExpectedNodeName hugh-main`.
+
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
   approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;

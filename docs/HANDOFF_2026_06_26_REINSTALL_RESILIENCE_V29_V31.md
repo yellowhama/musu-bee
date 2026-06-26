@@ -2,7 +2,7 @@
 
 > 다른 에이전트/엔지니어용. 이번 세션(2026-06-25~26)에 main에 들어간 것, 미해결, 다음 행동.
 > main HEAD `f9eadede`(V29-31). **V33은 브랜치 `feat/v33-residual-finalize`로 push되어 PR #34에 있음
-> (current lineage head `23d0c68c`, main 미머지 — design-gate 승인 대기).**
+> (main 미머지 — design-gate 승인 대기).**
 > 버전 **rc.21**.
 
 ## V33 잔여 마무리 (브랜치 feat/v33-residual-finalize, 2026-06-26)
@@ -101,8 +101,8 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   guarded `publish-desktop-latest-assets.ps1 -ConfirmUpload`로 GitHub release 자산을 clobber upload했고,
   `verify-musu-pro-install-channel.ps1 -Json`은 `ok=true`, `failure_count=0`.
   hosted `musu.appinstaller`/MainPackage는 `Version="1.15.0.21"`, hosted
-  `Install-MUSU.ps1`는 `ExpectedReleaseVersion="1.15.0-rc.21"`, hosted installer/uninstaller
-  script hash는 local canonical과 일치한다.
+  `Install-MUSU.ps1`는 `ExpectedReleaseVersion="1.15.0-rc.21"`, hosted
+  installer/uninstaller/repair script hash는 local canonical과 일치한다.
 - ✅ **desktop-latest drift guard 강화**: `scripts\windows\canary-desktop-release.ps1`는 이제
   HTTP 200만 보지 않고 repo `VERSION` → expected package version(`1.15.0-rc.21` →
   `1.15.0.21`), hosted `musu.appinstaller`의 AppInstaller/MainPackage Version, hosted
@@ -110,16 +110,17 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   hosted `Install-MUSU.ps1`/`Uninstall-MUSU.ps1` SHA256 vs local canonical script,
   hosted `musu-desktop-x64.msix` Content-Length vs local hosted-name copy length, hosted
   setup exe Content-Length vs local NSIS exe length까지 검증한다. schema는
-  `musu.desktop_release_canary.v5`. 현재 live 실행은 통과한다
+  `musu.desktop_release_canary.v6`. 현재 live 실행은 통과한다
   (`public_version=1.15.0-rc.21`, `appinstaller_version=1.15.0.21`,
-  hosted installer script hash match).
+  hosted installer/repair script hash match).
 - ✅ **desktop-latest publish path 고정**: `scripts\windows\publish-desktop-latest-assets.ps1`
   추가. `-DryRun`은 실제 업로드 없이 local `audit-appinstaller-contract.ps1`, VERSION/publicRelease,
   hosted-name MSIX vs versioned MSIX length, appinstaller Version, `Install-MUSU.ps1`
   `ExpectedReleaseVersion`, pinned cert thumbprint, `Uninstall-MUSU.ps1`, NSIS setup exe 존재/이름을
   검증한다. `-ConfirmUpload`를 명시해야만 `gh release upload desktop-latest --clobber`를 실행하며,
   업로드 대상은 `musu-desktop-x64.msix`, `musu.appinstaller`, `blossompark.musu.cer`,
-  `Install-MUSU.ps1`, `Uninstall-MUSU.ps1`, `MUSU_1.15.0_x64-setup.exe` 전체다.
+  `Install-MUSU.ps1`, `Uninstall-MUSU.ps1`, `repair-fleet-node-public-url.ps1`,
+  `MUSU_1.15.0_x64-setup.exe` 전체다.
   2026-06-27에 `-ConfirmUpload` 실행 완료했고 desktop-latest canary가 통과했다.
 - ✅ **Install-MUSU.ps1 자체 stale-release guard 추가**: script param
   `ExpectedReleaseVersion="1.15.0-rc.21"`이 repo `VERSION`과 계약 테스트로 묶였고,
@@ -193,7 +194,8 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   `https://musu.pro/api/health` 200 + `musu.site_health.v1`,
   `public-config releaseVersion=1.15.0-rc.21`,
   hosted `Install-MUSU.ps1` exposes `ExpectedReleaseVersion=1.15.0-rc.21`,
-  hosted appinstaller/MainPackage `1.15.0.21`.
+  hosted appinstaller/MainPackage `1.15.0.21`. 후속으로 `https://musu.pro/repair-fleet.ps1`
+  public route도 추가되어 main PC에서 repo 없이 fleet URL repair/check를 실행할 수 있다.
 - ✅ **design-gate 승인 준비물 생성(승인 아님)**: PR #34의 UI 변경 범위(`/download`,
   `/install`, `/fleet`, `/dashboard/fleet`)를 `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`에
   정리했고, 로컬 dev server(`127.0.0.1:3000`)에서
@@ -218,6 +220,9 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   `bridge_pid=14084`, `service_registry_bind_addr=0.0.0.0:7476`,
   `advertised_public_url=http://192.168.1.154:7476`,
   `cloud_public_url=http://192.168.1.154:7476`, `cloud_public_url_remote_usable=true`.
+  public route `https://musu.pro/repair-fleet.ps1`는 같은 canonical script를
+  `desktop-latest` release asset에서 proxy하므로, main PC에서는 repo 복사 없이
+  `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`를 실행하면 된다.
 - ✅ **pasted audit 5건 회귀 verifier 추가**: 신규
   `scripts\windows\verify-fleet-audit-contract.ps1`. package identity, bridge health,
   `bridge.json` raw bind vs doctor bind, self advertised/cloud URL remote-usability,
@@ -235,7 +240,7 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
    실측은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`,
    `online_nodes=1`, `direct_healthy_nodes=1`. 다만 main PC 자체가 실제로 켜져 있고
    작업 수신 가능한지는 main에서 rc.21 설치/재시작 후 확인해야 한다. main에서 실행할 검증/복구 절차:
-   `powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName hugh-main -Json`.
+   `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`.
    통과 조건: `advertised_public_url_remote_usable=true`,
    `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
 2. ✅ **musu.pro production install channel 배포 완료**:
@@ -285,10 +290,10 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   wildcard, IPv6 loopback, and IPv4-mapped loopback/wildcard cases.
 - desktop-latest canary: after uploading rc.21 release assets, run
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\canary-desktop-release.ps1 -Json`.
-  It must return `schema=musu.desktop_release_canary.v5`, `ok=true`,
+  It must return `schema=musu.desktop_release_canary.v6`, `ok=true`,
   `expected_package_version=1.15.0.21`, hosted appinstaller versions matching, hosted installer
-  release/cert pin matching, hosted installer/uninstaller hashes matching, hosted cert thumbprint matching, and remote/local
-  `musu-desktop-x64.msix` plus setup exe lengths matching.
+  release/cert pin matching, hosted installer/uninstaller/repair hashes matching, hosted repair schema/guard matching,
+  hosted cert thumbprint matching, and remote/local `musu-desktop-x64.msix` plus setup exe lengths matching.
 - installer release canary: run
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\Install-MUSU.ps1 -ValidateReleaseOnly`.
   It must print `MUSU release channel validation passed.` before any main-PC install command is given to a user.

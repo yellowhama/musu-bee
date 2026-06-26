@@ -63,7 +63,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\canary-deskt
 
 Expected: `publish-desktop-latest-assets.ps1 -DryRun` passes local preflight
 without uploading, and `canary-desktop-release.ps1` returns
-`schema=musu.desktop_release_canary.v5` and `ok=true`. If `desktop-latest` is
+`schema=musu.desktop_release_canary.v6` and `ok=true`. If `desktop-latest` is
 stale and the operator approves publishing, use the guarded publisher instead of
 handwritten upload commands:
 
@@ -114,24 +114,39 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\canary-deskt
 That CI mode skips local MSIX/setup-exe length comparisons because the web deploy
 runner does not build desktop artifacts, but it still blocks production deploys
 when live `desktop-latest` has an older appinstaller version, mismatched hosted
-`Install-MUSU.ps1`, mismatched uninstaller, or wrong certificate thumbprint.
+`Install-MUSU.ps1`, mismatched uninstaller, mismatched fleet repair script, or
+wrong certificate thumbprint.
 After a production deploy, CI also runs `curl -fsS https://musu.pro/api/health`
 and `scripts\windows\verify-musu-pro-install-channel.ps1 -Json` so a green deploy
 means both the site and the live one-line installer channel were verified. The
 install-channel verifier also checks the `/api/health` `musu.site_health.v1`
-schema/version, so an old production site cannot pass just because the
-installer URLs return HTTP 200.
+schema/version and `/repair-fleet.ps1`, so an old production site cannot pass
+just because the installer URLs return HTTP 200.
 
 The guarded publisher validates the local appinstaller/MSIX contract, versioned MSIX copy,
 installer pinned cert thumbprint, setup exe name, and uploads the current
 `musu-desktop-x64.msix`, `musu.appinstaller`, `blossompark.musu.cer`,
-`Install-MUSU.ps1`, `Uninstall-MUSU.ps1`, and setup exe to GitHub release
+`Install-MUSU.ps1`, `Uninstall-MUSU.ps1`, `repair-fleet-node-public-url.ps1`,
+and setup exe to GitHub release
 `desktop-latest` with `--clobber`; it then runs the desktop canary. The canary
 checks hosted appinstaller versions, hosted installer `ExpectedReleaseVersion`,
-hosted installer cert pin, hosted installer/uninstaller SHA256 vs local canonical
-scripts, hosted cert thumbprint, hosted MSIX length, and hosted setup exe length.
+hosted installer cert pin, hosted installer/uninstaller/repair SHA256 vs local
+canonical scripts, hosted repair evidence schema, hosted cert thumbprint, hosted
+MSIX length, and hosted setup exe length.
 Do not let a user run `irm https://musu.pro/install.ps1 | iex` while either
 canary reports an older appinstaller/site release.
+
+After installing on another Windows PC, the repo-free fleet repair/check command is:
+
+```powershell
+irm https://musu.pro/repair-fleet.ps1 | iex
+```
+
+For a known node name such as `hugh-main`, use:
+
+```powershell
+& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json
+```
 
 ### Step 7 — Report
 Report: the deployment `url` / `dpl_` id, the `/api/health` result, and (if used)

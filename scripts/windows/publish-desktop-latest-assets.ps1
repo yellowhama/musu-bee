@@ -8,6 +8,7 @@ param(
     [string]$CertPath,
     [string]$InstallScriptPath,
     [string]$UninstallScriptPath,
+    [string]$RepairFleetScriptPath,
     [string]$SetupExePath,
     [switch]$SkipSetupExe,
     [switch]$ConfirmUpload,
@@ -38,6 +39,9 @@ if (-not $InstallScriptPath) {
 }
 if (-not $UninstallScriptPath) {
     $UninstallScriptPath = Join-Path $repoRoot "scripts\windows\Uninstall-MUSU.ps1"
+}
+if (-not $RepairFleetScriptPath) {
+    $RepairFleetScriptPath = Join-Path $repoRoot "scripts\windows\repair-fleet-node-public-url.ps1"
 }
 
 function Write-Step {
@@ -163,6 +167,7 @@ $VersionPath = Resolve-RequiredFile -Path $VersionPath -Label "VERSION"
 $CertPath = Resolve-RequiredFile -Path $CertPath -Label "signing certificate"
 $InstallScriptPath = Resolve-RequiredFile -Path $InstallScriptPath -Label "Install-MUSU.ps1"
 $UninstallScriptPath = Resolve-RequiredFile -Path $UninstallScriptPath -Label "Uninstall-MUSU.ps1"
+$RepairFleetScriptPath = Resolve-RequiredFile -Path $RepairFleetScriptPath -Label "repair-fleet-node-public-url.ps1"
 
 $publicReleaseText = Get-Content -LiteralPath $PublicReleasePath -Raw
 $publicVersionFromFile = (Get-Content -LiteralPath $VersionPath -Raw).Trim()
@@ -226,12 +231,21 @@ if ($actualThumbprint -ne $installerExpectedThumbprint.ToUpperInvariant()) {
     throw "Install-MUSU.ps1 pins cert $installerExpectedThumbprint but $CertPath is $actualThumbprint."
 }
 
+$repairFleetScriptText = Get-Content -LiteralPath $RepairFleetScriptPath -Raw
+if ($repairFleetScriptText -notmatch 'musu\.fleet_node_public_url_repair\.v1') {
+    throw "repair-fleet-node-public-url.ps1 does not expose musu.fleet_node_public_url_repair.v1."
+}
+if ($repairFleetScriptText -notmatch 'ExpectedNodeName') {
+    throw "repair-fleet-node-public-url.ps1 does not expose ExpectedNodeName."
+}
+
 $assets = New-Object System.Collections.Generic.List[string]
 $assets.Add($hostedMsixPath)
 $assets.Add($appInstallerPath)
 $assets.Add($CertPath)
 $assets.Add($InstallScriptPath)
 $assets.Add($UninstallScriptPath)
+$assets.Add($RepairFleetScriptPath)
 
 if (-not $SkipSetupExe) {
     $SetupExePath = Resolve-RequiredFile -Path $SetupExePath -Label "NSIS setup exe"

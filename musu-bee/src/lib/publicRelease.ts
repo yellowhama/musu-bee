@@ -21,6 +21,12 @@ export const DESKTOP_CERT_URL = `${DESKTOP_RELEASE_BASE}/blossompark.musu.cer`;
 // in a single elevated run, so the beta user never types a certificate command.
 // (Removed entirely once the Store release ships — Store re-signs the package.)
 export const DESKTOP_INSTALL_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/Install-MUSU.ps1`;
+// One-line post-install fleet repair/check for another PC:
+//     irm https://musu.pro/repair-fleet.ps1 | iex
+// Proxies the canonical repair-fleet-node-public-url.ps1 from the same fixed
+// GitHub release, so a freshly installed machine can verify/re-publish its
+// LAN-usable fleet URL without cloning this repo.
+export const DESKTOP_REPAIR_FLEET_SCRIPT_URL = `${DESKTOP_RELEASE_BASE}/repair-fleet-node-public-url.ps1`;
 // One-line uninstaller, served at /uninstall.ps1 (mirror of the installer):
 //     irm https://musu.pro/uninstall.ps1 | iex
 // Proxies the canonical Uninstall-MUSU.ps1 from the same fixed GitHub release —
