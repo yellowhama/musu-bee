@@ -177,6 +177,12 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   live install-channel은 재확인해도 아직 `ok=false`: `public-config releaseVersion=1.15.0-rc.20`,
   hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, hosted appinstaller/MainPackage
   `1.15.0.20`. 반면 `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK.
+- ✅ **design-gate 승인 준비물 생성(승인 아님)**: PR #34의 UI 변경 범위(`/download`,
+  `/install`, `/fleet`, `/dashboard/fleet`)를 `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`에
+  정리했고, 로컬 dev server(`127.0.0.1:3000`)에서
+  `docs/design-artifacts/pr34-download.png`, `pr34-install.png`, `pr34-fleet.png`를 캡처했다.
+  이 패킷은 승인자가 판단할 수 있는 evidence일 뿐이며, design-gate 통과에는 별도 issue URL,
+  explicit approval comment, PR body의 `Design: Approved`가 여전히 필요하다.
 - ✅ **cloud stale row cleanup 경로 추가**: 신규 `DELETE /api/v1/nodes/[nodeName]` route와
   `deleteNodeByName(owner, nodeName)` store 함수. owner scope 안에서만 삭제하고, 같은 node_name을
   가진 다른 owner row는 삭제하지 않음. listNodes가 숨기는 legacy loopback row도 raw store에서 삭제 가능.
