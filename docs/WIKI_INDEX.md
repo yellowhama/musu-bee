@@ -8503,8 +8503,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-brain` motherboard+chip integration pass. Search terms should include
   `fleet rc.21 brain bonding`, `musu-brain.pin.json`, `MUSU_KNOWLEDGE_INGEST`,
   `~/.musu/brain`, `writer::runner::finalize`, `POST /v1/sources`,
-  `pin+VCS gate`, `token ACL verifier pending`, `desktop-latest rc20 no-go`,
-  and `hugh-main loopback stale row`.
+  `pin+VCS gate`, `token ACL verifier pending`, `desktop-latest rc21 resolved`,
+  and `hugh-main physical proof pending`.
 
 - 2026-06-26 brain integration thesis implementation update:
   `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md` is no longer only a pre-code
@@ -8563,8 +8563,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-27 continuation audit refresh:
   PR #34 current branch lineage is mergeable with code/test checks green and
-  `design-gate` still failing pending a real design approval/artifact. GitHub
-  issue #35 is open with no approval comments. Local verification
+  `design-gate` still failing pending a real `Design: Approved` approval token.
+  The design issue URL and PNG artifact URLs are present; GitHub issue #35 has
+  an evidence-refresh comment but no explicit approval comment. Local verification
   after repairing missing npm bin shims passed
   `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
   at 38/38, `npm run test:public-release` at 11/11, and
@@ -8574,7 +8575,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `verify-musu-pro-install-channel.ps1 -Json` at `ok=true`, `failure_count=0`.
   Search terms should include
   `PR #34 design-gate`, `current branch lineage`, `38/38`, `11/11`, `1/1 registry_last_seen`,
-  `npm bin shims`, `issue #35 no approval comments`,
+  `npm bin shims`, `issue #35 evidence refresh comment no approval`,
   `.vercelignore`, `remote Vercel build`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
   `desktop-latest rc21 published`, and `musu.pro install-channel ok`.
 
@@ -8585,8 +8586,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Local screenshots from `127.0.0.1:3000` are committed at
   `docs/design-artifacts/pr34-download.png`, `docs/design-artifacts/pr34-install.png`,
   and `docs/design-artifacts/pr34-fleet.png`. This is not approval; the remaining
-  gate still requires a design issue URL, explicit CEO/design approval comment,
-  and `Design: Approved` in the PR body. Search terms should include
+  gate has the design issue URL and artifact URLs, but still requires an explicit
+  CEO/design approval comment and `Design: Approved` in the PR body. Search terms should include
   `DESIGN_BRIEF_PR34_FLEET_INSTALL`, `pr34-download.png`, `pr34-install.png`,
   `pr34-fleet.png`, `issue #35`, `approval requested not yet approved`, and
   `Design: Approved`.

@@ -63,8 +63,10 @@ have paired PCs in the web fleet store.
 - `cargo test registry_last_seen_to_heartbeat --lib` passed 1/1
   (`registry_last_seen_to_heartbeat_uses_registry_stamp`).
 - PR #34 code/test CI checks pass on the current branch lineage; only
-  `design-gate` remains pending actual approval evidence. Issue #35 is still
-  open with no approval comments as of the 2026-06-27 KST continuation recheck.
+  `design-gate` remains pending actual approval evidence. Issue #35 has an
+  evidence-refresh comment
+  `https://github.com/yellowhama/musu-bee/issues/35#issuecomment-4813006122`,
+  but no explicit CEO/design approval comment yet.
 
 ## Approval Requirements
 
