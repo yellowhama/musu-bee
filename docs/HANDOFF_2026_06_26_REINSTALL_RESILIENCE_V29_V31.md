@@ -168,6 +168,15 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   32/32 통과(health route + heartbeat presence TTL + hidden stale cleanup coverage 포함). `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
   `/api/v1/nodes/register`, `/api/v1/nodes/[nodeName]` dynamic route 포함).
   실제 `musu.pro` production deploy는 owner-gated라 이번 세션에서 실행하지 않음.
+- ✅ **2026-06-27 continuation 재검증**: 로컬 `node_modules/.bin` shims가 깨져 `tsx`/`next/server`
+  resolution이 실패하던 환경 문제를 `npm install`로 복구(소스/lockfile tracked diff 없음). 이후
+  `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
+  38/38 통과, `npm run test:public-release` 11/11 통과, `git diff --check` 통과.
+  PR #34는 `d938d627` 기준 mergeable이고 code/test 계열 check는 통과, 남은 GitHub gate는
+  `design-gate` 1개(실제 `Design: Approved` + design brief/artifact 필요, 임의 bypass 금지).
+  live install-channel은 재확인해도 아직 `ok=false`: `public-config releaseVersion=1.15.0-rc.20`,
+  hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, hosted appinstaller/MainPackage
+  `1.15.0.20`. 반면 `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK.
 - ✅ **cloud stale row cleanup 경로 추가**: 신규 `DELETE /api/v1/nodes/[nodeName]` route와
   `deleteNodeByName(owner, nodeName)` store 함수. owner scope 안에서만 삭제하고, 같은 node_name을
   가진 다른 owner row는 삭제하지 않음. listNodes가 숨기는 legacy loopback row도 raw store에서 삭제 가능.

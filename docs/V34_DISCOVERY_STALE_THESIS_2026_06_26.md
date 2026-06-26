@@ -51,6 +51,19 @@ cloud row를 오래 보관할 수는 있지만, heartbeat TTL을 넘긴 row는 R
 presence로 내려가지 않는다. 숨겨진 stale row는 `deleteNodeByName` / `DELETE /api/v1/nodes/[nodeName]`로
 계속 operator cleanup 가능하다. 남은 핵심은 production deploy와 boot/local reconcile E2E 증명이다.
 
+### 2026-06-27 continuation audit status
+소스 기준으로는 pasted runtime audit의 HIGH/MED 항목이 모두 fail-closed 방향으로 묶였다:
+registry fetch는 `last_seen`만 heartbeat로 보존하고 `Utc::now()` fabrication을 하지 않으며,
+server registry write/list와 Rust resolver/cache는 remote loopback/wildcard 후보를 막고,
+`online_nodes`는 direct/healthy만 센다. 로컬 rc.21 설치 검증도
+`verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json`에서 `ok=true`, `fail_count=0`,
+`online_nodes=1`, `direct_healthy_nodes=1`, ACL checks pass로 확인됐다. 남은 warn은 production
+cloud registry에 남은 `hugh-main=http://127.0.0.1:13397` legacy row뿐이다. 이 row는 production
+deploy 후 list TTL/filter로 current fleet presence에서 숨겨져야 하고, 필요하면 owner token으로
+`remove-cloud-node-registry-row.ps1 -NodeName hugh-main` / `DELETE /api/v1/nodes/[nodeName]`로 삭제한다.
+live `musu.pro`와 hosted `desktop-latest`는 아직 rc.20 상태라 `musu.pro` one-line installer를 다른 PC에
+쓰려면 operator-approved asset upload와 Vercel production deploy가 먼저 필요하다.
+
 이 hotfix는 **거짓 online/targetable 방지**와 진단 정직성 보강이다. 아래 V34 thesis(후보-집합 race,
 observed-IP additive, TTL prune, mDNS 1순위)는 여전히 근본 설계 과제다. 현재 hugh-main은 아직
 `127.0.0.1:13397` stale cloud entry와 LAN timeout 상태라 main PC에서 재시작/재설치가 필요하다.

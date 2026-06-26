@@ -8552,4 +8552,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `install-channel rc20 stale`, and
   `stale first candidate`.
 
+- 2026-06-27 continuation audit refresh:
+  Current HEAD `d938d627` is mergeable on PR #34 with code/test checks green and
+  `design-gate` still failing pending a real design approval/artifact. Local verification
+  after repairing missing npm bin shims passed
+  `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
+  at 38/38 and `npm run test:public-release` at 11/11. `publish-desktop-latest-assets.ps1 -DryRun`
+  confirms rc.21 assets are locally ready, while live `verify-musu-pro-install-channel.ps1 -Json`
+  remains `ok=false` because `musu.pro` still publishes `1.15.0-rc.20` and hosted
+  `desktop-latest` appinstaller/MainPackage remain `1.15.0.20`. Search terms should include
+  `PR #34 design-gate`, `d938d627`, `38/38`, `11/11`, `npm bin shims`,
+  `desktop-latest rc21 local ready`, and `musu.pro rc20 live stale`.
+
 **End of WIKI_INDEX.md.**
