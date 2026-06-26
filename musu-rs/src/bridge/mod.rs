@@ -540,9 +540,21 @@ pub async fn run() -> Result<()> {
                 let mesh_status =
                     crate::install::private_mesh::build_status_report(&musu_home_clone);
                 let hardware = crate::peer::hardware::gather_hardware_info_cached();
+                let observed_at = chrono::Utc::now().to_rfc3339();
+                let route_tailscale_ip = tailscale_ip
+                    .as_deref()
+                    .or(mesh_status.local_tailnet_ip.as_deref());
+                let candidate_endpoints =
+                    crate::bridge::rendezvous::local_candidate_endpoints_for_advertised_url(
+                        &advertised_public_url,
+                        route_tailscale_ip,
+                        &observed_at,
+                    );
                 let mut meta_obj = serde_json::json!({
                     "hardware": hardware,
                     "public_url": advertised_public_url,
+                    "candidate_endpoints": candidate_endpoints,
+                    "candidate_model": "v34_additive_candidate_set_v1",
                     "mesh_mode": mesh_status.mode.clone(),
                     "route_label": mesh_status.route_label.clone(),
                     "control_server_url": mesh_status.control_server_url.clone(),

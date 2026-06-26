@@ -180,6 +180,50 @@ fn is_remote_usable_addr(addr: &str) -> bool {
     }
 }
 
+fn cache_node_route_addrs(node: &CachedNode) -> Vec<String> {
+    let mut addrs = Vec::new();
+    if is_remote_usable_addr(&node.addr) {
+        addrs.push(node.addr.clone());
+    }
+
+    let Some(candidates) = node
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.get("candidate_endpoints"))
+        .and_then(|value| value.as_array())
+    else {
+        return addrs;
+    };
+
+    for candidate in candidates {
+        let kind = candidate
+            .get("kind")
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        if matches!(kind, "relay" | "failed") {
+            continue;
+        }
+
+        let addr = if kind == "direct_quic" {
+            candidate
+                .get("public_addr")
+                .and_then(|value| value.as_str())
+                .or_else(|| candidate.get("addr").and_then(|value| value.as_str()))
+        } else {
+            candidate.get("addr").and_then(|value| value.as_str())
+        };
+        let Some(addr) = addr.map(str::trim).filter(|addr| !addr.is_empty()) else {
+            continue;
+        };
+        if !is_remote_usable_addr(addr) || addrs.iter().any(|existing| existing.as_str() == addr) {
+            continue;
+        }
+        addrs.push(addr.to_string());
+    }
+
+    addrs
+}
+
 // ── Resolved Peer ────────────────────────────────────────────────────
 
 /// A unified peer record from any source.
@@ -258,16 +302,20 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     // Source 1: cached registry (authoritative)
     if let Some(cache) = CachedRegistry::load(musu_home) {
         for node in &cache.nodes {
-            if !is_remote_usable_addr(&node.addr) {
+            let route_addrs = cache_node_route_addrs(node);
+            if route_addrs.is_empty() {
                 tracing::warn!(
                     node = %node.name,
                     addr = %node.addr,
-                    "ignoring cached registry node with non-routable addr"
+                    "ignoring cached registry node with no routable candidate addr"
                 );
                 continue;
             }
             registry_names.insert(node.name.clone());
-            if seen.insert(node.addr.clone()) {
+            for addr in route_addrs {
+                if !seen.insert(addr.clone()) {
+                    continue;
+                }
                 let mut meta = node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
                 if !meta.is_object() {
                     meta = serde_json::json!({});
@@ -279,7 +327,7 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
                     );
                 }
                 result.push(ResolvedPeer {
-                    addr: node.addr.clone(),
+                    addr,
                     name: Some(node.name.clone()),
                     source: PeerSource::Cache,
                     meta: Some(meta),
@@ -560,6 +608,73 @@ mod tests {
                 .iter()
                 .any(|p| p.addr == "192.168.1.192:9497" && p.name.as_deref() == Some("hugh-main")),
             "valid manual peer must survive when the same-name cache row is unusable"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// V34 additive candidate-set: a registry row may carry more than one
+    /// usable address for the same stable node_name. The resolver must expose
+    /// all direct candidates so the route selector can race/order LAN vs
+    /// tailnet, while still rejecting loopback and relay-display-only entries.
+    #[test]
+    fn resolve_expands_cached_registry_candidate_endpoints() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "studio-pc".into(),
+                name: "studio-pc".into(),
+                addr: "192.168.1.20:8070".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "candidate_endpoints": [
+                        {
+                            "kind": "lan",
+                            "addr": "192.168.1.20:8070",
+                            "observed_at": "2026-06-27T00:00:00Z",
+                            "scheme": "http"
+                        },
+                        {
+                            "kind": "tailscale",
+                            "addr": "100.64.1.20:8070",
+                            "observed_at": "2026-06-27T00:00:01Z",
+                            "scheme": "http"
+                        },
+                        {
+                            "kind": "lan",
+                            "addr": "127.0.0.1:8070",
+                            "observed_at": "2026-06-27T00:00:02Z"
+                        },
+                        {
+                            "kind": "relay",
+                            "addr": "relay.musu.pro:443",
+                            "observed_at": "2026-06-27T00:00:03Z",
+                            "relay_url": "wss://relay.musu.pro/api/v1/relay/connect"
+                        }
+                    ]
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        let addrs: Vec<&str> = peers.iter().map(|peer| peer.addr.as_str()).collect();
+
+        assert!(addrs.contains(&"192.168.1.20:8070"));
+        assert!(addrs.contains(&"100.64.1.20:8070"));
+        assert!(!addrs.contains(&"127.0.0.1:8070"));
+        assert!(!addrs.contains(&"relay.musu.pro:443"));
+        assert_eq!(
+            peers
+                .iter()
+                .filter(|peer| peer.name.as_deref() == Some("studio-pc"))
+                .count(),
+            2
         );
 
         let _ = std::fs::remove_dir_all(&dir);
