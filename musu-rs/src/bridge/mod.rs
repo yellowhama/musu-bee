@@ -984,7 +984,14 @@ fn is_routable_remote_host(host: &str) -> bool {
         return false;
     }
     match normalized.parse::<IpAddr>() {
-        Ok(ip) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V4(ip)) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V6(ip)) => {
+            if let Some(mapped) = ip.to_ipv4_mapped() {
+                !mapped.is_loopback() && !mapped.is_unspecified()
+            } else {
+                !ip.is_loopback() && !ip.is_unspecified()
+            }
+        }
         Err(_) => true,
     }
 }
@@ -1044,6 +1051,14 @@ mod tests {
         assert_eq!(public_url_to_remote_addr("http://localhost:13397"), None);
         assert_eq!(public_url_to_remote_addr("http://0.0.0.0:2954"), None);
         assert_eq!(public_url_to_remote_addr("http://[::1]:2954"), None);
+        assert_eq!(
+            public_url_to_remote_addr("http://[::ffff:127.0.0.1]:2954"),
+            None
+        );
+        assert_eq!(
+            public_url_to_remote_addr("http://[::ffff:0.0.0.0]:2954"),
+            None
+        );
         assert_eq!(public_url_to_remote_addr("http://192.168.1.192:0"), None);
         assert_eq!(
             replace_public_url_host("http://peer.example.test:0/", "100.64.0.5"),

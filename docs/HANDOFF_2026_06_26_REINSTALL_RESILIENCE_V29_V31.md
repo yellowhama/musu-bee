@@ -134,6 +134,11 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   direct/healthy only. `~/.musu/services/bridge.json`는 raw bind(`0.0.0.0`)를 기록하고 doctor는
   normalized local addr와 `service_registry_bind_addr`/`advertised_public_url`를 분리. `tls/key.pem`와
   `private_mesh.toml`은 owner-only ACL로 제한.
+- ✅ **IPv4-mapped loopback/wildcard edge guard**:
+  `public_url` / cached route 후보가 `[::ffff:127.0.0.1]` 또는 `[::ffff:0.0.0.0]`처럼 IPv4-mapped
+  IPv6로 들어와도 loopback/wildcard와 동일하게 unusable로 판정한다. TS registry(`nodeRegistryStore.ts`)
+  와 Rust registry/resolver(`bridge::is_routable_remote_host`, `peer::discovery::is_remote_usable_addr`)
+  양쪽에 테스트를 추가했다.
 - ✅ **V34 route candidate preflight 1차 bonding**:
   `forward_to_peer_with_retry`는 rendezvous target `candidate_endpoints`와 selected peer를 합친 뒤,
   task POST 전에 read-only `/api/fleet/node-status` preflight를 짧게 병렬 실행해 reachable 후보를 앞으로

@@ -285,7 +285,7 @@ test("listNodes hides legacy rows with unusable public_url", async () => {
     ...valid,
     id: nodeRegistryId(OWNER_A, "legacy-loopback"),
     node_name: "legacy-loopback",
-    public_url: "http://127.0.0.1:8070",
+    public_url: "http://[::ffff:7f00:1]:8070",
     last_seen: new Date().toISOString(),
     expires_at: new Date(Date.now() + 60_000).toISOString(),
   };
@@ -507,6 +507,8 @@ test("registerNode rejects public_url that cannot identify a remote peer", async
     "http://0.0.0.0:8070",
     "http://[::1]:8070",
     "http://[::]:8070",
+    "http://[::ffff:127.0.0.1]:8070",
+    "http://[::ffff:0.0.0.0]:8070",
     "http://192.168.1.10:0",
   ]) {
     await assert.rejects(

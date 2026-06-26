@@ -261,6 +261,8 @@ test("POST rejects registry public_url that other PCs cannot use", async () => {
       "http://0.0.0.0:8070",
       "http://[::1]:8070",
       "http://[::]:8070",
+      "http://[::ffff:127.0.0.1]:8070",
+      "http://[::ffff:0.0.0.0]:8070",
       "http://192.168.1.10:0",
     ];
 

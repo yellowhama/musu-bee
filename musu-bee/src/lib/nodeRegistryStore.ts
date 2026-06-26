@@ -325,10 +325,13 @@ function isUsableRemoteHost(host: string): boolean {
 
   const ipVersion = isIP(normalized);
   if (ipVersion === 4) {
-    const octets = normalized.split(".").map((part) => Number.parseInt(part, 10));
-    return octets.length === 4 && octets[0] !== 0 && octets[0] !== 127;
+    return isUsableIpv4Host(normalized);
   }
   if (ipVersion === 6) {
+    const mappedIpv4 = ipv4MappedHost(normalized);
+    if (mappedIpv4) {
+      return isUsableIpv4Host(mappedIpv4);
+    }
     const lower = normalized.toLowerCase();
     return (
       lower !== "::" &&
@@ -339,6 +342,47 @@ function isUsableRemoteHost(host: string): boolean {
   }
 
   return true;
+}
+
+function isUsableIpv4Host(host: string): boolean {
+  const octets = host.split(".").map((part) => Number.parseInt(part, 10));
+  return octets.length === 4 && octets[0] !== 0 && octets[0] !== 127;
+}
+
+function ipv4MappedHost(host: string): string | null {
+  const lower = host.toLowerCase();
+  const prefix = "::ffff:";
+  if (!lower.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = lower.slice(prefix.length);
+  if (isIP(suffix) === 4) {
+    return suffix;
+  }
+
+  const parts = suffix.split(":");
+  if (parts.length !== 2) {
+    return null;
+  }
+  const high = Number.parseInt(parts[0]!, 16);
+  const low = Number.parseInt(parts[1]!, 16);
+  if (
+    !Number.isInteger(high) ||
+    !Number.isInteger(low) ||
+    high < 0 ||
+    high > 0xffff ||
+    low < 0 ||
+    low > 0xffff
+  ) {
+    return null;
+  }
+  return [
+    (high >> 8) & 0xff,
+    high & 0xff,
+    (low >> 8) & 0xff,
+    low & 0xff,
+  ].join(".");
 }
 
 function normalizeOptionalField(value: unknown): string | null {

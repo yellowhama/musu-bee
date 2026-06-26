@@ -175,7 +175,14 @@ fn is_remote_usable_addr(addr: &str) -> bool {
         return false;
     }
     match normalized.parse::<IpAddr>() {
-        Ok(ip) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V4(ip)) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V6(ip)) => {
+            if let Some(mapped) = ip.to_ipv4_mapped() {
+                !mapped.is_loopback() && !mapped.is_unspecified()
+            } else {
+                !ip.is_loopback() && !ip.is_unspecified()
+            }
+        }
         Err(_) => true,
     }
 }
@@ -446,6 +453,8 @@ mod tests {
         assert!(!is_remote_usable_addr("localhost:8070"));
         assert!(!is_remote_usable_addr("0.0.0.0:8070"));
         assert!(!is_remote_usable_addr("[::1]:8070"));
+        assert!(!is_remote_usable_addr("[::ffff:127.0.0.1]:8070"));
+        assert!(!is_remote_usable_addr("[::ffff:0.0.0.0]:8070"));
         assert!(is_remote_usable_addr("192.168.1.50:8070"));
         assert!(is_remote_usable_addr("[fd7a:115c:a1e0::1]:8070"));
         assert!(is_remote_usable_addr("peer.example.test:443"));
