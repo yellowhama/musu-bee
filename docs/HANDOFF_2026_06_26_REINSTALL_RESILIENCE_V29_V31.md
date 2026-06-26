@@ -147,6 +147,11 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   보관/삭제 가능 상태로 남길 수는 있지만, heartbeat TTL을 넘긴 row는 `/api/v1/nodes` discovery/current
   fleet presence로 내려가지 않는다. `deleteNodeByName` / `DELETE /api/v1/nodes/[nodeName]`는 숨겨진
   stale row cleanup을 계속 허용한다.
+- ✅ **musu.pro production health route source 추가**:
+  deploy workflow와 `AGENT_DEPLOY_MUSU_PRO_SITE.md`가 기대하는 `GET /api/health`가 source에 없어서
+  live `https://musu.pro/api/health`가 404를 반환했다. 신규 `src/app/api/health/route.ts`는
+  `musu.site_health.v1`, `ok=true`, `service=musu.pro`, `version=PUBLIC_RELEASE_VERSION`을 no-store로
+  반환한다. `src/app/api/health/route.test.ts`로 unauth 200 contract 고정.
 - ✅ **packaged evidence**: `scripts\windows\build-msix.ps1 -Configuration release -StartupContract
   local-sideload-manual -GenerateCert -KeepStage -NoBump`로 `musu_1.15.0.21_x64_local-sideload-manual.msix`
   재컷, 로컬 hosted-name copy `musu-desktop-x64.msix`와 `musu.appinstaller`도 1.15.0.21 기준으로 갱신됨.
@@ -159,8 +164,8 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   기존 외부 Store submission bundle(`1.15.0.0`, cert 누락)과 옛 multi-device evidence(`1.15.0-rc.1`)라
   이번 local-sideload rc.21 package readiness와는 별도 gate.
 - ✅ **musu.pro registry source deploy-readiness**: `musu-bee` registry guard test
-  `npx tsx --test src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts`
-  31/31 통과(heartbeat presence TTL + hidden stale cleanup coverage 포함). `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
+  `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts`
+  32/32 통과(health route + heartbeat presence TTL + hidden stale cleanup coverage 포함). `npm run build` production build 통과(Next 16.2.7, `/api/v1/nodes`,
   `/api/v1/nodes/register`, `/api/v1/nodes/[nodeName]` dynamic route 포함).
   실제 `musu.pro` production deploy는 owner-gated라 이번 세션에서 실행하지 않음.
 - ✅ **cloud stale row cleanup 경로 추가**: 신규 `DELETE /api/v1/nodes/[nodeName]` route와
@@ -203,13 +208,19 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
    통과 조건: `advertised_public_url_remote_usable=true`,
    `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
 2. 🔴 **musu.pro production registry deploy 미실행**: source는 write/list guard, legacy invalid-row filter,
-   heartbeat presence TTL filter가 통과했지만, live `https://musu.pro`는 아직 stale `hugh-main` loopback
-   row를 반환한다. owner-gated
+   heartbeat presence TTL filter, `/api/health` route가 통과했지만, live `https://musu.pro`는 아직
+   stale `hugh-main` loopback row를 반환하고 `/api/health`도 404다. owner-gated
    deploy 후 `musu nodes --json --include-unusable`에서 remote `127.0.0.1` row가 사라지거나 main 재등록으로
    LAN/private-mesh URL이 보여야 한다. deploy 후 stale row만 남으면:
    새 CLI가 포함된 소스/패키지에서는 `musu nodes --json --delete hugh-main`, 옛 rc.20 이하 패키지만
    있는 환경에서는 `powershell -ExecutionPolicy Bypass -File scripts\windows\remove-cloud-node-registry-row.ps1 -NodeName hugh-main -Json`
    실행 후 strict `verify-fleet-audit-contract.ps1 -Json`이 통과해야 한다.
+   추가 live install-channel 실측: `verify-musu-pro-install-channel.ps1 -Json`은 아직 `ok=false`;
+   `public-config releaseVersion=1.15.0-rc.20`, hosted `Install-MUSU.ps1`에는 `ExpectedReleaseVersion` 없음,
+   `desktop-latest` appinstaller/MainPackage는 `1.15.0.20`. 반면
+   `publish-desktop-latest-assets.ps1 -DryRun`은 rc.21 local preflight OK. production 사용 전
+   `publish-desktop-latest-assets.ps1 -ConfirmUpload`(operator 승인) → Vercel production deploy →
+   `verify-musu-pro-install-channel.ps1 -Json` 순서로 닫아야 한다.
 3. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
    → 노랑 "relay" 표시(display-only, `online_nodes`/targetable 제외) → heartbeat 만료 → offline 3-state 전이
    검증(플레이북 `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`).

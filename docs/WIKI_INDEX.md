@@ -8533,14 +8533,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   now separates 7-day storage retention from current presence by filtering
   `last_seen` with `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC` /
   `nodeRegistryHeartbeatTtlSeconds`, while `deleteNodeByName` still removes hidden
-  stale rows. Search terms should include
+  stale rows. `src/app/api/health/route.ts` now supplies the production workflow's
+  public `GET /api/health` contract (`musu.site_health.v1`) after live
+  `https://musu.pro/api/health` returned 404. Live install-channel evidence remains
+  stale until operator-approved `publish-desktop-latest-assets.ps1 -ConfirmUpload`
+  and production Vercel deploy: `public-config releaseVersion=1.15.0-rc.20`,
+  hosted `Install-MUSU.ps1` lacks `ExpectedReleaseVersion`, and hosted
+  appinstaller/MainPackage remain `1.15.0.20`; local `publish-desktop-latest-assets.ps1 -DryRun`
+  passes for rc.21. Search terms should include
   `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
   `resolve_expands_cached_registry_candidate_endpoints`,
   `observed_source_ip`, `x-forwarded-for`, `local_lan_advertise_hosts`,
   `local_candidate_endpoints_for_route_hosts`, `candidate_endpoints`, and
   `single public_url self-report`, `route_preflight_url_for_peer`,
   `reorder_route_candidates_by_preflight`, `nodeRegistryHeartbeatTtlSeconds`,
-  `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`, and
+  `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`,
+  `musu.site_health.v1`, `GET /api/health`, `publish-desktop-latest-assets.ps1 -DryRun`,
+  `install-channel rc20 stale`, and
   `stale first candidate`.
 
 **End of WIKI_INDEX.md.**
