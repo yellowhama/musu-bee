@@ -8582,7 +8582,10 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 - 2026-06-27 public fleet repair route:
   `https://musu.pro/repair-fleet.ps1` now proxies the canonical
   `scripts/windows/repair-fleet-node-public-url.ps1` from the fixed
-  `desktop-latest` release asset. This closes the repo-copy gap for the main PC:
+  `desktop-latest` release asset. Production deploy
+  `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2` is aliased to `https://musu.pro`; live route
+  probe returned HTTP 200, length 7195, with
+  `musu.fleet_node_public_url_repair.v1` and `ExpectedNodeName` present. This closes the repo-copy gap for the main PC:
   after `irm https://musu.pro/install.ps1 | iex`, the operator can run
   `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`
   to restart/check the packaged bridge, verify LAN-usable advertised/cloud URLs,
@@ -8592,7 +8595,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   and `verify-musu-pro-install-channel.ps1` checks live `/repair-fleet.ps1`.
   Search terms should include `repair-fleet.ps1`,
   `DESKTOP_REPAIR_FLEET_SCRIPT_URL`, `musu.desktop_release_canary.v6`,
-  `repair_fleet_script`, `repo-free fleet repair`, and
+  `repair_fleet_script`, `repo-free fleet repair`, `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`, and
   `ExpectedNodeName hugh-main`.
 
 - 2026-06-27 PR #34 design approval packet:

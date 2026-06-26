@@ -179,6 +179,8 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   `/api/v1/nodes/register`, `/api/v1/nodes/[nodeName]` dynamic route 포함).
   2026-06-27 continuation에서 owner-approved guarded path로 `desktop-latest` rc.21 assets를 publish하고,
   Vercel production deployment `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`를 `musu.pro`에 alias했다.
+  같은 날 public fleet repair route follow-up으로 production deploy
+  `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`가 최신 `musu.pro` alias가 됐다.
   `https://musu.pro/api/health`는 `musu.site_health.v1`, version `1.15.0-rc.21`로 200 OK.
 - ✅ **2026-06-27 continuation 재검증**: 로컬 `node_modules/.bin` shims가 깨져 `tsx`/`next/server`
   resolution이 실패하던 환경 문제를 `npm install`로 복구(소스/lockfile tracked diff 없음). 이후
@@ -245,11 +247,13 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
    `cloud_public_url_remote_usable=true`, `cloud_public_url`이 `127.0.0.1`이 아님.
 2. ✅ **musu.pro production install channel 배포 완료**:
    guarded publisher로 `desktop-latest` rc.21 assets를 업로드했고 canary가 `ok=true`, `failure_count=0`.
-   Vercel remote build deploy `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`가 `https://musu.pro`에 alias됨.
+   Vercel remote build deploy `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`가 최신 `https://musu.pro` alias임.
    `verify-musu-pro-install-channel.ps1 -Json`은 `ok=true`, `failure_count=0`;
    `/api/health`는 200 `musu.site_health.v1` + `1.15.0-rc.21`,
    `/api/public-config`는 `releaseVersion=1.15.0-rc.21`,
-   `/install.ps1`는 `ExpectedReleaseVersion=1.15.0-rc.21`와 cert thumbprint를 노출한다.
+   `/install.ps1`는 `ExpectedReleaseVersion=1.15.0-rc.21`와 cert thumbprint를 노출하며,
+   `/repair-fleet.ps1`는 HTTP 200, length 7195, `musu.fleet_node_public_url_repair.v1`,
+   `ExpectedNodeName`을 노출한다.
 3. 🔴 **PR #34 merge gate**: GitHub code/test/deploy checks는 통과했지만 `design-gate`는 계속 실패.
    실제 `Design: Approved` + design brief/artifact 없이는 merge하지 않는다.
 4. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
