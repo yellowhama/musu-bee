@@ -376,6 +376,7 @@ State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local ope
 | wiki/455 | Research — HTML over Markdown (Tariq) | 2026-05-18 | `RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md` | complete |
 | wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
 | — | musu-brain 통합 thesis — 완제품 1대 (메인보드+칩: brain Go 바이너리 그대로, musu가 데이터·lifecycle·UX 묶음) | 2026-06-26 | `BRAIN_INTEGRATION_THESIS_2026_06_26.md` | active |
+| — | MUSU product purpose and implementation gate — one trustworthy multi-PC work surface | 2026-06-27 | `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE_2026_06_27.md` | active |
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
 | wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
@@ -8665,6 +8666,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `hugh-main`, `hugh_second`, `installed_package_version=1.15.0.22`,
   `brain token ACL proof`, `repo-free physical main proof`,
   `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `Unable to find lambda for route: /app/dashboard`.
+
+- 2026-06-27 product purpose and implementation gate:
+  `docs/PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE_2026_06_27.md` records the
+  current product purpose in implementation terms: MUSU should make the user's
+  computers behave like one trustworthy work surface, while `musu.pro`
+  coordinates install/rendezvous/proof and MUSU Desktop remains the local
+  executor. It maps the pasted audit findings to current evidence:
+  `registry_last_seen_to_heartbeat` preserves registry `last_seen`, remote
+  loopback/wildcard `public_url` values are rejected or ignored, relay-display
+  peers are not counted in `online_nodes`, and the remote-usable self-test
+  passes with `ok=true`, `fail_count=0`. The doc
+  keeps the main constraint explicit: physical `hugh-main` proof via hosted
+  `fleet-proof.ps1` is still required before claiming the two-machine product
+  goal is done. Search terms should include `product purpose implementation
+  gate`, `one trustworthy work surface`, `registry_last_seen_to_heartbeat`,
+  `remote usable selftest`, `relay-display not online`, `hugh-main physical
+  proof`, and `musu.fleet_node_proof.v1`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
