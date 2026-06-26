@@ -232,6 +232,12 @@ table in `musu-bee/DEPLOY.md`.
   mismatch (`Authorization: Bearer <MUSU_BRIDGE_TOKEN>` must match on both sides).
 - **Auth redirect loop** → set `NEXT_PUBLIC_AUTH_ENABLED=false`; check Supabase vars.
 - **Build TypeScript errors** → run `npm run build` locally first.
+- **Local `vercel build --prod` fails with `Unable to find lambda for route:
+  /app/dashboard`** → reproduced on Windows with local Node 24.8.0 even though
+  `npm run build` succeeded and the route list was complete. Use Node 22 like
+  CI, or use remote source deploy as a fallback:
+  `vercel deploy --yes --prod --token=$VERCEL_TOKEN`. Record this as
+  deploy-tooling drift, not a Next route/code failure.
 - **`/api/*` returns 404** → historically a `.vercelignore` excluding `api/`; ensure
   API routes under `src/app/api/` are not ignored.
 - **Deploy rejected as "CLI too old"** → you used an unpinned/old `vercel`; use `@54.7.1`.

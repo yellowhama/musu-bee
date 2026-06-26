@@ -18,6 +18,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 - Added public `https://musu.pro/fleet-proof.ps1` as the repo-free proof wrapper for a physical second PC. It validates the hosted installer, runs hosted fleet repair, checks installed MSIX version, verifies bridge/node remote-usability, gates the brain token ACL when requested, and can require a direct peer such as `hugh_second`.
 - Extended `verify-musu-pro-install-channel.ps1` to verify live `/fleet-proof.ps1` schema, expected package version, install/repair URLs, direct-peer guard, and brain-token gate.
 - Deployed `musu.pro` production via Vercel deployment `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`, aliased to `https://musu.pro`.
+- Deployed the site-only `/fleet-proof.ps1` follow-up via Vercel remote source deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, aliased to `https://musu.pro`.
 
 ## Audit Findings
 
@@ -30,7 +31,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 | INFO | Second PC rc.22 packaged first-run proof is now complete. | `Add-AppxPackage -AppInstallerFile .local-build\msix\output\musu.appinstaller` updated `hugh_second` from `1.15.0.21` to `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`; launching the package started `musu.exe` and `musu-desktop.exe` from the rc.22 WindowsApps path. `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed with `installed_package_version=1.15.0.22`, `expected_package_version=1.15.0.22`, `brain_token_present=true`, `bridge_bind_addr=0.0.0.0:11105`, and `advertised_public_url=http://192.168.1.154:11105`. | Keep this verifier as the local packaged proof gate. |
 | MED | Physical `hugh-main` proof is still missing. | Current completed package proof is from `hugh_second`; `hugh-main` still appears as unhealthy peer `192.168.1.192:9497` with `version=unknown`. | Install rc.22 on `hugh-main`, run repair, then prove non-loopback direct route. |
 | INFO | Fleet audit no longer allows stale installed packages. | Before the second update, the verifier failed with `installed_package_version=1.15.0.21`, `expected_package_version=1.15.0.22`; after the rc.22 install, the same default audit passes. Stale package diagnostics require explicit `-ExpectedPackageVersion <old>` or `-AllowInstalledPackageVersionMismatch`. | Keep this as a release evidence gate. |
-| INFO | Physical main proof now has a repo-free full wrapper. | `/fleet-proof.ps1` emits `musu.fleet_node_proof.v1` and includes `ExpectedNodeName`, `ExpectedDirectPeerName`, `RequireBrainToken`, hosted install validation, and hosted repair evidence. | Deploy the route, then run it on `hugh-main` after install/first launch. |
+| INFO | Physical main proof now has a repo-free full wrapper. | Live `https://musu.pro/fleet-proof.ps1` returns HTTP 200, length `16747`, contains `musu.fleet_node_proof.v1`, and pins `ExpectedPackageVersion = "1.15.0.22"`. `verify-musu-pro-install-channel.ps1 -Json` passes with the new `fleet-proof.ps1` checks. | Run it on `hugh-main` after install/first launch. |
 | LOW | Release build feedback loop is too slow. | First release build used `release`, `opt-level=3`, thin LTO, `codegen-units=1`, and memory-safe 1-job mode; `musu-rs` finished in `23m 02s`. `build-msix.ps1 -NoBump -PreflightOnly` now verifies version coherence + brain pin in a few seconds before the long build path. | Run `-PreflightOnly` before full release builds; separately evaluate whether release LTO/profile settings should stay this strict for every RC cut. |
 | LOW | Existing desktop crate warning remains. | `musu-desktop` build reports `unused_mut` at `src/lib.rs:1539`. | Clean up in a separate low-risk hygiene commit. |
 
@@ -47,7 +48,10 @@ Passed:
 - Desktop release canary `musu.desktop_release_canary.v6` with all checks passing for rc.22.
 - Local `npm run build`.
 - Vercel production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`.
+- Vercel remote source production deploy `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, aliased to `https://musu.pro`.
 - `scripts/windows/verify-musu-pro-install-channel.ps1 -Json`.
+- Live `https://musu.pro/fleet-proof.ps1` probe: HTTP 200, length `16747`, `musu.fleet_node_proof.v1` present, expected package `1.15.0.22` present.
+- Live `scripts/windows/verify-musu-pro-install-channel.ps1 -Json` after the `/fleet-proof.ps1` deploy: `ok=true`, `failure_count=0`, including `fleet-proof.ps1 status`, schemas, expected package version, and proof gates.
 - `scripts/windows/verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json`.
 - `scripts/windows/verify-fleet-audit-contract.ps1 -ExpectedPackageVersion 1.15.0.21 -Json` as a compatibility check for the previously installed rc.21 package.
 - `Add-AppxPackage -AppInstallerFile .local-build\msix\output\musu.appinstaller` after stopping the running rc.21 package, updating `hugh_second` to `1.15.0.22`.
@@ -65,6 +69,7 @@ Observed warnings:
 
 - Vercel install reported `9 vulnerabilities` from `npm audit` (`2 low`, `5 moderate`, `2 high`). This was not triaged in this release-channel pass.
 - Next.js warns that the `middleware` file convention is deprecated in favor of `proxy`.
+- Local Windows `vercel build --prod` under Node 24.8.0 failed at Vercel packaging with `Unable to find lambda for route: /app/dashboard` after Next compile/typecheck/static generation had succeeded. Removing `.next` did not fix it. Remote source deploy succeeded, so this is recorded as Vercel local prebuilt tooling drift, not a route/code failure. CI uses Node 22.
 
 ## Product Spec Updates
 

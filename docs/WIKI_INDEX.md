@@ -8653,12 +8653,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ExpectedDirectPeerName` direct route proof, and `RequireBrainToken` ACL proof.
   The intended main-PC command after install and first launch is
   `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`.
-  `verify-musu-pro-install-channel.ps1` now checks live `/fleet-proof.ps1`, so
-  old production site code cannot pass install-channel verification without the
-  full proof wrapper. Search terms should include `fleet-proof.ps1`,
+  Vercel remote source deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ` is aliased
+  to `https://musu.pro`; live probe returned HTTP 200, length `16747`, schema
+  present, and expected package `1.15.0.22` present. `verify-musu-pro-install-channel.ps1`
+  now checks live `/fleet-proof.ps1` and passes with `ok=true`, `failure_count=0`,
+  so old production site code cannot pass install-channel verification without
+  the full proof wrapper. Local Windows Node 24.8.0 prebuilt Vercel build hit
+  `Unable to find lambda for route: /app/dashboard`; remote source deploy
+  succeeded, matching CI's safer deploy path. Search terms should include `fleet-proof.ps1`,
   `musu.fleet_node_proof.v1`, `ExpectedDirectPeerName`, `RequireBrainToken`,
   `hugh-main`, `hugh_second`, `installed_package_version=1.15.0.22`,
-  `brain token ACL proof`, and `repo-free physical main proof`.
+  `brain token ACL proof`, `repo-free physical main proof`,
+  `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `Unable to find lambda for route: /app/dashboard`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and

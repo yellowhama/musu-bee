@@ -39,7 +39,12 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
   `installed_package_version=1.15.0.22`, `expected_package_version=1.15.0.22`,
   `brain_token_present=true`, `bridge_bind_addr=0.0.0.0:11105`,
   `advertised_public_url=http://192.168.1.154:11105`.
-- 남은 외부 proof는 physical `hugh-main` 설치/repair/direct-route proof다.
+- repo-free full proof route도 추가/배포됨:
+  Vercel remote source deploy `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`가 `https://musu.pro`에 alias됐고,
+  live `verify-musu-pro-install-channel.ps1 -Json`은 `/fleet-proof.ps1` checks까지
+  `ok=true`, `failure_count=0`. `https://musu.pro/fleet-proof.ps1`는 HTTP 200,
+  length `16747`, `musu.fleet_node_proof.v1`, `ExpectedPackageVersion = "1.15.0.22"`를 노출한다.
+- 남은 외부 proof는 physical `hugh-main`에서 이 full proof command를 실행해 나온 JSON이다.
 - `verify-fleet-audit-contract.ps1`는 이제 repo `VERSION`에서 expected package version을 계산해
   installed MSIX package version과 비교한다. stale package 진단은 `-ExpectedPackageVersion 1.15.0.21` 또는
   `-AllowInstalledPackageVersionMismatch`를 명시할 때만 통과/경고로 본다.
