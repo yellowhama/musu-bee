@@ -2,6 +2,7 @@
 
 Date: 2026-06-27 KST
 PR: https://github.com/yellowhama/musu-bee/pull/34
+Design issue: https://github.com/yellowhama/musu-bee/issues/35
 Status: **approval requested, not yet approved**
 
 ## Purpose
@@ -67,18 +68,16 @@ have paired PCs in the web fleet store.
 This document and the PNG artifacts are **not** approval. To satisfy the design
 gate without faking approval:
 
-1. Create or link a GitHub issue for this design brief.
-2. Add an explicit CEO/design approval comment on that issue.
-3. Update the PR body with:
+1. Add an explicit CEO/design approval comment on issue #35.
+2. Update the PR body from `Design: Pending` to:
 
 ```markdown
 Design: Approved
 
-Design brief issue: <issue URL>
+Design brief issue: https://github.com/yellowhama/musu-bee/issues/35
 Design artifact:
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-download.png
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-install.png
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-fleet.png
 Approval comment: <approval comment URL>
 ```
-

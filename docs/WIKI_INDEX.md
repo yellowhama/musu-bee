@@ -8566,13 +8566,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
-  approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`.
+  approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;
+  approval is requested in GitHub issue #35.
   Local screenshots from `127.0.0.1:3000` are committed at
   `docs/design-artifacts/pr34-download.png`, `docs/design-artifacts/pr34-install.png`,
   and `docs/design-artifacts/pr34-fleet.png`. This is not approval; the remaining
   gate still requires a design issue URL, explicit CEO/design approval comment,
   and `Design: Approved` in the PR body. Search terms should include
   `DESIGN_BRIEF_PR34_FLEET_INSTALL`, `pr34-download.png`, `pr34-install.png`,
-  `pr34-fleet.png`, `approval requested not yet approved`, and `Design: Approved`.
+  `pr34-fleet.png`, `issue #35`, `approval requested not yet approved`, and
+  `Design: Approved`.
 
 **End of WIKI_INDEX.md.**
