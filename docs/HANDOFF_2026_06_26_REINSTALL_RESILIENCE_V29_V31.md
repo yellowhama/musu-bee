@@ -12,7 +12,7 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
 
 - `desktop-latest` GitHub release assets 재빌드/업로드 완료:
   `musu-desktop-x64.msix` length `40686791`, `musu.appinstaller` length `768`,
-  `Install-MUSU.ps1` length `16143`.
+  `Install-MUSU.ps1` length `16587`.
 - `musu.pro` production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`가 `https://musu.pro`에 alias됨.
 - `verify-musu-pro-install-channel.ps1 -Json` 통과: `ok=true`, `failure_count=0`,
   `/api/health` 및 `/api/public-config`는 `1.15.0-rc.22`, `/install.ps1`는
@@ -20,6 +20,10 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
 - GitHub `desktop-latest` stable URL은 `--clobber` 직후 rc.21 content를 잠시 반환했다. 그래서
   public release asset URL, generated `.appinstaller` `Uri`/`MainPackage Uri`, 그리고
   `Install-MUSU.ps1` appinstaller download에 `?rc=1.15.0.22` cache-buster를 추가했다.
+- Windows PowerShell 5.1 `irm/iex` validation에서 `Install-MUSU.ps1`의 unbraced
+  appinstaller URL interpolation이 `?rc=1.15.0.22`를 잃는 버그를 노출했다. installer는
+  TLS 1.2 bootstrap + braced URL (`${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`)
+  형태로 고쳤고, hardened script를 `desktop-latest`에 재업로드했다.
 - `musu-brain.pin.json`은 `F:\musu_2nd_brain` clean HEAD
   `2f036728a9e6d5840634666d7442be87d302f083`로 갱신됨. 첫 rc.22 build는 pin이 옛
   `f7678af...`라서 실패했고, 이 fail-closed gate가 정상 동작했다.
@@ -335,6 +339,9 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
 - installer release canary: run
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\Install-MUSU.ps1 -ValidateReleaseOnly`.
   It must print `MUSU release channel validation passed.` before any main-PC install command is given to a user.
+- remote installer release canary: run
+  `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing https://musu.pro/install.ps1).Content)) -ValidateReleaseOnly"`.
+  It must print the same success line through the exact hosted `irm/iex` path.
 - live second: WindowsApps alias `musu doctor --json` must show `distribution=store-msix`,
   `bridge.service_registry_bind_addr=0.0.0.0:<ephemeral-port>`,
   `bridge.advertised_public_url=http://192.168.1.154:<same-port>`, and account warning for

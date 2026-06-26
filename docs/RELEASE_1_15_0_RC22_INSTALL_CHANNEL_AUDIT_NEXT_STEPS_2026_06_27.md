@@ -9,10 +9,11 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 - Published `desktop-latest` assets for rc.22:
   - `musu-desktop-x64.msix` length `40686791`
   - `musu.appinstaller` length `768`
-  - `Install-MUSU.ps1` length `16143`
+  - `Install-MUSU.ps1` length `16587`
 - Added release cache-busting to the public desktop URLs (`?rc=1.15.0.22`) because GitHub release asset metadata updated immediately after `--clobber`, while stable public download URLs temporarily served old rc.21 content.
 - Updated generated `.appinstaller` `Uri` and `MainPackage Uri` to include `?rc=1.15.0.22`.
 - Updated `Install-MUSU.ps1` to download `musu.appinstaller?rc=<expectedPackageVersion>` after it verifies `musu.pro/api/public-config`.
+- Hardened `Install-MUSU.ps1` for Windows PowerShell 5.1 execution by enabling TLS 1.2 before network calls and bracing the appinstaller URL variables (`${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`), preventing `?rc=` from being parsed as part of the variable name.
 - Relaxed `audit-appinstaller-contract.ps1` to validate the `MainPackage Uri` path leaf (`.msix`) while allowing query strings.
 - Deployed `musu.pro` production via Vercel deployment `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`, aliased to `https://musu.pro`.
 
@@ -21,6 +22,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 | Severity | Finding | Evidence | Next |
 |---|---|---|---|
 | INFO | rc.22 public install channel is live. | `verify-musu-pro-install-channel.ps1 -Json` passed with `ok=true`, `failure_count=0`; `/api/health`, `/api/public-config`, `/install.ps1`, `/repair-fleet.ps1`, and desktop canary publish `1.15.0-rc.22`. | Keep this verifier as the public release gate. |
+| INFO | Hosted installer script now validates through the actual `irm/iex` path. | Windows PowerShell 5.1 exposed that the unbraced appinstaller URL string dropped the `?rc=1.15.0.22` cache buster. The script now enables TLS 1.2 and uses braced variables; `desktop-latest` was republished with hosted `Install-MUSU.ps1` length `16587`. | Keep remote `https://musu.pro/install.ps1 -ValidateReleaseOnly` as the pre-install smoke test. |
 | INFO | Brain pin mismatch gate worked. | The first full MSIX build compiled for 23m, then failed because pin `f7678af7` did not match `F:\musu_2nd_brain` HEAD `2f03672`. After pin update, sidecar build reported `musubrain@2f03672...`. | Keep the fail-closed pin gate; add a cheap preflight before long Rust release builds. |
 | MED | Stable GitHub release asset URLs can serve stale content right after `--clobber`. | GitHub API asset metadata showed rc.22 size, while `releases/download/desktop-latest/musu-desktop-x64.msix` returned old rc.21 length until queried with `?rc=1.15.0.22`. | Keep version query cache-busting in public URLs and appinstaller manifest. |
 | MED | Packaged first-run brain proof is still missing. | Default `verify-fleet-audit-contract.ps1 -Json` passes, but `-RequireBrainToken -Json` fails because `~/.musu/brain/runtime/musu-ingest.token` is absent on current second-machine runtime. | Install/launch rc.22 package, then rerun `-RequireBrainToken` and capture ACL evidence. |
@@ -35,8 +37,9 @@ Passed:
 - `scripts/windows/build-msix.ps1 -NoBump` after pin correction.
 - `scripts/windows/build-msix.ps1 -NoBump -PreflightOnly` passed and reported `Musu Brain repo pin OK before release build`.
 - `scripts/windows/build-msix.ps1 -NoBump -SkipBuild` after cache-busted appinstaller URI change.
+- Local `scripts/windows/Install-MUSU.ps1 -ValidateReleaseOnly` after TLS 1.2 + braced URL hardening.
 - `scripts/windows/publish-desktop-latest-assets.ps1 -DryRun`.
-- `scripts/windows/publish-desktop-latest-assets.ps1 -ConfirmUpload`.
+- `scripts/windows/publish-desktop-latest-assets.ps1 -ConfirmUpload`, including the republished hardened installer script.
 - Desktop release canary `musu.desktop_release_canary.v6` with all checks passing for rc.22.
 - Local `npm run build`.
 - Vercel production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`.
@@ -58,7 +61,7 @@ Observed warnings:
 
 - Public desktop release URLs are no longer just "fixed filename under `desktop-latest`"; they are fixed release asset names plus a version query cache buster.
 - App Installer manifests must carry the same version query on both the root `Uri` and `MainPackage Uri` for public install/update readiness.
-- `Install-MUSU.ps1` must verify `musu.pro/api/public-config` before downloading appinstaller, then fetch the appinstaller with the expected package-version query.
+- `Install-MUSU.ps1` must verify `musu.pro/api/public-config` before downloading appinstaller, enable TLS 1.2 for legacy Windows PowerShell hosts, then fetch the appinstaller with a braced expected package-version query.
 - Brain sidecar coherence is currently `product_version + VCS revision + clean build info`, not native `musu-brain --version`.
 - `desktop-latest` HTTP 200 is not release readiness. Readiness requires version/hash/content-length canary plus live `musu.pro` install-channel verification.
 
@@ -71,6 +74,8 @@ Observed warnings:
 3. Prove two-machine direct route with non-loopback `hugh-main` cloud/public URL.
 4. Launch packaged rc.22 on second/main and rerun:
    `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`
-5. Before each full release build, run:
+5. Before giving the one-line install command to another PC, run:
+   `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing https://musu.pro/install.ps1).Content)) -ValidateReleaseOnly"`
+6. Before each full release build, run:
    `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\build-msix.ps1 -NoBump -PreflightOnly`
-6. Resolve PR #34 design-gate with explicit approval evidence.
+7. Resolve PR #34 design-gate with explicit approval evidence.

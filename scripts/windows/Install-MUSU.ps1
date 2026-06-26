@@ -36,6 +36,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Enable-ModernTls {
+    try {
+        $tls12 = [Net.SecurityProtocolType]::Tls12
+        if (([Net.ServicePointManager]::SecurityProtocol -band $tls12) -ne $tls12) {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor $tls12
+        }
+    } catch {
+        Write-Verbose "Could not adjust ServicePointManager TLS settings: $($_.Exception.Message)"
+    }
+}
+
+Enable-ModernTls
+
 # Pinned signing-certificate thumbprint (canonical key blossompark.musu). The
 # cert and the MSIX it signs are fetched over the SAME channel, so MSIX code
 # signing alone proves nothing here — we must verify the downloaded cert matches
@@ -106,7 +119,7 @@ if ($publicReleaseVersion -ne $ExpectedReleaseVersion) {
     throw "musu.pro is publishing releaseVersion '$publicReleaseVersion', but this installer expects '$ExpectedReleaseVersion'. Aborting so this PC does not install the wrong release."
 }
 $appInstallerPath = Join-Path $work $AppInstallerFileName
-$appInstallerUrl = "$ReleaseBase/$AppInstallerFileName?rc=$expectedPackageVersion"
+$appInstallerUrl = "${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}"
 Invoke-WebRequest $appInstallerUrl -OutFile $appInstallerPath -UseBasicParsing
 $appInstallerVersions = Get-AppInstallerVersions -Path $appInstallerPath
 if ($appInstallerVersions.AppInstallerVersion -ne $expectedPackageVersion -or

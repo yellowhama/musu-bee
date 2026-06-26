@@ -8620,13 +8620,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2f036728a9e6d5840634666d7442be87d302f083`. GitHub release asset stable URLs
   served stale rc.21 immediately after `--clobber`, so public release URLs,
   generated `.appinstaller` `Uri` / `MainPackage Uri`, and `Install-MUSU.ps1`
-  appinstaller download now carry `?rc=1.15.0.22`. `build-msix.ps1 -NoBump -PreflightOnly`
+  appinstaller download now carry `?rc=1.15.0.22`. Windows PowerShell 5.1 remote
+  `irm/iex` validation then exposed an unbraced appinstaller URL interpolation bug, so
+  `Install-MUSU.ps1` now enables TLS 1.2 and builds the download URL as
+  `${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`; hardened
+  hosted script length is `16587`. `build-msix.ps1 -NoBump -PreflightOnly`
   now checks version coherence + brain pin/clean checkout before the long release build.
   Search terms should include
   `rc22 install channel`, `1.15.0.22`, `desktop-latest cache buster`,
   `musu.appinstaller?rc=1.15.0.22`, `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`,
   `brain pin mismatch`, `2f036728a9e6d5840634666d7442be87d302f083`, and
-  `PreflightOnly`, `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
+  `PreflightOnly`, `Enable-ModernTls`, `Install-MUSU appinstaller URL braces`,
+  `ValidateReleaseOnly remote irm iex`, `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
 
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
