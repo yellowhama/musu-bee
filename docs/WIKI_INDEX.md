@@ -8526,11 +8526,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   as `kind: "observed_source_ip"` without replacing `public_url`, and rejects
   loopback/wildcard observed candidates. `peer::discovery` expands cached
   registry candidates into multiple route candidates for the same stable
-  `node_name` while rejecting relay/failed/loopback candidates. Search terms should include
+  `node_name` while rejecting relay/failed/loopback candidates. `forward.rs`
+  now runs a short read-only `/api/fleet/node-status` preflight over the first
+  direct route candidates and moves reachable candidates ahead of stale ones
+  before sending a single `/api/tasks/forward` POST. Search terms should include
   `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
   `resolve_expands_cached_registry_candidate_endpoints`,
   `observed_source_ip`, `x-forwarded-for`, `local_lan_advertise_hosts`,
   `local_candidate_endpoints_for_route_hosts`, `candidate_endpoints`, and
-  `single public_url self-report`.
+  `single public_url self-report`, `route_preflight_url_for_peer`,
+  `reorder_route_candidates_by_preflight`, and `stale first candidate`.
 
 **End of WIKI_INDEX.md.**

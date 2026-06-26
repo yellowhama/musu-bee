@@ -134,6 +134,12 @@ audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검
   direct/healthy only. `~/.musu/services/bridge.json`는 raw bind(`0.0.0.0`)를 기록하고 doctor는
   normalized local addr와 `service_registry_bind_addr`/`advertised_public_url`를 분리. `tls/key.pem`와
   `private_mesh.toml`은 owner-only ACL로 제한.
+- ✅ **V34 route candidate preflight 1차 bonding**:
+  `forward_to_peer_with_retry`는 rendezvous target `candidate_endpoints`와 selected peer를 합친 뒤,
+  task POST 전에 read-only `/api/fleet/node-status` preflight를 짧게 병렬 실행해 reachable 후보를 앞으로
+  당긴다. 실제 `/api/tasks/forward` POST는 한 후보씩만 보내므로 stale 첫 후보의 지연은 줄이되 중복 실행은
+  만들지 않는다. 남은 증명은 두 물리 머신에서 stale-first 후보 재현 + reachable LAN 후보 선점 + task
+  중복 없음 확인이다.
 - ✅ **packaged evidence**: `scripts\windows\build-msix.ps1 -Configuration release -StartupContract
   local-sideload-manual -GenerateCert -KeepStage -NoBump`로 `musu_1.15.0.21_x64_local-sideload-manual.msix`
   재컷, 로컬 hosted-name copy `musu-desktop-x64.msix`와 `musu.appinstaller`도 1.15.0.21 기준으로 갱신됨.
