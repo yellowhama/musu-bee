@@ -23,6 +23,8 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
 - `musu-brain.pin.json`은 `F:\musu_2nd_brain` clean HEAD
   `2f036728a9e6d5840634666d7442be87d302f083`로 갱신됨. 첫 rc.22 build는 pin이 옛
   `f7678af...`라서 실패했고, 이 fail-closed gate가 정상 동작했다.
+- `build-msix.ps1 -NoBump -PreflightOnly`가 추가되어 version coherence + brain pin/clean checkout을
+  긴 Rust/Tauri/MSIX build 전에 빠르게 검증한다.
 - 현재 second PC에 설치된 패키지는 아직 `1.15.0.21`이다. rc.22는 hosted install/update channel에
   올라간 상태이며, physical `hugh-main` 설치/repair/direct-route proof와 packaged first-run brain
   token proof는 아직 남아 있다.

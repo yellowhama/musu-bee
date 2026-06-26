@@ -25,7 +25,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 | MED | Stable GitHub release asset URLs can serve stale content right after `--clobber`. | GitHub API asset metadata showed rc.22 size, while `releases/download/desktop-latest/musu-desktop-x64.msix` returned old rc.21 length until queried with `?rc=1.15.0.22`. | Keep version query cache-busting in public URLs and appinstaller manifest. |
 | MED | Packaged first-run brain proof is still missing. | Default `verify-fleet-audit-contract.ps1 -Json` passes, but `-RequireBrainToken -Json` fails because `~/.musu/brain/runtime/musu-ingest.token` is absent on current second-machine runtime. | Install/launch rc.22 package, then rerun `-RequireBrainToken` and capture ACL evidence. |
 | MED | Physical `hugh-main` proof is still missing. | Current evidence is from `hugh_second`; installed package there is still `1.15.0.21` even though the public channel is rc.22. | Install rc.22 on `hugh-main`, run repair, then prove non-loopback direct route. |
-| LOW | Release build feedback loop is too slow. | First release build used `release`, `opt-level=3`, thin LTO, `codegen-units=1`, and memory-safe 1-job mode; `musu-rs` finished in `23m 02s`. | Add a cheap preflight stage before full MSIX builds and document slow release path expectations. |
+| LOW | Release build feedback loop is too slow. | First release build used `release`, `opt-level=3`, thin LTO, `codegen-units=1`, and memory-safe 1-job mode; `musu-rs` finished in `23m 02s`. `build-msix.ps1 -NoBump -PreflightOnly` now verifies version coherence + brain pin in a few seconds before the long build path. | Run `-PreflightOnly` before full release builds; separately evaluate whether release LTO/profile settings should stay this strict for every RC cut. |
 | LOW | Existing desktop crate warning remains. | `musu-desktop` build reports `unused_mut` at `src/lib.rs:1539`. | Clean up in a separate low-risk hygiene commit. |
 
 ## Verification Snapshot
@@ -33,6 +33,7 @@ Scope: follow-up on `feat/v33-residual-finalize` after brain ingest token ACL ha
 Passed:
 
 - `scripts/windows/build-msix.ps1 -NoBump` after pin correction.
+- `scripts/windows/build-msix.ps1 -NoBump -PreflightOnly` passed and reported `Musu Brain repo pin OK before release build`.
 - `scripts/windows/build-msix.ps1 -NoBump -SkipBuild` after cache-busted appinstaller URI change.
 - `scripts/windows/publish-desktop-latest-assets.ps1 -DryRun`.
 - `scripts/windows/publish-desktop-latest-assets.ps1 -ConfirmUpload`.
@@ -70,5 +71,6 @@ Observed warnings:
 3. Prove two-machine direct route with non-loopback `hugh-main` cloud/public URL.
 4. Launch packaged rc.22 on second/main and rerun:
    `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`
-5. Add a fast preflight before full `build-msix.ps1` release builds: brain pin match, clean brain checkout, publicRelease parser, appinstaller query contract.
+5. Before each full release build, run:
+   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\build-msix.ps1 -NoBump -PreflightOnly`
 6. Resolve PR #34 design-gate with explicit approval evidence.

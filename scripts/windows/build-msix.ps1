@@ -70,7 +70,10 @@ param(
     # release LTO of the large lib.rs (~7.5k lines) does not exhaust RAM/paging
     # and crash rustc with STATUS_STACK_BUFFER_OVERRUN / "out of memory". Pass
     # -FastBuild on a machine with ample RAM to restore parallel codegen.
-    [switch]$FastBuild
+    [switch]$FastBuild,
+    # Cheap release gate: verify version coherence and the Musu Brain checkout
+    # pin before the long Rust/Tauri/MSIX build path starts.
+    [switch]$PreflightOnly
 )
 
 Set-StrictMode -Version Latest
@@ -315,6 +318,58 @@ function Assert-BrainSidecarBuildInfo {
     Write-Step "Musu Brain sidecar build info OK: $($pin.module_path)@$revision"
 }
 
+function Resolve-BrainRepoForPin {
+    param([object]$Pin, [string]$RepoRoot)
+
+    $envRepo = [Environment]::GetEnvironmentVariable("MUSU_BRAIN_REPO")
+    if (-not [string]::IsNullOrWhiteSpace($envRepo)) {
+        return $envRepo
+    }
+    if ($Pin.PSObject.Properties.Name -contains "default_repo_hint") {
+        $hint = [string]$Pin.default_repo_hint
+        if (-not [string]::IsNullOrWhiteSpace($hint)) {
+            return $hint
+        }
+    }
+
+    $workspaceRoot = Split-Path -Parent (Split-Path -Parent $RepoRoot)
+    return (Join-Path $workspaceRoot "musu_2nd_brain")
+}
+
+function Assert-BrainRepoMatchesPin {
+    param([string]$PinPath, [string]$RepoRoot)
+
+    if (-not (Test-Path -LiteralPath $PinPath)) {
+        throw "musu-brain pin file not found at $PinPath"
+    }
+    $pin = Get-Content -LiteralPath $PinPath -Raw | ConvertFrom-Json
+    $brainRepo = Resolve-BrainRepoForPin -Pin $pin -RepoRoot $RepoRoot
+
+    if (-not (Test-Path -LiteralPath (Join-Path $brainRepo "go.mod"))) {
+        throw "Musu Brain repo not found at $brainRepo; set MUSU_BRAIN_REPO to the Go engine checkout."
+    }
+
+    $revisionOutput = & git -C $brainRepo rev-parse HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "git rev-parse failed for Musu Brain repo $brainRepo`n$($revisionOutput -join "`n")"
+    }
+    $revision = ($revisionOutput | Select-Object -First 1).Trim()
+    if ($revision -ne [string]$pin.vcs_revision) {
+        throw "musu-brain pin revision $($pin.vcs_revision) does not match $brainRepo HEAD $revision"
+    }
+
+    $dirtyOutput = & git -C $brainRepo status --porcelain=v1 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "git status failed for Musu Brain repo $brainRepo`n$($dirtyOutput -join "`n")"
+    }
+    $dirty = ($dirtyOutput -join "`n").Trim()
+    if (-not [string]::IsNullOrWhiteSpace($dirty)) {
+        throw "musu-brain repo has uncommitted changes; refusing to start the long release build from a dirty knowledge chip."
+    }
+
+    Write-Step "Musu Brain repo pin OK before release build: $($pin.module_path)@$revision"
+}
+
 function Resolve-OptionalPath([string]$PathValue) {
     if ([string]::IsNullOrWhiteSpace($PathValue)) {
         return $null
@@ -498,12 +553,17 @@ $musuBeeDir = Join-Path $repoRoot "musu-bee"
 $tauriDir = Join-Path $musuBeeDir "src-tauri"
 . (Join-Path $scriptDir "msix-common.ps1")
 
-if (-not $SkipBuild) {
+if ($PreflightOnly) {
+    Assert-CommandAvailable -CommandName "git" -InstallHint "Install Git and ensure git is on PATH for the Musu Brain sidecar pin gate."
+} elseif (-not $SkipBuild) {
     Assert-CommandAvailable -CommandName "cargo" -InstallHint "Install Rust and ensure cargo is on PATH."
     Assert-CommandAvailable -CommandName "npm" -InstallHint "Install Node.js/npm and ensure npm is on PATH."
     Assert-CommandAvailable -CommandName "go" -InstallHint "Install Go and ensure go is on PATH for the Musu Brain sidecar build."
+    Assert-CommandAvailable -CommandName "git" -InstallHint "Install Git and ensure git is on PATH for the Musu Brain sidecar pin gate."
 }
-Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
+if (-not $PreflightOnly) {
+    Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
+}
 
 # Auto-bump (ON by default): increment the prerelease counter in VERSION so each
 # release rises (rc.1 → rc.2 → …) and App Installer auto-update actually fires.
@@ -516,7 +576,7 @@ Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft Wi
 # and the next attempt double-bumps. $Version (used by packaging) carries the
 # bumped value in-memory so this build targets the right number regardless.
 $versionPath = Join-Path $repoRoot "VERSION"
-$shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild
+$shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild -and -not $PreflightOnly
 $pendingVersionWrite = $null
 if ($shouldBump) {
     $raw = (Get-Content -LiteralPath $versionPath -Raw).Trim()
@@ -560,6 +620,17 @@ if (-not $Version) {
     $Version = Normalize-Version $Version
 }
 
+if ($PreflightOnly) {
+    $preflightBrainPinPath = Join-Path $tauriDir "musu-brain.pin.json"
+    if ($DryRun) {
+        Write-Host "[dry-run] check Musu Brain repo pin at $preflightBrainPinPath"
+    } else {
+        Assert-BrainRepoMatchesPin -PinPath $preflightBrainPinPath -RepoRoot $repoRoot
+    }
+    Write-Step "Release preflight OK: version sources and Musu Brain pin are coherent"
+    exit 0
+}
+
 if (-not $StageDir) {
     $StageDir = Join-Path $repoRoot ".local-build\msix\stage"
 }
@@ -582,6 +653,10 @@ $rustHostTuple = Resolve-RustHostTuple -Architecture $Architecture
 $brainSidecarExe = Join-Path $tauriDir ("binaries\musu-brain-{0}.exe" -f $rustHostTuple)
 $brainPinPath = Join-Path $tauriDir "musu-brain.pin.json"
 $generatedCertPath = Join-Path $OutputDir ("{0}_cert.pfx" -f $IdentityName)
+
+if (-not $SkipBuild -and -not $DryRun) {
+    Assert-BrainRepoMatchesPin -PinPath $brainPinPath -RepoRoot $repoRoot
+}
 
 # Memory-safe build env (default ON; -FastBuild restores parallel codegen).
 # CARGO_BUILD_JOBS=1 → one rustc at a time so two release-LTO crates don't peak
