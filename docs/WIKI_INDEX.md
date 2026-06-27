@@ -8833,4 +8833,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `v34_stale_self_heal_verified=false`, and `go-no-go surfaces full product spec
   readiness lanes`.
 
+- 2026-06-28 release manifest package-version gate:
+  `scripts/windows/write-release-candidate-manifest.ps1` now maps public rc
+  versions to current 4-segment MSIX package versions before selecting release
+  artifacts, e.g. `1.15.0-rc.22` -> `1.15.0.22`. This prevents stale
+  `musu_1.15.0.0_*` artifacts from satisfying the current rc.22 manifest. A
+  local go/no-go check reports `full_product_spec_ready=false`,
+  complete lanes `2`, incomplete lanes `6`, and
+  `release_candidate_manifest_generated=false` because the current
+  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix` artifact is
+  missing. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `release manifest maps rc version to package artifact version`. Search terms
+  should include `Convert-PublicVersionToPackageVersion`,
+  `1.15.0-rc.22 -> 1.15.0.22`, `current Store-reviewed MSIX missing`, and
+  `release manifest package version source contract`.
+
 **End of WIKI_INDEX.md.**

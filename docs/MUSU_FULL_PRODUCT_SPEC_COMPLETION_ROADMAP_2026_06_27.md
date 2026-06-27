@@ -39,7 +39,22 @@ Current local gate shape on this branch:
 - `brain_product_verified=false`.
 - `v34_stale_self_heal_verified=false`.
 - `release_candidate_manifest_generated=false` until the missing current
-  `multi_device_test_kit` artifact is restored or regenerated.
+  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix` artifact is
+  produced and verified.
+
+## 2026-06-28 Manifest Version Gate Update
+
+The current multi-device kit for `1.15.0-rc.22` has been regenerated, but the
+release candidate manifest found a stricter blocker: the manifest writer was
+mapping rc versions to `1.15.0.0` package artifacts instead of the current
+`1.15.0.22` package version.
+
+That is now fixed in `scripts/windows/write-release-candidate-manifest.ps1`.
+The manifest maps `1.15.0-rc.22` to `1.15.0.22`, so stale `1.15.0.0`
+Store-reviewed artifacts cannot satisfy the current release manifest. The local
+go/no-go therefore remains `full_product_spec_ready=false` and
+`release_candidate_manifest_generated=false` until the current rc.22
+Store-reviewed MSIX exists.
 
 ## Current Completion State
 
@@ -54,6 +69,7 @@ Current local gate shape on this branch:
 | Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook exist | Brain is bonded as a hidden chip, but full release-grade health/ingest/UX proof is missing |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter are documented/implemented | Needs boot reconcile and stale-candidate E2E proof before full self-heal claim |
 | Store release readiness | Not complete | MSIX proof exists, but Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
+| Release candidate manifest | Not complete | Current rc.22 local sideload and multi-device kit exist, but the current rc.22 Store-reviewed MSIX is missing | Cannot use stale `1.15.0.0` artifacts for current release evidence |
 | Support mailbox / external operator evidence | Unknown for current final spec, historically open | Older release gates require `musu@musu.pro` delivery evidence | Treat as final release-governance lane until explicitly retired |
 
 ## Full Product Definition Of Done

@@ -1974,6 +1974,36 @@ function Test-ReleaseCandidateManifestReadinessReuseContract {
     return $true
 }
 
+function Test-ReleaseCandidateManifestPackageVersionContract {
+    param([Parameter(Mandatory = $true)][string]$ManifestScriptPath)
+
+    $source = Get-Content -LiteralPath $ManifestScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        "`$PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$'",
+        'return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"',
+        '$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $version',
+        'musu_{0}_x64_local-sideload-manual.msix',
+        'musu_{0}_x64_store-reviewed-immediate-registration.msix'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        '$msixVersion = "$numericVersion.0"'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-FrontendPollingAuditDependencyExclusionContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -4882,6 +4912,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "release manifest reuses go-no-go readiness audit" `
     -Verifier "release manifest readiness audit reuse source contract" `
+    -FixturePath $releaseCandidateManifestWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$manifestPackageVersionOk = Test-ReleaseCandidateManifestPackageVersionContract -ManifestScriptPath $releaseCandidateManifestWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $manifestPackageVersionOk `
+    -Message "release manifest must map rc public versions such as 1.15.0-rc.22 to current 4-segment package artifacts such as 1.15.0.22"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "release manifest maps rc version to package artifact version" `
+    -Verifier "release manifest package version source contract" `
     -FixturePath $releaseCandidateManifestWriter `
     -ShouldPass $true `
     -Invocation $invocation
