@@ -10,9 +10,11 @@ matches `1.15.0.22`, public install/proof routes are release-pinned, remote
 public URLs are usable, and the brain ingest token ACL check passes on the
 main PC proof.
 
-That proves the direct LAN fleet slice. It does not prove the full product:
-design approval, Store release, real relay transport, full brain product
-bonding, V34 stale self-heal proof, and final operator evidence still remain.
+That proves the direct LAN fleet slice. The fresh packaged desktop now also
+records a passing hidden-brain product proof for rc.22. It still does not prove
+the full product: design approval, Store release/Store-signed install evidence,
+real relay transport, V34 stale self-heal proof, and final operator evidence
+still remain.
 
 ## 2026-06-27 Gate Implementation Update
 
@@ -36,7 +38,8 @@ Current local gate shape on this branch:
 - `fleet_brain_token_acl_verified=true`.
 - `design_approval_verified=false`.
 - `relay_transport_product_verified=false`.
-- `brain_product_verified=false`.
+- `brain_product_verified=true` after the packaged rc.22 proof at
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`.
 - `v34_stale_self_heal_verified=false`.
 - `release_candidate_manifest_generated=true` after the current rc.22
   Store-reviewed artifact and submission bundle refresh.
@@ -106,18 +109,35 @@ root, restricted ingest token ACL, loopback-only `http://127.0.0.1:8080`,
 `/health`, real `/v1/sources` task ingest, `/v1/process`, `/v1/query`, real
 `/v1/clips` capture ingest, and capture recall results.
 
-This hardens the product spec gate, but it does not itself close the brain
-product lane. A physical packaged desktop run still has to produce a passing
-`docs/evidence/brain-product/1.15.0-rc.22/*.brain-product-proof.json`.
+This hardens the product spec gate and closes the brain product lane for the
+current rc.22 fresh packaged launch.
 
-Local diagnostic on `HUGH_SECOND` after adding the recorder:
+Local diagnostic on `HUGH_SECOND` immediately after adding the recorder:
 `record-brain-product-proof.ps1 -Json` wrote a non-release local artifact under
 `.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed with
-`fail_count=14`. The installed package identity is correct
+`fail_count=14`. The installed package identity was correct
 (`blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`), but no `musu-brain`
 sidecar process was observed and `http://127.0.0.1:8080/health` was not proven.
-This confirms the brain product lane is still a real runtime/lifecycle gap, not
-only a missing documentation artifact.
+That exposed a stale already-running desktop process, not a passing release
+proof.
+
+After stopping the stale packaged desktop processes and launching the installed
+AppX fresh, `musu-desktop.exe` spawned packaged `musu-brain.exe` and the
+release recorder wrote:
+
+- Proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`.
+- Verification:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-verification.json`.
+
+The verification reports `ok=true` and `fail_count=0`. The current local
+go/no-go now reports `brain_product_verified=true`, `complete_lane_count=3`,
+and `incomplete_lane_count=5`.
+
+Caveat: this proves fresh packaged launch, not an upgrade-in-place self-heal for
+an already-running stale desktop instance. Treat the stale-process observation
+as a future hardening target if in-place upgrade behavior becomes part of the
+release claim.
 
 ## Current Completion State
 
@@ -129,7 +149,7 @@ only a missing documentation artifact.
 | Two-PC direct fleet | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet readiness is proven |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
-| Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, and dedicated brain product proof verifier/recorder exist | Brain is bonded as a hidden chip, but a passing packaged runtime brain-product proof is still missing |
+| Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter are documented/implemented | Needs boot reconcile and stale-candidate E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
@@ -164,10 +184,10 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Direct proof is green, but design, Store, relay transport, full brain proof, and V34 self-heal proof remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness until all lanes below are closed. |
+| NO-GO | The full product cannot be called complete today. | Direct proof and brain product proof are green, but design, Store distribution, relay transport, V34 self-heal proof, and support/operator evidence remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness plus hidden-brain fresh-launch proof until all lanes below are closed. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
-| HIGH | Brain is bonded but not fully product-proven. | Token ACL proof exists and weak proof JSON is now rejected by `verify-brain-product-proof.ps1`; a passing packaged runtime proof is not yet recorded. | The "one product with hidden brain" spec is not finished. | Run `record-brain-product-proof.ps1` from an installed desktop session and commit a verifier-passing brain product proof. |
+| INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
 | HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
 | MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, route preflight, and heartbeat TTL exist; boot reconcile and stale-candidate E2E remain. | Reinstall/multi-NIC/stale-row tails can still surprise users until the proof exists. | Finish boot/local reconcile and stale-first-candidate physical E2E. |
 | MED | Support mailbox evidence is historically a release blocker. | Older release gates and wiki entries require `musu@musu.pro` proof. | Final readiness may be blocked by operator evidence even if code is green. | Either record support mailbox evidence for the current version or formally retire the gate in docs/tooling. |
@@ -180,8 +200,8 @@ MUSU is fully complete only when all of these are true at the same time:
   restricted capability review, certification, and Store-signed install proof.
 - Relay transport depends on router selection, transport implementation,
   fail-closed proof schema, and two-PC failure-injection evidence.
-- Brain product proof depends on packaged sidecar startup, token custody,
-  loopback health, real ingest, cockpit UX, and version coherence.
+- Brain product proof is closed for the current rc.22 fresh packaged launch;
+  upgrade-in-place sidecar self-heal remains a future hardening proof if needed.
 - V34 self-heal depends on stale registry/cache/manual-peer cleanup,
   boot reconcile, and route-preflight E2E.
 - Final go/no-go depends on all evidence sources being current and indexed.
@@ -192,7 +212,8 @@ The immediate constraint is PR #34 design approval because it blocks merging the
 current rc.22 proof/fleet fixes.
 
 The largest product constraints after merge are Store release evidence, real
-relay transport, full brain product proof, and V34 stale self-heal evidence.
+relay transport, V34 stale self-heal evidence, and final support/operator
+evidence.
 These are independent enough to run as parallel lanes, but the completion claim
 must stay scoped until every lane has machine evidence.
 
@@ -292,6 +313,10 @@ Exit criteria:
 
 ### Phase 5 - Brain Product Completion
 
+Status: complete for the current rc.22 packaged fresh launch on `HUGH_SECOND`.
+Keep this phase open only for upgrade-in-place hardening or explicitly scoped
+future ingest surfaces such as fleet events.
+
 Deliverables:
 - Packaged first-run creates `~/.musu/brain`.
 - Token file exists, ACL is restricted, token value is never logged.
@@ -309,6 +334,9 @@ Proof:
 - Packaged sidecar health evidence.
 - Task source ingest evidence under `~/.musu/brain`.
 - UX smoke/e2e proof for recall/capture.
+- Current rc.22 evidence:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`
+  and matching verification with `ok=true`, `fail_count=0`.
 
 Exit criteria:
 - The user never needs to know the brain exists, and the product can prove the
@@ -341,6 +369,8 @@ Exit criteria:
 High confidence:
 - rc.22 two-PC direct fleet readiness is proven for `hugh-main` and
   `hugh_second`.
+- rc.22 hidden brain sidecar fresh-launch readiness is proven on
+  `HUGH_SECOND` with verifier-passing task ingest and capture recall evidence.
 - The current repo intentionally prevents relay overclaim by keeping relay out
   of selected route paths until transport exists.
 - PR #34 is blocked by design approval, not by the currently observed code/test
@@ -349,8 +379,8 @@ High confidence:
 Medium confidence:
 - The install/proof channel is correct for rc.22. It should be rerun after any
   package, route, installer, or public script change.
-- Brain sidecar bonding is on the right architecture, but the final product
-  proof still needs runtime evidence.
+- Upgrade-in-place sidecar relaunch behavior should be hardened separately if
+  it becomes a release claim; the current evidence proves fresh packaged launch.
 
 Unknown or needs evidence:
 - Whether support mailbox proof remains mandatory for the current product

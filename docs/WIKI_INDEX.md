@@ -8799,16 +8799,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` is the
   canonical answer to whether MUSU is fully complete against the whole product
   spec. Current answer: no, not yet. `1.15.0-rc.22` proves the two-PC direct
-  fleet slice on `hugh-main` and `hugh_second`, but full product completion
-  still requires PR #34 design approval, Store or trusted distribution evidence,
-  real delegated-work relay transport, full brain health/task-ingest/UX proof,
-  V34 stale self-heal proof, and either support mailbox evidence or a formal
-  retirement of that historical gate. `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE`
-  now points to this roadmap and scopes the current claim to rc.22 direct fleet
-  readiness. Search terms should include
+  fleet slice on `hugh-main` and `hugh_second`, and fresh packaged launch now
+  proves hidden brain health/task-ingest/capture recall on `HUGH_SECOND`. Full
+  product completion still requires PR #34 design approval, Store or trusted
+  distribution evidence, real delegated-work relay transport, V34 stale
+  self-heal proof, and either support mailbox evidence or a formal retirement of
+  that historical gate. `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE` now points to
+  this roadmap and scopes the current claim to rc.22 direct fleet readiness plus
+  hidden-brain fresh-launch readiness. Search terms should include
   `MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP`, `full product not complete`,
   `two-PC direct fleet slice`, `relay transport not complete`,
-  `brain product proof`, `Store trusted distribution evidence`,
+  `brain product proof pass`, `Store trusted distribution evidence`,
   `V34 stale self-heal`, and `support mailbox retire gate`.
 
 - 2026-06-27 full product readiness gate implementation:
@@ -8817,11 +8818,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   explicit fail-closed lanes for design approval, install/package proof,
   direct two-PC fleet proof, relay transport, brain product proof, V34 stale
   self-heal, Store distribution, and support/operator evidence. Current local
-  gate shape is `full_product_spec_ready=false` with
+  gate shape after later 2026-06-28 evidence updates is
+  `full_product_spec_ready=false` with
   `fleet_node_proof_verified=true`, `fleet_install_channel_proof_verified=true`,
-  and `fleet_brain_token_acl_verified=true`, while design, relay transport,
-  brain product, V34 self-heal, Store, support, and release candidate manifest
-  lanes remain blockers. `write-release-candidate-manifest.ps1` now reports an
+  `fleet_brain_token_acl_verified=true`, `brain_product_verified=true`, and
+  `release_candidate_manifest_generated=true`, while design, relay transport,
+  V34 self-heal, Store, and support lanes remain blockers.
+  `write-release-candidate-manifest.ps1` now reports an
   empty/missing artifact candidate as a clear missing-artifact error, and
   `write-release-go-no-go.ps1` turns manifest generation failure into a JSON
   blocker instead of crashing before output. Regression coverage is in
@@ -8829,7 +8832,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `go-no-go surfaces full product spec readiness lanes`. Search terms should
   include `musu.full_product_spec_readiness.v1`, `full_product_spec_ready`,
   `release-candidate-manifest blocker`, `fleet_node_proof_verified`,
-  `relay_transport_product_verified=false`, `brain_product_verified=false`,
+  `relay_transport_product_verified=false`, `brain_product_verified=true`,
   `v34_stale_self_heal_verified=false`, and `go-no-go surfaces full product spec
   readiness lanes`.
 
@@ -8838,11 +8841,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   versions to current 4-segment MSIX package versions before selecting release
   artifacts, e.g. `1.15.0-rc.22` -> `1.15.0.22`. This prevents stale
   `musu_1.15.0.0_*` artifacts from satisfying the current rc.22 manifest. A
-  local go/no-go check reports `full_product_spec_ready=false`,
+  local go/no-go check at this point reported `full_product_spec_ready=false`,
   complete lanes `2`, incomplete lanes `6`, and
   `release_candidate_manifest_generated=false` because the current
   `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix` artifact is
-  missing. Regression coverage is in
+  missing; this intermediate failing snapshot is superseded by the current
+  Store-reviewed bundle regeneration entry below. Regression coverage is in
   `scripts/windows/test-release-evidence-verifiers.ps1` via
   `release manifest maps rc version to package artifact version`. Search terms
   should include `Convert-PublicVersionToPackageVersion`,
@@ -8856,10 +8860,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   audit only accepts a Store submission bundle that contains the expected
   current Store-reviewed MSIX, and the operator action pack refuses Partner
   Center upload instructions unless the verified bundle contains the current
-  artifact. Current local readiness evidence reports local sideload MSIX and
-  desktop entrypoint passing, but `Store-reviewed MSIX` and `Store submission
+  artifact. Intermediate local readiness evidence reported local sideload MSIX
+  and desktop entrypoint passing, but `Store-reviewed MSIX` and `Store submission
   bundle` failing because `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`
-  is still missing. Regression coverage is in
+  was still missing; this is superseded by the current Store-reviewed bundle
+  regeneration entry below. Regression coverage is in
   `scripts/windows/test-release-evidence-verifiers.ps1` via
   `desktop readiness maps release version to current MSIX artifacts` and
   `operator action pack requires current Store-reviewed MSIX`. Search terms
@@ -8880,13 +8885,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `audit-desktop-release-readiness.ps1` reports `runtime_package_ready=true`
   and `msix_desktop_entrypoint_ready=true`; `write-release-candidate-manifest.ps1`
   now succeeds with artifact_count `7`. Full product remains No-Go because
-  design approval, real relay transport, full brain product proof, V34 self-heal,
-  Store approval/Store-signed install proof, and support/operator evidence remain
-  incomplete. Search terms should include `Store submission bundle preparer
+  design approval, real relay transport, V34 self-heal, Store approval/
+  Store-signed install proof, and support/operator evidence remain incomplete.
+  Search terms should include `Store submission bundle preparer
   forwards NoBump`, `store-reviewed-20260628-005038`, `brain pin 311aefa`, and
   `release_candidate_manifest_generated=true`.
 
-- 2026-06-28 brain product proof gate hardening:
+- 2026-06-28 brain product proof gate hardening and evidence:
   `scripts/windows/record-brain-product-proof.ps1` and
   `scripts/windows/verify-brain-product-proof.ps1` now define the release-grade
   hidden brain proof lane. `write-release-go-no-go.ps1` no longer accepts weak
@@ -8895,14 +8900,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `~/.musu/brain` data root, restricted `musu-ingest.token` ACL, loopback-only
   `http://127.0.0.1:8080`, `/health`, real `/v1/sources` task ingest,
   `/v1/process`, `/v1/query`, real `/v1/clips` capture ingest, and capture
-  recall results. This hardens the spec gate but does not close the lane until a
-  physical installed desktop records a passing
-  `docs/evidence/brain-product/1.15.0-rc.22/*.brain-product-proof.json`.
-  Local diagnostic recorder output on `HUGH_SECOND` wrote non-release artifacts
-  under `.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed
-  with `fail_count=14`: package identity was correct, but no `musu-brain`
-  sidecar process was observed and `http://127.0.0.1:8080/health` was not
-  proven. Treat this as a real packaged lifecycle gap, not only missing docs.
+  recall results. Local diagnostic recorder output on `HUGH_SECOND` first wrote
+  non-release artifacts under
+  `.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed with
+  `fail_count=14`: package identity was correct, but the already-running stale
+  desktop process had not spawned `musu-brain`. After stopping stale packaged
+  processes and launching the installed AppX fresh, the official proof
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`
+  and verification
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-verification.json`
+  passed with `ok=true`, `fail_count=0`; current go/no-go reports
+  `brain_product_verified=true`, `complete_lane_count=3`, and
+  `incomplete_lane_count=5`. This proves fresh packaged launch, not a separate
+  upgrade-in-place sidecar self-heal claim.
   Regression coverage is in `scripts/windows/test-release-evidence-verifiers.ps1`
   via `brain product accepts release-grade hidden brain proof`,
   `brain product rejects legacy weak boolean-only proof`,
@@ -8911,7 +8921,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   should include `musu.brain_product_proof.v1`, `verify-brain-product-proof.ps1`,
   `record-brain-product-proof.ps1`, `weak boolean-only proof`, `~/.musu/brain`,
   `musu-ingest.token`, `no musu-brain sidecar process observed`,
-  `HUGH_SECOND brain product proof fail_count=14`, and
-  `brain_product_verified=false`.
+  `HUGH_SECOND brain product proof fail_count=14`,
+  `20260628-014357-HUGH_SECOND.brain-product-proof`, and
+  `brain_product_verified=true`.
 
 **End of WIKI_INDEX.md.**
