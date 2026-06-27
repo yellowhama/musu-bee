@@ -8849,4 +8849,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `1.15.0-rc.22 -> 1.15.0.22`, `current Store-reviewed MSIX missing`, and
   `release manifest package version source contract`.
 
+- 2026-06-28 Store artifact current-version gate expansion:
+  `scripts/windows/audit-desktop-release-readiness.ps1` and
+  `scripts/windows/prepare-operator-action-pack.ps1` now derive Store/local
+  MSIX names from `VERSION` instead of hardcoding `1.15.0.0`. The readiness
+  audit only accepts a Store submission bundle that contains the expected
+  current Store-reviewed MSIX, and the operator action pack refuses Partner
+  Center upload instructions unless the verified bundle contains the current
+  artifact. Current local readiness evidence reports local sideload MSIX and
+  desktop entrypoint passing, but `Store-reviewed MSIX` and `Store submission
+  bundle` failing because `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`
+  is still missing. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `desktop readiness maps release version to current MSIX artifacts` and
+  `operator action pack requires current Store-reviewed MSIX`. Search terms
+  should include `current Store submission bundle`, `operator action pack
+  Store MSIX source contract`, `desktop readiness package version source
+  contract`, and `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
+
 **End of WIKI_INDEX.md.**

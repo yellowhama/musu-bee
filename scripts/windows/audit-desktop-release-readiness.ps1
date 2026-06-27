@@ -14,6 +14,24 @@ $tauriRoot = Join-Path $appRoot "src-tauri"
 
 $checks = New-Object System.Collections.Generic.List[object]
 
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
 function Add-Check {
     param(
         [Parameter(Mandatory = $true)][string]$Area,
@@ -78,6 +96,7 @@ $numericReleaseVersion = if ($repoVersion.Contains("-")) {
 } else {
     $repoVersion
 }
+$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $repoVersion
 $gitCommit = (& git -C $repoRoot rev-parse HEAD 2>$null | Out-String).Trim()
 
 $packageJsonPath = Join-Path $appRoot "package.json"
@@ -339,11 +358,14 @@ else {
     Add-Check "desktop-shell" "Tauri runtime commands" "fail" "Desktop shell runtime commands are missing from src-tauri/src/lib.rs."
 }
 
-$localMsix = Join-Path $repoRoot ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"
-$storeMsix = Join-Path $repoRoot ".local-build\msix\output\musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix"
+$msixOutput = Join-Path $repoRoot ".local-build\msix\output"
+$localMsix = Join-Path $msixOutput ("musu_{0}_x64_local-sideload-manual.msix" -f $msixVersion)
+$storeMsix = Join-Path $msixOutput ("musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $msixVersion)
+$storeMsixName = Split-Path -Leaf $storeMsix
 $bundleRoot = Join-Path $repoRoot ".local-build\msix\submission-bundles"
 $latestBundle = if (Test-Path -LiteralPath $bundleRoot) {
     Get-ChildItem -LiteralPath $bundleRoot -Directory -Filter "store-reviewed-*" |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $storeMsixName) } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
 } else {
@@ -406,21 +428,21 @@ else {
 }
 
 if ($latestBundle) {
-    Add-Check "runtime-package" "Store submission bundle" "pass" "Latest Store submission bundle: $($latestBundle.FullName)."
+    Add-Check "runtime-package" "Store submission bundle" "pass" "Current Store submission bundle contains ${storeMsixName}: $($latestBundle.FullName)."
     $bundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
     if (Test-Path -LiteralPath $bundleVerifier) {
         $bundleVerifyOutput = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $bundleVerifier -BundleDir $latestBundle.FullName -SkipDesktopEntrypoint -Json 2>&1
         if ($LASTEXITCODE -eq 0) {
             $bundleVerify = ($bundleVerifyOutput | Out-String).Trim() | ConvertFrom-Json
             if ([bool]$bundleVerify.ok) {
-                Add-Check "runtime-package" "Store submission bundle verification" "pass" "Latest Store submission bundle verifies with fail_count=0."
+                Add-Check "runtime-package" "Store submission bundle verification" "pass" "Current Store submission bundle verifies with fail_count=0."
             }
             else {
-                Add-Check "runtime-package" "Store submission bundle verification" "fail" "Latest Store submission bundle verifier returned ok=false."
+                Add-Check "runtime-package" "Store submission bundle verification" "fail" "Current Store submission bundle verifier returned ok=false."
             }
         }
         else {
-            Add-Check "runtime-package" "Store submission bundle verification" "fail" "Latest Store submission bundle verifier failed: $($bundleVerifyOutput | Out-String)"
+            Add-Check "runtime-package" "Store submission bundle verification" "fail" "Current Store submission bundle verifier failed: $($bundleVerifyOutput | Out-String)"
         }
     }
     else {
@@ -428,7 +450,7 @@ if ($latestBundle) {
     }
 }
 else {
-    Add-Check "runtime-package" "Store submission bundle" "fail" "Store submission bundle is missing."
+    Add-Check "runtime-package" "Store submission bundle" "fail" "Current Store submission bundle is missing expected artifact ${storeMsixName}."
 }
 
 foreach ($scriptName in @("smoke-single-machine-beta.ps1", "verify-single-machine-evidence.ps1", "record-single-machine-evidence.ps1", "smoke-multidevice-beta.ps1", "prepare-multidevice-test-kit.ps1", "run-second-pc-release-check.ps1", "prepare-final-operator-gate-packet.ps1", "verify-final-operator-gate-packet.ps1", "prepare-operator-action-pack.ps1", "verify-operator-action-pack.ps1", "complete-final-operator-gates.ps1", "show-final-release-handoff-status.ps1", "show-second-pc-return-card.ps1", "import-second-pc-return.ps1", "capture-msix-install-evidence.ps1", "collect-second-pc-handoff.ps1", "test-second-pc-route-preflight.ps1", "verify-msix-install-evidence.ps1", "record-msix-install-evidence.ps1", "verify-multidevice-evidence.ps1", "record-multidevice-evidence.ps1", "verify-route-reachability-diagnostic.ps1", "record-route-reachability-diagnostic.ps1", "verify-process-attribution-summary.ps1", "verify-support-mailbox-evidence.ps1", "record-support-mailbox-verification.ps1", "verify-store-release-evidence.ps1", "record-store-release-verification.ps1", "record-p2p-control-plane-evidence.ps1", "verify-p2p-control-plane-evidence.ps1", "configure-musu-pro-p2p-env.ps1", "show-musu-pro-p2p-env-status.ps1", "record-external-release-gate-recheck.ps1", "test-release-evidence-verifiers.ps1", "verify-store-submission-bundle.ps1", "audit-msix-desktop-entrypoint.ps1", "audit-frontend-polling-contract.ps1", "audit-rust-background-loop-contract.ps1", "audit-local-api-auth-contract.ps1", "audit-operator-api-security-contract.ps1", "audit-degraded-mode-contract.ps1", "audit-musu-crash-recovery-contract.ps1", "audit-p2p-store-forward-relay-contract.ps1", "audit-secret-storage-contract.ps1", "measure-musu-idle-cpu.ps1", "measure-musu-runtime-cpu-scenarios.ps1", "verify-runtime-cpu-scenario-matrix.ps1", "audit-musu-process-ownership.ps1", "show-musu-process-attribution.ps1", "repair-packaged-local-runtime-state.ps1", "audit-musu-startup-single-instance.ps1", "audit-musu-desktop-single-instance.ps1", "write-release-candidate-manifest.ps1", "verify-store-public-metadata.ps1", "write-release-go-no-go.ps1")) {

@@ -46,6 +46,7 @@ $msixCommon = Join-Path $scriptDir "msix-common.ps1"
 $routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
 $supportMailboxRequestPreparer = Join-Path $scriptDir "prepare-support-mailbox-verification-request.ps1"
 $oneMachineMusuProWorkOrderSmoke = Join-Path $scriptDir "smoke-one-machine-musu-pro-work-order.ps1"
+$operatorActionPackPreparer = Join-Path $scriptDir "prepare-operator-action-pack.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -1980,9 +1981,12 @@ function Test-ReleaseCandidateManifestPackageVersionContract {
     $source = Get-Content -LiteralPath $ManifestScriptPath -Raw
     $requiredNeedles = @(
         'function Convert-PublicVersionToPackageVersion',
+        'function Find-LatestDirectoryContainingFile',
         "`$PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$'",
         'return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"',
         '$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $version',
+        '$storeMsixName = Split-Path -Leaf $storeMsix',
+        'Find-LatestDirectoryContainingFile -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*" -RequiredFileName $storeMsixName',
         'musu_{0}_x64_local-sideload-manual.msix',
         'musu_{0}_x64_store-reviewed-immediate-registration.msix'
     )
@@ -2064,6 +2068,71 @@ function Test-ReadinessStoreBundleEntrypointReuseContract {
     }
     foreach ($needle in $requiredBundleNeedles) {
         if (-not $bundleSource.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-DesktopReadinessCurrentMsixVersionContract {
+    param([Parameter(Mandatory = $true)][string]$ReadinessScriptPath)
+
+    $source = Get-Content -LiteralPath $ReadinessScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        '$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $repoVersion',
+        '$msixOutput = Join-Path $repoRoot ".local-build\msix\output"',
+        '$storeMsixName = Split-Path -Leaf $storeMsix',
+        'Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $storeMsixName) }',
+        'Current Store submission bundle is missing expected artifact ${storeMsixName}.',
+        'musu_{0}_x64_local-sideload-manual.msix',
+        'musu_{0}_x64_store-reviewed-immediate-registration.msix'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'musu_1.15.0.0_x64_local-sideload-manual.msix',
+        'musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-OperatorActionPackCurrentStoreMsixContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        '$windowsPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $Version',
+        '$expectedStoreMsixName = "musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $windowsPackageVersion',
+        'Where-Object { $_.Name -eq $expectedStoreMsixName }',
+        'Current Store-reviewed MSIX is missing from action pack bundle',
+        '$uploadMsix = Join-Path $storeDir $expectedStoreMsixName',
+        '$uploadMsixLeaf = Split-Path -Leaf $uploadMsix',
+        'Version: $Version / Windows package version $windowsPackageVersion',
+        '- $uploadMsixLeaf'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix',
+        'Windows package version 1.15.0.0'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
             return $false
         }
     }
@@ -4951,6 +5020,30 @@ Add-CaseResult `
     -Name "readiness audit reuses prechecked Store MSIX desktop entrypoint" `
     -Verifier "readiness store bundle entrypoint reuse source contract" `
     -FixturePath $desktopReleaseReadinessAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopReadinessCurrentMsixVersionOk = Test-DesktopReadinessCurrentMsixVersionContract -ReadinessScriptPath $desktopReleaseReadinessAuditor
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopReadinessCurrentMsixVersionOk `
+    -Message "desktop readiness audit must derive local and Store-reviewed MSIX artifact names from VERSION instead of accepting stale 1.15.0.0 files"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "desktop readiness maps release version to current MSIX artifacts" `
+    -Verifier "desktop readiness package version source contract" `
+    -FixturePath $desktopReleaseReadinessAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$operatorActionPackCurrentStoreMsixOk = Test-OperatorActionPackCurrentStoreMsixContract -ScriptPath $operatorActionPackPreparer
+$invocation = New-StaticVerifierInvocation `
+    -Ok $operatorActionPackCurrentStoreMsixOk `
+    -Message "operator action pack must copy and document the current Store-reviewed MSIX from the verified bundle instead of hardcoding 1.15.0.0"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "operator action pack requires current Store-reviewed MSIX" `
+    -Verifier "operator action pack Store MSIX source contract" `
+    -FixturePath $operatorActionPackPreparer `
     -ShouldPass $true `
     -Invocation $invocation
 

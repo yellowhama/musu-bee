@@ -165,6 +165,16 @@ function Find-LatestDirectory([string]$Directory, [string]$Filter) {
         Select-Object -ExpandProperty FullName -First 1
 }
 
+function Find-LatestDirectoryContainingFile([string]$Directory, [string]$Filter, [string]$RequiredFileName) {
+    if (-not (Test-Path -LiteralPath $Directory)) {
+        return $null
+    }
+    Get-ChildItem -LiteralPath $Directory -Filter $Filter -Directory |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $RequiredFileName) } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -ExpandProperty FullName -First 1
+}
+
 function Set-TextFileAtomic {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -224,9 +234,10 @@ function Read-ReadinessAuditJson {
 $msixOutput = Join-Path $repoRoot ".local-build\msix\output"
 $localMsix = Join-Path $msixOutput ("musu_{0}_x64_local-sideload-manual.msix" -f $msixVersion)
 $storeMsix = Join-Path $msixOutput ("musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $msixVersion)
+$storeMsixName = Split-Path -Leaf $storeMsix
 $publicCert = Find-LatestFile -Directory $msixOutput -Filter "*.cer"
 $privateCert = Find-LatestFile -Directory $msixOutput -Filter "*.pfx"
-$storeBundle = Find-LatestDirectory -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*"
+$storeBundle = Find-LatestDirectoryContainingFile -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*" -RequiredFileName $storeMsixName
 $multiDeviceKit = Find-LatestFile -Directory (Join-Path $repoRoot ".local-build\multi-device-test-kit") -Filter ("musu-multidevice-{0}-*.zip" -f $version)
 $tauriMsi = Join-Path $repoRoot "musu-bee\src-tauri\target\release\bundle\msi\MUSU_${numericVersion}_x64_en-US.msi"
 $tauriNsis = Join-Path $repoRoot "musu-bee\src-tauri\target\release\bundle\nsis\MUSU_${numericVersion}_x64-setup.exe"

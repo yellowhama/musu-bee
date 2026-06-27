@@ -56,6 +56,16 @@ go/no-go therefore remains `full_product_spec_ready=false` and
 `release_candidate_manifest_generated=false` until the current rc.22
 Store-reviewed MSIX exists.
 
+The same current-version rule now applies to the desktop readiness audit and
+operator action pack. `scripts/windows/audit-desktop-release-readiness.ps1`
+derives the local/Store MSIX filenames from `VERSION` and only accepts a Store
+submission bundle that contains the expected current Store-reviewed MSIX.
+`scripts/windows/prepare-operator-action-pack.ps1` also refuses to prepare
+Partner Center upload instructions from a stale Store bundle. Current local
+audit evidence reports the local sideload MSIX and desktop entrypoint as
+passing, while the current Store-reviewed MSIX and current Store submission
+bundle remain missing.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -69,7 +79,7 @@ Store-reviewed MSIX exists.
 | Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook exist | Brain is bonded as a hidden chip, but full release-grade health/ingest/UX proof is missing |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter are documented/implemented | Needs boot reconcile and stale-candidate E2E proof before full self-heal claim |
 | Store release readiness | Not complete | MSIX proof exists, but Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
-| Release candidate manifest | Not complete | Current rc.22 local sideload and multi-device kit exist, but the current rc.22 Store-reviewed MSIX is missing | Cannot use stale `1.15.0.0` artifacts for current release evidence |
+| Release candidate manifest | Not complete | Current rc.22 local sideload and multi-device kit exist, but the current rc.22 Store-reviewed MSIX and Store submission bundle are missing | Cannot use stale `1.15.0.0` artifacts or bundles for current release evidence |
 | Support mailbox / external operator evidence | Unknown for current final spec, historically open | Older release gates require `musu@musu.pro` delivery evidence | Treat as final release-governance lane until explicitly retired |
 
 ## Full Product Definition Of Done
