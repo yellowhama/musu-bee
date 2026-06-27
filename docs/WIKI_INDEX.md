@@ -9070,4 +9070,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `hugh_second-to-hugh-main.packaged-direct-route-evidence`, and
   `payload_transited_musu_infra=false`.
 
+- 2026-06-28 V34 CLI route stale-candidate preflight:
+  Follow-up product audit found that bridge forwarding already had candidate
+  preflight/reorder behavior, but the user-facing `musu route` CLI still
+  selected one candidate and submitted directly. `musu-rs/src/install/cli_commands.rs`
+  now builds the explicit-target candidate set, probes remote candidates with
+  bounded `GET /api/fleet/node-status` using the outbound peer token, moves
+  reachable candidates before stale failed candidates, and submits the delegated
+  task only once to avoid duplicate execution. Auto-route with no explicit target
+  preserves the previous single-selection behavior. Verification passed:
+  `cli_route_candidates_include_all_matching_target_routes`,
+  `cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate`,
+  `cli_route_preflight_preserves_order_when_no_candidate_is_reachable`,
+  single-file rustfmt, and
+  `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`.
+  This closes a source-level V34 stale-first gap, but does not close the release
+  lane: `v34_stale_self_heal_verified=false` until a rebuilt package has
+  physical stale registry/cache/manual-peer evidence and exactly-one task
+  execution proof. Latest local go/no-go after this update still reports
+  `full_product_spec_ready=false`, `complete_lane_count=5`,
+  `incomplete_lane_count=4`, and incomplete lanes `design_approval`,
+  `relay_transport`, `v34_stale_self_heal`, and `store_distribution`.
+  Search terms should include
+  `cli_route_candidates_for_route`,
+  `prioritize_cli_route_candidates_by_preflight`,
+  `reorder_cli_route_candidates_by_preflight`,
+  `probe_cli_route_candidate`,
+  `cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate`,
+  `cli_route_preflight_preserves_order_when_no_candidate_is_reachable`,
+  `cli_route_candidates_include_all_matching_target_routes`,
+  `node-status preflight`, and `v34_stale_self_heal_verified=false`.
+
 **End of WIKI_INDEX.md.**

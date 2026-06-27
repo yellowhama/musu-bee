@@ -1060,14 +1060,19 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     let home = musu_home();
     let hints = route_hints_from_opts(&opts);
     let peers = crate::peer::discovery::resolve_all_peers(&home);
-    let selected_peer = opts.target.as_ref().and_then(|target| {
-        crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
-    });
     let route_is_remote = opts
         .target
         .as_ref()
         .map(|target| target.as_str() != this_node_name())
         .unwrap_or(false);
+    let token = get_route_token(&home, route_is_remote);
+    let client = reqwest::Client::new();
+    let mut route_candidates = cli_route_candidates_for_route(&opts, &hints, &peers);
+    if route_is_remote && route_candidates.len() > 1 {
+        route_candidates =
+            prioritize_cli_route_candidates_by_preflight(&client, route_candidates, &token).await;
+    }
+    let selected_peer = route_candidates.into_iter().next();
 
     let addr = if let Some(ref target) = opts.target {
         if let Some(peer) = selected_peer.as_ref() {
@@ -1090,11 +1095,9 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         .or_else(|| selected_peer.as_ref().and_then(|peer| peer.name.clone()))
         .unwrap_or_else(|| "local".to_string());
     let candidate_addr = addr.clone();
-    let token = get_route_token(&home, route_is_remote);
 
     let route_base_url = route_base_url_for_addr(&addr, selected_peer.as_ref());
     let url = route_delegate_url(&route_base_url);
-    let client = reqwest::Client::new();
     let route_started = std::time::Instant::now();
     let handshake_ms: Option<u64>;
     let mut route_result = RouteAttemptEvidenceResult::Failed;
@@ -1529,6 +1532,105 @@ fn route_hints_from_opts(opts: &RouteOpts) -> crate::bridge::router::RouteHints 
         prefer_os: None,
         prefer_least_busy: false,
     }
+}
+
+fn cli_route_candidates_for_route(
+    opts: &RouteOpts,
+    hints: &crate::bridge::router::RouteHints,
+    peers: &[crate::peer::discovery::ResolvedPeer],
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let Some(target) = opts.target.as_deref() else {
+        return crate::bridge::router::select_peer_for_route(None, hints, peers)
+            .into_iter()
+            .collect();
+    };
+
+    let exact_addr_matches: Vec<_> = peers
+        .iter()
+        .filter(|peer| peer.addr == target)
+        .cloned()
+        .collect();
+    if !exact_addr_matches.is_empty() {
+        return crate::bridge::router::select_remote_candidates_in_order(&exact_addr_matches);
+    }
+
+    let name_matches: Vec<_> = peers
+        .iter()
+        .filter(|peer| peer.name.as_deref() == Some(target))
+        .cloned()
+        .collect();
+    if !name_matches.is_empty() {
+        let ordered = crate::bridge::router::select_remote_candidates_in_order(&name_matches);
+        if !ordered.is_empty() {
+            return ordered;
+        }
+        return name_matches;
+    }
+
+    Vec::new()
+}
+
+fn reorder_cli_route_candidates_by_preflight(
+    candidates: Vec<crate::peer::discovery::ResolvedPeer>,
+    preflight_ok: Vec<Option<bool>>,
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let mut reachable = Vec::new();
+    let mut failed = Vec::new();
+    let mut unproven = Vec::new();
+
+    for (idx, candidate) in candidates.into_iter().enumerate() {
+        match preflight_ok.get(idx).copied().flatten() {
+            Some(true) => reachable.push(candidate),
+            Some(false) => failed.push(candidate),
+            None => unproven.push(candidate),
+        }
+    }
+
+    if reachable.is_empty() {
+        reachable.extend(failed);
+        reachable.extend(unproven);
+        return reachable;
+    }
+
+    reachable.extend(unproven);
+    reachable.extend(failed);
+    reachable
+}
+
+fn route_node_status_url(base_url: &str) -> String {
+    format!("{}/api/fleet/node-status", base_url.trim_end_matches('/'))
+}
+
+async fn probe_cli_route_candidate(
+    client: &reqwest::Client,
+    candidate: &crate::peer::discovery::ResolvedPeer,
+    token: &str,
+) -> Option<bool> {
+    let base_url = route_base_url_for_addr(&candidate.addr, Some(candidate));
+    let url = route_node_status_url(&base_url);
+    match client
+        .get(&url)
+        .bearer_auth(token)
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+    {
+        Ok(resp) => Some(resp.status().is_success()),
+        Err(_) => Some(false),
+    }
+}
+
+async fn prioritize_cli_route_candidates_by_preflight(
+    client: &reqwest::Client,
+    candidates: Vec<crate::peer::discovery::ResolvedPeer>,
+    token: &str,
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let mut probes = Vec::with_capacity(candidates.len());
+    for candidate in &candidates {
+        probes.push(probe_cli_route_candidate(client, candidate, token).await);
+    }
+
+    reorder_cli_route_candidates_by_preflight(candidates, probes)
 }
 
 fn select_route_candidate(
@@ -6117,6 +6219,35 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
+    fn route_peer(
+        name: &str,
+        addr: &str,
+        source: crate::peer::discovery::PeerSource,
+    ) -> crate::peer::discovery::ResolvedPeer {
+        crate::peer::discovery::ResolvedPeer {
+            addr: addr.to_string(),
+            name: Some(name.to_string()),
+            source,
+            meta: None,
+        }
+    }
+
+    fn route_opts_for_target(target: &str) -> RouteOpts {
+        RouteOpts {
+            text: "test route".to_string(),
+            target: Some(target.to_string()),
+            channel: "cli".to_string(),
+            model: None,
+            adapter: None,
+            wait: false,
+            wait_timeout_sec: ROUTE_WAIT_DEFAULT_TIMEOUT_SECS,
+            gpu: false,
+            explain: false,
+            json: false,
+            route_evidence_path: None,
+        }
+    }
+
     #[test]
     fn bridge_health_poll_delay_backs_off_and_caps() {
         let samples: Vec<u64> = (0..6)
@@ -6575,6 +6706,83 @@ mod tests {
             crate::bridge::router::route_kind_for_addr("127.0.0.1:8070").as_str(),
             "local"
         );
+    }
+
+    #[test]
+    fn cli_route_candidates_include_all_matching_target_routes() {
+        let opts = route_opts_for_target("hugh-main");
+        let peers = vec![
+            route_peer(
+                "hugh-main",
+                "192.168.1.10:4387",
+                crate::peer::discovery::PeerSource::Cache,
+            ),
+            route_peer(
+                "hugh-main",
+                "192.168.1.192:4387",
+                crate::peer::discovery::PeerSource::Cache,
+            ),
+            route_peer(
+                "other",
+                "192.168.1.50:4387",
+                crate::peer::discovery::PeerSource::Manual,
+            ),
+        ];
+
+        let candidates = cli_route_candidates_for_route(
+            &opts,
+            &crate::bridge::router::RouteHints::default(),
+            &peers,
+        );
+
+        assert_eq!(candidates.len(), 2);
+        assert!(candidates
+            .iter()
+            .all(|peer| peer.name.as_deref() == Some("hugh-main")));
+    }
+
+    #[test]
+    fn cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate() {
+        let stale_first = route_peer(
+            "hugh-main",
+            "192.168.1.10:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+        let reachable_second = route_peer(
+            "hugh-main",
+            "192.168.1.192:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+
+        let ordered = reorder_cli_route_candidates_by_preflight(
+            vec![stale_first.clone(), reachable_second.clone()],
+            vec![Some(false), Some(true)],
+        );
+
+        assert_eq!(ordered[0].addr, reachable_second.addr);
+        assert_eq!(ordered[1].addr, stale_first.addr);
+    }
+
+    #[test]
+    fn cli_route_preflight_preserves_order_when_no_candidate_is_reachable() {
+        let stale_first = route_peer(
+            "hugh-main",
+            "192.168.1.10:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+        let stale_second = route_peer(
+            "hugh-main",
+            "192.168.1.192:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+
+        let ordered = reorder_cli_route_candidates_by_preflight(
+            vec![stale_first.clone(), stale_second.clone()],
+            vec![Some(false), Some(false)],
+        );
+
+        assert_eq!(ordered[0].addr, stale_first.addr);
+        assert_eq!(ordered[1].addr, stale_second.addr);
     }
 
     #[test]
