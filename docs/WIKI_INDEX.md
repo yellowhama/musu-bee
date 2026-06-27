@@ -8867,4 +8867,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Store MSIX source contract`, `desktop readiness package version source
   contract`, and `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
 
+- 2026-06-28 current Store-reviewed bundle regenerated:
+  The Store submission bundle preparer now accepts `-NoBump` and captures child
+  PowerShell stderr without treating normal Cargo stderr as a terminating error.
+  `musu-bee/src-tauri/musu-brain.pin.json` now points at current
+  `F:\musu_2nd_brain` HEAD `311aefa35ad1c25a3c9b04994c0f3387e147a54a`.
+  Running `prepare-store-submission-bundle.ps1 -Configuration release
+  -Architecture x64 -NoBump` generated
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038` with
+  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
+  `verify-store-submission-bundle.ps1` reports `ok=true`, `fail_count=0`;
+  `audit-desktop-release-readiness.ps1` reports `runtime_package_ready=true`
+  and `msix_desktop_entrypoint_ready=true`; `write-release-candidate-manifest.ps1`
+  now succeeds with artifact_count `7`. Full product remains No-Go because
+  design approval, real relay transport, full brain product proof, V34 self-heal,
+  Store approval/Store-signed install proof, and support/operator evidence remain
+  incomplete. Search terms should include `Store submission bundle preparer
+  forwards NoBump`, `store-reviewed-20260628-005038`, `brain pin 311aefa`, and
+  `release_candidate_manifest_generated=true`.
+
 **End of WIKI_INDEX.md.**

@@ -35,6 +35,7 @@ $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $frontendPollingAuditor = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
 $storeSubmissionBundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
+$storeSubmissionBundlePreparer = Join-Path $scriptDir "prepare-store-submission-bundle.ps1"
 $desktopReleaseReadinessAuditor = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
@@ -2133,6 +2134,27 @@ function Test-OperatorActionPackCurrentStoreMsixContract {
     )
     foreach ($needle in $forbiddenNeedles) {
         if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-StoreSubmissionBundlePreparerNoBumpContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[switch]$NoBump',
+        'if ($NoBump)',
+        '$buildArgs += "-NoBump"',
+        '$previousErrorActionPreference = $ErrorActionPreference',
+        '$ErrorActionPreference = "Continue"',
+        '$ErrorActionPreference = $previousErrorActionPreference',
+        '-StartupContract", $startupContract'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
             return $false
         }
     }
@@ -5044,6 +5066,18 @@ Add-CaseResult `
     -Name "operator action pack requires current Store-reviewed MSIX" `
     -Verifier "operator action pack Store MSIX source contract" `
     -FixturePath $operatorActionPackPreparer `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$storeSubmissionBundleNoBumpOk = Test-StoreSubmissionBundlePreparerNoBumpContract -ScriptPath $storeSubmissionBundlePreparer
+$invocation = New-StaticVerifierInvocation `
+    -Ok $storeSubmissionBundleNoBumpOk `
+    -Message "Store submission bundle preparer must expose -NoBump so operators can regenerate the current release artifact without forcing the next rc version"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Store submission bundle preparer forwards NoBump" `
+    -Verifier "store submission bundle NoBump source contract" `
+    -FixturePath $storeSubmissionBundlePreparer `
     -ShouldPass $true `
     -Invocation $invocation
 

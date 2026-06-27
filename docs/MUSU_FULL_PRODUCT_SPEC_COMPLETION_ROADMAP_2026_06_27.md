@@ -66,6 +66,31 @@ audit evidence reports the local sideload MSIX and desktop entrypoint as
 passing, while the current Store-reviewed MSIX and current Store submission
 bundle remain missing.
 
+## 2026-06-28 Current Store Bundle Update
+
+The current rc.22 Store-reviewed MSIX and Store submission bundle have now been
+regenerated from the clean product sources with the brain sidecar pin updated
+to the current `F:\musu_2nd_brain` HEAD
+`311aefa35ad1c25a3c9b04994c0f3387e147a54a`.
+
+Local artifact evidence:
+
+- Store-reviewed MSIX:
+  `.local-build\msix\output\musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
+- Store submission bundle:
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038`.
+- `verify-store-submission-bundle.ps1` reports `ok=true`, `fail_count=0`.
+- `audit-desktop-release-readiness.ps1` reports `runtime_package_ready=true`
+  and `msix_desktop_entrypoint_ready=true`.
+- `write-release-candidate-manifest.ps1` now succeeds for
+  `.local-build\release-candidates\1.15.0-rc.22\release-candidate-manifest.json`
+  with artifact_count `7`.
+
+This closes the repo-local Store packaging artifact gap. It does not close the
+Store distribution lane because Partner Center product-name reservation,
+Microsoft certification/restricted-capability approval, and Store-signed
+install/launch proof are still external evidence requirements.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -78,8 +103,8 @@ bundle remain missing.
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
 | Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook exist | Brain is bonded as a hidden chip, but full release-grade health/ingest/UX proof is missing |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter are documented/implemented | Needs boot reconcile and stale-candidate E2E proof before full self-heal claim |
-| Store release readiness | Not complete | MSIX proof exists, but Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
-| Release candidate manifest | Not complete | Current rc.22 local sideload and multi-device kit exist, but the current rc.22 Store-reviewed MSIX and Store submission bundle are missing | Cannot use stale `1.15.0.0` artifacts or bundles for current release evidence |
+| Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
+| Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
 | Support mailbox / external operator evidence | Unknown for current final spec, historically open | Older release gates require `musu@musu.pro` delivery evidence | Treat as final release-governance lane until explicitly retired |
 
 ## Full Product Definition Of Done

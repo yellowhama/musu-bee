@@ -4,6 +4,6 @@
   "module_path": "musubrain",
   "main_package": "./cmd/musu-brain",
   "default_repo_hint": "F:\\musu_2nd_brain",
-  "vcs_revision": "2f036728a9e6d5840634666d7442be87d302f083",
-  "vcs_time": "2026-06-27T02:35:39+09:00"
+  "vcs_revision": "311aefa35ad1c25a3c9b04994c0f3387e147a54a",
+  "vcs_time": "2026-06-28T00:08:45+09:00"
 }
