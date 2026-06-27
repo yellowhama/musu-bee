@@ -30,6 +30,8 @@ $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-dia
 $processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$supportOperatorGateRetirementVerifier = Join-Path $scriptDir "verify-support-operator-gate-retirement.ps1"
+$supportOperatorGateRetirementRecorder = Join-Path $scriptDir "record-support-operator-gate-retirement.ps1"
 $brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $v34SelfHealRecorder = Join-Path $scriptDir "record-v34-self-heal-proof.ps1"
@@ -1521,6 +1523,12 @@ function Test-GoNoGoFullProductSpecReadinessContract {
         'verify-v34-self-heal-proof.ps1',
         '$v34SelfHealVerificationResult = Invoke-JsonScript',
         'verification = if ($v34SelfHealVerificationResult',
+        'support_operator_gate_retirement_verified',
+        'support_operator_evidence_verified',
+        '$supportOperatorEvidenceVerified = ([bool]$supportMailboxVerified -or [bool]$supportOperatorGateRetirementVerified)',
+        'verify-support-operator-gate-retirement.ps1',
+        '$supportOperatorGateRetirementVerificationResult = Invoke-JsonScript',
+        'musu.support_operator_gate_retirement.v1',
         'musu.fleet_node_proof.v1',
         'musu.design_approval.v1',
         'musu.brain_product_proof.v1',
@@ -1768,6 +1776,8 @@ function Test-SupportMailboxFreshnessStatusOnlyContract {
         '"scripts/windows/prepare-support-mailbox-verification-request.ps1"',
         '"scripts/windows/record-support-mailbox-verification.ps1"',
         '"scripts/windows/verify-support-mailbox-evidence.ps1"',
+        '"scripts/windows/record-support-operator-gate-retirement.ps1"',
+        '"scripts/windows/verify-support-operator-gate-retirement.ps1"',
         '"scripts/windows/show-operator-handoff-card.ps1"'
     )
 
@@ -1893,7 +1903,6 @@ function Test-GoNoGoNextActionsContract {
         'placeholders = @($placeholders)',
         'manual_steps = @($ManualSteps)',
         '[regex]::Matches($Text, "<[^<>]+>|REPLACE_WITH_[A-Z0-9_]+")',
-        'REPLACE_WITH_EXTERNAL_SENDER_EMAIL',
         'prepare-multidevice-test-kit.ps1',
         'Move the generated kit to the second physical Windows PC.',
         'A real second physical PC must run the generated kit and return evidence before the multi-device gate can be recorded.',
@@ -1918,10 +1927,12 @@ function Test-GoNoGoNextActionsContract {
         'Confirm the deployed privacy, support, and public-config routes are from the current release build.',
         'Then run the public metadata verifier command.',
         'Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.',
+        'record-support-operator-gate-retirement.ps1 -Json',
+        'Close the support/operator lane by recording real inbox delivery evidence or the formal support mailbox delivery gate retirement.',
         'prepare-support-mailbox-verification-request.ps1 -Json',
-        'Prepare a unique external-email verification packet, then record inbox delivery evidence after the message is actually received.',
-        'Send the generated verification email from an external mailbox into $SupportEmail.',
-        'External email delivery into $SupportEmail must be performed and observed before support mailbox evidence can be recorded.',
+        'record-support-mailbox-verification.ps1',
+        'verify-support-operator-gate-retirement.ps1',
+        'formal retirement still requires current public support metadata proof.',
         'record-support-mailbox-verification.ps1',
         'Verify the Store submission bundle locally, then record Partner Center approval evidence after Microsoft certification is complete.',
         'Reserve or confirm the MUSU product name in Partner Center.',
@@ -4448,6 +4459,75 @@ $placeholderSupportMailboxEvidence.from_address = "<sender@example.com>"
 $fixture = Write-Fixture -Name "support-mailbox-placeholder-sender" -Object $placeholderSupportMailboxEvidence
 $invocation = Invoke-Verifier -ScriptPath $supportVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "support mailbox rejects placeholder sender evidence" -Verifier "verify-support-mailbox-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$supportOperatorGateRetirementRecorderSource = Get-Content -LiteralPath $supportOperatorGateRetirementRecorder -Raw
+$supportOperatorGateRetirementRecorderOk = (
+    $supportOperatorGateRetirementRecorderSource.Contains('verify-store-public-metadata.ps1') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('verify-support-operator-gate-retirement.ps1') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('schema = "musu.support_operator_gate_retirement.v1"') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('support_mailbox_delivery_evidence_required = $false') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('support_availability_retired = $false') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('public_support_metadata_required = $true')
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $supportOperatorGateRetirementRecorderOk `
+    -Message "support operator gate retirement recorder must verify live public metadata and keep support availability active"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "support operator gate retirement recorder is public-metadata bound" `
+    -Verifier "support operator gate retirement recorder source contract" `
+    -FixturePath $supportOperatorGateRetirementRecorder `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$validSupportOperatorGateRetirement = [pscustomobject]@{
+    schema = "musu.support_operator_gate_retirement.v1"
+    ok = $true
+    version = $ExpectedVersion
+    generated_at = $now.ToString("o")
+    support_email = "musu@musu.pro"
+    decision = "retire_historical_mailbox_delivery_gate"
+    retirement_scope = "support_mailbox_delivery_evidence_only"
+    support_mailbox_delivery_evidence_required = $false
+    support_availability_retired = $false
+    support_routes_required = $true
+    public_support_metadata_required = $true
+    retirement_doc_path = "docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md"
+    replacement_controls = [pscustomobject]@{
+        public_support_page = $true
+        public_privacy_page = $true
+        public_config_support_email = $true
+        release_metadata_current = $true
+        support_email_kept = $true
+    }
+    public_metadata_verification = [pscustomobject]@{
+        schema = "musu.store_public_metadata_verification.v2"
+        ok = $true
+        base_url = "https://musu.pro"
+        expected_support_email = "musu@musu.pro"
+        expected_release_version = $ExpectedVersion
+        pages = @(
+            [pscustomobject]@{ name = "privacy"; ok = $true },
+            [pscustomobject]@{ name = "support"; ok = $true }
+        )
+        public_config = [pscustomobject]@{ ok = $true }
+    }
+}
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-valid" -Object $validSupportOperatorGateRetirement
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement accepts public metadata replacement proof" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$supportRetiresAvailability = Copy-JsonObject -Object $validSupportOperatorGateRetirement
+$supportRetiresAvailability.support_availability_retired = $true
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-retires-availability" -Object $supportRetiresAvailability
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement rejects support availability retirement" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$supportRetirementBadMetadata = Copy-JsonObject -Object $validSupportOperatorGateRetirement
+$supportRetirementBadMetadata.public_metadata_verification.ok = $false
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-bad-public-metadata" -Object $supportRetirementBadMetadata
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement rejects failed public metadata proof" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $targetBindingContractOk = Test-RuntimeCpuScenarioMatrixTargetBindingContract -ScriptPath $runtimeCpuScenarioMatrixVerifierScript
 $invocation = New-StaticVerifierInvocation `

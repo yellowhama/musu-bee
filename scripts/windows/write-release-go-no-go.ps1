@@ -447,7 +447,7 @@ function Get-ReleaseNextActions {
                 break
             }
             "support-mailbox" {
-                $actions.Add((New-NextAction -Area $area -Summary "Prepare a unique external-email verification packet, then record inbox delivery evidence after the message is actually received." -ActionType "manual_then_command" -ManualSteps @("Run the request packet command to generate a unique verification id.", "Send the generated verification email from an external mailbox into $SupportEmail.", "Confirm the message arrived in the $SupportEmail inbox.", "Replace the verification command placeholders with the real sender, operator name, and verification id before recording evidence.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-support-mailbox-verification-request.ps1 -Json" -EvidencePath "docs\evidence\support-mailbox\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-mailbox-verification.ps1 -FromAddress `"REPLACE_WITH_EXTERNAL_SENDER_EMAIL`" -ReceivedBy `"REPLACE_WITH_OPERATOR_NAME`" -VerificationId `"musu-support-mailbox-REPLACE_WITH_UNIQUE_TOKEN`" -Notes `"Verified delivery in $SupportEmail inbox`" -Json" -AutomationBlockedReason "External email delivery into $SupportEmail must be performed and observed before support mailbox evidence can be recorded.")) | Out-Null
+                $actions.Add((New-NextAction -Area $area -Summary "Close the support/operator lane by recording real inbox delivery evidence or the formal support mailbox delivery gate retirement." -ActionType "manual_then_command" -ManualSteps @("Preferred current path: run record-support-operator-gate-retirement.ps1 to verify live public support metadata and retire only the historical mailbox delivery proof.", "Alternative legacy path: run prepare-support-mailbox-verification-request.ps1 -Json, send the generated verification email from an external mailbox into $SupportEmail, then record it with record-support-mailbox-verification.ps1.", "Do not retire support availability: the support page, privacy page, public-config support email, and release metadata must remain live and verified.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-support-operator-gate-retirement.ps1 -Json" -EvidencePath "docs\evidence\support-operator-gate-retirement\$Version\*.support-operator-gate-retirement.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-support-operator-gate-retirement.ps1 -EvidencePath <SUPPORT_OPERATOR_GATE_RETIREMENT_JSON> -ExpectedVersion $Version -Json" -AutomationBlockedReason "External email delivery into $SupportEmail is no longer the only accepted closure path; formal retirement still requires current public support metadata proof.")) | Out-Null
                 break
             }
             "store-release" {
@@ -696,6 +696,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-p2p-control-plane-evidence.ps1",
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
+        "scripts/windows/record-support-operator-gate-retirement.ps1",
         "scripts/windows/record-brain-product-proof.ps1",
         "scripts/windows/run-private-mesh-release-proof.ps1",
         "scripts/windows/archive-private-mesh-release-proof-bundle.ps1",
@@ -715,6 +716,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/verify-support-mailbox-evidence.ps1",
+        "scripts/windows/verify-support-operator-gate-retirement.ps1",
         "scripts/windows/verify-brain-product-proof.ps1",
         "scripts/windows/verify-v34-self-heal-proof.ps1",
         "scripts/windows/verify-store-submission-bundle.ps1",
@@ -1763,6 +1765,7 @@ $secretStorageAuditScript = Join-Path $scriptDir "audit-secret-storage-contract.
 $metadataScript = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $manifestScript = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $supportMailboxVerifierScript = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$supportOperatorGateRetirementVerifierScript = Join-Path $scriptDir "verify-support-operator-gate-retirement.ps1"
 $msixInstallVerifierScript = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
 $msixDesktopEntrypointAuditScript = Join-Path $scriptDir "audit-msix-desktop-entrypoint.ps1"
 $msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
@@ -1902,6 +1905,31 @@ if (-not $supportMailboxVerified) {
         }
     }
 }
+
+$supportOperatorGateRetirementLookup = Get-LatestJsonEvidence `
+    -EvidenceName "support-operator-gate-retirement" `
+    -Version $version `
+    -Schema "musu.support_operator_gate_retirement.v1" `
+    -Filter "*.support-operator-gate-retirement.json"
+$supportOperatorGateRetirementEvidence = $supportOperatorGateRetirementLookup.json
+$supportOperatorGateRetirementVerificationResult = $null
+if ([bool]$supportOperatorGateRetirementLookup.found) {
+    $supportOperatorGateRetirementVerificationResult = Invoke-JsonScript `
+        -FilePath $supportOperatorGateRetirementVerifierScript `
+        -Arguments @(
+            "-EvidencePath", $supportOperatorGateRetirementLookup.path,
+            "-ExpectedVersion", $version,
+            "-ExpectedSupportEmail", $supportEmail,
+            "-Json"
+        ) `
+        -AllowFailure
+}
+$supportOperatorGateRetirementVerified = (
+    $supportOperatorGateRetirementVerificationResult -and
+    $supportOperatorGateRetirementVerificationResult.json -and
+    [bool]$supportOperatorGateRetirementVerificationResult.json.ok
+)
+$supportOperatorEvidenceVerified = ([bool]$supportMailboxVerified -or [bool]$supportOperatorGateRetirementVerified)
 
 $msixInstallVerified = $false
 $msixInstallEvidence = $null
@@ -2747,7 +2775,7 @@ $fullProductSpecLanes = @(
     New-FullProductSpecLane -Name "brain_product" -Complete $brainProductVerified -Evidence ($(if ($brainProductVerified) { "Brain product proof: $($brainProductLookup.path)" } elseif ($fleetBrainTokenAclVerified) { "Fleet proof proves brain token ACL only: $($fleetNodeProofLookup.path)" } else { "Missing brain token ACL and/or full brain health/ingest/UX evidence." })) -Next "Record health, real task source ingest, cockpit recall/capture UX, and version-coherence evidence." -BlockerArea "brain-product-proof" -BlockerMessage "Full product spec requires full hidden brain proof; token ACL alone is not enough."
     New-FullProductSpecLane -Name "v34_stale_self_heal" -Complete $v34SelfHealVerified -Evidence ($(if ($v34SelfHealVerified) { "V34 self-heal proof: $($v34SelfHealLookup.path)" } else { "Missing V34 TTL prune, boot reconcile, and stale-candidate physical E2E proof." })) -Next "Record stale registry/cache/manual-peer self-heal evidence under docs/evidence/v34-self-heal." -BlockerArea "v34-stale-self-heal" -BlockerMessage "Full product spec requires V34 stale self-heal proof, not only candidate/TTL code."
     New-FullProductSpecLane -Name "store_distribution" -Complete $storeReleaseVerified -Evidence ($(if ($storeReleaseVerified) { "Store release evidence is verified." } else { "Missing Partner Center, certification, restricted capability, and Store-signed install evidence." })) -Next "Prepare/verify Store bundle and record Microsoft approval evidence." -BlockerArea "store-release" -BlockerMessage "Full product spec requires Store or trusted distribution evidence."
-    New-FullProductSpecLane -Name "support_operator_evidence" -Complete $supportMailboxVerified -Evidence ($(if ($supportMailboxVerified) { "$supportEmail support mailbox evidence is verified." } else { "$supportEmail delivery evidence is missing or the historical support gate must be formally retired." })) -Next "Record support mailbox evidence or retire the gate in docs/tooling." -BlockerArea "support-mailbox" -BlockerMessage "Full product spec requires support/operator evidence or a formal retirement of the support mailbox gate."
+    New-FullProductSpecLane -Name "support_operator_evidence" -Complete $supportOperatorEvidenceVerified -Evidence ($(if ($supportMailboxVerified) { "$supportEmail support mailbox evidence is verified." } elseif ($supportOperatorGateRetirementVerified) { "Historical support mailbox delivery gate is formally retired by $($supportOperatorGateRetirementLookup.path)." } else { "$supportEmail delivery evidence is missing or the historical support gate must be formally retired." })) -Next "Record support mailbox evidence or retire the gate in docs/tooling." -BlockerArea "support-mailbox" -BlockerMessage "Full product spec requires support/operator evidence or a formal retirement of the support mailbox gate."
 )
 
 $idleBusyLoopCandidateStatuses = @(
@@ -2974,8 +3002,8 @@ if (-not $SkipPublicMetadata) {
 else {
     Add-Blocker -List $blockers -Area "store-public-metadata" -Message "Public privacy/support metadata verification was skipped."
 }
-if (-not $supportMailboxVerified) {
-    Add-Blocker -List $blockers -Area "support-mailbox" -Message "$supportEmail delivery has not been operator-verified."
+if (-not $supportOperatorEvidenceVerified) {
+    Add-Blocker -List $blockers -Area "support-mailbox" -Message "$supportEmail delivery has not been operator-verified and the historical support mailbox delivery gate has not been formally retired."
 }
 if (-not $storeReleaseVerified) {
     Add-Blocker -List $blockers -Area "store-release" -Message "Partner Center product name reservation, app submission, Microsoft certification, and restricted capability approval evidence has not been recorded."
@@ -3301,6 +3329,9 @@ $result = [pscustomobject]@{
     desktop_single_instance_evidence = $desktopSingleInstanceEvidence
     support_mailbox_verified = [bool]$supportMailboxVerified
     support_mailbox_evidence = $supportMailboxEvidence
+    support_operator_gate_retirement_verified = [bool]$supportOperatorGateRetirementVerified
+    support_operator_gate_retirement_evidence = if ($supportOperatorGateRetirementVerificationResult -and $supportOperatorGateRetirementVerificationResult.json) { $supportOperatorGateRetirementVerificationResult.json } else { $supportOperatorGateRetirementEvidence }
+    support_operator_evidence_verified = [bool]$supportOperatorEvidenceVerified
     store_release_verified = [bool]$storeReleaseVerified
     store_release_evidence = $storeReleaseEvidence
     p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
@@ -3399,6 +3430,8 @@ else {
     "multi_device_verified: $($result.multi_device_verified)"
     "public_metadata_ok: $($result.public_metadata_ok)"
     "support_mailbox_verified: $($result.support_mailbox_verified)"
+    "support_operator_gate_retirement_verified: $($result.support_operator_gate_retirement_verified)"
+    "support_operator_evidence_verified: $($result.support_operator_evidence_verified)"
     "store_release_verified: $($result.store_release_verified)"
     "p2p_control_plane_verified: $($result.p2p_control_plane_verified)"
     "p2p_control_plane_evidence_integrity_status: $($result.p2p_control_plane_evidence_integrity_status)"

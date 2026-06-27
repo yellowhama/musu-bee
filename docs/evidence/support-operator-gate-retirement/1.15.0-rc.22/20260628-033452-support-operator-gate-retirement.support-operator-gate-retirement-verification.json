@@ -1,0 +1,157 @@
+﻿{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\support-operator-gate-retirement\\1.15.0-rc.22\\20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "support_email":  "musu@musu.pro",
+    "support_operator_gate_retired":  true,
+    "retirement_scope":  "support_mailbox_delivery_evidence_only",
+    "public_metadata_base_url":  "https://musu.pro",
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "pass",
+                       "message":  "evidence reports ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "support email",
+                       "status":  "pass",
+                       "message":  "support email matches musu@musu.pro"
+                   },
+                   {
+                       "name":  "decision",
+                       "status":  "pass",
+                       "message":  "decision is scoped to mailbox delivery gate retirement"
+                   },
+                   {
+                       "name":  "retirement scope",
+                       "status":  "pass",
+                       "message":  "retirement scope is narrow"
+                   },
+                   {
+                       "name":  "mailbox delivery not required",
+                       "status":  "pass",
+                       "message":  "mailbox delivery evidence is retired"
+                   },
+                   {
+                       "name":  "support availability active",
+                       "status":  "pass",
+                       "message":  "support availability is not retired"
+                   },
+                   {
+                       "name":  "support routes required",
+                       "status":  "pass",
+                       "message":  "support routes remain required"
+                   },
+                   {
+                       "name":  "public metadata required",
+                       "status":  "pass",
+                       "message":  "public support metadata remains required"
+                   },
+                   {
+                       "name":  "generated timestamp",
+                       "status":  "pass",
+                       "message":  "generated_at parses"
+                   },
+                   {
+                       "name":  "generated not future",
+                       "status":  "pass",
+                       "message":  "generated_at is not in the future"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "generated_at is within 30 days"
+                   },
+                   {
+                       "name":  "retirement doc path",
+                       "status":  "pass",
+                       "message":  "retirement_doc_path is present"
+                   },
+                   {
+                       "name":  "retirement doc exists",
+                       "status":  "pass",
+                       "message":  "retirement decision document exists"
+                   },
+                   {
+                       "name":  "control public_support_page",
+                       "status":  "pass",
+                       "message":  "replacement control public_support_page is true"
+                   },
+                   {
+                       "name":  "control public_privacy_page",
+                       "status":  "pass",
+                       "message":  "replacement control public_privacy_page is true"
+                   },
+                   {
+                       "name":  "control public_config_support_email",
+                       "status":  "pass",
+                       "message":  "replacement control public_config_support_email is true"
+                   },
+                   {
+                       "name":  "control release_metadata_current",
+                       "status":  "pass",
+                       "message":  "replacement control release_metadata_current is true"
+                   },
+                   {
+                       "name":  "control support_email_kept",
+                       "status":  "pass",
+                       "message":  "replacement control support_email_kept is true"
+                   },
+                   {
+                       "name":  "public metadata present",
+                       "status":  "pass",
+                       "message":  "public metadata verification is embedded"
+                   },
+                   {
+                       "name":  "public metadata schema",
+                       "status":  "pass",
+                       "message":  "public metadata schema is valid"
+                   },
+                   {
+                       "name":  "public metadata ok",
+                       "status":  "pass",
+                       "message":  "public metadata verifier reports ok=true"
+                   },
+                   {
+                       "name":  "public metadata support email",
+                       "status":  "pass",
+                       "message":  "public metadata expected support email matches"
+                   },
+                   {
+                       "name":  "public metadata release version",
+                       "status":  "pass",
+                       "message":  "public metadata release version matches"
+                   },
+                   {
+                       "name":  "public metadata https",
+                       "status":  "pass",
+                       "message":  "public metadata base URL is HTTPS"
+                   },
+                   {
+                       "name":  "support page ok",
+                       "status":  "pass",
+                       "message":  "public support page verified"
+                   },
+                   {
+                       "name":  "privacy page ok",
+                       "status":  "pass",
+                       "message":  "public privacy page verified"
+                   },
+                   {
+                       "name":  "public config ok",
+                       "status":  "pass",
+                       "message":  "public-config verification passed"
+                   }
+               ]
+}

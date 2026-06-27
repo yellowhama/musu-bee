@@ -1,0 +1,201 @@
+﻿{
+    "schema":  "musu.support_operator_gate_retirement.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.22",
+    "generated_at":  "2026-06-28T03:34:52.8823145+09:00",
+    "support_email":  "musu@musu.pro",
+    "decision":  "retire_historical_mailbox_delivery_gate",
+    "retirement_scope":  "support_mailbox_delivery_evidence_only",
+    "support_mailbox_delivery_evidence_required":  false,
+    "support_availability_retired":  false,
+    "support_routes_required":  true,
+    "public_support_metadata_required":  true,
+    "retirement_doc_path":  "docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md",
+    "replacement_controls":  {
+                                 "public_support_page":  true,
+                                 "public_privacy_page":  true,
+                                 "public_config_support_email":  true,
+                                 "release_metadata_current":  true,
+                                 "support_email_kept":  true
+                             },
+    "public_metadata_verification":  {
+                                         "schema":  "musu.store_public_metadata_verification.v2",
+                                         "checked_at":  "2026-06-28T03:34:52.7202281+09:00",
+                                         "ok":  true,
+                                         "base_url":  "https://musu.pro",
+                                         "privacy_url":  "https://musu.pro/privacy",
+                                         "support_url":  "https://musu.pro/support",
+                                         "expected_support_email":  "musu@musu.pro",
+                                         "expected_release_version":  "1.15.0-rc.22",
+                                         "expected_release_metadata_text":  "MUSU public release metadata: 1.15.0-rc.22",
+                                         "fail_count":  0,
+                                         "failure_kinds":  {
+
+                                                           },
+                                         "pages":  [
+                                                       {
+                                                           "name":  "privacy",
+                                                           "url":  "https://musu.pro/privacy",
+                                                           "ok":  true,
+                                                           "failure_kind":  null,
+                                                           "status_code":  200,
+                                                           "content_length":  30382,
+                                                           "content_sha256":  "d3292ae9d4bb1f68cca5e8714de81eb9d04f4db4ca3e73721c484d092991593f",
+                                                           "required_text":  [
+                                                                                 "MUSU Privacy Policy",
+                                                                                 "Data MUSU may process",
+                                                                                 "musu@musu.pro",
+                                                                                 "MUSU public release metadata: 1.15.0-rc.22"
+                                                                             ],
+                                                           "missing_text":  [
+
+                                                                            ],
+                                                           "matched_text":  [
+                                                                                "MUSU Privacy Policy",
+                                                                                "Data MUSU may process",
+                                                                                "musu@musu.pro",
+                                                                                "MUSU public release metadata: 1.15.0-rc.22"
+                                                                            ],
+                                                           "content_snippet":  "\u003c!DOCTYPE html\u003e\u003chtml data-dpl-id=\"dpl_FULnchJY31ELsyCG46qN1dDtzpVZ\" lang=\"en\"\u003e\u003chead\u003e\u003cmeta charSet=\"utf-8\"/\u003e\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/\u003e\u003clink rel=\"preload\" as=\"image\" imageSrcSet=\"/_next/image?url=%2F"
+                                                       },
+                                                       {
+                                                           "name":  "support",
+                                                           "url":  "https://musu.pro/support",
+                                                           "ok":  true,
+                                                           "failure_kind":  null,
+                                                           "status_code":  200,
+                                                           "content_length":  28035,
+                                                           "content_sha256":  "7ba79340909ab210439dfdd7062fb07a24cf0d1589e60ddfda230f14818e1d39",
+                                                           "required_text":  [
+                                                                                 "MUSU Support",
+                                                                                 "Include this diagnostic evidence",
+                                                                                 "musu@musu.pro",
+                                                                                 "MUSU public release metadata: 1.15.0-rc.22"
+                                                                             ],
+                                                           "missing_text":  [
+
+                                                                            ],
+                                                           "matched_text":  [
+                                                                                "MUSU Support",
+                                                                                "Include this diagnostic evidence",
+                                                                                "musu@musu.pro",
+                                                                                "MUSU public release metadata: 1.15.0-rc.22"
+                                                                            ],
+                                                           "content_snippet":  "\u003c!DOCTYPE html\u003e\u003chtml data-dpl-id=\"dpl_FULnchJY31ELsyCG46qN1dDtzpVZ\" lang=\"en\"\u003e\u003chead\u003e\u003cmeta charSet=\"utf-8\"/\u003e\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/\u003e\u003clink rel=\"preload\" as=\"image\" imageSrcSet=\"/_next/image?url=%2F"
+                                                       }
+                                                   ],
+                                         "public_config":  {
+                                                               "url":  "https://musu.pro/api/public-config",
+                                                               "ok":  true,
+                                                               "failure_kind":  null,
+                                                               "status_code":  200,
+                                                               "content_length":  560,
+                                                               "content_sha256":  "266f508817b22e9f0964dd2f52b91dd859421cae5cfa319353e39842f43ba0f5",
+                                                               "missing_fields":  [
+
+                                                                                  ],
+                                                               "mismatched_fields":  [
+
+                                                                                     ],
+                                                               "matched_fields":  [
+                                                                                      "supportUrl",
+                                                                                      "releaseVersion",
+                                                                                      "publicReleaseMetadata",
+                                                                                      "schema",
+                                                                                      "privacyUrl",
+                                                                                      "supportEmail"
+                                                                                  ],
+                                                               "content_snippet":  "{\"schema\":\"musu.public_config.v1\",\"supabaseUrl\":\"https://poyclapxmvulvboiebxq.supabase.co\",\"supabaseAnonKey\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBveWNsYXB4bXZ1bHZib2llYnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3N"
+                                                           },
+                                         "checks":  [
+                                                        {
+                                                            "name":  "privacy status",
+                                                            "status":  "pass",
+                                                            "message":  "https://musu.pro/privacy returned HTTP 200."
+                                                        },
+                                                        {
+                                                            "name":  "privacy content: MUSU Privacy Policy",
+                                                            "status":  "pass",
+                                                            "message":  "privacy contains expected text \u0027MUSU Privacy Policy\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "privacy content: Data MUSU may process",
+                                                            "status":  "pass",
+                                                            "message":  "privacy contains expected text \u0027Data MUSU may process\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "privacy content: musu@musu.pro",
+                                                            "status":  "pass",
+                                                            "message":  "privacy contains expected text \u0027musu@musu.pro\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "privacy content: MUSU public release metadata: 1.15.0-rc.22",
+                                                            "status":  "pass",
+                                                            "message":  "privacy contains expected text \u0027MUSU public release metadata: 1.15.0-rc.22\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "support status",
+                                                            "status":  "pass",
+                                                            "message":  "https://musu.pro/support returned HTTP 200."
+                                                        },
+                                                        {
+                                                            "name":  "support content: MUSU Support",
+                                                            "status":  "pass",
+                                                            "message":  "support contains expected text \u0027MUSU Support\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "support content: Include this diagnostic evidence",
+                                                            "status":  "pass",
+                                                            "message":  "support contains expected text \u0027Include this diagnostic evidence\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "support content: musu@musu.pro",
+                                                            "status":  "pass",
+                                                            "message":  "support contains expected text \u0027musu@musu.pro\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "support content: MUSU public release metadata: 1.15.0-rc.22",
+                                                            "status":  "pass",
+                                                            "message":  "support contains expected text \u0027MUSU public release metadata: 1.15.0-rc.22\u0027."
+                                                        },
+                                                        {
+                                                            "name":  "public-config status",
+                                                            "status":  "pass",
+                                                            "message":  "https://musu.pro/api/public-config returned HTTP 200."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: supportUrl",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027supportUrl\u0027 matches expected value."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: releaseVersion",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027releaseVersion\u0027 matches expected value."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: publicReleaseMetadata",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027publicReleaseMetadata\u0027 matches expected value."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: schema",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027schema\u0027 matches expected value."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: privacyUrl",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027privacyUrl\u0027 matches expected value."
+                                                        },
+                                                        {
+                                                            "name":  "public-config field: supportEmail",
+                                                            "status":  "pass",
+                                                            "message":  "public-config \u0027supportEmail\u0027 matches expected value."
+                                                        }
+                                                    ]
+                                     },
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "notes":  ""
+}

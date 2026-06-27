@@ -8981,4 +8981,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_not_implemented`, and
   `relay_transport_product_verified=false`.
 
+- 2026-06-28 support operator gate retirement:
+  The historical `musu@musu.pro` external mailbox delivery proof is retired as a
+  mandatory full-product blocker, but only for the mailbox delivery proof. It
+  does not retire support availability, the configured support email, the public
+  support route, the privacy route, or public release metadata. Formal decision:
+  `docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md`. New tooling:
+  `scripts/windows/record-support-operator-gate-retirement.ps1` and
+  `scripts/windows/verify-support-operator-gate-retirement.ps1`. The verifier
+  requires `musu.support_operator_gate_retirement.v1`, current live
+  `musu.store_public_metadata_verification.v2` proof from `https://musu.pro`,
+  verified support/privacy pages, verified public-config, and
+  `support_availability_retired=false`. `write-release-go-no-go.ps1` now closes
+  `support_operator_evidence` when either real mailbox delivery evidence or
+  formal retirement evidence verifies. Current evidence:
+  `docs/evidence/support-operator-gate-retirement/1.15.0-rc.22/20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement.json`
+  and matching verification with `ok=true`, `fail_count=0`. Latest local
+  go/no-go reports `support_operator_gate_retirement_verified=true`,
+  `support_operator_evidence_verified=true`, `complete_lane_count=4`, and
+  `incomplete_lane_count=4`; remaining full-product blockers are
+  `design_approval`, `relay_transport`, `v34_stale_self_heal`, and
+  `store_distribution`. Search terms should include
+  `support_operator_gate_retirement_verified`,
+  `support_operator_evidence_verified`,
+  `record-support-operator-gate-retirement.ps1`,
+  `verify-support-operator-gate-retirement.ps1`,
+  `support_mailbox_delivery_evidence_only`, and
+  `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28`.
+
 **End of WIKI_INDEX.md.**

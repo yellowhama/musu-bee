@@ -13,8 +13,7 @@ main PC proof.
 That proves the direct LAN fleet slice. The fresh packaged desktop now also
 records a passing hidden-brain product proof for rc.22. It still does not prove
 the full product: design approval, Store release/Store-signed install evidence,
-real relay transport, V34 stale self-heal proof, and final operator evidence
-still remain.
+real relay transport, and V34 stale self-heal proof still remain.
 
 ## 2026-06-27 Gate Implementation Update
 
@@ -41,6 +40,8 @@ Current local gate shape on this branch:
 - `brain_product_verified=true` after the packaged rc.22 proof at
   `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`.
 - `v34_stale_self_heal_verified=false`.
+- `support_operator_gate_retirement_verified=true`.
+- `support_operator_evidence_verified=true`.
 - `release_candidate_manifest_generated=true` after the current rc.22
   Store-reviewed artifact and submission bundle refresh.
 
@@ -93,6 +94,37 @@ Store distribution lane because Partner Center product-name reservation,
 Microsoft certification/restricted-capability approval, and Store-signed
 install/launch proof are still external evidence requirements.
 
+## 2026-06-28 Support Operator Gate Retirement Update
+
+The historical support mailbox delivery proof is retired as a mandatory full
+product blocker for the current desktop spec. This is a narrow retirement:
+support availability, the configured `musu@musu.pro` address, the public support
+page, the privacy page, and public release metadata remain required.
+
+Replacement controls:
+
+- `docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` records the formal
+  decision and scope.
+- `scripts/windows/record-support-operator-gate-retirement.ps1` records current
+  live `https://musu.pro` public support metadata proof.
+- `scripts/windows/verify-support-operator-gate-retirement.ps1` rejects evidence
+  that retires support availability, lacks a current public metadata proof, or
+  does not embed verified support/privacy/public-config evidence.
+- `write-release-go-no-go.ps1` now treats the support/operator lane as complete
+  when either real mailbox delivery evidence is verified or the formal support
+  operator gate retirement evidence is verified.
+
+This reduces the final full-product blockers by one. Current evidence:
+
+- Proof:
+  `docs/evidence/support-operator-gate-retirement/1.15.0-rc.22/20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement.json`.
+- Verification:
+  `docs/evidence/support-operator-gate-retirement/1.15.0-rc.22/20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement-verification.json`.
+
+The latest local go/no-go reports `support_operator_gate_retirement_verified=true`,
+`support_operator_evidence_verified=true`, `complete_lane_count=4`, and
+`incomplete_lane_count=4`.
+
 ## 2026-06-28 Brain Product Proof Gate Update
 
 The brain product lane now has a dedicated release proof recorder and verifier:
@@ -131,8 +163,9 @@ release recorder wrote:
   `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-verification.json`.
 
 The verification reports `ok=true` and `fail_count=0`. The current local
-go/no-go now reports `brain_product_verified=true`, `complete_lane_count=3`,
-and `incomplete_lane_count=5`.
+go/no-go reports `brain_product_verified=true`. After the support operator gate
+retirement evidence, the local full-product gate reports `complete_lane_count=4`
+and `incomplete_lane_count=4`.
 
 Caveat: this proves fresh packaged launch, not an upgrade-in-place self-heal for
 an already-running stale desktop instance. Treat the stale-process observation
@@ -227,7 +260,7 @@ relay proof attached, and a two-PC physical test with direct path blocked.
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and strict verifier are implemented | Needs physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
-| Support mailbox / external operator evidence | Unknown for current final spec, historically open | Older release gates require `musu@musu.pro` delivery evidence | Treat as final release-governance lane until explicitly retired |
+| Support/operator evidence | Complete for current rc.22 governance | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*` | Support availability remains required and verified through public metadata |
 
 ## Full Product Definition Of Done
 
@@ -251,20 +284,23 @@ MUSU is fully complete only when all of these are true at the same time:
    cache/manual peers, boot reconcile, and route-preflight candidate selection.
 10. Store or EV distribution has release evidence: current bundle, signing,
     certification or trusted-signing path, install/launch proof, and rollback.
-11. Final go/no-go tooling reports the same state from live/package evidence and
+11. Support/operator governance is either proven by current mailbox delivery
+    evidence or formally retired by current public support metadata evidence
+    without retiring support availability.
+12. Final go/no-go tooling reports the same state from live/package evidence and
     lists no release blockers.
 
 ## Findings
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Direct proof and brain product proof are green, but design, Store distribution, relay transport, V34 self-heal proof, and support/operator evidence remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness plus hidden-brain fresh-launch proof until all lanes below are closed. |
+| NO-GO | The full product cannot be called complete today. | Direct proof, brain product proof, and support/operator governance are green, but design, Store distribution, relay transport, and V34 self-heal proof remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness plus hidden-brain fresh-launch proof plus support gate retirement until all lanes below are closed. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
 | INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
 | HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
 | MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, route preflight, heartbeat TTL, boot/local reconcile, and strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Run the physical stale registry/cache/manual-peer proof and commit verifier-passing evidence. |
-| MED | Support mailbox evidence is historically a release blocker. | Older release gates and wiki entries require `musu@musu.pro` proof. | Final readiness may be blocked by operator evidence even if code is green. | Either record support mailbox evidence for the current version or formally retire the gate in docs/tooling. |
+| INFO | Support mailbox delivery proof is now a retired historical gate once retirement evidence is current. | The replacement gate requires live support/privacy/public-config proof and rejects evidence that retires support availability. | This removes an operator-only release blocker without weakening the public support contract. | Keep public metadata verified; use mailbox proof only as an optional operational check. |
 
 ## Dependency Map
 
@@ -286,8 +322,7 @@ The immediate constraint is PR #34 design approval because it blocks merging the
 current rc.22 proof/fleet fixes.
 
 The largest product constraints after merge are Store release evidence, real
-relay transport, V34 stale self-heal evidence, and final support/operator
-evidence.
+relay transport, and V34 stale self-heal evidence.
 These are independent enough to run as parallel lanes, but the completion claim
 must stay scoped until every lane has machine evidence.
 
@@ -318,7 +353,7 @@ Deliverables:
 - One canonical release readiness command or run card for the current product
   spec.
 - It must distinguish direct proof, relay transport proof, brain proof, Store
-  proof, and support/operator proof.
+  proof, and support/operator proof or formal support gate retirement.
 - It must fail closed when evidence is missing or stale.
 
 Proof:
@@ -427,7 +462,8 @@ Deliverables:
 - Relay transport proof if relay is part of the release claim.
 - Brain product proof.
 - Store/EV distribution proof.
-- Support/operator evidence or formal retirement.
+- Support/operator evidence or formal retirement; current rc.22 uses formal
+  retirement evidence.
 - Rollback/cleanup path.
 - LLM/wiki/index refresh.
 
@@ -448,6 +484,8 @@ High confidence:
   `hugh_second`.
 - rc.22 hidden brain sidecar fresh-launch readiness is proven on
   `HUGH_SECOND` with verifier-passing task ingest and capture recall evidence.
+- rc.22 support/operator governance is proven through the formal mailbox
+  delivery gate retirement and verified public support metadata.
 - The current repo intentionally prevents relay overclaim by keeping relay out
   of selected route paths until transport exists.
 - PR #34 is blocked by design approval, not by the currently observed code/test
@@ -460,8 +498,6 @@ Medium confidence:
   it becomes a release claim; the current evidence proves fresh packaged launch.
 
 Unknown or needs evidence:
-- Whether support mailbox proof remains mandatory for the current product
-  release line or should be formally retired.
 - Microsoft Store certification timing and restricted capability approval.
 - Relay transport design choice and self-contained risk until the separate
   relay design gate is run.
