@@ -252,6 +252,13 @@ the proof is not just operator-entered booleans:
 - TTL source evidence JSON with schema `musu.v34_ttl_prune_source.v1`.
 - Boot reconcile source evidence JSON with schema
   `musu.v34_boot_reconcile_source.v1`.
+- TTL before/after snapshots with schema `musu.v34_ttl_snapshot.v1`; the
+  recorder verifies stale-row counts, TTL seconds, stale-row timestamp, and the
+  post-prune hidden/excluded flags against the command parameters.
+- Boot before/after snapshots with schema `musu.v34_boot_snapshot.v1`; the
+  recorder verifies manual-peer counts, stale-peer removal, preserved LAN-only
+  peer, preserved current same-name candidate, and pruned count against the
+  command parameters.
 
 The kit includes the canonical source artifact recorder, final proof recorder,
 and verifier. First record the source artifacts from actual before/after

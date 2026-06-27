@@ -113,8 +113,29 @@ function Test-Sha256([string]$Value) {
     return (-not [string]::IsNullOrWhiteSpace($Value) -and $Value -match '^[a-fA-F0-9]{64}$')
 }
 
+function Convert-StrictBoolValue($Value) {
+    if ($Value -is [bool]) {
+        return [bool]$Value
+    }
+    $text = ([string]$Value).Trim().ToLowerInvariant()
+    if ($text -in @("true", "`$true", "1", "yes", "y")) {
+        return $true
+    }
+    if ($text -in @("false", "`$false", "0", "no", "n")) {
+        return $false
+    }
+    throw "Not a strict boolean value: $Value"
+}
+
 function Test-BoolFieldMatches($LeftObject, [string]$LeftName, $RightObject, [string]$RightName) {
-    return ((Has-Property $LeftObject $LeftName) -and (Has-Property $RightObject $RightName) -and ([bool](Get-Prop $LeftObject $LeftName) -eq [bool](Get-Prop $RightObject $RightName)))
+    if (-not ((Has-Property $LeftObject $LeftName) -and (Has-Property $RightObject $RightName))) {
+        return $false
+    }
+    try {
+        return ((Convert-StrictBoolValue (Get-Prop $LeftObject $LeftName)) -eq (Convert-StrictBoolValue (Get-Prop $RightObject $RightName)))
+    } catch {
+        return $false
+    }
 }
 
 function Test-IntFieldMatches($LeftObject, [string]$LeftName, $RightObject, [string]$RightName) {
@@ -391,6 +412,53 @@ if ($evidence) {
             Add-Check "ttl source $name" "fail" "source_evidence.ttl_source_evidence.$name is required"
         }
     }
+    $ttlBeforeSnapshot = Get-Prop $ttlSource "before_snapshot"
+    $ttlAfterSnapshot = Get-Prop $ttlSource "after_snapshot"
+    if ($ttlBeforeSnapshot -and [string](Get-Prop $ttlBeforeSnapshot "schema") -eq "musu.v34_ttl_snapshot.v1") {
+        Add-Check "ttl before snapshot schema" "pass" "TTL before snapshot schema is valid"
+    } else {
+        Add-Check "ttl before snapshot schema" "fail" "TTL before snapshot must use schema musu.v34_ttl_snapshot.v1"
+    }
+    if ($ttlAfterSnapshot -and [string](Get-Prop $ttlAfterSnapshot "schema") -eq "musu.v34_ttl_snapshot.v1") {
+        Add-Check "ttl after snapshot schema" "pass" "TTL after snapshot schema is valid"
+    } else {
+        Add-Check "ttl after snapshot schema" "fail" "TTL after snapshot must use schema musu.v34_ttl_snapshot.v1"
+    }
+    if (Test-BoolFieldMatches $ttlBeforeSnapshot "stale_row_injected" $ttlSource "stale_row_injected") {
+        Add-Check "ttl before snapshot stale injected" "pass" "TTL before snapshot stale_row_injected matches source evidence"
+    } else {
+        Add-Check "ttl before snapshot stale injected" "fail" "TTL before snapshot stale_row_injected must match source evidence"
+    }
+    if (Test-IntFieldMatches $ttlBeforeSnapshot "stale_row_count" $ttlSource "stale_row_count_before") {
+        Add-Check "ttl before snapshot stale count" "pass" "TTL before snapshot stale_row_count matches source evidence"
+    } else {
+        Add-Check "ttl before snapshot stale count" "fail" "TTL before snapshot stale_row_count must match source evidence stale_row_count_before"
+    }
+    if (Test-IntFieldMatches $ttlAfterSnapshot "stale_row_count" $ttlSource "stale_row_count_after") {
+        Add-Check "ttl after snapshot stale count" "pass" "TTL after snapshot stale_row_count matches source evidence"
+    } else {
+        Add-Check "ttl after snapshot stale count" "fail" "TTL after snapshot stale_row_count must match source evidence stale_row_count_after"
+    }
+    if (Test-IntFieldMatches $ttlBeforeSnapshot "heartbeat_ttl_sec" $ttlSource "heartbeat_ttl_sec" -and Test-IntFieldMatches $ttlAfterSnapshot "heartbeat_ttl_sec" $ttlSource "heartbeat_ttl_sec") {
+        Add-Check "ttl snapshot ttl seconds" "pass" "TTL snapshots heartbeat_ttl_sec matches source evidence"
+    } else {
+        Add-Check "ttl snapshot ttl seconds" "fail" "TTL snapshots heartbeat_ttl_sec must match source evidence"
+    }
+    if (Test-StringFieldMatches $ttlBeforeSnapshot "stale_row_last_seen_at" $ttlSource "stale_row_last_seen_at") {
+        Add-Check "ttl before snapshot last seen" "pass" "TTL before snapshot stale_row_last_seen_at matches source evidence"
+    } else {
+        Add-Check "ttl before snapshot last seen" "fail" "TTL before snapshot stale_row_last_seen_at must match source evidence"
+    }
+    if (Test-BoolFieldMatches $ttlAfterSnapshot "registry_current_excludes_stale_rows" $ttlSource "registry_current_excludes_stale_rows") {
+        Add-Check "ttl after snapshot current excludes stale" "pass" "TTL after snapshot current-excludes-stale flag matches source evidence"
+    } else {
+        Add-Check "ttl after snapshot current excludes stale" "fail" "TTL after snapshot registry_current_excludes_stale_rows must match source evidence"
+    }
+    if (Test-BoolFieldMatches $ttlAfterSnapshot "expired_rows_hidden" $ttlSource "expired_rows_hidden") {
+        Add-Check "ttl after snapshot expired hidden" "pass" "TTL after snapshot expired_rows_hidden matches source evidence"
+    } else {
+        Add-Check "ttl after snapshot expired hidden" "fail" "TTL after snapshot expired_rows_hidden must match source evidence"
+    }
     if (Test-True $sourceEvidence "ttl_source_evidence_matches_parameters") {
         Add-Check "ttl source matches wrapper" "pass" "TTL source evidence matches wrapper fields"
     } else {
@@ -445,6 +513,53 @@ if ($evidence) {
         } else {
             Add-Check "boot source $name" "fail" "source_evidence.boot_source_evidence.$name is required"
         }
+    }
+    $bootBeforeSnapshot = Get-Prop $bootSource "before_snapshot"
+    $bootAfterSnapshot = Get-Prop $bootSource "after_snapshot"
+    if ($bootBeforeSnapshot -and [string](Get-Prop $bootBeforeSnapshot "schema") -eq "musu.v34_boot_snapshot.v1") {
+        Add-Check "boot before snapshot schema" "pass" "boot before snapshot schema is valid"
+    } else {
+        Add-Check "boot before snapshot schema" "fail" "boot before snapshot must use schema musu.v34_boot_snapshot.v1"
+    }
+    if ($bootAfterSnapshot -and [string](Get-Prop $bootAfterSnapshot "schema") -eq "musu.v34_boot_snapshot.v1") {
+        Add-Check "boot after snapshot schema" "pass" "boot after snapshot schema is valid"
+    } else {
+        Add-Check "boot after snapshot schema" "fail" "boot after snapshot must use schema musu.v34_boot_snapshot.v1"
+    }
+    if (Test-BoolFieldMatches $bootBeforeSnapshot "cache_available" $bootSource "cache_available" -and Test-BoolFieldMatches $bootAfterSnapshot "cache_available" $bootSource "cache_available") {
+        Add-Check "boot snapshot cache available" "pass" "boot snapshots cache_available matches source evidence"
+    } else {
+        Add-Check "boot snapshot cache available" "fail" "boot snapshots cache_available must match source evidence"
+    }
+    if (Test-IntFieldMatches $bootBeforeSnapshot "manual_peer_count" $bootSource "manual_peer_count_before") {
+        Add-Check "boot before snapshot peer count" "pass" "boot before snapshot manual_peer_count matches source evidence"
+    } else {
+        Add-Check "boot before snapshot peer count" "fail" "boot before snapshot manual_peer_count must match source evidence manual_peer_count_before"
+    }
+    if (Test-IntFieldMatches $bootAfterSnapshot "manual_peer_count" $bootSource "manual_peer_count_after") {
+        Add-Check "boot after snapshot peer count" "pass" "boot after snapshot manual_peer_count matches source evidence"
+    } else {
+        Add-Check "boot after snapshot peer count" "fail" "boot after snapshot manual_peer_count must match source evidence manual_peer_count_after"
+    }
+    if (Test-IntFieldMatches $bootAfterSnapshot "pruned_manual_peer_count" $bootSource "pruned_manual_peer_count") {
+        Add-Check "boot after snapshot pruned count" "pass" "boot after snapshot pruned_manual_peer_count matches source evidence"
+    } else {
+        Add-Check "boot after snapshot pruned count" "fail" "boot after snapshot pruned_manual_peer_count must match source evidence"
+    }
+    if ($bootBeforeSnapshot -and (Test-True $bootBeforeSnapshot "stale_manual_peer_present") -and $bootAfterSnapshot -and (Has-Property $bootAfterSnapshot "stale_manual_peer_present") -and -not [bool](Get-Prop $bootAfterSnapshot "stale_manual_peer_present")) {
+        Add-Check "boot snapshot stale peer removed" "pass" "boot snapshots show stale manual peer removed"
+    } else {
+        Add-Check "boot snapshot stale peer removed" "fail" "boot snapshots must show stale manual peer present before and absent after"
+    }
+    if (Test-BoolFieldMatches $bootAfterSnapshot "lan_only_manual_peer_present" $bootSource "lan_only_manual_peer_preserved") {
+        Add-Check "boot after snapshot lan peer preserved" "pass" "boot after snapshot lan-only peer presence matches source evidence"
+    } else {
+        Add-Check "boot after snapshot lan peer preserved" "fail" "boot after snapshot lan_only_manual_peer_present must match source evidence"
+    }
+    if (Test-BoolFieldMatches $bootAfterSnapshot "same_name_current_candidate_present" $bootSource "same_name_current_candidate_preserved") {
+        Add-Check "boot after snapshot current candidate preserved" "pass" "boot after snapshot current-candidate presence matches source evidence"
+    } else {
+        Add-Check "boot after snapshot current candidate preserved" "fail" "boot after snapshot same_name_current_candidate_present must match source evidence"
     }
     if (Test-True $sourceEvidence "boot_source_evidence_matches_parameters") {
         Add-Check "boot source matches wrapper" "pass" "boot source evidence matches wrapper fields"

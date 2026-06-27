@@ -9206,6 +9206,10 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   booleans without binding those claims to source artifacts.
   `scripts/windows/record-v34-source-artifacts.ps1` now records the required
   TTL and boot source artifacts from actual before/after snapshot JSON files.
+  Follow-up hardening on the same gate now requires those embedded snapshots to
+  use canonical schemas `musu.v34_ttl_snapshot.v1` and
+  `musu.v34_boot_snapshot.v1`, with counts/flags/timestamps bound to the source
+  evidence before the recorder or final verifier accepts the proof.
   `scripts/windows/record-v34-self-heal-proof.ps1` now requires
   `-TtlSourceEvidencePath` and `-BootSourceEvidencePath`, embeds the source
   JSON in `source_evidence`, records SHA256 hashes, and fails closed if those
@@ -9221,7 +9225,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Regression harness now includes
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`; latest
-  run reports `ok=true`, `case_count=198`, and `failed_case_count=0`. This
+  run reports `ok=true`, `case_count=204`, and `failed_case_count=0`. This
   hardens the proof contract but does not close the lane:
   `v34_stale_self_heal_verified=false` until a rebuilt packaged physical
   stale-state proof with source artifacts is committed under

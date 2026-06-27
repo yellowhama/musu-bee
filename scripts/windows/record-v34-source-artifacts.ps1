@@ -69,6 +69,121 @@ function Read-Snapshot {
     }
 }
 
+function Get-Prop {
+    param($Object, [Parameter(Mandatory = $true)][string]$Name)
+
+    if ($null -ne $Object -and $null -ne $Object.PSObject.Properties[$Name]) {
+        return $Object.PSObject.Properties[$Name].Value
+    }
+    throw "Snapshot is missing required property '$Name'."
+}
+
+function Require-SnapshotSchema {
+    param(
+        [Parameter(Mandatory = $true)]$Snapshot,
+        [Parameter(Mandatory = $true)][string]$ExpectedSchema,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $actual = [string](Get-Prop -Object $Snapshot -Name "schema")
+    if ($actual -ne $ExpectedSchema) {
+        throw "$Name must use schema '$ExpectedSchema'; found '$actual'."
+    }
+}
+
+function Require-BoolPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)]$Snapshot,
+        [Parameter(Mandatory = $true)][string]$PropertyName,
+        [Parameter(Mandatory = $true)][bool]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $actual = Convert-StrictBool -Value (Get-Prop -Object $Snapshot -Name $PropertyName) -Name "$Name.$PropertyName"
+    if ($actual -ne $Expected) {
+        throw "$Name.$PropertyName must be $Expected; found $actual."
+    }
+}
+
+function Require-IntPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)]$Snapshot,
+        [Parameter(Mandatory = $true)][string]$PropertyName,
+        [Parameter(Mandatory = $true)][int]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $actual = [int](Get-Prop -Object $Snapshot -Name $PropertyName)
+    if ($actual -ne $Expected) {
+        throw "$Name.$PropertyName must be $Expected; found $actual."
+    }
+}
+
+function Require-TimestampPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)]$Snapshot,
+        [Parameter(Mandatory = $true)][string]$PropertyName,
+        [Parameter(Mandatory = $true)][datetimeoffset]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $actual = [datetimeoffset]::Parse([string](Get-Prop -Object $Snapshot -Name $PropertyName))
+    if ($actual.ToString("o") -ne $Expected.ToString("o")) {
+        throw "$Name.$PropertyName must be $($Expected.ToString("o")); found $($actual.ToString("o"))."
+    }
+}
+
+function Assert-TtlSnapshotContract {
+    param(
+        [Parameter(Mandatory = $true)]$Before,
+        [Parameter(Mandatory = $true)]$After,
+        [Parameter(Mandatory = $true)][bool]$StaleRowInjected,
+        [Parameter(Mandatory = $true)][bool]$RegistryCurrentExcludesStaleRows,
+        [Parameter(Mandatory = $true)][bool]$ExpiredRowsHidden,
+        [Parameter(Mandatory = $true)][int]$StaleRowCountBefore,
+        [Parameter(Mandatory = $true)][int]$StaleRowCountAfter,
+        [Parameter(Mandatory = $true)][int]$HeartbeatTtlSec,
+        [Parameter(Mandatory = $true)][datetimeoffset]$StaleRowLastSeenAt
+    )
+
+    Require-SnapshotSchema -Snapshot $Before -ExpectedSchema "musu.v34_ttl_snapshot.v1" -Name "TTL before snapshot"
+    Require-SnapshotSchema -Snapshot $After -ExpectedSchema "musu.v34_ttl_snapshot.v1" -Name "TTL after snapshot"
+    Require-BoolPropertyEquals -Snapshot $Before -PropertyName "stale_row_injected" -Expected $StaleRowInjected -Name "TTL before snapshot"
+    Require-IntPropertyEquals -Snapshot $Before -PropertyName "stale_row_count" -Expected $StaleRowCountBefore -Name "TTL before snapshot"
+    Require-IntPropertyEquals -Snapshot $After -PropertyName "stale_row_count" -Expected $StaleRowCountAfter -Name "TTL after snapshot"
+    Require-IntPropertyEquals -Snapshot $Before -PropertyName "heartbeat_ttl_sec" -Expected $HeartbeatTtlSec -Name "TTL before snapshot"
+    Require-IntPropertyEquals -Snapshot $After -PropertyName "heartbeat_ttl_sec" -Expected $HeartbeatTtlSec -Name "TTL after snapshot"
+    Require-TimestampPropertyEquals -Snapshot $Before -PropertyName "stale_row_last_seen_at" -Expected $StaleRowLastSeenAt -Name "TTL before snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "registry_current_excludes_stale_rows" -Expected $RegistryCurrentExcludesStaleRows -Name "TTL after snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "expired_rows_hidden" -Expected $ExpiredRowsHidden -Name "TTL after snapshot"
+}
+
+function Assert-BootSnapshotContract {
+    param(
+        [Parameter(Mandatory = $true)]$Before,
+        [Parameter(Mandatory = $true)]$After,
+        [Parameter(Mandatory = $true)][bool]$CacheAvailable,
+        [Parameter(Mandatory = $true)][bool]$StaleManualPeerRemoved,
+        [Parameter(Mandatory = $true)][bool]$LanOnlyManualPeerPreserved,
+        [Parameter(Mandatory = $true)][bool]$SameNameCurrentCandidatePreserved,
+        [Parameter(Mandatory = $true)][int]$ManualPeerCountBefore,
+        [Parameter(Mandatory = $true)][int]$ManualPeerCountAfter,
+        [Parameter(Mandatory = $true)][int]$PrunedManualPeerCount
+    )
+
+    Require-SnapshotSchema -Snapshot $Before -ExpectedSchema "musu.v34_boot_snapshot.v1" -Name "Boot before snapshot"
+    Require-SnapshotSchema -Snapshot $After -ExpectedSchema "musu.v34_boot_snapshot.v1" -Name "Boot after snapshot"
+    Require-BoolPropertyEquals -Snapshot $Before -PropertyName "cache_available" -Expected $CacheAvailable -Name "Boot before snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "cache_available" -Expected $CacheAvailable -Name "Boot after snapshot"
+    Require-IntPropertyEquals -Snapshot $Before -PropertyName "manual_peer_count" -Expected $ManualPeerCountBefore -Name "Boot before snapshot"
+    Require-IntPropertyEquals -Snapshot $After -PropertyName "manual_peer_count" -Expected $ManualPeerCountAfter -Name "Boot after snapshot"
+    Require-IntPropertyEquals -Snapshot $After -PropertyName "pruned_manual_peer_count" -Expected $PrunedManualPeerCount -Name "Boot after snapshot"
+    Require-BoolPropertyEquals -Snapshot $Before -PropertyName "stale_manual_peer_present" -Expected $StaleManualPeerRemoved -Name "Boot before snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "stale_manual_peer_present" -Expected $false -Name "Boot after snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "lan_only_manual_peer_present" -Expected $LanOnlyManualPeerPreserved -Name "Boot after snapshot"
+    Require-BoolPropertyEquals -Snapshot $After -PropertyName "same_name_current_candidate_present" -Expected $SameNameCurrentCandidatePreserved -Name "Boot after snapshot"
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 }
@@ -90,6 +205,28 @@ $ttlBefore = Read-Snapshot -Path $TtlBeforeSnapshotPath
 $ttlAfter = Read-Snapshot -Path $TtlAfterSnapshotPath
 $bootBefore = Read-Snapshot -Path $BootBeforeSnapshotPath
 $bootAfter = Read-Snapshot -Path $BootAfterSnapshotPath
+
+Assert-TtlSnapshotContract `
+    -Before $ttlBefore.json `
+    -After $ttlAfter.json `
+    -StaleRowInjected $ttlStaleRowInjectedBool `
+    -RegistryCurrentExcludesStaleRows $ttlRegistryCurrentExcludesStaleRowsBool `
+    -ExpiredRowsHidden $ttlExpiredRowsHiddenBool `
+    -StaleRowCountBefore $TtlStaleRowCountBefore `
+    -StaleRowCountAfter $TtlStaleRowCountAfter `
+    -HeartbeatTtlSec $TtlHeartbeatTtlSec `
+    -StaleRowLastSeenAt $ttlStaleRowLastSeenAtParsed
+
+Assert-BootSnapshotContract `
+    -Before $bootBefore.json `
+    -After $bootAfter.json `
+    -CacheAvailable $bootCacheAvailableBool `
+    -StaleManualPeerRemoved $bootStaleManualPeerRemovedBool `
+    -LanOnlyManualPeerPreserved $bootLanOnlyManualPeerPreservedBool `
+    -SameNameCurrentCandidatePreserved $bootSameNameCurrentCandidatePreservedBool `
+    -ManualPeerCountBefore $BootManualPeerCountBefore `
+    -ManualPeerCountAfter $BootManualPeerCountAfter `
+    -PrunedManualPeerCount $BootPrunedManualPeerCount
 
 $generatedAt = [datetimeoffset]::Now
 $stamp = $generatedAt.ToString("yyyyMMdd-HHmmss")

@@ -332,6 +332,10 @@ Source fix:
 
 - `scripts/windows/record-v34-source-artifacts.ps1` now records the required
   TTL and boot source artifacts from actual before/after snapshot JSON files.
+  2026-06-28 follow-up hardening: those before/after snapshots must now use
+  canonical schemas `musu.v34_ttl_snapshot.v1` and
+  `musu.v34_boot_snapshot.v1`; the recorder rejects arbitrary fixture-shaped
+  JSON before writing source evidence.
 - `scripts/windows/record-v34-self-heal-proof.ps1` now requires
   `-TtlSourceEvidencePath` and `-BootSourceEvidencePath` in addition to the
   route evidence path.
@@ -343,9 +347,10 @@ Source fix:
   TTL/boot parameters.
 - `scripts/windows/verify-v34-self-heal-proof.ps1` now checks the source
   schemas, source artifact SHA256 metadata, source snapshot SHA256 metadata,
-  embedded before/after snapshots, source-to-wrapper field bindings, route
-  evidence SHA256 metadata, route binding, distinct node pair, and exactly-one
-  task execution before accepting `musu.v34_self_heal_proof.v1`.
+  embedded before/after snapshot schemas, snapshot-to-source field bindings,
+  source-to-wrapper field bindings, route evidence SHA256 metadata, route
+  binding, distinct node pair, and exactly-one task execution before accepting
+  `musu.v34_self_heal_proof.v1`.
 - The multi-device kit, final operator packet, and go/no-go next action now show
   the source artifact recorder plus the required TTL/boot source artifact paths
   instead of a boolean-only command skeleton.
@@ -356,7 +361,7 @@ Verification:
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`.
 - `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
-  `ok=true`, `case_count=198`, and `failed_case_count=0`.
+  `ok=true`, `case_count=204`, and `failed_case_count=0`.
 
 This hardens the V34 release proof contract. It still does not close the V34
 lane: the artifact-bound proof must be produced from a rebuilt packaged physical
@@ -692,6 +697,9 @@ Proof:
   to the wrapper by SHA256 and field checks.
 - Boot reconcile source evidence uses schema `musu.v34_boot_reconcile_source.v1`
   and is bound to the wrapper by SHA256 and field checks.
+- The embedded source snapshots use schema `musu.v34_ttl_snapshot.v1` and
+  `musu.v34_boot_snapshot.v1`, with counts/flags bound to the source evidence
+  so arbitrary JSON cannot stand in for before/after physical state.
 - `record-v34-source-artifacts.ps1` records those TTL/boot source artifacts
   from before/after snapshot JSON before `record-v34-self-heal-proof.ps1`
   wraps them into final release evidence.

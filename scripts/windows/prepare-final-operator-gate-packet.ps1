@@ -459,6 +459,14 @@ stale one, and exactly one delegated task execution. The TTL prune and boot
 reconcile claims must also be backed by source artifact JSON, not only
 operator-entered booleans.
 
+The before/after snapshots are part of the contract. TTL snapshots must use
+schema `musu.v34_ttl_snapshot.v1` and expose stale-row counts, TTL seconds,
+stale-row last-seen timestamp, and post-prune hidden/excluded flags. Boot
+snapshots must use schema `musu.v34_boot_snapshot.v1` and expose manual-peer
+counts, stale-peer presence/removal, preserved LAN-only peer, preserved current
+same-name candidate, and pruned count. The source artifact recorder rejects
+noncanonical snapshot schemas before it writes release evidence.
+
 First record source artifacts from actual before/after snapshots:
 
 ```powershell
@@ -520,8 +528,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-s
 
 The TTL source JSON must use schema `musu.v34_ttl_prune_source.v1`; the boot
 source JSON must use schema `musu.v34_boot_reconcile_source.v1`. The verifier
-checks their wrapper field bindings and SHA256 metadata before allowing the
-lane to pass.
+checks source schemas, embedded snapshot schemas, wrapper field bindings, and
+SHA256 metadata before allowing the lane to pass.
 
 Then verify the generated proof:
 

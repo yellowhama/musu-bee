@@ -117,8 +117,15 @@ function Invoke-Verifier {
         [Parameter(Mandatory = $true)][string[]]$Arguments
     )
 
-    $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     $text = ($output | Out-String).Trim()
     $parsed = $null
     if (-not [string]::IsNullOrWhiteSpace($text)) {
@@ -1010,6 +1017,8 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         'BootSourceEvidencePath',
         'musu.v34_ttl_prune_source.v1',
         'musu.v34_boot_reconcile_source.v1',
+        'musu.v34_ttl_snapshot.v1',
+        'musu.v34_boot_snapshot.v1',
         'RouteDuplicateTaskExecutionPrevented',
         'v34_stale_self_heal_verified=true',
         'Gate E - Relay transport failure-injection proof',
@@ -1118,6 +1127,8 @@ function Test-SecondPcKitV34SelfHealProofContract {
         'BootSourceEvidencePath',
         'musu.v34_ttl_prune_source.v1',
         'musu.v34_boot_reconcile_source.v1',
+        'musu.v34_ttl_snapshot.v1',
+        'musu.v34_boot_snapshot.v1',
         'payload_transited_musu_infra=false',
         'route_evidence_candidate_matches_selected',
         'v34_stale_self_heal_verified=false',
@@ -4259,7 +4270,8 @@ function New-V34SelfHealProofEvidence {
         [switch]$RouteEvidenceCandidateMismatch,
         [switch]$RouteEvidenceNodeMismatch,
         [switch]$RouteEvidenceVersionMismatch,
-        [switch]$MissingSourceArtifacts
+        [switch]$MissingSourceArtifacts,
+        [switch]$BadSourceSnapshotSchema
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
@@ -4268,6 +4280,8 @@ function New-V34SelfHealProofEvidence {
     $routeEvidenceSource = if ($RouteEvidenceNodeMismatch) { "wrong-source" } else { "hugh_second" }
     $routeEvidenceTarget = if ($RouteEvidenceNodeMismatch) { "wrong-target" } else { "hugh-main" }
     $routeEvidenceVersion = if ($RouteEvidenceVersionMismatch) { "0.0.0-rc.0" } else { $ExpectedVersion }
+    $ttlSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_ttl_snapshot.fixture.v1" } else { "musu.v34_ttl_snapshot.v1" }
+    $bootSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_boot_snapshot.fixture.v1" } else { "musu.v34_boot_snapshot.v1" }
     [pscustomobject]@{
         schema = "musu.v34_self_heal_proof.v1"
         ok = $true
@@ -4339,9 +4353,23 @@ function New-V34SelfHealProofEvidence {
                     heartbeat_ttl_sec = 300
                     stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
                     before_snapshot_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
-                    before_snapshot = [pscustomobject]@{ rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true }) }
+                    before_snapshot = [pscustomobject]@{
+                        schema = $ttlSnapshotSchema
+                        stale_row_injected = $true
+                        stale_row_count = 1
+                        heartbeat_ttl_sec = 300
+                        stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+                        rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+                    }
                     after_snapshot_sha256 = "5555555555555555555555555555555555555555555555555555555555555555"
-                    after_snapshot = [pscustomobject]@{ rows = @() }
+                    after_snapshot = [pscustomobject]@{
+                        schema = $ttlSnapshotSchema
+                        stale_row_count = 0
+                        heartbeat_ttl_sec = 300
+                        registry_current_excludes_stale_rows = $true
+                        expired_rows_hidden = $true
+                        rows = @()
+                    }
                 }
             })
             boot_source_evidence_path = $(if ($MissingSourceArtifacts) { $null } else { "fixture-v34-boot-source.json" })
@@ -4359,9 +4387,26 @@ function New-V34SelfHealProofEvidence {
                     lan_only_manual_peer_preserved = $true
                     same_name_current_candidate_preserved = $true
                     before_snapshot_sha256 = "6666666666666666666666666666666666666666666666666666666666666666"
-                    before_snapshot = [pscustomobject]@{ manual_peers = @("stale", "lan", "current", "other") }
+                    before_snapshot = [pscustomobject]@{
+                        schema = $bootSnapshotSchema
+                        cache_available = $true
+                        manual_peer_count = 4
+                        stale_manual_peer_present = $true
+                        lan_only_manual_peer_present = $true
+                        same_name_current_candidate_present = $true
+                        manual_peers = @("stale", "lan", "current", "other")
+                    }
                     after_snapshot_sha256 = "7777777777777777777777777777777777777777777777777777777777777777"
-                    after_snapshot = [pscustomobject]@{ manual_peers = @("lan", "current", "other") }
+                    after_snapshot = [pscustomobject]@{
+                        schema = $bootSnapshotSchema
+                        cache_available = $true
+                        manual_peer_count = 3
+                        pruned_manual_peer_count = 1
+                        stale_manual_peer_present = $false
+                        lan_only_manual_peer_present = $true
+                        same_name_current_candidate_present = $true
+                        manual_peers = @("lan", "current", "other")
+                    }
                 }
             })
         }
@@ -6271,19 +6316,38 @@ $invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-E
 Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without recall result" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $v34TtlBeforeSnapshot = Write-Fixture -Name "v34-source-ttl-before-snapshot" -Object ([pscustomobject]@{
-    schema = "musu.v34_ttl_snapshot.fixture.v1"
+    schema = "musu.v34_ttl_snapshot.v1"
+    stale_row_injected = $true
+    stale_row_count = 1
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
     rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
 })
 $v34TtlAfterSnapshot = Write-Fixture -Name "v34-source-ttl-after-snapshot" -Object ([pscustomobject]@{
-    schema = "musu.v34_ttl_snapshot.fixture.v1"
+    schema = "musu.v34_ttl_snapshot.v1"
+    stale_row_count = 0
+    heartbeat_ttl_sec = 300
+    registry_current_excludes_stale_rows = $true
+    expired_rows_hidden = $true
     rows = @()
 })
 $v34BootBeforeSnapshot = Write-Fixture -Name "v34-source-boot-before-snapshot" -Object ([pscustomobject]@{
-    schema = "musu.v34_boot_snapshot.fixture.v1"
+    schema = "musu.v34_boot_snapshot.v1"
+    cache_available = $true
+    manual_peer_count = 4
+    stale_manual_peer_present = $true
+    lan_only_manual_peer_present = $true
+    same_name_current_candidate_present = $true
     manual_peers = @("stale", "lan", "current", "other")
 })
 $v34BootAfterSnapshot = Write-Fixture -Name "v34-source-boot-after-snapshot" -Object ([pscustomobject]@{
-    schema = "musu.v34_boot_snapshot.fixture.v1"
+    schema = "musu.v34_boot_snapshot.v1"
+    cache_available = $true
+    manual_peer_count = 3
+    pruned_manual_peer_count = 1
+    stale_manual_peer_present = $false
+    lan_only_manual_peer_present = $true
+    same_name_current_candidate_present = $true
     manual_peers = @("lan", "current", "other")
 })
 $v34SourceArtifactOutputRoot = Join-Path $OutputRoot "v34-source-artifact-recorder-output"
@@ -6312,9 +6376,47 @@ $invocation = Invoke-Verifier -ScriptPath $v34SourceArtifactRecorder -Arguments 
 )
 Add-CaseResult -Cases $cases -Name "V34 source artifact recorder emits TTL and boot source evidence" -Verifier "record-v34-source-artifacts.ps1" -FixturePath $v34TtlBeforeSnapshot -ShouldPass $true -Invocation $invocation
 
+$v34BadTtlBeforeSnapshot = Write-Fixture -Name "v34-source-bad-ttl-before-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_ttl_snapshot.fixture.v1"
+    stale_row_injected = $true
+    stale_row_count = 1
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+    rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+})
+$badInvocation = Invoke-Verifier -ScriptPath $v34SourceArtifactRecorder -Arguments @(
+    "-Version", $ExpectedVersion,
+    "-OutputRoot", (Join-Path $OutputRoot "v34-source-artifact-bad-schema-output"),
+    "-TtlBeforeSnapshotPath", $v34BadTtlBeforeSnapshot,
+    "-TtlAfterSnapshotPath", $v34TtlAfterSnapshot,
+    "-BootBeforeSnapshotPath", $v34BootBeforeSnapshot,
+    "-BootAfterSnapshotPath", $v34BootAfterSnapshot,
+    "-TtlStaleRowInjected", "1",
+    "-TtlRegistryCurrentExcludesStaleRows", "1",
+    "-TtlExpiredRowsHidden", "1",
+    "-TtlStaleRowCountBefore", "1",
+    "-TtlStaleRowCountAfter", "0",
+    "-TtlHeartbeatTtlSec", "300",
+    "-TtlStaleRowLastSeenAt", $now.AddMinutes(-20).ToString("o"),
+    "-BootCacheAvailable", "1",
+    "-BootStaleManualPeerRemoved", "1",
+    "-BootLanOnlyManualPeerPreserved", "1",
+    "-BootSameNameCurrentCandidatePreserved", "1",
+    "-BootManualPeerCountBefore", "4",
+    "-BootManualPeerCountAfter", "3",
+    "-BootPrunedManualPeerCount", "1",
+    "-Json"
+)
+Add-CaseResult -Cases $cases -Name "V34 source artifact recorder rejects noncanonical snapshot schema" -Verifier "record-v34-source-artifacts.ps1" -FixturePath $v34BadTtlBeforeSnapshot -ShouldPass $false -Invocation $badInvocation
+
 $fixture = Write-Fixture -Name "v34-self-heal-valid" -Object (New-V34SelfHealProofEvidence)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal accepts release-grade physical stale proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "v34-self-heal-bad-source-snapshot-schema" -Object (New-V34SelfHealProofEvidence -BadSourceSnapshotSchema)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects source artifacts with noncanonical snapshot schema" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
 
 $v34RouteEvidence = [pscustomobject]@{
     schema = "musu.route_evidence.v1"
@@ -6338,9 +6440,23 @@ $v34TtlSourceEvidence = [pscustomobject]@{
     heartbeat_ttl_sec = 300
     stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
     before_snapshot_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
-    before_snapshot = [pscustomobject]@{ rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true }) }
+    before_snapshot = [pscustomobject]@{
+        schema = "musu.v34_ttl_snapshot.v1"
+        stale_row_injected = $true
+        stale_row_count = 1
+        heartbeat_ttl_sec = 300
+        stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+        rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+    }
     after_snapshot_sha256 = "5555555555555555555555555555555555555555555555555555555555555555"
-    after_snapshot = [pscustomobject]@{ rows = @() }
+    after_snapshot = [pscustomobject]@{
+        schema = "musu.v34_ttl_snapshot.v1"
+        stale_row_count = 0
+        heartbeat_ttl_sec = 300
+        registry_current_excludes_stale_rows = $true
+        expired_rows_hidden = $true
+        rows = @()
+    }
 }
 $v34TtlSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-ttl-source" -Object $v34TtlSourceEvidence
 $v34BootSourceEvidence = [pscustomobject]@{
@@ -6354,9 +6470,26 @@ $v34BootSourceEvidence = [pscustomobject]@{
     lan_only_manual_peer_preserved = $true
     same_name_current_candidate_preserved = $true
     before_snapshot_sha256 = "6666666666666666666666666666666666666666666666666666666666666666"
-    before_snapshot = [pscustomobject]@{ manual_peers = @("stale", "lan", "current", "other") }
+    before_snapshot = [pscustomobject]@{
+        schema = "musu.v34_boot_snapshot.v1"
+        cache_available = $true
+        manual_peer_count = 4
+        stale_manual_peer_present = $true
+        lan_only_manual_peer_present = $true
+        same_name_current_candidate_present = $true
+        manual_peers = @("stale", "lan", "current", "other")
+    }
     after_snapshot_sha256 = "7777777777777777777777777777777777777777777777777777777777777777"
-    after_snapshot = [pscustomobject]@{ manual_peers = @("lan", "current", "other") }
+    after_snapshot = [pscustomobject]@{
+        schema = "musu.v34_boot_snapshot.v1"
+        cache_available = $true
+        manual_peer_count = 3
+        pruned_manual_peer_count = 1
+        stale_manual_peer_present = $false
+        lan_only_manual_peer_present = $true
+        same_name_current_candidate_present = $true
+        manual_peers = @("lan", "current", "other")
+    }
 }
 $v34BootSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-boot-source" -Object $v34BootSourceEvidence
 $v34RecorderOutputRoot = Join-Path $OutputRoot "v34-self-heal-recorder-output"
