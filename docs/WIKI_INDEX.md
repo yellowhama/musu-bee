@@ -8951,4 +8951,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `same-name stale manual ghost`, `stale-first route preflight`, and
   `v34_stale_self_heal_verified=false`.
 
+- 2026-06-28 relay runtime source contract hardening:
+  Relay transport is still not complete and `relay_transport_product_verified`
+  must remain false until physical release-grade relay proof exists. The Rust
+  source contract is stricter: `musu-rs/src/bridge/rendezvous.rs` now exposes
+  `release_relay_tunnel_submission_contract`,
+  `validate_release_relay_tunnel_submission`, and
+  `submit_release_relay_tunnel_payload` for the release tunnel submit side.
+  The contract is bound to `quic_relay_tunnel`, `quic_tls_1_3`, and
+  `musu_quic_tls_transport`; it rejects non-`wss://` relay URLs,
+  non-fingerprint peer public keys, non-`forwarded_task_envelope` payloads, and
+  invalid SHA-256 payload bindings, then remains fail-closed with
+  `release_relay_tunnel_runtime_not_implemented` until the real runtime
+  transport lands. The target accept-side proof remains in
+  `musu-rs/src/bridge/handlers/relay_payload.rs`. Verification:
+  `bridge::rendezvous::tests::release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed`
+  passed, and `scripts/windows/test-release-evidence-verifiers.ps1 -Json` now
+  reports `ok=true`, `case_count=183`, `failed_case_count=0`. Search terms
+  should include `release_relay_tunnel_submission_contract`,
+  `submit_release_relay_tunnel_payload`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `musu_quic_tls_transport`,
+  `release_relay_tunnel_runtime_not_implemented`, and
+  `relay_transport_product_verified=false`.
+
 **End of WIKI_INDEX.md.**

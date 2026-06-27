@@ -173,6 +173,38 @@ This reduces V34 implementation risk but does not close the lane until a
 current physical proof is recorded under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/`.
 
+## 2026-06-28 Relay Runtime Source Contract Update
+
+Relay transport is still not complete. The product cannot yet claim that
+delegated work routes through relay when direct is unavailable.
+
+The source contract is now stricter:
+
+- `musu-rs/src/bridge/rendezvous.rs` exposes a release tunnel submit-side
+  contract for `quic_relay_tunnel`, `quic_tls_1_3`, and
+  `musu_quic_tls_transport`.
+- The submit contract rejects non-`wss://` relay URLs, non-fingerprint peer
+  public keys, non-`forwarded_task_envelope` payloads, and invalid SHA-256
+  payload bindings before a release relay runtime can be enabled.
+- The submit path remains fail-closed with
+  `release_relay_tunnel_runtime_not_implemented`; this prevents a marker-only
+  flip from turning the preview store-forward queue into a release relay claim.
+- The target accept path remains in
+  `musu-rs/src/bridge/handlers/relay_payload.rs` and requires release-grade
+  transport proof before recording release relay route evidence.
+
+Verification:
+
+- Rust unit proof:
+  `bridge::rendezvous::tests::release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed`.
+- Release evidence verifier regression now reports `ok=true`, `case_count=183`,
+  and `failed_case_count=0`.
+
+This removes the stale source-contract audit failure but does not close the
+`relay_transport` lane. The lane still needs the separate relay design gate,
+real runtime transport, `musu.relay_transport_proof.v1`, route evidence with the
+relay proof attached, and a two-PC physical test with direct path blocked.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |

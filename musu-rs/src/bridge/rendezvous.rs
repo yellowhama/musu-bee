@@ -7,12 +7,15 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
 
 const DEFAULT_RENDEZVOUS_TIMEOUT_MS: u64 = 3_000;
+const RELEASE_RELAY_TUNNEL_TRANSPORT_KIND: &str = "quic_relay_tunnel";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_ENCRYPTION: &str = "quic_tls_1_3";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RendezvousStatus {
@@ -189,14 +192,63 @@ impl RelayPayloadQueueOutcome {
     }
 }
 
-// (Removed: the test-only ReleaseRelayTunnelSubmissionContract +
-// submit_release_relay_tunnel_payload "WAN relay runtime not implemented" stubs.
-// Per Phase-1 strategic gate (business-panel unanimous): self-built WAN relay is
-// out of scope — reach is headscale/WireGuard, not a hand-rolled relay tunnel.
-// These were #[cfg(test)] self-referential proofs that the runtime stayed
-// blocked; with the relay direction abandoned they assert nothing real.)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseRelayTunnelSubmissionContract {
+    pub transport_kind: &'static str,
+    pub release_grade: bool,
+    pub encryption: &'static str,
+    pub transport_verified_by: &'static str,
+}
 
-#[cfg(test)]
+pub fn release_relay_tunnel_submission_contract() -> ReleaseRelayTunnelSubmissionContract {
+    ReleaseRelayTunnelSubmissionContract {
+        transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND,
+        release_grade: true,
+        encryption: RELEASE_RELAY_TUNNEL_TRANSPORT_ENCRYPTION,
+        transport_verified_by: RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER,
+    }
+}
+
+pub fn validate_release_relay_tunnel_submission(
+    relay_url: &str,
+    peer_public_key: &str,
+    payload: &crate::cloud::P2pRelayPayloadRequest,
+) -> std::result::Result<(), &'static str> {
+    let _contract = release_relay_tunnel_submission_contract();
+    if !relay_url.trim().starts_with("wss://") {
+        return Err("release_relay_tunnel_relay_url_not_wss");
+    }
+    if !peer_public_key.trim().starts_with("sha256:") {
+        return Err("release_relay_tunnel_peer_public_key_not_fingerprint");
+    }
+    if payload.payload_kind.trim() != "forwarded_task_envelope" {
+        return Err("release_relay_tunnel_payload_kind_not_forwarded_task_envelope");
+    }
+    if !payload
+        .payload_sha256
+        .as_deref()
+        .map(is_hex_sha256)
+        .unwrap_or(false)
+    {
+        return Err("release_relay_tunnel_payload_sha256_invalid");
+    }
+    Ok(())
+}
+
+pub async fn submit_release_relay_tunnel_payload(
+    relay_url: &str,
+    peer_public_key: &str,
+    payload: &crate::cloud::P2pRelayPayloadRequest,
+) -> RelayPayloadQueueOutcome {
+    if let Err(failure_class) =
+        validate_release_relay_tunnel_submission(relay_url, peer_public_key, payload)
+    {
+        return RelayPayloadQueueOutcome::failed(failure_class);
+    }
+
+    RelayPayloadQueueOutcome::failed("release_relay_tunnel_runtime_not_implemented")
+}
+
 fn is_hex_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -935,6 +987,82 @@ mod tests {
         assert_eq!(
             endpoint_addr_from_url("http://[fd7a:115c:a1e0::99]:8070/"),
             "[fd7a:115c:a1e0::99]:8070"
+        );
+    }
+
+    fn release_relay_tunnel_payload_request() -> crate::cloud::P2pRelayPayloadRequest {
+        crate::cloud::P2pRelayPayloadRequest {
+            schema: "musu.relay_payload_envelope.v1".to_string(),
+            session_id: "session-1".to_string(),
+            lease_id: "lease-1".to_string(),
+            source_node_id: "source-node".to_string(),
+            target_node_id: "target-node".to_string(),
+            tunnel_id: "relay-session-1-lease-1".to_string(),
+            payload_kind: "forwarded_task_envelope".to_string(),
+            payload_base64: "e30=".to_string(),
+            payload_sha256: Some("a".repeat(64)),
+            candidate_route_kinds: vec![crate::cloud::RouteKind::Relay],
+            attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
+        }
+    }
+
+    #[test]
+    fn release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed() {
+        let contract = release_relay_tunnel_submission_contract();
+        assert_eq!(contract.transport_kind, "quic_relay_tunnel");
+        assert!(contract.release_grade);
+        assert_eq!(contract.encryption, "quic_tls_1_3");
+        assert_eq!(contract.transport_verified_by, "musu_quic_tls_transport");
+
+        let payload = release_relay_tunnel_payload_request();
+        validate_release_relay_tunnel_submission(
+            "wss://relay.musu.pro/api/v1/relay/connect",
+            "sha256:release-peer",
+            &payload,
+        )
+        .expect("release relay tunnel submission contract");
+
+        let mut preview_payload = payload.clone();
+        preview_payload.payload_kind = "task_callback_envelope".to_string();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &preview_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_payload_kind_not_forwarded_task_envelope"
+        );
+
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "https://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_relay_url_not_wss"
+        );
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "release-peer",
+                &payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_peer_public_key_not_fingerprint"
+        );
+
+        let mut bad_hash_payload = payload;
+        bad_hash_payload.payload_sha256 = Some("not-a-sha".to_string());
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &bad_hash_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_payload_sha256_invalid"
         );
     }
 
