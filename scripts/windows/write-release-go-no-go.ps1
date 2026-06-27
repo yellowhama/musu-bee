@@ -409,6 +409,10 @@ function Get-ReleaseNextActions {
                 $actions.Add((New-NextAction -Area $area -Summary "Run the hosted fleet proof on a physical node and commit the returned JSON evidence." -ActionType "manual_then_command" -ManualSteps @("Install the current public package on the physical node.", "Run the hosted fleet proof with the expected node and direct peer names.", "Save the JSON under docs\evidence\fleet-proof\$Version.", "Rerun go/no-go after committing the evidence.") -Command "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName <NODE_NAME> -ExpectedDirectPeerName <PEER_NAME> -RequireBrainToken -Json" -EvidencePath "docs\evidence\fleet-proof\$Version\*.fleet-proof.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "A real installed physical PC must produce the proof JSON; repo-local scripts alone do not satisfy the installed fleet claim.")) | Out-Null
                 break
             }
+            "direct-route" {
+                $actions.Add((New-NextAction -Area $area -Summary "Record packaged direct delegated-work route evidence; fleet health alone is not work-targetability." -ActionType "manual_then_command" -ManualSteps @("Install the rebuilt current package and verify the WindowsApps alias resolves to that package.", "Start the packaged bridge.", "Run a real task route from this physical PC to the expected direct peer with --wait and --route-evidence-path.", "Save the successful route evidence under docs\evidence\direct-route\$Version.", "Rerun go/no-go after committing the evidence and current MSIX install proof.") -Command "musu route --target <PEER_NAME> --adapter echo --wait --wait-timeout-sec 60 --route-evidence-path docs\evidence\direct-route\$Version\<STAMP>-<SOURCE>-to-<PEER>.packaged-direct-route-evidence.json `"Reply exactly: MUSU_PACKAGED_DIRECT_ROUTE_OK_<STAMP>`"" -EvidencePath "docs\evidence\direct-route\$Version\*.packaged-direct-route-evidence.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-direct-route-evidence.ps1 -EvidencePath <DIRECT_ROUTE_JSON> -ExpectedVersion $Version -Json" -AutomationBlockedReason "A real packaged CLI route must queue and complete a delegated task on a physical peer; route --explain or fleet health is insufficient.")) | Out-Null
+                break
+            }
             "relay-transport" {
                 $actions.Add((New-NextAction -Area $area -Summary "Implement and prove real delegated-work relay transport; relay display alone is not a work route." -ActionType "manual_then_command" -ManualSteps @("Run the separate relay transport design gate.", "Implement router direct-failure to relay fallback and release-grade relay payload transport.", "Record owner-scoped relay transport and route evidence with bound transport proof.", "Run a two-PC failure-injection proof with direct blocked and relay task execution succeeding.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json" -EvidencePath "docs\evidence\p2p-control-plane\$Version\*.evidence.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -AutomationBlockedReason "Relay transport remains a separate implementation lane until route evidence carries a valid relay transport proof and payload delivery proof.")) | Out-Null
                 break
@@ -713,6 +717,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-private-mesh-release-proof-archive.ps1",
         "scripts/windows/verify-private-mesh-release-proof-bundle.ps1",
         "scripts/windows/verify-route-reachability-diagnostic.ps1",
+        "scripts/windows/verify-direct-route-evidence.ps1",
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/verify-support-mailbox-evidence.ps1",
@@ -1772,6 +1777,7 @@ $msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.p
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
+$directRouteVerifierScript = Join-Path $scriptDir "verify-direct-route-evidence.ps1"
 $brainProductVerifierScript = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $v34SelfHealVerifierScript = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $privateMeshReleaseProofArchiveVerifierScript = Join-Path $scriptDir "verify-private-mesh-release-proof-archive.ps1"
@@ -2697,6 +2703,29 @@ $fleetBrainTokenAclVerified = (
     (Test-JsonCheckPassed -Json $fleetNodeProofEvidence -Name "brain_ingest_token_acl_restricted")
 )
 
+$directRouteLookup = Get-LatestJsonEvidence `
+    -EvidenceName "direct-route" `
+    -Version $version `
+    -Schema "musu.route_evidence.v1" `
+    -Filter "*.packaged-direct-route-evidence.json"
+$directRouteEvidence = $directRouteLookup.json
+$directRouteVerificationResult = $null
+if ([bool]$directRouteLookup.found) {
+    $directRouteVerificationResult = Invoke-JsonScript `
+        -FilePath $directRouteVerifierScript `
+        -Arguments @(
+            "-EvidencePath", $directRouteLookup.path,
+            "-ExpectedVersion", $version,
+            "-Json"
+        ) `
+        -AllowFailure
+}
+$directRouteVerified = (
+    $directRouteVerificationResult -and
+    $directRouteVerificationResult.json -and
+    [bool]$directRouteVerificationResult.json.ok
+)
+
 $designApprovalLookup = Get-LatestJsonEvidence `
     -EvidenceName "design-approval" `
     -Version $version `
@@ -2771,6 +2800,7 @@ $fullProductSpecLanes = @(
     New-FullProductSpecLane -Name "design_approval" -Complete $designApprovalVerified -Evidence ($(if ($designApprovalVerified) { "Design approval evidence: $($designApprovalLookup.path)" } else { "Missing docs/evidence/design-approval/$version/*.json with schema musu.design_approval.v1 and Design: Approved approval_url." })) -Next "Record explicit approval on issue #35 and preserve approval evidence." -BlockerArea "design-approval" -BlockerMessage "Full product spec requires explicit design approval evidence; Design: Pending cannot satisfy completion."
     New-FullProductSpecLane -Name "install_channel_and_package" -Complete $fleetInstallChannelProofVerified -Evidence ($(if ($fleetInstallChannelProofVerified) { "Hosted fleet proof validates install channel and installed package: $($fleetNodeProofLookup.path)" } else { "Missing current fleet proof with public_install_channel_validate_release and installed_package_version_matches_release." })) -Next "Run hosted fleet-proof.ps1 from the installed package and save the current-version JSON." -BlockerArea "fleet-proof" -BlockerMessage "Full product spec requires current hosted fleet proof for install channel and installed package version."
     New-FullProductSpecLane -Name "direct_two_pc_fleet" -Complete $fleetNodeProofVerified -Evidence ($(if ($fleetNodeProofVerified) { "Current fleet proof has direct_healthy_nodes=$([int]$fleetNodeProofEvidence.direct_healthy_nodes), remote_cloud_warning_count=0: $($fleetNodeProofLookup.path)" } else { "Missing current two-PC direct fleet proof with direct_healthy_nodes >= 2 and no remote cloud warnings." })) -Next "Run hosted fleet-proof.ps1 with -ExpectedDirectPeerName on the physical main/second PC pair." -BlockerArea "fleet-proof" -BlockerMessage "Full product spec requires current two-PC direct fleet proof before direct readiness can be claimed."
+    New-FullProductSpecLane -Name "direct_delegated_work_route" -Complete ([bool]$directRouteVerified -and [bool]$msixInstallVerified) -Evidence ($(if ($directRouteVerified -and $msixInstallVerified) { "Packaged direct route proof: $($directRouteLookup.path); current MSIX install proof verified." } elseif ($directRouteVerified) { "Direct route proof exists at $($directRouteLookup.path), but current MSIX install proof is missing." } elseif ([bool]$directRouteLookup.found) { "Direct route proof candidate failed verification: $($directRouteLookup.path)" } else { "Missing packaged direct route evidence under docs/evidence/direct-route/$version/." })) -Next "Rebuild/reinstall the current package, start the packaged bridge, run a real --wait route to the direct peer, and commit the route evidence." -BlockerArea "direct-route" -BlockerMessage "Full product spec requires a visible online direct peer to be work-targetable; fleet health alone is not enough."
     New-FullProductSpecLane -Name "relay_transport" -Complete $relayTransportProductVerified -Evidence ($(if ($relayTransportProductVerified) { "P2P control-plane evidence proves relay transport and payload delivery." } else { "Relay display/control-plane is not enough; relay transport/payload proof is missing or invalid." })) -Next "Implement and record release-grade relay transport route evidence with payload delivery proof." -BlockerArea "relay-transport" -BlockerMessage "Full product spec requires real delegated-work relay transport proof; display-only relay is not a work route."
     New-FullProductSpecLane -Name "brain_product" -Complete $brainProductVerified -Evidence ($(if ($brainProductVerified) { "Brain product proof: $($brainProductLookup.path)" } elseif ($fleetBrainTokenAclVerified) { "Fleet proof proves brain token ACL only: $($fleetNodeProofLookup.path)" } else { "Missing brain token ACL and/or full brain health/ingest/UX evidence." })) -Next "Record health, real task source ingest, cockpit recall/capture UX, and version-coherence evidence." -BlockerArea "brain-product-proof" -BlockerMessage "Full product spec requires full hidden brain proof; token ACL alone is not enough."
     New-FullProductSpecLane -Name "v34_stale_self_heal" -Complete $v34SelfHealVerified -Evidence ($(if ($v34SelfHealVerified) { "V34 self-heal proof: $($v34SelfHealLookup.path)" } else { "Missing V34 TTL prune, boot reconcile, and stale-candidate physical E2E proof." })) -Next "Record stale registry/cache/manual-peer self-heal evidence under docs/evidence/v34-self-heal." -BlockerArea "v34-stale-self-heal" -BlockerMessage "Full product spec requires V34 stale self-heal proof, not only candidate/TTL code."
@@ -3129,6 +3159,14 @@ $result = [pscustomobject]@{
                 install_channel_verified = [bool]$fleetInstallChannelProofVerified
                 brain_token_acl_verified = [bool]$fleetBrainTokenAclVerified
             }
+            direct_route = [pscustomobject]@{
+                found = [bool]$directRouteLookup.found
+                path = [string]$directRouteLookup.path
+                verified = [bool]$directRouteVerified
+                packaged_install_verified = [bool]$msixInstallVerified
+                verification = if ($directRouteVerificationResult -and $directRouteVerificationResult.json) { $directRouteVerificationResult.json } else { $null }
+                verification_error = if ($directRouteVerificationResult -and -not $directRouteVerificationResult.json) { [string]$directRouteVerificationResult.raw } else { "" }
+            }
             design_approval = [pscustomobject]@{
                 found = [bool]$designApprovalLookup.found
                 path = [string]$designApprovalLookup.path
@@ -3162,6 +3200,7 @@ $result = [pscustomobject]@{
     fleet_node_proof_verified = [bool]$fleetNodeProofVerified
     fleet_install_channel_proof_verified = [bool]$fleetInstallChannelProofVerified
     fleet_brain_token_acl_verified = [bool]$fleetBrainTokenAclVerified
+    direct_route_verified = [bool]$directRouteVerified
     design_approval_verified = [bool]$designApprovalVerified
     relay_transport_product_verified = [bool]$relayTransportProductVerified
     brain_product_verified = [bool]$brainProductVerified
@@ -3399,6 +3438,7 @@ else {
     "fleet_node_proof_verified: $($result.fleet_node_proof_verified)"
     "fleet_install_channel_proof_verified: $($result.fleet_install_channel_proof_verified)"
     "fleet_brain_token_acl_verified: $($result.fleet_brain_token_acl_verified)"
+    "direct_route_verified: $($result.direct_route_verified)"
     "design_approval_verified: $($result.design_approval_verified)"
     "relay_transport_product_verified: $($result.relay_transport_product_verified)"
     "brain_product_verified: $($result.brain_product_verified)"

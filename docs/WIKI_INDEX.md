@@ -8974,7 +8974,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-rs/src/bridge/handlers/relay_payload.rs`. Verification:
   `bridge::rendezvous::tests::release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed`
   passed, and `scripts/windows/test-release-evidence-verifiers.ps1 -Json` now
-  reports `ok=true`, `case_count=184`, `failed_case_count=0`. Search terms
+  reports `ok=true`, `case_count=191`, `failed_case_count=0`. Search terms
   should include `release_relay_tunnel_submission_contract`,
   `submit_release_relay_tunnel_payload`, `quic_relay_tunnel`,
   `quic_tls_1_3`, `musu_quic_tls_transport`,
@@ -8997,9 +8997,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   formal retirement evidence verifies. Current evidence:
   `docs/evidence/support-operator-gate-retirement/1.15.0-rc.22/20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement.json`
   and matching verification with `ok=true`, `fail_count=0`. Latest local
-  go/no-go reports `support_operator_gate_retirement_verified=true`,
-  `support_operator_evidence_verified=true`, `complete_lane_count=4`, and
-  `incomplete_lane_count=4`; remaining full-product blockers are
+  go/no-go reports `support_operator_gate_retirement_verified=true` and
+  `support_operator_evidence_verified=true`; remaining full-product blockers are
   `design_approval`, `relay_transport`, `v34_stale_self_heal`, and
   `store_distribution`. Search terms should include
   `support_operator_gate_retirement_verified`,
@@ -9030,14 +9029,45 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   probe then succeeded and wrote
   `.local-build\v34-self-heal\route-probe\20260628-042218-hugh_second-to-hugh-main.debug-route-evidence.json`
   with `result=success`, `route_kind=lan`, and
-  `candidate_addr=192.168.1.192:4387`. This is a source/debug proof, not an
-  installed-package release proof; product status remains No-Go until a
-  rebuilt/reinstalled package records successful packaged `musu.route_evidence.v1`.
+  `candidate_addr=192.168.1.192:4387`. This source/debug proof is now
+  superseded by the packaged direct route proof below.
   Search terms should include `submit_http_status_401 Unauthorized`,
   `invalid bearer`, `get_route_token`, `get_outbound_peer_token`,
   `read_mesh_bearer`, `remote_route_token_prefers_mesh_bearer`,
   `hugh_second-to-hugh-main.route-evidence`,
   `hugh_second-to-hugh-main.debug-route-evidence`, and
   `direct delegated-work route`.
+
+- 2026-06-28 packaged direct route proof gate:
+  The direct delegated-work route lane is closed for the current rc.22 package
+  over direct LAN. `musu-bee/src-tauri/musu-brain.pin.json` now pins the clean
+  `F:\musu_2nd_brain` HEAD
+  `027eec841613ff2e0b16df26f55066ab207ab4ec`. The package was rebuilt with
+  `build-msix.ps1 -Configuration release -Architecture x64 -StartupContract
+  local-sideload-manual -NoBump`, installed with
+  `install-and-verify-msix.ps1 -StartupContract local-sideload-manual
+  -ReplaceExisting`, and verified as
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`. Packaged route evidence:
+  `docs/evidence/direct-route/1.15.0-rc.22/20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`
+  with `result=success`, `source_node_id=hugh_second`,
+  `target_node_id=hugh-main`, `route_kind=lan`,
+  `candidate_addr=192.168.1.192:4387`, and
+  `payload_transited_musu_infra=false`. Packaged install evidence:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260628-050309-HUGH_SECOND.evidence.json`
+  plus matching verification and summary. New verifier:
+  `scripts/windows/verify-direct-route-evidence.ps1`; go/no-go now reports
+  `direct_route_verified=true` and `direct_delegated_work_route=pass`. It is
+  covered by `scripts/windows/test-release-evidence-verifiers.ps1 -Json` with
+  direct-route accept/reject cases and current `ok=true`, `case_count=191`,
+  `failed_case_count=0`. This is
+  direct LAN work-targetability proof, not relay fallback or peer-identity
+  transport proof: the evidence records `peer_identity_verified=false`,
+  `encryption=none_http_bearer`, and `release_grade_transport=false`. Current
+  full-product blockers remain `design_approval`, `relay_transport`,
+  `v34_stale_self_heal`, and `store_distribution`. Search terms should include
+  `verify-direct-route-evidence.ps1`, `direct_route_verified`,
+  `direct_delegated_work_route`, `packaged-direct-route-evidence`,
+  `hugh_second-to-hugh-main.packaged-direct-route-evidence`, and
+  `payload_transited_musu_infra=false`.
 
 **End of WIKI_INDEX.md.**

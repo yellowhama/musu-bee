@@ -24,6 +24,7 @@ New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
+$directRouteVerifier = Join-Path $scriptDir "verify-direct-route-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
@@ -5875,6 +5876,40 @@ Add-CaseResult -Cases $cases -Name "msix rejects developer alias shadow warning 
 $fixture = Write-Fixture -Name "msix-shadow-warning-explicit-accept" -Object (New-MsixInstallEvidence -Shadowed -WarningMode)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-AliasShadowingMode", "warn-explicit-windowsapps", "-Json")
 Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning only with explicit verifier mode" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$validDirectRouteEvidence = [pscustomobject]@{
+    schema = "musu.route_evidence.v1"
+    version = $ExpectedVersion
+    source_node_id = "hugh_second"
+    target_node_id = "hugh-main"
+    session_id = $null
+    route_kind = "lan"
+    candidate_addr = "192.168.1.192:4387"
+    handshake_ms = 39
+    total_attempt_ms = 2054
+    peer_identity_verified = $false
+    encryption = "none_http_bearer"
+    payload_transited_musu_infra = $false
+    result = "success"
+    failure_class = $null
+    recorded_at = $now.ToString("o")
+}
+$fixture = Write-Fixture -Name "direct-route-valid-packaged-lan" -Object $validDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route accepts packaged LAN work-targetability proof" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$failedDirectRouteEvidence = Copy-JsonObject -Object $validDirectRouteEvidence
+$failedDirectRouteEvidence.result = "failed"
+$failedDirectRouteEvidence.failure_class = "submit_http_status_401"
+$fixture = Write-Fixture -Name "direct-route-rejects-failed-result" -Object $failedDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route rejects failed route evidence" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$loopbackDirectRouteEvidence = Copy-JsonObject -Object $validDirectRouteEvidence
+$loopbackDirectRouteEvidence.candidate_addr = "127.0.0.1:4387"
+$fixture = Write-Fixture -Name "direct-route-rejects-loopback-candidate" -Object $loopbackDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route rejects loopback candidate address" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "brain-product-valid" -Object (New-BrainProductProofEvidence)
 $invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
