@@ -9009,4 +9009,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `support_mailbox_delivery_evidence_only`, and
   `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28`.
 
+- 2026-06-28 direct route work-targetability mesh bearer fix:
+  The current two-PC fleet proof remains healthy, but a live delegated route
+  probe from `hugh_second` to `hugh-main` exposed a stricter product blocker:
+  route selection chose the direct LAN candidate `192.168.1.192:4387`, then
+  submit failed with `submit_http_status_401 Unauthorized` / invalid bearer.
+  Evidence was written under
+  `.local-build\v34-self-heal\route-probe\20260628-035659-hugh_second-to-hugh-main.route-evidence.json`.
+  Root cause: `musu-rs/src/install/cli_commands.rs` used the local
+  per-machine bridge token for remote route submission, while the remote bridge
+  accepts the account-wide mesh bearer. Source fix: remote routes now prefer
+  `MUSU_TOKEN` / `read_mesh_bearer(home)` and only fall back to the bridge
+  token; local routes keep bridge-token behavior. Verification passed:
+  `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`, targeted
+  route-token tests
+  `remote_route_token_prefers_mesh_bearer_over_local_bridge_token`,
+  `remote_route_token_prefers_mesh_bearer_over_env_bridge_token`, and
+  `remote_route_token_accepts_musu_token_env_as_shared_bearer_override`,
+  plus single-file rustfmt and `git diff --check`. A rebuilt debug CLI route
+  probe then succeeded and wrote
+  `.local-build\v34-self-heal\route-probe\20260628-042218-hugh_second-to-hugh-main.debug-route-evidence.json`
+  with `result=success`, `route_kind=lan`, and
+  `candidate_addr=192.168.1.192:4387`. This is a source/debug proof, not an
+  installed-package release proof; product status remains No-Go until a
+  rebuilt/reinstalled package records successful packaged `musu.route_evidence.v1`.
+  Search terms should include `submit_http_status_401 Unauthorized`,
+  `invalid bearer`, `get_route_token`, `get_outbound_peer_token`,
+  `read_mesh_bearer`, `remote_route_token_prefers_mesh_bearer`,
+  `hugh_second-to-hugh-main.route-evidence`,
+  `hugh_second-to-hugh-main.debug-route-evidence`, and
+  `direct delegated-work route`.
+
 **End of WIKI_INDEX.md.**

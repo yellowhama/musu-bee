@@ -1058,12 +1058,16 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     }
 
     let home = musu_home();
-    let token = get_token();
     let hints = route_hints_from_opts(&opts);
     let peers = crate::peer::discovery::resolve_all_peers(&home);
     let selected_peer = opts.target.as_ref().and_then(|target| {
         crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
     });
+    let route_is_remote = opts
+        .target
+        .as_ref()
+        .map(|target| target.as_str() != this_node_name())
+        .unwrap_or(false);
 
     let addr = if let Some(ref target) = opts.target {
         if let Some(peer) = selected_peer.as_ref() {
@@ -1086,6 +1090,7 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
         .or_else(|| selected_peer.as_ref().and_then(|peer| peer.name.clone()))
         .unwrap_or_else(|| "local".to_string());
     let candidate_addr = addr.clone();
+    let token = get_route_token(&home, route_is_remote);
 
     let route_base_url = route_base_url_for_addr(&addr, selected_peer.as_ref());
     let url = route_delegate_url(&route_base_url);
@@ -3732,6 +3737,10 @@ fn find_peer_addr(home: &std::path::Path, peer_name: &str) -> Result<String> {
 
 /// Read the bridge/peer token from env.
 fn get_token() -> String {
+    get_bridge_route_token(&musu_home())
+}
+
+fn get_bridge_route_token(home: &std::path::Path) -> String {
     if let Ok(token) = std::env::var("MUSU_BRIDGE_TOKEN") {
         if !token.trim().is_empty() {
             return token;
@@ -3742,7 +3751,27 @@ fn get_token() -> String {
             return token;
         }
     }
-    crate::install::token::read_bridge_token(&musu_home()).unwrap_or_default()
+    crate::install::token::read_bridge_token(home).unwrap_or_default()
+}
+
+fn get_outbound_peer_token(home: &std::path::Path) -> String {
+    if let Ok(token) = std::env::var("MUSU_TOKEN") {
+        if !token.trim().is_empty() {
+            return token;
+        }
+    }
+    if let Some(token) = crate::install::token::read_mesh_bearer(home) {
+        return token;
+    }
+    crate::install::token::read_bridge_token(home).unwrap_or_default()
+}
+
+fn get_route_token(home: &std::path::Path, route_is_remote: bool) -> String {
+    if route_is_remote {
+        get_outbound_peer_token(home)
+    } else {
+        get_bridge_route_token(home)
+    }
 }
 
 fn local_bridge_addr() -> String {
@@ -6991,6 +7020,60 @@ mod tests {
             background.active_runtime_loop_candidate_keys,
             vec!["health_check_retry", "auto_update_supervisor"]
         );
+    }
+
+    #[test]
+    fn remote_route_token_prefers_mesh_bearer_over_local_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("bridge.env"),
+            "MUSU_BRIDGE_TOKEN=local-bridge-token-0123456789abcdef\n",
+        )
+        .unwrap();
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-mesh-bearer");
+        assert_eq!(
+            get_route_token(tmp.path(), false),
+            "local-bridge-token-0123456789abcdef"
+        );
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_route_token_prefers_mesh_bearer_over_env_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-mesh-bearer");
+        assert_eq!(get_route_token(tmp.path(), false), "local-env-bridge-token");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_route_token_accepts_musu_token_env_as_shared_bearer_override() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        std::env::set_var("MUSU_TOKEN", "shared-env-musu-token");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-env-musu-token");
+        assert_eq!(get_route_token(tmp.path(), false), "local-env-bridge-token");
+        clear_route_token_env();
+    }
+
+    fn clear_route_token_env() {
+        for name in ["MUSU_BRIDGE_TOKEN", "MUSU_TOKEN", "MUSU_MESH_BEARER"] {
+            std::env::remove_var(name);
+        }
     }
 
     fn clear_background_env() {

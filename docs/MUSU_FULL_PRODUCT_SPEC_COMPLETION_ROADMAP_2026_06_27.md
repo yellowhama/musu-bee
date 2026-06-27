@@ -10,10 +10,20 @@ matches `1.15.0.22`, public install/proof routes are release-pinned, remote
 public URLs are usable, and the brain ingest token ACL check passes on the
 main PC proof.
 
-That proves the direct LAN fleet slice. The fresh packaged desktop now also
-records a passing hidden-brain product proof for rc.22. It still does not prove
-the full product: design approval, Store release/Store-signed install evidence,
-real relay transport, and V34 stale self-heal proof still remain.
+That proves the direct LAN fleet health slice. It does not, by itself, prove
+delegated work targetability. A live route probe from `hugh_second` to
+`hugh-main` selected the LAN candidate but failed at submit time with
+`401 Unauthorized` because the installed CLI sent the local bridge bearer to a
+remote bridge that expects the account-wide mesh bearer. The source now fixes
+remote route token selection, but the installed package still needs a rebuild,
+reinstall, and passing route evidence before the work-targetable claim is
+closed.
+
+The fresh packaged desktop now also records a passing hidden-brain product
+proof for rc.22. It still does not prove the full product: design approval,
+Store release/Store-signed install evidence, direct delegated-work route proof
+on a rebuilt package, real relay transport, and V34 stale self-heal proof still
+remain.
 
 ## 2026-06-27 Gate Implementation Update
 
@@ -214,6 +224,57 @@ current physical proof is recorded with `record-v34-self-heal-proof.ps1` under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/` and the resulting verification is
 green.
 
+## 2026-06-28 Direct Route Work-Targetability Token Update
+
+The two-PC fleet proof is healthy, but the current installed rc.22 package did
+not yet prove delegated work targetability. On `HUGH_SECOND`, this route probe
+selected `hugh-main` over the direct LAN candidate `192.168.1.192:4387` and
+wrote route evidence under
+`.local-build\v34-self-heal\route-probe\20260628-035659-hugh_second-to-hugh-main.route-evidence.json`,
+but the submit failed with `submit_http_status_401 Unauthorized` and
+`unauthorized: invalid bearer`.
+
+Root cause:
+
+- The remote bridge accepts the account-wide peer bearer through the bridge
+  auth path.
+- The route CLI path used `get_token()`, which prefers the local per-machine
+  `MUSU_BRIDGE_TOKEN` / `bridge.env` token.
+- When two machines have different local bridge tokens, a remote direct route
+  can look healthy in fleet status but fail delegated task submission.
+
+Source fix:
+
+- `musu-rs/src/install/cli_commands.rs` now selects route bearer by scope.
+- Local routes keep the existing bridge token behavior.
+- Remote routes prefer the shared mesh bearer via `MUSU_TOKEN` or
+  `read_mesh_bearer(home)`, then fall back to the bridge token for legacy
+  single-secret installs.
+
+Verification:
+
+- `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1` passed.
+- Targeted Rust tests passed:
+  `remote_route_token_prefers_mesh_bearer_over_local_bridge_token`,
+  `remote_route_token_prefers_mesh_bearer_over_env_bridge_token`, and
+  `remote_route_token_accepts_musu_token_env_as_shared_bearer_override`.
+- A rebuilt debug CLI route probe from `hugh_second` to `hugh-main` succeeded
+  and wrote
+  `.local-build\v34-self-heal\route-probe\20260628-042218-hugh_second-to-hugh-main.debug-route-evidence.json`
+  with `result=success`, `route_kind=lan`, and
+  `candidate_addr=192.168.1.192:4387`.
+- `rustfmt --edition 2021 --check musu-rs\src\install\cli_commands.rs`
+  passed.
+- `git diff --check` passed.
+
+This is a source-level fix with a successful debug-binary route proof, not a
+packaged release proof yet. The current installed package will not pick it up
+until rc.22 is rebuilt/reinstalled, the route probe is rerun from the packaged
+CLI, and a successful `musu.route_evidence.v1` is committed or attached to the
+V34 physical proof. The debug proof is also still HTTP bearer evidence with
+`peer_identity_verified=false`, so it does not replace the later release-grade
+transport proof.
+
 ## 2026-06-28 Relay Runtime Source Contract Update
 
 Relay transport is still not complete. The product cannot yet claim that
@@ -253,7 +314,8 @@ relay proof attached, and a two-PC physical test with direct path blocked.
 | PR #34 code/test/deploy checks | Mostly green | Deploy, Playwright, web build/typecheck, Rust core tests, SaaS gate, landing gate passed at current PR state | Code path is not the current blocker |
 | PR #34 design approval | Not complete | PR body still uses `Design: Pending`; `design-gate` is failing by design | Cannot merge PR #34 |
 | rc.22 public install/proof channel | Complete for current rc.22 package | `fleet-proof.ps1` on `hugh-main`, install-channel verifier, package `1.15.0.22` | Public install/proof channel is valid for rc.22 |
-| Two-PC direct fleet | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet readiness is proven |
+| Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
+| Direct delegated-work route | Source fixed and debug-verified; installed proof pending | Installed CLI route probe failed with `submit_http_status_401 Unauthorized`; rebuilt debug CLI route probe succeeded against `192.168.1.192:4387`; `cli_commands.rs` now uses shared mesh bearer for remote routes and targeted tests pass | Cannot claim visible online node is release-proven work-targetable until the rebuilt package records passing route evidence |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
@@ -295,6 +357,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
 | NO-GO | The full product cannot be called complete today. | Direct proof, brain product proof, and support/operator governance are green, but design, Store distribution, relay transport, and V34 self-heal proof remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness plus hidden-brain fresh-launch proof plus support gate retirement until all lanes below are closed. |
+| NO-GO | Direct fleet health does not yet prove delegated work targetability. | A live `hugh_second` -> `hugh-main` route probe selected the LAN candidate but wrote failed route evidence with `submit_http_status_401 Unauthorized` / invalid bearer. | Users could see a healthy direct peer while delegated work submission fails. | Rebuild/reinstall with the mesh-bearer route fix, rerun route proof, and attach passing route evidence to the V34/direct-work lane. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
 | INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
@@ -306,6 +369,8 @@ MUSU is fully complete only when all of these are true at the same time:
 
 - PR #34 design approval blocks merge.
 - PR #34 merge blocks a clean baseline for the next implementation lanes.
+- Direct delegated-work proof depends on rebuilding/reinstalling the source
+  route-token fix and recording passing two-PC route evidence.
 - Store release depends on current package artifacts, Partner Center setup,
   restricted capability review, certification, and Store-signed install proof.
 - Relay transport depends on router selection, transport implementation,
@@ -318,8 +383,12 @@ MUSU is fully complete only when all of these are true at the same time:
 
 ## Main Constraint
 
-The immediate constraint is PR #34 design approval because it blocks merging the
-current rc.22 proof/fleet fixes.
+The immediate merge constraint is PR #34 design approval because it blocks
+merging the current rc.22 proof/fleet fixes.
+
+The immediate product-evidence constraint is direct delegated-work proof:
+healthy fleet status must be followed by a rebuilt package route probe that
+submits successfully with the shared mesh bearer.
 
 The largest product constraints after merge are Store release evidence, real
 relay transport, and V34 stale self-heal evidence.
