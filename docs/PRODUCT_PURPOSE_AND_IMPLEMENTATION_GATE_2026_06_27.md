@@ -60,6 +60,19 @@ the direct fleet proof:
 Canonical roadmap:
 `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`.
 
+Canonical readiness command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
+```
+
+As of the Phase 1 gate implementation, this command emits
+`full_product_spec_ready` and a nested `musu.full_product_spec_readiness.v1`
+object. The current expected shape is No-Go: install/package and direct two-PC
+fleet lanes are true from the rc.22 fleet proof, while design approval, relay
+transport, brain product proof, V34 stale self-heal, Store distribution, and
+support/operator evidence remain false.
+
 ## Current Audit Against The Pasted Findings
 
 | Finding | Current status | Evidence |

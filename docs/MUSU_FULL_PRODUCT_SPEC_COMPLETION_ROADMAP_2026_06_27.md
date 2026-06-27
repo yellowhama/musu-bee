@@ -14,6 +14,33 @@ That proves the direct LAN fleet slice. It does not prove the full product:
 design approval, Store release, real relay transport, full brain product
 bonding, V34 stale self-heal proof, and final operator evidence still remain.
 
+## 2026-06-27 Gate Implementation Update
+
+Phase 1 is now implemented in tooling, but the full product is still not
+complete. `scripts/windows/write-release-go-no-go.ps1` emits
+`full_product_spec_ready` plus a `musu.full_product_spec_readiness.v1` object
+with explicit lanes for design approval, install/package proof, direct two-PC
+fleet proof, relay transport, brain product proof, V34 stale self-heal, Store
+distribution, and support/operator evidence.
+
+The gate fails closed: missing lanes become blockers instead of warnings, and a
+direct fleet proof alone cannot produce a full-product completion claim. The
+same script now reports release candidate manifest generation failures as
+structured blockers instead of crashing before the go/no-go JSON is written.
+
+Current local gate shape on this branch:
+
+- `full_product_spec_ready=false`.
+- `fleet_node_proof_verified=true`.
+- `fleet_install_channel_proof_verified=true`.
+- `fleet_brain_token_acl_verified=true`.
+- `design_approval_verified=false`.
+- `relay_transport_product_verified=false`.
+- `brain_product_verified=false`.
+- `v34_stale_self_heal_verified=false`.
+- `release_candidate_manifest_generated=false` until the missing current
+  `multi_device_test_kit` artifact is restored or regenerated.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -109,6 +136,9 @@ Exit criteria:
 - No `Design: Pending` status remains on PR #34.
 
 ### Phase 1 - Freeze The Product Readiness Gate
+
+Status: implemented in `write-release-go-no-go.ps1`; the evidence lanes still
+correctly report No-Go.
 
 Deliverables:
 - One canonical release readiness command or run card for the current product

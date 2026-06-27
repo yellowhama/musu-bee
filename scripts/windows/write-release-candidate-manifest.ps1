@@ -49,6 +49,17 @@ function Get-Sha256FileHash([string]$Path) {
 }
 
 function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        if ($Required) {
+            throw "Required release artifact missing for ${Role}: no candidate path was found."
+        }
+        return [pscustomobject]@{
+            role = $Role
+            present = $false
+            path = ""
+        }
+    }
+
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($Required) {
             throw "Required release artifact missing for ${Role}: $Path"
@@ -74,6 +85,17 @@ function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true)
 }
 
 function Get-DirectoryArtifact([string]$Role, [string]$Path, [bool]$Required = $true) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        if ($Required) {
+            throw "Required release artifact directory missing for ${Role}: no candidate path was found."
+        }
+        return [pscustomobject]@{
+            role = $Role
+            present = $false
+            path = ""
+        }
+    }
+
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($Required) {
             throw "Required release artifact directory missing for ${Role}: $Path"

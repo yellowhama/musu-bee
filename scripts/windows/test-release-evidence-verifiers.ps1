@@ -1471,6 +1471,57 @@ function Test-GoNoGoLatestOutputContract {
     return $true
 }
 
+function Test-GoNoGoFullProductSpecReadinessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        'function Get-LatestJsonEvidence',
+        'function Test-JsonCheckPassed',
+        'function New-FullProductSpecLane',
+        '$fullProductSpecLanes = @(',
+        '$fullProductSpecIncompleteLanes = @(',
+        '$fullProductSpecReady = ($fullProductSpecIncompleteLanes.Count -eq 0)',
+        'schema = "musu.full_product_spec_readiness.v1"',
+        'roadmap_path = "docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"',
+        'full_product_spec_ready',
+        'full_product_spec = [pscustomobject]@',
+        'full_product_spec_incomplete_lanes:',
+        'fleet_node_proof_verified',
+        'fleet_install_channel_proof_verified',
+        'fleet_brain_token_acl_verified',
+        'design_approval_verified',
+        'relay_transport_product_verified',
+        'brain_product_verified',
+        'v34_stale_self_heal_verified',
+        'musu.fleet_node_proof.v1',
+        'musu.design_approval.v1',
+        'musu.brain_product_proof.v1',
+        'musu.v34_self_heal_proof.v1',
+        'public_install_channel_validate_release',
+        'installed_package_version_matches_release',
+        'brain_ingest_token_acl_restricted',
+        'design-approval',
+        'fleet-proof',
+        'relay-transport',
+        'brain-product-proof',
+        'v34-stale-self-heal',
+        'Full product spec requires real delegated-work relay transport proof',
+        'Full product spec requires full hidden brain proof; token ACL alone is not enough.',
+        'Full product spec requires V34 stale self-heal proof, not only candidate/TTL code.',
+        'Full product spec requires Store or trusted distribution evidence.',
+        'Full product spec requires support/operator evidence or a formal retirement of the support mailbox gate.'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RouteReachabilityRecorderSourceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -4781,6 +4832,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "go-no-go writes current latest output evidence" `
     -Verifier "go-no-go output source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$goNoGoFullProductSpecReadinessContractOk = Test-GoNoGoFullProductSpecReadinessContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoFullProductSpecReadinessContractOk `
+    -Message "go/no-go must emit fail-closed full product spec readiness lanes for design, fleet proof, relay transport, brain product, V34 self-heal, Store, and support/operator evidence"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go surfaces full product spec readiness lanes" `
+    -Verifier "full product spec readiness source contract" `
     -FixturePath $releaseGoNoGoWriter `
     -ShouldPass $true `
     -Invocation $invocation

@@ -217,6 +217,103 @@ function Add-Blocker {
     }) | Out-Null
 }
 
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
+function Get-LatestJsonEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$EvidenceName,
+        [Parameter(Mandatory = $true)][string]$Version,
+        [Parameter(Mandatory = $true)][string]$Schema,
+        [string]$Filter = "*.json"
+    )
+
+    $roots = @(
+        (Join-Path $repoRoot ("docs\evidence\{0}\{1}" -f $EvidenceName, $Version)),
+        (Join-Path $repoRoot (".local-build\{0}" -f $EvidenceName))
+    )
+    $candidates = @()
+    foreach ($root in $roots) {
+        if (Test-Path -LiteralPath $root) {
+            $candidates += @(Get-ChildItem -LiteralPath $root -Filter $Filter -File -ErrorAction SilentlyContinue)
+        }
+    }
+
+    foreach ($candidate in @($candidates | Sort-Object LastWriteTime -Descending)) {
+        try {
+            $json = Get-Content -LiteralPath $candidate.FullName -Raw | ConvertFrom-Json
+            if ($json -and $json.PSObject.Properties["schema"] -and [string]$json.schema -eq $Schema) {
+                return [pscustomobject]@{
+                    found = $true
+                    path = $candidate.FullName
+                    json = $json
+                }
+            }
+        }
+        catch {
+        }
+    }
+
+    [pscustomobject]@{
+        found = $false
+        path = ""
+        json = $null
+    }
+}
+
+function Test-JsonCheckPassed {
+    param(
+        [AllowNull()]$Json,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if (-not $Json -or -not $Json.PSObject.Properties["checks"] -or $null -eq $Json.checks) {
+        return $false
+    }
+
+    foreach ($check in @($Json.checks)) {
+        if ($check.PSObject.Properties["name"] -and
+            [string]$check.name -eq $Name -and
+            $check.PSObject.Properties["status"] -and
+            [string]$check.status -eq "pass") {
+            return $true
+        }
+    }
+    return $false
+}
+
+function New-FullProductSpecLane {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][bool]$Complete,
+        [Parameter(Mandatory = $true)][string]$Evidence,
+        [Parameter(Mandatory = $true)][string]$Next,
+        [string]$BlockerArea = "",
+        [string]$BlockerMessage = "",
+        [bool]$Required = $true
+    )
+
+    [pscustomobject]@{
+        name = $Name
+        required = [bool]$Required
+        complete = [bool]$Complete
+        status = if ($Complete) { "pass" } else { "fail" }
+        evidence = $Evidence
+        next = $Next
+        blocker_area = $BlockerArea
+        blocker_message = $BlockerMessage
+    }
+}
+
 function New-NextAction {
     param(
         [Parameter(Mandatory = $true)][string]$Area,
@@ -304,6 +401,26 @@ function Get-ReleaseNextActions {
     $areas = @($Blockers | ForEach-Object { [string]$_.area } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     foreach ($area in $areas) {
         switch ($area) {
+            "design-approval" {
+                $actions.Add((New-NextAction -Area $area -Summary "Capture explicit product/design approval before claiming PR #34 or the full product spec is complete." -ActionType "manual" -ManualSteps @("Get an explicit approval comment on issue #35.", "Record the approval URL in PR #34 and update the PR body from Design: Pending to Design: Approved.", "Optionally record docs\evidence\design-approval\$Version\*.json with schema musu.design_approval.v1, ok=true, status=Design: Approved, and approval_url.") -Command "manual: record issue #35 approval URL and update PR #34 design status" -EvidencePath "docs\evidence\design-approval\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "Design approval is an external human gate and cannot be inferred from code, docs, or direct fleet proof.")) | Out-Null
+                break
+            }
+            "fleet-proof" {
+                $actions.Add((New-NextAction -Area $area -Summary "Run the hosted fleet proof on a physical node and commit the returned JSON evidence." -ActionType "manual_then_command" -ManualSteps @("Install the current public package on the physical node.", "Run the hosted fleet proof with the expected node and direct peer names.", "Save the JSON under docs\evidence\fleet-proof\$Version.", "Rerun go/no-go after committing the evidence.") -Command "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName <NODE_NAME> -ExpectedDirectPeerName <PEER_NAME> -RequireBrainToken -Json" -EvidencePath "docs\evidence\fleet-proof\$Version\*.fleet-proof.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "A real installed physical PC must produce the proof JSON; repo-local scripts alone do not satisfy the installed fleet claim.")) | Out-Null
+                break
+            }
+            "relay-transport" {
+                $actions.Add((New-NextAction -Area $area -Summary "Implement and prove real delegated-work relay transport; relay display alone is not a work route." -ActionType "manual_then_command" -ManualSteps @("Run the separate relay transport design gate.", "Implement router direct-failure to relay fallback and release-grade relay payload transport.", "Record owner-scoped relay transport and route evidence with bound transport proof.", "Run a two-PC failure-injection proof with direct blocked and relay task execution succeeding.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json" -EvidencePath "docs\evidence\p2p-control-plane\$Version\*.evidence.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -AutomationBlockedReason "Relay transport remains a separate implementation lane until route evidence carries a valid relay transport proof and payload delivery proof.")) | Out-Null
+                break
+            }
+            "brain-product-proof" {
+                $actions.Add((New-NextAction -Area $area -Summary "Capture release-grade hidden brain proof beyond token ACL: health, source ingest, cockpit UX, and version coherence." -ActionType "manual_then_command" -ManualSteps @("Launch the packaged desktop so the brain sidecar starts under ~/.musu/brain.", "Verify the expected brain /health response through the product-owned loopback/proxy path.", "Complete a real task and prove POST /v1/sources created a brain source.", "Run cockpit recall/capture UX proof.", "Record docs\evidence\brain-product\$Version\*.json with schema musu.brain_product_proof.v1 and ok=true.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -RequireBrainToken -Json" -EvidencePath "docs\evidence\brain-product\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "The current verifier proves token custody only; full brain product proof still needs health, ingest, UX, and version evidence.")) | Out-Null
+                break
+            }
+            "v34-stale-self-heal" {
+                $actions.Add((New-NextAction -Area $area -Summary "Prove V34 stale registry/cache/manual-peer self-heal on physical machines." -ActionType "manual_then_command" -ManualSteps @("Inject stale registry/cache/manual peer evidence for the current version.", "Prove heartbeat TTL hides stale cloud rows.", "Prove boot reconcile cleans stale local state.", "Prove route preflight chooses a reachable candidate before a stale first candidate without duplicate task execution.", "Record docs\evidence\v34-self-heal\$Version\*.json with schema musu.v34_self_heal_proof.v1 and ok=true.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -EvidencePath "docs\evidence\v34-self-heal\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "This is a physical E2E proof lane; current candidate/TTL code is not enough without stale-state evidence.")) | Out-Null
+                break
+            }
             "multi-device" {
                 $actions.Add((New-NextAction -Area $area -Summary "Generate the second-PC kit, run it on the other physical PC, bring the returned evidence back, then record it." -ActionType "manual_then_command" -ManualSteps @("Run the kit generator on the primary machine.", "Move the generated kit to the second physical Windows PC.", "Run the kit on that second physical PC with the current MUSU build installed.", "Bring the returned evidence JSON back to this workspace.", "Replace <EVIDENCE_JSON> with the actual returned evidence path before recording it.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\prepare-multidevice-test-kit.ps1 -Json" -EvidencePath ".local-build\multi-device\<EVIDENCE_JSON>" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multidevice-evidence.ps1 -EvidencePath .local-build\multi-device\<EVIDENCE_JSON>" -AutomationBlockedReason "A real second physical PC must run the generated kit and return evidence before the multi-device gate can be recorded.")) | Out-Null
                 break
@@ -343,6 +460,10 @@ function Get-ReleaseNextActions {
             }
             "git" {
                 $actions.Add((New-NextAction -Area $area -Summary "Review the dirty worktree, commit only after all intended changes and release evidence are present, then regenerate release manifests." -ActionType "manual_then_command" -ManualSteps @("Review git status and the full diff for unrelated or accidental changes.", "Do not commit just to clear the git blocker while required release evidence is still missing.", "After every non-git blocker has valid evidence, commit the intended changes and regenerate go/no-go/release manifests from the clean commit.") -Command "git status --short" -EvidencePath ".local-build\go-no-go\latest.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "The git blocker can only close after all intended changes and required release evidence are present; git status is diagnostic only.")) | Out-Null
+                break
+            }
+            "release-candidate-manifest" {
+                $actions.Add((New-NextAction -Area $area -Summary "Regenerate the release candidate manifest after required package artifacts exist; go/no-go must report this as a blocker instead of crashing." -ActionType "manual_then_command" -ManualSteps @("Build or restore the current local/store MSIX artifacts, public certificate, Store submission bundle, Tauri desktop bundles, and multi-device kit.", "Run the release candidate manifest writer directly to inspect missing artifact paths.", "Rerun go/no-go and confirm the manifest blocker is gone only after the manifest is generated.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-candidate-manifest.ps1" -EvidencePath ".local-build\release-candidates\$Version\release-candidate-manifest.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "Missing release artifacts require build or operator evidence; the readiness gate can diagnose them but cannot fabricate a manifest.")) | Out-Null
                 break
             }
         }
@@ -1698,13 +1819,25 @@ $manifestResult = Invoke-JsonScript `
     -Arguments @("-ReadinessAuditJsonPath", $readinessAuditForManifestPath) `
     -AllowFailure `
     -ExpectJson $false
+$manifestGenerationError = ""
 if ($manifestResult.timed_out) {
-    throw "Release candidate manifest generation timed out after ${ScriptTimeoutSeconds}s."
+    $manifestGenerationError = "Release candidate manifest generation timed out after ${ScriptTimeoutSeconds}s."
 }
-if ($manifestResult.exit_code -ne 0) {
-    throw "Release candidate manifest generation failed.`n$($manifestResult.raw)"
+elseif ($manifestResult.exit_code -ne 0) {
+    $manifestRawLines = @(
+        ([string]$manifestResult.raw) -split "\r?\n" |
+            Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    $manifestSummary = if ($manifestRawLines.Count -gt 0) {
+        [string]$manifestRawLines[0]
+    }
+    else {
+        "exit_code=$($manifestResult.exit_code)"
+    }
+    $manifestGenerationError = "Release candidate manifest generation failed: $manifestSummary"
 }
-$manifest = if (Test-Path -LiteralPath $manifestPath) {
+$manifestGenerationOk = [string]::IsNullOrWhiteSpace($manifestGenerationError)
+$manifest = if ($manifestGenerationOk -and (Test-Path -LiteralPath $manifestPath)) {
     Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 }
 else {
@@ -2494,6 +2627,114 @@ if ($p2pControlPlaneEvidence) {
     }
 }
 
+$expectedPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $version
+$fleetNodeProofLookup = Get-LatestJsonEvidence `
+    -EvidenceName "fleet-proof" `
+    -Version $version `
+    -Schema "musu.fleet_node_proof.v1" `
+    -Filter "*.fleet-proof.json"
+$fleetNodeProofEvidence = $fleetNodeProofLookup.json
+$fleetNodeProofVerified = (
+    [bool]$fleetNodeProofLookup.found -and
+    $fleetNodeProofEvidence -and
+    $fleetNodeProofEvidence.PSObject.Properties["ok"] -and
+    [bool]$fleetNodeProofEvidence.ok -and
+    $fleetNodeProofEvidence.PSObject.Properties["fail_count"] -and
+    [int]$fleetNodeProofEvidence.fail_count -eq 0 -and
+    $fleetNodeProofEvidence.PSObject.Properties["installed_package_version"] -and
+    [string]$fleetNodeProofEvidence.installed_package_version -eq $expectedPackageVersion -and
+    $fleetNodeProofEvidence.PSObject.Properties["expected_direct_peer_name"] -and
+    -not [string]::IsNullOrWhiteSpace([string]$fleetNodeProofEvidence.expected_direct_peer_name) -and
+    $fleetNodeProofEvidence.PSObject.Properties["direct_healthy_nodes"] -and
+    [int]$fleetNodeProofEvidence.direct_healthy_nodes -ge 2 -and
+    $fleetNodeProofEvidence.PSObject.Properties["remote_cloud_warning_count"] -and
+    [int]$fleetNodeProofEvidence.remote_cloud_warning_count -eq 0
+)
+$fleetInstallChannelProofVerified = (
+    $fleetNodeProofVerified -and
+    (Test-JsonCheckPassed -Json $fleetNodeProofEvidence -Name "public_install_channel_validate_release") -and
+    (Test-JsonCheckPassed -Json $fleetNodeProofEvidence -Name "installed_package_version_matches_release")
+)
+$fleetBrainTokenAclVerified = (
+    $fleetNodeProofVerified -and
+    $fleetNodeProofEvidence.PSObject.Properties["brain_token_required"] -and
+    [bool]$fleetNodeProofEvidence.brain_token_required -and
+    $fleetNodeProofEvidence.PSObject.Properties["brain_token_present"] -and
+    [bool]$fleetNodeProofEvidence.brain_token_present -and
+    (Test-JsonCheckPassed -Json $fleetNodeProofEvidence -Name "brain_ingest_token_acl_restricted")
+)
+
+$designApprovalLookup = Get-LatestJsonEvidence `
+    -EvidenceName "design-approval" `
+    -Version $version `
+    -Schema "musu.design_approval.v1"
+$designApprovalEvidence = $designApprovalLookup.json
+$designApprovalVerified = (
+    [bool]$designApprovalLookup.found -and
+    $designApprovalEvidence -and
+    $designApprovalEvidence.PSObject.Properties["ok"] -and
+    [bool]$designApprovalEvidence.ok -and
+    $designApprovalEvidence.PSObject.Properties["status"] -and
+    [string]$designApprovalEvidence.status -eq "Design: Approved" -and
+    $designApprovalEvidence.PSObject.Properties["approval_url"] -and
+    -not [string]::IsNullOrWhiteSpace([string]$designApprovalEvidence.approval_url)
+)
+
+$brainProductLookup = Get-LatestJsonEvidence `
+    -EvidenceName "brain-product" `
+    -Version $version `
+    -Schema "musu.brain_product_proof.v1"
+$brainProductEvidence = $brainProductLookup.json
+$brainProductVerified = (
+    [bool]$brainProductLookup.found -and
+    $brainProductEvidence -and
+    $brainProductEvidence.PSObject.Properties["ok"] -and
+    [bool]$brainProductEvidence.ok -and
+    $brainProductEvidence.PSObject.Properties["health_ok"] -and
+    [bool]$brainProductEvidence.health_ok -and
+    $brainProductEvidence.PSObject.Properties["task_ingest_ok"] -and
+    [bool]$brainProductEvidence.task_ingest_ok -and
+    $brainProductEvidence.PSObject.Properties["recall_capture_ux_ok"] -and
+    [bool]$brainProductEvidence.recall_capture_ux_ok
+)
+
+$v34SelfHealLookup = Get-LatestJsonEvidence `
+    -EvidenceName "v34-self-heal" `
+    -Version $version `
+    -Schema "musu.v34_self_heal_proof.v1"
+$v34SelfHealEvidence = $v34SelfHealLookup.json
+$v34SelfHealVerified = (
+    [bool]$v34SelfHealLookup.found -and
+    $v34SelfHealEvidence -and
+    $v34SelfHealEvidence.PSObject.Properties["ok"] -and
+    [bool]$v34SelfHealEvidence.ok -and
+    $v34SelfHealEvidence.PSObject.Properties["ttl_prune_ok"] -and
+    [bool]$v34SelfHealEvidence.ttl_prune_ok -and
+    $v34SelfHealEvidence.PSObject.Properties["boot_reconcile_ok"] -and
+    [bool]$v34SelfHealEvidence.boot_reconcile_ok -and
+    $v34SelfHealEvidence.PSObject.Properties["stale_candidate_e2e_ok"] -and
+    [bool]$v34SelfHealEvidence.stale_candidate_e2e_ok
+)
+
+$relayTransportProductVerified = (
+    [bool]$p2pControlPlaneVerified -and
+    [bool]$p2pRelayTransportWired -and
+    [bool]$p2pRelayPayloadTransportProven -and
+    $p2pRelayRouteTransportProofValidCount -gt 0 -and
+    $p2pRelayPayloadDeliveryProofValidCount -gt 0
+)
+
+$fullProductSpecLanes = @(
+    New-FullProductSpecLane -Name "design_approval" -Complete $designApprovalVerified -Evidence ($(if ($designApprovalVerified) { "Design approval evidence: $($designApprovalLookup.path)" } else { "Missing docs/evidence/design-approval/$version/*.json with schema musu.design_approval.v1 and Design: Approved approval_url." })) -Next "Record explicit approval on issue #35 and preserve approval evidence." -BlockerArea "design-approval" -BlockerMessage "Full product spec requires explicit design approval evidence; Design: Pending cannot satisfy completion."
+    New-FullProductSpecLane -Name "install_channel_and_package" -Complete $fleetInstallChannelProofVerified -Evidence ($(if ($fleetInstallChannelProofVerified) { "Hosted fleet proof validates install channel and installed package: $($fleetNodeProofLookup.path)" } else { "Missing current fleet proof with public_install_channel_validate_release and installed_package_version_matches_release." })) -Next "Run hosted fleet-proof.ps1 from the installed package and save the current-version JSON." -BlockerArea "fleet-proof" -BlockerMessage "Full product spec requires current hosted fleet proof for install channel and installed package version."
+    New-FullProductSpecLane -Name "direct_two_pc_fleet" -Complete $fleetNodeProofVerified -Evidence ($(if ($fleetNodeProofVerified) { "Current fleet proof has direct_healthy_nodes=$([int]$fleetNodeProofEvidence.direct_healthy_nodes), remote_cloud_warning_count=0: $($fleetNodeProofLookup.path)" } else { "Missing current two-PC direct fleet proof with direct_healthy_nodes >= 2 and no remote cloud warnings." })) -Next "Run hosted fleet-proof.ps1 with -ExpectedDirectPeerName on the physical main/second PC pair." -BlockerArea "fleet-proof" -BlockerMessage "Full product spec requires current two-PC direct fleet proof before direct readiness can be claimed."
+    New-FullProductSpecLane -Name "relay_transport" -Complete $relayTransportProductVerified -Evidence ($(if ($relayTransportProductVerified) { "P2P control-plane evidence proves relay transport and payload delivery." } else { "Relay display/control-plane is not enough; relay transport/payload proof is missing or invalid." })) -Next "Implement and record release-grade relay transport route evidence with payload delivery proof." -BlockerArea "relay-transport" -BlockerMessage "Full product spec requires real delegated-work relay transport proof; display-only relay is not a work route."
+    New-FullProductSpecLane -Name "brain_product" -Complete $brainProductVerified -Evidence ($(if ($brainProductVerified) { "Brain product proof: $($brainProductLookup.path)" } elseif ($fleetBrainTokenAclVerified) { "Fleet proof proves brain token ACL only: $($fleetNodeProofLookup.path)" } else { "Missing brain token ACL and/or full brain health/ingest/UX evidence." })) -Next "Record health, real task source ingest, cockpit recall/capture UX, and version-coherence evidence." -BlockerArea "brain-product-proof" -BlockerMessage "Full product spec requires full hidden brain proof; token ACL alone is not enough."
+    New-FullProductSpecLane -Name "v34_stale_self_heal" -Complete $v34SelfHealVerified -Evidence ($(if ($v34SelfHealVerified) { "V34 self-heal proof: $($v34SelfHealLookup.path)" } else { "Missing V34 TTL prune, boot reconcile, and stale-candidate physical E2E proof." })) -Next "Record stale registry/cache/manual-peer self-heal evidence under docs/evidence/v34-self-heal." -BlockerArea "v34-stale-self-heal" -BlockerMessage "Full product spec requires V34 stale self-heal proof, not only candidate/TTL code."
+    New-FullProductSpecLane -Name "store_distribution" -Complete $storeReleaseVerified -Evidence ($(if ($storeReleaseVerified) { "Store release evidence is verified." } else { "Missing Partner Center, certification, restricted capability, and Store-signed install evidence." })) -Next "Prepare/verify Store bundle and record Microsoft approval evidence." -BlockerArea "store-release" -BlockerMessage "Full product spec requires Store or trusted distribution evidence."
+    New-FullProductSpecLane -Name "support_operator_evidence" -Complete $supportMailboxVerified -Evidence ($(if ($supportMailboxVerified) { "$supportEmail support mailbox evidence is verified." } else { "$supportEmail delivery evidence is missing or the historical support gate must be formally retired." })) -Next "Record support mailbox evidence or retire the gate in docs/tooling." -BlockerArea "support-mailbox" -BlockerMessage "Full product spec requires support/operator evidence or a formal retirement of the support mailbox gate."
+)
+
 $idleBusyLoopCandidateStatuses = @(
     New-IdleBusyLoopCandidateStatus `
         -Candidate "clipboard polling" `
@@ -2656,6 +2897,9 @@ if (-not $msixCurrentLegacyConflictsOk) {
     }
     Add-Blocker -List $blockers -Area "msix-current-legacy-conflicts" -Message "Current Windows install state has legacy startup, bin, scheduled-task, or PATH alias conflicts. Shadowing: '$aliasShadowedBy'. $aliasRemediation"
 }
+if (-not $manifestGenerationOk) {
+    Add-Blocker -List $blockers -Area "release-candidate-manifest" -Message $manifestGenerationError
+}
 if (-not [bool]$audit.multi_device_verified) {
     Add-Blocker -List $blockers -Area "multi-device" -Message "Real second-PC multi-device evidence has not been recorded."
 }
@@ -2748,6 +2992,26 @@ if (-not [string]::IsNullOrWhiteSpace($gitStatus)) {
     Add-Blocker -List $blockers -Area "git" -Message "Working tree is dirty; commit and regenerate manifest before final handoff."
 }
 
+$fullProductSpecIncompleteLanes = @(
+    $fullProductSpecLanes |
+        Where-Object { [bool]$_.required -and -not [bool]$_.complete }
+)
+foreach ($lane in $fullProductSpecIncompleteLanes) {
+    $area = [string]$lane.blocker_area
+    if ([string]::IsNullOrWhiteSpace($area)) {
+        $area = "full-product-spec"
+    }
+    $alreadyBlocked = @($blockers | Where-Object { [string]$_.area -eq $area }).Count -gt 0
+    if (-not $alreadyBlocked) {
+        $message = [string]$lane.blocker_message
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            $message = "Full product spec lane '$($lane.name)' is incomplete: $($lane.next)"
+        }
+        Add-Blocker -List $blockers -Area $area -Message $message
+    }
+}
+$fullProductSpecReady = ($fullProductSpecIncompleteLanes.Count -eq 0)
+
 $nextActions = Get-ReleaseNextActions `
     -Blockers $blockers.ToArray() `
     -Version $version `
@@ -2755,6 +3019,7 @@ $nextActions = Get-ReleaseNextActions `
     -PublicMetadataBaseUrl $PublicMetadataBaseUrl
 
 $manualExternalGates = @(
+    "PR #34 explicit design approval and design approval evidence",
     "Second-PC clean/current MSIX install verification",
     "Second-PC multi-device route verification",
     "$supportEmail inbox delivery verification",
@@ -2765,6 +3030,10 @@ $manualExternalGates = @(
 )
 
 $manualInternalGates = @(
+    "Full product spec lane evidence surfaced by write-release-go-no-go.ps1",
+    "Release-grade relay transport proof with payload delivery evidence",
+    "Hidden brain product proof for health, source ingest, recall/capture UX, and version coherence",
+    "V34 stale registry/cache/manual-peer self-heal physical E2E proof",
     "MSIX desktop entrypoint audit for Store package activation",
     "Runtime idle CPU verification on primary Windows PC",
     "Runtime idle CPU verification on second Windows PC",
@@ -2799,6 +3068,57 @@ $result = [pscustomobject]@{
     invocation_count = [int]$goNoGoInvocations.Count
     go_no_go_invocations = $goNoGoInvocations
     ready_for_public_desktop_release = $ready
+    full_product_spec_ready = [bool]$fullProductSpecReady
+    full_product_spec = [pscustomobject]@{
+        schema = "musu.full_product_spec_readiness.v1"
+        roadmap_path = "docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"
+        ready = [bool]$fullProductSpecReady
+        expected_package_version = $expectedPackageVersion
+        complete_lane_count = @($fullProductSpecLanes | Where-Object { [bool]$_.complete }).Count
+        incomplete_lane_count = [int]$fullProductSpecIncompleteLanes.Count
+        incomplete_lanes = @($fullProductSpecIncompleteLanes | ForEach-Object { [string]$_.name })
+        lanes = @($fullProductSpecLanes)
+        evidence = [pscustomobject]@{
+            fleet_node_proof = [pscustomobject]@{
+                found = [bool]$fleetNodeProofLookup.found
+                path = [string]$fleetNodeProofLookup.path
+                verified = [bool]$fleetNodeProofVerified
+                install_channel_verified = [bool]$fleetInstallChannelProofVerified
+                brain_token_acl_verified = [bool]$fleetBrainTokenAclVerified
+            }
+            design_approval = [pscustomobject]@{
+                found = [bool]$designApprovalLookup.found
+                path = [string]$designApprovalLookup.path
+                verified = [bool]$designApprovalVerified
+            }
+            relay_transport = [pscustomobject]@{
+                verified = [bool]$relayTransportProductVerified
+                p2p_control_plane_verified = [bool]$p2pControlPlaneVerified
+                relay_transport_wired = [bool]$p2pRelayTransportWired
+                payload_transport_proven = [bool]$p2pRelayPayloadTransportProven
+                route_transport_proof_valid_count = [int]$p2pRelayRouteTransportProofValidCount
+                payload_delivery_proof_valid_count = [int]$p2pRelayPayloadDeliveryProofValidCount
+            }
+            brain_product = [pscustomobject]@{
+                found = [bool]$brainProductLookup.found
+                path = [string]$brainProductLookup.path
+                verified = [bool]$brainProductVerified
+            }
+            v34_stale_self_heal = [pscustomobject]@{
+                found = [bool]$v34SelfHealLookup.found
+                path = [string]$v34SelfHealLookup.path
+                verified = [bool]$v34SelfHealVerified
+            }
+        }
+    }
+    expected_package_version = $expectedPackageVersion
+    fleet_node_proof_verified = [bool]$fleetNodeProofVerified
+    fleet_install_channel_proof_verified = [bool]$fleetInstallChannelProofVerified
+    fleet_brain_token_acl_verified = [bool]$fleetBrainTokenAclVerified
+    design_approval_verified = [bool]$designApprovalVerified
+    relay_transport_product_verified = [bool]$relayTransportProductVerified
+    brain_product_verified = [bool]$brainProductVerified
+    v34_stale_self_heal_verified = [bool]$v34SelfHealVerified
     local_artifacts_ready = ([bool]$audit.runtime_package_ready -and [bool]$audit.desktop_shell_ready)
     single_machine_verified = [bool]$audit.single_machine_verified
     multi_device_verified = [bool]$audit.multi_device_verified
@@ -2831,6 +3151,8 @@ $result = [pscustomobject]@{
     else {
         [pscustomobject]@{ ok = $false; raw = $msixLegacyConflictsResult.raw }
     }
+    release_candidate_manifest_generated = [bool]$manifestGenerationOk
+    release_candidate_manifest_error = $manifestGenerationError
     runtime_idle_cpu_verified = [bool]$runtimeIdleCpuVerified
     required_runtime_idle_cpu_scenario = $RequiredRuntimeIdleCpuScenario
     runtime_idle_cpu_min_machine_count = $runtimeIdleCpuEvidence.min_machine_count
@@ -3021,6 +3343,17 @@ else {
     "elapsed_ms: $($result.elapsed_ms)"
     "invocation_count: $($result.invocation_count)"
     "ready_for_public_desktop_release: $($result.ready_for_public_desktop_release)"
+    "full_product_spec_ready: $($result.full_product_spec_ready)"
+    "full_product_spec_complete_lanes: $($result.full_product_spec.complete_lane_count)/$((@($result.full_product_spec.lanes)).Count)"
+    "full_product_spec_incomplete_lanes: $((@($result.full_product_spec.incomplete_lanes) -join ', '))"
+    "fleet_node_proof_verified: $($result.fleet_node_proof_verified)"
+    "fleet_install_channel_proof_verified: $($result.fleet_install_channel_proof_verified)"
+    "fleet_brain_token_acl_verified: $($result.fleet_brain_token_acl_verified)"
+    "design_approval_verified: $($result.design_approval_verified)"
+    "relay_transport_product_verified: $($result.relay_transport_product_verified)"
+    "brain_product_verified: $($result.brain_product_verified)"
+    "v34_stale_self_heal_verified: $($result.v34_stale_self_heal_verified)"
+    "release_candidate_manifest_generated: $($result.release_candidate_manifest_generated)"
     "local_artifacts_ready: $($result.local_artifacts_ready)"
     "single_machine_verified: $($result.single_machine_verified)"
     "msix_install_verified: $($result.msix_install_verified)"

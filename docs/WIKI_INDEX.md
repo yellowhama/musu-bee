@@ -8811,4 +8811,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `brain product proof`, `Store trusted distribution evidence`,
   `V34 stale self-heal`, and `support mailbox retire gate`.
 
+- 2026-06-27 full product readiness gate implementation:
+  `scripts/windows/write-release-go-no-go.ps1` now emits
+  `full_product_spec_ready` and `musu.full_product_spec_readiness.v1` with
+  explicit fail-closed lanes for design approval, install/package proof,
+  direct two-PC fleet proof, relay transport, brain product proof, V34 stale
+  self-heal, Store distribution, and support/operator evidence. Current local
+  gate shape is `full_product_spec_ready=false` with
+  `fleet_node_proof_verified=true`, `fleet_install_channel_proof_verified=true`,
+  and `fleet_brain_token_acl_verified=true`, while design, relay transport,
+  brain product, V34 self-heal, Store, support, and release candidate manifest
+  lanes remain blockers. `write-release-candidate-manifest.ps1` now reports an
+  empty/missing artifact candidate as a clear missing-artifact error, and
+  `write-release-go-no-go.ps1` turns manifest generation failure into a JSON
+  blocker instead of crashing before output. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `go-no-go surfaces full product spec readiness lanes`. Search terms should
+  include `musu.full_product_spec_readiness.v1`, `full_product_spec_ready`,
+  `release-candidate-manifest blocker`, `fleet_node_proof_verified`,
+  `relay_transport_product_verified=false`, `brain_product_verified=false`,
+  `v34_stale_self_heal_verified=false`, and `go-no-go surfaces full product spec
+  readiness lanes`.
+
 **End of WIKI_INDEX.md.**
