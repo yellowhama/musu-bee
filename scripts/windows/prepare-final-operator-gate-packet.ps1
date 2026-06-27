@@ -454,7 +454,9 @@ The V34 proof is separate from normal fleet health, route reachability, and
 direct multi-device smoke. Use the canonical recorder only after a real
 two-node stale state has been created: stale registry row, stale local/manual
 peer state, stale first route candidate, healthy candidate selected before the
-stale one, and exactly one delegated task execution.
+stale one, and exactly one delegated task execution. The TTL prune and boot
+reconcile claims must also be backed by source artifact JSON, not only
+operator-entered booleans.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `
@@ -462,6 +464,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-s
   -TargetNodeName <PRIMARY_PC_NODE> `
   -SelectedCandidateAddr <PRIMARY_PC_IP:BRIDGE_PORT> `
   -RouteEvidencePath .local-build\multi-device\<ROUTE_EVIDENCE_JSON> `
+  -TtlSourceEvidencePath .local-build\multi-device\<V34_TTL_SOURCE_JSON> `
+  -BootSourceEvidencePath .local-build\multi-device\<V34_BOOT_SOURCE_JSON> `
   -TtlStaleRowInjected 1 `
   -TtlRegistryCurrentExcludesStaleRows 1 `
   -TtlExpiredRowsHidden 1 `
@@ -485,6 +489,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-s
   -RouteTaskPostCount 1 `
   -Json
 ```
+
+The TTL source JSON must use schema `musu.v34_ttl_prune_source.v1`; the boot
+source JSON must use schema `musu.v34_boot_reconcile_source.v1`. The verifier
+checks their wrapper field bindings and SHA256 metadata before allowing the
+lane to pass.
 
 Then verify the generated proof:
 

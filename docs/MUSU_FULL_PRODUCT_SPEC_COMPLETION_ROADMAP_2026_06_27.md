@@ -230,7 +230,8 @@ Regression coverage:
   `V34 self-heal rejects unroutable selected candidate proof`,
   `V34 self-heal rejects route evidence candidate mismatch`,
   `V34 self-heal rejects route evidence node mismatch`, and
-  `V34 self-heal rejects route evidence version mismatch`.
+  `V34 self-heal rejects route evidence version mismatch`, and
+  `V34 self-heal rejects proof without TTL and boot source artifacts`.
 
 This reduces V34 implementation risk but does not close the lane until a
 current physical proof is recorded with `record-v34-self-heal-proof.ps1` under
@@ -309,6 +310,44 @@ Verification:
 This improves release handoff correctness but does not close the remaining
 full-product blockers. `relay_transport_product_verified=false` and
 `v34_stale_self_heal_verified=false` stay correct until physical proof exists.
+
+## 2026-06-28 V34 Artifact-Bound Proof Contract Update
+
+Follow-up audit found that the V34 proof was stricter than a boolean-only JSON,
+but the recorder still accepted operator-entered TTL and boot-reconcile booleans
+without binding those claims to source artifacts. That was too weak for a full
+product self-heal claim.
+
+Source fix:
+
+- `scripts/windows/record-v34-self-heal-proof.ps1` now requires
+  `-TtlSourceEvidencePath` and `-BootSourceEvidencePath` in addition to the
+  route evidence path.
+- TTL source evidence must use schema `musu.v34_ttl_prune_source.v1`.
+- Boot reconcile source evidence must use schema
+  `musu.v34_boot_reconcile_source.v1`.
+- The recorder embeds both source artifacts in `source_evidence`, records their
+  SHA256 hashes, and fails closed if their fields do not match the wrapper
+  TTL/boot parameters.
+- `scripts/windows/verify-v34-self-heal-proof.ps1` now checks the source
+  schemas, SHA256 metadata, source-to-wrapper field bindings, route evidence
+  SHA256 metadata, route binding, distinct node pair, and exactly-one task
+  execution before accepting `musu.v34_self_heal_proof.v1`.
+- The multi-device kit, final operator packet, and go/no-go next action now show
+  the required TTL/boot source artifact paths instead of a boolean-only command
+  skeleton.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `V34 self-heal rejects proof without TTL and boot source artifacts`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=197`, and `failed_case_count=0`.
+
+This hardens the V34 release proof contract. It still does not close the V34
+lane: the artifact-bound proof must be produced from a rebuilt packaged physical
+two-node stale registry/cache/manual-peer run and committed under
+`docs/evidence/v34-self-heal/1.15.0-rc.22/`.
 
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
 
@@ -532,7 +571,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | INFO | Direct delegated-work over LAN is now proven for rc.22. | Packaged route evidence `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json` verifies successfully and the go/no-go lane `direct_delegated_work_route` reports `pass`. | The previous 401/invalid-bearer blocker is closed for direct routes. | Keep the evidence committed; do not treat it as relay or release-grade transport proof. |
 | INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
 | HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
-| MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL, boot/local reconcile, and route-evidence-bound strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Rebuild the package, run the physical stale registry/cache/manual-peer proof, and commit verifier-passing evidence. |
+| MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL, boot/local reconcile, and artifact-bound strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Rebuild the package, run the physical stale registry/cache/manual-peer proof, capture TTL/boot source artifacts, and commit verifier-passing evidence. |
 | INFO | Support mailbox delivery proof is now a retired historical gate once retirement evidence is current. | The replacement gate requires live support/privacy/public-config proof and rejects evidence that retires support availability. | This removes an operator-only release blocker without weakening the public support contract. | Keep public metadata verified; use mailbox proof only as an optional operational check. |
 
 ## Dependency Map
@@ -632,9 +671,13 @@ Proof:
 - Two physical nodes with injected stale public URL/cache/manual peer.
 - Route evidence shows reachable LAN candidate selected before stale candidate.
 - Registry/current fleet excludes heartbeat-expired rows.
+- TTL source evidence uses schema `musu.v34_ttl_prune_source.v1` and is bound
+  to the wrapper by SHA256 and field checks.
+- Boot reconcile source evidence uses schema `musu.v34_boot_reconcile_source.v1`
+  and is bound to the wrapper by SHA256 and field checks.
 - `verify-v34-self-heal-proof.ps1` accepts the proof and rejects weak
-  boolean-only proof, duplicate task execution, and unroutable selected
-  candidates.
+  boolean-only proof, missing source artifacts, duplicate task execution, and
+  unroutable selected candidates.
 - The second-PC kit includes `record-v34-self-heal-proof.ps1`,
   `verify-v34-self-heal-proof.ps1`, and the V34 stale self-heal runbook so the
   remaining physical proof is collected with the canonical recorder instead of

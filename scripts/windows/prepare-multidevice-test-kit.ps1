@@ -245,7 +245,12 @@ closed by fleet health, route reachability, or a successful direct route alone.
 Only record this proof after a real two-node stale scenario has been created:
 one stale registry row, stale local/manual peer state, and a stale first route
 candidate that is skipped before the reachable candidate. The task execution
-must happen exactly once.
+must happen exactly once. The recorder also requires two source artifacts so
+the proof is not just operator-entered booleans:
+
+- TTL source evidence JSON with schema `musu.v34_ttl_prune_source.v1`.
+- Boot reconcile source evidence JSON with schema
+  `musu.v34_boot_reconcile_source.v1`.
 
 The kit includes the canonical recorder and verifier:
 
@@ -255,6 +260,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-pr
   -TargetNodeName PRIMARY-PC `
   -SelectedCandidateAddr PRIMARY_PC_IP:BRIDGE_PORT `
   -RouteEvidencePath .local-build\multi-device\ROUTE_EVIDENCE.json `
+  -TtlSourceEvidencePath .local-build\multi-device\V34_TTL_SOURCE.json `
+  -BootSourceEvidencePath .local-build\multi-device\V34_BOOT_SOURCE.json `
   -TtlStaleRowInjected 1 `
   -TtlRegistryCurrentExcludesStaleRows 1 `
   -TtlExpiredRowsHidden 1 `
@@ -283,8 +290,8 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-pr
 The embedded route evidence must be real `musu.route_evidence.v1`, use the same
 version, source node, target node, and candidate address as the V34 wrapper, and
 keep `payload_transited_musu_infra=false`. The verifier re-checks
-`route_evidence_candidate_matches_selected`, node-pair binding, and the
-exactly-once task execution proof.
+`route_evidence_candidate_matches_selected`, node-pair binding, SHA256-bound
+TTL/boot source artifacts, and the exactly-once task execution proof.
 
 Verify the produced `musu.v34_self_heal_proof.v1` JSON before returning it:
 

@@ -109,6 +109,29 @@ function Test-RoutableAddr([string]$Addr) {
     return $true
 }
 
+function Test-Sha256([string]$Value) {
+    return (-not [string]::IsNullOrWhiteSpace($Value) -and $Value -match '^[a-fA-F0-9]{64}$')
+}
+
+function Test-BoolFieldMatches($LeftObject, [string]$LeftName, $RightObject, [string]$RightName) {
+    return ((Has-Property $LeftObject $LeftName) -and (Has-Property $RightObject $RightName) -and ([bool](Get-Prop $LeftObject $LeftName) -eq [bool](Get-Prop $RightObject $RightName)))
+}
+
+function Test-IntFieldMatches($LeftObject, [string]$LeftName, $RightObject, [string]$RightName) {
+    if (-not ((Has-Property $LeftObject $LeftName) -and (Has-Property $RightObject $RightName))) {
+        return $false
+    }
+    try {
+        return ([int](Get-Prop $LeftObject $LeftName) -eq [int](Get-Prop $RightObject $RightName))
+    } catch {
+        return $false
+    }
+}
+
+function Test-StringFieldMatches($LeftObject, [string]$LeftName, $RightObject, [string]$RightName) {
+    return ((Has-Property $LeftObject $LeftName) -and (Has-Property $RightObject $RightName) -and ([string](Get-Prop $LeftObject $LeftName) -eq [string](Get-Prop $RightObject $RightName)))
+}
+
 $resolvedEvidencePath = ""
 $evidence = $null
 try {
@@ -336,6 +359,93 @@ if ($evidence) {
         Add-Check "source evidence candidate binding" "pass" "source evidence route_evidence_candidate_addr matches selected candidate"
     } else {
         Add-Check "source evidence candidate binding" "fail" "source_evidence.route_evidence_candidate_addr must match route_preflight.selected_candidate_addr"
+    }
+    if ($sourceEvidence -and (Test-Sha256 ([string](Get-Prop $sourceEvidence "route_evidence_sha256")))) {
+        Add-Check "source evidence route hash" "pass" "source evidence includes a route evidence SHA256"
+    } else {
+        Add-Check "source evidence route hash" "fail" "source_evidence.route_evidence_sha256 must be a SHA256 hash"
+    }
+
+    $ttlSource = Get-Prop $sourceEvidence "ttl_source_evidence"
+    if ($ttlSource -and [string](Get-Prop $ttlSource "schema") -eq "musu.v34_ttl_prune_source.v1") {
+        Add-Check "ttl source schema" "pass" "TTL source evidence schema is valid"
+    } else {
+        Add-Check "ttl source schema" "fail" "source_evidence.ttl_source_evidence must have schema musu.v34_ttl_prune_source.v1"
+    }
+    if ($sourceEvidence -and (Test-Sha256 ([string](Get-Prop $sourceEvidence "ttl_source_evidence_sha256")))) {
+        Add-Check "ttl source hash" "pass" "TTL source evidence is hash-bound"
+    } else {
+        Add-Check "ttl source hash" "fail" "source_evidence.ttl_source_evidence_sha256 must be a SHA256 hash"
+    }
+    if (Test-True $sourceEvidence "ttl_source_evidence_matches_parameters") {
+        Add-Check "ttl source matches wrapper" "pass" "TTL source evidence matches wrapper fields"
+    } else {
+        Add-Check "ttl source matches wrapper" "fail" "source_evidence.ttl_source_evidence_matches_parameters must be true"
+    }
+    $ttlFieldPairs = @(
+        @("stale_row_injected", "stale_row_injected", "bool"),
+        @("registry_current_excludes_stale_rows", "registry_current_excludes_stale_rows", "bool"),
+        @("expired_rows_hidden", "expired_rows_hidden", "bool"),
+        @("stale_row_count_before", "stale_row_count_before", "int"),
+        @("stale_row_count_after", "stale_row_count_after", "int"),
+        @("heartbeat_ttl_sec", "heartbeat_ttl_sec", "int"),
+        @("stale_row_last_seen_at", "stale_row_last_seen_at", "string")
+    )
+    foreach ($pair in $ttlFieldPairs) {
+        $leftName = $pair[0]
+        $rightName = $pair[1]
+        $kind = $pair[2]
+        $matches = switch ($kind) {
+            "bool" { Test-BoolFieldMatches $ttlSource $leftName $ttl $rightName }
+            "int" { Test-IntFieldMatches $ttlSource $leftName $ttl $rightName }
+            default { Test-StringFieldMatches $ttlSource $leftName $ttl $rightName }
+        }
+        if ($matches) {
+            Add-Check "ttl source $leftName" "pass" "TTL source field $leftName matches wrapper"
+        } else {
+            Add-Check "ttl source $leftName" "fail" "TTL source field $leftName must match ttl_prune.$rightName"
+        }
+    }
+
+    $bootSource = Get-Prop $sourceEvidence "boot_source_evidence"
+    if ($bootSource -and [string](Get-Prop $bootSource "schema") -eq "musu.v34_boot_reconcile_source.v1") {
+        Add-Check "boot source schema" "pass" "boot source evidence schema is valid"
+    } else {
+        Add-Check "boot source schema" "fail" "source_evidence.boot_source_evidence must have schema musu.v34_boot_reconcile_source.v1"
+    }
+    if ($sourceEvidence -and (Test-Sha256 ([string](Get-Prop $sourceEvidence "boot_source_evidence_sha256")))) {
+        Add-Check "boot source hash" "pass" "boot source evidence is hash-bound"
+    } else {
+        Add-Check "boot source hash" "fail" "source_evidence.boot_source_evidence_sha256 must be a SHA256 hash"
+    }
+    if (Test-True $sourceEvidence "boot_source_evidence_matches_parameters") {
+        Add-Check "boot source matches wrapper" "pass" "boot source evidence matches wrapper fields"
+    } else {
+        Add-Check "boot source matches wrapper" "fail" "source_evidence.boot_source_evidence_matches_parameters must be true"
+    }
+    $bootFieldPairs = @(
+        @("cache_available", "cache_available", "bool"),
+        @("stale_manual_peer_removed", "stale_manual_peer_removed", "bool"),
+        @("lan_only_manual_peer_preserved", "lan_only_manual_peer_preserved", "bool"),
+        @("same_name_current_candidate_preserved", "same_name_current_candidate_preserved", "bool"),
+        @("manual_peer_count_before", "manual_peer_count_before", "int"),
+        @("manual_peer_count_after", "manual_peer_count_after", "int"),
+        @("pruned_manual_peer_count", "pruned_manual_peer_count", "int")
+    )
+    foreach ($pair in $bootFieldPairs) {
+        $leftName = $pair[0]
+        $rightName = $pair[1]
+        $kind = $pair[2]
+        $matches = switch ($kind) {
+            "bool" { Test-BoolFieldMatches $bootSource $leftName $boot $rightName }
+            "int" { Test-IntFieldMatches $bootSource $leftName $boot $rightName }
+            default { Test-StringFieldMatches $bootSource $leftName $boot $rightName }
+        }
+        if ($matches) {
+            Add-Check "boot source $leftName" "pass" "boot source field $leftName matches wrapper"
+        } else {
+            Add-Check "boot source $leftName" "fail" "boot source field $leftName must match boot_reconcile.$rightName"
+        }
     }
 }
 

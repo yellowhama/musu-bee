@@ -8,6 +8,8 @@ param(
     [Parameter(Mandatory = $true)][string]$TargetNodeName,
     [Parameter(Mandatory = $true)][string]$SelectedCandidateAddr,
     [Parameter(Mandatory = $true)][string]$RouteEvidencePath,
+    [Parameter(Mandatory = $true)][string]$TtlSourceEvidencePath,
+    [Parameter(Mandatory = $true)][string]$BootSourceEvidencePath,
 
     [Parameter(Mandatory = $true)][string]$TtlStaleRowInjected,
     [Parameter(Mandatory = $true)][string]$TtlRegistryCurrentExcludesStaleRows,
@@ -90,6 +92,19 @@ function Get-Prop {
     return $null
 }
 
+function Read-JsonEvidenceFile {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    $json = Get-Content -LiteralPath $resolved -Raw | ConvertFrom-Json
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash.ToLowerInvariant()
+    return [pscustomobject]@{
+        path = $resolved
+        sha256 = $hash
+        json = $json
+    }
+}
+
 function Convert-StrictBool {
     param(
         [Parameter(Mandatory = $true)]$Value,
@@ -138,6 +153,9 @@ $RouteChecked = Convert-StrictBool -Value $RouteChecked -Name "RouteChecked"
 
 $resolvedRouteEvidencePath = (Resolve-Path -LiteralPath $RouteEvidencePath).Path
 $routeEvidence = Get-Content -LiteralPath $resolvedRouteEvidencePath -Raw | ConvertFrom-Json
+$routeEvidenceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolvedRouteEvidencePath).Hash.ToLowerInvariant()
+$ttlSourceEvidence = Read-JsonEvidenceFile -Path $TtlSourceEvidencePath
+$bootSourceEvidence = Read-JsonEvidenceFile -Path $BootSourceEvidencePath
 $generatedAt = [datetimeoffset]::Now
 $staleRowLastSeenAt = [datetimeoffset]::Parse($TtlStaleRowLastSeenAt)
 
@@ -149,6 +167,26 @@ $routeEvidenceCandidateMatches = (
     -not [string]::IsNullOrWhiteSpace($routeEvidenceCandidate) -and
     $routeEvidenceCandidate -eq $SelectedCandidateAddr
 )
+$ttlSourceMatches = (
+    [string](Get-Prop $ttlSourceEvidence.json "schema") -eq "musu.v34_ttl_prune_source.v1" -and
+    [bool](Get-Prop $ttlSourceEvidence.json "stale_row_injected") -eq [bool]$TtlStaleRowInjected -and
+    [bool](Get-Prop $ttlSourceEvidence.json "registry_current_excludes_stale_rows") -eq [bool]$TtlRegistryCurrentExcludesStaleRows -and
+    [bool](Get-Prop $ttlSourceEvidence.json "expired_rows_hidden") -eq [bool]$TtlExpiredRowsHidden -and
+    [int](Get-Prop $ttlSourceEvidence.json "stale_row_count_before") -eq [int]$TtlStaleRowCountBefore -and
+    [int](Get-Prop $ttlSourceEvidence.json "stale_row_count_after") -eq [int]$TtlStaleRowCountAfter -and
+    [int](Get-Prop $ttlSourceEvidence.json "heartbeat_ttl_sec") -eq [int]$TtlHeartbeatTtlSec -and
+    [string](Get-Prop $ttlSourceEvidence.json "stale_row_last_seen_at") -eq $staleRowLastSeenAt.ToString("o")
+)
+$bootSourceMatches = (
+    [string](Get-Prop $bootSourceEvidence.json "schema") -eq "musu.v34_boot_reconcile_source.v1" -and
+    [bool](Get-Prop $bootSourceEvidence.json "cache_available") -eq [bool]$BootCacheAvailable -and
+    [bool](Get-Prop $bootSourceEvidence.json "stale_manual_peer_removed") -eq [bool]$BootStaleManualPeerRemoved -and
+    [bool](Get-Prop $bootSourceEvidence.json "lan_only_manual_peer_preserved") -eq [bool]$BootLanOnlyManualPeerPreserved -and
+    [bool](Get-Prop $bootSourceEvidence.json "same_name_current_candidate_preserved") -eq [bool]$BootSameNameCurrentCandidatePreserved -and
+    [int](Get-Prop $bootSourceEvidence.json "manual_peer_count_before") -eq [int]$BootManualPeerCountBefore -and
+    [int](Get-Prop $bootSourceEvidence.json "manual_peer_count_after") -eq [int]$BootManualPeerCountAfter -and
+    [int](Get-Prop $bootSourceEvidence.json "pruned_manual_peer_count") -eq [int]$BootPrunedManualPeerCount
+)
 
 $ttlPruneOk = (
     $TtlStaleRowInjected -and
@@ -156,7 +194,8 @@ $ttlPruneOk = (
     $TtlExpiredRowsHidden -and
     $TtlStaleRowCountBefore -ge 1 -and
     $TtlStaleRowCountAfter -eq 0 -and
-    $TtlHeartbeatTtlSec -ge 60
+    $TtlHeartbeatTtlSec -ge 60 -and
+    $ttlSourceMatches
 )
 $bootReconcileOk = (
     $BootCacheAvailable -and
@@ -164,7 +203,8 @@ $bootReconcileOk = (
     $BootLanOnlyManualPeerPreserved -and
     $BootSameNameCurrentCandidatePreserved -and
     $BootManualPeerCountBefore -ge 1 -and
-    $BootPrunedManualPeerCount -ge 1
+    $BootPrunedManualPeerCount -ge 1 -and
+    $bootSourceMatches
 )
 $staleCandidateE2eOk = (
     $RoutePhysicalTwoNodeEvidence -and
@@ -235,9 +275,18 @@ $evidence = [pscustomobject]@{
     }
     source_evidence = [pscustomobject]@{
         route_evidence_path = $resolvedRouteEvidencePath
+        route_evidence_sha256 = $routeEvidenceHash
         route_evidence_candidate_addr = $routeEvidenceCandidate
         route_evidence_candidate_matches_selected = [bool]$routeEvidenceCandidateMatches
         node_pair_distinct = [bool]$nodePairDistinct
+        ttl_source_evidence_path = $ttlSourceEvidence.path
+        ttl_source_evidence_sha256 = $ttlSourceEvidence.sha256
+        ttl_source_evidence_matches_parameters = [bool]$ttlSourceMatches
+        ttl_source_evidence = $ttlSourceEvidence.json
+        boot_source_evidence_path = $bootSourceEvidence.path
+        boot_source_evidence_sha256 = $bootSourceEvidence.sha256
+        boot_source_evidence_matches_parameters = [bool]$bootSourceMatches
+        boot_source_evidence = $bootSourceEvidence.json
     }
     notes = $Notes
 }
@@ -267,6 +316,11 @@ $summary = @"
 - Boot reconcile ok: $bootReconcileOk
 - Stale-candidate E2E ok: $staleCandidateE2eOk
 - Route evidence: $resolvedRouteEvidencePath
+- Route evidence SHA256: $($routeEvidenceHash.ToLowerInvariant())
+- TTL source evidence: $($ttlSourceEvidence.path)
+- TTL source evidence SHA256: $($ttlSourceEvidence.sha256)
+- Boot source evidence: $($bootSourceEvidence.path)
+- Boot source evidence SHA256: $($bootSourceEvidence.sha256)
 - Evidence: $([System.IO.Path]::GetFileName($evidencePath))
 - Evidence SHA256: $($evidenceHash.Hash.ToLowerInvariant())
 - Verification: $([System.IO.Path]::GetFileName($verificationPath))

@@ -998,6 +998,10 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         'support/operator evidence: formal mailbox-delivery gate retirement is recorded',
         'The old support mailbox delivery gate is not a remaining blocker',
         'Gate D - V34 stale self-heal physical proof',
+        'TtlSourceEvidencePath',
+        'BootSourceEvidencePath',
+        'musu.v34_ttl_prune_source.v1',
+        'musu.v34_boot_reconcile_source.v1',
         'RouteDuplicateTaskExecutionPrevented',
         'v34_stale_self_heal_verified=true',
         'Gate E - Relay transport failure-injection proof',
@@ -1101,6 +1105,10 @@ function Test-SecondPcKitV34SelfHealProofContract {
         'RouteStaleCandidateWasFirst',
         'RouteDuplicateTaskExecutionPrevented',
         'RouteTaskPostCount 1',
+        'TtlSourceEvidencePath',
+        'BootSourceEvidencePath',
+        'musu.v34_ttl_prune_source.v1',
+        'musu.v34_boot_reconcile_source.v1',
         'payload_transited_musu_infra=false',
         'route_evidence_candidate_matches_selected',
         'v34_stale_self_heal_verified=false',
@@ -4234,7 +4242,8 @@ function New-V34SelfHealProofEvidence {
         [switch]$UnroutableSelectedCandidate,
         [switch]$RouteEvidenceCandidateMismatch,
         [switch]$RouteEvidenceNodeMismatch,
-        [switch]$RouteEvidenceVersionMismatch
+        [switch]$RouteEvidenceVersionMismatch,
+        [switch]$MissingSourceArtifacts
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
@@ -4295,9 +4304,40 @@ function New-V34SelfHealProofEvidence {
         }
         source_evidence = [pscustomobject]@{
             route_evidence_path = "fixture-route-evidence.json"
+            route_evidence_sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
             route_evidence_candidate_addr = $routeEvidenceCandidate
             route_evidence_candidate_matches_selected = (-not [bool]$RouteEvidenceCandidateMismatch)
             node_pair_distinct = (-not [bool]$RouteEvidenceNodeMismatch)
+            ttl_source_evidence_path = $(if ($MissingSourceArtifacts) { $null } else { "fixture-v34-ttl-source.json" })
+            ttl_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "2222222222222222222222222222222222222222222222222222222222222222" })
+            ttl_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
+            ttl_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
+                [pscustomobject]@{
+                    schema = "musu.v34_ttl_prune_source.v1"
+                    stale_row_injected = $true
+                    registry_current_excludes_stale_rows = $true
+                    expired_rows_hidden = $true
+                    stale_row_count_before = 1
+                    stale_row_count_after = 0
+                    heartbeat_ttl_sec = 300
+                    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+                }
+            })
+            boot_source_evidence_path = $(if ($MissingSourceArtifacts) { $null } else { "fixture-v34-boot-source.json" })
+            boot_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "3333333333333333333333333333333333333333333333333333333333333333" })
+            boot_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
+            boot_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
+                [pscustomobject]@{
+                    schema = "musu.v34_boot_reconcile_source.v1"
+                    cache_available = $true
+                    manual_peer_count_before = 4
+                    manual_peer_count_after = 3
+                    pruned_manual_peer_count = 1
+                    stale_manual_peer_removed = $true
+                    lan_only_manual_peer_preserved = $true
+                    same_name_current_candidate_preserved = $true
+                }
+            })
         }
     }
 }
@@ -6062,6 +6102,28 @@ $v34RouteEvidence = [pscustomobject]@{
     payload_transited_musu_infra = $false
 }
 $fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $v34RouteEvidence
+$v34TtlSourceEvidence = [pscustomobject]@{
+    schema = "musu.v34_ttl_prune_source.v1"
+    stale_row_injected = $true
+    registry_current_excludes_stale_rows = $true
+    expired_rows_hidden = $true
+    stale_row_count_before = 1
+    stale_row_count_after = 0
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+}
+$v34TtlSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-ttl-source" -Object $v34TtlSourceEvidence
+$v34BootSourceEvidence = [pscustomobject]@{
+    schema = "musu.v34_boot_reconcile_source.v1"
+    cache_available = $true
+    manual_peer_count_before = 4
+    manual_peer_count_after = 3
+    pruned_manual_peer_count = 1
+    stale_manual_peer_removed = $true
+    lan_only_manual_peer_preserved = $true
+    same_name_current_candidate_preserved = $true
+}
+$v34BootSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-boot-source" -Object $v34BootSourceEvidence
 $v34RecorderOutputRoot = Join-Path $OutputRoot "v34-self-heal-recorder-output"
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealRecorder -Arguments @(
     "-Version", $ExpectedVersion,
@@ -6071,6 +6133,8 @@ $invocation = Invoke-Verifier -ScriptPath $v34SelfHealRecorder -Arguments @(
     "-TargetNodeName", "hugh-main",
     "-SelectedCandidateAddr", "192.168.1.192:4387",
     "-RouteEvidencePath", $fixture,
+    "-TtlSourceEvidencePath", $v34TtlSourceFixture,
+    "-BootSourceEvidencePath", $v34BootSourceFixture,
     "-TtlStaleRowInjected", "1",
     "-TtlRegistryCurrentExcludesStaleRows", "1",
     "-TtlExpiredRowsHidden", "1",
@@ -6127,6 +6191,10 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence node mi
 $fixture = Write-Fixture -Name "v34-self-heal-route-version-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceVersionMismatch)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence version mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifacts" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifacts)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without TTL and boot source artifacts" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
