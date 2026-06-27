@@ -31,6 +31,7 @@ $processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attrib
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
+$v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -1516,6 +1517,9 @@ function Test-GoNoGoFullProductSpecReadinessContract {
         '$brainProductVerificationResult = Invoke-JsonScript',
         'verification = if ($brainProductVerificationResult',
         'v34_stale_self_heal_verified',
+        'verify-v34-self-heal-proof.ps1',
+        '$v34SelfHealVerificationResult = Invoke-JsonScript',
+        'verification = if ($v34SelfHealVerificationResult',
         'musu.fleet_node_proof.v1',
         'musu.design_approval.v1',
         'musu.brain_product_proof.v1',
@@ -4140,6 +4144,63 @@ function New-BrainProductProofEvidence {
     }
 }
 
+function New-V34SelfHealProofEvidence {
+    param(
+        [switch]$DuplicateTask,
+        [switch]$UnroutableSelectedCandidate
+    )
+
+    $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
+    $selectedCandidate = if ($UnroutableSelectedCandidate) { "127.0.0.1:4387" } else { "192.168.1.192:4387" }
+    [pscustomobject]@{
+        schema = "musu.v34_self_heal_proof.v1"
+        ok = $true
+        version = $ExpectedVersion
+        package_version = $expectedPackageVersion
+        generated_at = $now.ToString("o")
+        operator_machine = "VERIFIER-TEST"
+        ttl_prune_ok = $true
+        boot_reconcile_ok = $true
+        stale_candidate_e2e_ok = $true
+        ttl_prune = [pscustomobject]@{
+            stale_row_injected = $true
+            registry_current_excludes_stale_rows = $true
+            expired_rows_hidden = $true
+            stale_row_count_before = 1
+            stale_row_count_after = 0
+            heartbeat_ttl_sec = 300
+            stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+        }
+        boot_reconcile = [pscustomobject]@{
+            cache_available = $true
+            manual_peer_count_before = 4
+            manual_peer_count_after = 3
+            pruned_manual_peer_count = 1
+            stale_manual_peer_removed = $true
+            lan_only_manual_peer_preserved = $true
+            same_name_current_candidate_preserved = $true
+        }
+        route_preflight = [pscustomobject]@{
+            physical_two_node_evidence = $true
+            source_node_name = "hugh_second"
+            target_node_name = "hugh-main"
+            stale_candidate_injected = $true
+            stale_candidate_was_first = $true
+            selected_reachable_candidate_before_stale = $true
+            duplicate_task_execution_prevented = (-not [bool]$DuplicateTask)
+            task_post_count = $taskPostCount
+            route_checked = $true
+            selected_candidate_addr = $selectedCandidate
+            route_evidence = [pscustomobject]@{
+                schema = "musu.route_evidence.v1"
+                result = "success"
+                route_kind = "lan"
+                candidate_addr = $selectedCandidate
+            }
+        }
+    }
+}
+
 function New-MsixInstallEvidence {
     param(
         [switch]$Shadowed,
@@ -5757,6 +5818,30 @@ Add-CaseResult -Cases $cases -Name "brain product rejects public brain HTTP surf
 $fixture = Write-Fixture -Name "brain-product-missing-capture-recall" -Object (New-BrainProductProofEvidence -MissingCaptureRecall)
 $invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without recall result" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-valid" -Object (New-V34SelfHealProofEvidence)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal accepts release-grade physical stale proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$weakV34Proof = [pscustomobject]@{
+    schema = "musu.v34_self_heal_proof.v1"
+    ok = $true
+    version = $ExpectedVersion
+    ttl_prune_ok = $true
+    boot_reconcile_ok = $true
+    stale_candidate_e2e_ok = $true
+}
+$fixture = Write-Fixture -Name "v34-self-heal-weak-boolean-only-shape" -Object $weakV34Proof
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects weak boolean-only proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-duplicate-task" -Object (New-V34SelfHealProofEvidence -DuplicateTask)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects duplicate task execution proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-unroutable-selected-candidate" -Object (New-V34SelfHealProofEvidence -UnroutableSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects unroutable selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")

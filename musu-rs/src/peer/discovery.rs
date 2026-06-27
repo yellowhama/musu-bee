@@ -10,6 +10,7 @@
 //!   - Registry degraded → cached snapshot TTL 7-day
 //!   - Registry absent → manual peers + nodes.toml only
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
@@ -101,6 +102,17 @@ pub struct ManualPeer {
     pub addr: String,
     pub name: Option<String>,
     pub added_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ManualPeerReconcileReport {
+    pub cache_available: bool,
+    pub registry_node_count: usize,
+    pub registry_route_addr_count: usize,
+    pub before_count: usize,
+    pub after_count: usize,
+    pub pruned_count: usize,
+    pub changed: bool,
 }
 
 impl ManualPeerList {
@@ -260,29 +272,45 @@ pub enum PeerSource {
 ///   3. Manual peers
 ///   4. nodes.toml
 ///
-/// Deduplicates by addr (first source wins). NOTE: this intentionally keeps
-/// multiple records that share a node NAME but differ by addr (e.g. a machine
-/// re-registered on a new ephemeral port) — routing/failover in
-/// `bridge::router::select_peer_for_route` relies on trying alternate addrs for
-/// the same name. The fleet DISPLAY path collapses same-name ghosts separately
-/// (see `bridge::handlers::fleet`); do not add a name-collapse here.
+/// Deduplicates by addr (first source wins). Registry candidate endpoints may
+/// expose multiple routable addrs for one node name; manual/nodes.toml records
+/// with a registry-owned name are treated as stale fallback data and skipped.
+/// The fleet DISPLAY path still owns user-facing same-name collapse.
 /// V30 WS-A (Critic H-2 / Auditor MEDIUM): reconcile a manual peer list against
-/// the live registry (node_name → current addr). Drops only TRUE reinstall
-/// ghosts — a manual record whose name the registry knows but at a DIFFERENT
+/// the live registry (node_name -> current addr). Drops only TRUE reinstall
+/// ghosts: a manual record whose name the registry knows but at a different
 /// address. Records the registry doesn't know (LAN-only manual peers) and
 /// nameless ad-hoc records are always kept. The caller MUST guard with a
 /// non-empty registry: an empty registry snapshot means "no info", never "all
-/// peers gone", so this fn is a no-op when `registry` is empty (every name maps
-/// to nothing → `None => true` keeps everything). Returns (reconciled, pruned).
+/// peers gone", so this fn is a no-op when `registry` is empty. Returns
+/// (reconciled, pruned).
 pub fn reconcile_manual_against_registry(
+    manual: ManualPeerList,
+    registry: &HashMap<String, String>,
+) -> (ManualPeerList, usize) {
+    let mut registry_addrs: HashMap<String, HashSet<String>> = HashMap::new();
+    for (name, addr) in registry {
+        registry_addrs
+            .entry(name.clone())
+            .or_default()
+            .insert(addr.clone());
+    }
+    reconcile_manual_against_registry_addrs(manual, &registry_addrs)
+}
+
+/// V34 candidate-set reconcile: a registry node can have multiple routable
+/// candidates. Keep a same-name manual peer if it matches any current registry
+/// route address; prune only same-name addresses that are absent from the
+/// current candidate set.
+pub fn reconcile_manual_against_registry_addrs(
     mut manual: ManualPeerList,
-    registry: &std::collections::HashMap<String, String>,
+    registry: &HashMap<String, HashSet<String>>,
 ) -> (ManualPeerList, usize) {
     let before = manual.peers.len();
     manual.peers.retain(|p| match &p.name {
         Some(name) => match registry.get(name) {
-            // same name, different addr in registry → stale reinstall ghost, drop
-            Some(reg_addr) => reg_addr == &p.addr,
+            // Same name, absent from every current candidate -> stale ghost, drop.
+            Some(route_addrs) => route_addrs.contains(&p.addr),
             // name not in registry → LAN-only manual peer, keep
             None => true,
         },
@@ -290,6 +318,73 @@ pub fn reconcile_manual_against_registry(
     });
     let pruned = before - manual.peers.len();
     (manual, pruned)
+}
+
+fn cached_registry_route_addr_sets(nodes: &[CachedNode]) -> HashMap<String, HashSet<String>> {
+    let mut registry = HashMap::new();
+    for node in nodes {
+        let route_addrs = cache_node_route_addrs(node);
+        if route_addrs.is_empty() {
+            continue;
+        }
+        registry
+            .entry(node.name.clone())
+            .or_insert_with(HashSet::new)
+            .extend(route_addrs);
+    }
+    registry
+}
+
+/// V34 boot/local reconcile. On process start, use the still-valid cached
+/// registry as the most recent server truth and remove same-name manual ghosts
+/// before the first heartbeat succeeds. This is deliberately a no-op when the
+/// cache is missing, expired, or has no routable candidates.
+pub fn reconcile_manual_peers_with_cached_registry(
+    musu_home: &Path,
+) -> Result<ManualPeerReconcileReport> {
+    let manual = ManualPeerList::load(musu_home);
+    let before_count = manual.peers.len();
+    let Some(cache) = CachedRegistry::load(musu_home) else {
+        return Ok(ManualPeerReconcileReport {
+            cache_available: false,
+            registry_node_count: 0,
+            registry_route_addr_count: 0,
+            before_count,
+            after_count: before_count,
+            pruned_count: 0,
+            changed: false,
+        });
+    };
+
+    let registry = cached_registry_route_addr_sets(&cache.nodes);
+    let registry_route_addr_count = registry.values().map(|addrs| addrs.len()).sum();
+    if registry.is_empty() {
+        return Ok(ManualPeerReconcileReport {
+            cache_available: true,
+            registry_node_count: 0,
+            registry_route_addr_count,
+            before_count,
+            after_count: before_count,
+            pruned_count: 0,
+            changed: false,
+        });
+    }
+
+    let (reconciled, pruned_count) = reconcile_manual_against_registry_addrs(manual, &registry);
+    let after_count = reconciled.peers.len();
+    if pruned_count > 0 {
+        reconciled.save(musu_home)?;
+    }
+
+    Ok(ManualPeerReconcileReport {
+        cache_available: true,
+        registry_node_count: registry.len(),
+        registry_route_addr_count,
+        before_count,
+        after_count,
+        pruned_count,
+        changed: pruned_count > 0,
+    })
 }
 
 pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
@@ -767,6 +862,62 @@ mod tests {
         assert!(addrs.contains(&"192.168.1.192:8001"), "current addr kept");
         assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
         assert!(addrs.contains(&"10.0.0.43:1"), "nameless peer kept");
+    }
+
+    #[test]
+    fn boot_reconcile_prunes_stale_manual_but_keeps_current_candidate_set() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "192.168.1.192:8001".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "candidate_endpoints": [
+                        { "kind": "lan", "addr": "192.168.1.192:8001" },
+                        { "kind": "tailscale", "addr": "100.64.1.192:8001" }
+                    ]
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:2957".into(), Some("hugh-main".into())); // stale old port
+        manual.add("100.64.1.192:8001".into(), Some("hugh-main".into())); // current candidate
+        manual.add("10.0.0.42:9999".into(), Some("lan-only-box".into()));
+        manual.add("10.0.0.43:9999".into(), None);
+        manual.save(&dir).unwrap();
+
+        let report = reconcile_manual_peers_with_cached_registry(&dir).unwrap();
+        assert!(report.cache_available);
+        assert!(report.changed);
+        assert_eq!(report.registry_node_count, 1);
+        assert_eq!(report.registry_route_addr_count, 2);
+        assert_eq!(report.before_count, 4);
+        assert_eq!(report.after_count, 3);
+        assert_eq!(report.pruned_count, 1);
+
+        let reconciled = ManualPeerList::load(&dir);
+        let addrs: Vec<&str> = reconciled.peers.iter().map(|p| p.addr.as_str()).collect();
+        assert!(
+            !addrs.contains(&"192.168.1.192:2957"),
+            "stale same-name old port is pruned"
+        );
+        assert!(
+            addrs.contains(&"100.64.1.192:8001"),
+            "same-name current secondary candidate is kept"
+        );
+        assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
+        assert!(addrs.contains(&"10.0.0.43:9999"), "nameless peer kept");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

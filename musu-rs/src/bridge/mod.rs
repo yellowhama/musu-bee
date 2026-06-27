@@ -429,6 +429,30 @@ pub async fn run() -> Result<()> {
         .unwrap_or_else(|| std::path::Path::new("."))
         .to_path_buf();
 
+    match crate::peer::discovery::reconcile_manual_peers_with_cached_registry(&musu_home) {
+        Ok(report) => {
+            if report.changed {
+                tracing::info!(
+                    pruned = report.pruned_count,
+                    before = report.before_count,
+                    after = report.after_count,
+                    registry_nodes = report.registry_node_count,
+                    "boot reconciled stale manual peers against cached registry"
+                );
+            } else {
+                tracing::debug!(
+                    cache_available = report.cache_available,
+                    registry_nodes = report.registry_node_count,
+                    manual_peers = report.before_count,
+                    "boot manual peer reconcile completed without changes"
+                );
+            }
+        }
+        Err(err) => {
+            tracing::warn!(err = %err, "boot manual peer reconcile failed");
+        }
+    }
+
     if let Some(token) = crate::cloud::token::load_token(&musu_home) {
         let cloud_base_url = crate::cloud::base_url_from_env();
         let cloud = crate::cloud::MusuCloud::new(&cloud_base_url, Some(token.clone()));

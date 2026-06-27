@@ -418,7 +418,7 @@ function Get-ReleaseNextActions {
                 break
             }
             "v34-stale-self-heal" {
-                $actions.Add((New-NextAction -Area $area -Summary "Prove V34 stale registry/cache/manual-peer self-heal on physical machines." -ActionType "manual_then_command" -ManualSteps @("Inject stale registry/cache/manual peer evidence for the current version.", "Prove heartbeat TTL hides stale cloud rows.", "Prove boot reconcile cleans stale local state.", "Prove route preflight chooses a reachable candidate before a stale first candidate without duplicate task execution.", "Record docs\evidence\v34-self-heal\$Version\*.json with schema musu.v34_self_heal_proof.v1 and ok=true.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -EvidencePath "docs\evidence\v34-self-heal\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "This is a physical E2E proof lane; current candidate/TTL code is not enough without stale-state evidence.")) | Out-Null
+                $actions.Add((New-NextAction -Area $area -Summary "Prove V34 stale registry/cache/manual-peer self-heal on physical machines." -ActionType "manual_then_command" -ManualSteps @("Inject stale registry/cache/manual peer evidence for the current version.", "Prove heartbeat TTL hides stale cloud rows.", "Prove boot reconcile cleans stale local state.", "Prove route preflight chooses a reachable candidate before a stale first candidate without duplicate task execution.", "Record docs\evidence\v34-self-heal\$Version\*.json with schema musu.v34_self_heal_proof.v1 and ok=true.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -EvidencePath "docs\evidence\v34-self-heal\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-v34-self-heal-proof.ps1 -EvidencePath <V34_SELF_HEAL_JSON> -ExpectedVersion $Version -Json" -AutomationBlockedReason "This is a physical E2E proof lane; current candidate/TTL code is not enough without stale-state evidence.")) | Out-Null
                 break
             }
             "multi-device" {
@@ -716,6 +716,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/verify-support-mailbox-evidence.ps1",
         "scripts/windows/verify-brain-product-proof.ps1",
+        "scripts/windows/verify-v34-self-heal-proof.ps1",
         "scripts/windows/verify-store-submission-bundle.ps1",
         "scripts/windows/show-final-release-handoff-status.ps1",
         "scripts/windows/show-operator-handoff-card.ps1",
@@ -1769,6 +1770,7 @@ $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidenc
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $brainProductVerifierScript = Join-Path $scriptDir "verify-brain-product-proof.ps1"
+$v34SelfHealVerifierScript = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $privateMeshReleaseProofArchiveVerifierScript = Join-Path $scriptDir "verify-private-mesh-release-proof-archive.ps1"
 $p2pEnvStatusScript = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
@@ -2711,17 +2713,22 @@ $v34SelfHealLookup = Get-LatestJsonEvidence `
     -Version $version `
     -Schema "musu.v34_self_heal_proof.v1"
 $v34SelfHealEvidence = $v34SelfHealLookup.json
+$v34SelfHealVerificationResult = $null
+if ([bool]$v34SelfHealLookup.found) {
+    $v34SelfHealVerificationResult = Invoke-JsonScript `
+        -FilePath $v34SelfHealVerifierScript `
+        -Arguments @(
+            "-EvidencePath", $v34SelfHealLookup.path,
+            "-ExpectedVersion", $version,
+            "-ExpectedPackageVersion", $expectedPackageVersion,
+            "-Json"
+        ) `
+        -AllowFailure
+}
 $v34SelfHealVerified = (
-    [bool]$v34SelfHealLookup.found -and
-    $v34SelfHealEvidence -and
-    $v34SelfHealEvidence.PSObject.Properties["ok"] -and
-    [bool]$v34SelfHealEvidence.ok -and
-    $v34SelfHealEvidence.PSObject.Properties["ttl_prune_ok"] -and
-    [bool]$v34SelfHealEvidence.ttl_prune_ok -and
-    $v34SelfHealEvidence.PSObject.Properties["boot_reconcile_ok"] -and
-    [bool]$v34SelfHealEvidence.boot_reconcile_ok -and
-    $v34SelfHealEvidence.PSObject.Properties["stale_candidate_e2e_ok"] -and
-    [bool]$v34SelfHealEvidence.stale_candidate_e2e_ok
+    $v34SelfHealVerificationResult -and
+    $v34SelfHealVerificationResult.json -and
+    [bool]$v34SelfHealVerificationResult.json.ok
 )
 
 $relayTransportProductVerified = (
@@ -3118,6 +3125,8 @@ $result = [pscustomobject]@{
                 found = [bool]$v34SelfHealLookup.found
                 path = [string]$v34SelfHealLookup.path
                 verified = [bool]$v34SelfHealVerified
+                verification = if ($v34SelfHealVerificationResult -and $v34SelfHealVerificationResult.json) { $v34SelfHealVerificationResult.json } else { $null }
+                verification_error = if ($v34SelfHealVerificationResult -and -not $v34SelfHealVerificationResult.json) { [string]$v34SelfHealVerificationResult.raw } else { "" }
             }
         }
     }

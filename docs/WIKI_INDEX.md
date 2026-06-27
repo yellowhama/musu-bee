@@ -8925,4 +8925,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-014357-HUGH_SECOND.brain-product-proof`, and
   `brain_product_verified=true`.
 
+- 2026-06-28 V34 self-heal gate hardening + boot reconcile:
+  V34 is still not fully complete, but the implementation/gate moved forward.
+  `musu-rs/src/peer/discovery.rs` now has
+  `reconcile_manual_peers_with_cached_registry`, a boot/local reconcile path
+  that uses a still-valid cached registry as server truth and prunes same-name
+  stale manual peer ghosts before first cloud heartbeat. The reconcile is
+  candidate-set aware, so same-name manual peers matching any current registry
+  route candidate are preserved. `musu-rs/src/bridge/mod.rs` calls this during
+  bridge startup independent of cloud token availability.
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now rejects weak
+  `musu.v34_self_heal_proof.v1` boolean-only JSON and requires structured TTL
+  prune, boot reconcile, stale-first route preflight, physical two-node, and
+  exactly-one task execution evidence; `write-release-go-no-go.ps1` invokes this
+  verifier before setting `v34_stale_self_heal_verified=true`. Regression:
+  `boot_reconcile_prunes_stale_manual_but_keeps_current_candidate_set`,
+  `V34 self-heal accepts release-grade physical stale proof`,
+  `V34 self-heal rejects weak boolean-only proof`,
+  `V34 self-heal rejects duplicate task execution proof`, and
+  `V34 self-heal rejects unroutable selected candidate proof`. Current status
+  remains `v34_stale_self_heal_verified=false` until physical evidence is
+  recorded under `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms
+  should include `verify-v34-self-heal-proof.ps1`,
+  `reconcile_manual_peers_with_cached_registry`, `candidate-set aware reconcile`,
+  `same-name stale manual ghost`, `stale-first route preflight`, and
+  `v34_stale_self_heal_verified=false`.
+
 **End of WIKI_INDEX.md.**
