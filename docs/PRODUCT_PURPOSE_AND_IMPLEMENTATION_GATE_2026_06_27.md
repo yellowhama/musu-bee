@@ -42,8 +42,8 @@ true and verified:
 | `last_heartbeat` was fabricated from registry fetch time | Fixed in current tree | `musu-rs/src/bridge/mod.rs` uses `registry_last_seen_to_heartbeat(&node.last_seen)` before writing `CachedNode.last_heartbeat`; `cargo test --manifest-path musu-rs\Cargo.toml --lib registry_last_seen -j 1` passed. |
 | Remote `127.0.0.1` public URL survived as route truth | Fixed in current tree | `public_url_to_remote_addr` rejects loopback/wildcard hosts; `resolve_all_peers` ignores unusable cache rows and keeps a valid same-name manual LAN peer; `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable -Json` passed with `ok=true`, `fail_count=0`. |
 | Relay-display counted as online | Fixed in current tree | `tally_fleet()` counts only `healthy` peers; `cargo test --manifest-path musu-rs\Cargo.toml --lib tally_counts_only_direct_healthy_peers_online -j 1` passed. |
-| `bridge.json`/actual bind confusion can understate attack surface | Proven on `hugh_second`; still needs live proof per machine | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `bridge_bind_addr=0.0.0.0:11105`, `advertised_public_url=http://192.168.1.154:11105`, `online_nodes=1`, and `direct_healthy_nodes=1`. The same proof is still missing on `hugh-main`. |
-| `tls/key.pem` and `private_mesh.toml` ACLs were too broad | Proven on `hugh_second`; still needs live proof per machine | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `tls_key_acl_restricted`, `private_mesh_acl_restricted`, and `brain_ingest_token_acl_restricted` all passing. The same proof is still missing on `hugh-main`. |
+| `bridge.json`/actual bind confusion can understate attack surface | Proven on both physical nodes for rc.22 direct fleet | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `bridge_bind_addr=0.0.0.0:11105`, `advertised_public_url=http://192.168.1.154:11105`, `online_nodes=1`, and `direct_healthy_nodes=1`. Hosted `fleet-proof.ps1` then passed on `hugh-main` with `bridge_bind_addr=0.0.0.0:4387`, `advertised_public_url=http://192.168.1.192:4387`, `online_nodes=2`, and `direct_healthy_nodes=2`. |
+| `tls/key.pem` and `private_mesh.toml` ACLs were too broad | Proven on `hugh_second`; brain ingest token ACL also proven on `hugh-main` | `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json` passed on `hugh_second` with `tls_key_acl_restricted`, `private_mesh_acl_restricted`, and `brain_ingest_token_acl_restricted` all passing. Hosted `fleet-proof.ps1 -RequireBrainToken` passed on `hugh-main` with `brain_token_present=true` and `brain_ingest_token_acl_restricted` passing. |
 
 ## Fresh Verification Snapshot
 
@@ -61,6 +61,29 @@ Current `hugh_second` evidence captured on 2026-06-27 KST:
 - Service registry contract tests also pass:
   `cargo test --manifest-path musu-rs\Cargo.toml --lib bridge::services::tests:: -j 1`
   (`21/21`).
+- After the main PC proof, `musu status --json` on `hugh_second` reports both
+  nodes healthy over direct routes: `hugh_second` at
+  `http://192.168.1.154:11105` and `hugh-main` at
+  `http://192.168.1.192:4387`.
+
+Current `hugh-main` proof captured on 2026-06-27 KST:
+
+- Evidence file:
+  `docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`.
+- Hosted `fleet-proof.ps1` schema: `musu.fleet_node_proof.v1`.
+- Result: `ok=true`, `fail_count=0`, `warn_count=0`.
+- Installed package:
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`.
+- Bridge bind and advertised URL are separated correctly:
+  `bridge_bind_addr=0.0.0.0:4387`,
+  `advertised_public_url=http://192.168.1.192:4387`.
+- Fleet counts are now direct-green across both PCs: `total_nodes=2`,
+  `online_nodes=2`, `direct_healthy_nodes=2`.
+- Expected direct peer proof passes for `hugh_second`.
+- Cloud registry URLs are remote-usable, with
+  `remote_cloud_warning_count=0`.
+- Brain token custody passes with `brain_token_required=true`,
+  `brain_token_present=true`, and `brain_ingest_token_acl_restricted`.
 
 ## System Design Boundary
 
@@ -75,24 +98,14 @@ Current `hugh_second` evidence captured on 2026-06-27 KST:
 
 ## Current Main Constraint
 
-The remaining blocker is not more local reasoning. It is physical evidence from
-the main PC.
+The two-machine direct route proof is now green for the current rc.22 package.
+The remaining merge/release blocker is explicit PR #34 design approval evidence:
+issue #35 needs an approval comment, and the PR body must say `Design: Approved`
+with the approval URL.
 
-Run on `hugh-main`:
-
-```powershell
-irm https://musu.pro/install.ps1 | iex
-```
-
-Launch MUSU once, then run:
-
-```powershell
-& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json
-```
-
-Until that emits `musu.fleet_node_proof.v1` with the expected installed version,
-remote-usable URL, direct peer proof, and brain token ACL proof, MUSU can be
-called ready on `hugh_second` but not on the two-machine product goal.
+This does not prove Store readiness or real relay transport for delegated work.
+Release reporting must continue to keep direct, relay-display, and offline as
+separate states.
 
 ## Next Implementation Gate
 
@@ -101,18 +114,19 @@ Do not add new product breadth until this gate is green:
 1. `hugh-main` installs `1.15.0-rc.22` through the public one-line installer.
 2. `hugh-main` first launch creates the expected runtime services and brain token.
 3. Hosted `fleet-proof.ps1` passes with `-ExpectedDirectPeerName hugh_second`.
-4. PR #34 design-gate has explicit approval evidence.
-5. The final report states direct, relay-display, and offline as separate states
+4. The proof JSON is saved in the release evidence tree.
+5. PR #34 design-gate has explicit approval evidence.
+6. The final report states direct, relay-display, and offline as separate states
    without implying relay transport for delegated work.
 
 ## Confidence
 
 High confidence: the pasted audit's top three runtime defects are fixed in the
-current tree and covered by targeted tests.
+current tree and covered by targeted tests; the current two-PC direct route
+claim is backed by `hugh_second` status and `hugh-main` hosted proof evidence.
 
-Medium confidence: the install channel and proof wrapper are correct because the
-live verifier passed previously, but physical `hugh-main` evidence is still
-absent in this workspace.
+Medium confidence: the public install/proof channel is correct for rc.22 because
+the live verifier and hosted `hugh-main` proof both passed.
 
-Not proven: real two-machine product readiness, Store readiness, and release
-relay transport readiness.
+Not proven: PR #34 design approval, Store readiness, and real relay transport
+readiness.

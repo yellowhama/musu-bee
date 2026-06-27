@@ -1,0 +1,137 @@
+{
+  "schema": "musu.fleet_node_proof.v1",
+  "generated_at": "2026-06-27T01:02:01.8191155Z",
+  "ok": true,
+  "fail_count": 0,
+  "warn_count": 0,
+  "expected_node_name": "hugh-main",
+  "expected_direct_peer_name": "hugh_second",
+  "expected_package_version": "1.15.0.22",
+  "package_full_name": "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+  "installed_package_version": "1.15.0.22",
+  "repair": {
+    "schema": "musu.fleet_node_public_url_repair.v1",
+    "generated_at": "2026-06-27T01:01:58.1569157Z",
+    "node_name": "hugh-main",
+    "package_full_name": "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "restarted_bridge": true,
+    "stopped_registered_bridge": true,
+    "started_bridge_pid": 21116,
+    "bridge_pid": 21116,
+    "service_registry_bind_addr": "0.0.0.0:4387",
+    "advertised_public_url": "http://192.168.1.192:4387",
+    "advertised_public_url_remote_usable": true,
+    "cloud_public_url": "http://192.168.1.192:4387",
+    "cloud_public_url_remote_usable": true,
+    "fleet_status_ok": true,
+    "fleet_online_nodes": 2,
+    "fleet_total_nodes": 2
+  },
+  "bridge_bind_addr": "0.0.0.0:4387",
+  "advertised_public_url": "http://192.168.1.192:4387",
+  "self_node": "hugh-main",
+  "total_nodes": 2,
+  "online_nodes": 2,
+  "direct_healthy_nodes": 2,
+  "remote_cloud_warning_count": 0,
+  "brain_token_required": true,
+  "brain_token_present": true,
+  "checks": [
+    {
+      "name": "public_install_channel_validate_release",
+      "status": "pass",
+      "message": "Hosted install.ps1 validates the current public release channel.",
+      "details": null
+    },
+    {
+      "name": "public_repair_fleet_script",
+      "status": "pass",
+      "message": "Hosted repair-fleet.ps1 produced fleet URL repair evidence.",
+      "details": null
+    },
+    {
+      "name": "repair_advertised_url_remote_usable",
+      "status": "pass",
+      "message": "Repair evidence advertised URL is remote usable: http://192.168.1.192:4387",
+      "details": null
+    },
+    {
+      "name": "musu_package_status_json",
+      "status": "pass",
+      "message": "musu package-status returned JSON.",
+      "details": null
+    },
+    {
+      "name": "package_identity",
+      "status": "pass",
+      "message": "MUSU is running from the store-msix package identity.",
+      "details": null
+    },
+    {
+      "name": "installed_package_version_matches_release",
+      "status": "pass",
+      "message": "Installed package version matches expected 1.15.0.22.",
+      "details": null
+    },
+    {
+      "name": "musu_doctor_json",
+      "status": "pass",
+      "message": "musu doctor --json returned JSON.",
+      "details": null
+    },
+    {
+      "name": "local_bridge_reachable",
+      "status": "pass",
+      "message": "Local bridge health is reachable.",
+      "details": null
+    },
+    {
+      "name": "self_advertised_url_remote_usable",
+      "status": "pass",
+      "message": "Self advertised URL is usable by other PCs: http://192.168.1.192:4387",
+      "details": null
+    },
+    {
+      "name": "musu_status_json",
+      "status": "pass",
+      "message": "musu status --json returned JSON.",
+      "details": null
+    },
+    {
+      "name": "expected_node_name",
+      "status": "pass",
+      "message": "This node is hugh-main.",
+      "details": null
+    },
+    {
+      "name": "online_nodes_direct_only",
+      "status": "pass",
+      "message": "online_nodes counts direct/healthy nodes only: 2",
+      "details": null
+    },
+    {
+      "name": "expected_direct_peer",
+      "status": "pass",
+      "message": "Expected peer 'hugh_second' is healthy over direct route.",
+      "details": null
+    },
+    {
+      "name": "cloud_self_public_url_remote_usable",
+      "status": "pass",
+      "message": "Cloud self public_url is remote usable: http://192.168.1.192:4387",
+      "details": null
+    },
+    {
+      "name": "remote_cloud_registry_rows",
+      "status": "pass",
+      "message": "No remote cloud registry row has an unusable public_url.",
+      "details": null
+    },
+    {
+      "name": "brain_ingest_token_acl_restricted",
+      "status": "pass",
+      "message": "brain runtime/musu-ingest.token ACL is restricted.",
+      "details": null
+    }
+  ]
+}

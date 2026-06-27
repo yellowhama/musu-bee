@@ -64,8 +64,17 @@ direct-route proof.
   supplied. That is intentional for post-install proof because stale bridge
   process state was one of the audit findings.
 
-## Remaining External Evidence
+## Current Evidence
 
-This runbook cannot produce physical `hugh-main` evidence from `hugh_second`.
-The command above must be run on `hugh-main`, and the resulting JSON should be
-attached to the release/handoff notes.
+The command above was run on `hugh-main` for rc.22 and the resulting JSON is
+saved at:
+
+`docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`
+
+That proof is `ok=true`, `fail_count=0`, `warn_count=0`, package
+`1.15.0.22`, `advertised_public_url=http://192.168.1.192:4387`,
+`online_nodes=2`, `direct_healthy_nodes=2`, expected direct peer
+`hugh_second`, and `brain_ingest_token_acl_restricted` passing.
+
+This evidence is valid for the current rc.22 physical direct-route claim. Rerun
+the proof for any new package, node identity, installer route, or release claim.

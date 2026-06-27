@@ -3,7 +3,7 @@
 > 다른 에이전트/엔지니어용. 이번 세션(2026-06-25~26)에 main에 들어간 것, 미해결, 다음 행동.
 > main HEAD `f9eadede`(V29-31). **V33은 브랜치 `feat/v33-residual-finalize`로 push되어 PR #34에 있음
 > (main 미머지 — design-gate 승인 대기).**
-> 버전 **rc.21**.
+> 원래 기준 버전 **rc.21**. 2026-06-27 addendum에서 public channel은 **rc.22 / MSIX 1.15.0.22**로 갱신됨.
 
 ## 2026-06-27 rc.22 release-channel follow-up
 
@@ -44,7 +44,12 @@ token ACL hardening이 포함된 패키지를 `musu.pro` 설치 경로로 실제
   live `verify-musu-pro-install-channel.ps1 -Json`은 `/fleet-proof.ps1` checks까지
   `ok=true`, `failure_count=0`. `https://musu.pro/fleet-proof.ps1`는 HTTP 200,
   length `16747`, `musu.fleet_node_proof.v1`, `ExpectedPackageVersion = "1.15.0.22"`를 노출한다.
-- 남은 외부 proof는 physical `hugh-main`에서 이 full proof command를 실행해 나온 JSON이다.
+- physical `hugh-main` full proof도 완료됐다. Hosted `fleet-proof.ps1` 결과는
+  `schema=musu.fleet_node_proof.v1`, `ok=true`, `fail_count=0`, `warn_count=0`,
+  `installed_package_version=1.15.0.22`, `advertised_public_url=http://192.168.1.192:4387`,
+  `online_nodes=2`, `direct_healthy_nodes=2`, expected peer `hugh_second`, and
+  `brain_ingest_token_acl_restricted`. Evidence:
+  `docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`.
 - `verify-fleet-audit-contract.ps1`는 이제 repo `VERSION`에서 expected package version을 계산해
   installed MSIX package version과 비교한다. stale package 진단은 `-ExpectedPackageVersion 1.15.0.21` 또는
   `-AllowInstalledPackageVersionMismatch`를 명시할 때만 통과/경고로 본다.
@@ -111,8 +116,9 @@ Go brain chip(`F:\musu_2nd_brain`)은 코드 변경 없이 유지하고, `musu-b
 ## TL;DR (한 문장)
 musu fleet이 **재설치/포트변경/업데이트에도 손 안 대고 복원**되도록 4겹 근본수정을 머지했고
 audit hotfix + cleanup CLI까지 포함한 **rc.21 MSIX 산출/second 설치 검증 완료**. `musu.pro`
-production install channel도 rc.21로 배포 완료. 남은 핵심은 PR #34 design-gate 승인과
-hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를 실증하는 것.
+production install channel은 rc.22까지 배포 완료. `hugh-main` physical direct proof도 rc.22에서
+완료되어 현재 남은 핵심은 PR #34 design-gate 승인이다. Store readiness와 real relay transport는
+별도 증거가 필요하다.
 
 ## 머지된 것 (PR #29~#33)
 | 영역 | 무엇 | 근본 원인 | 파일 |
@@ -288,34 +294,31 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   `-Json`은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`.
 
 ## ⚠️ 미해결 / 다음 행동
-1. 🟡 **hugh-main 물리 머신 검증은 아직 별도**: production registry stale loopback row는 더 이상
-   현재 warning으로 남지 않는다. `verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json`
-   실측은 `ok=true`, `warn_count=0`, `remote_cloud_warning_count=0`,
-   `online_nodes=1`, `direct_healthy_nodes=1`. 다만 main PC 자체가 실제로 켜져 있고
-   작업 수신 가능한지는 main에서 rc.22 설치/재시작/첫 실행 후 확인해야 한다. main에서 실행할
-   release-grade 검증 절차:
-   `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`.
-   통과 조건: `schema=musu.fleet_node_proof.v1`, `ok=true`,
-   `installed_package_version=1.15.0.22`, brain token present+restricted,
-   `advertised_public_url`/`cloud_public_url`이 loopback/wildcard가 아니고,
-   `expected_direct_peer`가 direct healthy.
+1. ✅ **hugh-main 물리 머신 검증 완료(rc.22)**: hosted
+   `fleet-proof.ps1 -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`
+   결과가 `ok=true`, `fail_count=0`, `warn_count=0`, `installed_package_version=1.15.0.22`,
+   `advertised_public_url=http://192.168.1.192:4387`, `online_nodes=2`,
+   `direct_healthy_nodes=2`, expected peer `hugh_second`, brain token present+restricted로 통과했다.
+   증거는 `docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`.
+   `hugh_second`의 `musu status --json`도 두 PC direct healthy를 확인했다.
 2. ✅ **musu.pro production install channel 배포 완료**:
-   guarded publisher로 `desktop-latest` rc.21 assets를 업로드했고 canary가 `ok=true`, `failure_count=0`.
-   Vercel remote build deploy `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`가 최신 `https://musu.pro` alias임.
+   guarded publisher로 `desktop-latest` rc.22 assets를 업로드했고 canary가 `ok=true`, `failure_count=0`.
+   Vercel production deploy `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`와 site-only `/fleet-proof.ps1`
+   follow-up `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`가 `https://musu.pro` alias로 검증됨.
    `verify-musu-pro-install-channel.ps1 -Json`은 `ok=true`, `failure_count=0`;
-   `/api/health`는 200 `musu.site_health.v1` + `1.15.0-rc.21`,
-   `/api/public-config`는 `releaseVersion=1.15.0-rc.21`,
-   `/install.ps1`는 `ExpectedReleaseVersion=1.15.0-rc.21`와 cert thumbprint를 노출하며,
-   `/repair-fleet.ps1`는 HTTP 200, length 7195, `musu.fleet_node_public_url_repair.v1`,
-   `ExpectedNodeName`을 노출한다.
+   `/api/health`는 200 `musu.site_health.v1` + `1.15.0-rc.22`,
+   `/api/public-config`는 `releaseVersion=1.15.0-rc.22`,
+   `/install.ps1`는 `ExpectedReleaseVersion="1.15.0-rc.22"`와 cert thumbprint를 노출하며,
+   `/repair-fleet.ps1`와 `/fleet-proof.ps1`가 release proof 경로를 제공한다.
 3. 🔴 **PR #34 merge gate**: GitHub code/test/deploy checks는 통과했지만 `design-gate`는 계속 실패.
    실제 `Design: Approved` + design brief/artifact 없이는 merge하지 않는다.
 4. 🟡 **W-4 relay-fallback flip 잔여**: main이 다시 reachable해진 뒤, LAN bind 차단으로 direct 실패 유도
    → 노랑 "relay" 표시(display-only, `online_nodes`/targetable 제외) → heartbeat 만료 → offline 3-state 전이
    검증(플레이북 `E2E_FLEET_3STATE_PLAYBOOK_2026_06_23.md`).
-5. 🟡 **brain first-run evidence 잔여**: 새 build/package를 실행해 `~\.musu\brain\runtime\musu-ingest.token`이
-   생성되는지 확인한 뒤 `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`을 통과시켜야
-   brain bonding을 release-grade로 부를 수 있다.
+5. 🟡 **brain bonding release-grade 증거 일부 잔여**: rc.22 packaged first-run에서
+   `~\.musu\brain\runtime\musu-ingest.token` 생성과 restricted ACL은 `hugh_second`와 `hugh-main`
+   proof로 통과했다. 다만 loopback brain `/health`와 실제 task source ingest evidence는 별도 증거가
+   필요하므로 brain bonding 전체를 release-grade로 부르려면 추가 검증이 필요하다.
 6. 🟡 **DPAPI at-rest retroactive 갭(신규 발견 2026-06-26)**: V31 bearer ensure는 **값이 다를 때만**
    `write_mesh_bearer`를 부른다(compare-then-write, watcher churn 회피 — 의도된 설계). 따라서 **이미
    올바른 평문 bearer를 가진 기존 머신은 영영 평문**으로 남고 DPAPI 암호화가 retroactive 적용 안 됨.
@@ -363,10 +366,10 @@ hugh-main 물리 머신을 rc.21로 1회 올려 non-loopback URL/direct route를
   It must print the same success line through the exact hosted `irm/iex` path.
 - live second: WindowsApps alias `musu doctor --json` must show `distribution=store-msix`,
   `bridge.service_registry_bind_addr=0.0.0.0:<ephemeral-port>`,
-  `bridge.advertised_public_url=http://192.168.1.154:<same-port>`, and account warning for
-  `hugh-main: cloud public_url points to loopback/wildcard`.
-- live fleet: `musu status --json` must show `hugh_second healthy/direct`, `hugh-main offline`,
-  `total_nodes=2`, `online_nodes=1` until main republishes a non-loopback URL.
+  `bridge.advertised_public_url=http://192.168.1.154:<same-port>`.
+- live fleet: current rc.22 proof expects `musu status --json` to show `hugh_second`
+  and `hugh-main` healthy/direct, `total_nodes=2`, `online_nodes=2`,
+  `direct_healthy_nodes=2`.
 - live cloud list: `musu nodes --json` must hide remote-unusable rows under
   `filtered_unusable_nodes`; `musu nodes --json --include-unusable` is the explicit audit view.
 - brain bonding: `cargo test --manifest-path musu-rs\Cargo.toml --jobs 1 --lib
