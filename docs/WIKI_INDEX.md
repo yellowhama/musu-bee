@@ -8766,6 +8766,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `brain_ingest_token_acl_restricted`, `release next steps proof complete`,
   `handoff rc22 proof complete`, and `V34 physical two-PC proof status`.
 
+- 2026-06-27 PR #34 rc.22 proof code audit and next steps:
+  `docs/PR34_RC22_TWO_PC_PROOF_CODE_AUDIT_NEXT_STEPS_2026_06_27.md` is the
+  consolidated handoff for the current work. It records the evidence baseline,
+  product spec deltas, system-design findings, code audit, qualitative
+  evaluation, updated docs, LLM/wiki/index status, and next action packet after
+  the physical `hugh-main` proof. Current judgment: rc.22 two-PC direct fleet
+  readiness is proven by hosted machine JSON, but PR #34 design approval, Store
+  readiness, real relay transport, and full brain health/task-ingest evidence
+  remain separate unproven claims. Final index refresh for this doc:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  3314 files and 3847 symbols. Search terms should include
+  `PR34_RC22_TWO_PC_PROOF_CODE_AUDIT_NEXT_STEPS`,
+  `qualitative evaluation`, `product spec deltas`,
+  `current rc.22 direct fleet claim is good`,
+  `Design: Pending`, `issue #35 approval`, `hugh-main-20260627T010201Z`,
+  `Store readiness not proven`, `relay transport not proven`, and
+  `brain health task ingest evidence`.
+
 - 2026-06-27 design-gate token hardening:
   `scripts/design-gate/evaluate.cjs` now accepts `Design: Approved` only as a
   standalone status line. This fixes the PR-body bypass where a pending PR could
