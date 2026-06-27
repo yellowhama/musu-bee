@@ -32,6 +32,7 @@ $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
 $brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
+$v34SelfHealRecorder = Join-Path $scriptDir "record-v34-self-heal-proof.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -5822,6 +5823,47 @@ Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without 
 $fixture = Write-Fixture -Name "v34-self-heal-valid" -Object (New-V34SelfHealProofEvidence)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal accepts release-grade physical stale proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$v34RouteEvidence = [pscustomobject]@{
+    schema = "musu.route_evidence.v1"
+    result = "success"
+    route_kind = "lan"
+    candidate_addr = "192.168.1.192:4387"
+}
+$fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $v34RouteEvidence
+$v34RecorderOutputRoot = Join-Path $OutputRoot "v34-self-heal-recorder-output"
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealRecorder -Arguments @(
+    "-Version", $ExpectedVersion,
+    "-ExpectedPackageVersion", $expectedPackageVersion,
+    "-OutputRoot", $v34RecorderOutputRoot,
+    "-SourceNodeName", "hugh_second",
+    "-TargetNodeName", "hugh-main",
+    "-SelectedCandidateAddr", "192.168.1.192:4387",
+    "-RouteEvidencePath", $fixture,
+    "-TtlStaleRowInjected", "1",
+    "-TtlRegistryCurrentExcludesStaleRows", "1",
+    "-TtlExpiredRowsHidden", "1",
+    "-TtlStaleRowCountBefore", "1",
+    "-TtlStaleRowCountAfter", "0",
+    "-TtlHeartbeatTtlSec", "300",
+    "-TtlStaleRowLastSeenAt", $now.AddMinutes(-20).ToString("o"),
+    "-BootCacheAvailable", "1",
+    "-BootStaleManualPeerRemoved", "1",
+    "-BootLanOnlyManualPeerPreserved", "1",
+    "-BootSameNameCurrentCandidatePreserved", "1",
+    "-BootManualPeerCountBefore", "4",
+    "-BootManualPeerCountAfter", "3",
+    "-BootPrunedManualPeerCount", "1",
+    "-RoutePhysicalTwoNodeEvidence", "1",
+    "-RouteStaleCandidateInjected", "1",
+    "-RouteStaleCandidateWasFirst", "1",
+    "-RouteSelectedReachableCandidateBeforeStale", "1",
+    "-RouteDuplicateTaskExecutionPrevented", "1",
+    "-RouteChecked", "1",
+    "-RouteTaskPostCount", "1",
+    "-Json"
+)
+Add-CaseResult -Cases $cases -Name "V34 self-heal recorder emits verifier-passing release proof" -Verifier "record-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
 
 $weakV34Proof = [pscustomobject]@{
     schema = "musu.v34_self_heal_proof.v1"

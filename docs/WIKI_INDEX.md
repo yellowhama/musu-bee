@@ -8925,7 +8925,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-014357-HUGH_SECOND.brain-product-proof`, and
   `brain_product_verified=true`.
 
-- 2026-06-28 V34 self-heal gate hardening + boot reconcile:
+- 2026-06-28 V34 self-heal gate hardening + boot reconcile + recorder:
   V34 is still not fully complete, but the implementation/gate moved forward.
   `musu-rs/src/peer/discovery.rs` now has
   `reconcile_manual_peers_with_cached_registry`, a boot/local reconcile path
@@ -8938,15 +8938,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.v34_self_heal_proof.v1` boolean-only JSON and requires structured TTL
   prune, boot reconcile, stale-first route preflight, physical two-node, and
   exactly-one task execution evidence; `write-release-go-no-go.ps1` invokes this
-  verifier before setting `v34_stale_self_heal_verified=true`. Regression:
+  verifier before setting `v34_stale_self_heal_verified=true`.
+  `scripts/windows/record-v34-self-heal-proof.ps1` is now the canonical physical
+  proof recorder: it writes `musu.v34_self_heal_proof.v1`, immediately runs the
+  verifier, emits hashes/summary output, and fails closed instead of relying on
+  hand-written JSON. It also binds the selected candidate to the embedded route
+  evidence candidate and requires distinct physical node names. Regression:
   `boot_reconcile_prunes_stale_manual_but_keeps_current_candidate_set`,
   `V34 self-heal accepts release-grade physical stale proof`,
+  `V34 self-heal recorder emits verifier-passing release proof`,
   `V34 self-heal rejects weak boolean-only proof`,
   `V34 self-heal rejects duplicate task execution proof`, and
   `V34 self-heal rejects unroutable selected candidate proof`. Current status
   remains `v34_stale_self_heal_verified=false` until physical evidence is
   recorded under `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms
   should include `verify-v34-self-heal-proof.ps1`,
+  `record-v34-self-heal-proof.ps1`,
   `reconcile_manual_peers_with_cached_registry`, `candidate-set aware reconcile`,
   `same-name stale manual ghost`, `stale-first route preflight`, and
   `v34_stale_self_heal_verified=false`.
@@ -8967,7 +8974,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu-rs/src/bridge/handlers/relay_payload.rs`. Verification:
   `bridge::rendezvous::tests::release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed`
   passed, and `scripts/windows/test-release-evidence-verifiers.ps1 -Json` now
-  reports `ok=true`, `case_count=183`, `failed_case_count=0`. Search terms
+  reports `ok=true`, `case_count=184`, `failed_case_count=0`. Search terms
   should include `release_relay_tunnel_submission_contract`,
   `submit_release_relay_tunnel_payload`, `quic_relay_tunnel`,
   `quic_tls_1_3`, `musu_quic_tls_transport`,
