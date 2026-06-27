@@ -361,7 +361,7 @@ Verification:
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`.
 - `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
-  `ok=true`, `case_count=204`, and `failed_case_count=0`.
+  `ok=true`, `case_count=205`, and `failed_case_count=0`.
 
 This hardens the V34 release proof contract. It still does not close the V34
 lane: the artifact-bound proof must be produced from a rebuilt packaged physical
@@ -534,6 +534,41 @@ This removes the stale source-contract audit failure but does not close the
 `relay_transport` lane. The lane still needs the separate relay design gate,
 real runtime transport, `musu.relay_transport_proof.v1`, route evidence with the
 relay proof attached, and a two-PC physical test with direct path blocked.
+
+## 2026-06-28 Relay Second-PC Proof Kit Alignment
+
+Follow-up audit found that the final operator packet documented the relay
+failure-injection gate, but the second-PC multi-device kit did not yet carry the
+same hosted P2P/relay status, recorder, verifier, and direct-blocked proof
+runbook. That made the physical relay proof path easier to miss during an
+operator run.
+
+Source fix:
+
+- `scripts/windows/prepare-multidevice-test-kit.ps1` now copies
+  `show-musu-pro-p2p-env-status.ps1`,
+  `record-p2p-control-plane-evidence.ps1`, and
+  `verify-p2p-control-plane-evidence.ps1` into the kit.
+- The generated README now has a dedicated
+  "Relay transport failure-injection proof" section. It keeps relay separate
+  from direct route and V34 stale self-heal proof, requires a direct-blocked
+  two-PC run, and names `musu.relay_transport_proof.v1`,
+  `musu.route_evidence.v1` with relay proof attached, and
+  `musu.relay_payload_delivery_proof.v1` as the evidence set.
+- The runbook states that this remains diagnostic and
+  `relay_transport_product_verified=false` until real QUIC/TLS relay runtime
+  and verifier-passing physical evidence exist.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `second-PC kit includes relay transport proof tools and runbook`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=205`, and `failed_case_count=0`.
+
+This aligns the physical proof collection path with the roadmap, but does not
+close the lane. `relay_transport_product_verified=false` remains correct until
+real relay runtime and direct-blocked physical evidence exist.
 
 ## Current Completion State
 

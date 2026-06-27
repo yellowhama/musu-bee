@@ -64,6 +64,9 @@ $scriptFiles = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "show-musu-pro-p2p-env-status.ps1",
+    "record-p2p-control-plane-evidence.ps1",
+    "verify-p2p-control-plane-evidence.ps1",
     "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
     "verify-v34-self-heal-proof.ps1",
@@ -238,6 +241,33 @@ It resolves `suggested_remote_addrs`, runs `musu peer add`, confirms
 prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
 `smoke-multidevice-beta.ps1` commands to use next. This catches the
 `peer not found` state before wasting a 60s post-route CPU matrix.
+
+## Relay transport failure-injection proof
+
+The relay transport release lane is separate from direct route proof and V34
+stale self-heal proof. To close it, block the direct path between the two
+physical PCs, prove the relay task succeeds, and record hosted control-plane
+evidence that contains the release relay transport and payload delivery proofs.
+
+The kit includes the hosted P2P/relay status, recorder, and verifier scripts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-p2p-control-plane-evidence.ps1 -EvidencePath .local-build\p2p-control-plane\<P2P_EVIDENCE_JSON> -ExpectedVersion __VERSION__ -ExpectedBaseUrl https://musu.pro -RequireIntegrity -Json
+```
+
+Release-grade relay evidence must include `musu.relay_transport_proof.v1`,
+release `quic_relay_tunnel` / `quic_tls_1_3` transport metadata,
+`musu.route_evidence.v1` with relay proof attached, and
+`musu.relay_payload_delivery_proof.v1` from the actual relay payload path. The
+route evidence must not be a normal LAN/direct record; the proof must come from
+a direct-blocked two-PC run where `payload_transited_musu_infra=true`.
+
+Until that real QUIC/TLS relay runtime and direct-blocked physical evidence
+exist, this section is diagnostic only and `relay_transport_product_verified=false`.
+Only a verifier-passing evidence file with those proofs can make
+`relay_transport_product_verified=true`.
 
 ## V34 stale self-heal proof
 

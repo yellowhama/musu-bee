@@ -1143,6 +1143,36 @@ function Test-SecondPcKitV34SelfHealProofContract {
     return $true
 }
 
+function Test-SecondPcKitRelayTransportProofContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"show-musu-pro-p2p-env-status.ps1"',
+        '"record-p2p-control-plane-evidence.ps1"',
+        '"verify-p2p-control-plane-evidence.ps1"',
+        '## Relay transport failure-injection proof',
+        'block the direct path between the two',
+        'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
+        'verify-p2p-control-plane-evidence.ps1 -EvidencePath',
+        'musu.relay_transport_proof.v1',
+        'quic_relay_tunnel',
+        'quic_tls_1_3',
+        'musu.route_evidence.v1` with relay proof attached',
+        'musu.relay_payload_delivery_proof.v1',
+        'payload_transited_musu_infra=true',
+        'relay_transport_product_verified=false',
+        'relay_transport_product_verified=true'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SupportMailboxVerificationRequestContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -5226,6 +5256,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit includes V34 self-heal proof tools and runbook" `
     -Verifier "second-PC V34 self-heal source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitRelayTransportProofOk = Test-SecondPcKitRelayTransportProofContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitRelayTransportProofOk `
+    -Message "second-PC transfer kit must include relay transport status/record/verify tools and direct-blocked physical proof runbook guidance"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes relay transport proof tools and runbook" `
+    -Verifier "second-PC relay transport source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
     -Invocation $invocation

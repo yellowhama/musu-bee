@@ -9225,7 +9225,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Regression harness now includes
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`; latest
-  run reports `ok=true`, `case_count=204`, and `failed_case_count=0`. This
+  run reports `ok=true`, `case_count=205`, and `failed_case_count=0`. This
   hardens the proof contract but does not close the lane:
   `v34_stale_self_heal_verified=false` until a rebuilt packaged physical
   stale-state proof with source artifacts is committed under
@@ -9237,5 +9237,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `boot_source_evidence_matches_parameters`,
   `route_evidence_sha256`, and
   `V34 self-heal rejects proof without TTL and boot source artifacts`.
+
+- 2026-06-28 relay second-PC proof kit alignment:
+  the final operator packet already documented the relay failure-injection gate,
+  but the second-PC multi-device kit did not carry the same physical proof path.
+  `scripts/windows/prepare-multidevice-test-kit.ps1` now copies
+  `show-musu-pro-p2p-env-status.ps1`,
+  `record-p2p-control-plane-evidence.ps1`, and
+  `verify-p2p-control-plane-evidence.ps1`; the generated README has a
+  `Relay transport failure-injection proof` section requiring a direct-blocked
+  two-PC run, `musu.relay_transport_proof.v1`, `musu.route_evidence.v1` with
+  relay proof attached, and `musu.relay_payload_delivery_proof.v1`. The section
+  explicitly keeps `relay_transport_product_verified=false` until real
+  QUIC/TLS relay runtime and verifier-passing physical evidence exist.
+  Regression harness now includes
+  `second-PC kit includes relay transport proof tools and runbook`; latest run
+  reports `ok=true`, `case_count=205`, and `failed_case_count=0`. Search terms
+  should include `relay second-PC proof kit alignment`,
+  `Relay transport failure-injection proof`,
+  `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json`, and
+  `musu.relay_payload_delivery_proof.v1`.
 
 **End of WIKI_INDEX.md.**
