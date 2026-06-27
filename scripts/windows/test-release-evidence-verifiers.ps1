@@ -37,6 +37,8 @@ $brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $v34SelfHealRecorder = Join-Path $scriptDir "record-v34-self-heal-proof.ps1"
 $v34SourceArtifactRecorder = Join-Path $scriptDir "record-v34-source-artifacts.ps1"
+$storeReleaseVerifier = Join-Path $scriptDir "verify-store-release-evidence.ps1"
+$storeReleaseRecorder = Join-Path $scriptDir "record-store-release-verification.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -997,6 +999,10 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         'real delegated-work relay transport proof',
         'V34 stale registry/cache/manual-peer physical self-heal proof',
         'Store distribution approval and Store-signed install evidence',
+        '-StoreSignedInstallEvidencePath',
+        '-StoreDesktopEntrypointEvidencePath',
+        '-StoreInstallObservedAt',
+        '-StoreLaunchObservedAt',
         'support/operator evidence: formal mailbox-delivery gate retirement is recorded',
         'The old support mailbox delivery gate is not a remaining blocker',
         'Gate D - V34 stale self-heal physical proof',
@@ -2017,11 +2023,18 @@ function Test-GoNoGoNextActionsContract {
         'verify-support-operator-gate-retirement.ps1',
         'formal retirement still requires current public support metadata proof.',
         'record-support-mailbox-verification.ps1',
-        'Verify the Store submission bundle locally, then record Partner Center approval evidence after Microsoft certification is complete.',
+        'Verify the Store bundle, then record Partner Center approval plus Store-signed install and desktop launch evidence.',
         'Reserve or confirm the MUSU product name in Partner Center.',
         'Wait for certification approval and restricted capability approval.',
-        'Partner Center reservation, submission, certification, and restricted capability approval must exist before Store release evidence can be recorded.',
+        'Install the approved Microsoft Store package on a physical Windows machine, not a local sideload package.',
+        'capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration',
+        'audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json',
+        'Partner Center reservation, certification, restricted capability approval, and Store-signed install/launch evidence must exist before Store release evidence can be recorded.',
         'record-store-release-verification.ps1',
+        '-StoreSignedInstallEvidencePath',
+        '-StoreDesktopEntrypointEvidencePath',
+        '-StoreInstallObservedAt',
+        '-StoreLaunchObservedAt',
         'show-musu-pro-p2p-env-status.ps1 -Json',
         'record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
         'Release-grade relay payload endpoint and relay tunnel runtime are not implemented/proven yet; this command is diagnostic until those source/env/live gates pass.',
@@ -4432,6 +4445,147 @@ function New-MsixInstallEvidence {
     }
 }
 
+function New-StoreSignedInstallEvidence {
+    param([string]$StartupContract = "store-reviewed-immediate-registration")
+
+    [pscustomobject]@{
+        schema = "musu.msix_install_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        startup_contract = $StartupContract
+        recorded_at = $now.ToString("o")
+        operator_machine = "STORE-TEST"
+        operator_user = "operator"
+        package_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        package_name = "blossompark.musu"
+        artifact_version = $expectedPackageVersion
+        package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        installed_version = $expectedPackageVersion
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        startup_task_id = "MusuBridgeStartup"
+        startup_enabled = "true"
+        startup_immediate_registration = "true"
+        non_user_configurable_startup_capability = $true
+        run_full_trust = $true
+        artifact_contract_match = $true
+        windowsapps_alias_present = $true
+        alias_visible_in_get_command = $true
+        windowsapps_alias_invocation = '& "C:\Users\operator\AppData\Local\Microsoft\WindowsApps\musu.exe"'
+        first_alias_path = "C:\Users\operator\AppData\Local\Microsoft\WindowsApps\musu.exe"
+        alias_shadowed_by = $null
+        alias_shadowing_mode = "fail"
+        alias_shadowing_accepted = $false
+        start_menu_entry = $true
+        expected_start_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"
+        startup_conflict_count = 0
+        alias_shadowing_count = 0
+        legacy_conflict_count = 0
+        checks = @(
+            [pscustomobject]@{ name = "artifact path"; status = "pass"; message = "MSIX artifact exists" },
+            [pscustomobject]@{ name = "package identity"; status = "pass"; message = "package identity resolved" },
+            [pscustomobject]@{ name = "installed package"; status = "pass"; message = "package is installed for current user" },
+            [pscustomobject]@{ name = "musu exe"; status = "pass"; message = "musu.exe exists in installed package" },
+            [pscustomobject]@{ name = "startup exe"; status = "pass"; message = "musu-startup.exe exists in installed package" },
+            [pscustomobject]@{ name = "installed manifest"; status = "pass"; message = "AppxManifest.xml exists in installed package" },
+            [pscustomobject]@{ name = "installed alias contract"; status = "pass"; message = "installed manifest declares appExecutionAlias" },
+            [pscustomobject]@{ name = "installed startup contract"; status = "pass"; message = "installed manifest declares startupTask" },
+            [pscustomobject]@{ name = "artifact contract match"; status = "pass"; message = "installed startup contract matches current artifact" },
+            [pscustomobject]@{ name = "version match"; status = "pass"; message = "installed version matches artifact" },
+            [pscustomobject]@{ name = "windowsapps alias file"; status = "pass"; message = "WindowsApps alias file exists" },
+            [pscustomobject]@{ name = "windowsapps alias discoverable"; status = "pass"; message = "WindowsApps alias is discoverable via Get-Command" },
+            [pscustomobject]@{ name = "alias not shadowed"; status = "pass"; message = "PATH resolves WindowsApps alias first" },
+            [pscustomobject]@{ name = "legacy startup conflicts"; status = "pass"; message = "no legacy startup/bin conflicts found" },
+            [pscustomobject]@{ name = "legacy alias shadowing"; status = "pass"; message = "no legacy alias shadowing found" }
+        )
+    }
+}
+
+function New-StoreDesktopEntrypointEvidence {
+    [pscustomobject]@{
+        schema = "musu.msix_desktop_entrypoint_audit.v1"
+        ok = $true
+        version = $ExpectedVersion
+        recorded_at = $now.ToString("o")
+        operator_machine = "STORE-TEST"
+        operator_user = "operator"
+        startup_contract = "store-reviewed-immediate-registration"
+        package_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        package_name = "blossompark.musu"
+        expected_application_executable = "musu-desktop.exe"
+        runtime_executable = "musu.exe"
+        startup_executable = "musu-startup.exe"
+        require_installed_package = $true
+        installed = [pscustomobject]@{
+            package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            package_family_name = "blossompark.musu_f5h38pf4yt4gc"
+            install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            application_id = "MUSU"
+            application_executable = "musu-desktop.exe"
+            alias_executable = "musu.exe"
+            alias_name = "musu.exe"
+            startup_executable = "musu-startup.exe"
+            startup_task_id = "MusuBridgeStartup"
+            startup_immediate_registration = "true"
+            has_non_user_configurable_startup_capability = $true
+            has_run_full_trust = $true
+            startup_contract_matches_artifact = $true
+            contains_expected_application_executable = $true
+            contains_runtime_executable = $true
+            contains_startup_executable = $true
+            start_menu_entry = $true
+        }
+        checks = @(
+            [pscustomobject]@{ name = "installed application executable"; status = "pass"; message = "installed application executable is musu-desktop.exe" },
+            [pscustomobject]@{ name = "installed startup contract matches artifact"; status = "pass"; message = "installed startup contract matches the audited artifact" },
+            [pscustomobject]@{ name = "installed Start menu entry"; status = "pass"; message = "installed package has a Start menu entry" }
+        )
+    }
+}
+
+function New-StoreReleaseEvidence {
+    param(
+        [switch]$MissingInstallEvidence,
+        [switch]$MissingEntrypointEvidence,
+        [string]$InstallStartupContract = "store-reviewed-immediate-registration"
+    )
+
+    $installEvidence = if ($MissingInstallEvidence) { $null } else { New-StoreSignedInstallEvidence -StartupContract $InstallStartupContract }
+    $entrypointEvidence = if ($MissingEntrypointEvidence) { $null } else { New-StoreDesktopEntrypointEvidence }
+    [pscustomobject]@{
+        schema = "musu.store_release_gate_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        product_name = "MUSU"
+        product_name_reserved = $true
+        product_name_reserved_at = $now.AddDays(-10).ToString("o")
+        submission_id = "store-submission-123"
+        certification_status = "approved"
+        restricted_capability_status = "approved"
+        submitted_at = $now.AddDays(-9).ToString("o")
+        certification_completed_at = $now.AddDays(-8).ToString("o")
+        restricted_capability_completed_at = $now.AddDays(-8).ToString("o")
+        store_install_source = "microsoft_store"
+        store_install_observed_at = $now.AddDays(-7).ToString("o")
+        store_launch_observed_at = $now.AddDays(-7).AddMinutes(5).ToString("o")
+        store_signed_install_evidence_path = if ($MissingInstallEvidence) { "" } else { "fixture-store-install.json" }
+        store_signed_install_evidence_sha256 = if ($MissingInstallEvidence) { "" } else { "8888888888888888888888888888888888888888888888888888888888888888" }
+        store_signed_install_evidence = $installEvidence
+        store_signed_install_verification = if ($MissingInstallEvidence) { $null } else {
+            [pscustomobject]@{
+                ok = ($InstallStartupContract -eq "store-reviewed-immediate-registration")
+                fail_count = $(if ($InstallStartupContract -eq "store-reviewed-immediate-registration") { 0 } else { 1 })
+                startup_contract = $InstallStartupContract
+                package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            }
+        }
+        store_desktop_entrypoint_evidence_path = if ($MissingEntrypointEvidence) { "" } else { "fixture-store-entrypoint.json" }
+        store_desktop_entrypoint_evidence_sha256 = if ($MissingEntrypointEvidence) { "" } else { "9999999999999999999999999999999999999999999999999999999999999999" }
+        store_desktop_entrypoint_evidence = $entrypointEvidence
+        recorded_at = $now.AddDays(-7).AddMinutes(10).ToString("o")
+        recorded_by = "operator"
+    }
+}
+
 $cases = New-Object System.Collections.Generic.List[object]
 
 $freshnessClassifierScripts = @(
@@ -6075,6 +6229,22 @@ $loopbackDirectRouteEvidence.candidate_addr = "127.0.0.1:4387"
 $fixture = Write-Fixture -Name "direct-route-rejects-loopback-candidate" -Object $loopbackDirectRouteEvidence
 $invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
 Add-CaseResult -Cases $cases -Name "direct route rejects loopback candidate address" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-valid-with-signed-install-and-entrypoint" -Object (New-StoreReleaseEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release accepts Partner Center approval bound to Store-signed install and desktop entrypoint proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "store-release-missing-install-proof" -Object (New-StoreReleaseEvidence -MissingInstallEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects Partner Center approval without Store-signed install proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-local-sideload-install-proof" -Object (New-StoreReleaseEvidence -InstallStartupContract "local-sideload-manual")
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects local sideload install proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-missing-entrypoint-proof" -Object (New-StoreReleaseEvidence -MissingEntrypointEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects approval without installed desktop entrypoint proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "brain-product-valid" -Object (New-BrainProductProofEvidence)
 $invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")

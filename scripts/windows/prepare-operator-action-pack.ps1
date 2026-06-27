@@ -350,8 +350,10 @@ Restricted capability notes:
 - Paste/attach PARTNER_CENTER_CERTIFICATION_NOTES_CLEAN.txt and partner-center-capability-justification.md.
 - Keep multi-device wording beta-gated; do not claim public multi-device release readiness until second-PC evidence is recorded.
 
-After Partner Center approval, record evidence from the release repo:
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification and restricted capability review approved" -Json
+After Partner Center approval, install the approved Microsoft Store package on a physical Windows machine, capture Store-signed install evidence, capture the installed desktop entrypoint audit, then record evidence from the release repo:
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" -StoreInstallObservedAt "<store-install-observed-at>" -StoreLaunchObservedAt "<store-launch-observed-at>" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" -Json
 "@
     $storeReadme | Set-Content -LiteralPath (Join-Path $storeDir "PARTNER_CENTER_UPLOAD_README_CURRENT.txt") -Encoding UTF8
     $partnerCenterZip = Join-Path $storeDir "MUSU-$safeVersion-store-submission-$stamp.zip"

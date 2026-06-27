@@ -204,18 +204,32 @@ In Partner Center:
 4. include the restricted-capability explanation for the packaged desktop/runtime behavior
 5. submit for Microsoft certification
 6. wait for certification and restricted capability approval
+7. install the approved Microsoft Store package on a physical Windows machine
+8. capture Store-signed install evidence and installed desktop-entrypoint evidence
 
 After approval:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 `
+  -StartupContract store-reviewed-immediate-registration
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 `
+  -StartupContract store-reviewed-immediate-registration `
+  -RequireInstalledPackage `
+  -Json
+
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `
   -ProductNameReservedAt "<partner-center-name-reserved-at>" `
   -SubmissionId "<partner-center-submission-id>" `
   -CertificationStatus "approved" `
   -RestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -RecordedBy "<operator-name>" `
-  -Notes "Microsoft Store certification and restricted capability review approved" `
+  -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -Json
 ```
 
@@ -236,8 +250,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -StoreRecordedBy "<operator-name>" `
-  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -StoreNotes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -FailOnNotReady `
   -Json
 ```

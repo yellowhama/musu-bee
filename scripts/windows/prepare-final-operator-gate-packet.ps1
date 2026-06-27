@@ -555,8 +555,9 @@ payload path.
 ## Gate F - Store release approval evidence
 
 After Partner Center product name reservation, app submission, Microsoft package
-certification, and restricted startup capability approval complete, record those
-values with the final command below.
+certification, restricted startup capability approval, Store-signed install, and
+installed desktop launch proof complete, record those values with the final
+command below.
 Before upload, verify the prepared Store submission bundle from the real MUSU
 release repo root:
 
@@ -571,8 +572,18 @@ entrypoint audit directly against the installed Store/MSIX package, use:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
 ```
 
+After the Microsoft Store package is approved, install it from the Store on a
+physical Windows machine. Do not reuse local sideload evidence for this gate.
+Capture the Store-signed install proof and the installed desktop-entrypoint
+proof:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
+```
+
 If you need to record Store approval separately before the final command, run
-this from the real MUSU release repo root:
+this from the real MUSU release repo root with those two evidence paths:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
@@ -581,8 +592,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
   -SubmissionId "<partner-center-submission-id>" `
   -CertificationStatus "approved" `
   -RestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -RecordedBy "<operator-name>" `
-  -Notes "Microsoft Store certification and restricted capability review approved" `
+  -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -Json
 ```
 
@@ -847,8 +862,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -StoreRecordedBy "<operator-name>" `
-  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -StoreNotes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -FailOnNotReady `
   -Json
 ```

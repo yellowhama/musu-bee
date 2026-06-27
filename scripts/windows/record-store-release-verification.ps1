@@ -12,6 +12,12 @@ param(
     [datetimeoffset]$CertificationCompletedAt = [datetimeoffset]::Now,
     [datetimeoffset]$RestrictedCapabilityCompletedAt = [datetimeoffset]::Now,
     [string]$PublishedAt = "",
+    [Parameter(Mandatory = $true)][string]$StoreSignedInstallEvidencePath,
+    [Parameter(Mandatory = $true)][string]$StoreDesktopEntrypointEvidencePath,
+    [ValidateSet("microsoft_store")]
+    [string]$StoreInstallSource = "microsoft_store",
+    [Parameter(Mandatory = $true)][string]$StoreInstallObservedAt,
+    [Parameter(Mandatory = $true)][string]$StoreLaunchObservedAt,
     [string]$Notes = "",
     [string]$Version,
     [string]$OutputRoot,
@@ -38,12 +44,82 @@ if ([string]::IsNullOrWhiteSpace($ProductNameReservedAt)) {
     throw "ProductNameReservedAt is required. Record the actual Partner Center product-name reservation timestamp; do not infer it from submission time."
 }
 $resolvedProductNameReservedAt = [datetimeoffset]::Parse($ProductNameReservedAt)
+$resolvedStoreInstallObservedAt = [datetimeoffset]::Parse($StoreInstallObservedAt)
+$resolvedStoreLaunchObservedAt = [datetimeoffset]::Parse($StoreLaunchObservedAt)
+if ($resolvedStoreLaunchObservedAt -lt $resolvedStoreInstallObservedAt) {
+    throw "StoreLaunchObservedAt must be at or after StoreInstallObservedAt."
+}
+
 $stamp = $recordedAt.ToString("yyyyMMdd-HHmmss")
 $safeProductName = $ProductName -replace "[^A-Za-z0-9._-]", "_"
 $baseName = "$stamp-$safeProductName"
 $evidencePath = Join-Path $OutputRoot "$baseName.evidence.json"
 $verificationPath = Join-Path $OutputRoot "$baseName.verification.json"
 $summaryPath = Join-Path $OutputRoot "$baseName.summary.md"
+
+function Read-EvidenceJsonWithHash {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    $json = Get-Content -LiteralPath $resolved -Raw | ConvertFrom-Json
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash.ToLowerInvariant()
+    [pscustomobject]@{
+        path = $resolved
+        sha256 = $hash
+        json = $json
+    }
+}
+
+function Invoke-JsonScriptOrThrow {
+    param(
+        [Parameter(Mandatory = $true)][string]$ScriptPath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $text = (& powershell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Name did not verify.`n$text"
+    }
+    return ($text | ConvertFrom-Json)
+}
+
+$storeSignedInstall = Read-EvidenceJsonWithHash -Path $StoreSignedInstallEvidencePath
+$storeDesktopEntrypoint = Read-EvidenceJsonWithHash -Path $StoreDesktopEntrypointEvidencePath
+
+$msixInstallVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
+$storeSignedInstallVerification = Invoke-JsonScriptOrThrow `
+    -ScriptPath $msixInstallVerifier `
+    -Arguments @(
+        "-EvidencePath", $storeSignedInstall.path,
+        "-ExpectedVersion", $Version,
+        "-ExpectedStartupContract", "store-reviewed-immediate-registration",
+        "-AliasShadowingMode", "fail",
+        "-Json"
+    ) `
+    -Name "Store-signed MSIX install evidence"
+
+$entryInstalled = if ($storeDesktopEntrypoint.json -and $storeDesktopEntrypoint.json.PSObject.Properties["installed"]) {
+    $storeDesktopEntrypoint.json.installed
+} else {
+    $null
+}
+$entrypointOk = (
+    [string]$storeDesktopEntrypoint.json.schema -eq "musu.msix_desktop_entrypoint_audit.v1" -and
+    [bool]$storeDesktopEntrypoint.json.ok -and
+    [string]$storeDesktopEntrypoint.json.version -eq $Version -and
+    [string]$storeDesktopEntrypoint.json.startup_contract -eq "store-reviewed-immediate-registration" -and
+    [bool]$storeDesktopEntrypoint.json.require_installed_package -and
+    [string]$storeDesktopEntrypoint.json.expected_application_executable -eq "musu-desktop.exe" -and
+    $entryInstalled -and
+    [bool]$entryInstalled.start_menu_entry -and
+    [string]$entryInstalled.application_executable -eq "musu-desktop.exe" -and
+    [bool]$entryInstalled.startup_contract_matches_artifact -and
+    [bool]$entryInstalled.contains_expected_application_executable
+)
+if (-not $entrypointOk) {
+    throw "Store desktop entrypoint evidence must be a passing installed store-reviewed-immediate-registration audit for musu-desktop.exe."
+}
 
 $evidence = [pscustomobject]@{
     schema = "musu.store_release_gate_evidence.v1"
@@ -60,6 +136,16 @@ $evidence = [pscustomobject]@{
     certification_completed_at = $CertificationCompletedAt.ToString("o")
     restricted_capability_completed_at = $RestrictedCapabilityCompletedAt.ToString("o")
     published_at = $PublishedAt
+    store_install_source = $StoreInstallSource
+    store_install_observed_at = $resolvedStoreInstallObservedAt.ToString("o")
+    store_launch_observed_at = $resolvedStoreLaunchObservedAt.ToString("o")
+    store_signed_install_evidence_path = $storeSignedInstall.path
+    store_signed_install_evidence_sha256 = $storeSignedInstall.sha256
+    store_signed_install_evidence = $storeSignedInstall.json
+    store_signed_install_verification = $storeSignedInstallVerification
+    store_desktop_entrypoint_evidence_path = $storeDesktopEntrypoint.path
+    store_desktop_entrypoint_evidence_sha256 = $storeDesktopEntrypoint.sha256
+    store_desktop_entrypoint_evidence = $storeDesktopEntrypoint.json
     recorded_at = $recordedAt.ToString("o")
     recorded_by = $RecordedBy
     operator_machine = $env:COMPUTERNAME
@@ -96,6 +182,13 @@ $summary = @"
 - Certification completed at: $($CertificationCompletedAt.ToString("o"))
 - Restricted capability completed at: $($RestrictedCapabilityCompletedAt.ToString("o"))
 - Published at: $PublishedAt
+- Store install source: $StoreInstallSource
+- Store install observed at: $($resolvedStoreInstallObservedAt.ToString("o"))
+- Store launch observed at: $($resolvedStoreLaunchObservedAt.ToString("o"))
+- Store signed install evidence: $([System.IO.Path]::GetFileName($storeSignedInstall.path))
+- Store signed install evidence SHA256: $($storeSignedInstall.sha256)
+- Store desktop entrypoint evidence: $([System.IO.Path]::GetFileName($storeDesktopEntrypoint.path))
+- Store desktop entrypoint evidence SHA256: $($storeDesktopEntrypoint.sha256)
 - Recorded by: $RecordedBy
 - Evidence: $([System.IO.Path]::GetFileName($evidencePath))
 - Evidence SHA256: $($evidenceHash.Hash.ToLowerInvariant())
@@ -124,6 +217,9 @@ $result = [pscustomobject]@{
     submission_id = $SubmissionId
     certification_status = $CertificationStatus
     restricted_capability_status = $RestrictedCapabilityStatus
+    store_install_source = $StoreInstallSource
+    store_signed_install_evidence_path = (Resolve-Path -LiteralPath $storeSignedInstall.path).Path
+    store_desktop_entrypoint_evidence_path = (Resolve-Path -LiteralPath $storeDesktopEntrypoint.path).Path
 }
 
 if ($Json) {

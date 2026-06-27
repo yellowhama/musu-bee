@@ -21,6 +21,16 @@ proof for rc.22. It still does not prove the full product: design approval,
 Store release/Store-signed install evidence, real relay transport, and V34
 stale self-heal proof still remain.
 
+2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
+`record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
+no longer accept Partner Center approval timestamps by themselves. The Store
+lane requires an approved Microsoft Store package installed on a physical
+Windows machine, `musu.msix_install_evidence.v1` for the Store-reviewed startup
+contract, `musu.msix_desktop_entrypoint_audit.v1` proving the installed Start
+menu app launches `musu-desktop.exe`, and install/launch timestamps ordered
+after certification and restricted capability approval. This tightens the gate;
+it does not close the Store lane until real Store-signed evidence exists.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not
@@ -533,7 +543,7 @@ relay proof attached, and a two-PC physical test with direct path blocked.
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and route-evidence-bound strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
-| Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
+| Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; verifier/recorder now require Partner Center approval plus Store-signed install evidence, installed desktop-entrypoint evidence, and Store install/launch timestamps; actual Microsoft Store evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
 | Support/operator evidence | Complete for current rc.22 governance | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*` | Support availability remains required and verified through public metadata |
 
@@ -574,7 +584,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
 | INFO | Direct delegated-work over LAN is now proven for rc.22. | Packaged route evidence `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json` verifies successfully and the go/no-go lane `direct_delegated_work_route` reports `pass`. | The previous 401/invalid-bearer blocker is closed for direct routes. | Keep the evidence committed; do not treat it as relay or release-grade transport proof. |
 | INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
-| HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
+| HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs and verifier require Partner Center/MS certification/restricted capability approval plus Store-signed install proof and installed `musu-desktop.exe` entrypoint proof. | Public release through Store remains a manual/external gate, and approval-only records cannot flip the lane green. | Prepare current Store bundle, reserve product name, pass restricted capability review/certification, install the approved Store package on a physical machine, then record Store-signed install and launch proof. |
 | MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL, boot/local reconcile, and artifact-bound strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Rebuild the package, run the physical stale registry/cache/manual-peer proof, capture TTL/boot source artifacts, and commit verifier-passing evidence. |
 | INFO | Support mailbox delivery proof is now a retired historical gate once retirement evidence is current. | The replacement gate requires live support/privacy/public-config proof and rejects evidence that retires support availability. | This removes an operator-only release blocker without weakening the public support contract. | Keep public metadata verified; use mailbox proof only as an optional operational check. |
 
@@ -649,14 +659,17 @@ Deliverables:
 - Current Store submission bundle for rc.22 or successor.
 - Partner Center product-name reservation evidence.
 - Restricted capability review package.
-- Microsoft certification or Store-signed release evidence.
+- Microsoft certification and restricted capability approval evidence.
 - Store-signed install/launch proof on a physical machine.
 
 Proof:
 - `prepare-store-submission-bundle.ps1`.
 - `verify-store-submission-bundle.ps1`.
-- `record-store-release-verification.ps1`.
-- Store-signed installed package identity and launch evidence.
+- `record-store-release-verification.ps1` with `-StoreSignedInstallEvidencePath`,
+  `-StoreDesktopEntrypointEvidencePath`, `-StoreInstallObservedAt`, and
+  `-StoreLaunchObservedAt`.
+- Store-signed installed package identity, strict alias policy, Start-menu
+  entrypoint, and launch evidence.
 
 Exit criteria:
 - Store readiness changes from "not proven" to "proven by Microsoft-reviewed

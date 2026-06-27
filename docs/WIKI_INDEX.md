@@ -260,7 +260,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | Final operator gate packet/action pack generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/prepare-operator-action-pack.ps1`, `scripts/windows/verify-operator-action-pack.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1`, `scripts/windows/show-second-pc-return-card.ps1`, `scripts/windows/import-second-pc-return.ps1` | active |
 | — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
 | — | Second-PC handoff collector, release-check wrapper, and return importer | 2026-05-29 | `scripts/windows/collect-second-pc-handoff.ps1`, `scripts/windows/run-second-pc-release-check.ps1`, `scripts/windows/import-second-pc-return.ps1` | active |
-| — | Store release evidence verifier/recorder | 2026-05-29 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
+| — | Store release evidence verifier/recorder | 2026-05-29; hardened 2026-06-28 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
 | — | Store submission bundle verifier | 2026-05-30 | `scripts/windows/verify-store-submission-bundle.ps1` | active |
 | — | MSIX desktop entrypoint audit | 2026-05-31 | `scripts/windows/audit-msix-desktop-entrypoint.ps1`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json` | active |
 | — | Packaged desktop single-instance audit | 2026-06-02 | `scripts/windows/audit-musu-desktop-single-instance.ps1`, `.local-build/desktop-single-instance/musu-desktop-single-instance-20260602-005439-HUGH_SECOND.json` | active |
@@ -9182,6 +9182,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `record-v34-self-heal-proof.ps1`, `record-p2p-control-plane-evidence.ps1
   -BaseUrl https://musu.pro -Json`, and
   `musu.relay_payload_delivery_proof.v1`.
+
+- 2026-06-28 Store release evidence hardening:
+  `scripts/windows/record-store-release-verification.ps1` and
+  `scripts/windows/verify-store-release-evidence.ps1` now require
+  Microsoft Store approval evidence to be bound to physical Store install and
+  launch proof. A valid Store release record must include
+  `-StoreSignedInstallEvidencePath`, `-StoreDesktopEntrypointEvidencePath`,
+  `-StoreInstallObservedAt`, and `-StoreLaunchObservedAt`; the embedded install
+  proof must be `musu.msix_install_evidence.v1` for
+  `store-reviewed-immediate-registration`, and the embedded desktop proof must
+  be `musu.msix_desktop_entrypoint_audit.v1` proving the installed Start-menu
+  app launches `musu-desktop.exe`. This prevents Partner Center approval
+  timestamps alone from flipping `store_release_verified=true`. Search terms
+  should include `StoreSignedInstallEvidencePath`,
+  `StoreDesktopEntrypointEvidencePath`, `store_install_source`,
+  `musu.msix_install_evidence.v1`, and
+  `musu.msix_desktop_entrypoint_audit.v1`.
 
 - 2026-06-28 V34 artifact-bound proof contract:
   follow-up audit found that the V34 proof was stricter than boolean-only JSON

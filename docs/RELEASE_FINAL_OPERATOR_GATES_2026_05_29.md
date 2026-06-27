@@ -290,8 +290,8 @@ operator machine/user metadata, and requires `remote_addr` to include a port
 ## Gate 4 - Store Release Approval Evidence
 
 After Partner Center product name reservation, app submission, Microsoft package
-certification, and restricted startup capability approval complete, record the
-approval result:
+certification, restricted startup capability approval, Store-signed install, and
+installed desktop launch proof complete, record the approval result:
 
 Before upload, verify the prepared Store submission bundle:
 
@@ -302,6 +302,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store
 The Store bundle verifier now fails if the MSIX Start-menu application launches
 `musu.exe` instead of `musu-desktop.exe`.
 
+After Microsoft approval, install the approved Store package on a physical
+Windows machine. Do not use local sideload evidence for this gate. Capture the
+Store-signed install proof and installed desktop-entrypoint proof first:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
+```
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 `
   -ProductName "MUSU" `
@@ -309,8 +318,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store
   -SubmissionId "<partner-center-submission-id>" `
   -CertificationStatus "approved" `
   -RestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -RecordedBy "<operator-name>" `
-  -Notes "Microsoft Store certification and restricted capability review approved" `
+  -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -Json
 ```
 
@@ -356,8 +369,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -StoreRecordedBy "<operator-name>" `
-  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -StoreNotes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -FailOnNotReady `
   -Json
 ```

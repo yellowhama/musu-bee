@@ -23,6 +23,10 @@ param(
     [string]$StoreCertificationCompletedAt,
     [string]$StoreRestrictedCapabilityCompletedAt,
     [string]$StorePublishedAt,
+    [string]$StoreSignedInstallEvidencePath,
+    [string]$StoreDesktopEntrypointEvidencePath,
+    [string]$StoreInstallObservedAt,
+    [string]$StoreLaunchObservedAt,
     [string]$StoreNotes = "",
     [string]$StoreOutputRoot,
     [string]$PublicMetadataBaseUrl = "https://musu.pro",
@@ -185,6 +189,10 @@ $storeFieldsProvided = @(
     $StoreCertificationCompletedAt,
     $StoreRestrictedCapabilityCompletedAt,
     $StorePublishedAt,
+    $StoreSignedInstallEvidencePath,
+    $StoreDesktopEntrypointEvidencePath,
+    $StoreInstallObservedAt,
+    $StoreLaunchObservedAt,
     $StoreNotes
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 
@@ -194,8 +202,12 @@ if (@($storeFieldsProvided).Count -gt 0) {
         -or [string]::IsNullOrWhiteSpace($StoreCertificationStatus) `
         -or [string]::IsNullOrWhiteSpace($StoreRestrictedCapabilityStatus) `
         -or [string]::IsNullOrWhiteSpace($StoreRecordedBy) `
-        -or [string]::IsNullOrWhiteSpace($StoreProductNameReservedAt)) {
-        throw "Store release evidence recording requires -StoreProductName, -StoreProductNameReservedAt, -StoreSubmissionId, -StoreCertificationStatus, -StoreRestrictedCapabilityStatus, and -StoreRecordedBy."
+        -or [string]::IsNullOrWhiteSpace($StoreProductNameReservedAt) `
+        -or [string]::IsNullOrWhiteSpace($StoreSignedInstallEvidencePath) `
+        -or [string]::IsNullOrWhiteSpace($StoreDesktopEntrypointEvidencePath) `
+        -or [string]::IsNullOrWhiteSpace($StoreInstallObservedAt) `
+        -or [string]::IsNullOrWhiteSpace($StoreLaunchObservedAt)) {
+        throw "Store release evidence recording requires -StoreProductName, -StoreProductNameReservedAt, -StoreSubmissionId, -StoreCertificationStatus, -StoreRestrictedCapabilityStatus, -StoreSignedInstallEvidencePath, -StoreDesktopEntrypointEvidencePath, -StoreInstallObservedAt, -StoreLaunchObservedAt, and -StoreRecordedBy."
     }
 
     $storeArgs = @(
@@ -204,6 +216,10 @@ if (@($storeFieldsProvided).Count -gt 0) {
         "-SubmissionId", $StoreSubmissionId,
         "-CertificationStatus", $StoreCertificationStatus,
         "-RestrictedCapabilityStatus", $StoreRestrictedCapabilityStatus,
+        "-StoreSignedInstallEvidencePath", $StoreSignedInstallEvidencePath,
+        "-StoreDesktopEntrypointEvidencePath", $StoreDesktopEntrypointEvidencePath,
+        "-StoreInstallObservedAt", $StoreInstallObservedAt,
+        "-StoreLaunchObservedAt", $StoreLaunchObservedAt,
         "-RecordedBy", $StoreRecordedBy,
         "-Json"
     )
