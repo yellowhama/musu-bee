@@ -35,6 +35,31 @@ true and verified:
    package proof, token ACL proof when required, and a clear remaining blocker
    list.
 
+## Full Product Completion Status
+
+As of 2026-06-27, MUSU is not fully complete against the whole product spec.
+The current `1.15.0-rc.22` evidence proves the two-PC direct fleet slice for
+`hugh-main` and `hugh_second`, including installed package version,
+remote-usable public URLs, direct healthy peer status, and brain ingest token
+ACL on the main PC proof.
+
+The remaining product gates are separate claims and must not be inferred from
+the direct fleet proof:
+
+- PR #34 design approval.
+- Microsoft Store or equivalent trusted distribution evidence.
+- Real delegated-work relay transport and release-grade relay route evidence.
+- Full brain product proof: packaged `/health`, actual task source ingest,
+  cockpit recall/capture UX, fleet event ingest or explicit scope decision, and
+  stronger version surface.
+- V34 discovery/stale self-heal evidence for stale registry/cache/manual-peer
+  cases.
+- Support mailbox evidence or a formal decision to retire that historical
+  release gate.
+
+Canonical roadmap:
+`docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`.
+
 ## Current Audit Against The Pasted Findings
 
 | Finding | Current status | Evidence |

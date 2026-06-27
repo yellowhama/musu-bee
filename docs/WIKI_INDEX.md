@@ -8795,4 +8795,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Design: Approved instruction bypass`, `design-gate token hardening`, and
   `Run design-gate evaluator tests`.
 
+- 2026-06-27 full product spec completion roadmap:
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` is the
+  canonical answer to whether MUSU is fully complete against the whole product
+  spec. Current answer: no, not yet. `1.15.0-rc.22` proves the two-PC direct
+  fleet slice on `hugh-main` and `hugh_second`, but full product completion
+  still requires PR #34 design approval, Store or trusted distribution evidence,
+  real delegated-work relay transport, full brain health/task-ingest/UX proof,
+  V34 stale self-heal proof, and either support mailbox evidence or a formal
+  retirement of that historical gate. `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE`
+  now points to this roadmap and scopes the current claim to rc.22 direct fleet
+  readiness. Search terms should include
+  `MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP`, `full product not complete`,
+  `two-PC direct fleet slice`, `relay transport not complete`,
+  `brain product proof`, `Store trusted distribution evidence`,
+  `V34 stale self-heal`, and `support mailbox retire gate`.
+
 **End of WIKI_INDEX.md.**
