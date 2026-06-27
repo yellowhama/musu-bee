@@ -18,6 +18,7 @@ when a registry row looks fresh.
 | INFO | The pasted HIGH runtime defects are fixed in current code. | `musu-rs/src/bridge/mod.rs` writes registry `last_seen` through `registry_last_seen_to_heartbeat`, and rejects loopback/wildcard/port-0 public URLs through `public_url_to_remote_addr`. `musu-rs/src/peer/discovery.rs` ignores unusable cached registry peers. | The old false-fresh relay/online bug is covered at the source of fleet truth. | Keep `registry_last_seen`, `public_url`, and unusable-cache tests in the release gate. |
 | INFO | Relay-display is now separated from direct work readiness. | `musu-rs/src/bridge/handlers/fleet.rs` documents relay as display-only and `tally_fleet()` counts only direct healthy peers in `online_nodes`. Hosted `fleet-proof.ps1` checks `online_nodes_direct_only`. | Users should no longer see a relay/display-only peer as a work-targetable online node. | Preserve this wording in CLI, web fleet UI, and release reports. |
 | INFO | Install-channel proof is now version-aware instead of HTTP-200-only. | `musu-bee/src/app/fleet-proof.ps1/route.ts` checks `installed_package_version_matches_release`; `scripts/windows/verify-musu-pro-install-channel.ps1` verifies live `/fleet-proof.ps1` schema, expected package version, and proof gates. | A stale package can no longer masquerade as a successful install-channel proof. | Keep cache-busted release URLs and live install-channel verification before giving the one-line command to another PC. |
+| INFO | Public install pages now lead to release-grade proof, not only weak post-install checks. | `/download` and `/install` expose the hosted `fleet-proof.ps1` command; `src/app/public-metadata-contract.test.ts` asserts both public pages keep that command visible. | The operator can install on `hugh-main` and immediately emit the JSON evidence this audit requires. | Refresh design artifacts and keep the proof command on public install surfaces until two-PC readiness is proven. |
 | LOW | Local operator workflow was slower than necessary. | A broad `rg` over `docs/vendor` and evidence JSON produced hundreds of thousands of tokens before being stopped. | This does not affect MUSU runtime, but it slows audits and increases context noise. | Use targeted paths and exclude `docs/vendor/**`, `docs/evidence/**`, `target/**`, and `node_modules/**` by default. |
 
 ## Code Audit Notes
@@ -42,6 +43,11 @@ when a registry row looks fresh.
 - `musu-bee/src/app/fleet-proof.ps1/route.ts`
   - Good: the hosted proof wrapper makes the main-PC evidence path repo-free.
   - Risk left: the wrapper is only a proof surface; it does not replace physical execution on `hugh-main`.
+
+- `musu-bee/src/app/download/page.tsx` and `musu-bee/src/app/install/page.tsx`
+  - Good: the public install surfaces now show `fleet-proof.ps1`, so the user path
+    reaches release-grade JSON evidence instead of stopping at `package-status`.
+  - Risk left: the pages can guide the proof, but only `hugh-main` can produce it.
 
 ## Dependency Map
 

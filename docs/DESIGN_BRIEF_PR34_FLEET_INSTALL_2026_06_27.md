@@ -13,9 +13,10 @@ remote work can run when the route is stale or unproven.
 
 The UI changes are intentionally narrow:
 
-- `/download`: show the public one-line Windows installer command for another PC.
+- `/download`: show the public one-line Windows installer command for another PC
+  and the post-first-launch proof commands that emit release JSON.
 - `/install`: expose the same command in the install surface and keep non-Windows
-  states as planned, not available.
+  states as planned, not available. It also exposes the PC-local proof command.
 - `/fleet` and `/dashboard/fleet`: rename online totals and relay wording so a
   relay-display heartbeat is not presented as a proven work route.
 
@@ -35,12 +36,15 @@ The UI changes are intentionally narrow:
    that App Installer updates are registered. This prevents a hidden install
    trust boundary.
 3. `/download` adds post-install verification commands:
-   `musu package-status` and `musu nodes --json`.
-4. `/fleet` no longer says "Reachable over relay" for a display-only heartbeat.
+   `musu package-status`, `musu nodes --json`, and the hosted
+   `fleet-proof.ps1` JSON proof wrapper.
+4. `/install` also shows the hosted `fleet-proof.ps1` proof command so the
+   install path does not end at a weak package-status check.
+5. `/fleet` no longer says "Reachable over relay" for a display-only heartbeat.
    It says "Recent relay heartbeat; direct route not proven."
-5. `/dashboard/fleet` changes the summary from "Nodes Online" to "Direct Online"
+6. `/dashboard/fleet` changes the summary from "Nodes Online" to "Direct Online"
    so the count matches the runtime contract.
-6. Card radii were reduced to 8px and heading letter spacing was reset to 0 to
+7. Card radii were reduced to 8px and heading letter spacing was reset to 0 to
    align with the current UI design rules.
 
 ## Screenshots
@@ -51,15 +55,22 @@ Local screenshots captured from `http://127.0.0.1:3000`:
 - `docs/design-artifacts/pr34-install.png`
 - `docs/design-artifacts/pr34-fleet.png`
 
-The `/fleet` artifact captures the empty local state. The relay/direct text is
-covered by source and contract tests because this local browser session did not
-have paired PCs in the web fleet store.
+`pr34-download.png` and `pr34-install.png` were refreshed after the hosted
+`fleet-proof.ps1` command was added to the install surfaces. The `/fleet`
+artifact captures the empty local state. The relay/direct text is covered by
+source and contract tests because this local browser session did not have paired
+PCs in the web fleet store.
 
 ## Verification
 
-- `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
-  passed 38/38.
-- `npm run test:public-release` passed 11/11.
+- `npm run test:public-release` passed 16/16 and asserts `/download` and
+  `/install` expose the hosted `fleet-proof.ps1` proof command.
+- `npm run typecheck` passed.
+- `npm run build` passed. Compile took 79s; the only visible warning was the
+  existing Next 16 `middleware` convention deprecation.
+- Playwright screenshot refresh for `/download` and `/install` passed desktop
+  horizontal-overflow checks; `/download` also passed a 390px mobile
+  horizontal-overflow check.
 - `cargo test registry_last_seen_to_heartbeat --lib` passed 1/1
   (`registry_last_seen_to_heartbeat_uses_registry_stamp`).
 - PR #34 code/test CI checks pass on the current branch lineage; only

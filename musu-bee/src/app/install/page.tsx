@@ -48,11 +48,29 @@ export default function InstallPage() {
               </article>
             );
           })}
+
+          <article style={cardStyle}>
+            <div style={platformStyle}>WINDOWS PROOF</div>
+            <h2 style={cardTitleStyle}>Verify the installed PC</h2>
+            <div style={detailBlockStyle}>
+              <code data-testid="fleet-proof-command" style={commandStyle}>
+                {FLEET_PROOF_COMMAND}
+              </code>
+            </div>
+            <p style={hintStyle}>
+              Run this after opening MUSU once. It emits JSON evidence for the
+              installed package version, fleet URL, direct-only online count, and
+              brain token custody.
+            </p>
+          </article>
         </div>
       </main>
     </PublicSiteShell>
   );
 }
+
+const FLEET_PROOF_COMMAND =
+  "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -RequireBrainToken -Json";
 
 const eyebrowStyle: CSSProperties = {
   fontSize: 12,

@@ -14,8 +14,6 @@ export const metadata: Metadata = {
     "Install MUSU for Windows on this PC or another PC in one line: irm https://musu.pro/install.ps1 | iex. Beta build, self-signed; the installer trusts the cert and installs for you.",
 };
 
-const INSTALL_ONE_LINER = "irm https://musu.pro/install.ps1 | iex";
-
 export default function DownloadPage() {
   return (
     <PublicSiteShell>
@@ -48,6 +46,25 @@ export default function DownloadPage() {
             <code style={codeStyle}>musu nodes --json</code> to confirm the
             machine has published itself to the fleet registry.
           </p>
+        </section>
+
+        <section style={sectionStyle}>
+          <h2 style={headingStyle}>Prove the install after first launch</h2>
+          <p style={bodyStyle}>
+            Open MUSU once on that PC, then run this command to produce the JSON
+            proof MUSU uses for release checks: installed package version,
+            remote-usable fleet URL, direct-only online count, and brain token
+            custody.
+          </p>
+          <pre style={preStyle}>
+            <code data-testid="fleet-proof-command">{FLEET_PROOF_COMMAND}</code>
+          </pre>
+          <p style={hintStyle}>
+            For a two-PC direct proof, include the expected node names:
+          </p>
+          <pre style={preStyle}>
+            <code data-testid="fleet-proof-direct-command">{DIRECT_FLEET_PROOF_COMMAND}</code>
+          </pre>
         </section>
 
         <section style={sectionStyle}>
@@ -89,6 +106,14 @@ export default function DownloadPage() {
     </PublicSiteShell>
   );
 }
+
+const INSTALL_ONE_LINER = "irm https://musu.pro/install.ps1 | iex";
+
+const FLEET_PROOF_COMMAND =
+  "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -RequireBrainToken -Json";
+
+const DIRECT_FLEET_PROOF_COMMAND =
+  "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName <this-pc-name> -ExpectedDirectPeerName <other-pc-name> -RequireBrainToken -Json";
 
 const pageStyle: CSSProperties = {
   maxWidth: 960,
@@ -150,6 +175,8 @@ const preStyle: CSSProperties = {
   fontSize: 14,
   lineHeight: 1.6,
   color: "var(--fg1)",
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
 };
 
 const hintStyle: CSSProperties = {

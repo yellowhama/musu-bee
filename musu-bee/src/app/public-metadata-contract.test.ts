@@ -59,10 +59,18 @@ test("public install surfaces expose the one-line Windows installer", () => {
 
   assert.ok(downloadSource.includes(command));
   assert.match(downloadSource, /data-testid="install-one-liner"/);
+  assert.match(downloadSource, /data-testid="fleet-proof-command"/);
+  assert.match(downloadSource, /data-testid="fleet-proof-direct-command"/);
   assert.match(downloadSource, /musu package-status/);
   assert.match(downloadSource, /musu nodes --json/);
+  assert.ok(downloadSource.includes(proofCommand));
+  assert.match(downloadSource, /ExpectedDirectPeerName/);
+  assert.match(downloadSource, /RequireBrainToken/);
   assert.ok(installSource.includes("INSTALL_COMMANDS"));
   assert.match(installSource, /data-testid="install-one-liner"/);
+  assert.match(installSource, /data-testid="fleet-proof-command"/);
+  assert.ok(installSource.includes(proofCommand));
+  assert.match(installSource, /RequireBrainToken/);
   assert.ok(contentSource.includes(command));
   assert.match(routeSource, /DESKTOP_INSTALL_SCRIPT_URL/);
   assert.match(routeSource, /cache:\s*"no-store"/);

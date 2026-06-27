@@ -8695,7 +8695,10 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 - 2026-06-27 PR #34 design approval packet:
   `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
   approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;
-  approval is requested in GitHub issue #35.
+  approval is requested in GitHub issue #35. The install UI scope now includes
+  the hosted `fleet-proof.ps1` proof command on `/download` and `/install`, so
+  the public user path can proceed from one-line install to release-grade JSON
+  evidence instead of stopping at `package-status` / `nodes`.
   Local screenshots from `127.0.0.1:3000` are committed at
   `docs/design-artifacts/pr34-download.png`, `docs/design-artifacts/pr34-install.png`,
   and `docs/design-artifacts/pr34-fleet.png`. This is not approval; the remaining
@@ -8703,7 +8706,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   CEO/design approval comment and `Design: Approved` in the PR body. Search terms should include
   `DESIGN_BRIEF_PR34_FLEET_INSTALL`, `pr34-download.png`, `pr34-install.png`,
   `pr34-fleet.png`, `issue #35`, `approval requested not yet approved`, and
-  `Design: Approved`.
+  `Design: Approved`, `fleet-proof command on install pages`, and
+  `release-grade JSON evidence`.
 
 - 2026-06-27 product readiness code audit:
   `docs/MUSU_PRODUCT_READINESS_CODE_AUDIT_2026_06_27.md` records the current
@@ -8711,12 +8715,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   false-freshness bugs are fixed: registry `last_seen` is no longer replaced by
   fetch time, loopback/wildcard/port-0 `public_url` values are rejected, unusable
   cached registry rows do not suppress valid peers, and relay-display is not
-  counted in `online_nodes`. The audit keeps two blockers explicit: physical
-  `hugh-main` `fleet-proof.ps1` JSON and real PR #34 design approval. Search
+  counted in `online_nodes`. The audit also records the public install-page
+  follow-up: `/download` and `/install` now expose `fleet-proof.ps1`, with a
+  public metadata contract test keeping the command visible. The audit keeps two
+  blockers explicit: physical `hugh-main` `fleet-proof.ps1` JSON and real PR #34
+  design approval. Search
   terms should include `MUSU_PRODUCT_READINESS_CODE_AUDIT`,
   `false-online fixes`, `registry_last_seen_to_heartbeat`,
   `online_nodes_direct_only`, `hugh-main physical proof missing`,
-  `issue #35 approval missing`, and `next action packet`.
+  `issue #35 approval missing`, `fleet-proof.ps1 public install pages`, and
+  `next action packet`.
 
 - 2026-06-27 design-gate token hardening:
   `scripts/design-gate/evaluate.cjs` now accepts `Design: Approved` only as a
