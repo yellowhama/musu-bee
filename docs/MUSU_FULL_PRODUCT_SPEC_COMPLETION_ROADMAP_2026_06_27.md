@@ -272,6 +272,44 @@ This improves the physical proof collection path but still does not close V34
 until rebuilt packaged evidence is recorded under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/`.
 
+## 2026-06-28 Final Operator Packet Full-Product Alignment
+
+The final operator packet was still carrying older public-release gate language:
+support mailbox delivery appeared as a remaining blocker even though the
+support/operator gate is now formally retired for mailbox delivery, and the
+packet did not directly surface the current full-product blockers from this
+roadmap. That made the handoff path weaker than the go/no-go contract.
+
+Source fix:
+
+- `scripts/windows/prepare-final-operator-gate-packet.ps1` now copies the
+  current full-product roadmap, support-operator gate retirement decision, and
+  V34 stale thesis into the packet docs.
+- The packet now copies `record-v34-self-heal-proof.ps1`,
+  `verify-v34-self-heal-proof.ps1`, and `verify-direct-route-evidence.ps1`
+  alongside the existing p2p/store/runtime verifiers.
+- The generated README now states the current four full-product blockers:
+  design approval, real delegated-work relay transport proof, V34 stale
+  self-heal proof, and Store distribution proof.
+- The support/operator gate is described as already satisfied by formal
+  retirement plus public support/privacy metadata; mailbox delivery is optional
+  extra evidence, not a current blocker.
+- The README now has explicit V34 physical proof and relay transport
+  failure-injection sections. The relay section keeps the lane fail-closed until
+  real `musu.relay_transport_proof.v1`, route evidence, and
+  `musu.relay_payload_delivery_proof.v1` exist from a direct-blocked two-PC run.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `final operator packet surfaces current full-product blockers and proof paths`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=196`, and `failed_case_count=0`.
+
+This improves release handoff correctness but does not close the remaining
+full-product blockers. `relay_transport_product_verified=false` and
+`v34_stale_self_heal_verified=false` stay correct until physical proof exists.
+
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
 
 Follow-up code audit found one more product gap in the V34 stale-first story:

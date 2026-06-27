@@ -9153,4 +9153,34 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route_evidence_candidate_matches_selected`, and
   `v34_stale_self_heal_verified=false`.
 
+- 2026-06-28 final operator packet full-product alignment:
+  `scripts/windows/prepare-final-operator-gate-packet.ps1` now copies the
+  current full-product roadmap, `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28`,
+  and `V34_DISCOVERY_STALE_THESIS_2026_06_26` into the packet docs. It also
+  ships `record-v34-self-heal-proof.ps1`, `verify-v34-self-heal-proof.ps1`,
+  and `verify-direct-route-evidence.ps1` with the packet scripts. The generated
+  packet README now names the current four full-product blockers:
+  `design approval evidence for PR #34`, `real delegated-work relay transport
+  proof`, `V34 stale registry/cache/manual-peer physical self-heal proof`, and
+  `Store distribution approval and Store-signed install evidence`. The old
+  support mailbox delivery gate is explicitly not a remaining blocker for this
+  packet because formal support-operator retirement plus public support/privacy
+  metadata satisfy the current support/operator lane. The packet now includes
+  `Gate D - V34 stale self-heal physical proof` and
+  `Gate E - Relay transport failure-injection proof`; the relay gate remains
+  diagnostic until direct-blocked two-PC evidence contains
+  `musu.relay_transport_proof.v1`, route evidence with relay proof attached,
+  and `musu.relay_payload_delivery_proof.v1`. Regression harness now includes
+  `final operator packet surfaces current full-product blockers and proof
+  paths`; latest run reports `ok=true`, `case_count=196`, and
+  `failed_case_count=0`. This improves handoff correctness but does not close
+  `relay_transport_product_verified=false` or
+  `v34_stale_self_heal_verified=false`. Search terms should include
+  `final operator packet surfaces current full-product blockers and proof
+  paths`, `Current full-product blockers`, `Gate D - V34 stale self-heal
+  physical proof`, `Gate E - Relay transport failure-injection proof`,
+  `record-v34-self-heal-proof.ps1`, `record-p2p-control-plane-evidence.ps1
+  -BaseUrl https://musu.pro -Json`, and
+  `musu.relay_payload_delivery_proof.v1`.
+
 **End of WIKI_INDEX.md.**

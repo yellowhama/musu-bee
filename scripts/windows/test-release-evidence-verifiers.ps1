@@ -979,6 +979,50 @@ function Test-FinalOperatorPacketTargetedReleaseCheckContract {
     return $true
 }
 
+function Test-FinalOperatorPacketFullProductRoadmapContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"docs\MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"',
+        '"docs\SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md"',
+        '"docs\V34_DISCOVERY_STALE_THESIS_2026_06_26.md"',
+        '"record-v34-self-heal-proof.ps1"',
+        '"verify-v34-self-heal-proof.ps1"',
+        '"verify-direct-route-evidence.ps1"',
+        'Current full-product blockers:',
+        'design approval evidence for PR #34',
+        'real delegated-work relay transport proof',
+        'V34 stale registry/cache/manual-peer physical self-heal proof',
+        'Store distribution approval and Store-signed install evidence',
+        'support/operator evidence: formal mailbox-delivery gate retirement is recorded',
+        'The old support mailbox delivery gate is not a remaining blocker',
+        'Gate D - V34 stale self-heal physical proof',
+        'RouteDuplicateTaskExecutionPrevented',
+        'v34_stale_self_heal_verified=true',
+        'Gate E - Relay transport failure-injection proof',
+        'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
+        'relay_transport_product_verified=true',
+        'musu.relay_payload_delivery_proof.v1'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'real __SUPPORT_EMAIL__ inbox delivery evidence'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -4870,6 +4914,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "final operator packet surfaces targeted second-PC release-check flow" `
     -Verifier "final operator packet source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$finalOperatorPacketFullProductRoadmapOk = Test-FinalOperatorPacketFullProductRoadmapContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketFullProductRoadmapOk `
+    -Message "final operator packet must ship the current full-product roadmap, V34 proof tools, relay failure-injection guidance, and support gate retirement state"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet surfaces current full-product blockers and proof paths" `
+    -Verifier "final operator packet full-product source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
     -ShouldPass $true `
     -Invocation $invocation

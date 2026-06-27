@@ -89,6 +89,9 @@ $docsToCopy = @(
     "docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_REACHABILITY_HANDOFF_2026_06_07.md",
     "docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_LOCAL_DESKTOP_EVIDENCE_AFTER_MDNS_CANCELLATION_2026_06_07.md",
     "docs\RELEASE_1_15_0_RC1_CURRENT_HEAD_TARGET_ROUTE_CPU_AUDIT_SPEC_REFRESH_2026_06_07.md",
+    "docs\MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md",
+    "docs\SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md",
+    "docs\V34_DISCOVERY_STALE_THESIS_2026_06_26.md",
     "docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md",
     "docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md",
     "docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md",
@@ -140,6 +143,9 @@ $scriptsToCopy = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "record-v34-self-heal-proof.ps1",
+    "verify-v34-self-heal-proof.ps1",
+    "verify-direct-route-evidence.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "verify-process-attribution-summary.ps1",
@@ -181,6 +187,14 @@ Current machine-verifiable state before these gates:
 - desktop shell build audit: ready, but Store/MSIX activation must launch the desktop shell
 - single-machine smoke evidence: recorded
 - public Store metadata: live and passing
+- support/operator evidence: formal mailbox-delivery gate retirement is recorded; support availability remains covered by public support/privacy metadata
+
+Current full-product blockers:
+
+1. design approval evidence for PR #34
+2. real delegated-work relay transport proof
+3. V34 stale registry/cache/manual-peer physical self-heal proof
+4. Store distribution approval and Store-signed install evidence
 
 For the shortest Store/submission sequence, review:
 
@@ -194,6 +208,9 @@ For the shortest Store/submission sequence, review:
 - `docs\RELEASE_1_15_0_RC1_ROUTE_REACHABILITY_DIAGNOSTIC_TOOLING_2026_06_07.md`
 - `docs\RELEASE_1_15_0_RC1_SECOND_PC_ROUTE_REACHABILITY_HANDOFF_2026_06_07.md`
 - `docs\MUSU_RUNTIME_STABILIZATION_EXECUTION_PLAN_2026_05_31.md`
+- `docs\MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs\SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md`
+- `docs\V34_DISCOVERY_STALE_THESIS_2026_06_26.md`
 - `docs\MSIX_DESKTOP_ENTRYPOINT_AUDIT_2026_05_31.md`
 - `docs\DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md`
 - `docs\RUNTIME_CPU_SCENARIO_MATRIX_AND_MDNS_LOG_AUDIT_2026_06_01.md`
@@ -254,18 +271,16 @@ runs `musu peer add`, confirms `musu peer list`, runs
 and prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...`
 and `smoke-multidevice-beta.ps1` commands to use next.
 
-Remaining blockers:
+Current remaining full-product blockers:
 
-1. Store/MSIX desktop entrypoint proof: Start-menu activation must launch `musu-desktop.exe`, not only the runtime CLI
-2. clean/current MSIX install evidence from the second Windows PC
-3. real second-PC multi-device evidence
-4. runtime idle CPU evidence from the primary and second Windows PC
-5. runtime CPU scenario matrix evidence from the primary and second Windows PC
-6. process ownership evidence from a live MUSU runtime
-7. startup single-instance evidence from repeated `musu up` calls
-8. packaged desktop single-instance evidence from repeated Start-menu/AppsFolder activations
-9. real __SUPPORT_EMAIL__ inbox delivery evidence
-10. Partner Center product name reservation, app submission, Microsoft certification, and restricted startup capability approval evidence
+1. PR #34 design approval evidence. The design gate must move from `Design: Pending` to explicit approval evidence before merge.
+2. Real delegated-work relay transport proof. Relay display/control-plane evidence is not enough; the release lane needs `musu.relay_transport_proof.v1`, `musu.route_evidence.v1` with relay proof attached, and payload delivery proof from a direct-blocked two-PC run.
+3. V34 stale self-heal proof. The canonical recorder/verifier are included in this packet, but the lane stays false until physical stale registry/cache/manual-peer evidence is recorded under `docs\evidence\v34-self-heal\__VERSION__\`.
+4. Store distribution proof. Partner Center product name reservation, app submission, Microsoft certification, restricted startup capability approval, and Store-signed install evidence must be recorded.
+
+The old support mailbox delivery gate is not a remaining blocker for this
+release packet. It is replaced by the formal support-operator gate retirement
+proof plus live public support/privacy metadata.
 
 The multi-device kit includes `collect-second-pc-handoff.ps1`; run it on the
 second PC after install to generate `.local-build\second-pc-handoff\*.handoff.json`
@@ -299,9 +314,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-opera
 verification status. The action pack is a copy/handoff convenience only; it does
 not create or satisfy release evidence.
 
-## Gate A - Support mailbox delivery
+## Gate A - Support/operator evidence status
 
-Send a real email to:
+For this release packet, support/operator evidence is already satisfied by the
+formal mailbox-delivery gate retirement plus live public support/privacy
+metadata. Verify the current state from the real MUSU release repo root with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
+```
+
+Expected result: `support_operator_evidence_verified=true`.
+
+If you still want an additional mailbox delivery proof, send a real email to:
 
 ```text
 __SUPPORT_EMAIL__
@@ -329,7 +354,7 @@ Then run this from the real MUSU release repo root:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json
 ```
 
-Expected result: `support_mailbox_verified=true`.
+Expected optional result: `support_mailbox_verified=true`.
 
 ## Gate B - Second-PC MSIX install and runtime CPU evidence
 
@@ -423,7 +448,74 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-multi
 
 Expected result: `multi_device_verified=true`.
 
-## Gate D - Store release approval evidence
+## Gate D - V34 stale self-heal physical proof
+
+The V34 proof is separate from normal fleet health, route reachability, and
+direct multi-device smoke. Use the canonical recorder only after a real
+two-node stale state has been created: stale registry row, stale local/manual
+peer state, stale first route candidate, healthy candidate selected before the
+stale one, and exactly one delegated task execution.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `
+  -SourceNodeName <SECOND_PC_NODE> `
+  -TargetNodeName <PRIMARY_PC_NODE> `
+  -SelectedCandidateAddr <PRIMARY_PC_IP:BRIDGE_PORT> `
+  -RouteEvidencePath .local-build\multi-device\<ROUTE_EVIDENCE_JSON> `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt <ISO_TIMESTAMP> `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 1 `
+  -BootManualPeerCountAfter 0 `
+  -BootPrunedManualPeerCount 1 `
+  -RoutePhysicalTwoNodeEvidence 1 `
+  -RouteStaleCandidateInjected 1 `
+  -RouteStaleCandidateWasFirst 1 `
+  -RouteSelectedReachableCandidateBeforeStale 1 `
+  -RouteDuplicateTaskExecutionPrevented 1 `
+  -RouteChecked 1 `
+  -RouteTaskPostCount 1 `
+  -Json
+```
+
+Then verify the generated proof:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-v34-self-heal-proof.ps1 -EvidencePath docs\evidence\v34-self-heal\__VERSION__\<PROOF_JSON> -ExpectedVersion __VERSION__ -Json
+```
+
+Expected result: `v34_stale_self_heal_verified=true` only after the verified
+JSON is committed under `docs\evidence\v34-self-heal\__VERSION__\`.
+
+## Gate E - Relay transport failure-injection proof
+
+The relay lane is separate from direct route proof. To close it, block the
+direct path between the two physical PCs, prove the relay task succeeds, and
+record hosted control-plane evidence with route transport proof and payload
+delivery proof. Until the real QUIC/TLS relay tunnel runtime exists, this gate
+must remain diagnostic and `relay_transport_product_verified=false`.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-p2p-control-plane-evidence.ps1 -EvidencePath docs\evidence\p2p-control-plane\__VERSION__\<P2P_EVIDENCE_JSON> -ExpectedVersion __VERSION__ -ExpectedBaseUrl https://musu.pro -RequireIntegrity -Json
+```
+
+Expected result: `relay_transport_product_verified=true` only when the evidence
+contains `musu.relay_transport_proof.v1`, release-grade
+`quic_relay_tunnel`/`quic_tls_1_3` transport, owner-scoped relay route
+metadata, and `musu.relay_payload_delivery_proof.v1` from the actual relay
+payload path.
+
+## Gate F - Store release approval evidence
 
 After Partner Center product name reservation, app submission, Microsoft package
 certification, and restricted startup capability approval complete, record those
