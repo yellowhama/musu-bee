@@ -237,6 +237,41 @@ current physical proof is recorded with `record-v34-self-heal-proof.ps1` under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/` and the resulting verification is
 green.
 
+## 2026-06-28 V34 Second-PC Proof Kit Update
+
+Follow-up audit found that the canonical V34 recorder/verifier existed in the
+repo, but the transfer kit used for real two-PC operator runs did not yet carry
+those tools or a V34-specific runbook. That left the remaining physical proof
+lane too easy to execute ad hoc.
+
+Source fix:
+
+- `scripts/windows/prepare-multidevice-test-kit.ps1` now includes
+  `record-v34-self-heal-proof.ps1` and `verify-v34-self-heal-proof.ps1` in the
+  second-PC kit script payload.
+- The generated `README_MULTI_DEVICE_TEST_KIT.md` now has a dedicated
+  "V34 stale self-heal proof" section. It separates this proof from normal
+  route reachability/multi-device smoke, lists the required stale registry,
+  stale manual/cache peer, stale-first route candidate, and exactly-one task
+  execution conditions, and gives recorder/verifier command skeletons.
+- The runbook states that the embedded `musu.route_evidence.v1` must match the
+  V34 wrapper version, source node, target node, selected candidate address,
+  direct route path, and `payload_transited_musu_infra=false`.
+- The runbook keeps the product state honest: until the verifier passes on
+  physical two-PC evidence and the JSON is committed, the lane remains
+  `v34_stale_self_heal_verified=false`.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1` now has the source
+  contract case `second-PC kit includes V34 self-heal proof tools and runbook`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=195`, and `failed_case_count=0`.
+
+This improves the physical proof collection path but still does not close V34
+until rebuilt packaged evidence is recorded under
+`docs/evidence/v34-self-heal/1.15.0-rc.22/`.
+
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
 
 Follow-up code audit found one more product gap in the V34 stale-first story:
@@ -562,6 +597,10 @@ Proof:
 - `verify-v34-self-heal-proof.ps1` accepts the proof and rejects weak
   boolean-only proof, duplicate task execution, and unroutable selected
   candidates.
+- The second-PC kit includes `record-v34-self-heal-proof.ps1`,
+  `verify-v34-self-heal-proof.ps1`, and the V34 stale self-heal runbook so the
+  remaining physical proof is collected with the canonical recorder instead of
+  hand-written JSON.
 
 Exit criteria:
 - Reinstall, port changes, stale rows, and multi-NIC address drift self-heal

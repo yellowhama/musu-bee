@@ -64,6 +64,8 @@ $scriptFiles = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "record-v34-self-heal-proof.ps1",
+    "verify-v34-self-heal-proof.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "verify-process-attribution-summary.ps1",
@@ -235,6 +237,64 @@ It resolves `suggested_remote_addrs`, runs `musu peer add`, confirms
 prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
 `smoke-multidevice-beta.ps1` commands to use next. This catches the
 `peer not found` state before wasting a 60s post-route CPU matrix.
+
+## V34 stale self-heal proof
+
+The V34 release lane is separate from the normal multi-device smoke. It is not
+closed by fleet health, route reachability, or a successful direct route alone.
+Only record this proof after a real two-node stale scenario has been created:
+one stale registry row, stale local/manual peer state, and a stale first route
+candidate that is skipped before the reachable candidate. The task execution
+must happen exactly once.
+
+The kit includes the canonical recorder and verifier:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `
+  -SourceNodeName SECOND-PC `
+  -TargetNodeName PRIMARY-PC `
+  -SelectedCandidateAddr PRIMARY_PC_IP:BRIDGE_PORT `
+  -RouteEvidencePath .local-build\multi-device\ROUTE_EVIDENCE.json `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt 2026-06-27T00:00:00Z `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 1 `
+  -BootManualPeerCountAfter 0 `
+  -BootPrunedManualPeerCount 1 `
+  -RoutePhysicalTwoNodeEvidence 1 `
+  -RouteStaleCandidateInjected 1 `
+  -RouteStaleCandidateWasFirst 1 `
+  -RouteSelectedReachableCandidateBeforeStale 1 `
+  -RouteDuplicateTaskExecutionPrevented 1 `
+  -RouteChecked 1 `
+  -RouteTaskPostCount 1 `
+  -Notes "physical V34 stale registry/cache/manual-peer proof" `
+  -Json
+```
+
+The embedded route evidence must be real `musu.route_evidence.v1`, use the same
+version, source node, target node, and candidate address as the V34 wrapper, and
+keep `payload_transited_musu_infra=false`. The verifier re-checks
+`route_evidence_candidate_matches_selected`, node-pair binding, and the
+exactly-once task execution proof.
+
+Verify the produced `musu.v34_self_heal_proof.v1` JSON before returning it:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-v34-self-heal-proof.ps1 -EvidencePath docs\evidence\v34-self-heal\__VERSION__\<PROOF_JSON> -ExpectedVersion __VERSION__ -Json
+```
+
+Until that verifier passes on physical two-PC evidence and the JSON is committed
+to the release repo, the product state remains
+`v34_stale_self_heal_verified=false`.
 
 Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
 diagnose CPU after a failed remote route attempt. The normal release matrix

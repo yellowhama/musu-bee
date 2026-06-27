@@ -9127,4 +9127,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `route_preflight.route_evidence.target_node_id`, and
   `payload_transited_musu_infra=false`.
 
+- 2026-06-28 V34 second-PC proof kit update:
+  `scripts/windows/prepare-multidevice-test-kit.ps1` now ships
+  `record-v34-self-heal-proof.ps1` and `verify-v34-self-heal-proof.ps1` in the
+  transfer kit, and the generated README has a dedicated
+  `V34 stale self-heal proof` runbook. The runbook makes this separate from
+  normal route reachability/multi-device smoke, requires real two-node stale
+  registry/cache/manual-peer evidence, requires stale-first route candidate
+  recovery, and requires exactly-one delegated task execution through
+  `RouteDuplicateTaskExecutionPrevented` plus `RouteTaskPostCount 1`. It also
+  preserves the route-evidence binding contract:
+  `musu.route_evidence.v1`, same version/source/target/candidate,
+  `payload_transited_musu_infra=false`, and
+  `route_evidence_candidate_matches_selected`. Regression harness
+  `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `second-PC kit includes V34 self-heal proof tools and runbook`; latest run
+  reports `ok=true`, `case_count=195`, and `failed_case_count=0`. This improves
+  the physical proof collection path but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical evidence
+  is committed under `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms
+  should include `second-PC kit includes V34 self-heal proof tools and runbook`,
+  `V34 stale self-heal proof`, `record-v34-self-heal-proof.ps1`,
+  `verify-v34-self-heal-proof.ps1`, `RouteStaleCandidateWasFirst`,
+  `RouteDuplicateTaskExecutionPrevented`, `RouteTaskPostCount 1`,
+  `route_evidence_candidate_matches_selected`, and
+  `v34_stale_self_heal_verified=false`.
+
 **End of WIKI_INDEX.md.**

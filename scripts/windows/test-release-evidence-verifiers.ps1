@@ -1044,6 +1044,33 @@ function Test-SecondPcKitRouteReachabilityContract {
     return $true
 }
 
+function Test-SecondPcKitV34SelfHealProofContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"record-v34-self-heal-proof.ps1"',
+        '"verify-v34-self-heal-proof.ps1"',
+        '## V34 stale self-heal proof',
+        'musu.v34_self_heal_proof.v1',
+        'musu.route_evidence.v1',
+        'RouteStaleCandidateWasFirst',
+        'RouteDuplicateTaskExecutionPrevented',
+        'RouteTaskPostCount 1',
+        'payload_transited_musu_infra=false',
+        'route_evidence_candidate_matches_selected',
+        'v34_stale_self_heal_verified=false',
+        'verify-v34-self-heal-proof.ps1 -EvidencePath'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SupportMailboxVerificationRequestContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -4879,6 +4906,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit includes route reachability diagnostic handoff" `
     -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitV34SelfHealProofOk = Test-SecondPcKitV34SelfHealProofContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitV34SelfHealProofOk `
+    -Message "second-PC transfer kit must include V34 self-heal proof recorder/verifier tools and physical stale-state runbook guidance"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes V34 self-heal proof tools and runbook" `
+    -Verifier "second-PC V34 self-heal source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
