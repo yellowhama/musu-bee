@@ -9187,6 +9187,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   follow-up audit found that the V34 proof was stricter than boolean-only JSON
   but the recorder still accepted operator-entered TTL and boot-reconcile
   booleans without binding those claims to source artifacts.
+  `scripts/windows/record-v34-source-artifacts.ps1` now records the required
+  TTL and boot source artifacts from actual before/after snapshot JSON files.
   `scripts/windows/record-v34-self-heal-proof.ps1` now requires
   `-TtlSourceEvidencePath` and `-BootSourceEvidencePath`, embeds the source
   JSON in `source_evidence`, records SHA256 hashes, and fails closed if those
@@ -9194,19 +9196,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.v34_ttl_prune_source.v1`; boot source evidence must use schema
   `musu.v34_boot_reconcile_source.v1`.
   `scripts/windows/verify-v34-self-heal-proof.ps1` now checks source schemas,
-  hash metadata, TTL/boot source-to-wrapper field bindings, route evidence
-  SHA256 metadata, route binding, distinct node pair, and exactly-one task
-  execution. The multi-device kit, final operator packet, and go/no-go next
-  action now show the required TTL/boot source artifact paths. Regression
-  harness now includes
+  source artifact hashes, source snapshot hashes, embedded before/after
+  snapshots, TTL/boot source-to-wrapper field bindings, route evidence SHA256
+  metadata, route binding, distinct node pair, and exactly-one task execution.
+  The multi-device kit, final operator packet, and go/no-go next action now show
+  the source artifact recorder plus the required TTL/boot source artifact paths.
+  Regression harness now includes
+  `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`; latest
-  run reports `ok=true`, `case_count=197`, and `failed_case_count=0`. This
+  run reports `ok=true`, `case_count=198`, and `failed_case_count=0`. This
   hardens the proof contract but does not close the lane:
   `v34_stale_self_heal_verified=false` until a rebuilt packaged physical
   stale-state proof with source artifacts is committed under
   `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms should include
-  `TtlSourceEvidencePath`, `BootSourceEvidencePath`,
+  `record-v34-source-artifacts.ps1`, `TtlSourceEvidencePath`, `BootSourceEvidencePath`,
   `musu.v34_ttl_prune_source.v1`, `musu.v34_boot_reconcile_source.v1`,
+  `before_snapshot_sha256`, `after_snapshot_sha256`,
   `ttl_source_evidence_matches_parameters`,
   `boot_source_evidence_matches_parameters`,
   `route_evidence_sha256`, and

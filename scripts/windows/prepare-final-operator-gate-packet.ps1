@@ -143,6 +143,7 @@ $scriptsToCopy = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
     "verify-v34-self-heal-proof.ps1",
     "verify-direct-route-evidence.ps1",
@@ -457,6 +458,33 @@ peer state, stale first route candidate, healthy candidate selected before the
 stale one, and exactly one delegated task execution. The TTL prune and boot
 reconcile claims must also be backed by source artifact JSON, not only
 operator-entered booleans.
+
+First record source artifacts from actual before/after snapshots:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-source-artifacts.ps1 `
+  -TtlBeforeSnapshotPath .local-build\multi-device\<V34_TTL_BEFORE_JSON> `
+  -TtlAfterSnapshotPath .local-build\multi-device\<V34_TTL_AFTER_JSON> `
+  -BootBeforeSnapshotPath .local-build\multi-device\<V34_BOOT_BEFORE_JSON> `
+  -BootAfterSnapshotPath .local-build\multi-device\<V34_BOOT_AFTER_JSON> `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt <ISO_TIMESTAMP> `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 3 `
+  -BootManualPeerCountAfter 2 `
+  -BootPrunedManualPeerCount 1 `
+  -Json
+```
+
+Then record the final proof:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `

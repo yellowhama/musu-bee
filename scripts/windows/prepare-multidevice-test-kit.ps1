@@ -64,6 +64,7 @@ $scriptFiles = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
     "verify-v34-self-heal-proof.ps1",
     "audit-musu-process-ownership.ps1",
@@ -252,7 +253,34 @@ the proof is not just operator-entered booleans:
 - Boot reconcile source evidence JSON with schema
   `musu.v34_boot_reconcile_source.v1`.
 
-The kit includes the canonical recorder and verifier:
+The kit includes the canonical source artifact recorder, final proof recorder,
+and verifier. First record the source artifacts from actual before/after
+snapshots:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-source-artifacts.ps1 `
+  -TtlBeforeSnapshotPath .local-build\multi-device\V34_TTL_BEFORE.json `
+  -TtlAfterSnapshotPath .local-build\multi-device\V34_TTL_AFTER.json `
+  -BootBeforeSnapshotPath .local-build\multi-device\V34_BOOT_BEFORE.json `
+  -BootAfterSnapshotPath .local-build\multi-device\V34_BOOT_AFTER.json `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt 2026-06-27T00:00:00Z `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 3 `
+  -BootManualPeerCountAfter 2 `
+  -BootPrunedManualPeerCount 1 `
+  -Json
+```
+
+Then record the final V34 proof with those generated source artifacts:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `

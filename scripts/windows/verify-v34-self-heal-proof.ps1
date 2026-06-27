@@ -377,6 +377,20 @@ if ($evidence) {
     } else {
         Add-Check "ttl source hash" "fail" "source_evidence.ttl_source_evidence_sha256 must be a SHA256 hash"
     }
+    foreach ($name in @("before_snapshot_sha256", "after_snapshot_sha256")) {
+        if ($ttlSource -and (Test-Sha256 ([string](Get-Prop $ttlSource $name)))) {
+            Add-Check "ttl source $name" "pass" "TTL source evidence includes $name"
+        } else {
+            Add-Check "ttl source $name" "fail" "source_evidence.ttl_source_evidence.$name must be a SHA256 hash"
+        }
+    }
+    foreach ($name in @("before_snapshot", "after_snapshot")) {
+        if ($ttlSource -and (Has-Property $ttlSource $name)) {
+            Add-Check "ttl source $name" "pass" "TTL source evidence includes $name"
+        } else {
+            Add-Check "ttl source $name" "fail" "source_evidence.ttl_source_evidence.$name is required"
+        }
+    }
     if (Test-True $sourceEvidence "ttl_source_evidence_matches_parameters") {
         Add-Check "ttl source matches wrapper" "pass" "TTL source evidence matches wrapper fields"
     } else {
@@ -417,6 +431,20 @@ if ($evidence) {
         Add-Check "boot source hash" "pass" "boot source evidence is hash-bound"
     } else {
         Add-Check "boot source hash" "fail" "source_evidence.boot_source_evidence_sha256 must be a SHA256 hash"
+    }
+    foreach ($name in @("before_snapshot_sha256", "after_snapshot_sha256")) {
+        if ($bootSource -and (Test-Sha256 ([string](Get-Prop $bootSource $name)))) {
+            Add-Check "boot source $name" "pass" "boot source evidence includes $name"
+        } else {
+            Add-Check "boot source $name" "fail" "source_evidence.boot_source_evidence.$name must be a SHA256 hash"
+        }
+    }
+    foreach ($name in @("before_snapshot", "after_snapshot")) {
+        if ($bootSource -and (Has-Property $bootSource $name)) {
+            Add-Check "boot source $name" "pass" "boot source evidence includes $name"
+        } else {
+            Add-Check "boot source $name" "fail" "source_evidence.boot_source_evidence.$name is required"
+        }
     }
     if (Test-True $sourceEvidence "boot_source_evidence_matches_parameters") {
         Add-Check "boot source matches wrapper" "pass" "boot source evidence matches wrapper fields"
