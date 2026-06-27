@@ -272,15 +272,70 @@ if ($evidence) {
     }
 
     $routeEvidence = Get-Prop $route "route_evidence"
+    $routeSourceNode = [string](Get-Prop $route "source_node_name")
+    $routeTargetNode = [string](Get-Prop $route "target_node_name")
     if ($routeEvidence -and [string](Get-Prop $routeEvidence "schema") -eq "musu.route_evidence.v1") {
         Add-Check "route evidence schema" "pass" "embedded route_evidence schema is valid"
     } else {
         Add-Check "route evidence schema" "fail" "route_preflight.route_evidence must have schema musu.route_evidence.v1"
     }
+    if ($routeEvidence -and [string](Get-Prop $routeEvidence "version") -eq $ExpectedVersion) {
+        Add-Check "route evidence version" "pass" "embedded route evidence version matches $ExpectedVersion"
+    } else {
+        Add-Check "route evidence version" "fail" "route_preflight.route_evidence.version must match $ExpectedVersion"
+    }
     if ($routeEvidence -and [string](Get-Prop $routeEvidence "result") -eq "success") {
         Add-Check "route evidence result" "pass" "embedded route evidence succeeded"
     } else {
         Add-Check "route evidence result" "fail" "route_preflight.route_evidence.result must be success"
+    }
+    if ($routeEvidence -and [string](Get-Prop $routeEvidence "source_node_id") -eq $routeSourceNode) {
+        Add-Check "route evidence source binding" "pass" "embedded route evidence source_node_id matches route_preflight.source_node_name"
+    } else {
+        Add-Check "route evidence source binding" "fail" "route_preflight.route_evidence.source_node_id must match route_preflight.source_node_name"
+    }
+    if ($routeEvidence -and [string](Get-Prop $routeEvidence "target_node_id") -eq $routeTargetNode) {
+        Add-Check "route evidence target binding" "pass" "embedded route evidence target_node_id matches route_preflight.target_node_name"
+    } else {
+        Add-Check "route evidence target binding" "fail" "route_preflight.route_evidence.target_node_id must match route_preflight.target_node_name"
+    }
+    if ($routeEvidence -and [string](Get-Prop $routeEvidence "candidate_addr") -eq $selectedAddr) {
+        Add-Check "route evidence candidate binding" "pass" "embedded route evidence candidate_addr matches selected_candidate_addr"
+    } else {
+        Add-Check "route evidence candidate binding" "fail" "route_preflight.route_evidence.candidate_addr must match route_preflight.selected_candidate_addr"
+    }
+    $routeKind = if ($routeEvidence) { [string](Get-Prop $routeEvidence "route_kind") } else { "" }
+    if ($routeKind -in @("lan", "tailscale", "direct_quic")) {
+        Add-Check "route evidence direct kind" "pass" "embedded route evidence route_kind is direct: $routeKind"
+    } else {
+        Add-Check "route evidence direct kind" "fail" "route_preflight.route_evidence.route_kind must be lan, tailscale, or direct_quic"
+    }
+    if ($routeEvidence -and (Has-Property $routeEvidence "payload_transited_musu_infra") -and -not [bool](Get-Prop $routeEvidence "payload_transited_musu_infra")) {
+        Add-Check "route evidence direct payload path" "pass" "embedded direct route evidence did not transit MUSU infrastructure"
+    } else {
+        Add-Check "route evidence direct payload path" "fail" "route_preflight.route_evidence.payload_transited_musu_infra must be false for stale direct self-heal proof"
+    }
+
+    $sourceEvidence = Get-Prop $evidence "source_evidence"
+    if ($sourceEvidence) {
+        Add-Check "source evidence details" "pass" "source_evidence details are present"
+    } else {
+        Add-Check "source evidence details" "fail" "source_evidence details are required"
+    }
+    if (Test-True $sourceEvidence "route_evidence_candidate_matches_selected") {
+        Add-Check "source evidence candidate match" "pass" "source evidence confirms route candidate matches selected candidate"
+    } else {
+        Add-Check "source evidence candidate match" "fail" "source_evidence.route_evidence_candidate_matches_selected must be true"
+    }
+    if (Test-True $sourceEvidence "node_pair_distinct") {
+        Add-Check "source evidence node pair" "pass" "source evidence confirms distinct physical node names"
+    } else {
+        Add-Check "source evidence node pair" "fail" "source_evidence.node_pair_distinct must be true"
+    }
+    if ($sourceEvidence -and [string](Get-Prop $sourceEvidence "route_evidence_candidate_addr") -eq $selectedAddr) {
+        Add-Check "source evidence candidate binding" "pass" "source evidence route_evidence_candidate_addr matches selected candidate"
+    } else {
+        Add-Check "source evidence candidate binding" "fail" "source_evidence.route_evidence_candidate_addr must match route_preflight.selected_candidate_addr"
     }
 }
 

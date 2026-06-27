@@ -204,6 +204,11 @@ now stronger:
 - `scripts/windows/verify-v34-self-heal-proof.ps1` now rejects weak
   boolean-only V34 proof JSON and requires structured evidence for TTL prune,
   boot reconcile, stale-first route preflight, and exactly-one task execution.
+- The V34 verifier also re-checks embedded route evidence binding: version,
+  source node, target node, selected candidate address, direct route kind, and
+  direct payload path must match the V34 wrapper. A stale self-heal proof can no
+  longer pass by wrapping a successful route evidence record from a different
+  node pair, release version, or candidate.
 - `scripts/windows/record-v34-self-heal-proof.ps1` is the canonical recorder
   for that physical proof. It writes `musu.v34_self_heal_proof.v1`, immediately
   runs the verifier, emits hashes and a summary, and fails closed if the proof
@@ -222,7 +227,10 @@ Regression coverage:
   `V34 self-heal recorder emits verifier-passing release proof`,
   `V34 self-heal rejects weak boolean-only proof`,
   `V34 self-heal rejects duplicate task execution proof`, and
-  `V34 self-heal rejects unroutable selected candidate proof`.
+  `V34 self-heal rejects unroutable selected candidate proof`,
+  `V34 self-heal rejects route evidence candidate mismatch`,
+  `V34 self-heal rejects route evidence node mismatch`, and
+  `V34 self-heal rejects route evidence version mismatch`.
 
 This reduces V34 implementation risk but does not close the lane until a
 current physical proof is recorded with `record-v34-self-heal-proof.ps1` under
@@ -408,7 +416,7 @@ relay proof attached, and a two-PC physical test with direct path blocked.
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
-| V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
+| V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and route-evidence-bound strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
 | Support/operator evidence | Complete for current rc.22 governance | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*` | Support availability remains required and verified through public metadata |
@@ -451,7 +459,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | INFO | Direct delegated-work over LAN is now proven for rc.22. | Packaged route evidence `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json` verifies successfully and the go/no-go lane `direct_delegated_work_route` reports `pass`. | The previous 401/invalid-bearer blocker is closed for direct routes. | Keep the evidence committed; do not treat it as relay or release-grade transport proof. |
 | INFO | Brain product proof is closed for fresh packaged launch, with one restart caveat. | Initial local recorder output failed while stale packaged desktop processes were already running; after AppX relaunch, official evidence `20260628-014357-HUGH_SECOND.brain-product-verification.json` reports `ok=true`, `fail_count=0`. | The hidden-brain spec is proven for fresh launch, but upgrade-in-place self-heal is not a separate release claim yet. | Keep the evidence committed; add an upgrade-in-place sidecar self-heal proof if that behavior becomes part of the release claim. |
 | HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
-| MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL, boot/local reconcile, and strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Rebuild the package, run the physical stale registry/cache/manual-peer proof, and commit verifier-passing evidence. |
+| MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL, boot/local reconcile, and route-evidence-bound strict V34 proof verifier exist; physical stale-state E2E evidence is still missing. | Reinstall/multi-NIC/stale-row tails can still surprise users until physical proof exists. | Rebuild the package, run the physical stale registry/cache/manual-peer proof, and commit verifier-passing evidence. |
 | INFO | Support mailbox delivery proof is now a retired historical gate once retirement evidence is current. | The replacement gate requires live support/privacy/public-config proof and rejects evidence that retires support availability. | This removes an operator-only release blocker without weakening the public support contract. | Keep public metadata verified; use mailbox proof only as an optional operational check. |
 
 ## Dependency Map

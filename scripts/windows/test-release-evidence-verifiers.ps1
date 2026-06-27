@@ -4160,11 +4160,18 @@ function New-BrainProductProofEvidence {
 function New-V34SelfHealProofEvidence {
     param(
         [switch]$DuplicateTask,
-        [switch]$UnroutableSelectedCandidate
+        [switch]$UnroutableSelectedCandidate,
+        [switch]$RouteEvidenceCandidateMismatch,
+        [switch]$RouteEvidenceNodeMismatch,
+        [switch]$RouteEvidenceVersionMismatch
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
     $selectedCandidate = if ($UnroutableSelectedCandidate) { "127.0.0.1:4387" } else { "192.168.1.192:4387" }
+    $routeEvidenceCandidate = if ($RouteEvidenceCandidateMismatch) { "192.168.1.10:4387" } else { $selectedCandidate }
+    $routeEvidenceSource = if ($RouteEvidenceNodeMismatch) { "wrong-source" } else { "hugh_second" }
+    $routeEvidenceTarget = if ($RouteEvidenceNodeMismatch) { "wrong-target" } else { "hugh-main" }
+    $routeEvidenceVersion = if ($RouteEvidenceVersionMismatch) { "0.0.0-rc.0" } else { $ExpectedVersion }
     [pscustomobject]@{
         schema = "musu.v34_self_heal_proof.v1"
         ok = $true
@@ -4206,10 +4213,20 @@ function New-V34SelfHealProofEvidence {
             selected_candidate_addr = $selectedCandidate
             route_evidence = [pscustomobject]@{
                 schema = "musu.route_evidence.v1"
+                version = $routeEvidenceVersion
+                source_node_id = $routeEvidenceSource
+                target_node_id = $routeEvidenceTarget
                 result = "success"
                 route_kind = "lan"
-                candidate_addr = $selectedCandidate
+                candidate_addr = $routeEvidenceCandidate
+                payload_transited_musu_infra = $false
             }
+        }
+        source_evidence = [pscustomobject]@{
+            route_evidence_path = "fixture-route-evidence.json"
+            route_evidence_candidate_addr = $routeEvidenceCandidate
+            route_evidence_candidate_matches_selected = (-not [bool]$RouteEvidenceCandidateMismatch)
+            node_pair_distinct = (-not [bool]$RouteEvidenceNodeMismatch)
         }
     }
 }
@@ -5941,9 +5958,13 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal accepts release-grade physical
 
 $v34RouteEvidence = [pscustomobject]@{
     schema = "musu.route_evidence.v1"
+    version = $ExpectedVersion
+    source_node_id = "hugh_second"
+    target_node_id = "hugh-main"
     result = "success"
     route_kind = "lan"
     candidate_addr = "192.168.1.192:4387"
+    payload_transited_musu_infra = $false
 }
 $fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $v34RouteEvidence
 $v34RecorderOutputRoot = Join-Path $OutputRoot "v34-self-heal-recorder-output"
@@ -5999,6 +6020,18 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal rejects duplicate task executi
 $fixture = Write-Fixture -Name "v34-self-heal-unroutable-selected-candidate" -Object (New-V34SelfHealProofEvidence -UnroutableSelectedCandidate)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal rejects unroutable selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-candidate-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceCandidateMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence candidate mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-node-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceNodeMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence node mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-version-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceVersionMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence version mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")

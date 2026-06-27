@@ -9101,4 +9101,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `cli_route_candidates_include_all_matching_target_routes`,
   `node-status preflight`, and `v34_stale_self_heal_verified=false`.
 
+- 2026-06-28 V34 self-heal proof route-evidence binding hardening:
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now re-checks that the
+  embedded `musu.route_evidence.v1` is bound to the V34 wrapper. The verifier
+  requires route evidence `version` to match the release version,
+  `source_node_id` and `target_node_id` to match `route_preflight`
+  source/target names, `candidate_addr` to match
+  `selected_candidate_addr`, route kind to be direct (`lan`, `tailscale`, or
+  `direct_quic`), and `payload_transited_musu_infra=false`. It also requires
+  `source_evidence.route_evidence_candidate_matches_selected=true`,
+  `source_evidence.node_pair_distinct=true`, and
+  `source_evidence.route_evidence_candidate_addr` to match the selected
+  candidate. Regression harness `scripts/windows/test-release-evidence-verifiers.ps1`
+  now includes `V34 self-heal rejects route evidence candidate mismatch`,
+  `V34 self-heal rejects route evidence node mismatch`, and
+  `V34 self-heal rejects route evidence version mismatch`; latest run reports
+  `ok=true`, `case_count=194`, and `failed_case_count=0`. This hardens the
+  V34 release proof shape but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical
+  stale-state evidence is recorded. Search terms should include
+  `source_evidence.route_evidence_candidate_matches_selected`,
+  `route evidence candidate mismatch`, `route evidence node mismatch`,
+  `route evidence version mismatch`,
+  `route_preflight.route_evidence.source_node_id`,
+  `route_preflight.route_evidence.target_node_id`, and
+  `payload_transited_musu_infra=false`.
+
 **End of WIKI_INDEX.md.**
