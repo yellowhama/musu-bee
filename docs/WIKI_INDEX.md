@@ -8886,4 +8886,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   forwards NoBump`, `store-reviewed-20260628-005038`, `brain pin 311aefa`, and
   `release_candidate_manifest_generated=true`.
 
+- 2026-06-28 brain product proof gate hardening:
+  `scripts/windows/record-brain-product-proof.ps1` and
+  `scripts/windows/verify-brain-product-proof.ps1` now define the release-grade
+  hidden brain proof lane. `write-release-go-no-go.ps1` no longer accepts weak
+  `musu.brain_product_proof.v1` files that only set boolean fields; it invokes
+  the verifier and requires packaged `musu-brain.exe`, observed sidecar process,
+  `~/.musu/brain` data root, restricted `musu-ingest.token` ACL, loopback-only
+  `http://127.0.0.1:8080`, `/health`, real `/v1/sources` task ingest,
+  `/v1/process`, `/v1/query`, real `/v1/clips` capture ingest, and capture
+  recall results. This hardens the spec gate but does not close the lane until a
+  physical installed desktop records a passing
+  `docs/evidence/brain-product/1.15.0-rc.22/*.brain-product-proof.json`.
+  Local diagnostic recorder output on `HUGH_SECOND` wrote non-release artifacts
+  under `.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed
+  with `fail_count=14`: package identity was correct, but no `musu-brain`
+  sidecar process was observed and `http://127.0.0.1:8080/health` was not
+  proven. Treat this as a real packaged lifecycle gap, not only missing docs.
+  Regression coverage is in `scripts/windows/test-release-evidence-verifiers.ps1`
+  via `brain product accepts release-grade hidden brain proof`,
+  `brain product rejects legacy weak boolean-only proof`,
+  `brain product rejects public brain HTTP surface evidence`, and
+  `brain product rejects capture proof without recall result`. Search terms
+  should include `musu.brain_product_proof.v1`, `verify-brain-product-proof.ps1`,
+  `record-brain-product-proof.ps1`, `weak boolean-only proof`, `~/.musu/brain`,
+  `musu-ingest.token`, `no musu-brain sidecar process observed`,
+  `HUGH_SECOND brain product proof fail_count=14`, and
+  `brain_product_verified=false`.
+
 **End of WIKI_INDEX.md.**

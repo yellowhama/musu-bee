@@ -414,7 +414,7 @@ function Get-ReleaseNextActions {
                 break
             }
             "brain-product-proof" {
-                $actions.Add((New-NextAction -Area $area -Summary "Capture release-grade hidden brain proof beyond token ACL: health, source ingest, cockpit UX, and version coherence." -ActionType "manual_then_command" -ManualSteps @("Launch the packaged desktop so the brain sidecar starts under ~/.musu/brain.", "Verify the expected brain /health response through the product-owned loopback/proxy path.", "Complete a real task and prove POST /v1/sources created a brain source.", "Run cockpit recall/capture UX proof.", "Record docs\evidence\brain-product\$Version\*.json with schema musu.brain_product_proof.v1 and ok=true.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -RequireBrainToken -Json" -EvidencePath "docs\evidence\brain-product\$Version\*.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "The current verifier proves token custody only; full brain product proof still needs health, ingest, UX, and version evidence.")) | Out-Null
+                $actions.Add((New-NextAction -Area $area -Summary "Capture release-grade hidden brain proof beyond token ACL: health, source ingest, recall/capture, and version coherence." -ActionType "manual_then_command" -ManualSteps @("Launch the packaged desktop so the brain sidecar starts under ~/.musu/brain.", "Run the brain product proof recorder against the product-owned loopback sidecar.", "Confirm the proof created a real task source, processed it, and recalled it.", "Confirm the proof created a real capture clip, processed it, and recalled it.", "Save the passing JSON under docs\evidence\brain-product\$Version.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-brain-product-proof.ps1 -OutputRoot docs\evidence\brain-product\$Version -Json" -EvidencePath "docs\evidence\brain-product\$Version\*.brain-product-proof.json" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-brain-product-proof.ps1 -EvidencePath <BRAIN_PRODUCT_JSON> -ExpectedVersion $Version -Json" -AutomationBlockedReason "The recorder requires the packaged desktop to have started the hidden brain sidecar; token ACL alone does not satisfy the product spec.")) | Out-Null
                 break
             }
             "v34-stale-self-heal" {
@@ -696,6 +696,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-p2p-control-plane-evidence.ps1",
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
+        "scripts/windows/record-brain-product-proof.ps1",
         "scripts/windows/run-private-mesh-release-proof.ps1",
         "scripts/windows/archive-private-mesh-release-proof-bundle.ps1",
         "scripts/windows/run-second-pc-release-check.ps1",
@@ -714,6 +715,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/verify-runtime-cpu-scenario-matrix.ps1",
         "scripts/windows/verify-single-machine-evidence.ps1",
         "scripts/windows/verify-support-mailbox-evidence.ps1",
+        "scripts/windows/verify-brain-product-proof.ps1",
         "scripts/windows/verify-store-submission-bundle.ps1",
         "scripts/windows/show-final-release-handoff-status.ps1",
         "scripts/windows/show-operator-handoff-card.ps1",
@@ -1766,6 +1768,7 @@ $msixLegacyConflictsScript = Join-Path $scriptDir "check-msix-legacy-conflicts.p
 $storeReleaseVerifierScript = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $p2pControlPlaneVerifierScript = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
+$brainProductVerifierScript = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $privateMeshReleaseProofArchiveVerifierScript = Join-Path $scriptDir "verify-private-mesh-release-proof-archive.ps1"
 $p2pEnvStatusScript = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
 $manifestPath = Join-Path $repoRoot ".local-build\release-candidates\$version\release-candidate-manifest.json"
@@ -2685,17 +2688,22 @@ $brainProductLookup = Get-LatestJsonEvidence `
     -Version $version `
     -Schema "musu.brain_product_proof.v1"
 $brainProductEvidence = $brainProductLookup.json
+$brainProductVerificationResult = $null
+if ([bool]$brainProductLookup.found) {
+    $brainProductVerificationResult = Invoke-JsonScript `
+        -FilePath $brainProductVerifierScript `
+        -Arguments @(
+            "-EvidencePath", $brainProductLookup.path,
+            "-ExpectedVersion", $version,
+            "-ExpectedPackageVersion", $expectedPackageVersion,
+            "-Json"
+        ) `
+        -AllowFailure
+}
 $brainProductVerified = (
-    [bool]$brainProductLookup.found -and
-    $brainProductEvidence -and
-    $brainProductEvidence.PSObject.Properties["ok"] -and
-    [bool]$brainProductEvidence.ok -and
-    $brainProductEvidence.PSObject.Properties["health_ok"] -and
-    [bool]$brainProductEvidence.health_ok -and
-    $brainProductEvidence.PSObject.Properties["task_ingest_ok"] -and
-    [bool]$brainProductEvidence.task_ingest_ok -and
-    $brainProductEvidence.PSObject.Properties["recall_capture_ux_ok"] -and
-    [bool]$brainProductEvidence.recall_capture_ux_ok
+    $brainProductVerificationResult -and
+    $brainProductVerificationResult.json -and
+    [bool]$brainProductVerificationResult.json.ok
 )
 
 $v34SelfHealLookup = Get-LatestJsonEvidence `
@@ -3103,6 +3111,8 @@ $result = [pscustomobject]@{
                 found = [bool]$brainProductLookup.found
                 path = [string]$brainProductLookup.path
                 verified = [bool]$brainProductVerified
+                verification = if ($brainProductVerificationResult -and $brainProductVerificationResult.json) { $brainProductVerificationResult.json } else { $null }
+                verification_error = if ($brainProductVerificationResult -and -not $brainProductVerificationResult.json) { [string]$brainProductVerificationResult.raw } else { "" }
             }
             v34_stale_self_heal = [pscustomobject]@{
                 found = [bool]$v34SelfHealLookup.found

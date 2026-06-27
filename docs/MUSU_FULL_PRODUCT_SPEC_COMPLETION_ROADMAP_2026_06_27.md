@@ -38,9 +38,8 @@ Current local gate shape on this branch:
 - `relay_transport_product_verified=false`.
 - `brain_product_verified=false`.
 - `v34_stale_self_heal_verified=false`.
-- `release_candidate_manifest_generated=false` until the missing current
-  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix` artifact is
-  produced and verified.
+- `release_candidate_manifest_generated=true` after the current rc.22
+  Store-reviewed artifact and submission bundle refresh.
 
 ## 2026-06-28 Manifest Version Gate Update
 
@@ -91,6 +90,35 @@ Store distribution lane because Partner Center product-name reservation,
 Microsoft certification/restricted-capability approval, and Store-signed
 install/launch proof are still external evidence requirements.
 
+## 2026-06-28 Brain Product Proof Gate Update
+
+The brain product lane now has a dedicated release proof recorder and verifier:
+
+- `scripts/windows/record-brain-product-proof.ps1`
+- `scripts/windows/verify-brain-product-proof.ps1`
+
+`write-release-go-no-go.ps1` no longer accepts a weak
+`musu.brain_product_proof.v1` JSON that only sets `ok`, `health_ok`,
+`task_ingest_ok`, and `recall_capture_ux_ok`. The lane now requires verifier
+approval for the packaged hidden brain sidecar: package version coherence,
+packaged `musu-brain.exe`, observed sidecar process, `~/.musu/brain` data
+root, restricted ingest token ACL, loopback-only `http://127.0.0.1:8080`,
+`/health`, real `/v1/sources` task ingest, `/v1/process`, `/v1/query`, real
+`/v1/clips` capture ingest, and capture recall results.
+
+This hardens the product spec gate, but it does not itself close the brain
+product lane. A physical packaged desktop run still has to produce a passing
+`docs/evidence/brain-product/1.15.0-rc.22/*.brain-product-proof.json`.
+
+Local diagnostic on `HUGH_SECOND` after adding the recorder:
+`record-brain-product-proof.ps1 -Json` wrote a non-release local artifact under
+`.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed with
+`fail_count=14`. The installed package identity is correct
+(`blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`), but no `musu-brain`
+sidecar process was observed and `http://127.0.0.1:8080/health` was not proven.
+This confirms the brain product lane is still a real runtime/lifecycle gap, not
+only a missing documentation artifact.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -101,7 +129,7 @@ install/launch proof are still external evidence requirements.
 | Two-PC direct fleet | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet readiness is proven |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
-| Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook exist | Brain is bonded as a hidden chip, but full release-grade health/ingest/UX proof is missing |
+| Brain sidecar product bonding | Partly complete | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, and dedicated brain product proof verifier/recorder exist | Brain is bonded as a hidden chip, but a passing packaged runtime brain-product proof is still missing |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, route preflight, heartbeat TTL filter are documented/implemented | Needs boot reconcile and stale-candidate E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; Partner Center/MS certification/Store-signed install evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
@@ -139,7 +167,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | NO-GO | The full product cannot be called complete today. | Direct proof is green, but design, Store, relay transport, full brain proof, and V34 self-heal proof remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness until all lanes below are closed. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
-| HIGH | Brain is bonded but not fully product-proven. | Token ACL proof exists; full `/health`, real task source ingest, recall/capture cockpit UX, fleet event ingest, and native version surface are not all proven. | The "one product with hidden brain" spec is not finished. | Capture packaged first-run brain evidence and finish UX/event/version lanes. |
+| HIGH | Brain is bonded but not fully product-proven. | Token ACL proof exists and weak proof JSON is now rejected by `verify-brain-product-proof.ps1`; a passing packaged runtime proof is not yet recorded. | The "one product with hidden brain" spec is not finished. | Run `record-brain-product-proof.ps1` from an installed desktop session and commit a verifier-passing brain product proof. |
 | HIGH | Store readiness is still external evidence, not inferred from MSIX proof. | Current docs separate MSIX package proof from Partner Center/MS certification/Store release. | Public release through Store remains a manual/external gate. | Prepare current Store bundle, reserve product name, pass restricted capability review, record Store-signed install proof. |
 | MED | V34 stale self-heal is partly implemented but not fully proven. | Candidate set, observed-source additive candidate, route preflight, and heartbeat TTL exist; boot reconcile and stale-candidate E2E remain. | Reinstall/multi-NIC/stale-row tails can still surprise users until the proof exists. | Finish boot/local reconcile and stale-first-candidate physical E2E. |
 | MED | Support mailbox evidence is historically a release blocker. | Older release gates and wiki entries require `musu@musu.pro` proof. | Final readiness may be blocked by operator evidence even if code is green. | Either record support mailbox evidence for the current version or formally retire the gate in docs/tooling. |
@@ -276,7 +304,8 @@ Deliverables:
   package coherence.
 
 Proof:
-- `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`.
+- `record-brain-product-proof.ps1 -OutputRoot docs\evidence\brain-product\<version> -Json`.
+- `verify-brain-product-proof.ps1 -EvidencePath <BRAIN_PRODUCT_JSON> -ExpectedVersion <version> -Json`.
 - Packaged sidecar health evidence.
 - Task source ingest evidence under `~/.musu/brain`.
 - UX smoke/e2e proof for recall/capture.

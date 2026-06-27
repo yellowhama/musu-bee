@@ -30,6 +30,7 @@ $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-dia
 $processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
@@ -87,6 +88,20 @@ function Get-CurrentPowerShellExecutable {
 }
 
 $powerShellExecutable = Get-CurrentPowerShellExecutable
+
+function Convert-TestPublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
+$expectedPackageVersion = Convert-TestPublicVersionToPackageVersion -PublicVersion $ExpectedVersion
 
 function Invoke-Verifier {
     param(
@@ -1496,6 +1511,10 @@ function Test-GoNoGoFullProductSpecReadinessContract {
         'design_approval_verified',
         'relay_transport_product_verified',
         'brain_product_verified',
+        'verify-brain-product-proof.ps1',
+        'record-brain-product-proof.ps1',
+        '$brainProductVerificationResult = Invoke-JsonScript',
+        'verification = if ($brainProductVerificationResult',
         'v34_stale_self_heal_verified',
         'musu.fleet_node_proof.v1',
         'musu.design_approval.v1',
@@ -4065,6 +4084,62 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     )
 }
 
+function New-BrainProductProofEvidence {
+    param(
+        [switch]$PublicBaseUrl,
+        [switch]$MissingCaptureRecall
+    )
+
+    $baseUrl = if ($PublicBaseUrl) { "https://musu.pro" } else { "http://127.0.0.1:8080" }
+    $captureRecallOk = -not [bool]$MissingCaptureRecall
+    $captureRecallCount = if ($captureRecallOk) { 1 } else { 0 }
+    [pscustomobject]@{
+        schema = "musu.brain_product_proof.v1"
+        ok = $true
+        version = $ExpectedVersion
+        package_version = $expectedPackageVersion
+        expected_package_version = $expectedPackageVersion
+        package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        brain_binary_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc\musu-brain.exe"
+        brain_binary_packaged = $true
+        sidecar_process_observed = $true
+        generated_at = $now.ToString("o")
+        operator_machine = "VERIFIER-TEST"
+        operator_user = "verifier-test"
+        brain_root = "C:\Users\verifier\.musu\brain"
+        base_url = $baseUrl
+        product_owned_loopback = -not [bool]$PublicBaseUrl
+        brain_http_public_surface_exposed = [bool]$PublicBaseUrl
+        token_present = $true
+        token_acl_restricted = $true
+        token_path = "C:\Users\verifier\.musu\brain\runtime\musu-ingest.token"
+        version_coherence_ok = $true
+        source_store_owner = "musu-brain"
+        musu_db_shared_write = $false
+        tenant_id = "local"
+        workspace_id = "musu"
+        health_ok = $true
+        workspace_ok = $true
+        task_ingest_ok = $true
+        task_source_id = "source-task-fixture"
+        task_marker = "musu-brain-proof-task-fixture"
+        task_process_ok = $true
+        task_recall_ok = $true
+        task_recall_result_count = 1
+        recall_capture_ux_ok = $captureRecallOk
+        capture_clip_ok = $true
+        capture_source_id = "source-capture-fixture"
+        capture_marker = "musu-brain-proof-capture-fixture"
+        capture_process_ok = $true
+        capture_recall_ok = $captureRecallOk
+        capture_recall_result_count = $captureRecallCount
+        checks = @(
+            [pscustomobject]@{ name = "fixture"; status = "pass"; message = "fixture check passed" }
+        )
+    }
+}
+
 function New-MsixInstallEvidence {
     param(
         [switch]$Shadowed,
@@ -5658,6 +5733,30 @@ Add-CaseResult -Cases $cases -Name "msix rejects developer alias shadow warning 
 $fixture = Write-Fixture -Name "msix-shadow-warning-explicit-accept" -Object (New-MsixInstallEvidence -Shadowed -WarningMode)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-AliasShadowingMode", "warn-explicit-windowsapps", "-Json")
 Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning only with explicit verifier mode" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "brain-product-valid" -Object (New-BrainProductProofEvidence)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product accepts release-grade hidden brain proof" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$weakBrainProof = [pscustomobject]@{
+    schema = "musu.brain_product_proof.v1"
+    ok = $true
+    version = $ExpectedVersion
+    health_ok = $true
+    task_ingest_ok = $true
+    recall_capture_ux_ok = $true
+}
+$fixture = Write-Fixture -Name "brain-product-weak-token-only-shape" -Object $weakBrainProof
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects legacy weak boolean-only proof" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "brain-product-public-base-url" -Object (New-BrainProductProofEvidence -PublicBaseUrl)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects public brain HTTP surface evidence" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "brain-product-missing-capture-recall" -Object (New-BrainProductProofEvidence -MissingCaptureRecall)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without recall result" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
