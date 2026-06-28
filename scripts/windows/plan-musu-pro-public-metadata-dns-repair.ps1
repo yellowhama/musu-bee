@@ -252,10 +252,10 @@ function Invoke-VercelInspect {
         }
     }
 
-    $args = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)
-    $args += @("--token", $Token)
+    $vercelArgs = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)
+    $vercelArgs += @("--token", $Token)
 
-    $raw = & npx @args 2>&1
+    $raw = & npx @vercelArgs 2>&1
     $exitCode = $LASTEXITCODE
     $text = ($raw | Out-String).Trim()
     $text = $text -replace [regex]::Escape($Token), "<redacted>"

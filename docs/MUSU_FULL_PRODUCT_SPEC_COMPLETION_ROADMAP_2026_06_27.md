@@ -81,12 +81,12 @@ reports
 `private_mesh_packaged_release_proof_verified=false`,
 `public_metadata_ok=false`, `p2p_control_plane_verified=false`, and
 `relay_transport_product_verified=false`. The product is still NO-GO, but the
-local current-package evidence lanes are no longer the blocker. The second-PC
-kit is now regenerated from clean commit
-`067a22c4f837fac70a31bda219b5970dfc5260ce` at
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-163218.zip`
+local current-package evidence lanes are no longer the blocker. The latest
+second-PC kit is now regenerated from clean commit
+`8e82fae46eb25b59171627627cab5dcfba7e847f` at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
 with SHA256
-`192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`, and
+`6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`, and
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that kit.
 The kit generator now also persists
 `.local-build\multi-device-test-kit\latest-prepare-output.json`, so the
@@ -352,6 +352,25 @@ This returns the gate to the substantive 10 blockers:
 `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
 `p2p-control-plane`, `design-approval`, `relay-transport`, and
 `v34-stale-self-heal`. This is still not a completion event.
+
+2026-06-28 20:48 KST public metadata planner fix and second-PC kit refresh:
+`plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect` now uses
+`$vercelArgs` instead of PowerShell's automatic `$args`, so a present
+`VERCEL_TOKEN` produces real `vercel domains inspect musu.pro` output instead
+of a Windows shell banner. Fixed evidence:
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-204816-musu-pro-dns-repair-plan-vercel-inspect-fixed.json`
+with SHA256
+`B8709AC9CA39173806D9F7577B05227553E974934E4E363CED24611C0ACEE1C3`.
+It records `vercel_inspect.ok=true`, `has_informative_output=true`, project
+`musu-pro`, intended Vercel nameservers, and current Cloudflare nameservers.
+The public metadata lane remains blocked because apex DNS/TLS is still
+externally wrong. A fresh second-PC kit was also generated from clean commit
+`8e82fae46eb25b59171627627cab5dcfba7e847f` at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
+with SHA256
+`6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
+This refreshes the `hugh-main` handoff artifact only; it does not close the
+second-PC evidence gate until the kit is run on the main PC and imported.
 
 ## 2026-06-27 Gate Implementation Update
 
@@ -1291,27 +1310,27 @@ current nameservers `blakely.ns.cloudflare.com` and
 
 After the current-package evidence refresh and latest-output contract fix, the
 current rc.22 multi-device kit was regenerated from clean commit
-`067a22c4f837fac70a31bda219b5970dfc5260ce`.
+`8e82fae46eb25b59171627627cab5dcfba7e847f`.
 The concise handoff for the other physical machine is
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
 Generated artifact:
 
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644`.
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218.zip`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644.zip`.
 - Metadata:
   `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `067a22c4f837fac70a31bda219b5970dfc5260ce`, and `dirty=false`.
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`, and `dirty=false`.
 - Generator result:
   `latest-prepare-output.json` reports
   `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`, and proves the
   go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is executable
   and persisted as the current latest pointer.
 - SHA256:
-  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
 - Included proof tools:
   `run-second-pc-release-check.ps1`, `measure-musu-idle-cpu.ps1`,
   `measure-musu-runtime-cpu-scenarios.ps1`,

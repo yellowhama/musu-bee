@@ -2044,6 +2044,8 @@ function Test-PublicMetadataDnsRepairPlannerContract {
         'will_mutate_external_dns = $false',
         'verify-store-public-metadata.ps1',
         'vercel domains inspect',
+        '$vercelArgs = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)',
+        '$raw = & npx @vercelArgs 2>&1',
         'token_missing',
         'inspect_command_failed',
         'inspect_output_uninformative',

@@ -66,15 +66,30 @@ processes.
 
 Public metadata planner hardening evidence:
 
-- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-204816-musu-pro-dns-repair-plan-vercel-inspect-fixed.json`
 - SHA256:
-  `2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`
-- `vercel_inspect.reason=token_missing`
-- `vercel_inspect.ok=false`
-- `vercel_inspect.has_informative_output=false`
+  `B8709AC9CA39173806D9F7577B05227553E974934E4E363CED24611C0ACEE1C3`
+- `vercel_inspect.ran=true`
+- `vercel_inspect.ok=true`
+- `vercel_inspect.has_informative_output=true`
+- Vercel project binding: `musu-pro`
+- Current nameservers remain Cloudflare:
+  `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`
 - Regression:
   `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
   `case_count=214`, `failed_case_count=0`.
+
+Latest second-PC kit:
+
+- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
+- SHA256:
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`
+- Source commit:
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`
+- `dirty=false`
+
+This kit refresh does not close any release gate by itself. `hugh-main` still
+must run it and return verifier-passing evidence.
 
 Live multi-device route audit:
 
@@ -104,7 +119,7 @@ Live multi-device route audit:
 | HIGH | Design approval is correctly fail-closed. | The design gate now requires a real GitHub issue approval comment URL. | Add explicit approval on issue #35 and put that URL in PR #34. |
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
 | INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
-| INFO | Public metadata planner inspect output is now fail-closed. | `-RunVercelInspect` without `VERCEL_TOKEN` records `token_missing`; uninformative CLI output records `inspect_output_uninformative`; regression passed 214 cases. | Use a real Vercel token for `domains inspect`, then fix DNS/TLS externally. |
+| INFO | Public metadata planner inspect output now captures real Vercel diagnostics when a token is present. | `$args` was replaced with `$vercelArgs` in `Invoke-VercelInspect`; fixed evidence records `vercel_inspect.ok=true` and `has_informative_output=true` for `musu.pro`; regression passed 214 cases. | Fix DNS/TLS externally; diagnostics alone do not close public metadata. |
 | INFO | Local current-package freshness is restored for HUGH_SECOND. | Single-machine, process ownership, startup single-instance, desktop single-instance, runtime idle CPU, and five-scenario runtime CPU matrix were refreshed and the clean gate returned to `blockers=10`. | Keep these evidence files committed; they do not replace the second physical machine evidence. |
 
 ## Code Audit

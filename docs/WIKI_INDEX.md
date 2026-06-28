@@ -9429,7 +9429,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
   `RuntimeCpuRouteTarget hugh_second`, and
   `552b239eef0ced04f3a08658c5dc82ced2a90145`. This kit is now historical;
-  the current handoff points to the later `20260628-163218` kit.
+  the current handoff points to the later `20260628-204644` kit.
 
 - 2026-06-28 product spec completion audit refresh:
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` recorded the then-current
@@ -9517,26 +9517,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-28 current second-PC kit supersedes the 11:00 kit:
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` to
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-163218.zip`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`.
   `kit-build-metadata.json` records `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `067a22c4f837fac70a31bda219b5970dfc5260ce`, and `dirty=false`.
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`, and `dirty=false`.
   `prepare-multidevice-test-kit.ps1 -Json` now emits
   `musu.multidevice_test_kit_prepare.v1` with `zip_sha256` and
   `metadata_path`, persists
   `.local-build\multi-device-test-kit\latest-prepare-output.json`, and fixes
   the go/no-go next action command without leaving a stale latest pointer. The
-  current generated kit zip is size `81116474`, SHA256
-  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
+  current generated kit SHA256 is
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
   The command for `hugh-main` remains:
   `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
   This advances the physical evidence path but does not close second-PC
   multi-device or two-machine CPU/matrix blockers until the return zip is
   imported and verified. Search terms should include
-  `musu-multidevice-1.15.0-rc.22-20260628-163218`,
-  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`,
+  `musu-multidevice-1.15.0-rc.22-20260628-204644`,
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`,
   `musu.multidevice_test_kit_prepare.v1`, and
-  `067a22c4f837fac70a31bda219b5970dfc5260ce`.
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`.
 
 - 2026-06-28 clean-HEAD go/no-go after second-PC kit JSON fix:
   `write-release-go-no-go.ps1 -Json` wrote
@@ -9959,5 +9959,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-202500-HUGH_SECOND.runtime-cpu-scenario-matrix`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`, `c3bd5ed68024`, and
   `blockers=10`.
+
+- 2026-06-28 public metadata DNS planner Vercel inspect fix:
+  `docs/PUBLIC_METADATA_DNS_PLANNER_VERCEL_INSPECT_FIX_2026_06_28.md` records
+  the fix for `plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect`.
+  The planner now uses `$vercelArgs` instead of PowerShell's automatic `$args`,
+  so a present `VERCEL_TOKEN` captures real
+  `vercel domains inspect musu.pro` output. Fixed evidence:
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-204816-musu-pro-dns-repair-plan-vercel-inspect-fixed.json`
+  with SHA256
+  `B8709AC9CA39173806D9F7577B05227553E974934E4E363CED24611C0ACEE1C3`,
+  `vercel_inspect.ok=true`, `has_informative_output=true`, project
+  `musu-pro`, and current Cloudflare nameservers. The public metadata lane
+  remains NO-GO until apex DNS/TLS is externally repaired. The same update
+  refreshed the second-PC kit to
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
+  with SHA256
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
+  Verification: `npm run test:public-release` passed 16 tests and
+  `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+  `case_count=214`, `failed_case_count=0`. Search terms should include
+  `PUBLIC_METADATA_DNS_PLANNER_VERCEL_INSPECT_FIX_2026_06_28`, `vercelArgs`,
+  `inspect_output_uninformative`, `has_informative_output=true`,
+  `20260628-204816`, and `20260628-204644`.
 
 **End of WIKI_INDEX.md.**
