@@ -9537,6 +9537,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.multidevice_test_kit_prepare.v1`, and
   `e9ed80a2bb55fb7b798327129e5e461dd7039f25`.
 
+- 2026-06-28 clean-HEAD go/no-go after second-PC kit JSON fix:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-second-pc-kit-json-refresh.json` at
+  `2026-06-28T14:24:39.8780563+09:00` for commit
+  `bcbaba71492722f1ebcf4435800789e959ea88ab`, `manifest_git.dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=1`. Local package evidence lanes stayed green:
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Remaining blockers are
+  still real second-PC multi-device proof, packaged Private Mesh archive,
+  two-machine idle CPU/matrix proof, public metadata DNS/edge proof, Store
+  release evidence, P2P control-plane release relay proof, design approval,
+  real delegated-work relay transport, and V34 stale self-heal proof. Search
+  terms should include `after-second-pc-kit-json-refresh.json`,
+  `2026-06-28T14:24:39.8780563+09:00`,
+  `bcbaba71492722f1ebcf4435800789e959ea88ab`, and `blockers=10`.
+
 - 2026-06-28 public metadata DNS diagnostic contract:
   `scripts/windows/verify-store-public-metadata.ps1` now emits
   `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when

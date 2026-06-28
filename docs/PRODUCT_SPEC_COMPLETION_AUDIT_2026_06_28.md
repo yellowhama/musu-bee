@@ -16,7 +16,7 @@ several release lanes still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T13:53:13.4340964+09:00`
+- `generated_at`: `2026-06-28T14:24:39.8780563+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -34,7 +34,7 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=a58a9fb039f9d39a7272f21474c75ac8aff8ab01`
+- `commit=bcbaba71492722f1ebcf4435800789e959ea88ab`
 
 2026-06-28 13:53 KST current-HEAD refresh: after the public metadata diagnostic
 commits reopened five freshness lanes, fresh HUGH_SECOND packaged evidence was
@@ -42,6 +42,17 @@ captured and committed. The local single-machine, process ownership,
 startup/desktop single-instance, and targeted second-PC route-attempt lanes are
 green again. The product remains NO-GO because the remaining blockers require
 second physical machine, DNS/edge, Store, relay, design, or V34 proof.
+
+2026-06-28 14:24 KST clean-HEAD recheck: after adding
+`prepare-multidevice-test-kit.ps1 -Json` support, regenerating the second-PC
+kit, refreshing the release candidate manifest, and updating the handoff/wiki,
+`write-release-go-no-go.ps1 -Json` still reports `blockers=10`, `warnings=1`,
+`manifest_git.dirty=false`, and commit
+`bcbaba71492722f1ebcf4435800789e959ea88ab`. The same local evidence lanes stay
+green (`single_machine_verified`, `process_ownership_verified`,
+`startup_single_instance_verified`, `desktop_single_instance_verified`, and
+`runtime_cpu_second_pc_route_attempt_verified`), so the JSON kit tooling change
+did not reopen package freshness blockers.
 
 Current blockers:
 

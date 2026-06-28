@@ -90,6 +90,15 @@ The kit generator itself was also tightened in commit
 `musu.multidevice_test_kit_prepare.v1` with the kit zip SHA256 and metadata
 path.
 
+2026-06-28 14:24 KST clean-HEAD gate recheck: after the second-PC kit JSON
+contract fix and docs/wiki refresh, `write-release-go-no-go.ps1 -Json`
+generated `.local-build\go-no-go\after-second-pc-kit-json-refresh.json` with
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=1`, `manifest_git.dirty=false`, and commit
+`bcbaba71492722f1ebcf4435800789e959ea88ab`. The local freshness lanes remained
+green; the remaining blockers are still physical/external product gates, not
+the second-PC kit command.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
