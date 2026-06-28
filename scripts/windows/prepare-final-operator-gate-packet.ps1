@@ -143,6 +143,7 @@ $scriptsToCopy = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "capture-v34-source-snapshot.ps1",
     "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
     "verify-v34-self-heal-proof.ps1",
@@ -467,7 +468,23 @@ counts, stale-peer presence/removal, preserved LAN-only peer, preserved current
 same-name candidate, and pruned count. The source artifact recorder rejects
 noncanonical snapshot schemas before it writes release evidence.
 
-First record source artifacts from actual before/after snapshots:
+First capture the source snapshots from the physical `~/.musu` state:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before -TargetNodeName <PRIMARY_PC_NODE> -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\<V34_TTL_BEFORE_JSON> -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage before -OutputPath .local-build\multi-device\<V34_BOOT_BEFORE_JSON> -Json
+
+# After TTL prune / boot reconcile, capture the after state. Set
+# BootPrunedManualPeerCount to the actual before-minus-after stale peer count.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage after -TargetNodeName <PRIMARY_PC_NODE> -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\<V34_TTL_AFTER_JSON> -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after -BootPrunedManualPeerCount 1 -OutputPath .local-build\multi-device\<V34_BOOT_AFTER_JSON> -Json
+```
+
+Then record source artifacts from those captured before/after snapshots:
+
+Use the exact `stale_row_last_seen_at` value emitted in
+`<V34_TTL_BEFORE_JSON>` for `TtlStaleRowLastSeenAt`; PowerShell may normalize
+JSON timestamps to the local offset when reading `nodes.cache.json`.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-v34-source-artifacts.ps1 `

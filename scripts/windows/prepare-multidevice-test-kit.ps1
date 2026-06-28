@@ -67,6 +67,7 @@ $scriptFiles = @(
     "show-musu-pro-p2p-env-status.ps1",
     "record-p2p-control-plane-evidence.ps1",
     "verify-p2p-control-plane-evidence.ps1",
+    "capture-v34-source-snapshot.ps1",
     "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
     "verify-v34-self-heal-proof.ps1",
@@ -290,9 +291,26 @@ the proof is not just operator-entered booleans:
   peer, preserved current same-name candidate, and pruned count against the
   command parameters.
 
-The kit includes the canonical source artifact recorder, final proof recorder,
-and verifier. First record the source artifacts from actual before/after
-snapshots:
+The kit includes the canonical snapshot capture helper, source artifact
+recorder, final proof recorder, and verifier. First capture the before/after
+snapshots from the physical `~/.musu` state:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before -TargetNodeName PRIMARY-PC -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\V34_TTL_BEFORE.json -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage before -OutputPath .local-build\multi-device\V34_BOOT_BEFORE.json -Json
+
+# After the stale registry row is hidden and boot reconcile has pruned the stale
+# same-name manual peer, capture the after state. Set BootPrunedManualPeerCount
+# to the actual before-minus-after stale manual peer count.
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage after -TargetNodeName PRIMARY-PC -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\V34_TTL_AFTER.json -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after -BootPrunedManualPeerCount 1 -OutputPath .local-build\multi-device\V34_BOOT_AFTER.json -Json
+```
+
+Then record the source artifacts from those captured snapshots:
+
+Use the exact `stale_row_last_seen_at` value emitted in
+`V34_TTL_BEFORE.json` for `TtlStaleRowLastSeenAt`; PowerShell may normalize
+JSON timestamps to the local offset when reading `nodes.cache.json`.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-source-artifacts.ps1 `

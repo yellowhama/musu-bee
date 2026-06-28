@@ -352,8 +352,8 @@ Source fix:
   binding, distinct node pair, and exactly-one task execution before accepting
   `musu.v34_self_heal_proof.v1`.
 - The multi-device kit, final operator packet, and go/no-go next action now show
-  the source artifact recorder plus the required TTL/boot source artifact paths
-  instead of a boolean-only command skeleton.
+  the snapshot capture helper, source artifact recorder, and required TTL/boot
+  source artifact paths instead of a boolean-only command skeleton.
 
 Verification:
 
@@ -361,11 +361,55 @@ Verification:
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`.
 - `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
-  `ok=true`, `case_count=205`, and `failed_case_count=0`.
+  `ok=true`, `case_count=208`, and `failed_case_count=0`.
 
 This hardens the V34 release proof contract. It still does not close the V34
 lane: the artifact-bound proof must be produced from a rebuilt packaged physical
 two-node stale registry/cache/manual-peer run and committed under
+`docs/evidence/v34-self-heal/1.15.0-rc.22/`.
+
+## 2026-06-28 V34 Source Snapshot Capture Helper
+
+Follow-up audit found that the V34 proof contract was now strict, but operators
+still had to produce the canonical before/after snapshot JSON by hand. That left
+the physical evidence path too easy to execute inconsistently.
+
+Source fix:
+
+- `scripts/windows/capture-v34-source-snapshot.ps1` now reads the physical
+  `~/.musu/nodes.cache.json` and `~/.musu/manual_peers.toml` state and writes
+  canonical `musu.v34_ttl_snapshot.v1` or `musu.v34_boot_snapshot.v1` JSON.
+- TTL capture computes stale row counts from `last_heartbeat` and
+  `-HeartbeatTtlSec`, records the stale last-seen timestamp, and marks whether
+  current registry output excludes heartbeat-expired rows.
+- Boot capture classifies manual peers as stale same-name ghosts, current
+  same-name candidates, LAN-only peers, or nameless ad hoc peers against the
+  cached registry candidate set. Boot `after` snapshots require
+  `-BootPrunedManualPeerCount` so the after state binds to the source artifact
+  recorder.
+- The multi-device kit and final operator packet now copy this helper and show
+  capture commands before `record-v34-source-artifacts.ps1`.
+- Operators must pass the exact `stale_row_last_seen_at` emitted by the captured
+  TTL-before snapshot into `record-v34-source-artifacts.ps1`; PowerShell can
+  normalize JSON timestamps to the local offset while preserving the same
+  instant.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1` now executes the helper
+  against fixture `MUSU_HOME` states:
+  `V34 snapshot capture emits TTL before canonical snapshot`,
+  `V34 snapshot capture emits boot before canonical snapshot`, and
+  `V34 snapshot capture emits boot after canonical snapshot with pruned count`.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=208`, and `failed_case_count=0`.
+- Additional integration smoke fed helper-emitted TTL/boot before/after
+  snapshots directly into `record-v34-source-artifacts.ps1` and the recorder
+  accepted them.
+
+This improves proof collection repeatability but does not close V34. The final
+lane still requires a rebuilt packaged physical two-node stale-state run and
+verifier-passing evidence committed under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/`.
 
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
@@ -564,7 +608,7 @@ Verification:
 - `scripts/windows/test-release-evidence-verifiers.ps1` now includes
   `second-PC kit includes relay transport proof tools and runbook`.
 - `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
-  `ok=true`, `case_count=205`, and `failed_case_count=0`.
+  `ok=true`, `case_count=208`, and `failed_case_count=0`.
 
 This aligns the physical proof collection path with the roadmap, but does not
 close the lane. `relay_transport_product_verified=false` remains correct until
@@ -728,6 +772,8 @@ Proof:
 - Two physical nodes with injected stale public URL/cache/manual peer.
 - Route evidence shows reachable LAN candidate selected before stale candidate.
 - Registry/current fleet excludes heartbeat-expired rows.
+- `capture-v34-source-snapshot.ps1` captures canonical TTL/boot before/after
+  snapshots from physical `~/.musu` state.
 - TTL source evidence uses schema `musu.v34_ttl_prune_source.v1` and is bound
   to the wrapper by SHA256 and field checks.
 - Boot reconcile source evidence uses schema `musu.v34_boot_reconcile_source.v1`

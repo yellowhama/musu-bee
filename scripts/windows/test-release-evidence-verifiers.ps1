@@ -37,6 +37,7 @@ $brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
 $v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
 $v34SelfHealRecorder = Join-Path $scriptDir "record-v34-self-heal-proof.ps1"
 $v34SourceArtifactRecorder = Join-Path $scriptDir "record-v34-source-artifacts.ps1"
+$v34SnapshotCapture = Join-Path $scriptDir "capture-v34-source-snapshot.ps1"
 $storeReleaseVerifier = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $storeReleaseRecorder = Join-Path $scriptDir "record-store-release-verification.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
@@ -997,6 +998,7 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         '"docs\MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"',
         '"docs\SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md"',
         '"docs\V34_DISCOVERY_STALE_THESIS_2026_06_26.md"',
+        '"capture-v34-source-snapshot.ps1"',
         '"record-v34-source-artifacts.ps1"',
         '"record-v34-self-heal-proof.ps1"',
         '"verify-v34-self-heal-proof.ps1"',
@@ -1013,6 +1015,9 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         'support/operator evidence: formal mailbox-delivery gate retirement is recorded',
         'The old support mailbox delivery gate is not a remaining blocker',
         'Gate D - V34 stale self-heal physical proof',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after',
+        'BootPrunedManualPeerCount',
         'TtlSourceEvidencePath',
         'BootSourceEvidencePath',
         'musu.v34_ttl_prune_source.v1',
@@ -1114,10 +1119,14 @@ function Test-SecondPcKitV34SelfHealProofContract {
 
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
+        '"capture-v34-source-snapshot.ps1"',
         '"record-v34-source-artifacts.ps1"',
         '"record-v34-self-heal-proof.ps1"',
         '"verify-v34-self-heal-proof.ps1"',
         '## V34 stale self-heal proof',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after',
+        'BootPrunedManualPeerCount',
         'musu.v34_self_heal_proof.v1',
         'musu.route_evidence.v1',
         'RouteStaleCandidateWasFirst',
@@ -6356,6 +6365,69 @@ Add-CaseResult -Cases $cases -Name "brain product rejects public brain HTTP surf
 $fixture = Write-Fixture -Name "brain-product-missing-capture-recall" -Object (New-BrainProductProofEvidence -MissingCaptureRecall)
 $invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without recall result" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$v34CaptureHomeBefore = Join-Path $OutputRoot "v34-snapshot-capture-home-before"
+$v34CaptureHomeAfter = Join-Path $OutputRoot "v34-snapshot-capture-home-after"
+New-Item -ItemType Directory -Force -Path $v34CaptureHomeBefore, $v34CaptureHomeAfter | Out-Null
+$v34CaptureStaleHeartbeat = $now.AddMinutes(-20).ToString("o")
+$v34CaptureCache = [pscustomobject]@{
+    nodes = @([pscustomobject]@{
+        node_id = "hugh-main"
+        name = "hugh-main"
+        addr = "192.168.1.192:4387"
+        capabilities = @()
+        last_heartbeat = $v34CaptureStaleHeartbeat
+        meta = [pscustomobject]@{
+            candidate_endpoints = @(
+                [pscustomobject]@{ kind = "lan"; addr = "192.168.1.192:4387"; scheme = "http" },
+                [pscustomobject]@{ kind = "relay"; addr = "relay.musu.pro:443"; relay_url = "wss://relay.musu.pro/api/v1/relay/connect" }
+            )
+        }
+    })
+    fetched_at = $now.ToString("o")
+    registry_url = "https://musu.pro"
+}
+$v34CaptureCache | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $v34CaptureHomeBefore "nodes.cache.json") -Encoding UTF8
+$v34CaptureCache | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $v34CaptureHomeAfter "nodes.cache.json") -Encoding UTF8
+@'
+[[peers]]
+addr = "192.168.1.192:2957"
+name = "hugh-main"
+added_at = "2026-06-27T00:00:00Z"
+
+[[peers]]
+addr = "192.168.1.192:4387"
+name = "hugh-main"
+added_at = "2026-06-27T00:01:00Z"
+
+[[peers]]
+addr = "10.0.0.42:9999"
+name = "lan-only-box"
+added_at = "2026-06-27T00:02:00Z"
+'@ | Set-Content -LiteralPath (Join-Path $v34CaptureHomeBefore "manual_peers.toml") -Encoding UTF8
+@'
+[[peers]]
+addr = "192.168.1.192:4387"
+name = "hugh-main"
+added_at = "2026-06-27T00:01:00Z"
+
+[[peers]]
+addr = "10.0.0.42:9999"
+name = "lan-only-box"
+added_at = "2026-06-27T00:02:00Z"
+'@ | Set-Content -LiteralPath (Join-Path $v34CaptureHomeAfter "manual_peers.toml") -Encoding UTF8
+
+$v34CapturedTtlBefore = Join-Path $OutputRoot "v34-captured-ttl-before.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "ttl", "-Stage", "before", "-MusuHome", $v34CaptureHomeBefore, "-TargetNodeName", "hugh-main", "-HeartbeatTtlSec", "300", "-OutputPath", $v34CapturedTtlBefore, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits TTL before canonical snapshot" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedTtlBefore -ShouldPass $true -Invocation $invocation
+
+$v34CapturedBootBefore = Join-Path $OutputRoot "v34-captured-boot-before.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "boot", "-Stage", "before", "-MusuHome", $v34CaptureHomeBefore, "-OutputPath", $v34CapturedBootBefore, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits boot before canonical snapshot" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedBootBefore -ShouldPass $true -Invocation $invocation
+
+$v34CapturedBootAfter = Join-Path $OutputRoot "v34-captured-boot-after.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "boot", "-Stage", "after", "-MusuHome", $v34CaptureHomeAfter, "-BootPrunedManualPeerCount", "1", "-OutputPath", $v34CapturedBootAfter, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits boot after canonical snapshot with pruned count" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedBootAfter -ShouldPass $true -Invocation $invocation
 
 $v34TtlBeforeSnapshot = Write-Fixture -Name "v34-source-ttl-before-snapshot" -Object ([pscustomobject]@{
     schema = "musu.v34_ttl_snapshot.v1"

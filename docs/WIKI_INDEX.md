@@ -9221,11 +9221,12 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   snapshots, TTL/boot source-to-wrapper field bindings, route evidence SHA256
   metadata, route binding, distinct node pair, and exactly-one task execution.
   The multi-device kit, final operator packet, and go/no-go next action now show
-  the source artifact recorder plus the required TTL/boot source artifact paths.
+  the snapshot capture helper, source artifact recorder, and required TTL/boot
+  source artifact paths.
   Regression harness now includes
   `V34 source artifact recorder emits TTL and boot source evidence` and
   `V34 self-heal rejects proof without TTL and boot source artifacts`; latest
-  run reports `ok=true`, `case_count=205`, and `failed_case_count=0`. This
+  run reports `ok=true`, `case_count=208`, and `failed_case_count=0`. This
   hardens the proof contract but does not close the lane:
   `v34_stale_self_heal_verified=false` until a rebuilt packaged physical
   stale-state proof with source artifacts is committed under
@@ -9237,6 +9238,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `boot_source_evidence_matches_parameters`,
   `route_evidence_sha256`, and
   `V34 self-heal rejects proof without TTL and boot source artifacts`.
+
+- 2026-06-28 V34 source snapshot capture helper:
+  follow-up audit found that the V34 proof contract was strict, but operators
+  still had to hand-produce canonical before/after snapshot JSON.
+  `scripts/windows/capture-v34-source-snapshot.ps1` now reads physical
+  `~/.musu/nodes.cache.json` and `~/.musu/manual_peers.toml` state and writes
+  canonical `musu.v34_ttl_snapshot.v1` or `musu.v34_boot_snapshot.v1` JSON.
+  TTL capture computes stale row counts from `last_heartbeat` and
+  `-HeartbeatTtlSec`; boot capture classifies stale same-name ghosts, current
+  same-name candidates, LAN-only manual peers, and nameless ad hoc peers
+  against the cached registry candidate set. Boot `after` capture requires
+  `-BootPrunedManualPeerCount` so the after snapshot binds to the source
+  artifact recorder. The multi-device kit and final operator packet now ship the
+  helper and show capture commands before `record-v34-source-artifacts.ps1`.
+  Operators must pass the exact `stale_row_last_seen_at` emitted by the
+  TTL-before snapshot into `record-v34-source-artifacts.ps1` because PowerShell
+  can normalize JSON timestamps to the local offset while preserving the same
+  instant.
+  Regression harness now executes
+  `V34 snapshot capture emits TTL before canonical snapshot`,
+  `V34 snapshot capture emits boot before canonical snapshot`, and
+  `V34 snapshot capture emits boot after canonical snapshot with pruned count`;
+  latest run reports `ok=true`, `case_count=208`, and `failed_case_count=0`.
+  Additional integration smoke fed helper-emitted TTL/boot before/after
+  snapshots directly into `record-v34-source-artifacts.ps1` and the recorder
+  accepted them.
+  Search terms should include `capture-v34-source-snapshot.ps1`,
+  `musu.v34_source_snapshot_capture.v1`, `BootPrunedManualPeerCount`,
+  `stale_same_name_manual_peer`, and `V34 snapshot capture emits boot after
+  canonical snapshot with pruned count`.
 
 - 2026-06-28 relay second-PC proof kit alignment:
   the final operator packet already documented the relay failure-injection gate,
@@ -9252,7 +9283,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   QUIC/TLS relay runtime and verifier-passing physical evidence exist.
   Regression harness now includes
   `second-PC kit includes relay transport proof tools and runbook`; latest run
-  reports `ok=true`, `case_count=205`, and `failed_case_count=0`. Search terms
+  reports `ok=true`, `case_count=208`, and `failed_case_count=0`. Search terms
   should include `relay second-PC proof kit alignment`,
   `Relay transport failure-injection proof`,
   `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json`, and
