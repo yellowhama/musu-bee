@@ -9482,4 +9482,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `node_name_source`, `tailnet_ip_source`, `persisted_tailnet_ip=100.64.0.2`,
   `parse_tailnet_status_hostname`, `os error 1455`, and `LNK1102`.
 
+- 2026-06-28 current packaged local evidence and go/no-go refresh:
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now record
+  the post-rebuild gate at `2026-06-28T12:42:09.592229+09:00`. The local
+  sideload MSIX
+  `.local-build\msix\output\musu_1.15.0.22_x64_local-sideload-manual.msix`
+  was rebuilt and installed on HUGH_SECOND; it was last written
+  `2026-06-28T12:26:06+09:00` and is `40710731` bytes. Fresh current-package
+  evidence is committed for single-machine smoke
+  `20260628-122829-HUGH_SECOND`, process ownership
+  `20260628-122848-HUGH_SECOND`, startup single-instance
+  `20260628-122855-HUGH_SECOND`, desktop repeated activation
+  `20260628-122908-HUGH_SECOND`, desktop-open idle CPU
+  `20260628-123156-HUGH_SECOND`, and runtime CPU scenario matrix
+  `20260628-123157-HUGH_SECOND`. The latest go/no-go remains
+  `full_product_spec_ready=false` and `ready_for_public_desktop_release=false`,
+  but blockers dropped to `10` with `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Remaining blockers are
+  real second-PC multi-device proof, packaged Private Mesh release proof
+  archive, two-machine runtime idle CPU/matrix proof, public metadata, Store
+  release evidence, P2P control-plane relay proof, design approval, real relay
+  transport, and V34 physical stale self-heal proof. Search terms should
+  include `20260628-122829-HUGH_SECOND`, `20260628-123157-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157`, `blockers=10`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, and
+  `private_mesh_packaged_release_proof_verified=false`.
+
 **End of WIKI_INDEX.md.**

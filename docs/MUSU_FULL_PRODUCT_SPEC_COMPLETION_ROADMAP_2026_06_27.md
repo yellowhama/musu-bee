@@ -17,9 +17,13 @@ candidate `192.168.1.192:4387`, submitted successfully, waited for completion,
 and wrote verifier-passing `musu.route_evidence.v1`.
 
 The fresh packaged desktop now also records a passing hidden-brain product
-proof for rc.22. It still does not prove the full product: design approval,
-Store release/Store-signed install evidence, real relay transport, and V34
-stale self-heal proof still remain.
+proof for rc.22, and the current HUGH_SECOND package now has refreshed
+single-machine smoke, process ownership, startup single-instance, desktop
+single-instance, and runtime CPU evidence. It still does not prove the full
+product: second-PC release evidence, packaged Private Mesh proof archive,
+public metadata, Store release/Store-signed install evidence, real relay
+transport, explicit design approval, and V34 stale self-heal proof still
+remain.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
@@ -57,6 +61,22 @@ packaged evidence lanes such as single-machine smoke, process ownership,
 startup single-instance, desktop repeated activation, and CPU evidence must be
 refreshed or rebuilt against the current package before the gate can count
 them. This is correct fail-closed behavior.
+
+2026-06-28 12:42 KST current-package evidence refresh: after rebuilding and
+installing `musu_1.15.0.22_x64_local-sideload-manual.msix`, the local
+go/no-go snapshot improved to `blockers=10`, `warnings=1`, clean commit
+`2e6bc4e0b119e99a7410a8f7b4375df10a25fc8a`, and
+`manifest_git.dirty=false`. The gate now reports
+`single_machine_verified=true`, `process_ownership_verified=true`,
+`startup_single_instance_verified=true`,
+`desktop_single_instance_verified=true`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`. It still reports
+`runtime_idle_cpu_verified=false`,
+`runtime_cpu_scenario_matrix_verified=false`,
+`private_mesh_packaged_release_proof_verified=false`,
+`public_metadata_ok=false`, `p2p_control_plane_verified=false`, and
+`relay_transport_product_verified=false`. The product is still NO-GO, but the
+local current-package evidence lanes are no longer the blocker.
 
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
@@ -791,6 +811,50 @@ HUGH_SECOND-side evidence. It does not close either runtime CPU release gate by
 itself because `write-release-go-no-go.ps1` requires verifier-passing evidence
 from at least two physical machines.
 
+## 2026-06-28 Current Packaged Local Evidence Refresh
+
+The current rc.22 local sideload package was rebuilt and installed again after
+the Private Mesh source fix:
+
+- MSIX:
+  `.local-build\msix\output\musu_1.15.0.22_x64_local-sideload-manual.msix`.
+- Last written:
+  `2026-06-28T12:26:06+09:00`.
+- Size:
+  `40710731` bytes.
+
+Fresh HUGH_SECOND package evidence now supersedes the earlier 10:xx local
+evidence for the current gate:
+
+- Single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-122829-HUGH_SECOND.evidence.json`.
+- Single-machine verification:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-122829-HUGH_SECOND.verification.json`.
+- Process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-122848-HUGH_SECOND.process-ownership.json`.
+- Startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-122855-HUGH_SECOND.startup-single-instance.json`.
+- Nested startup process ownership:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-122855-HUGH_SECOND.startup-single-instance.process-ownership.json`.
+- Desktop repeated activation:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-122908-HUGH_SECOND.desktop-single-instance.json`.
+- Desktop-open idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-123156-HUGH_SECOND.desktop-open.evidence.json`.
+- Full runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-123157-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- Runtime CPU matrix verification:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-123157-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
+
+The latest go/no-go snapshot at `2026-06-28T12:42:09.592229+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, and `warnings=1`. It confirms the local packaged smoke,
+process ownership, startup single-instance, desktop single-instance, and
+second-PC CPU route-attempt lanes are now green. It still blocks on real
+second-PC multi-device proof, two-machine CPU/matrix proof, packaged Private
+Mesh proof archive, public metadata, Store release evidence, P2P relay
+control-plane proof, design approval, relay transport proof, and V34 physical
+self-heal proof.
+
 ## 2026-06-28 Public Metadata Apex TLS NO-GO
 
 The latest public metadata failure is now diagnosed more precisely in
@@ -865,10 +929,10 @@ QUIC/TLS transport evidence beyond the legacy HTTP bearer route.
 | rc.22 public install/proof channel | Complete for current rc.22 package | `fleet-proof.ps1` on `hugh-main`, install-channel verifier, package `1.15.0.22` | Public install/proof channel is valid for rc.22 |
 | Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
 | Direct delegated-work route | Complete for current rc.22 package over direct LAN | Packaged `musu route` from `hugh_second` to `hugh-main` wrote `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`; `verify-direct-route-evidence.ps1` reports `ok=true`, `fail_count=0`; MSIX install evidence `20260628-050309-HUGH_SECOND.*` verifies the installed package | A visible direct online node is proven work-targetable over LAN for rc.22; this does not claim relay fallback or release-grade peer identity |
-| Single-machine packaged smoke | Complete on HUGH_SECOND for current rc.22 package | `20260628-101659-HUGH_SECOND.evidence.json` verifies packaged WindowsApps `musu.exe`, bridge-only local surface `http://127.0.0.1:8211`, CLI route checked, `ok=true`, `fail_count=0` | HUGH_SECOND proves fresh packaged local smoke for rc.22; this does not satisfy second-PC multi-device or two-machine CPU/matrix gates |
-| Local packaged process/startup/desktop instance evidence | Complete on HUGH_SECOND for current rc.22 package | Process ownership `20260628-100747-HUGH_SECOND`, startup single-instance `20260628-100802-HUGH_SECOND`, and desktop repeated activation `20260628-100827-HUGH_SECOND` all report `ok=true` | HUGH_SECOND proves packaged runtime ownership and single-instance behavior; this does not satisfy two-machine CPU/matrix or private-mesh packaged proof gates |
-| Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.019s evidence `20260628-102430-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, owned WebView2 `6`, hot process count `0`, working set `411.02MB` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
-| Runtime CPU scenario matrix | Partly complete for current rc.22 package | HUGH_SECOND matrix `20260628-103303-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`, and targeted route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
+| Single-machine packaged smoke | Complete on HUGH_SECOND for current rc.22 package | `20260628-122829-HUGH_SECOND.evidence.json` verifies packaged WindowsApps `musu.exe`, bridge-only local surface `http://127.0.0.1:1695`, CLI route checked, `ok=true`, `fail_count=0` | HUGH_SECOND proves fresh packaged local smoke for rc.22; this does not satisfy second-PC multi-device or two-machine CPU/matrix gates |
+| Local packaged process/startup/desktop instance evidence | Complete on HUGH_SECOND for current rc.22 package | Process ownership `20260628-122848-HUGH_SECOND`, startup single-instance `20260628-122855-HUGH_SECOND`, and desktop repeated activation `20260628-122908-HUGH_SECOND` all report `ok=true` | HUGH_SECOND proves packaged runtime ownership and single-instance behavior; this does not satisfy two-machine CPU/matrix or private-mesh packaged proof gates |
+| Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.022s evidence `20260628-123156-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, owned WebView2 `6`, hot process count `0`, working set `400.32MB` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
+| Runtime CPU scenario matrix | Partly complete for current rc.22 package | HUGH_SECOND matrix `20260628-123157-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`, and targeted route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission now has stricter source/target/tunnel metadata checks but still fails closed before runtime | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
@@ -910,7 +974,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Direct proof, brain product proof, and support/operator governance are green, but design, Store distribution, relay transport, and V34 self-heal proof remain separate gaps. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to rc.22 two-PC direct readiness plus hidden-brain fresh-launch proof plus support gate retirement until all lanes below are closed. |
+| NO-GO | The full product cannot be called complete today. | Latest go/no-go has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and `blockers=10`. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices until all lanes below are closed. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier. | `verify-store-public-metadata.ps1` fails with `request_failed`; `curl.exe` fails before HTTP headers on apex HTTPS; `www.musu.pro` TLS succeeds only to redirect back to apex; Vercel reports Cloudflare current NS vs Vercel intended NS. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Repair Cloudflare/Vercel DNS and edge TLS for the apex host, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
