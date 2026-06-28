@@ -391,6 +391,16 @@ relay route/transport/delivery evidence. The product remains NO-GO on the same
 physical/external lanes. Canonical report:
 `docs/RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING_2026_06_28.md`.
 
+2026-06-28 21:31 KST post-push recheck for W-7 source-node auth binding commit
+`55f3f820`: PR #34 code/deploy checks are green except the expected
+`design-gate` blocker. `Deploy to Vercel`, `Web typecheck and build`, `Rust core
+tests`, `Playwright E2E`, `landing-ceo-approval-gate`, `saas-gate`, and the
+short `test` check passed. A fresh public metadata verifier still fails
+canonical `https://musu.pro` with `request_failed`,
+`dns_nameserver_mismatch`, `apex_tls_handshake_failed`, and
+`vercel_edge_apex_tls_failed`; the next product constraints are therefore
+external approval/DNS and physical proof, not this commit's source checks.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not

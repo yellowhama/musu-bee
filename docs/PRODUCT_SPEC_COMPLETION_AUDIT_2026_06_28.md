@@ -170,6 +170,15 @@ NO-GO until the live control plane is deployed/configured and release-grade rela
 transport, storage, route evidence, transport proof, and payload delivery proof
 exist.
 
+2026-06-28 21:31 KST post-push recheck for commit `55f3f820`: PR #34 checks are
+green except the intentional `design-gate` failure. `Deploy to Vercel`, `Web
+typecheck and build`, `Rust core tests`, `Playwright E2E`,
+`landing-ceo-approval-gate`, `saas-gate`, and the short `test` check passed.
+The product remains NO-GO because `design-gate` still lacks explicit approval,
+and fresh `verify-store-public-metadata.ps1 -Json` still fails the canonical
+`https://musu.pro` apex with `request_failed`, `dns_nameserver_mismatch`,
+`apex_tls_handshake_failed`, and `vercel_edge_apex_tls_failed`.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
