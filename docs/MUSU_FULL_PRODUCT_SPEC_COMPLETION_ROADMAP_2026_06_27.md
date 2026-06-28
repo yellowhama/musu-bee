@@ -306,6 +306,25 @@ Verification for this hardening: `npm run test:public-release` passed 16 tests,
 returned `ok=true`, `case_count=214`, `failed_case_count=0` at
 `2026-06-28T19:54:46.3577462+09:00`.
 
+2026-06-28 19:58 KST post-push clean gate recheck: after committing and pushing
+the fleet-proof release-grade route hardening at
+`df08b39c1eb256f15cb9c4febb06759ae5c0d89c`,
+`write-release-go-no-go.ps1 -Json` generated
+`.local-build\go-no-go\after-fleet-proof-route-gate-hardening.json` with
+`full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and
+`manifest_git.dirty=false`. The added blockers relative to the pre-hardening
+10-blocker snapshot are expected source-freshness invalidations:
+`single-machine`, `process-ownership`, `startup-single-instance`,
+`desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`.
+Substantive blockers remain `multi-device`,
+`private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+`p2p-control-plane`, `design-approval`, `relay-transport`, and
+`v34-stale-self-heal`. This is not a completion event and not evidence of a new
+runtime failure; it means the current package evidence must be refreshed again
+after this source change before the local freshness lanes can return green.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not

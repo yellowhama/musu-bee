@@ -9917,11 +9917,17 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_grade_route_required`, `release_grade_route_verified`, and a
   sanitized `release_grade_route_evidence` summary. Default `fleet-proof.ps1`
   `ok=true` remains scoped to fleet-health proof and must not be read as full
-  product completion. Latest gate recheck at
+  product completion. Pre-hardening gate recheck at
   `2026-06-28T19:42:43.4293297+09:00` on commit
-  `31ade35758c5a6ff2df5aca598a2950c7e400cfb` still reports
+  `31ade35758c5a6ff2df5aca598a2950c7e400cfb` reported
+  `blockers=10`, but the post-push clean gate at
+  `2026-06-28T19:58:08.4473399+09:00` on commit
+  `df08b39c1eb256f15cb9c4febb06759ae5c0d89c` reports
   `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
-  `blockers=10`, and `warnings=0`. Verification for the hardening:
+  `blockers=15`, and `warnings=0`. The added five blockers are expected
+  source-freshness invalidations for `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`. Verification for the hardening:
   `npm run test:public-release` passed 16 tests, `npm run typecheck` passed,
   the generated PowerShell body parsed with `parse_error_count=0`, and
   `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
@@ -9929,6 +9935,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-28T19:54:46.3577462+09:00`. Search terms should include
   `RequireReleaseGradeRoute`, `release_grade_route_verified`,
   `fleet-proof ok=true not complete`, `quic_tls_1_3`,
-  `musu_quic_tls_transport`, and `blockers=10`.
+  `musu_quic_tls_transport`, `blockers=15`, and
+  `runtime-cpu-second-pc-route-attempt`.
 
 **End of WIKI_INDEX.md.**

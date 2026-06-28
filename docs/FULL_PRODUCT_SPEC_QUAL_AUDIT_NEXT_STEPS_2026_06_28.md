@@ -7,11 +7,11 @@ MUSU is not complete against the full product spec yet.
 Latest clean local gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-28T19:42:43.4293297+09:00`
-- Commit: `31ade35758c5a6ff2df5aca598a2950c7e400cfb`
+- Generated: `2026-06-28T19:58:08.4473399+09:00`
+- Commit: `df08b39c1eb256f15cb9c4febb06759ae5c0d89c`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
-- `blockers=10`
+- `blockers=15`
 - `warnings=0`
 
 The post-design-gate current-package evidence refresh restored the local
@@ -20,7 +20,12 @@ proof-bound (`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
 `release_payload_endpoint_proof_bound=true`), but did not implement the release
 tunnel runtime. A later V34 verifier hardening rejected port-zero,
 negative-port, and URL-shaped loopback selected candidates in stale self-heal
-proof. The remaining blockers are physical, external, or not-yet-implemented
+proof. The fleet-proof release-grade route hardening then changed source again,
+so the latest clean post-push gate reopened five current-package freshness
+lanes: `single-machine`, `process-ownership`, `startup-single-instance`,
+`desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`. This is
+expected fail-closed freshness behavior, not a new runtime failure. The
+remaining substantive blockers are physical, external, or not-yet-implemented
 release gates.
 
 ## Current Evidence
@@ -93,7 +98,7 @@ Live multi-device route audit:
 
 | Severity | Finding | Evidence | Next |
 |---|---|---|---|
-| NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`. | Do not claim product completion until the gate has zero blockers. |
+| NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15` after the post-push fleet-proof route hardening commit. | Do not claim product completion until the gate has zero blockers. |
 | NO-GO | Release-grade multi-device route proof is incomplete, and the public proof wrapper now exposes that distinction. | Fresh HUGH_SECOND -> `hugh-main` route smoke completed, but the strict verifier failed with `fail_count=6` because current installed bridges use HTTP bearer with no verified peer identity and no `quic_tls_1_3` proof. `fleet-proof.ps1 -RequireReleaseGradeRoute` now requires the same release-grade route evidence fields instead of letting a green fleet-health proof imply transport readiness. | Implement/start the hardened release transport on both packaged machines, rerun the route smoke or strict public proof, and commit verifier-passing evidence. |
 | NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main` after the hardened transport path is available. |
 | NO-GO | Public metadata is blocked at DNS/TLS, not app source. | `store-public-metadata` reports Cloudflare nameservers, apex TLS failure, and Vercel edge apex TLS failure. | Apply the DNS repair plan, then rerun the verifier. |
@@ -103,7 +108,7 @@ Live multi-device route audit:
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
 | INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
 | INFO | Public metadata planner inspect output is now fail-closed. | `-RunVercelInspect` without `VERCEL_TOKEN` records `token_missing`; uninformative CLI output records `inspect_output_uninformative`; regression passed 214 cases. | Use a real Vercel token for `domains inspect`, then fix DNS/TLS externally. |
-| INFO | Local current-package evidence is healthy. | Single-machine, process ownership, startup, desktop activation, and route-attempt lanes are green again. | Keep these fresh after runtime-affecting changes. |
+| INFO | Local current-package evidence was healthy before the latest source hardening, but is stale again for `df08b39c`. | The post-push gate reopened `single-machine`, `process-ownership`, `startup-single-instance`, `desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`. | Refresh the local packaged evidence after this source change if those lanes need to return green before the next merge/release decision. |
 
 ## Code Audit
 
