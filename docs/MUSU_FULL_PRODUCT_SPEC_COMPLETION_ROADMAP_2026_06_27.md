@@ -62,10 +62,10 @@ startup single-instance, desktop repeated activation, and CPU evidence must be
 refreshed or rebuilt against the current package before the gate can count
 them. This is correct fail-closed behavior.
 
-2026-06-28 12:42 KST current-package evidence refresh: after rebuilding and
+2026-06-28 12:55 KST current-package evidence refresh: after rebuilding and
 installing `musu_1.15.0.22_x64_local-sideload-manual.msix`, the local
 go/no-go snapshot improved to `blockers=10`, `warnings=1`, clean commit
-`2e6bc4e0b119e99a7410a8f7b4375df10a25fc8a`, and
+`44fe239241263f43c12be9af60fd6cae6d134104`, and
 `manifest_git.dirty=false`. The gate now reports
 `single_machine_verified=true`, `process_ownership_verified=true`,
 `startup_single_instance_verified=true`,
@@ -76,7 +76,12 @@ go/no-go snapshot improved to `blockers=10`, `warnings=1`, clean commit
 `private_mesh_packaged_release_proof_verified=false`,
 `public_metadata_ok=false`, `p2p_control_plane_verified=false`, and
 `relay_transport_product_verified=false`. The product is still NO-GO, but the
-local current-package evidence lanes are no longer the blocker.
+local current-package evidence lanes are no longer the blocker. The second-PC
+kit was regenerated at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`
+with SHA256
+`39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`, and
+`docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that kit.
 
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
@@ -845,7 +850,7 @@ evidence for the current gate:
 - Runtime CPU matrix verification:
   `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-123157-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
 
-The latest go/no-go snapshot at `2026-06-28T12:42:09.592229+09:00` reports
+The latest go/no-go snapshot at `2026-06-28T12:55:54.4409984+09:00` reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, and `warnings=1`. It confirms the local packaged smoke,
 process ownership, startup single-instance, desktop single-instance, and
@@ -884,22 +889,24 @@ TLS path is repaired and the canonical verifier passes again.
 
 ## 2026-06-28 Second-PC Kit Refresh
 
-After documenting the public metadata apex TLS blocker, the current rc.22
-multi-device kit was regenerated from clean commit
-`552b239eef0ced04f3a08658c5dc82ced2a90145`.
+After the current-package evidence refresh, the current rc.22 multi-device kit
+was regenerated from clean commit
+`44fe239241263f43c12be9af60fd6cae6d134104`.
 The concise handoff for the other physical machine is
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
 Generated artifact:
 
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-125326`.
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
 - Metadata:
   `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `552b239eef0ced04f3a08658c5dc82ced2a90145`, and `dirty=false`.
+  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`.
+- SHA256:
+  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
 - Included proof tools:
   `run-second-pc-release-check.ps1`, `measure-musu-idle-cpu.ps1`,
   `measure-musu-runtime-cpu-scenarios.ps1`,

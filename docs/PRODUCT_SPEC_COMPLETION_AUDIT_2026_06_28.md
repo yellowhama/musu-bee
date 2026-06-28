@@ -16,7 +16,7 @@ several release lanes still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T12:42:09.592229+09:00`
+- `generated_at`: `2026-06-28T12:55:54.4409984+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -33,7 +33,7 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=2e6bc4e0b119e99a7410a8f7b4375df10a25fc8a`
+- `commit=44fe239241263f43c12be9af60fd6cae6d134104`
 
 Current blockers:
 
@@ -78,6 +78,22 @@ This closes the HUGH_SECOND current-package smoke/process/startup/desktop
 blockers and restores the current second-PC route-attempt lane. It does not
 close the runtime CPU release gates because those require verifier-passing
 evidence from at least two physical machines.
+
+Second-PC kit refresh after this evidence:
+
+- Kit zip:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
+- Kit metadata:
+  `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, commit
+  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`.
+- Release manifest artifact:
+  role `multi_device_test_kit`, size `81116414`, SHA256
+  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
+- Current handoff:
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
+
+This does not close the second-PC blockers by itself; it updates the artifact
+that must be extracted and run on `hugh-main`.
 
 ## P2P / Relay Audit
 

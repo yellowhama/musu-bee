@@ -9428,7 +9428,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   until the return zip is imported and the canonical verifiers pass. Search
   terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
   `RuntimeCpuRouteTarget hugh_second`, and
-  `552b239eef0ced04f3a08658c5dc82ced2a90145`.
+  `552b239eef0ced04f3a08658c5dc82ced2a90145`. This kit is now historical;
+  the current handoff points to the later `20260628-125326` kit.
 
 - 2026-06-28 product spec completion audit refresh:
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` records the current
@@ -9485,7 +9486,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 - 2026-06-28 current packaged local evidence and go/no-go refresh:
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` and
   `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now record
-  the post-rebuild gate at `2026-06-28T12:42:09.592229+09:00`. The local
+  the post-rebuild gate at `2026-06-28T12:55:54.4409984+09:00`. The local
   sideload MSIX
   `.local-build\msix\output\musu_1.15.0.22_x64_local-sideload-manual.msix`
   was rebuilt and installed on HUGH_SECOND; it was last written
@@ -9510,5 +9511,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157`, `blockers=10`,
   `runtime_cpu_second_pc_route_attempt_verified=true`, and
   `private_mesh_packaged_release_proof_verified=false`.
+
+- 2026-06-28 current second-PC kit supersedes the 11:00 kit:
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` to
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
+  `kit-build-metadata.json` records `version=1.15.0-rc.22`, branch
+  `feat/v33-residual-finalize`, commit
+  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`. The release
+  candidate manifest records this kit as role `multi_device_test_kit`, size
+  `81116414`, SHA256
+  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
+  The command for `hugh-main` remains:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This advances the physical evidence path but does not close second-PC
+  multi-device or two-machine CPU/matrix blockers until the return zip is
+  imported and verified. Search terms should include
+  `musu-multidevice-1.15.0-rc.22-20260628-125326`,
+  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`,
+  and `44fe239241263f43c12be9af60fd6cae6d134104`.
 
 **End of WIKI_INDEX.md.**
