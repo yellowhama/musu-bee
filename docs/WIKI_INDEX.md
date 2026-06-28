@@ -9269,6 +9269,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `stale_same_name_manual_peer`, and `V34 snapshot capture emits boot after
   canonical snapshot with pruned count`.
 
+- 2026-06-28 V34 route evidence shape hardening:
+  follow-up audit found that `verify-v34-self-heal-proof.ps1` bound embedded
+  `musu.route_evidence.v1` to the V34 wrapper but could still accept a minimal
+  synthetic route evidence fragment. The verifier now also requires positive
+  `total_attempt_ms`, empty `failure_class` on success, parseable/current
+  `recorded_at`, and non-empty `source_evidence.route_evidence_path`.
+  `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `V34 self-heal rejects minimal synthetic route evidence`; latest run reports
+  `ok=true`, `case_count=209`, and `failed_case_count=0`. This hardens the
+  V34 proof contract but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical
+  stale-state evidence is committed under
+  `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms should include
+  `route evidence attempt timing`, `route evidence recorded timestamp`,
+  `route evidence failure class`, `source evidence route path`, and
+  `V34 self-heal rejects minimal synthetic route evidence`.
+
 - 2026-06-28 relay second-PC proof kit alignment:
   the final operator packet already documented the relay failure-injection gate,
   but the second-PC multi-device kit did not carry the same physical proof path.

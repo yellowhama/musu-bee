@@ -113,6 +113,17 @@ function Test-Sha256([string]$Value) {
     return (-not [string]::IsNullOrWhiteSpace($Value) -and $Value -match '^[a-fA-F0-9]{64}$')
 }
 
+function Test-PositiveInt($Object, [string]$Name) {
+    if (-not (Has-Property $Object $Name)) {
+        return $false
+    }
+    try {
+        return ([int](Get-Prop $Object $Name) -gt 0)
+    } catch {
+        return $false
+    }
+}
+
 function Convert-StrictBoolValue($Value) {
     if ($Value -is [bool]) {
         return [bool]$Value
@@ -359,6 +370,45 @@ if ($evidence) {
     } else {
         Add-Check "route evidence direct payload path" "fail" "route_preflight.route_evidence.payload_transited_musu_infra must be false for stale direct self-heal proof"
     }
+    if (Test-PositiveInt $routeEvidence "total_attempt_ms") {
+        Add-Check "route evidence attempt timing" "pass" "embedded route evidence total_attempt_ms is positive"
+    } else {
+        Add-Check "route evidence attempt timing" "fail" "route_preflight.route_evidence.total_attempt_ms must be positive"
+    }
+    $routeFailureClass = if ($routeEvidence) { [string](Get-Prop $routeEvidence "failure_class") } else { "" }
+    if ([string]::IsNullOrWhiteSpace($routeFailureClass)) {
+        Add-Check "route evidence failure class" "pass" "embedded route evidence failure_class is empty for success"
+    } else {
+        Add-Check "route evidence failure class" "fail" "route_preflight.route_evidence.failure_class must be empty for success"
+    }
+    $routeRecordedAtRaw = if ($routeEvidence) { [string](Get-Prop $routeEvidence "recorded_at") } else { "" }
+    [datetime]$routeRecordedAt = [datetime]::MinValue
+    $routeRecordedAtParsed = $false
+    try {
+        $routeRecordedAt = [datetime]::Parse(
+            $routeRecordedAtRaw,
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [System.Globalization.DateTimeStyles]::RoundtripKind
+        )
+        $routeRecordedAtParsed = $true
+    } catch {
+        $routeRecordedAtParsed = $false
+    }
+    if ($routeRecordedAtParsed) {
+        Add-Check "route evidence recorded timestamp" "pass" "embedded route evidence recorded_at parses"
+        if ($routeRecordedAt.ToUniversalTime() -le (Get-Date).ToUniversalTime().AddMinutes(5)) {
+            Add-Check "route evidence recorded not future" "pass" "embedded route evidence recorded_at is not in the future"
+        } else {
+            Add-Check "route evidence recorded not future" "fail" "route_preflight.route_evidence.recorded_at is more than five minutes in the future"
+        }
+        if ($routeRecordedAt.ToUniversalTime() -ge (Get-Date).ToUniversalTime().AddDays(-14)) {
+            Add-Check "route evidence age" "pass" "embedded route evidence recorded_at is within 14 days"
+        } else {
+            Add-Check "route evidence age" "fail" "route_preflight.route_evidence.recorded_at is older than 14 days"
+        }
+    } else {
+        Add-Check "route evidence recorded timestamp" "fail" "route_preflight.route_evidence.recorded_at must parse as a timestamp"
+    }
 
     $sourceEvidence = Get-Prop $evidence "source_evidence"
     if ($sourceEvidence) {
@@ -385,6 +435,11 @@ if ($evidence) {
         Add-Check "source evidence route hash" "pass" "source evidence includes a route evidence SHA256"
     } else {
         Add-Check "source evidence route hash" "fail" "source_evidence.route_evidence_sha256 must be a SHA256 hash"
+    }
+    if ($sourceEvidence -and (Test-NonEmptyString $sourceEvidence "route_evidence_path")) {
+        Add-Check "source evidence route path" "pass" "source evidence includes the route evidence path"
+    } else {
+        Add-Check "source evidence route path" "fail" "source_evidence.route_evidence_path is required"
     }
 
     $ttlSource = Get-Prop $sourceEvidence "ttl_source_evidence"

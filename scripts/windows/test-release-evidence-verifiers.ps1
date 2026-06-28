@@ -4310,7 +4310,8 @@ function New-V34SelfHealProofEvidence {
         [switch]$RouteEvidenceNodeMismatch,
         [switch]$RouteEvidenceVersionMismatch,
         [switch]$MissingSourceArtifacts,
-        [switch]$BadSourceSnapshotSchema
+        [switch]$BadSourceSnapshotSchema,
+        [switch]$MinimalRouteEvidence
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
@@ -4321,6 +4322,26 @@ function New-V34SelfHealProofEvidence {
     $routeEvidenceVersion = if ($RouteEvidenceVersionMismatch) { "0.0.0-rc.0" } else { $ExpectedVersion }
     $ttlSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_ttl_snapshot.fixture.v1" } else { "musu.v34_ttl_snapshot.v1" }
     $bootSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_boot_snapshot.fixture.v1" } else { "musu.v34_boot_snapshot.v1" }
+    $routeEvidenceObject = [ordered]@{
+        schema = "musu.route_evidence.v1"
+        version = $routeEvidenceVersion
+        source_node_id = $routeEvidenceSource
+        target_node_id = $routeEvidenceTarget
+        result = "success"
+        route_kind = "lan"
+        candidate_addr = $routeEvidenceCandidate
+        payload_transited_musu_infra = $false
+    }
+    if (-not $MinimalRouteEvidence) {
+        $routeEvidenceObject.session_id = $null
+        $routeEvidenceObject.handshake_ms = 39
+        $routeEvidenceObject.total_attempt_ms = 2054
+        $routeEvidenceObject.peer_identity_verified = $false
+        $routeEvidenceObject.encryption = "none_http_bearer"
+        $routeEvidenceObject.failure_class = $null
+        $routeEvidenceObject.recorded_at = $now.ToString("o")
+        $routeEvidenceObject.note = "fixture direct route evidence"
+    }
     [pscustomobject]@{
         schema = "musu.v34_self_heal_proof.v1"
         ok = $true
@@ -4360,16 +4381,7 @@ function New-V34SelfHealProofEvidence {
             task_post_count = $taskPostCount
             route_checked = $true
             selected_candidate_addr = $selectedCandidate
-            route_evidence = [pscustomobject]@{
-                schema = "musu.route_evidence.v1"
-                version = $routeEvidenceVersion
-                source_node_id = $routeEvidenceSource
-                target_node_id = $routeEvidenceTarget
-                result = "success"
-                route_kind = "lan"
-                candidate_addr = $routeEvidenceCandidate
-                payload_transited_musu_infra = $false
-            }
+            route_evidence = [pscustomobject]$routeEvidenceObject
         }
         source_evidence = [pscustomobject]@{
             route_evidence_path = "fixture-route-evidence.json"
@@ -6537,10 +6549,17 @@ $v34RouteEvidence = [pscustomobject]@{
     version = $ExpectedVersion
     source_node_id = "hugh_second"
     target_node_id = "hugh-main"
+    session_id = $null
     result = "success"
     route_kind = "lan"
     candidate_addr = "192.168.1.192:4387"
+    handshake_ms = 39
+    total_attempt_ms = 2054
+    peer_identity_verified = $false
+    encryption = "none_http_bearer"
     payload_transited_musu_infra = $false
+    failure_class = $null
+    recorded_at = $now.ToString("o")
 }
 $fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $v34RouteEvidence
 $v34TtlSourceEvidence = [pscustomobject]@{
@@ -6677,6 +6696,10 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence version
 $fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifacts" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifacts)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without TTL and boot source artifacts" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-minimal-route-evidence" -Object (New-V34SelfHealProofEvidence -MinimalRouteEvidence)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects minimal synthetic route evidence" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")
