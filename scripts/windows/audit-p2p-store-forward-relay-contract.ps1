@@ -198,10 +198,18 @@ Add-Check `
         (Test-ContainsAll -Text $roomRendezvousRoute -Needles @(
             "p2pSourceNodeAuthMismatch",
             "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $releaseConnectPreflightRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
         ))
     ) `
     -Path $p2pControlAuthPath `
-    -Message "Rendezvous, relay lease, relay payload, transport proof, and route evidence writes fail closed when an authenticated node token is bound to a different source_node_id."
+    -Message "Rendezvous, relay lease, relay payload, transport proof, route evidence, and release relay preflight writes fail closed when an authenticated node token is bound to a different source_node_id."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -949,10 +957,18 @@ Add-Check `
         (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
             "POST rejects room rendezvous creation when bearer token is bound to another source node",
             "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $releaseConnectPreflightRouteTest -Needles @(
+            "rejects relay connect preflight when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $releasePayloadPreflightRouteTest -Needles @(
+            "rejects release payload preflight when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
         ))
     ) `
     -Path $payloadRouteTestPath `
-    -Message "P2P tests cover source_node_id auth binding failures on relay payload and rendezvous writes."
+    -Message "P2P tests cover source_node_id auth binding failures on relay payload, rendezvous, and release relay preflight writes."
 
 Add-Check `
     -Scope "tests" `

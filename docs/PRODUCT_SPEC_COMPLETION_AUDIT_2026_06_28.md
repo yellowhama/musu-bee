@@ -162,13 +162,14 @@ because issue #35 still lacks an explicit CEO/design approval comment.
 allowed `source_node_id` values, and the web P2P control plane rejects configured
 mismatches with `source_node_id_auth_mismatch`. The gate is enforced on
 rendezvous, room rendezvous, relay lease, relay payload, relay transport proof,
-and route evidence writes. Verification passed targeted 48-test coverage,
-`npm run test:p2p` with 129 tests, `npm run typecheck`, and
-`audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
-`fail_count=0`. This closes a source-level spoofing gap only. The product remains
-NO-GO until the live control plane is deployed/configured and release-grade relay
-transport, storage, route evidence, transport proof, and payload delivery proof
-exist.
+route evidence, release relay connect preflight, and release relay payload
+preflight writes. Verification passed targeted release endpoint coverage,
+`npm run test:p2p` with 131 tests, `npm run typecheck`, and
+`audit-p2p-store-forward-relay-contract.ps1 -Json` plus
+`audit-operator-api-security-contract.ps1 -Json` with `ok=true`, `fail_count=0`.
+This closes a source-level spoofing gap only. The product remains NO-GO until
+the live control plane is deployed/configured and release-grade relay transport,
+storage, route evidence, transport proof, and payload delivery proof exist.
 
 2026-06-28 21:31 KST post-push recheck for commit `55f3f820`: PR #34 checks are
 green except the intentional `design-gate` failure. `Deploy to Vercel`, `Web

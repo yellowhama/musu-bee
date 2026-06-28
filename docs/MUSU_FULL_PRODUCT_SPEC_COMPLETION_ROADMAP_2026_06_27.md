@@ -381,8 +381,11 @@ source node. The gate is enforced on `POST /api/v1/p2p/rendezvous`,
 `POST /api/rooms/[roomId]/rendezvous`, `POST /api/v1/p2p/relay/lease`,
 `POST /api/v1/p2p/relay/payload`,
 `POST /api/v1/p2p/relay/transport-proof`, and
-`POST /api/v1/p2p/route-evidence`. Verification passed targeted 48-test
-coverage, `npm run test:p2p` (129 tests), `npm run typecheck`, and
+`POST /api/v1/p2p/route-evidence`. 2026-06-28 21:39 KST extension: the same
+binding now also gates `POST /api/v1/relay/connect` and
+`POST /api/v1/relay/payload`, so release relay preflight cannot be source-spoofed
+before lease lookup or proof storage. Verification passed targeted release
+endpoint coverage, `npm run test:p2p` (131 tests), `npm run typecheck`, and
 `audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
 `fail_count=0`. This closes the source-level W-7 spoofing gap for configured
 node tokens only. It does not deploy production bindings, implement the release

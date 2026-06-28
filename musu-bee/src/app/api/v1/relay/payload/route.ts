@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+  type P2pControlPrincipal,
+} from "@/lib/p2pControlAuth";
 import {
   publicReleaseRelayLease,
   releaseRelayLeaseBlockers,
@@ -231,7 +237,11 @@ function releaseProofBindingBlockers(
   return blockers;
 }
 
-function releasePayloadPreflightStatus(method: string, blockers = relayTransportPreflightBlockers()) {
+function releasePayloadPreflightStatus(
+  method: string,
+  blockers = relayTransportPreflightBlockers(),
+  principal?: P2pControlPrincipal
+) {
   return {
     schema: "musu.relay_payload_preflight.v1",
     ok: false,
@@ -248,6 +258,7 @@ function releasePayloadPreflightStatus(method: string, blockers = relayTransport
     relay_default_data_path: false,
     payload_transit_requires_lease: true,
     owner_scoped: true,
+    ...(principal ? p2pSourceNodeAuthBindingFields(principal) : {}),
     release_grade: false,
     ...relayLeaseStoreFields(),
     policy: RELAY_POLICY,
@@ -255,11 +266,15 @@ function releasePayloadPreflightStatus(method: string, blockers = relayTransport
   };
 }
 
-function releasePayloadBlocked(method: string, extra: Record<string, unknown> = {}) {
+function releasePayloadBlocked(
+  method: string,
+  principal?: P2pControlPrincipal,
+  extra: Record<string, unknown> = {}
+) {
   const blockers = uniqueBlockers(relayTransportPreflightBlockers());
   return NextResponse.json(
     {
-      ...releasePayloadPreflightStatus(method, blockers),
+      ...releasePayloadPreflightStatus(method, blockers, principal),
       ok: false,
       release_payload_accepted: false,
       payload_stored: false,
@@ -279,10 +294,14 @@ function releasePayloadBlocked(method: string, extra: Record<string, unknown> = 
   );
 }
 
-function releasePayloadBytesNotAccepted(method: string, forbiddenFields: string[]) {
+function releasePayloadBytesNotAccepted(
+  method: string,
+  forbiddenFields: string[],
+  principal?: P2pControlPrincipal
+) {
   return NextResponse.json(
     {
-      ...releasePayloadPreflightStatus(method),
+      ...releasePayloadPreflightStatus(method, undefined, principal),
       ok: false,
       release_payload_accepted: false,
       payload_stored: false,
@@ -302,12 +321,13 @@ function releasePayloadBytesNotAccepted(method: string, forbiddenFields: string[
 function releaseRelayLeaseNotPayloadReady(
   method: string,
   lease: Awaited<ReturnType<typeof queryRelayLeases>>[number],
-  leaseBlockers: string[]
+  leaseBlockers: string[],
+  principal?: P2pControlPrincipal
 ) {
   const blockers = uniqueBlockers([...relayTransportPreflightBlockers(), ...leaseBlockers]);
   return NextResponse.json(
     {
-      ...releasePayloadPreflightStatus(method, blockers),
+      ...releasePayloadPreflightStatus(method, blockers, principal),
       ok: false,
       release_payload_accepted: false,
       payload_stored: false,
@@ -325,7 +345,8 @@ function releaseRelayLeaseNotPayloadReady(
 async function releasePayloadProofAccepted(
   method: string,
   request: ReleasePayloadRequest,
-  lease: ReleaseRelayLease
+  lease: ReleaseRelayLease,
+  principal?: P2pControlPrincipal
 ) {
   const storeStatus = p2pRelayTransportProofStoreStatus();
   const proof = request.relay_transport_proof;
@@ -342,7 +363,7 @@ async function releasePayloadProofAccepted(
   if (!proof || !delivery || proofBlockers.length > 0) {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(method),
+        ...releasePayloadPreflightStatus(method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -396,7 +417,7 @@ async function releasePayloadProofAccepted(
   } catch (error) {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(method),
+        ...releasePayloadPreflightStatus(method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -417,7 +438,7 @@ async function releasePayloadProofAccepted(
   const { owner_key: _ownerKey, ...publicProof } = storedProof;
   return NextResponse.json(
     {
-      ...releasePayloadPreflightStatus(method),
+      ...releasePayloadPreflightStatus(method, undefined, principal),
       ok: true,
       release_payload_endpoint_wired: true,
       release_payload_contract: "musu.relay_payload_release.v1",
@@ -452,7 +473,8 @@ export async function GET(req: NextRequest) {
   if (failedAuth) {
     return failedAuth;
   }
-  return NextResponse.json(releasePayloadPreflightStatus(req.method));
+  const principal = p2pControlPrincipal(req);
+  return NextResponse.json(releasePayloadPreflightStatus(req.method, undefined, principal));
 }
 
 export async function POST(req: NextRequest) {
@@ -468,7 +490,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(req.method),
+        ...releasePayloadPreflightStatus(req.method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -482,14 +504,14 @@ export async function POST(req: NextRequest) {
 
   const forbiddenFields = forbiddenPayloadByteFields(json);
   if (forbiddenFields.length > 0) {
-    return releasePayloadBytesNotAccepted(req.method, forbiddenFields);
+    return releasePayloadBytesNotAccepted(req.method, forbiddenFields, principal);
   }
 
   const parsed = ReleasePayloadPreflightRequestSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(req.method),
+        ...releasePayloadPreflightStatus(req.method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -502,6 +524,27 @@ export async function POST(req: NextRequest) {
         })),
       },
       { status: 400 }
+    );
+  }
+
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    return NextResponse.json(
+      {
+        ...releasePayloadPreflightStatus(req.method, undefined, principal),
+        ok: false,
+        release_payload_accepted: false,
+        payload_stored: false,
+        payload_transported: false,
+        lease_verified: false,
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+      },
+      { status: 403 }
     );
   }
 
@@ -518,7 +561,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(req.method),
+        ...releasePayloadPreflightStatus(req.method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -535,7 +578,7 @@ export async function POST(req: NextRequest) {
   if (!lease) {
     return NextResponse.json(
       {
-        ...releasePayloadPreflightStatus(req.method),
+        ...releasePayloadPreflightStatus(req.method, undefined, principal),
         ok: false,
         release_payload_accepted: false,
         payload_stored: false,
@@ -549,7 +592,7 @@ export async function POST(req: NextRequest) {
 
   const leaseBlockers = releaseRelayLeaseBlockers(lease);
   if (leaseBlockers.length > 0) {
-    return releaseRelayLeaseNotPayloadReady(req.method, lease, leaseBlockers);
+    return releaseRelayLeaseNotPayloadReady(req.method, lease, leaseBlockers, principal);
   }
 
   if (
@@ -557,10 +600,10 @@ export async function POST(req: NextRequest) {
     parsed.data.relay_transport_proof ||
     parsed.data.delivery_proof
   ) {
-    return releasePayloadProofAccepted(req.method, parsed.data, lease);
+    return releasePayloadProofAccepted(req.method, parsed.data, lease, principal);
   }
 
-  return releasePayloadBlocked(req.method, {
+  return releasePayloadBlocked(req.method, principal, {
     lease_verified: true,
     release_payload_lease_ready: true,
     release_payload_metadata: {

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+  type P2pControlPrincipal,
+} from "@/lib/p2pControlAuth";
 import {
   publicReleaseRelayLease,
   releaseRelayLeaseBlockers,
@@ -54,7 +60,11 @@ function forbiddenRelayConnectByteFields(json: unknown): string[] {
   );
 }
 
-function relayConnectStatus(method: string, blockers = relayTransportPreflightBlockers()) {
+function relayConnectStatus(
+  method: string,
+  blockers = relayTransportPreflightBlockers(),
+  principal?: P2pControlPrincipal
+) {
   return {
     schema: "musu.relay_connect.v1",
     ok: blockers.length === 0,
@@ -72,18 +82,23 @@ function relayConnectStatus(method: string, blockers = relayTransportPreflightBl
     payload_transit_requires_lease: true,
     relay_control_plane_wired: true,
     owner_scoped: true,
+    ...(principal ? p2pSourceNodeAuthBindingFields(principal) : {}),
     ...relayLeaseStoreFields(),
     policy: RELAY_POLICY,
     blockers,
   };
 }
 
-function relayConnectBlocked(method: string, extra: Record<string, unknown> = {}) {
+function relayConnectBlocked(
+  method: string,
+  principal?: P2pControlPrincipal,
+  extra: Record<string, unknown> = {}
+) {
   const blockers = uniqueBlockers(relayTransportPreflightBlockers());
 
   return NextResponse.json(
     {
-      ...relayConnectStatus(method, blockers),
+      ...relayConnectStatus(method, blockers, principal),
       ok: false,
       relay_connect_accepted: false,
       error: blockers.includes("relay_payload_endpoint_not_wired")
@@ -101,10 +116,14 @@ function relayConnectBlocked(method: string, extra: Record<string, unknown> = {}
   );
 }
 
-function relayConnectPayloadBytesNotAccepted(method: string, forbiddenFields: string[]) {
+function relayConnectPayloadBytesNotAccepted(
+  method: string,
+  forbiddenFields: string[],
+  principal?: P2pControlPrincipal
+) {
   return NextResponse.json(
     {
-      ...relayConnectStatus(method),
+      ...relayConnectStatus(method, undefined, principal),
       ok: false,
       relay_connect_accepted: false,
       payload_transported: false,
@@ -123,12 +142,13 @@ function relayConnectPayloadBytesNotAccepted(method: string, forbiddenFields: st
 function releaseRelayLeaseNotConnectReady(
   method: string,
   lease: Awaited<ReturnType<typeof queryRelayLeases>>[number],
-  leaseBlockers: string[]
+  leaseBlockers: string[],
+  principal?: P2pControlPrincipal
 ) {
   const blockers = uniqueBlockers([...relayTransportPreflightBlockers(), ...leaseBlockers]);
   return NextResponse.json(
     {
-      ...relayConnectStatus(method, blockers),
+      ...relayConnectStatus(method, blockers, principal),
       ok: false,
       relay_connect_accepted: false,
       payload_transported: false,
@@ -147,7 +167,8 @@ export async function GET(req: NextRequest) {
   if (failedAuth) {
     return failedAuth;
   }
-  return NextResponse.json(relayConnectStatus(req.method));
+  const principal = p2pControlPrincipal(req);
+  return NextResponse.json(relayConnectStatus(req.method, undefined, principal));
 }
 
 export async function POST(req: NextRequest) {
@@ -163,7 +184,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json(
       {
-        ...relayConnectStatus(req.method),
+        ...relayConnectStatus(req.method, undefined, principal),
         ok: false,
         relay_connect_accepted: false,
         payload_transported: false,
@@ -176,14 +197,14 @@ export async function POST(req: NextRequest) {
 
   const forbiddenFields = forbiddenRelayConnectByteFields(json);
   if (forbiddenFields.length > 0) {
-    return relayConnectPayloadBytesNotAccepted(req.method, forbiddenFields);
+    return relayConnectPayloadBytesNotAccepted(req.method, forbiddenFields, principal);
   }
 
   const parsed = RelayConnectRequestSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       {
-        ...relayConnectStatus(req.method),
+        ...relayConnectStatus(req.method, undefined, principal),
         ok: false,
         relay_connect_accepted: false,
         payload_transported: false,
@@ -195,6 +216,26 @@ export async function POST(req: NextRequest) {
         })),
       },
       { status: 400 }
+    );
+  }
+
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    return NextResponse.json(
+      {
+        ...relayConnectStatus(req.method, undefined, principal),
+        ok: false,
+        relay_connect_accepted: false,
+        payload_transported: false,
+        lease_verified: false,
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+      },
+      { status: 403 }
     );
   }
 
@@ -211,7 +252,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       {
-        ...relayConnectStatus(req.method),
+        ...relayConnectStatus(req.method, undefined, principal),
         ok: false,
         relay_connect_accepted: false,
         payload_transported: false,
@@ -226,7 +267,7 @@ export async function POST(req: NextRequest) {
   if (!lease) {
     return NextResponse.json(
       {
-        ...relayConnectStatus(req.method),
+        ...relayConnectStatus(req.method, undefined, principal),
         ok: false,
         relay_connect_accepted: false,
         payload_transported: false,
@@ -239,10 +280,10 @@ export async function POST(req: NextRequest) {
 
   const leaseBlockers = releaseRelayLeaseBlockers(lease);
   if (leaseBlockers.length > 0) {
-    return releaseRelayLeaseNotConnectReady(req.method, lease, leaseBlockers);
+    return releaseRelayLeaseNotConnectReady(req.method, lease, leaseBlockers, principal);
   }
 
-  return relayConnectBlocked(req.method, {
+  return relayConnectBlocked(req.method, principal, {
     lease_verified: true,
     release_connect_lease_ready: true,
     lease: publicReleaseRelayLease(lease),

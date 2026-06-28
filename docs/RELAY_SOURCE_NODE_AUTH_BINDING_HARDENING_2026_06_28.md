@@ -48,6 +48,8 @@ The binding is enforced on source-claiming control-plane writes:
 - `POST /api/v1/p2p/relay/payload`
 - `POST /api/v1/p2p/relay/transport-proof`
 - `POST /api/v1/p2p/route-evidence`
+- `POST /api/v1/relay/connect`
+- `POST /api/v1/relay/payload`
 
 Mismatch response shape includes:
 
@@ -64,10 +66,13 @@ Passed:
 - `npx tsx --test src/lib/p2pControlAuth.test.ts src/app/api/v1/p2p/relay/lease/route.test.ts src/app/api/v1/p2p/relay/payload/route.test.ts src/app/api/v1/p2p/rendezvous/route.test.ts src/app/api/rooms/[[]roomId[]]/rendezvous/route.test.ts`
   - 48 tests passed.
 - `npm run test:p2p`
-  - 129 tests passed.
+  - 131 tests passed after extending the binding to release relay preflight
+    endpoints.
 - `npm run typecheck`
   - `tsc --noEmit` passed.
 - `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json`
+  - `ok=true`, `fail_count=0`.
+- `scripts/windows/audit-operator-api-security-contract.ps1 -Json`
   - `ok=true`, `fail_count=0`.
 - Post-push PR #34 recheck for commit `55f3f820`
   - `Deploy to Vercel`, `Web typecheck and build`, `Rust core tests`,
@@ -81,7 +86,8 @@ Passed:
 This hardens the relay control-plane trust boundary:
 
 - A node-bound token cannot create rendezvous, relay leases, relay payloads,
-  relay transport proofs, or route evidence as another configured source node.
+  relay transport proofs, route evidence, release relay connect preflight, or
+  release relay payload preflight as another configured source node.
 - Route/proof evidence can no longer be source-spoofed by a correctly configured
   node-specific bearer token.
 - The existing owner-scoped lease and payload guards remain in place.
