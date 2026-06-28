@@ -860,11 +860,15 @@ Mesh proof archive, public metadata, Store release evidence, P2P relay
 control-plane proof, design approval, relay transport proof, and V34 physical
 self-heal proof.
 
-2026-06-28 13:14 KST diagnostic refresh: while adding the public metadata DNS
-diagnostic contract, `write-release-go-no-go.ps1 -Json` reported
-`blockers=11` only because the new verifier edits made `manifest_git.dirty=true`.
-The product conclusion is unchanged: after committing the diagnostic update, the
-substantive full-product blockers remain the same ten release lanes above.
+2026-06-28 13:25 KST clean-HEAD correction: after committing the public
+metadata DNS diagnostic contract, `write-release-go-no-go.ps1 -Json` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=15`, `warnings=1`, `manifest_git.dirty=false`, and manifest commit
+`9a68e69796337da5d3e91f4c98bd6496ee15409a`. The five local lanes that had
+been green at the older commit reopened because release evidence is bound to
+the exact source commit. To return from 15 blockers to the prior 10-blocker
+shape, rerun the packaged HUGH_SECOND evidence refresh on current HEAD; this
+does not change the product conclusion.
 
 ## 2026-06-28 Public Metadata Apex TLS NO-GO
 
@@ -995,7 +999,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and ten substantive blockers; the later 13:14 diagnostic run showed an extra temporary `git` blocker while verifier edits were uncommitted. | A broad "complete" claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices until all lanes below are closed. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T13:25:19.9894351+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | First refresh current-HEAD packaged HUGH_SECOND evidence to recover the five freshness lanes, then close the remaining physical/external product blockers. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS mismatch diagnosis. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch`; `curl.exe` fails before HTTP headers on apex HTTPS; `www.musu.pro` TLS succeeds only to redirect back to apex; current NS are `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, expected NS are `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Repair Cloudflare/Vercel DNS and edge TLS for the apex host, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |

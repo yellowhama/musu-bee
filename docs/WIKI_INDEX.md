@@ -9549,4 +9549,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ns1.vercel-dns.com`, `ns2.vercel-dns.com`,
   `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `store-public-metadata`.
 
+- 2026-06-28 clean-HEAD full product gate correction:
+  after commit `9a68e69796337da5d3e91f4c98bd6496ee15409a`,
+  `write-release-go-no-go.ps1 -Json` generated
+  `.local-build\go-no-go\latest.json` at
+  `2026-06-28T13:25:19.9894351+09:00` with
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=1`, and `manifest_git.dirty=false`. The prior
+  10-blocker shape was tied to source commit `44fe2392`; the public metadata
+  diagnostic commit made that packaged HUGH_SECOND evidence stale by design.
+  Reopened freshness lanes are `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`. This is not a new runtime regression;
+  it means current-HEAD packaged evidence must be rerun before the gate can
+  return to the previous 10 substantive physical/external blockers. Search
+  terms should include `blockers=15`, `manifest_git.dirty=false`,
+  `single-machine freshness reopened`, `runtime-cpu-second-pc-route-attempt`,
+  `9a68e69796337da5d3e91f4c98bd6496ee15409a`, and
+  `44fe239241263f43c12be9af60fd6cae6d134104`.
+
 **End of WIKI_INDEX.md.**
