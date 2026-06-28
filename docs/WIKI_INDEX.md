@@ -9829,4 +9829,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`, and
   `source_release_relay_tunnel_runtime_not_implemented`.
 
+- 2026-06-28 V34 endpoint validation hardening:
+  `docs/V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28.md` records source
+  hardening for V34 stale self-heal proof endpoint parsing. The verifier,
+  recorder, and snapshot capture helper now parse absolute URLs, bracketed IPv6,
+  and host:port forms before routability checks; reject port `0`, negative
+  ports, ports above `65535`, path-shaped non-URL endpoints, loopback, wildcard, and IPv4-mapped
+  loopback/wildcard values; and add regression cases
+  `V34 self-heal rejects port-zero selected candidate proof`,
+  `V34 self-heal rejects negative-port selected candidate proof`, plus
+  `V34 self-heal rejects URL loopback selected candidate proof`. Regression
+  `test-release-evidence-verifiers.ps1 -Json` passed with `ok=true`,
+  `case_count=214`, and `failed_case_count=0`. This does not close the product
+  lane: `v34_stale_self_heal_verified=false` remains correct until packaged
+  physical two-node stale-state evidence is recorded. `musu indexer sync
+  --work-dir F:\workspace\musu-bee --name musu-bee` indexed 3392 files and
+  3879 symbols; recall returned this report and the V34 verifier/test script
+  references. Search terms should
+  include `V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28`, `port-zero selected
+  candidate`, `negative-port selected candidate`, `URL loopback selected
+  candidate`, `Split-EndpointAddr`, `case_count=214`, and
+  `v34_stale_self_heal_verified=false`.
+
 **End of WIKI_INDEX.md.**

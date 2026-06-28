@@ -83,19 +83,78 @@ function Test-NonEmptyString($Object, [string]$Name) {
     return ((Has-Property $Object $Name) -and -not [string]::IsNullOrWhiteSpace([string](Get-Prop $Object $Name)))
 }
 
-function Test-RoutableAddr([string]$Addr) {
+function Split-EndpointAddr([string]$Addr) {
     if ([string]::IsNullOrWhiteSpace($Addr)) {
+        return $null
+    }
+
+    $trimmed = $Addr.Trim()
+    $uri = $null
+    if ([System.Uri]::TryCreate($trimmed, [System.UriKind]::Absolute, [ref]$uri) -and -not [string]::IsNullOrWhiteSpace($uri.Host)) {
+        $uriPort = if ($uri.Port -ge 0) { [int]$uri.Port } else { $null }
+        return [pscustomobject]@{
+            host = $uri.Host
+            port = $uriPort
+        }
+    }
+
+    if ($trimmed -match '[/\\]') {
+        return $null
+    }
+
+    $addrHost = $trimmed
+    $port = $null
+    if ($addrHost.StartsWith("[") -and $addrHost.Contains("]")) {
+        $end = $addrHost.IndexOf("]")
+        $rest = $addrHost.Substring($end + 1)
+        $hostOnly = $addrHost.Substring(1, $end - 1)
+        if ($rest -match '^:(\d+)$') {
+            $parsedPort = 0
+            if (-not [int]::TryParse($matches[1], [ref]$parsedPort)) {
+                return $null
+            }
+            $port = $parsedPort
+        } elseif (-not [string]::IsNullOrWhiteSpace($rest)) {
+            return $null
+        }
+        $addrHost = $hostOnly
+    } else {
+        $firstColon = $addrHost.IndexOf(":")
+        $lastColon = $addrHost.LastIndexOf(":")
+        if ($firstColon -eq $lastColon -and $firstColon -gt 0) {
+            $portText = $addrHost.Substring($firstColon + 1)
+            if ($portText -notmatch '^\d+$') {
+                return $null
+            }
+            $parsedPort = 0
+            if (-not [int]::TryParse($portText, [ref]$parsedPort)) {
+                return $null
+            }
+            $port = $parsedPort
+            $addrHost = $addrHost.Substring(0, $firstColon)
+        }
+    }
+
+    return [pscustomobject]@{
+        host = $addrHost
+        port = $port
+    }
+}
+
+function Test-RoutableAddr([string]$Addr) {
+    $endpoint = Split-EndpointAddr $Addr
+    if ($null -eq $endpoint) {
         return $false
     }
-    $addrHost = $Addr.Trim()
-    if ($addrHost.StartsWith("[")) {
-        $end = $addrHost.IndexOf("]")
-        if ($end -gt 0) {
-            $addrHost = $addrHost.Substring(1, $end - 1)
-        }
-    } elseif ($addrHost.Contains(":")) {
-        $addrHost = ($addrHost -split ":")[0]
+
+    $addrHost = ([string]$endpoint.host).Trim().TrimEnd(".")
+    if ([string]::IsNullOrWhiteSpace($addrHost)) {
+        return $false
     }
+    if ($null -ne $endpoint.port -and ([int]$endpoint.port -le 0 -or [int]$endpoint.port -gt 65535)) {
+        return $false
+    }
+
     $lower = $addrHost.ToLowerInvariant()
     if ($lower -in @("localhost", "0.0.0.0", "::", "::1", "127.0.0.1")) {
         return $false
@@ -105,6 +164,19 @@ function Test-RoutableAddr([string]$Addr) {
     }
     if ($lower -eq "[::]" -or $lower -eq "[::1]") {
         return $false
+    }
+    $ip = $null
+    if ([System.Net.IPAddress]::TryParse($addrHost, [ref]$ip)) {
+        $normalizedIp = $ip
+        if ($ip.IsIPv4MappedToIPv6) {
+            $normalizedIp = $ip.MapToIPv4()
+        }
+        if ([System.Net.IPAddress]::IsLoopback($normalizedIp)) {
+            return $false
+        }
+        if ($normalizedIp.Equals([System.Net.IPAddress]::Any) -or $normalizedIp.Equals([System.Net.IPAddress]::IPv6Any)) {
+            return $false
+        }
     }
     return $true
 }

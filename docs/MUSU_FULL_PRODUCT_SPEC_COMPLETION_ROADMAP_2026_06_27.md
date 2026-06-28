@@ -657,6 +657,44 @@ lane still requires a rebuilt packaged physical two-node stale-state run and
 verifier-passing evidence committed under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/`.
 
+## 2026-06-28 V34 Endpoint Validation Hardening
+
+Follow-up audit found a proof-validation edge case: the V34 selected-candidate
+checks rejected obvious loopback/wildcard hosts, but did not parse all endpoint
+shapes before deciding whether a candidate was remotely usable. That meant
+port-zero endpoints, negative-port endpoints, and URL-shaped loopback
+candidates were not explicitly covered by the release verifier contract.
+
+Source fix:
+
+- `scripts/windows/verify-v34-self-heal-proof.ps1`,
+  `scripts/windows/record-v34-self-heal-proof.ps1`, and
+  `scripts/windows/capture-v34-source-snapshot.ps1` now parse endpoint strings
+  before routability checks.
+- Absolute URLs are parsed by host/port; bracketed IPv6 and host:port forms are
+  parsed without treating the scheme as a hostname.
+- Port `0`, negative ports, ports above `65535`, path-shaped non-URL endpoint
+  strings, loopback, wildcard, and IPv4-mapped IPv6 loopback/wildcard addresses
+  are rejected.
+- Regression coverage adds `V34 self-heal rejects port-zero selected candidate
+  proof`, `V34 self-heal rejects negative-port selected candidate proof`, and
+  `V34 self-heal rejects URL loopback selected candidate proof`.
+
+Verification:
+
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json` reports
+  `ok=true`, `case_count=214`, and `failed_case_count=0`.
+- `git diff --check` passed.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  3392 files and 3879 symbols; recall checks returned the new report, roadmap
+  entry, and V34 verifier/test script references.
+
+This reduces false-positive V34 proof risk but does not close the lane:
+`v34_stale_self_heal_verified=false` remains correct until current packaged
+physical two-node stale-state evidence is recorded and verified under
+`docs/evidence/v34-self-heal/1.15.0-rc.22/`. Canonical report:
+`docs/V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28.md`.
+
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
 
 Follow-up code audit found one more product gap in the V34 stale-first story:

@@ -17,8 +17,10 @@ The post-design-gate current-package evidence refresh restored the local
 freshness lanes. A later P2P source update made the release payload endpoint
 proof-bound (`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
 `release_payload_endpoint_proof_bound=true`), but did not implement the release
-tunnel runtime. The remaining blockers are physical, external, or
-not-yet-implemented release gates.
+tunnel runtime. A later V34 verifier hardening rejected port-zero,
+negative-port, and URL-shaped loopback selected candidates in stale self-heal
+proof. The remaining blockers are physical, external, or not-yet-implemented
+release gates.
 
 ## Current Evidence
 
@@ -53,6 +55,7 @@ processes.
 | NO-GO | Store release is not proven. | Partner Center, Microsoft certification, restricted capability approval, Store-signed install, and Store launch evidence are missing. | Complete Partner Center/Microsoft Store path and record verifier-passing Store evidence. |
 | HIGH | Design approval is correctly fail-closed. | The design gate now requires a real GitHub issue approval comment URL. | Add explicit approval on issue #35 and put that URL in PR #34. |
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
+| INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
 | INFO | Local current-package evidence is healthy. | Single-machine, process ownership, startup, desktop activation, and route-attempt lanes are green again. | Keep these fresh after runtime-affecting changes. |
 
 ## Code Audit

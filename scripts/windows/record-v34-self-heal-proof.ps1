@@ -57,28 +57,101 @@ function Convert-PublicVersionToPackageVersion {
     throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
 }
 
-function Test-RoutableAddr {
+function Split-EndpointAddr {
     param([Parameter(Mandatory = $true)][string]$Addr)
 
     if ([string]::IsNullOrWhiteSpace($Addr)) {
-        return $false
+        return $null
     }
-    $hostPart = $Addr.Trim()
-    if ($hostPart.StartsWith("[")) {
-        $end = $hostPart.IndexOf("]")
-        if ($end -gt 0) {
-            $hostPart = $hostPart.Substring(1, $end - 1)
+
+    $trimmed = $Addr.Trim()
+    $uri = $null
+    if ([System.Uri]::TryCreate($trimmed, [System.UriKind]::Absolute, [ref]$uri) -and -not [string]::IsNullOrWhiteSpace($uri.Host)) {
+        $uriPort = if ($uri.Port -ge 0) { [int]$uri.Port } else { $null }
+        return [pscustomobject]@{
+            host = $uri.Host
+            port = $uriPort
         }
     }
-    elseif ($hostPart.Contains(":")) {
-        $hostPart = ($hostPart -split ":")[0]
+
+    if ($trimmed -match '[/\\]') {
+        return $null
     }
+
+    $hostPart = $trimmed
+    $port = $null
+    if ($hostPart.StartsWith("[") -and $hostPart.Contains("]")) {
+        $end = $hostPart.IndexOf("]")
+        $rest = $hostPart.Substring($end + 1)
+        $hostOnly = $hostPart.Substring(1, $end - 1)
+        if ($rest -match '^:(\d+)$') {
+            $parsedPort = 0
+            if (-not [int]::TryParse($matches[1], [ref]$parsedPort)) {
+                return $null
+            }
+            $port = $parsedPort
+        } elseif (-not [string]::IsNullOrWhiteSpace($rest)) {
+            return $null
+        }
+        $hostPart = $hostOnly
+    } else {
+        $firstColon = $hostPart.IndexOf(":")
+        $lastColon = $hostPart.LastIndexOf(":")
+        if ($firstColon -eq $lastColon -and $firstColon -gt 0) {
+            $portText = $hostPart.Substring($firstColon + 1)
+            if ($portText -notmatch '^\d+$') {
+                return $null
+            }
+            $parsedPort = 0
+            if (-not [int]::TryParse($portText, [ref]$parsedPort)) {
+                return $null
+            }
+            $port = $parsedPort
+            $hostPart = $hostPart.Substring(0, $firstColon)
+        }
+    }
+
+    return [pscustomobject]@{
+        host = $hostPart
+        port = $port
+    }
+}
+
+function Test-RoutableAddr {
+    param([Parameter(Mandatory = $true)][string]$Addr)
+
+    $endpoint = Split-EndpointAddr -Addr $Addr
+    if ($null -eq $endpoint) {
+        return $false
+    }
+
+    $hostPart = ([string]$endpoint.host).Trim().TrimEnd(".")
+    if ([string]::IsNullOrWhiteSpace($hostPart)) {
+        return $false
+    }
+    if ($null -ne $endpoint.port -and ([int]$endpoint.port -le 0 -or [int]$endpoint.port -gt 65535)) {
+        return $false
+    }
+
     $lower = $hostPart.ToLowerInvariant()
     if ($lower -in @("localhost", "0.0.0.0", "::", "::1", "127.0.0.1", "[::]", "[::1]")) {
         return $false
     }
     if ($lower.StartsWith("127.")) {
         return $false
+    }
+    $ip = $null
+    if ([System.Net.IPAddress]::TryParse($hostPart, [ref]$ip)) {
+        $normalizedIp = $ip
+        if ($ip.IsIPv4MappedToIPv6) {
+            $normalizedIp = $ip.MapToIPv4()
+        }
+        if ([System.Net.IPAddress]::IsLoopback($normalizedIp)) {
+            return $false
+        }
+        if ($normalizedIp.Equals([System.Net.IPAddress]::Any) -or $normalizedIp.Equals([System.Net.IPAddress]::IPv6Any)) {
+            return $false
+        }
     }
     return $true
 }

@@ -4390,6 +4390,9 @@ function New-V34SelfHealProofEvidence {
     param(
         [switch]$DuplicateTask,
         [switch]$UnroutableSelectedCandidate,
+        [switch]$PortZeroSelectedCandidate,
+        [switch]$NegativePortSelectedCandidate,
+        [switch]$UrlLoopbackSelectedCandidate,
         [switch]$RouteEvidenceCandidateMismatch,
         [switch]$RouteEvidenceNodeMismatch,
         [switch]$RouteEvidenceVersionMismatch,
@@ -4399,7 +4402,17 @@ function New-V34SelfHealProofEvidence {
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
-    $selectedCandidate = if ($UnroutableSelectedCandidate) { "127.0.0.1:4387" } else { "192.168.1.192:4387" }
+    $selectedCandidate = if ($UnroutableSelectedCandidate) {
+        "127.0.0.1:4387"
+    } elseif ($PortZeroSelectedCandidate) {
+        "192.168.1.192:0"
+    } elseif ($NegativePortSelectedCandidate) {
+        "192.168.1.192:-1"
+    } elseif ($UrlLoopbackSelectedCandidate) {
+        "http://127.0.0.1:4387/api/tasks/delegate"
+    } else {
+        "192.168.1.192:4387"
+    }
     $routeEvidenceCandidate = if ($RouteEvidenceCandidateMismatch) { "192.168.1.10:4387" } else { $selectedCandidate }
     $routeEvidenceSource = if ($RouteEvidenceNodeMismatch) { "wrong-source" } else { "hugh_second" }
     $routeEvidenceTarget = if ($RouteEvidenceNodeMismatch) { "wrong-target" } else { "hugh-main" }
@@ -6788,6 +6801,18 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal rejects duplicate task executi
 $fixture = Write-Fixture -Name "v34-self-heal-unroutable-selected-candidate" -Object (New-V34SelfHealProofEvidence -UnroutableSelectedCandidate)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal rejects unroutable selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-port-zero-selected-candidate" -Object (New-V34SelfHealProofEvidence -PortZeroSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects port-zero selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-negative-port-selected-candidate" -Object (New-V34SelfHealProofEvidence -NegativePortSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects negative-port selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-url-loopback-selected-candidate" -Object (New-V34SelfHealProofEvidence -UrlLoopbackSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects URL loopback selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "v34-self-heal-route-candidate-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceCandidateMismatch)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
