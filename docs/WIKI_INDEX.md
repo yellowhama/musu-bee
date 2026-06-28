@@ -9377,4 +9377,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `single_machine_surface=local-bridge-only`, `allow_developer_runtime=false`,
   `single_machine_verified=true`, and `bridge http://127.0.0.1:8211`.
 
+- 2026-06-28 rc.22 HUGH_SECOND runtime CPU evidence refresh:
+  fresh packaged runtime CPU evidence now exists for HUGH_SECOND. The
+  desktop-open idle CPU evidence is
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-102430-HUGH_SECOND.desktop-open.evidence.json`
+  and reports `ok=true`, `git_dirty=false`, `sample_seconds=60.019`,
+  two MUSU processes, six owned WebView2 helpers, `hot_process_count=0`, and
+  working set `411.02MB`. The full runtime CPU scenario matrix is
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-103303-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  and verifies `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`, and `post-route` from clean git state with target
+  `hugh-main` and route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303`. This advances the CPU lanes to
+  HUGH_SECOND-side evidence only; the release gate remains No-Go until matching
+  second physical machine evidence is recorded. Search terms should include
+  `20260628-102430-HUGH_SECOND.desktop-open`,
+  `20260628-103303-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303`,
+  `runtime_idle_cpu_valid_machines`, and `runtime_cpu_scenario_matrix`.
+
 **End of WIKI_INDEX.md.**
