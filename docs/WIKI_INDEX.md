@@ -9396,4 +9396,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303`,
   `runtime_idle_cpu_valid_machines`, and `runtime_cpu_scenario_matrix`.
 
+- 2026-06-28 public metadata apex TLS NO-GO:
+  `docs/PUBLIC_METADATA_APEX_TLS_NO_GO_2026_06_28.md` records the current
+  system-design audit finding for `https://musu.pro`: the canonical apex host
+  resets the TLS handshake from `HUGH_SECOND`, so
+  `verify-store-public-metadata.ps1 -Json` fails with
+  `failure_kinds=request_failed` for `/privacy`, `/support`, and
+  `/api/public-config`. `www.musu.pro` completes TLS but only returns a Vercel
+  `307` redirect back to the failing apex. DNS authority is currently
+  Cloudflare (`blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`) while
+  `vercel domains inspect musu.pro` reports intended nameservers
+  `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. This is a product-spec NO-GO
+  until apex HTTPS is repaired and the canonical public metadata verifier plus
+  go/no-go pass. Search terms should include
+  `PUBLIC_METADATA_APEX_TLS_NO_GO_2026_06_28`,
+  `apex TLS handshake reset`, `failure_kinds=request_failed`,
+  `blakely.ns.cloudflare.com`, and `ns1.vercel-dns.com`.
+
 **End of WIKI_INDEX.md.**
