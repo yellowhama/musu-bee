@@ -9414,7 +9414,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `blakely.ns.cloudflare.com`, and `ns1.vercel-dns.com`.
 
 - 2026-06-28 rc.22 second-PC kit refresh after public metadata audit:
-  regenerated `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` records the concise handoff for
+  `hugh-main`. Regenerated `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`
   from clean commit `552b239eef0ced04f3a08658c5dc82ced2a90145`.
   `kit-build-metadata.json` records branch `feat/v33-residual-finalize`,
   `dirty=false`, and version `1.15.0-rc.22`. The kit includes

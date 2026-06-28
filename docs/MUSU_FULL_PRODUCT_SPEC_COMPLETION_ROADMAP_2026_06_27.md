@@ -786,6 +786,8 @@ TLS path is repaired and the canonical verifier passes again.
 After documenting the public metadata apex TLS blocker, the current rc.22
 multi-device kit was regenerated from clean commit
 `552b239eef0ced04f3a08658c5dc82ced2a90145`.
+The concise handoff for the other physical machine is
+`docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
 Generated artifact:
 
