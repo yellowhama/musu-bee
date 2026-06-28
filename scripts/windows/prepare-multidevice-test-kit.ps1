@@ -3,7 +3,8 @@ param(
     [string]$OutputRoot,
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
-    [switch]$IncludeDesktopShell
+    [switch]$IncludeDesktopShell,
+    [switch]$Json
 )
 
 Set-StrictMode -Version Latest
@@ -559,13 +560,26 @@ Get-ChildItem -LiteralPath $kitRoot -Recurse -File |
 $zipPath = "$kitRoot.zip"
 Compress-Archive -Path (Join-Path $kitRoot "*") -DestinationPath $zipPath -Force
 
-[pscustomobject]@{
+$zipHash = Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath
+
+$result = [pscustomobject]@{
+    schema = "musu.multidevice_test_kit_prepare.v1"
     ok = $true
+    generated_at = (Get-Date).ToString("o")
     version = $version
     startup_contract = $StartupContract
     kit_root = $kitRoot
     zip_path = $zipPath
+    zip_sha256 = $zipHash.Hash.ToLowerInvariant()
+    metadata_path = Join-Path $kitRoot "kit-build-metadata.json"
+    git = $kitMetadata.git
     package = Split-Path -Leaf $packagePath
     certificate = Split-Path -Leaf $certPath
     includes_desktop_shell = [bool]$IncludeDesktopShell
+}
+
+if ($Json) {
+    $result | ConvertTo-Json -Depth 8
+} else {
+    $result
 }

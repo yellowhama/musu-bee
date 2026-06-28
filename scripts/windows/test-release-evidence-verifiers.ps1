@@ -786,6 +786,26 @@ function Test-SecondPcKitMetadataContract {
     return $true
 }
 
+function Test-SecondPcKitJsonOutputContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[switch]$Json',
+        'schema = "musu.multidevice_test_kit_prepare.v1"',
+        'zip_sha256 = $zipHash.Hash.ToLowerInvariant()',
+        'metadata_path = Join-Path $kitRoot "kit-build-metadata.json"',
+        '$result | ConvertTo-Json -Depth 8'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitTargetedReleaseCheckContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -5115,6 +5135,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit embeds source git metadata" `
+    -Verifier "second-PC kit source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitJsonOutputOk = Test-SecondPcKitJsonOutputContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitJsonOutputOk `
+    -Message "second-PC multi-device kit generator must support the go/no-go next action command with -Json and report zip hash/metadata paths"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit generator supports Json next action" `
     -Verifier "second-PC kit source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
