@@ -82,6 +82,10 @@ test("public install surfaces expose the one-line Windows installer", () => {
   assert.match(proofRouteSource, /musu\.fleet_node_proof\.v1/);
   assert.match(proofRouteSource, /ExpectedDirectPeerName/);
   assert.match(proofRouteSource, /RequireBrainToken/);
+  assert.match(proofRouteSource, /RequireReleaseGradeRoute/);
+  assert.match(proofRouteSource, /release_grade_route_verified/);
+  assert.match(proofRouteSource, /musu\.route_evidence\.v1/);
+  assert.match(proofRouteSource, /musu_quic_tls_transport/);
   assert.ok(proofRouteSource.includes(proofCommand));
 });
 
@@ -147,6 +151,8 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   assert.match(installChannelVerifier, /\/fleet-proof\.ps1/);
   assert.match(installChannelVerifier, /musu\.fleet_node_public_url_repair\.v1/);
   assert.match(installChannelVerifier, /fleet_node_proof/);
+  assert.match(installChannelVerifier, /RequireReleaseGradeRoute/);
+  assert.match(installChannelVerifier, /release-grade-route proof gate/);
   assert.match(installChannelVerifier, /canary-desktop-release\.ps1/);
   assert.match(installChannelVerifier, /ExpectedReleaseVersion/);
   assert.match(desktopPublisher, /ValidateSiteAfterUpload/);

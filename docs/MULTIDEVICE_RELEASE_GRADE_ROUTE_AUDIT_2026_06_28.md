@@ -114,6 +114,24 @@ unfinished release transport path, not a verifier false negative.
 | Release-grade multi-device route | No-go | verifier `fail_count=6`; `none_http_bearer`; no peer identity; no `quic_tls_1_3` | Full product multi-device completion cannot be claimed |
 | Release relay delegated work | No-go | relay runtime not implemented, storage/live proof missing | Relay cannot be sold as a task transport |
 
+## 2026-06-28 Public Proof Hardening
+
+The public `fleet-proof.ps1` wrapper now separates fleet-health proof from
+release-grade delegated-work proof:
+
+- default mode continues to prove install channel, installed package version,
+  remote-usable fleet URL, direct-only online count, expected direct peer, and
+  brain token ACL.
+- `-RequireReleaseGradeRoute` executes `musu route --adapter echo --wait` to the
+  expected direct peer and requires `musu.route_evidence.v1` with
+  `peer_identity_verified=true`, non-empty `peer_identity_method`, non-empty
+  `peer_public_key`, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`.
+- If the current rc.22 HTTP bearer route is used with
+  `-RequireReleaseGradeRoute`, the wrapper should fail. That failure is correct
+  and prevents a green fleet-health proof from being mistaken for the full
+  product multi-device transport gate.
+
 ## Next Steps
 
 1. Decide and implement the actual release-grade direct route transport path:

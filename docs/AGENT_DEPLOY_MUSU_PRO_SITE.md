@@ -148,8 +148,8 @@ For a known node name such as `hugh-main`, use:
 & ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json
 ```
 
-For release-grade proof on a second physical PC, use the full proof wrapper
-after the install and first launch:
+For install/package/direct fleet-health proof on a second physical PC, use the
+fleet proof wrapper after the install and first launch:
 
 ```powershell
 & ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json
@@ -157,7 +157,11 @@ after the install and first launch:
 
 `repair-fleet.ps1` proves URL repair; `fleet-proof.ps1` additionally proves the
 public install channel, installed MSIX version, brain token ACL, and optional
-direct peer gate.
+direct peer gate. It does not prove release-grade delegated-work transport
+unless `-RequireReleaseGradeRoute` is supplied, and current rc.22 HTTP bearer
+routes are expected to fail that strict gate until they emit verified
+`musu.route_evidence.v1` with `quic_tls_1_3` and
+`musu_quic_tls_transport`.
 
 ### Step 7 — Report
 Report: the deployment `url` / `dpl_` id, the `/api/health` result, and (if used)

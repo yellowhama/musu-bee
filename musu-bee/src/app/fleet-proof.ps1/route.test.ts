@@ -16,6 +16,12 @@ test("/fleet-proof.ps1 serves the remote node proof collector", async () => {
   assert.match(body, /ExpectedNodeName/);
   assert.match(body, /ExpectedDirectPeerName/);
   assert.match(body, /RequireBrainToken/);
+  assert.match(body, /RequireReleaseGradeRoute/);
+  assert.match(body, /release_grade_route_required/);
+  assert.match(body, /release_grade_route_verified/);
+  assert.match(body, /musu\.route_evidence\.v1/);
+  assert.match(body, /quic_tls_1_3/);
+  assert.match(body, /musu_quic_tls_transport/);
   assert.match(body, /https:\/\/musu\.pro\/install\.ps1/);
   assert.match(body, /https:\/\/musu\.pro\/repair-fleet\.ps1/);
   assert.match(

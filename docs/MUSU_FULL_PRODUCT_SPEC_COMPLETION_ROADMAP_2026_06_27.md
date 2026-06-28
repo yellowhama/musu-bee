@@ -275,6 +275,37 @@ Regression `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
 does not close the public metadata lane; the canonical apex DNS/TLS path still
 requires external repair.
 
+2026-06-28 19:42 KST product-completion answer refresh: the product remains
+NO-GO. A fresh `write-release-go-no-go.ps1 -Json` run generated
+`.local-build\go-no-go\latest.json` with
+`generated_at=2026-06-28T19:42:43.4293297+09:00`,
+`full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`,
+`manifest_git.dirty=false`, and commit
+`31ade35758c5a6ff2df5aca598a2950c7e400cfb`. The blocker areas are
+`multi-device`, `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+`p2p-control-plane`, `design-approval`, `relay-transport`, and
+`v34-stale-self-heal`.
+
+2026-06-28 19:45 KST public fleet-proof hardening: `fleet-proof.ps1` now
+distinguishes direct fleet-health proof from release-grade delegated-work route
+proof. Default mode still proves hosted install validation, repair evidence,
+installed package version, bridge/fleet state, expected direct peer, and brain
+token ACL. New opt-in `-RequireReleaseGradeRoute` executes
+`musu route --adapter echo --wait --route-evidence-path ...` to
+`-ExpectedDirectPeerName` and requires `musu.route_evidence.v1` with the
+expected release version, `result=success`, verified peer identity, non-empty
+peer identity method and public key, `encryption=quic_tls_1_3`, and
+`transport_verified_by=musu_quic_tls_transport`. Current rc.22 HTTP bearer
+routes are expected to fail this strict mode; this is a fail-closed proof
+surface improvement, not closure of the multi-device or relay blockers.
+Verification for this hardening: `npm run test:public-release` passed 16 tests,
+`npm run typecheck` passed, the generated PowerShell body parsed with
+`parse_error_count=0`, and `test-release-evidence-verifiers.ps1 -Json`
+returned `ok=true`, `case_count=214`, `failed_case_count=0` at
+`2026-06-28T19:54:46.3577462+09:00`.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not

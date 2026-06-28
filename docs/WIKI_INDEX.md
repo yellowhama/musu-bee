@@ -9905,4 +9905,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_REMOTE_ROUTE_OK`, `fail_count=6`, `none_http_bearer`,
   `peer_identity_verified=false`, and `musu_quic_tls_transport`.
 
+- 2026-06-28 fleet-proof release-grade route hardening:
+  `musu-bee/src/app/fleet-proof.ps1/route.ts` now separates default
+  install/package/direct fleet-health proof from opt-in release-grade route
+  proof. New switch `-RequireReleaseGradeRoute` executes
+  `musu route --adapter echo --wait --route-evidence-path ...` to
+  `-ExpectedDirectPeerName` and requires `musu.route_evidence.v1`,
+  expected release version, `result=success`, verified peer identity,
+  non-empty peer method/key, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`. The result JSON now exposes
+  `release_grade_route_required`, `release_grade_route_verified`, and a
+  sanitized `release_grade_route_evidence` summary. Default `fleet-proof.ps1`
+  `ok=true` remains scoped to fleet-health proof and must not be read as full
+  product completion. Latest gate recheck at
+  `2026-06-28T19:42:43.4293297+09:00` on commit
+  `31ade35758c5a6ff2df5aca598a2950c7e400cfb` still reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=0`. Verification for the hardening:
+  `npm run test:public-release` passed 16 tests, `npm run typecheck` passed,
+  the generated PowerShell body parsed with `parse_error_count=0`, and
+  `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+  `case_count=214`, `failed_case_count=0` at
+  `2026-06-28T19:54:46.3577462+09:00`. Search terms should include
+  `RequireReleaseGradeRoute`, `release_grade_route_verified`,
+  `fleet-proof ok=true not complete`, `quic_tls_1_3`,
+  `musu_quic_tls_transport`, and `blockers=10`.
+
 **End of WIKI_INDEX.md.**

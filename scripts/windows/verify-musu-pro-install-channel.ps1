@@ -248,6 +248,13 @@ try {
     $proofRepairUrlPresent = ($fleetProofScript -match 'https://musu\.pro/repair-fleet\.ps1')
     $proofPeerGuardPresent = ($fleetProofScript -match 'ExpectedDirectPeerName')
     $proofBrainGatePresent = ($fleetProofScript -match 'RequireBrainToken')
+    $proofReleaseRouteGatePresent = ($fleetProofScript -match 'RequireReleaseGradeRoute')
+    $proofReleaseRouteContractPresent = (
+        $fleetProofScript -match 'musu\.route_evidence\.v1' -and
+        $fleetProofScript -match 'quic_tls_1_3' -and
+        $fleetProofScript -match 'musu_quic_tls_transport' -and
+        $fleetProofScript -match 'release_grade_route_verified'
+    )
 
     if ($fleetProofResponse.status_code -ne 200) {
         Add-Check -Checks $checks -Name "fleet-proof.ps1 status" -Status "fail" -Message "$fleetProofUrl returned HTTP $($fleetProofResponse.status_code)."
@@ -267,10 +274,10 @@ try {
         Add-Check -Checks $checks -Name "fleet-proof.ps1 ExpectedPackageVersion" -Status "fail" -Message "fleet-proof.ps1 expects '$proofExpectedPackage', expected '$expectedPackageVersion'."
     }
 
-    if ($proofInstallUrlPresent -and $proofRepairUrlPresent -and $proofPeerGuardPresent -and $proofBrainGatePresent) {
-        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "pass" -Message "fleet-proof.ps1 validates install channel, repair evidence, direct peer, and brain token gates."
+    if ($proofInstallUrlPresent -and $proofRepairUrlPresent -and $proofPeerGuardPresent -and $proofBrainGatePresent -and $proofReleaseRouteGatePresent -and $proofReleaseRouteContractPresent) {
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "pass" -Message "fleet-proof.ps1 validates install channel, repair evidence, direct peer, brain token, and opt-in release-grade route gates."
     } else {
-        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "fail" -Message "fleet-proof.ps1 is missing an install/repair/direct-peer/brain-token proof gate."
+        Add-Check -Checks $checks -Name "fleet-proof.ps1 proof gates" -Status "fail" -Message "fleet-proof.ps1 is missing an install/repair/direct-peer/brain-token/release-grade-route proof gate."
     }
 } catch {
     Add-Check -Checks $checks -Name "fleet-proof.ps1" -Status "fail" -Message "$fleetProofUrl failed: $($_.Exception.Message)"

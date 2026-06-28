@@ -10,10 +10,18 @@ a LAN-usable URL. That is necessary but not enough for the current release
 audit. The release proof also needs the public install channel, installed MSIX
 version, brain token custody, and two-PC direct fleet state.
 
-`https://musu.pro/fleet-proof.ps1` is the wrapper for that full proof. It does
-not replace the installer. It validates the hosted installer, runs the hosted
-repair/check script, then collects local package, doctor, fleet, node registry,
-and brain token ACL evidence.
+`https://musu.pro/fleet-proof.ps1` is the wrapper for that fleet-node proof. It
+does not replace the installer. It validates the hosted installer, runs the
+hosted repair/check script, then collects local package, doctor, fleet, node
+registry, and brain token ACL evidence.
+
+By default this proves install/package/direct fleet health. It does **not**
+prove the release-grade delegated-work transport. Add
+`-RequireReleaseGradeRoute` only when you want the proof script to execute a
+targeted `musu route --adapter echo --wait` task and require
+`musu.route_evidence.v1` with verified peer identity,
+`encryption=quic_tls_1_3`, and
+`transport_verified_by=musu_quic_tls_transport`.
 
 ## Main PC Command
 
@@ -34,6 +42,16 @@ If the goal is only to prove the main PC itself and the second PC is not
 available, omit `-ExpectedDirectPeerName hugh_second`. That is not a two-machine
 direct-route proof.
 
+For strict release-grade route proof, run:
+
+```powershell
+& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -RequireReleaseGradeRoute -Json
+```
+
+Current rc.22 installed HTTP bearer routes are expected to fail this strict
+mode until the hardened transport path emits verified peer identity and
+`quic_tls_1_3` evidence.
+
 ## Acceptance Criteria
 
 - `schema=musu.fleet_node_proof.v1`
@@ -48,6 +66,12 @@ direct-route proof.
 - `brain_ingest_token_acl_restricted` passes
 - If `-ExpectedDirectPeerName hugh_second` is supplied, `expected_direct_peer`
   passes and `online_nodes` remains direct-only.
+- If `-RequireReleaseGradeRoute` is supplied, `release_grade_route_verified`
+  must be true and the embedded `release_grade_route_evidence` must summarize
+  `musu.route_evidence.v1`, the expected release version, `result=success`,
+  verified peer identity, a present peer public key,
+  `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`.
 
 ## System Design Notes
 
@@ -76,5 +100,8 @@ That proof is `ok=true`, `fail_count=0`, `warn_count=0`, package
 `online_nodes=2`, `direct_healthy_nodes=2`, expected direct peer
 `hugh_second`, and `brain_ingest_token_acl_restricted` passing.
 
-This evidence is valid for the current rc.22 physical direct-route claim. Rerun
-the proof for any new package, node identity, installer route, or release claim.
+This evidence is valid for the current rc.22 physical direct fleet-health
+claim. It is not release-grade delegated-work transport proof. Rerun the proof
+for any new package, node identity, installer route, or release claim, and use
+`-RequireReleaseGradeRoute` when the release claim includes hardened task
+routing.

@@ -7,7 +7,8 @@ MUSU is not complete against the full product spec yet.
 Latest clean local gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-28T19:17:06.534363+09:00`
+- Generated: `2026-06-28T19:42:43.4293297+09:00`
+- Commit: `31ade35758c5a6ff2df5aca598a2950c7e400cfb`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -23,6 +24,23 @@ proof. The remaining blockers are physical, external, or not-yet-implemented
 release gates.
 
 ## Current Evidence
+
+Public fleet proof hardening:
+
+- `https://musu.pro/fleet-proof.ps1` source now has opt-in
+  `-RequireReleaseGradeRoute`.
+- Default mode remains install/package/direct fleet-health proof.
+- Strict mode executes `musu route --adapter echo --wait` to
+  `-ExpectedDirectPeerName` and requires `musu.route_evidence.v1` with verified
+  peer identity, non-empty peer method/key, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`.
+- Current rc.22 HTTP bearer routes are expected to fail strict mode. This is a
+  proof-surface hardening, not closure of the multi-device blocker.
+- Verification: `npm run test:public-release` passed 16 tests,
+  `npm run typecheck` passed, the generated PowerShell body parsed with
+  `parse_error_count=0`, and `test-release-evidence-verifiers.ps1 -Json`
+  returned `ok=true`, `case_count=214`, `failed_case_count=0` at
+  `2026-06-28T19:54:46.3577462+09:00`.
 
 New HUGH_SECOND evidence after the V34 endpoint validation hardening:
 
@@ -76,7 +94,7 @@ Live multi-device route audit:
 | Severity | Finding | Evidence | Next |
 |---|---|---|---|
 | NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`. | Do not claim product completion until the gate has zero blockers. |
-| NO-GO | Release-grade multi-device route proof is incomplete. | Fresh HUGH_SECOND -> `hugh-main` route smoke completed, but the strict verifier failed with `fail_count=6` because current installed bridges use HTTP bearer with no verified peer identity and no `quic_tls_1_3` proof. | Implement/start the hardened release transport on both packaged machines, rerun the route smoke, and commit verifier-passing evidence. |
+| NO-GO | Release-grade multi-device route proof is incomplete, and the public proof wrapper now exposes that distinction. | Fresh HUGH_SECOND -> `hugh-main` route smoke completed, but the strict verifier failed with `fail_count=6` because current installed bridges use HTTP bearer with no verified peer identity and no `quic_tls_1_3` proof. `fleet-proof.ps1 -RequireReleaseGradeRoute` now requires the same release-grade route evidence fields instead of letting a green fleet-health proof imply transport readiness. | Implement/start the hardened release transport on both packaged machines, rerun the route smoke or strict public proof, and commit verifier-passing evidence. |
 | NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main` after the hardened transport path is available. |
 | NO-GO | Public metadata is blocked at DNS/TLS, not app source. | `store-public-metadata` reports Cloudflare nameservers, apex TLS failure, and Vercel edge apex TLS failure. | Apply the DNS repair plan, then rerun the verifier. |
 | NO-GO | Relay is still not a delegated-work transport. | `p2p-control-plane` and `relay-transport` remain blockers; the release payload endpoint is proof-bound, but release tunnel runtime, KV/Upstash storage, and live relay route/transport/delivery proof are missing. | Build real relay tunnel runtime and record release-grade proof before changing product claims. |
@@ -103,6 +121,12 @@ current code posture from this audit is:
 - Multi-device evidence verification is correctly fail-closed: direct HTTP LAN
   routing can complete work, but it cannot satisfy the release-grade
   `quic_tls_1_3` transport proof lane.
+- Public `fleet-proof.ps1` is now also fail-closed for release-grade route
+  claims when `-RequireReleaseGradeRoute` is supplied. The default `ok=true`
+  result remains scoped to fleet-health proof.
+- The hardening was verified by public-release tests, TypeScript typecheck, a
+  PowerShell parser pass over the generated script, and the 214-case release
+  evidence verifier regression suite.
 - No additional release-blocking code regression was found in the surfaces
   inspected during this refresh.
 
