@@ -9765,4 +9765,48 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `post-design-gate clean-HEAD recheck`, `runtime-cpu-second-pc-route-attempt`,
   and `source-freshness invalidation`.
 
+- 2026-06-28 post-design-gate current-package evidence refresh:
+  HUGH_SECOND evidence was rerun after the design-gate approval URL hardening.
+  New canonical files include
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-170703-HUGH_SECOND.evidence.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-170721-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-170721-HUGH_SECOND.startup-single-instance.json`,
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-171002-HUGH_SECOND.desktop-single-instance.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  and
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-171827-HUGH_SECOND.desktop-open.evidence.json`.
+  The clean go/no-go at `2026-06-28T17:23:34.3895605+09:00` restored
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  and `runtime_cpu_second_pc_route_attempt_verified=true`, with
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `runtime_idle_cpu_valid_machines=1/2
+  [HUGH_SECOND]`, and `runtime_cpu_scenario_matrix_valid_machines=1/2
+  [HUGH_SECOND]`. The CPU matrix post-route probe targeted `hugh-main` at
+  `192.168.1.192:4387` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`. Remaining blockers are
+  multi-device, Private Mesh packaged release proof, two-machine CPU/matrix,
+  store-public-metadata DNS/TLS, Store release, P2P control-plane, design
+  approval, relay transport, and V34 stale self-heal. A post-doc commit recheck
+  at `2026-06-28T17:32:55.4349035+09:00` confirmed the same `blockers=10`,
+  `warnings=0`, and local freshness lanes green. Search terms should
+  include `20260628-171827-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`, `post-design-gate
+  current-package evidence refresh`, `blockers=10`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+
+- 2026-06-28 full product spec qualitative audit and next steps:
+  `docs/FULL_PRODUCT_SPEC_QUAL_AUDIT_NEXT_STEPS_2026_06_28.md` records the
+  current answer to "is it complete?" as no: latest local gate is
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=0`. The code audit found no new release-blocking
+  code regression in the inspected surfaces; the unresolved gates require
+  second-PC execution, external DNS/TLS mutation, Store/Partner Center evidence,
+  explicit design approval, real relay transport implementation, and V34
+  physical stale-state proof. Search terms should include
+  `FULL_PRODUCT_SPEC_QUAL_AUDIT_NEXT_STEPS_2026_06_28`,
+  `no new release-blocking code regression`, `external DNS/TLS mutation`,
+  `real relay transport implementation`, and `zero blockers`.
+
 **End of WIKI_INDEX.md.**

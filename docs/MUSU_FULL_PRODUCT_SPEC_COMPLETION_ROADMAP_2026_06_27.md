@@ -19,10 +19,12 @@ and wrote verifier-passing `musu.route_evidence.v1`.
 The fresh packaged desktop now also records a passing hidden-brain product
 proof for rc.22, and the current HUGH_SECOND package now has refreshed
 single-machine smoke, process ownership, startup single-instance, desktop
-single-instance, and runtime CPU evidence. It still does not prove the full
-product: second-PC release evidence, packaged Private Mesh proof archive,
-public metadata, Store release/Store-signed install evidence, real relay
-transport, explicit design approval, and V34 stale self-heal proof still
+single-instance, runtime CPU, and targeted post-route matrix evidence. The
+latest clean gate reports `blockers=10`, not 15, because those local freshness
+lanes were restored after the design-gate hardening commit. It still does not
+prove the full product: second-PC release evidence, packaged Private Mesh proof
+archive, public metadata, Store release/Store-signed install evidence, real
+relay transport, explicit design approval, and V34 stale self-heal proof still
 remain.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
@@ -202,6 +204,37 @@ source-freshness invalidation after the gate-code commit: the reopened lanes are
 is still NO-GO for those stale current-package lanes plus the existing
 physical/external product blockers.
 
+2026-06-28 17:23 KST post-design-gate current-package evidence refresh:
+HUGH_SECOND evidence was rerun for the current package after the design-gate
+approval URL hardening. The latest `write-release-go-no-go.ps1 -Json` snapshot
+reports `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and
+`manifest_git.dirty=false`. The restored local lanes are
+`single_machine_verified=true`, `process_ownership_verified=true`,
+`startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+and `runtime_cpu_second_pc_route_attempt_verified=true`. New canonical evidence
+files include:
+
+- `docs/evidence/single-machine/1.15.0-rc.22/20260628-170703-HUGH_SECOND.evidence.json`
+  plus verification and summary.
+- `docs/evidence/process-ownership/1.15.0-rc.22/20260628-170721-HUGH_SECOND.process-ownership.json`.
+- `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-170721-HUGH_SECOND.startup-single-instance.json`.
+- `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-171002-HUGH_SECOND.desktop-single-instance.json`.
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  plus verification. The post-route probe targeted `hugh-main` at
+  `192.168.1.192:4387` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`.
+- `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-171827-HUGH_SECOND.desktop-open.evidence.json`
+  with `ok=true`, clean git, 60.033s sample, six owned WebView2 helpers, zero
+  owned Node helpers, and `hot_process_count=0`.
+
+This returns the gate to the substantive 10 blockers: multi-device, packaged
+Private Mesh proof, two-machine idle CPU, two-machine CPU scenario matrix,
+public metadata DNS/TLS, Store release, P2P control plane, design approval,
+relay transport, and V34 stale self-heal. A post-doc commit recheck at
+`2026-06-28T17:32:55.4349035+09:00` confirmed the same `blockers=10`,
+`warnings=0`, and local freshness lanes green.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
@@ -229,6 +262,8 @@ structured blockers instead of crashing before the go/no-go JSON is written.
 Current local gate shape on this branch:
 
 - `full_product_spec_ready=false`.
+- `ready_for_public_desktop_release=false`.
+- Latest blocker count is `10` with `warnings=0`.
 - `fleet_node_proof_verified=true`.
 - `fleet_install_channel_proof_verified=true`.
 - `fleet_brain_token_acl_verified=true`.
@@ -243,6 +278,13 @@ Current local gate shape on this branch:
 - `support_operator_evidence_verified=true`.
 - `release_candidate_manifest_generated=true` after the current rc.22
   Store-reviewed artifact and submission bundle refresh.
+- `runtime_idle_cpu_verified=false` with
+  `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`.
+- `runtime_cpu_scenario_matrix_verified=false` with
+  `runtime_cpu_scenario_matrix_valid_machines=1/2 [HUGH_SECOND]`.
+- `public_metadata_ok=false` because canonical `https://musu.pro` DNS/TLS still
+  fails.
+- `p2p_control_plane_verified=false`.
 - Current lane status from `write-release-go-no-go.ps1 -Json`:
   `install_channel_and_package=pass`, `direct_two_pc_fleet=pass`,
   `direct_delegated_work_route=pass`, `brain_product=pass`,
@@ -1152,7 +1194,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T16:55:19.9282428+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Refresh current-package evidence for the current HEAD, then close the remaining physical/external product blockers. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T17:32:55.4349035+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
@@ -1366,8 +1408,8 @@ High confidence:
   `hugh_second`.
 - rc.22 hidden brain sidecar fresh-launch readiness is proven on
   `HUGH_SECOND` with verifier-passing task ingest and capture recall evidence.
-- rc.22 support/operator governance is proven through the formal mailbox
-  delivery gate retirement and verified public support metadata.
+- rc.22 support/operator governance has formal mailbox delivery gate retirement
+  evidence, but canonical public metadata remains blocked by apex DNS/TLS.
 - The current repo intentionally prevents relay overclaim by keeping relay out
   of selected route paths until transport exists.
 - PR #34 is blocked by design approval, not by the currently observed code/test
