@@ -9358,4 +9358,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-100802-HUGH_SECOND.startup-single-instance`, and
   `20260628-100827-HUGH_SECOND.desktop-single-instance`.
 
+- 2026-06-28 rc.22 single-machine packaged smoke refresh:
+  fresh HUGH_SECOND single-machine smoke now passes for the current rc.22
+  packaged WindowsApps runtime. The accepted evidence is
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.evidence.json`
+  with matching verification
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.verification.json`
+  and summary
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.summary.md`.
+  It records `allow_developer_runtime=false`, `single_machine_surface=local-bridge-only`,
+  bridge `http://127.0.0.1:8211`, packaged
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`, CLI route
+  checked, `ok=true`, and `fail_count=0`. This removes the fresh
+  single-machine blocker once committed, but the product remains No-Go on
+  second-PC multi-device, private-mesh packaged proof, two-machine CPU/matrix,
+  public metadata, Store, relay transport, V34, and design approval. Search
+  terms should include `20260628-101659-HUGH_SECOND.evidence.json`,
+  `single_machine_surface=local-bridge-only`, `allow_developer_runtime=false`,
+  `single_machine_verified=true`, and `bridge http://127.0.0.1:8211`.
+
 **End of WIKI_INDEX.md.**
