@@ -9530,4 +9530,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`,
   and `44fe239241263f43c12be9af60fd6cae6d134104`.
 
+- 2026-06-28 public metadata DNS diagnostic contract:
+  `scripts/windows/verify-store-public-metadata.ps1` now emits
+  `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when
+  canonical `https://musu.pro` public metadata fetches fail while authoritative
+  nameservers do not match the expected Vercel DNS set. Fresh evidence at
+  `2026-06-28T13:13:06.2166826+09:00` reports `ok=false`, `fail_count=3`,
+  `failure_kinds=request_failed,dns_nameserver_mismatch`,
+  `nameserver_matches_expected=false`, `provider_guess=cloudflare`, current
+  nameservers `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, and
+  expected nameservers `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. Vercel
+  production deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ` is `Ready` and
+  aliases `https://musu.pro`, so the remaining Store/public metadata blocker is
+  the canonical apex DNS/edge proof path, not page-source text. Search terms
+  should include `dns_diagnostics`, `dns_nameserver_mismatch`,
+  `nameserver_matches_expected=false`, `provider_guess=cloudflare`,
+  `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
+  `ns1.vercel-dns.com`, `ns2.vercel-dns.com`,
+  `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `store-public-metadata`.
+
 **End of WIKI_INDEX.md.**

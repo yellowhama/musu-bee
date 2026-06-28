@@ -2,7 +2,9 @@
 param(
     [string]$BaseUrl = "https://musu.pro",
     [string]$ExpectedSupportEmail,
+    [string[]]$ExpectedNameservers = @("ns1.vercel-dns.com", "ns2.vercel-dns.com"),
     [int]$TimeoutSec = 20,
+    [switch]$SkipDnsDiagnostics,
     [switch]$Json
 )
 
@@ -22,6 +24,7 @@ $expectedReleaseMetadataText = "MUSU public release metadata: $expectedReleaseVe
 $checks = New-Object System.Collections.Generic.List[object]
 $pages = New-Object System.Collections.Generic.List[object]
 $publicConfigEvidence = $null
+$dnsDiagnostics = $null
 
 function Add-Check {
     param(
@@ -87,6 +90,111 @@ function Get-ContentSnippet([string]$Text) {
         return $normalized
     }
     return $normalized.Substring(0, 240)
+}
+
+function Normalize-DnsName([string]$Value) {
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return ""
+    }
+    return $Value.Trim().TrimEnd(".").ToLowerInvariant()
+}
+
+function Resolve-DnsValues {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Type,
+        [Parameter(Mandatory = $true)][string]$Property
+    )
+
+    try {
+        return @(
+            Resolve-DnsName -Name $Name -Type $Type -ErrorAction Stop |
+                Where-Object { $_.Type -eq $Type -and $_.PSObject.Properties[$Property] } |
+                ForEach-Object { [string]$_.$Property } |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Sort-Object -Unique
+        )
+    }
+    catch {
+        return @()
+    }
+}
+
+function Get-PublicMetadataDnsDiagnostics {
+    param(
+        [Parameter(Mandatory = $true)][string]$Base,
+        [string[]]$ExpectedNs
+    )
+
+    $hostName = ""
+    try {
+        $hostName = ([uri]$Base).Host
+    }
+    catch {
+        return [pscustomobject]@{
+            host = ""
+            ok = $false
+            error = "base_url_parse_failed"
+            expected_nameservers = @($ExpectedNs)
+            current_nameservers = @()
+            missing_expected_nameservers = @()
+            unexpected_nameservers = @()
+            nameserver_check_applicable = $false
+            nameserver_matches_expected = $false
+            provider_guess = "unknown"
+            a_records = @()
+            aaaa_records = @()
+        }
+    }
+
+    $normalizedExpected = @(
+        $ExpectedNs |
+            ForEach-Object { Normalize-DnsName -Value ([string]$_) } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    $currentNs = @(
+        Resolve-DnsValues -Name $hostName -Type "NS" -Property "NameHost" |
+            ForEach-Object { Normalize-DnsName -Value $_ } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    $aRecords = @(Resolve-DnsValues -Name $hostName -Type "A" -Property "IPAddress")
+    $aaaaRecords = @(Resolve-DnsValues -Name $hostName -Type "AAAA" -Property "IPAddress")
+    $nameserverCheckApplicable = ($hostName -eq "musu.pro" -or $hostName.EndsWith(".musu.pro"))
+    $missingExpected = @($normalizedExpected | Where-Object { $currentNs -notcontains $_ })
+    $unexpected = @($currentNs | Where-Object { $normalizedExpected -notcontains $_ })
+    $matchesExpected = (
+        $nameserverCheckApplicable -and
+        $normalizedExpected.Count -gt 0 -and
+        $missingExpected.Count -eq 0 -and
+        $unexpected.Count -eq 0
+    )
+    $providerGuess = "unknown"
+    if (@($currentNs | Where-Object { $_ -like "*.cloudflare.com" }).Count -gt 0) {
+        $providerGuess = "cloudflare"
+    }
+    elseif (@($currentNs | Where-Object { $_ -like "*.vercel-dns.com" }).Count -gt 0) {
+        $providerGuess = "vercel"
+    }
+    elseif ($currentNs.Count -gt 0) {
+        $providerGuess = "third_party"
+    }
+
+    return [pscustomobject]@{
+        host = $hostName
+        ok = $true
+        error = $null
+        expected_nameservers = @($normalizedExpected)
+        current_nameservers = @($currentNs)
+        missing_expected_nameservers = @($missingExpected)
+        unexpected_nameservers = @($unexpected)
+        nameserver_check_applicable = [bool]$nameserverCheckApplicable
+        nameserver_matches_expected = [bool]$matchesExpected
+        provider_guess = $providerGuess
+        a_records = @($aRecords)
+        aaaa_records = @($aaaaRecords)
+    }
 }
 
 function Test-Page {
@@ -276,6 +384,10 @@ $privacyUrl = Join-Url -Base $base -Path "/privacy"
 $supportUrl = Join-Url -Base $base -Path "/support"
 $publicConfigUrl = Join-Url -Base $base -Path "/api/public-config"
 
+if (-not $SkipDnsDiagnostics) {
+    $dnsDiagnostics = Get-PublicMetadataDnsDiagnostics -Base $base -ExpectedNs $ExpectedNameservers
+}
+
 Test-Page -Name "privacy" -Url $privacyUrl -RequiredText @(
     "MUSU Privacy Policy",
     "Data MUSU may process",
@@ -305,6 +417,18 @@ $failureKinds = @(
     if ($publicConfigEvidence -and -not [bool]$publicConfigEvidence.ok) { $publicConfigEvidence.failure_kind }
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
 
+$requestFailed = @($failureKinds | Where-Object { [string]$_ -eq "request_failed" }).Count -gt 0
+$dnsNameserverMismatch = (
+    $dnsDiagnostics -and
+    $dnsDiagnostics.PSObject.Properties["nameserver_check_applicable"] -and
+    [bool]$dnsDiagnostics.nameserver_check_applicable -and
+    $dnsDiagnostics.PSObject.Properties["nameserver_matches_expected"] -and
+    -not [bool]$dnsDiagnostics.nameserver_matches_expected
+)
+if ($requestFailed -and $dnsNameserverMismatch) {
+    $failureKinds = @(@($failureKinds) + "dns_nameserver_mismatch") | Select-Object -Unique
+}
+
 $result = [pscustomobject]@{
     schema = "musu.store_public_metadata_verification.v2"
     checked_at = [datetimeoffset]::Now.ToString("o")
@@ -319,6 +443,7 @@ $result = [pscustomobject]@{
     failure_kinds = $failureKinds
     pages = $pages.ToArray()
     public_config = $publicConfigEvidence
+    dns_diagnostics = $dnsDiagnostics
     checks = $checks.ToArray()
 }
 

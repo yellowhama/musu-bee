@@ -493,6 +493,24 @@ function Format-PublicMetadataFailureSummary {
         }
     }
 
+    if ($PublicMetadata.PSObject.Properties["dns_diagnostics"] -and $PublicMetadata.dns_diagnostics) {
+        $dns = $PublicMetadata.dns_diagnostics
+        $dnsApplicable = ($dns.PSObject.Properties["nameserver_check_applicable"] -and [bool]$dns.nameserver_check_applicable)
+        $dnsMatchesExpected = ($dns.PSObject.Properties["nameserver_matches_expected"] -and [bool]$dns.nameserver_matches_expected)
+        if ($dnsApplicable -and -not $dnsMatchesExpected) {
+            $currentNs = @()
+            if ($dns.PSObject.Properties["current_nameservers"] -and $dns.current_nameservers) {
+                $currentNs = @($dns.current_nameservers | Select-Object -First 4 | ForEach-Object { [string]$_ })
+            }
+            $expectedNs = @()
+            if ($dns.PSObject.Properties["expected_nameservers"] -and $dns.expected_nameservers) {
+                $expectedNs = @($dns.expected_nameservers | Select-Object -First 4 | ForEach-Object { [string]$_ })
+            }
+            $providerGuess = if ($dns.PSObject.Properties["provider_guess"]) { [string]$dns.provider_guess } else { "unknown" }
+            $details.Add("dns nameserver_mismatch provider=$providerGuess current=[$($currentNs -join ', ')] expected=[$($expectedNs -join ', ')]") | Out-Null
+        }
+    }
+
     if ($PublicMetadata.PSObject.Properties["pages"] -and $PublicMetadata.pages) {
         foreach ($page in @($PublicMetadata.pages | Where-Object { -not [bool]$_.ok })) {
             $name = if ($page.PSObject.Properties["name"]) { [string]$page.name } else { "page" }

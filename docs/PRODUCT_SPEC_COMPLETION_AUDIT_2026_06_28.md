@@ -35,13 +35,20 @@ Authoritative local gate:
 - `manifest_dirty=false`
 - `commit=44fe239241263f43c12be9af60fd6cae6d134104`
 
+2026-06-28 13:14 KST diagnostic refresh: public metadata verification now
+distinguishes the apex fetch failure from a DNS authority mismatch. A transient
+run while these script edits were uncommitted reported `blockers=11` only
+because `manifest_git.dirty=true`; after commit, the substantive product
+blockers remain the ten lanes listed below.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
 2. Packaged desktop Private Mesh release proof archive is not verified.
 3. Runtime idle CPU evidence is valid on too few physical machines.
 4. Runtime CPU scenario matrix evidence is valid on too few physical machines.
-5. `https://musu.pro` public metadata fetches fail with `request_failed`.
+5. `https://musu.pro` public metadata fetches fail with
+   `request_failed,dns_nameserver_mismatch`.
 6. Partner Center, Microsoft certification, and restricted capability approval
    evidence is missing.
 7. P2P control-plane release relay evidence is not verified.
@@ -158,17 +165,28 @@ Fresh public metadata verifier:
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`
 - `schema=musu.store_public_metadata_verification.v2`
 - `ok=false`
-- `checked_at=2026-06-28T11:11:38.4946762+09:00`
+- `checked_at=2026-06-28T13:13:06.2166826+09:00`
 - `fail_count=3`
-- `failure_kinds=request_failed`
+- `failure_kinds=request_failed,dns_nameserver_mismatch`
 - Failed routes:
   - `https://musu.pro/privacy`
   - `https://musu.pro/support`
   - `https://musu.pro/api/public-config`
+- DNS diagnostics:
+  - `host=musu.pro`
+  - `nameserver_matches_expected=false`
+  - `provider_guess=cloudflare`
+  - current nameservers: `blakely.ns.cloudflare.com`,
+    `weston.ns.cloudflare.com`
+  - expected nameservers: `ns1.vercel-dns.com`, `ns2.vercel-dns.com`
+  - A records: `104.21.82.53`, `172.67.196.17`
+  - AAAA records: `2606:4700:3033::ac43:c411`,
+    `2606:4700:3037::6815:5235`
 
 This confirms the public metadata lane is still blocked from this machine. The
-failure happens before HTTP content can be verified, so page text or config
-fields cannot satisfy the release gate until apex HTTPS is repaired.
+failure happens before HTTP content can be verified. Page text or config fields
+cannot satisfy the release gate until the canonical apex DNS/edge path is
+repaired and this verifier passes.
 
 ## Private Mesh Packaged Proof Audit
 
@@ -220,8 +238,8 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest go/no-go has `full_product_spec_ready=false` and 10 blockers. | A release-ready claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices only. |
-| NO-GO | Public metadata cannot be verified over canonical HTTPS. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
+| NO-GO | Full product spec is not complete. | Latest clean product gate has `full_product_spec_ready=false` and ten substantive blockers; the later diagnostic run showed an extra temporary `git` blocker while verifier edits were uncommitted. | A release-ready claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices only. |
+| NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch`; current NS are Cloudflare, expected NS are Vercel DNS. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |
