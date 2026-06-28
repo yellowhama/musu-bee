@@ -9413,4 +9413,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `apex TLS handshake reset`, `failure_kinds=request_failed`,
   `blakely.ns.cloudflare.com`, and `ns1.vercel-dns.com`.
 
+- 2026-06-28 rc.22 second-PC kit refresh after public metadata audit:
+  regenerated `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`
+  from clean commit `552b239eef0ced04f3a08658c5dc82ced2a90145`.
+  `kit-build-metadata.json` records branch `feat/v33-residual-finalize`,
+  `dirty=false`, and version `1.15.0-rc.22`. The kit includes
+  `run-second-pc-release-check.ps1`, CPU idle/matrix capture and verifier
+  scripts, route preflight, V34 source/proof scripts, relay/P2P control-plane
+  evidence scripts, and multidevice recorder/verifier scripts. For `hugh-main`,
+  the release-grade second-PC CPU/matrix command should target this machine:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This prepares the second physical machine evidence path but does not close it
+  until the return zip is imported and the canonical verifiers pass. Search
+  terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
+  `RuntimeCpuRouteTarget hugh_second`, and
+  `552b239eef0ced04f3a08658c5dc82ced2a90145`.
+
 **End of WIKI_INDEX.md.**

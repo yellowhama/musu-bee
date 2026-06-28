@@ -781,6 +781,42 @@ public config all use `https://musu.pro` as the canonical public surface. It
 cannot be closed by local code changes alone unless the domain authority/edge
 TLS path is repaired and the canonical verifier passes again.
 
+## 2026-06-28 Second-PC Kit Refresh
+
+After documenting the public metadata apex TLS blocker, the current rc.22
+multi-device kit was regenerated from clean commit
+`552b239eef0ced04f3a08658c5dc82ced2a90145`.
+
+Generated artifact:
+
+- Kit root:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054`.
+- Kit zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`.
+- Metadata:
+  `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
+  `feat/v33-residual-finalize`, commit
+  `552b239eef0ced04f3a08658c5dc82ced2a90145`, and `dirty=false`.
+- Included proof tools:
+  `run-second-pc-release-check.ps1`, `measure-musu-idle-cpu.ps1`,
+  `measure-musu-runtime-cpu-scenarios.ps1`,
+  `verify-runtime-cpu-scenario-matrix.ps1`,
+  `test-second-pc-route-preflight.ps1`, V34 source/proof scripts, relay/P2P
+  control-plane evidence scripts, and multidevice recorder/verifier scripts.
+
+On `hugh-main`, use the targeted release-grade run against `hugh_second`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix
+```
+
+If certificate trust fails, rerun from elevated PowerShell with `-MachineTrust`.
+Return the generated `.local-build/second-pc-return/*.zip` to this repo and
+import it before claiming the two-machine runtime CPU lanes. This kit does not
+by itself close release-grade multi-device proof, because
+`verify-multidevice-evidence.ps1` still requires hardened peer identity and
+QUIC/TLS transport evidence beyond the legacy HTTP bearer route.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
