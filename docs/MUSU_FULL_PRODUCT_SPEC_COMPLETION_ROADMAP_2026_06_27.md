@@ -325,6 +325,34 @@ Substantive blockers remain `multi-device`,
 runtime failure; it means the current package evidence must be refreshed again
 after this source change before the local freshness lanes can return green.
 
+2026-06-28 20:33 KST post-fleet-proof local packaged evidence refresh:
+HUGH_SECOND evidence was rerun after the public `fleet-proof.ps1`
+release-grade route gate hardening reopened local freshness lanes. The latest
+clean `write-release-go-no-go.ps1 -Json` snapshot reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, and `manifest_git.dirty=false` at commit
+`c3bd5ed68024fff38b8e8c031f411144c10cb293`. The restored local lanes are
+`single_machine_verified=true`, `process_ownership_verified=true`,
+`startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+and `runtime_cpu_second_pc_route_attempt_verified=true`. New canonical evidence
+files include:
+
+- `docs/evidence/single-machine/1.15.0-rc.22/20260628-202115-HUGH_SECOND.evidence.json`
+  plus verification and summary.
+- `docs/evidence/process-ownership/1.15.0-rc.22/20260628-202128-HUGH_SECOND.process-ownership.json`.
+- `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-202128-HUGH_SECOND.startup-single-instance.json`.
+- `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-202128-HUGH_SECOND.desktop-single-instance.json`.
+- `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-202216-HUGH_SECOND.desktop-open.evidence.json`.
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-202500-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  plus verification. The matrix route probe targeted `hugh-main` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`.
+
+This returns the gate to the substantive 10 blockers:
+`multi-device`, `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+`p2p-control-plane`, `design-approval`, `relay-transport`, and
+`v34-stale-self-heal`. This is still not a completion event.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not

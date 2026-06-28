@@ -9938,4 +9938,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu_quic_tls_transport`, `blockers=15`, and
   `runtime-cpu-second-pc-route-attempt`.
 
+- 2026-06-28 post-fleet-proof local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_FLEET_PROOF_ROUTE_GATE.md`
+  records the HUGH_SECOND packaged evidence refresh after the public
+  `fleet-proof.ps1` release-grade route gate hardening reopened local freshness
+  lanes. Evidence paths include single-machine `20260628-202115`,
+  process/startup/desktop `20260628-202128`, idle CPU `20260628-202216`, runtime
+  CPU matrix `20260628-202500`, and matrix verification `ok=true`,
+  `fail_count=0`. The matrix route probe targeted `hugh-main` with token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`. Clean go/no-go at
+  `2026-06-28T20:33:58.3354650+09:00` on commit
+  `c3bd5ed68024fff38b8e8c031f411144c10cb293` returned `blockers=10`,
+  `warnings=0`, and `manifest_git.dirty=false`. The product remains NO-GO on
+  second-PC, Private Mesh, public metadata, Store, P2P control-plane, design
+  approval, relay transport, and V34 physical proof lanes. `musu indexer sync
+  --work-dir F:\workspace\musu-bee --name musu-bee` indexed 3417 files and
+  3883 symbols; recall for `Local Packaged Evidence Refresh` returns the new
+  report. Search terms should
+  include `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_FLEET_PROOF_ROUTE_GATE`,
+  `20260628-202500-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`, `c3bd5ed68024`, and
+  `blockers=10`.
+
 **End of WIKI_INDEX.md.**

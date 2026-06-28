@@ -7,11 +7,11 @@ MUSU is not complete against the full product spec yet.
 Latest clean local gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-28T19:58:08.4473399+09:00`
-- Commit: `df08b39c1eb256f15cb9c4febb06759ae5c0d89c`
+- Generated: `2026-06-28T20:33:58.3354650+09:00`
+- Commit: `c3bd5ed68024fff38b8e8c031f411144c10cb293`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
-- `blockers=15`
+- `blockers=10`
 - `warnings=0`
 
 The post-design-gate current-package evidence refresh restored the local
@@ -21,12 +21,9 @@ proof-bound (`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
 tunnel runtime. A later V34 verifier hardening rejected port-zero,
 negative-port, and URL-shaped loopback selected candidates in stale self-heal
 proof. The fleet-proof release-grade route hardening then changed source again,
-so the latest clean post-push gate reopened five current-package freshness
-lanes: `single-machine`, `process-ownership`, `startup-single-instance`,
-`desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`. This is
-expected fail-closed freshness behavior, not a new runtime failure. The
-remaining substantive blockers are physical, external, or not-yet-implemented
-release gates.
+so the gate correctly reopened five current-package freshness lanes. Those lanes
+have now been refreshed again on HUGH_SECOND. The remaining blockers are
+physical, external, or not-yet-implemented release gates.
 
 ## Current Evidence
 
@@ -47,24 +44,24 @@ Public fleet proof hardening:
   returned `ok=true`, `case_count=214`, `failed_case_count=0` at
   `2026-06-28T19:54:46.3577462+09:00`.
 
-New HUGH_SECOND evidence after the V34 endpoint validation hardening:
+New HUGH_SECOND evidence after the fleet-proof route gate hardening:
 
 - Single-machine smoke:
-  `docs/evidence/single-machine/1.15.0-rc.22/20260628-184155-HUGH_SECOND.evidence.json`
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-202115-HUGH_SECOND.evidence.json`
 - Process ownership:
-  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-184214-HUGH_SECOND.process-ownership.json`
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-202128-HUGH_SECOND.process-ownership.json`
 - Startup single-instance:
-  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-184214-HUGH_SECOND.startup-single-instance.json`
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-202128-HUGH_SECOND.startup-single-instance.json`
 - Desktop repeated activation:
-  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-185307-HUGH_SECOND.desktop-single-instance.json`
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-202128-HUGH_SECOND.desktop-single-instance.json`
 - Runtime CPU matrix:
-  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-202500-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - Runtime idle CPU:
-  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-184508-HUGH_SECOND.desktop-open.evidence.json`
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-202216-HUGH_SECOND.desktop-open.evidence.json`
 
 The runtime matrix route probe targeted `hugh-main` at `192.168.1.192:4387` and
-returned `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`. The idle CPU sample ran
-for 60.022s with six owned WebView2 helpers, zero owned Node helpers, and no hot
+returned `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`. The idle CPU sample ran
+for 60.032s with six owned WebView2 helpers, zero owned Node helpers, and no hot
 processes.
 
 Public metadata planner hardening evidence:
@@ -98,7 +95,7 @@ Live multi-device route audit:
 
 | Severity | Finding | Evidence | Next |
 |---|---|---|---|
-| NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15` after the post-push fleet-proof route hardening commit. | Do not claim product completion until the gate has zero blockers. |
+| NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10` after refreshing local packaged evidence again. | Do not claim product completion until the gate has zero blockers. |
 | NO-GO | Release-grade multi-device route proof is incomplete, and the public proof wrapper now exposes that distinction. | Fresh HUGH_SECOND -> `hugh-main` route smoke completed, but the strict verifier failed with `fail_count=6` because current installed bridges use HTTP bearer with no verified peer identity and no `quic_tls_1_3` proof. `fleet-proof.ps1 -RequireReleaseGradeRoute` now requires the same release-grade route evidence fields instead of letting a green fleet-health proof imply transport readiness. | Implement/start the hardened release transport on both packaged machines, rerun the route smoke or strict public proof, and commit verifier-passing evidence. |
 | NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main` after the hardened transport path is available. |
 | NO-GO | Public metadata is blocked at DNS/TLS, not app source. | `store-public-metadata` reports Cloudflare nameservers, apex TLS failure, and Vercel edge apex TLS failure. | Apply the DNS repair plan, then rerun the verifier. |
@@ -108,7 +105,7 @@ Live multi-device route audit:
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
 | INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
 | INFO | Public metadata planner inspect output is now fail-closed. | `-RunVercelInspect` without `VERCEL_TOKEN` records `token_missing`; uninformative CLI output records `inspect_output_uninformative`; regression passed 214 cases. | Use a real Vercel token for `domains inspect`, then fix DNS/TLS externally. |
-| INFO | Local current-package evidence was healthy before the latest source hardening, but is stale again for `df08b39c`. | The post-push gate reopened `single-machine`, `process-ownership`, `startup-single-instance`, `desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`. | Refresh the local packaged evidence after this source change if those lanes need to return green before the next merge/release decision. |
+| INFO | Local current-package freshness is restored for HUGH_SECOND. | Single-machine, process ownership, startup single-instance, desktop single-instance, runtime idle CPU, and five-scenario runtime CPU matrix were refreshed and the clean gate returned to `blockers=10`. | Keep these evidence files committed; they do not replace the second physical machine evidence. |
 
 ## Code Audit
 
