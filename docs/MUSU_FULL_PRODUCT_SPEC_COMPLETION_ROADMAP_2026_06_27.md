@@ -79,16 +79,15 @@ reports
 `public_metadata_ok=false`, `p2p_control_plane_verified=false`, and
 `relay_transport_product_verified=false`. The product is still NO-GO, but the
 local current-package evidence lanes are no longer the blocker. The second-PC
-kit was regenerated at
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-141837.zip`
+kit is now regenerated from clean commit
+`067a22c4f837fac70a31bda219b5970dfc5260ce` at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-163218.zip`
 with SHA256
-`c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`, and
+`192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`, and
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that kit.
-The kit generator itself was also tightened in commit
-`e9ed80a2bb55fb7b798327129e5e461dd7039f25`: the go/no-go next action command
-`prepare-multidevice-test-kit.ps1 -Json` now works and emits
-`musu.multidevice_test_kit_prepare.v1` with the kit zip SHA256 and metadata
-path.
+The kit generator now also persists
+`.local-build\multi-device-test-kit\latest-prepare-output.json`, so the
+operator-facing latest pointer cannot silently remain on an older kit.
 
 2026-06-28 14:24 KST clean-HEAD gate recheck: after the second-PC kit JSON
 contract fix and docs/wiki refresh, `write-release-go-no-go.ps1 -Json`
@@ -161,6 +160,18 @@ Vercel apex A `76.76.21.21`, missing `www.musu.pro` CNAME
 This is a sharper operator path, not a closure of the lane; the product remains
 NO-GO until external DNS/TLS is repaired and `verify-store-public-metadata.ps1`
 passes.
+
+2026-06-28 16:20 KST P2P env recheck: the source remains deliberately
+fail-closed for release relay. `show-musu-pro-p2p-env-status.ps1 -Json`
+reports `ok=false`, `release_relay_payload_endpoint_implemented=false`,
+`release_relay_tunnel_runtime_implemented=false`,
+`release_tunnel_payload_endpoint_missing=true`, and missing KV/Upstash release
+storage. The blockers are still source/runtime/storage/evidence blockers:
+payload endpoint not implemented, tunnel runtime not implemented, preview
+store-forward queue non-release-grade, KV/Upstash URL/token missing, and live
+relay route/transport/delivery proof missing. Do not flip release relay markers
+until real `quic_relay_tunnel` payload transit emits MUSU-bound
+`quic_tls_1_3` proof.
 
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
@@ -1015,28 +1026,29 @@ current nameservers `blakely.ns.cloudflare.com` and
 
 ## 2026-06-28 Second-PC Kit Refresh
 
-After the current-package evidence refresh, the current rc.22 multi-device kit
-was regenerated from clean commit
-`e9ed80a2bb55fb7b798327129e5e461dd7039f25`.
+After the current-package evidence refresh and latest-output contract fix, the
+current rc.22 multi-device kit was regenerated from clean commit
+`067a22c4f837fac70a31bda219b5970dfc5260ce`.
 The concise handoff for the other physical machine is
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
 Generated artifact:
 
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218`.
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837.zip`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218.zip`.
 - Metadata:
   `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, and `dirty=false`.
+  `067a22c4f837fac70a31bda219b5970dfc5260ce`, and `dirty=false`.
 - Generator result:
   `latest-prepare-output.json` reports
   `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`, and proves the
-  go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is executable.
+  go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is executable
+  and persisted as the current latest pointer.
 - SHA256:
-  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
 - Included proof tools:
   `run-second-pc-release-check.ps1`, `measure-musu-idle-cpu.ps1`,
   `measure-musu-runtime-cpu-scenarios.ps1`,

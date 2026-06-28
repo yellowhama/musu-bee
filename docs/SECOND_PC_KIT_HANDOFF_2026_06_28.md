@@ -9,26 +9,26 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-163218`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, `dirty=false`.
+  `067a22c4f837fac70a31bda219b5970dfc5260ce`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, after commit `e9ed80a2`.
+  `HUGH_SECOND`, after commit `067a22c4`.
 - Zip SHA256:
-  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
 - Zip size:
-  `81116411` bytes.
+  `81116474` bytes.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
 and multi-device recorder/verifier scripts.
 
 The generator now supports the go/no-go next action command with `-Json` and
-records `schema=musu.multidevice_test_kit_prepare.v1`, `zip_sha256`,
-`metadata_path`, and source git metadata in
+persists the latest `schema=musu.multidevice_test_kit_prepare.v1`,
+`zip_sha256`, `metadata_path`, and source git metadata to
 `.local-build/multi-device-test-kit/latest-prepare-output.json`.
 
 ## Command For hugh-main

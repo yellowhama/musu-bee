@@ -9429,7 +9429,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
   `RuntimeCpuRouteTarget hugh_second`, and
   `552b239eef0ced04f3a08658c5dc82ced2a90145`. This kit is now historical;
-  the current handoff points to the later `20260628-141837` kit.
+  the current handoff points to the later `20260628-163218` kit.
 
 - 2026-06-28 product spec completion audit refresh:
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` recorded the then-current
@@ -9517,25 +9517,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-28 current second-PC kit supersedes the 11:00 kit:
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` to
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-141837.zip`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-163218.zip`.
   `kit-build-metadata.json` records `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, and `dirty=false`.
+  `067a22c4f837fac70a31bda219b5970dfc5260ce`, and `dirty=false`.
   `prepare-multidevice-test-kit.ps1 -Json` now emits
   `musu.multidevice_test_kit_prepare.v1` with `zip_sha256` and
-  `metadata_path`, fixing the go/no-go next action command. The release
-  candidate manifest records this kit as role `multi_device_test_kit`, size
-  `81116411`, SHA256
-  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
+  `metadata_path`, persists
+  `.local-build\multi-device-test-kit\latest-prepare-output.json`, and fixes
+  the go/no-go next action command without leaving a stale latest pointer. The
+  current generated kit zip is size `81116474`, SHA256
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
   The command for `hugh-main` remains:
   `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
   This advances the physical evidence path but does not close second-PC
   multi-device or two-machine CPU/matrix blockers until the return zip is
   imported and verified. Search terms should include
-  `musu-multidevice-1.15.0-rc.22-20260628-141837`,
-  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`,
+  `musu-multidevice-1.15.0-rc.22-20260628-163218`,
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`,
   `musu.multidevice_test_kit_prepare.v1`, and
-  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`.
+  `067a22c4f837fac70a31bda219b5970dfc5260ce`.
 
 - 2026-06-28 clean-HEAD go/no-go after second-PC kit JSON fix:
   `write-release-go-no-go.ps1 -Json` wrote
@@ -9708,5 +9709,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.public_metadata_dns_repair_plan.v1`,
   `20260628-160524-musu-pro-dns-repair-plan.json`, and
   `3B99B6F35E7E190D9C75B775E4B753568CA1500F2CE7498A1D80CF44173560C8`.
+
+- 2026-06-28 latest second-PC kit pointer and P2P env recheck:
+  `prepare-multidevice-test-kit.ps1` now writes the same
+  `musu.multidevice_test_kit_prepare.v1` JSON to
+  `.local-build\multi-device-test-kit\latest-prepare-output.json` via tmp file
+  then move. Verifier regression `test-release-evidence-verifiers.ps1 -Json`
+  passed with `ok=true`, `case_count=211`, and `failed_case_count=0`. Fresh P2P
+  env status at `2026-06-28T16:20:30.6528544+09:00` remains `ok=false` with
+  `release_relay_payload_endpoint_implemented=false`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `release_tunnel_payload_endpoint_missing=true`, missing KV/Upstash release
+  storage, and no live relay route/transport/delivery proof. This updates the
+  operator handoff but does not close the product release blockers. Search terms
+  should include `latest-prepare-output.json`, `067a22c4`,
+  `musu-multidevice-1.15.0-rc.22-20260628-163218.zip`,
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`,
+  `release_tunnel_payload_endpoint_missing=true`, and `failed_case_count=0`.
 
 **End of WIKI_INDEX.md.**
