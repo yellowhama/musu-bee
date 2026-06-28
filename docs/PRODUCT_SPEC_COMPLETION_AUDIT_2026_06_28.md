@@ -16,11 +16,12 @@ several release lanes still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T14:24:39.8780563+09:00`
+- Snapshot file: `.local-build/go-no-go/after-p2p-integrity-refresh.json`
+- `generated_at`: `2026-06-28T14:36:32.5281353+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
-- `warnings=1`
+- `warnings=0`
 - `single_machine_verified=true`
 - `process_ownership_verified=true`
 - `startup_single_instance_verified=true`
@@ -34,7 +35,7 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=bcbaba71492722f1ebcf4435800789e959ea88ab`
+- `commit=6d28c0e3f5fe7042638b25f261dbaae69e086e14`
 
 2026-06-28 13:53 KST current-HEAD refresh: after the public metadata diagnostic
 commits reopened five freshness lanes, fresh HUGH_SECOND packaged evidence was
@@ -53,6 +54,15 @@ green (`single_machine_verified`, `process_ownership_verified`,
 `startup_single_instance_verified`, `desktop_single_instance_verified`, and
 `runtime_cpu_second_pc_route_attempt_verified`), so the JSON kit tooling change
 did not reopen package freshness blockers.
+
+2026-06-28 14:36 KST P2P integrity recheck: after committing fresh P2P
+control-plane evidence plus `.sha256` sidecar at
+`6d28c0e3f5fe7042638b25f261dbaae69e086e14`,
+`write-release-go-no-go.ps1 -Json` reports `blockers=10`, `warnings=0`,
+`manifest_git.dirty=false`, `p2p_control_plane_evidence_integrity_status=verified`,
+and `p2p_control_plane_evidence_integrity_ok=true`. This closes the stale
+integrity-sidecar warning only. The product remains NO-GO because
+`p2p_control_plane_verified=false` and `relay_transport_product_verified=false`.
 
 Current blockers:
 

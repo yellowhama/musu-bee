@@ -99,6 +99,19 @@ generated `.local-build\go-no-go\after-second-pc-kit-json-refresh.json` with
 green; the remaining blockers are still physical/external product gates, not
 the second-PC kit command.
 
+2026-06-28 14:36 KST P2P integrity warning closure: after recording fresh
+P2P control-plane evidence with a SHA256 sidecar and committing it at
+`6d28c0e3f5fe7042638b25f261dbaae69e086e14`,
+`write-release-go-no-go.ps1 -Json` generated
+`.local-build\go-no-go\after-p2p-integrity-refresh.json` with
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
+`p2p_control_plane_verified=false`, and
+`relay_transport_product_verified=false`. The stale sidecar warning is closed;
+the product is still NO-GO because the P2P release relay runtime, route
+metadata/proof, payload delivery proof, and the other physical/external gates
+are still missing.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
@@ -718,9 +731,10 @@ Fresh evidence:
   `ok=false`, `fail_count=39`, `evidence_integrity_status=verified`, and
   `evidence_integrity_ok=true`.
 
-This should remove the sidecar-missing integrity warning once committed and
-rechecked, but it intentionally does not mark P2P as complete. The current live
-relay evidence still reports `relay_transport_wired=false`,
+This removed the sidecar-missing integrity warning in the clean-HEAD go/no-go
+snapshot at `2026-06-28T14:36:32.5281353+09:00`, but it intentionally does not
+mark P2P as complete. The current live relay evidence still reports
+`relay_transport_wired=false`,
 `relay_transport_payload_endpoint_wired=false`,
 `relay_payload_transport_proven=false`, and zero relay route/proof/delivery
 records. The release blockers remain real implementation/configuration gaps,
@@ -1038,7 +1052,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T13:53:13.4340964+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T14:36:32.5281353+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green and the stale P2P sidecar warning is closed. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS mismatch diagnosis. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch`; `curl.exe` fails before HTTP headers on apex HTTPS; `www.musu.pro` TLS succeeds only to redirect back to apex; current NS are `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, expected NS are `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Repair Cloudflare/Vercel DNS and edge TLS for the apex host, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |

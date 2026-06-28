@@ -9573,6 +9573,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_payload_transport_proven=false`, and
   `p2p-control-plane-integrity`.
 
+- 2026-06-28 clean-HEAD go/no-go after P2P integrity refresh:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-p2p-integrity-refresh.json` at
+  `2026-06-28T14:36:32.5281353+09:00` for commit
+  `6d28c0e3f5fe7042638b25f261dbaae69e086e14`, `manifest_git.dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=0`. The fresh P2P integrity sidecar is verified
+  (`p2p_control_plane_evidence_integrity_status=verified`,
+  `p2p_control_plane_evidence_integrity_ok=true`), but
+  `p2p_control_plane_verified=false` and
+  `relay_transport_product_verified=false`; the product remains NO-GO.
+
 - 2026-06-28 public metadata DNS diagnostic contract:
   `scripts/windows/verify-store-public-metadata.ps1` now emits
   `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when
