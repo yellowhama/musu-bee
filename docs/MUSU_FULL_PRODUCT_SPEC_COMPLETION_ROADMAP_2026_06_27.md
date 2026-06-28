@@ -138,6 +138,15 @@ the current nameservers are Cloudflare rather than the Vercel DNS pair expected
 by the verifier. This means the site deploy succeeded, but the product spec is
 still not complete.
 
+2026-06-28 15:39 KST public metadata edge diagnostic update: the verifier now
+emits `edge_tls_diagnostics` and a fresh canonical evidence file at
+`docs/evidence/store-public-metadata/1.15.0-rc.22/20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`.
+That evidence reports `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`.
+`www.musu.pro` can complete TLS, but apex `musu.pro` cannot complete TLS from
+this machine and a direct probe to the Vercel apex edge IP with SNI `musu.pro`
+also fails. The remaining public metadata action is therefore to repair apex
+DNS/certificate/edge binding; redeploying the same Next.js source is not enough.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

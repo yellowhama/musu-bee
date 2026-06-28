@@ -88,6 +88,17 @@ failed `/privacy`, `/support`, and `/api/public-config` fetches. So the Vercel
 deploy path is green for this push, but the product remains NO-GO until the
 apex public metadata path and design approval gate are both green.
 
+2026-06-28 15:39 KST edge TLS diagnostic hardening:
+`verify-store-public-metadata.ps1` now records `edge_tls_diagnostics` in
+addition to DNS diagnostics. Fresh evidence at
+`docs/evidence/store-public-metadata/1.15.0-rc.22/20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`
+reports `failure_kinds=request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`.
+The canonical apex TLS handshake fails, `www.musu.pro` TLS succeeds, and direct
+Vercel edge probing for apex SNI has zero passing probes. SHA256:
+`31185299722926F368589E1638578E45FF24207DC09FA587860E19458534F343`.
+This narrows the remaining public metadata blocker to the apex DNS/certificate
+edge binding, not missing Next.js route source or a failed Vercel deploy.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
@@ -95,7 +106,7 @@ Current blockers:
 3. Runtime idle CPU evidence is valid on too few physical machines.
 4. Runtime CPU scenario matrix evidence is valid on too few physical machines.
 5. `https://musu.pro` public metadata fetches fail with
-   `request_failed,dns_nameserver_mismatch`.
+   `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`.
 6. Partner Center, Microsoft certification, and restricted capability approval
    evidence is missing.
 7. P2P control-plane release relay evidence is not verified.

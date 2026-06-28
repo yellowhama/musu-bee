@@ -9616,6 +9616,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ns1.vercel-dns.com`, `ns2.vercel-dns.com`,
   `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `store-public-metadata`.
 
+- 2026-06-28 public metadata edge TLS diagnostic contract:
+  `scripts/windows/verify-store-public-metadata.ps1` now also emits
+  `edge_tls_diagnostics` with apex TLS, `www` TLS, and direct Vercel apex edge
+  SNI probes. Fresh evidence
+  `docs/evidence/store-public-metadata/1.15.0-rc.22/20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`
+  has SHA256
+  `31185299722926F368589E1638578E45FF24207DC09FA587860E19458534F343`, reports
+  `failure_kinds=request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`,
+  records apex TLS failure, records `www.musu.pro` TLS success, and records zero
+  passing direct Vercel edge apex TLS probes. Search terms should include
+  `edge_tls_diagnostics`, `apex_tls_handshake_failed`,
+  `vercel_edge_apex_tls_failed`,
+  `20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`, and
+  `31185299722926F368589E1638578E45FF24207DC09FA587860E19458534F343`.
+
 - 2026-06-28 post-push cache-buster/deploy status:
   commit `4462b8e6d9acfdf99bd560b86be7e9c69e32a66c` pushed to PR #34. GitHub
   checks passed for `Deploy musu-bee to Vercel`, `Tests`, `E2E Tests`, `SaaS

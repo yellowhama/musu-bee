@@ -3,8 +3,10 @@ param(
     [string]$BaseUrl = "https://musu.pro",
     [string]$ExpectedSupportEmail,
     [string[]]$ExpectedNameservers = @("ns1.vercel-dns.com", "ns2.vercel-dns.com"),
+    [string[]]$VercelEdgeIps = @("76.76.21.21"),
     [int]$TimeoutSec = 20,
     [switch]$SkipDnsDiagnostics,
+    [switch]$SkipEdgeDiagnostics,
     [switch]$Json
 )
 
@@ -25,6 +27,7 @@ $checks = New-Object System.Collections.Generic.List[object]
 $pages = New-Object System.Collections.Generic.List[object]
 $publicConfigEvidence = $null
 $dnsDiagnostics = $null
+$edgeTlsDiagnostics = $null
 
 function Add-Check {
     param(
@@ -194,6 +197,146 @@ function Get-PublicMetadataDnsDiagnostics {
         provider_guess = $providerGuess
         a_records = @($aRecords)
         aaaa_records = @($aaaaRecords)
+    }
+}
+
+function Test-TlsHandshake {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$ConnectHost,
+        [Parameter(Mandatory = $true)][string]$ServerName,
+        [int]$Port = 443,
+        [int]$TimeoutSeconds = 8
+    )
+
+    $tcp = $null
+    $ssl = $null
+    try {
+        $tcp = [System.Net.Sockets.TcpClient]::new()
+        $async = $tcp.BeginConnect($ConnectHost, $Port, $null, $null)
+        try {
+            if (-not $async.AsyncWaitHandle.WaitOne([TimeSpan]::FromSeconds($TimeoutSeconds))) {
+                $tcp.Close()
+                return [pscustomobject]@{
+                    name = $Name
+                    ok = $false
+                    failure_kind = "tcp_connect_timeout"
+                    connect_host = $ConnectHost
+                    server_name = $ServerName
+                    port = $Port
+                    timeout_sec = $TimeoutSeconds
+                    error = "TCP connect timed out."
+                    tls_protocol = $null
+                    certificate_subject = $null
+                    certificate_thumbprint = $null
+                }
+            }
+            $tcp.EndConnect($async)
+        }
+        finally {
+            if ($async -and $async.AsyncWaitHandle) {
+                $async.AsyncWaitHandle.Close()
+            }
+        }
+
+        $callback = [System.Net.Security.RemoteCertificateValidationCallback]{
+            param($sender, $certificate, $chain, $sslPolicyErrors)
+            return ($sslPolicyErrors -eq [System.Net.Security.SslPolicyErrors]::None)
+        }
+        $ssl = [System.Net.Security.SslStream]::new($tcp.GetStream(), $false, $callback)
+        $ssl.AuthenticateAsClient($ServerName)
+
+        $certSubject = $null
+        $certThumbprint = $null
+        if ($ssl.RemoteCertificate) {
+            $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($ssl.RemoteCertificate)
+            try {
+                $certSubject = $cert.Subject
+                $certThumbprint = $cert.Thumbprint
+            }
+            finally {
+                $cert.Dispose()
+            }
+        }
+
+        return [pscustomobject]@{
+            name = $Name
+            ok = $true
+            failure_kind = $null
+            connect_host = $ConnectHost
+            server_name = $ServerName
+            port = $Port
+            timeout_sec = $TimeoutSeconds
+            error = $null
+            tls_protocol = [string]$ssl.SslProtocol
+            certificate_subject = $certSubject
+            certificate_thumbprint = $certThumbprint
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            name = $Name
+            ok = $false
+            failure_kind = "tls_handshake_failed"
+            connect_host = $ConnectHost
+            server_name = $ServerName
+            port = $Port
+            timeout_sec = $TimeoutSeconds
+            error = $_.Exception.Message
+            tls_protocol = $null
+            certificate_subject = $null
+            certificate_thumbprint = $null
+        }
+    }
+    finally {
+        if ($ssl) {
+            $ssl.Dispose()
+        }
+        if ($tcp) {
+            $tcp.Dispose()
+        }
+    }
+}
+
+function Get-PublicMetadataEdgeTlsDiagnostics {
+    param(
+        [Parameter(Mandatory = $true)][string]$Base,
+        [string[]]$EdgeIps,
+        [int]$TimeoutSeconds = 8
+    )
+
+    $hostName = ""
+    try {
+        $hostName = ([uri]$Base).Host
+    }
+    catch {
+        return [pscustomobject]@{
+            host = ""
+            ok = $false
+            error = "base_url_parse_failed"
+            apex_tls = $null
+            www_tls = $null
+            vercel_edge_tls = @()
+        }
+    }
+
+    $wwwHost = if ($hostName -eq "musu.pro") { "www.musu.pro" } else { "www.$hostName" }
+    $edgeProbeResults = New-Object System.Collections.Generic.List[object]
+    foreach ($edgeIp in @($EdgeIps | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })) {
+        $edgeProbeResults.Add((Test-TlsHandshake -Name "vercel_edge_apex_tls" -ConnectHost ([string]$edgeIp) -ServerName $hostName -TimeoutSeconds $TimeoutSeconds)) | Out-Null
+    }
+
+    $apexTls = Test-TlsHandshake -Name "apex_tls" -ConnectHost $hostName -ServerName $hostName -TimeoutSeconds $TimeoutSeconds
+    $wwwTls = Test-TlsHandshake -Name "www_tls" -ConnectHost $wwwHost -ServerName $wwwHost -TimeoutSeconds $TimeoutSeconds
+    $vercelEdgeTlsOk = (@($edgeProbeResults | Where-Object { [bool]$_.ok }).Count -gt 0)
+
+    return [pscustomobject]@{
+        host = $hostName
+        ok = ([bool]$apexTls.ok -and [bool]$vercelEdgeTlsOk)
+        error = $null
+        apex_tls = $apexTls
+        www_tls = $wwwTls
+        vercel_edge_tls = $edgeProbeResults.ToArray()
     }
 }
 
@@ -387,6 +530,9 @@ $publicConfigUrl = Join-Url -Base $base -Path "/api/public-config"
 if (-not $SkipDnsDiagnostics) {
     $dnsDiagnostics = Get-PublicMetadataDnsDiagnostics -Base $base -ExpectedNs $ExpectedNameservers
 }
+if (-not $SkipEdgeDiagnostics) {
+    $edgeTlsDiagnostics = Get-PublicMetadataEdgeTlsDiagnostics -Base $base -EdgeIps $VercelEdgeIps -TimeoutSeconds ([Math]::Min($TimeoutSec, 8))
+}
 
 Test-Page -Name "privacy" -Url $privacyUrl -RequiredText @(
     "MUSU Privacy Policy",
@@ -428,6 +574,24 @@ $dnsNameserverMismatch = (
 if ($requestFailed -and $dnsNameserverMismatch) {
     $failureKinds = @(@($failureKinds) + "dns_nameserver_mismatch") | Select-Object -Unique
 }
+$apexTlsHandshakeFailed = (
+    $edgeTlsDiagnostics -and
+    $edgeTlsDiagnostics.PSObject.Properties["apex_tls"] -and
+    $edgeTlsDiagnostics.apex_tls -and
+    -not [bool]$edgeTlsDiagnostics.apex_tls.ok
+)
+if ($requestFailed -and $apexTlsHandshakeFailed) {
+    $failureKinds = @(@($failureKinds) + "apex_tls_handshake_failed") | Select-Object -Unique
+}
+$vercelEdgeApexTlsFailed = (
+    $edgeTlsDiagnostics -and
+    $edgeTlsDiagnostics.PSObject.Properties["vercel_edge_tls"] -and
+    @($edgeTlsDiagnostics.vercel_edge_tls).Count -gt 0 -and
+    @($edgeTlsDiagnostics.vercel_edge_tls | Where-Object { [bool]$_.ok }).Count -eq 0
+)
+if ($requestFailed -and $vercelEdgeApexTlsFailed) {
+    $failureKinds = @(@($failureKinds) + "vercel_edge_apex_tls_failed") | Select-Object -Unique
+}
 
 $result = [pscustomobject]@{
     schema = "musu.store_public_metadata_verification.v2"
@@ -444,6 +608,7 @@ $result = [pscustomobject]@{
     pages = $pages.ToArray()
     public_config = $publicConfigEvidence
     dns_diagnostics = $dnsDiagnostics
+    edge_tls_diagnostics = $edgeTlsDiagnostics
     checks = $checks.ToArray()
 }
 

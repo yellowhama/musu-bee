@@ -722,6 +722,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
         "scripts/windows/record-support-operator-gate-retirement.ps1",
+        "scripts/windows/verify-store-public-metadata.ps1",
         "scripts/windows/record-brain-product-proof.ps1",
         "scripts/windows/run-private-mesh-release-proof.ps1",
         "scripts/windows/archive-private-mesh-release-proof-bundle.ps1",
