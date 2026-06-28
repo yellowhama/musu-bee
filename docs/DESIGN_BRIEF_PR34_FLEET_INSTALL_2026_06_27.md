@@ -78,6 +78,9 @@ PCs in the web fleet store.
   evidence-refresh comment
   `https://github.com/yellowhama/musu-bee/issues/35#issuecomment-4813006122`,
   but no explicit CEO/design approval comment yet.
+- The design gate now requires a real GitHub issue comment URL matching
+  `https://github.com/.../issues/<number>#issuecomment-<number>`. A standalone
+  `Design: Approved` line without that approval comment URL must still fail.
 
 ## Approval Requirements
 
@@ -95,5 +98,5 @@ Design artifact:
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-download.png
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-install.png
 - https://github.com/yellowhama/musu-bee/blob/feat/v33-residual-finalize/docs/design-artifacts/pr34-fleet.png
-Approval comment: <approval comment URL>
+Approval comment: https://github.com/yellowhama/musu-bee/issues/35#issuecomment-<approval-comment-id>
 ```

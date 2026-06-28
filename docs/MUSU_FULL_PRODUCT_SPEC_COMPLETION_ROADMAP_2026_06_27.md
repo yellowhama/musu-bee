@@ -182,6 +182,26 @@ reports `full_product_spec_ready=false`,
 did not close or reopen product lanes; the remaining blockers are still
 physical/external release evidence and real relay/runtime implementation.
 
+2026-06-28 16:49 KST design-gate approval URL hardening: PR #34 cannot pass the
+design gate on `Design: Approved` text alone anymore. The evaluator now also
+requires a GitHub issue approval comment URL matching
+`https://github.com/.../issues/<number>#issuecomment-<number>`, and regression
+tests cover the pending-approval bypass case. This is a stricter fail-closed
+merge gate, not a completion event: issue #35 still has evidence-refresh
+comments but no explicit CEO/design approval comment, so the design-approval
+lane remains open.
+
+2026-06-28 16:55 KST post-design-gate clean-HEAD recheck:
+`write-release-go-no-go.ps1 -Json` generated `.local-build\go-no-go\latest.json`
+with `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`,
+and `manifest_git.dirty=false`. The increase from 10 to 15 is expected
+source-freshness invalidation after the gate-code commit: the reopened lanes are
+`single-machine`, `process-ownership`, `startup-single-instance`,
+`desktop-single-instance`, and `runtime-cpu-second-pc-route-attempt`. The product
+is still NO-GO for those stale current-package lanes plus the existing
+physical/external product blockers.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
@@ -1132,7 +1152,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T14:36:32.5281353+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green and the stale P2P sidecar warning is closed. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T16:55:19.9282428+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Refresh current-package evidence for the current HEAD, then close the remaining physical/external product blockers. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |

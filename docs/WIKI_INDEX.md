@@ -9742,4 +9742,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `after-second-pc-latest-pointer-refresh.json`, `0bb6dbcd`,
   `blockers=10`, and `ready_for_public_desktop_release=false`.
 
+- 2026-06-28 design-gate approval URL hardening:
+  `scripts/design-gate/evaluate.cjs` now requires a real GitHub issue approval
+  comment URL (`#issuecomment-...`) in addition to the standalone `Design:
+  Approved` status line, design brief issue URL, and `.pen`/`.png` artifact
+  URL. `scripts/design-gate/evaluate.test.cjs` covers the pending-approval
+  bypass case, and `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`
+  records the exact PR body contract. This does not approve PR #34; issue #35
+  still needs an explicit CEO/design approval comment. Search terms should
+  include `approval issue comment URL`, `#issuecomment`, `Design: Approved`,
+  `issue #35 approval missing`, and `design-gate approval URL hardening`.
+
+- 2026-06-28 clean-HEAD go/no-go after design-gate approval URL hardening:
+  `write-release-go-no-go.ps1 -Json` wrote `.local-build\go-no-go\latest.json`
+  at `2026-06-28T16:55:19.9282428+09:00`. It reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. The five
+  reopened freshness lanes are `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`; the existing physical/external blockers
+  also remain. Search terms should include `blockers=15`,
+  `post-design-gate clean-HEAD recheck`, `runtime-cpu-second-pc-route-attempt`,
+  and `source-freshness invalidation`.
+
 **End of WIKI_INDEX.md.**

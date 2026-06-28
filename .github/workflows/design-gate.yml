@@ -77,6 +77,7 @@ jobs:
                   "- `Design: Approved`",
                   "- design brief issue URL",
                   "- artifact URL ending in `.pen` or `.png`",
+                  "- approval issue comment URL",
                 ].join("\n")
               );
             }

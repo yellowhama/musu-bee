@@ -24,6 +24,8 @@ const URL_RE = /https?:\/\/[^\s)]+/gi;
 const DESIGN_BRIEF_ISSUE_URL_RE =
   /\/issues\/(?:MUS-\d+|[0-9a-fA-F-]{36}|\d+)(?:[/?#]|$)/i;
 const ARTIFACT_URL_RE = /\.(?:pen|png)(?:[?#][^\s)]*)?$/i;
+const APPROVAL_COMMENT_URL_RE =
+  /github\.com\/[^/\s)]+\/[^/\s)]+\/issues\/\d+#issuecomment-\d+(?:[/?#][^\s)]*)?$/i;
 
 function extractUrls(text) {
   if (!text) {
@@ -52,6 +54,9 @@ function evaluateDesignGate({ changedFiles, prBody }) {
       DESIGN_BRIEF_ISSUE_URL_RE.test(url)
     ),
     hasArtifactLink: urls.some((url) => ARTIFACT_URL_RE.test(url)),
+    hasApprovalCommentUrl: urls.some((url) =>
+      APPROVAL_COMMENT_URL_RE.test(url)
+    ),
   };
 
   const missingRequirements = [];
@@ -63,6 +68,9 @@ function evaluateDesignGate({ changedFiles, prBody }) {
   }
   if (!checks.hasArtifactLink) {
     missingRequirements.push("artifact URL ending in `.pen` or `.png`");
+  }
+  if (!checks.hasApprovalCommentUrl) {
+    missingRequirements.push("approval issue comment URL");
   }
 
   const pass = !uiTouched || missingRequirements.length === 0;
@@ -127,5 +135,6 @@ module.exports = {
   NEXT_APP_ROUTE_HANDLER_RE,
   TEST_FILE_RE,
   UI_PATH_PREFIXES,
+  APPROVAL_COMMENT_URL_RE,
   evaluateDesignGate,
 };
