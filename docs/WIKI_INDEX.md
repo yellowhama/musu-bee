@@ -9692,4 +9692,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `blockers=10`, `runtime_idle_cpu_valid_machines=1/2`, and
   `a58a9fb039f9d39a7272f21474c75ac8aff8ab01`.
 
+- 2026-06-28 public metadata DNS repair planner:
+  `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` adds a
+  non-mutating `musu.public_metadata_dns_repair_plan.v1` operator plan for the
+  `https://musu.pro` apex DNS/TLS blocker. Evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-160524-musu-pro-dns-repair-plan.json`
+  records `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+  Cloudflare nameservers, Cloudflare apex A/AAAA records, missing Vercel apex A
+  `76.76.21.21`, missing `www.musu.pro` CNAME `cname.vercel-dns-0.com`, apex
+  TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. The
+  go/no-go `store-public-metadata` next action now points to this planner before
+  the canonical verifier. Search terms should include
+  `public metadata DNS repair planner`,
+  `musu.public_metadata_dns_repair_plan.v1`,
+  `20260628-160524-musu-pro-dns-repair-plan.json`, and
+  `3B99B6F35E7E190D9C75B775E4B753568CA1500F2CE7498A1D80CF44173560C8`.
+
 **End of WIKI_INDEX.md.**

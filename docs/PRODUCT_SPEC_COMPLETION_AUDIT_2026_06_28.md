@@ -99,6 +99,20 @@ Vercel edge probing for apex SNI has zero passing probes. SHA256:
 This narrows the remaining public metadata blocker to the apex DNS/certificate
 edge binding, not missing Next.js route source or a failed Vercel deploy.
 
+2026-06-28 16:05 KST public metadata DNS repair planner:
+`scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now emits a
+non-mutating `musu.public_metadata_dns_repair_plan.v1` JSON plan before any
+operator edits external DNS. Evidence at
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-160524-musu-pro-dns-repair-plan.json`
+reports `release_blocker_present=true`,
+`ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+Cloudflare nameservers, Cloudflare apex A/AAAA records, apex TLS failure,
+`www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. SHA256:
+`3B99B6F35E7E190D9C75B775E4B753568CA1500F2CE7498A1D80CF44173560C8`.
+The go/no-go `store-public-metadata` next action now points to this planner
+before rerunning `verify-store-public-metadata.ps1`; the product remains NO-GO
+until the external DNS/TLS repair is actually performed and the verifier passes.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
@@ -322,7 +336,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
 | NO-GO | Full product spec is not complete. | Latest clean product gate has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green. |
-| NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch`; current NS are Cloudflare, expected NS are Vercel DNS. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
+| NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |

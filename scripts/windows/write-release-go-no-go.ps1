@@ -447,7 +447,7 @@ function Get-ReleaseNextActions {
                 break
             }
             "store-public-metadata" {
-                $actions.Add((New-NextAction -Area $area -Summary "Deploy current privacy/support/public-config routes, then verify live public metadata drift." -ActionType "manual_then_command" -ManualSteps @("Deploy the current MUSU public site build to $PublicMetadataBaseUrl.", "Confirm the deployed privacy, support, and public-config routes are from the current release build.", "Then run the public metadata verifier command.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -EvidencePath "$PublicMetadataBaseUrl/privacy, $PublicMetadataBaseUrl/support, $PublicMetadataBaseUrl/api/public-config" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json" -AutomationBlockedReason "Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.")) | Out-Null
+                $actions.Add((New-NextAction -Area $area -Summary "Plan and repair the canonical apex DNS/TLS path before rerunning public metadata verification." -ActionType "manual_then_command" -ManualSteps @("Run the public metadata DNS/TLS repair planner first.", "Run vercel domains inspect for the exact Vercel-recommended DNS records.", "Choose one DNS authority path: Vercel nameservers or Cloudflare/third-party external DNS, then repair apex DNS/TLS.", "Repair the apex DNS/TLS path, then run the public metadata verifier command.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -EvidencePath ".local-build\public-metadata-dns-repair\*.json; $PublicMetadataBaseUrl/privacy, $PublicMetadataBaseUrl/support, $PublicMetadataBaseUrl/api/public-config" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -AutomationBlockedReason "The command is diagnostic and does not mutate DNS/provider settings; live DNS/TLS repair is required before this verifier can pass.")) | Out-Null
                 break
             }
             "support-mailbox" {
@@ -722,6 +722,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/record-single-machine-evidence.ps1",
         "scripts/windows/record-support-mailbox-verification.ps1",
         "scripts/windows/record-support-operator-gate-retirement.ps1",
+        "scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1",
         "scripts/windows/verify-store-public-metadata.ps1",
         "scripts/windows/record-brain-product-proof.ps1",
         "scripts/windows/run-private-mesh-release-proof.ps1",

@@ -41,6 +41,7 @@ $v34SnapshotCapture = Join-Path $scriptDir "capture-v34-source-snapshot.ps1"
 $storeReleaseVerifier = Join-Path $scriptDir "verify-store-release-evidence.ps1"
 $storeReleaseRecorder = Join-Path $scriptDir "record-store-release-verification.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
+$publicMetadataDnsRepairPlanner = Join-Path $scriptDir "plan-musu-pro-public-metadata-dns-repair.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $frontendPollingAuditor = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
@@ -2026,6 +2027,59 @@ function Test-GoNoGoPublicMetadataFailureDetailContract {
     return $true
 }
 
+function Test-PublicMetadataDnsRepairPlannerContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    if (-not (Test-Path -LiteralPath $ScriptPath)) {
+        return $false
+    }
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.public_metadata_dns_repair_plan.v1"',
+        'ConfirmCloudflareApply',
+        'apply_supported = $false',
+        'will_mutate_external_dns = $false',
+        'verify-store-public-metadata.ps1',
+        'vercel domains inspect',
+        'ExpectedVercelApexA',
+        'ExpectedWwwCname',
+        '76.76.21.21',
+        'cname.vercel-dns-0.com',
+        'apex_tls',
+        'vercel_edge_apex_tls',
+        'dns_state',
+        'tls_state',
+        'recommended_actions',
+        'This planner never mutates DNS/provider state'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'Invoke-RestMethod -Method Patch',
+        'Invoke-RestMethod -Method Post',
+        'Invoke-RestMethod -Method Put',
+        'Invoke-RestMethod -Method Delete',
+        'Invoke-WebRequest -Method Patch',
+        'Invoke-WebRequest -Method Post',
+        'Invoke-WebRequest -Method Put',
+        'Invoke-WebRequest -Method Delete'
+    )
+
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Test-GoNoGoNextActionsContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2084,11 +2138,12 @@ function Test-GoNoGoNextActionsContract {
         'Choose the real second-PC peer name from the live fleet.',
         'A real second-PC peer target and post-route matrix evidence are required before the second-PC route-attempt CPU gate can close.',
         '.local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json; accepted release path: docs\evidence\runtime-cpu-scenarios\$Version\*.runtime-cpu-scenario-matrix.json',
+        'plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
         'verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
-        'Deploy the current MUSU public site build to $PublicMetadataBaseUrl.',
-        'Confirm the deployed privacy, support, and public-config routes are from the current release build.',
-        'Then run the public metadata verifier command.',
-        'Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.',
+        'Run the public metadata DNS/TLS repair planner first.',
+        'Run vercel domains inspect for the exact Vercel-recommended DNS records.',
+        'Repair the apex DNS/TLS path, then run the public metadata verifier command.',
+        'The command is diagnostic and does not mutate DNS/provider settings; live DNS/TLS repair is required before this verifier can pass.',
         'record-support-operator-gate-retirement.ps1 -Json',
         'Close the support/operator lane by recording real inbox delivery evidence or the formal support mailbox delivery gate retirement.',
         'prepare-support-mailbox-verification-request.ps1 -Json',
@@ -5662,6 +5717,18 @@ Add-CaseResult `
     -Name "go-no-go public metadata blocker includes actionable failure detail" `
     -Verifier "public metadata blocker source contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$publicMetadataDnsRepairPlannerOk = Test-PublicMetadataDnsRepairPlannerContract -ScriptPath $publicMetadataDnsRepairPlanner
+$invocation = New-StaticVerifierInvocation `
+    -Ok $publicMetadataDnsRepairPlannerOk `
+    -Message "public metadata DNS repair planner must be non-mutating, emit schema musu.public_metadata_dns_repair_plan.v1, run canonical verifier diagnostics, and surface Vercel DNS/TLS repair steps"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "public metadata DNS repair planner is safe and actionable" `
+    -Verifier "public metadata DNS repair planner source contract" `
+    -FixturePath $publicMetadataDnsRepairPlanner `
     -ShouldPass $true `
     -Invocation $invocation
 

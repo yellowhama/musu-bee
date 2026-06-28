@@ -147,6 +147,21 @@ this machine and a direct probe to the Vercel apex edge IP with SNI `musu.pro`
 also fails. The remaining public metadata action is therefore to repair apex
 DNS/certificate/edge binding; redeploying the same Next.js source is not enough.
 
+2026-06-28 16:05 KST public metadata DNS repair planner update:
+`scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now produces a
+non-mutating `musu.public_metadata_dns_repair_plan.v1` plan and the go/no-go
+`store-public-metadata` next action points to it before rerunning the canonical
+metadata verifier. Evidence:
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-160524-musu-pro-dns-repair-plan.json`.
+The plan reports Cloudflare nameservers, Cloudflare apex A/AAAA records, missing
+Vercel apex A `76.76.21.21`, missing `www.musu.pro` CNAME
+`cname.vercel-dns-0.com`, apex TLS failure, `www_tls.ok=true`, and
+`vercel_edge_apex_tls_ok=false`. SHA256:
+`3B99B6F35E7E190D9C75B775E4B753568CA1500F2CE7498A1D80CF44173560C8`.
+This is a sharper operator path, not a closure of the lane; the product remains
+NO-GO until external DNS/TLS is repaired and `verify-store-public-metadata.ps1`
+passes.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
@@ -1061,7 +1076,7 @@ QUIC/TLS transport evidence beyond the legacy HTTP bearer route.
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and route-evidence-bound strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; verifier/recorder now require Partner Center approval plus Store-signed install evidence, installed desktop-entrypoint evidence, and Store install/launch timestamps; actual Microsoft Store evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
-| Public metadata / canonical HTTPS | Not complete | `verify-store-public-metadata.ps1 -Json` fails request fetches against `https://musu.pro/*`; direct `curl.exe` shows apex TLS handshake reset; `www.musu.pro` only redirects back to the failing apex; Vercel reports intended NS `ns1/ns2.vercel-dns.com` while current NS are Cloudflare | Public support/privacy/config and install-channel metadata cannot be claimed release-grade until apex HTTPS is repaired and verifier passes |
+| Public metadata / canonical HTTPS | Not complete | `verify-store-public-metadata.ps1 -Json` fails request fetches against `https://musu.pro/*`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA, missing Vercel apex A `76.76.21.21`, missing `www.musu.pro` CNAME `cname.vercel-dns-0.com`, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false` | Public support/privacy/config and install-channel metadata cannot be claimed release-grade until apex HTTPS is repaired and verifier passes |
 | Support/operator evidence | Partly complete in latest local gate | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*`; latest local HTTPS verifier from this PC cannot fetch current public metadata because the TLS connection resets | Support availability remains required; do not claim this lane green again until current canonical public metadata verification passes locally |
 
 ## Full Product Definition Of Done
@@ -1097,7 +1112,7 @@ MUSU is fully complete only when all of these are true at the same time:
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
 | NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T14:36:32.5281353+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green and the stale P2P sidecar warning is closed. |
-| NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS mismatch diagnosis. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch`; `curl.exe` fails before HTTP headers on apex HTTPS; `www.musu.pro` TLS succeeds only to redirect back to apex; current NS are `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, expected NS are `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Repair Cloudflare/Vercel DNS and edge TLS for the apex host, then rerun public metadata and go/no-go verification. |
+| NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
 | INFO | Direct delegated-work over LAN is now proven for rc.22. | Packaged route evidence `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json` verifies successfully and the go/no-go lane `direct_delegated_work_route` reports `pass`. | The previous 401/invalid-bearer blocker is closed for direct routes. | Keep the evidence committed; do not treat it as relay or release-grade transport proof. |
