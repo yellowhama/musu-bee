@@ -19,14 +19,15 @@ and wrote verifier-passing `musu.route_evidence.v1`.
 The fresh packaged desktop now also records a passing hidden-brain product
 proof for rc.22, and the current HUGH_SECOND package now has refreshed
 single-machine smoke, process ownership, startup single-instance, desktop
-single-instance, runtime CPU, and targeted post-route matrix evidence. The
-latest clean gate reports `blockers=10`, not 15, because those local freshness
-lanes were restored again after the V34 endpoint validation hardening commit.
-It still does not
-prove the full product: second-PC release evidence, packaged Private Mesh proof
-archive, public metadata, Store release/Store-signed install evidence, real
-relay transport, explicit design approval, and V34 stale self-heal proof still
-remain.
+single-instance, runtime CPU, and targeted post-route matrix evidence for the
+pre-relay-poller-alignment source snapshot. After the doctor relay poller
+runtime alignment source commit, the post-source gate reports `blockers=15`
+because package-bound smoke/process/startup/desktop/post-route evidence must be
+refreshed for the new source commit. This is expected fail-closed freshness
+behavior. It still does not prove the full product: second-PC release evidence,
+packaged Private Mesh proof archive, public metadata, Store release/Store-signed
+install evidence, real relay transport, explicit design approval, and V34 stale
+self-heal proof still remain.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
@@ -46,6 +47,16 @@ as an env-opt-in. This fixes an evidence/observability mismatch only. It does
 not implement the release relay tunnel runtime, provision relay storage, prove
 payload delivery, or close `relay_transport_product_verified=false`. See
 `docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md`.
+
+2026-06-28 22:26 KST post-source gate: after commit
+`fb971909670df187f364c3741d0a2fc54e45a26f`, go/no-go reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. The added five
+blockers are source-freshness invalidations for single-machine smoke, process
+ownership, startup single-instance, desktop single-instance, and runtime CPU
+second-PC route-attempt evidence. The full-product incomplete lanes remain
+`design_approval`, `relay_transport`, `v34_stale_self_heal`, and
+`store_distribution`.
 
 2026-06-28 Private Mesh evidence update: the product still has
 `private_mesh_packaged_release_proof_verified=false`, but one proof generator

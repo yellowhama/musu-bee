@@ -10044,10 +10044,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   wording now also says `target polling is default-on opt-out low duty` instead
   of stale default-off wording. This fixes observability only: real release
   relay tunnel runtime, hosted relay storage, live relay route/transport/delivery
-  proof, and `relay_transport_product_verified` remain open. Search terms should
+  proof, and `relay_transport_product_verified` remain open. Post-source
+  go/no-go at `2026-06-28T22:26:26.9390333+09:00` on commit `fb971909` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`; the five added
+  blockers are expected package-evidence freshness invalidations after a runtime
+  source change. Search terms should
   include `DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT`, `default-on-opt-out`,
   `target polling is default-on opt-out low duty`, `relay_payload_poller_enabled`,
-  `doctor_background_relay_payload_poller_matches_runtime_opt_out`, and
+  `doctor_background_relay_payload_poller_matches_runtime_opt_out`, `fb971909`,
+  `blockers=15`, and
   `release_relay_tunnel_runtime_not_implemented`.
 
 **End of WIKI_INDEX.md.**

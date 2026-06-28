@@ -14,32 +14,46 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
-Authoritative local gate:
+Authoritative post-source-change local gate:
 
 - Command source:
-  `.local-build/go-no-go/after-69b127f9-docs-refresh.json`
+  `.local-build/go-no-go/after-fb971909-relay-poller-alignment.json`
 - Snapshot file:
-  `.local-build/go-no-go/after-69b127f9-docs-refresh.json`
-- `generated_at`: `2026-06-28T22:02:38.7818088+09:00`
-- `manifest_git.commit`: `69b127f94d0230177339cfeae278bcd5fb9bb1c1`
+  `.local-build/go-no-go/after-fb971909-relay-poller-alignment.json`
+- `generated_at`: `2026-06-28T22:26:26.9390333+09:00`
+- `manifest_git.commit`: `fb971909670df187f364c3741d0a2fc54e45a26f`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
-- `blockers=10`
+- `blockers=15`
 - `warnings=0`
-- `single_machine_verified=true`
-- `process_ownership_verified=true`
-- `startup_single_instance_verified=true`
-- `desktop_single_instance_verified=true`
-- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `single_machine_verified=false`
+- `process_ownership_verified=false`
+- `startup_single_instance_verified=false`
+- `desktop_single_instance_verified=false`
+- `runtime_cpu_second_pc_route_attempt_verified=false`
 - `runtime_idle_cpu_verified=false`
-- `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`
+- `runtime_idle_cpu_valid_machines=0/2 []`
 - `runtime_cpu_scenario_matrix_verified=false`
 - `runtime_cpu_scenario_matrix_valid_machines=1/2 [HUGH_SECOND]`
 - `private_mesh_packaged_release_proof_verified=false`
 - `public_metadata_ok=false`
+- `p2p_store_forward_relay_contract_verified=true`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
+
+2026-06-28 22:26 KST post-relay-poller source gate: after commit
+`fb971909670df187f364c3741d0a2fc54e45a26f`, the release gate still reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`warnings=0`, and `manifest_git.dirty=false`, but `blockers` rises from 10 to
+15. This is expected freshness behavior after a runtime source change: the
+previous package-bound single-machine smoke, process ownership, startup
+single-instance, desktop single-instance, and runtime CPU post-route-attempt
+lanes no longer count for the new source commit. The substantive external and
+physical product blockers remain unchanged: multi-device, Private Mesh packaged
+release proof, two-machine idle CPU, two-machine CPU scenario matrix, public
+metadata DNS/TLS, Store release, P2P control plane, explicit design approval,
+real relay transport, and V34 stale self-heal physical proof.
 
 2026-06-28 22:02 KST clean docs-refresh gate: after commit
 `69b127f94d0230177339cfeae278bcd5fb9bb1c1`, the release gate still reports
@@ -451,7 +465,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T22:02:38.7818088+09:00` on commit `69b127f94d0230177339cfeae278bcd5fb9bb1c1` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | Full product spec is not complete. | Post-source-change gate at `2026-06-28T22:26:26.9390333+09:00` on commit `fb971909670df187f364c3741d0a2fc54e45a26f` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. The extra five blockers are expected package-evidence freshness invalidations after the runtime source fix. | A release-ready claim would overstate the evidence. | Rebuild/reinstall and refresh package-bound evidence, then close the remaining physical/external product blockers. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, but `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Doctor/background and P2P audit evidence previously disagreed with the relay poller runtime default. | Runtime relay payload polling is default-on opt-out, but doctor used a truthy env check and the P2P audit message still said default-off. Source now reuses `relay_payload_poller_enabled()`, the audit wording is aligned, and targeted tests pass. | Without this fix, runtime-loop/CPU evidence could under-report an active low-duty loop and mislead release audits. | Keep the helper shared; refresh package-bound evidence after this runtime source change. |
