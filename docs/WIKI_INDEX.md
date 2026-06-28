@@ -9453,4 +9453,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `missing_kv_rest_api_url_or_upstash_redis_rest_url`, and
   `failure_kinds=request_failed`.
 
+- 2026-06-28 Private Mesh physical peer evidence handoff:
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md` records the
+  source fix and remaining packaged release proof path. `musu mesh
+  physical-peer-evidence` no longer requires `mesh.node_name` in
+  `~/.musu/private_mesh.toml` when live `tailscale status --json`
+  `Self.HostName` is available, and it prefers live `tailscale ip -4` over
+  stale persisted `verification.local_tailnet_ip`. Local debug CLI evidence on
+  `HUGH_SECOND` generated
+  `.local-build\private-mesh-physical-peer\20260628-codex\hugh_second.physical-peer-evidence.json`
+  with `node_name_source=tailscale.status.Self.HostName`,
+  `tailnet_ip_source=tailscale.ip`, `tailnet_ip=100.64.0.1`, and
+  `persisted_tailnet_ip=100.64.0.2`. Targeted `cargo test --lib
+  parse_tailnet_status_hostname` passed 2 tests. A broad filtered Cargo test on
+  this Windows host failed due paging-file/linker memory limits (`os error
+  1455`, `LNK1102`), so narrow checks should use `CARGO_BUILD_JOBS=1` and
+  `--lib`. This does not close `private_mesh_packaged_release_proof_verified`;
+  next steps are rebuild/install package on both PCs, generate target evidence
+  on `hugh-main`, run `run-private-mesh-release-proof.ps1`, verify/import the
+  archive, and rerun go/no-go. Search terms should include
+  `PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28`,
+  `node_name_source`, `tailnet_ip_source`, `persisted_tailnet_ip=100.64.0.2`,
+  `parse_tailnet_status_hostname`, `os error 1455`, and `LNK1102`.
+
 **End of WIKI_INDEX.md.**

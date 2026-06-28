@@ -1439,26 +1439,55 @@ async fn run_physical_peer_evidence(opts: PrivateMeshPhysicalPeerEvidenceOpts) -
             config.mesh.mode.as_str()
         ));
     }
-    let node_name = config
+    let ip_command = run_tail_command(&["ip", "-4"]);
+    let status_command = run_tail_command(&["status", "--json"]);
+    let (node_name, node_name_source) = config
         .mesh
         .node_name
         .as_deref()
         .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| anyhow!("physical peer evidence requires mesh.node_name"))?
-        .trim()
-        .to_string();
-    let tailnet_ip = config
+        .map(|value| (value.trim().to_string(), "mesh.node_name"))
+        .or_else(|| {
+            status_command
+                .stdout
+                .as_deref()
+                .and_then(parse_tailnet_status_hostname)
+                .map(|value| (value, "tailscale.status.Self.HostName"))
+        })
+        .ok_or_else(|| {
+            anyhow!(
+                "physical peer evidence requires mesh.node_name or tailscale status Self.HostName"
+            )
+        })?;
+    let (tailnet_ip, tailnet_ip_source) = ip_command
+        .stdout
+        .as_deref()
+        .and_then(parse_tailnet_ipv4)
+        .map(|value| (value, "tailscale.ip"))
+        .or_else(|| {
+            config
+                .verification
+                .local_tailnet_ip
+                .as_deref()
+                .filter(|value| is_tailnet_ipv4(value))
+                .map(|value| {
+                    (
+                        value.trim().to_string(),
+                        "verification.local_tailnet_ip",
+                    )
+                })
+        })
+        .ok_or_else(|| {
+            anyhow!(
+                "physical peer evidence requires a live or persisted local tailnet IP in 100.64.0.0/10"
+            )
+        })?;
+    let persisted_tailnet_ip = config
         .verification
         .local_tailnet_ip
         .as_deref()
         .filter(|value| is_tailnet_ipv4(value))
-        .ok_or_else(|| {
-            anyhow!(
-                "physical peer evidence requires verification.local_tailnet_ip in 100.64.0.0/10"
-            )
-        })?
-        .trim()
-        .to_string();
+        .map(|value| value.trim().to_string());
     let control_server_url = config
         .mesh
         .control_server_url
@@ -1493,7 +1522,10 @@ async fn run_physical_peer_evidence(opts: PrivateMeshPhysicalPeerEvidenceOpts) -
         "physical_peer_verified": true,
         "method": "target_pc_generated_local_mesh_state",
         "node_name": node_name,
+        "node_name_source": node_name_source,
         "tailnet_ip": tailnet_ip,
+        "tailnet_ip_source": tailnet_ip_source,
+        "persisted_tailnet_ip": persisted_tailnet_ip,
         "control_server_url": control_server_url,
         "control_server_verified": control_server_verified,
         "hostname": hostname,
@@ -4403,6 +4435,16 @@ fn parse_tailnet_ipv4(stdout: &str) -> Option<String> {
         .next()
 }
 
+fn parse_tailnet_status_hostname(stdout: &str) -> Option<String> {
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).ok()?;
+    json.get("Self")
+        .and_then(|value| value.get("HostName"))
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
 fn extract_tailnet_ipv4_from_addr(addr: &str) -> Option<String> {
     let trimmed = addr.trim();
     if trimmed.is_empty() {
@@ -4510,6 +4552,26 @@ mod tests {
             Some("100.64.0.1".into())
         );
         assert_eq!(parse_tailnet_ipv4("100.63.255.255\n100.128.0.1"), None);
+    }
+
+    #[test]
+    fn parse_tailnet_status_hostname_reads_self_hostname() {
+        let body = r#"{"Self":{"HostName":"hugh_second"}}"#;
+
+        assert_eq!(
+            parse_tailnet_status_hostname(body).as_deref(),
+            Some("hugh_second")
+        );
+    }
+
+    #[test]
+    fn parse_tailnet_status_hostname_rejects_missing_or_blank_hostname() {
+        assert_eq!(
+            parse_tailnet_status_hostname(r#"{"Self":{"HostName":" "}}"#),
+            None
+        );
+        assert_eq!(parse_tailnet_status_hostname(r#"{"Peer":{}}"#), None);
+        assert_eq!(parse_tailnet_status_hostname("not json"), None);
     }
 
     #[test]

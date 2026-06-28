@@ -15,16 +15,17 @@ still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T11:06:43.8050961+09:00`
+- `generated_at`: `2026-06-28T11:15:57.8634815+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
 - `warnings=1`
+- `private_mesh_packaged_release_proof_verified=false`
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=b06d27c70871746dfa537952d3f7f63be9ceb691`
+- `commit=ab3dfb22b9c9ee34c1083ee6822910fb069df162`
 
 Current blockers:
 
@@ -115,6 +116,52 @@ This confirms the public metadata lane is still blocked from this machine. The
 failure happens before HTTP content can be verified, so page text or config
 fields cannot satisfy the release gate until apex HTTPS is repaired.
 
+## Private Mesh Packaged Proof Audit
+
+Fresh local investigation found a real proof-path defect, not completion of the
+Private Mesh lane.
+
+Observed on `HUGH_SECOND`:
+
+- `musu mesh status --json` could see the live private mesh state:
+  `hugh_second`, tailnet IP `100.64.0.1`, control server
+  `https://mesh.musu.pro`, and `control_server_verified=true`.
+- `~/.musu/private_mesh.toml` had no `mesh.node_name`.
+- The same config had stale `verification.local_tailnet_ip=100.64.0.2`.
+- Before the fix, `musu mesh physical-peer-evidence --json` failed with
+  `physical peer evidence requires mesh.node_name`.
+
+Code fix:
+
+- `run_physical_peer_evidence` now resolves `node_name` from `mesh.node_name`
+  or live `tailscale status --json` `Self.HostName`.
+- It resolves `tailnet_ip` from live `tailscale ip -4` before falling back to
+  persisted `verification.local_tailnet_ip`.
+- Evidence now records `node_name_source`, `tailnet_ip_source`, and
+  `persisted_tailnet_ip`.
+
+Verification:
+
+- Targeted test:
+  `cargo test --manifest-path musu-rs\Cargo.toml --lib parse_tailnet_status_hostname -- --nocapture`
+  passed with `2 passed`, `0 failed`.
+- Actual debug CLI path:
+  `cargo run --manifest-path musu-rs\Cargo.toml --bin musu -- mesh physical-peer-evidence --output .local-build\private-mesh-physical-peer\20260628-codex\hugh_second.physical-peer-evidence.json --json`
+  produced `ok=true`, `node_name=hugh_second`, `tailnet_ip=100.64.0.1`,
+  `control_server_verified=true`.
+
+Scope: this validates the source fix and the local debug CLI path. It does not
+close `private_mesh_packaged_release_proof_verified`, because the release gate
+requires a current packaged build with this fix installed on physical machines,
+target-generated physical peer evidence from the opposite PC, and a verified
+release proof archive. See
+`docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
+
+Build/test caveat: an earlier broad filtered Cargo test compiled unrelated
+integration targets and failed on this Windows host with paging-file/memory
+errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
+`CARGO_BUILD_JOBS=1` on this machine.
+
 ## System Design Findings
 
 | Severity | Issue | Evidence | Impact | Next |
@@ -122,6 +169,7 @@ fields cannot satisfy the release gate until apex HTTPS is repaired.
 | NO-GO | Full product spec is not complete. | Latest go/no-go has `full_product_spec_ready=false` and 10 blockers. | A release-ready claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices only. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
+| HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |
 | HIGH | Several remaining lanes require physical or external evidence. | second-PC CPU/matrix, Store, design approval, V34 physical proof remain blockers. | Local source edits alone cannot close the release gate. | Collect proof on `hugh-main`, Partner Center/Store, and V34 physical stale-state setup. |
 
@@ -130,14 +178,17 @@ fields cannot satisfy the release gate until apex HTTPS is repaired.
 1. On `hugh-main`, run the current second-PC kit from
    `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` and return the generated
    `.local-build/second-pc-return/*.zip`.
-2. Repair `https://musu.pro` apex DNS/TLS so `/privacy`, `/support`, and
+2. Build and install a current package containing the Private Mesh
+   physical-peer evidence fallback fix, then follow
+   `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
+3. Repair `https://musu.pro` apex DNS/TLS so `/privacy`, `/support`, and
    `/api/public-config` pass from `HUGH_SECOND`.
-3. Provision release-grade P2P storage with KV or Upstash env values, without
+4. Provision release-grade P2P storage with KV or Upstash env values, without
    printing secret values.
-4. Build the real relay tunnel runtime before flipping release relay markers.
-5. Record V34 stale self-heal proof on two physical nodes with stale registry,
+5. Build the real relay tunnel runtime before flipping release relay markers.
+6. Record V34 stale self-heal proof on two physical nodes with stale registry,
    stale local cache, stale manual peer, boot reconcile, and route-preflight
    evidence.
-6. Obtain explicit design approval and Store/Partner Center evidence.
-7. Rerun `write-release-go-no-go.ps1`, index the final docs/evidence, and only
+7. Obtain explicit design approval and Store/Partner Center evidence.
+8. Rerun `write-release-go-no-go.ps1`, index the final docs/evidence, and only
    then claim full product spec completion.

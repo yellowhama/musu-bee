@@ -32,6 +32,21 @@ missing. The public metadata verifier still fails all canonical
 `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` for the current blocker
 map and next actions.
 
+2026-06-28 Private Mesh evidence update: the product still has
+`private_mesh_packaged_release_proof_verified=false`, but one proof generator
+defect is fixed in source. `musu mesh physical-peer-evidence` must not fail
+only because `mesh.node_name` is absent from `~/.musu/private_mesh.toml` when
+the live Tailscale status reports `Self.HostName`; it now falls back to that
+live hostname. It also prefers live `tailscale ip -4` over stale persisted
+`verification.local_tailnet_ip` and records `node_name_source`,
+`tailnet_ip_source`, and `persisted_tailnet_ip` in evidence. On `HUGH_SECOND`,
+this turned a config-only failure into a debug CLI proof with
+`node_name=hugh_second`, `tailnet_ip=100.64.0.1`, and
+`control_server_verified=true`. This is a source fix only: the packaged release
+gate still requires a rebuilt package, target-generated evidence from the
+opposite physical PC, and a verified release proof archive. Handoff:
+`docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
