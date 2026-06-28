@@ -126,6 +126,18 @@ new URLs. Evidence:
 This fixes a real install/download drift hazard, but it does not repair the
 canonical apex `https://musu.pro` DNS/TLS blocker.
 
+2026-06-28 15:25 KST post-push status: commit
+`4462b8e6d9acfdf99bd560b86be7e9c69e32a66c` is pushed to
+`origin/feat/v33-residual-finalize`. GitHub PR checks show the Vercel deploy,
+web/Rust tests, E2E, SaaS route gate, and landing CEO approval gate passing for
+the push, but `Design Gate` still fails. A fresh canonical public metadata
+verification after that deploy still fails with
+`request_failed,dns_nameserver_mismatch`; `https://musu.pro/privacy`,
+`/support`, and `/api/public-config` remain unreachable from this machine, and
+the current nameservers are Cloudflare rather than the Vercel DNS pair expected
+by the verifier. This means the site deploy succeeded, but the product spec is
+still not complete.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

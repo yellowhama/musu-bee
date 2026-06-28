@@ -9616,6 +9616,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ns1.vercel-dns.com`, `ns2.vercel-dns.com`,
   `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `store-public-metadata`.
 
+- 2026-06-28 post-push cache-buster/deploy status:
+  commit `4462b8e6d9acfdf99bd560b86be7e9c69e32a66c` pushed to PR #34. GitHub
+  checks passed for `Deploy musu-bee to Vercel`, `Tests`, `E2E Tests`, `SaaS
+  Route Gate`, and `Landing CEO Approval Gate`, but `Design Gate` failed. Fresh
+  post-deploy public metadata verification still reports
+  `request_failed,dns_nameserver_mismatch` against `https://musu.pro`, with
+  Cloudflare nameservers instead of the expected Vercel DNS pair. Search terms
+  should include `4462b8e6`,
+  `asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1`,
+  `post-push cache-buster deploy status`, `Design Gate failed`, and
+  `dns_nameserver_mismatch`.
+
 - 2026-06-28 clean-HEAD full product gate correction:
   after commit `9a68e69796337da5d3e91f4c98bd6496ee15409a`,
   `write-release-go-no-go.ps1 -Json` generated

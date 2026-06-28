@@ -76,6 +76,18 @@ the site-deploy preflight, but the canonical `https://musu.pro` public metadata
 blocker remains because apex HTTPS still resets and DNS authority still points
 at Cloudflare nameservers.
 
+2026-06-28 15:25 KST post-push CI/live recheck: commit
+`4462b8e6d9acfdf99bd560b86be7e9c69e32a66c` was pushed to PR #34. The PR
+`Deploy musu-bee to Vercel`, `Tests`, `E2E Tests`, `SaaS Route Gate`, and
+`Landing CEO Approval Gate` jobs passed, while `Design Gate` failed because
+explicit design approval is still missing. A fresh live
+`verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` still reports
+`ok=false`, `fail_count=3`, `request_failed,dns_nameserver_mismatch`, Cloudflare
+nameservers (`blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`), and
+failed `/privacy`, `/support`, and `/api/public-config` fetches. So the Vercel
+deploy path is green for this push, but the product remains NO-GO until the
+apex public metadata path and design approval gate are both green.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
