@@ -9335,4 +9335,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_id_missing`, `rustc-LLVM ERROR: out of memory`, and
   `public_metadata_ok=false`.
 
+- 2026-06-28 local packaged runtime evidence refresh:
+  process ownership initially failed only because the bridge registry recorded
+  the correct wildcard bind `0.0.0.0:8211` and
+  `audit-musu-process-ownership.ps1` tried to use that wildcard as the HTTP
+  client `/health` target. The audit now preserves the recorded registry address
+  but normalizes wildcard health probes to loopback, producing
+  `HTTP 200 via 127.0.0.1:8211`. Accepted rc.22 local package evidence now
+  includes
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-100747-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.json`,
+  nested
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.process-ownership.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-100827-HUGH_SECOND.desktop-single-instance.json`.
+  These close HUGH_SECOND process ownership, startup single-instance, and
+  desktop repeated activation evidence for the current package; they do not
+  replace two-machine runtime CPU/matrix, private-mesh packaged proof, public
+  metadata, Store, relay transport, V34, or design approval. Search terms should
+  include `Resolve-LocalHttpHealthAddr`, `HTTP 200 via 127.0.0.1:8211`,
+  `20260628-100747-HUGH_SECOND.process-ownership`,
+  `20260628-100802-HUGH_SECOND.startup-single-instance`, and
+  `20260628-100827-HUGH_SECOND.desktop-single-instance`.
+
 **End of WIKI_INDEX.md.**

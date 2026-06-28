@@ -675,6 +675,35 @@ status. The remaining release lanes are still design approval, real relay
 transport evidence, V34 physical stale self-heal proof, Store distribution
 approval/install proof, and current local public metadata verification.
 
+## 2026-06-28 Local Packaged Runtime Evidence Refresh
+
+Follow-up local release evidence found a tooling bug in the process ownership
+audit: the packaged bridge registry can correctly record a wildcard bind address
+such as `0.0.0.0:8211`, but the audit used that same wildcard as the HTTP client
+target for `/health`. On this machine that fails even though the packaged bridge
+is healthy. The audit now keeps the recorded registry address unchanged while
+normalizing wildcard client health probes to `127.0.0.1:<port>`.
+
+Verification:
+
+- `scripts/windows/audit-musu-process-ownership.ps1 -Json` reports `ok=true`,
+  `fail_count=0`, bridge registry `addr=0.0.0.0:8211`, and health checked via
+  `127.0.0.1:8211`.
+- Process ownership evidence:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-100747-HUGH_SECOND.process-ownership.json`.
+- Startup single-instance evidence:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.json`.
+- Nested startup process-ownership evidence:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.process-ownership.json`.
+- Desktop repeated activation evidence:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-100827-HUGH_SECOND.desktop-single-instance.json`.
+
+This closes the HUGH_SECOND local package process ownership, startup
+single-instance, and desktop repeated-activation evidence gap for the current
+rc.22 install. It does not replace the remaining two-machine runtime CPU/matrix
+evidence, packaged private-mesh desktop proof, public metadata, Store,
+relay-transport, V34, or design-approval gates.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -684,6 +713,7 @@ approval/install proof, and current local public metadata verification.
 | rc.22 public install/proof channel | Complete for current rc.22 package | `fleet-proof.ps1` on `hugh-main`, install-channel verifier, package `1.15.0.22` | Public install/proof channel is valid for rc.22 |
 | Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
 | Direct delegated-work route | Complete for current rc.22 package over direct LAN | Packaged `musu route` from `hugh_second` to `hugh-main` wrote `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`; `verify-direct-route-evidence.ps1` reports `ok=true`, `fail_count=0`; MSIX install evidence `20260628-050309-HUGH_SECOND.*` verifies the installed package | A visible direct online node is proven work-targetable over LAN for rc.22; this does not claim relay fallback or release-grade peer identity |
+| Local packaged process/startup/desktop instance evidence | Complete on HUGH_SECOND for current rc.22 package | Process ownership `20260628-100747-HUGH_SECOND`, startup single-instance `20260628-100802-HUGH_SECOND`, and desktop repeated activation `20260628-100827-HUGH_SECOND` all report `ok=true` | HUGH_SECOND proves packaged runtime ownership and single-instance behavior; this does not satisfy two-machine CPU/matrix or private-mesh packaged proof gates |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission now has stricter source/target/tunnel metadata checks but still fails closed before runtime | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
