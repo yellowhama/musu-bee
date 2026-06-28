@@ -1254,6 +1254,44 @@ by itself close release-grade multi-device proof, because
 `verify-multidevice-evidence.ps1` still requires hardened peer identity and
 QUIC/TLS transport evidence beyond the legacy HTTP bearer route.
 
+## 2026-06-28 Live Multi-device Release-grade Route Audit
+
+`docs/MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28.md` records the latest
+answer to the full-product question for the two installed PCs. The operator
+proof from `hugh-main` remains valid for public install proof, direct fleet
+health, and brain token ACL: `schema=musu.fleet_node_proof.v1`, `ok=true`,
+`fail_count=0`, `online_nodes=2`, `direct_healthy_nodes=2`, package
+`1.15.0.22`.
+
+A fresh HUGH_SECOND smoke against `hugh-main` also completed the actual direct
+LAN route:
+
+- local diagnostic path:
+  `.local-build/multi-device/musu-multidevice-smoke-20260628-192637.json`
+- SHA256:
+  `A98A398336592FC13164812F787C3080FF17E7D2DB7810C340422128137FB9A2`
+- target:
+  `hugh-main` at `192.168.1.192:4387`
+- route output:
+  `MUSU_REMOTE_ROUTE_OK`
+- route result:
+  `success`
+- route kind:
+  `lan`
+
+That still does not close the release-grade multi-device product lane.
+`verify-multidevice-evidence.ps1` rejected the evidence with `ok=false` and
+`fail_count=6`: peer identity was not verified, peer identity method/key were
+missing, encryption was legacy `none_http_bearer`, encryption was not
+`quic_tls_1_3`, and `transport_verified_by` was not `musu_quic_tls_transport`.
+Live probes matched the verifier: HTTPS health failed on both installed bridge
+ports, while HTTP health returned 200 on both.
+
+Source audit result: bridge TLS serving and HTTPS advertisement exist behind
+`MUSU_TLS`, but the installed/public repair path currently starts HTTP bridges
+and `fleet-proof.ps1` only proves direct fleet health, not release-grade
+delegated-work transport. The verifier is correct to fail closed.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -1263,6 +1301,7 @@ QUIC/TLS transport evidence beyond the legacy HTTP bearer route.
 | rc.22 public install/proof channel | Complete for current rc.22 package | `fleet-proof.ps1` on `hugh-main`, install-channel verifier, package `1.15.0.22` | Public install/proof channel is valid for rc.22 |
 | Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
 | Direct delegated-work route | Complete for current rc.22 package over direct LAN | Packaged `musu route` from `hugh_second` to `hugh-main` wrote `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`; `verify-direct-route-evidence.ps1` reports `ok=true`, `fail_count=0`; MSIX install evidence `20260628-050309-HUGH_SECOND.*` verifies the installed package | A visible direct online node is proven work-targetable over LAN for rc.22; this does not claim relay fallback or release-grade peer identity |
+| Release-grade multi-device route proof | Not complete | Fresh HUGH_SECOND -> `hugh-main` diagnostic smoke at `.local-build/multi-device/musu-multidevice-smoke-20260628-192637.json` completed the LAN task, but `verify-multidevice-evidence.ps1` failed with `fail_count=6`: no verified peer identity, missing peer method/key, legacy `none_http_bearer`, no `quic_tls_1_3`, no `musu_quic_tls_transport`; HTTPS health failed on both installed bridge ports while HTTP health returned 200 | Cannot claim full multi-device product completion or release-grade delegated-work transport |
 | Single-machine packaged smoke | Complete on HUGH_SECOND for current rc.22 package | `20260628-133347-HUGH_SECOND.evidence.json` verifies packaged WindowsApps `musu.exe`, bridge-only local surface `http://127.0.0.1:1695`, CLI route checked, `ok=true`, `fail_count=0` | HUGH_SECOND proves fresh packaged local smoke for rc.22; this does not satisfy second-PC multi-device or two-machine CPU/matrix gates |
 | Local packaged process/startup/desktop instance evidence | Complete on HUGH_SECOND for current rc.22 package | Process ownership `20260628-133347-HUGH_SECOND`, startup single-instance `20260628-133347-HUGH_SECOND`, and desktop repeated activation `20260628-133347-HUGH_SECOND` all report `ok=true` | HUGH_SECOND proves packaged runtime ownership and single-instance behavior; this does not satisfy two-machine CPU/matrix or private-mesh packaged proof gates |
 | Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.028s evidence `20260628-134854-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, `include_node=true`, `include_webview2=true`, and hot process count `0` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
@@ -1308,7 +1347,8 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T17:32:55.4349035+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T19:17:06.534363+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | Release-grade multi-device proof is still missing even though direct LAN work completed. | Fresh HUGH_SECOND -> `hugh-main` smoke completed `MUSU_REMOTE_ROUTE_OK`, but the strict multi-device verifier failed with `fail_count=6` because the route evidence was HTTP bearer with no verified peer identity and no `quic_tls_1_3`/`musu_quic_tls_transport` proof. | A healthy fleet plus a successful legacy LAN task is not enough for the full product spec. | Implement/start the hardened release transport on both packaged machines, rerun the smoke, and commit verifier-passing evidence. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
 | HIGH | Relay is display-only, not a delegated-work transport. | `router.rs` does not return relay paths; relay proof docs still require actual transport evidence. | Yellow relay state cannot be sold as "task routes through MUSU relay". | Implement relay transport, fail-closed route evidence, and two-PC failure-injection proof. |
@@ -1339,9 +1379,11 @@ MUSU is fully complete only when all of these are true at the same time:
 The immediate merge constraint is PR #34 design approval because it blocks
 merging the current rc.22 proof/fleet fixes.
 
-The immediate product-evidence constraint has moved past direct delegated-work
-proof. The remaining product-evidence constraints are Store release evidence,
-real relay transport, and V34 stale self-heal evidence.
+The immediate product-evidence constraint has moved past legacy direct
+delegated-work proof, but not past release-grade multi-device transport proof.
+The remaining product-evidence constraints are strict multi-device route proof,
+second-PC CPU/matrix proof, Private Mesh packaged proof, public metadata DNS/TLS,
+Store release evidence, real relay transport, and V34 stale self-heal evidence.
 These are independent enough to run as parallel lanes, but the completion claim
 must stay scoped until every lane has machine evidence.
 

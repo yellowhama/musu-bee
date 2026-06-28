@@ -7,7 +7,7 @@ MUSU is not complete against the full product spec yet.
 Latest clean local gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-28T18:56:04.7165221+09:00`
+- Generated: `2026-06-28T19:17:06.534363+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -56,12 +56,28 @@ Public metadata planner hardening evidence:
   `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
   `case_count=214`, `failed_case_count=0`.
 
+Live multi-device route audit:
+
+- `docs/MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28.md`
+- HUGH_SECOND -> `hugh-main` diagnostic smoke completed a direct LAN delegated
+  task with `MUSU_REMOTE_ROUTE_OK`.
+- Diagnostic evidence SHA256:
+  `A98A398336592FC13164812F787C3080FF17E7D2DB7810C340422128137FB9A2`.
+- `verify-multidevice-evidence.ps1` rejected the evidence with `ok=false` and
+  `fail_count=6`.
+- Rejection cause: no verified peer identity, missing peer method/key, legacy
+  `none_http_bearer`, no `quic_tls_1_3`, and no
+  `musu_quic_tls_transport`.
+- HTTPS health failed on both current installed bridge ports; HTTP health
+  returned 200 on both.
+
 ## Findings
 
 | Severity | Finding | Evidence | Next |
 |---|---|---|---|
 | NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`. | Do not claim product completion until the gate has zero blockers. |
-| NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main`. |
+| NO-GO | Release-grade multi-device route proof is incomplete. | Fresh HUGH_SECOND -> `hugh-main` route smoke completed, but the strict verifier failed with `fail_count=6` because current installed bridges use HTTP bearer with no verified peer identity and no `quic_tls_1_3` proof. | Implement/start the hardened release transport on both packaged machines, rerun the route smoke, and commit verifier-passing evidence. |
+| NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main` after the hardened transport path is available. |
 | NO-GO | Public metadata is blocked at DNS/TLS, not app source. | `store-public-metadata` reports Cloudflare nameservers, apex TLS failure, and Vercel edge apex TLS failure. | Apply the DNS repair plan, then rerun the verifier. |
 | NO-GO | Relay is still not a delegated-work transport. | `p2p-control-plane` and `relay-transport` remain blockers; the release payload endpoint is proof-bound, but release tunnel runtime, KV/Upstash storage, and live relay route/transport/delivery proof are missing. | Build real relay tunnel runtime and record release-grade proof before changing product claims. |
 | NO-GO | Store release is not proven. | Partner Center, Microsoft certification, restricted capability approval, Store-signed install, and Store launch evidence are missing. | Complete Partner Center/Microsoft Store path and record verifier-passing Store evidence. |
@@ -84,6 +100,9 @@ current code posture from this audit is:
   missing token, failed command, or uninformative output cannot look like a
   trustworthy inspect result.
 - CPU/process/startup/desktop packaged evidence passes on `HUGH_SECOND`.
+- Multi-device evidence verification is correctly fail-closed: direct HTTP LAN
+  routing can complete work, but it cannot satisfy the release-grade
+  `quic_tls_1_3` transport proof lane.
 - No additional release-blocking code regression was found in the surfaces
   inspected during this refresh.
 
@@ -93,15 +112,17 @@ approval, real relay implementation, design approval, or V34 physical proof.
 
 ## Next Steps
 
-1. Run the latest second-PC kit on `hugh-main` and import the return zip.
-2. Repair apex `musu.pro` DNS/TLS using the non-mutating DNS repair plan, then
+1. Implement/start release-grade multi-device transport on both packaged PCs and
+   rerun the strict multi-device route verifier until `fail_count=0`.
+2. Run the latest second-PC kit on `hugh-main` and import the return zip.
+3. Repair apex `musu.pro` DNS/TLS using the non-mutating DNS repair plan, then
    rerun `verify-store-public-metadata.ps1`.
-3. Obtain explicit design approval on issue #35 and update PR #34 with the
+4. Obtain explicit design approval on issue #35 and update PR #34 with the
    approval issue-comment URL.
-4. Complete Partner Center/Microsoft Store submission and record Store-signed
+5. Complete Partner Center/Microsoft Store submission and record Store-signed
    install/launch evidence.
-5. Implement real release relay transport, then record delegated-work relay
+6. Implement real release relay transport, then record delegated-work relay
    proof with direct path blocked.
-6. Run the V34 stale self-heal physical proof flow on two machines.
-7. Rerun `write-release-go-no-go.ps1 -Json`; only claim completion when it has
+7. Run the V34 stale self-heal physical proof flow on two machines.
+8. Rerun `write-release-go-no-go.ps1 -Json`; only claim completion when it has
    zero blockers.

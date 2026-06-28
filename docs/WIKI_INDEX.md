@@ -9889,4 +9889,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `inspect_output_uninformative`, `token_missing`, and
   `has_informative_output=false`.
 
+- 2026-06-28 multi-device release-grade route audit:
+  `docs/MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28.md` records the
+  current two-PC answer: `fleet-proof.ps1` on `hugh-main` passes for public
+  install proof, direct fleet health, and brain token ACL, and a fresh
+  HUGH_SECOND -> `hugh-main` diagnostic smoke completed `MUSU_REMOTE_ROUTE_OK`.
+  The strict multi-device verifier still correctly failed with `fail_count=6`
+  because route evidence had `peer_identity_verified=false`, no peer identity
+  method/key, legacy `none_http_bearer`, no `quic_tls_1_3`, and no
+  `musu_quic_tls_transport`. Live probing confirmed HTTPS health fails on both
+  installed bridge ports while HTTP health returns 200. Product status remains
+  NO-GO for release-grade multi-device transport; do not relax the verifier or
+  flip relay/runtime markers without a real hardened byte path. Search terms
+  should include `MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28`,
+  `MUSU_REMOTE_ROUTE_OK`, `fail_count=6`, `none_http_bearer`,
+  `peer_identity_verified=false`, and `musu_quic_tls_transport`.
+
 **End of WIKI_INDEX.md.**
