@@ -220,6 +220,10 @@ function Stop-RepoOrphanHelpers {
     $errors = New-Object System.Collections.Generic.List[object]
 
     foreach ($helper in @($Helpers)) {
+        if ($null -eq $helper -or -not $helper.PSObject.Properties["pid"]) {
+            $skipped.Add([pscustomobject]@{ pid = $null; reason = "helper record missing pid" }) | Out-Null
+            continue
+        }
         $processId = [int]$helper.pid
         $expectedCommandLine = if ($helper.PSObject.Properties["command_line"]) { [string]$helper.command_line } else { "" }
         $live = Get-CimInstance Win32_Process -Filter "ProcessId=$processId" -ErrorAction SilentlyContinue | Select-Object -First 1
