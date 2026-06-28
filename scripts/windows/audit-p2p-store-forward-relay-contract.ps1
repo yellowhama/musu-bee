@@ -135,7 +135,7 @@ Add-Check `
     -Name "release connect preflight remains separate from payload transport" `
     -Passed (
         $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true") -and
-        $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
+        $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = true") -and
         $policy.Contains('RELEASE_GRADE_RELAY_TRANSPORT_KIND = "quic_relay_tunnel"') -and
         $policy.Contains('RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3"') -and
         $policy.Contains("RELAY_TUNNEL_RUNTIME_IMPLEMENTED = false") -and
@@ -149,7 +149,7 @@ Add-Check `
         $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
     -Path $policyPath `
-    -Message "Relay connect preflight can be source-wired without allowing env flags or non-release transport kind to claim release-grade payload transport."
+    -Message "Relay connect and payload proof endpoints can be source-wired without allowing env flags, preview queues, or missing tunnel runtime to claim release-grade payload transport."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -239,11 +239,14 @@ Add-Check `
 
 Add-Check `
     -Scope "web-release-payload-preflight" `
-    -Name "release payload preflight fails closed and does not use queue storage" `
+    -Name "release payload endpoint is proof-bound and does not use queue storage" `
     -Passed (
         (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
             "musu.relay_payload_preflight.v1",
             "musu.relay_payload_preflight_request.v1",
+            "musu.relay_payload_release_request.v1",
+            "musu.relay_transport_proof.v1",
+            "musu.relay_payload_delivery_proof.v1",
             "}).strict()",
             'tunnel_id: z.string().min(1).max(128)',
             'payload_kind: z.literal("forwarded_task_envelope")',
@@ -252,15 +255,20 @@ Add-Check `
             "p2pControlPrincipal(req)",
             "queryRelayLeases",
             "releaseRelayLeaseBlockers",
+            "appendRelayTransportProof",
+            "createRelayTransportProof",
             "release_relay_lease_not_payload_ready",
             "release_payload_lease_ready",
+            "release_payload_proof_ready",
+            "release_payload_contract",
             "RELAY_PAYLOAD_PATH",
             "release_payload_metadata",
             "release_payload_endpoint_preflight_wired: true",
+            "release_payload_accepted: true",
             "release_payload_accepted: false",
+            "payload_transported: true",
             "payload_stored: false",
             "payload_transported: false",
-            "relay_payload_endpoint_not_wired",
             "FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS",
             "release_payload_bytes_not_accepted"
         )) -and
@@ -268,7 +276,7 @@ Add-Check `
         -not $releasePayloadPreflightRoute.Contains("markRelayPayloadDelivered")
     ) `
     -Path $releasePayloadPreflightRoutePath `
-    -Message "The distinct release payload endpoint validates auth and lease state, but remains fail-closed and never reuses the non-release-grade store-forward queue as release transport."
+    -Message "The distinct release payload endpoint validates auth, lease state, transport proof, and delivery proof without accepting raw payload bytes or reusing the non-release-grade store-forward queue as release transport."
 
 Add-Check `
     -Scope "web-release-payload-preflight" `
@@ -893,7 +901,7 @@ Add-Check `
         (Test-ContainsAll -Text $releaseConnectPreflightRouteTest -Needles @(
             "requires P2P control auth before reporting relay connect preflight status",
             "reports relay connect preflight without claiming payload transport",
-            "verifies relay lease but rejects payload transit while payload endpoint is unwired",
+            "verifies relay lease but rejects payload transit while release tunnel runtime is unwired",
             "returns relay connect status fields for invalid JSON",
             "rejects relay connect payload bytes before lease lookup",
             "relay_connect_payload_bytes_not_accepted",
@@ -918,14 +926,18 @@ Add-Check `
             "requires P2P control auth before reporting release relay payload preflight",
             "reports release payload preflight without treating the queue as release transport",
             "returns release payload preflight status fields for invalid JSON",
-            "rejects release payload bytes before lease lookup while endpoint is preflight-only",
+            "rejects release payload bytes before lease lookup while endpoint accepts proof metadata only",
             "release_payload_bytes_not_accepted",
             "rejects unknown release payload preflight fields",
             "rejects release payload preflight when relay lease no longer matches configured relay URL",
             "release_relay_lease_not_payload_ready",
             "release_relay_lease_relay_url_mismatch",
             "unexpected_release_field",
-            "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
+            "verifies relay lease metadata but rejects release payload transport while runtime is unwired",
+            "accepts lease-bound release payload proof metadata without storing raw payload bytes",
+            "musu.relay_payload_release_request.v1",
+            "musu.relay_transport_proof.v1",
+            "musu.relay_payload_delivery_proof.v1",
             "lease_verified",
             "release_payload_accepted",
             "payload_stored",

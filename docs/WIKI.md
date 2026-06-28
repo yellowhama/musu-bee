@@ -22230,3 +22230,42 @@ Indexed context includes `wiki/1172`, `validate_private_mesh_tailnet_name`,
 `validate_private_mesh_base_domain`,
 `bootstrap_rejects_script_unsafe_tailnet_and_base_domain_inputs`,
 `--tailnet-name`, `--base-domain`, and generated helper identifier safety.
+
+## wiki/1174 — 2026-06-28 Release relay payload proof endpoint
+
+The release `/api/v1/relay/payload` endpoint is now proof-bound instead of
+preflight-only.
+
+Change:
+
+- `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`
+- `release_payload_endpoint_proof_bound=true`
+- `release_payload_preflight_only=false`
+- accepts `musu.relay_payload_release_request.v1`
+- validates nested `musu.relay_transport_proof.v1`
+- validates nested `musu.relay_payload_delivery_proof.v1`
+- records transport proof metadata
+- rejects raw payload bytes
+- does not use the preview store-forward payload queue as release transport
+
+Still NO-GO:
+
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`
+- KV/Upstash release storage is missing
+- live relay route evidence is missing
+- live relay route metadata is missing
+- live relay transport proof is missing
+- live relay payload delivery proof is missing
+
+Verification:
+
+- P2P tests: `125/125`
+- `npm run typecheck`: passed
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- operator API security audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=211`,
+  `failed_case_count=0`
+
+Canonical report:
+
+- `docs/RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28.md`

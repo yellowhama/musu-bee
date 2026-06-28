@@ -9809,4 +9809,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `no new release-blocking code regression`, `external DNS/TLS mutation`,
   `real relay transport implementation`, and `zero blockers`.
 
+- 2026-06-28 release relay payload proof endpoint:
+  `docs/RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28.md` records the source
+  closure for the release `/api/v1/relay/payload` endpoint. The endpoint is now
+  proof-bound instead of preflight-only:
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
+  `release_payload_endpoint_proof_bound=true`, and
+  `release_payload_preflight_only=false`. It accepts
+  `musu.relay_payload_release_request.v1` with
+  `musu.relay_transport_proof.v1` and
+  `musu.relay_payload_delivery_proof.v1`, records transport proof, rejects raw
+  payload bytes, and still does not make relay transport release-ready because
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`, KV/Upstash storage is missing, and
+  live relay route/transport/delivery proof is absent. Validation passed P2P
+  tests `125/125`, typecheck, P2P relay contract audit `ok=true`, operator API
+  security audit `ok=true`, and release verifier regression `211/211`. Search
+  terms should include `RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28`,
+  `release_payload_endpoint_proof_bound`, `musu.relay_payload_release_request.v1`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`, and
+  `source_release_relay_tunnel_runtime_not_implemented`.
+
 **End of WIKI_INDEX.md.**

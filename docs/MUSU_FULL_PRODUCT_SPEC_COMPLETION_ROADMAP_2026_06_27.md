@@ -235,6 +235,20 @@ relay transport, and V34 stale self-heal. A post-doc commit recheck at
 `2026-06-28T17:32:55.4349035+09:00` confirmed the same `blockers=10`,
 `warnings=0`, and local freshness lanes green.
 
+2026-06-28 18:00 KST P2P release payload endpoint source closure: the release
+`/api/v1/relay/payload` route is now proof-bound instead of preflight-only.
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
+`release_payload_endpoint_proof_bound=true`, and
+`release_payload_preflight_only=false`; the route accepts
+`musu.relay_payload_release_request.v1` with nested
+`musu.relay_transport_proof.v1` and
+`musu.relay_payload_delivery_proof.v1` metadata, records transport proof, and
+still rejects raw payload bytes. This closes the source-level payload endpoint
+gap only. It does not implement the release tunnel runtime, KV/Upstash hosted
+storage, or live relay route proof. Current P2P env blockers remain runtime,
+storage, and live evidence blockers. Canonical report:
+`docs/RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28.md`.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

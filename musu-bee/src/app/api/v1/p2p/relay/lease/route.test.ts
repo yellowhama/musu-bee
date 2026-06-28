@@ -141,7 +141,7 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_configured, true);

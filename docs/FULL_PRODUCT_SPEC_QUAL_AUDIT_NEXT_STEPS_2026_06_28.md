@@ -14,8 +14,10 @@ Latest clean local gate:
 - `warnings=0`
 
 The post-design-gate current-package evidence refresh restored the local
-freshness lanes. The remaining blockers are not caused by stale HUGH_SECOND
-smoke/process/startup/desktop evidence; they are physical, external, or
+freshness lanes. A later P2P source update made the release payload endpoint
+proof-bound (`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
+`release_payload_endpoint_proof_bound=true`), but did not implement the release
+tunnel runtime. The remaining blockers are physical, external, or
 not-yet-implemented release gates.
 
 ## Current Evidence
@@ -47,7 +49,7 @@ processes.
 | NO-GO | Product spec completion is still false. | `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`. | Do not claim product completion until the gate has zero blockers. |
 | NO-GO | Second-PC release evidence is incomplete. | `multi-device`, `runtime-idle-cpu`, and `runtime-cpu-scenario-matrix` still require two-machine proof. | Run/import the latest second-PC kit on `hugh-main`. |
 | NO-GO | Public metadata is blocked at DNS/TLS, not app source. | `store-public-metadata` reports Cloudflare nameservers, apex TLS failure, and Vercel edge apex TLS failure. | Apply the DNS repair plan, then rerun the verifier. |
-| NO-GO | Relay is still not a delegated-work transport. | `p2p-control-plane` and `relay-transport` remain blockers; release tunnel runtime and payload endpoint are not implemented. | Build real relay tunnel runtime and record release-grade proof before changing product claims. |
+| NO-GO | Relay is still not a delegated-work transport. | `p2p-control-plane` and `relay-transport` remain blockers; the release payload endpoint is proof-bound, but release tunnel runtime, KV/Upstash storage, and live relay route/transport/delivery proof are missing. | Build real relay tunnel runtime and record release-grade proof before changing product claims. |
 | NO-GO | Store release is not proven. | Partner Center, Microsoft certification, restricted capability approval, Store-signed install, and Store launch evidence are missing. | Complete Partner Center/Microsoft Store path and record verifier-passing Store evidence. |
 | HIGH | Design approval is correctly fail-closed. | The design gate now requires a real GitHub issue approval comment URL. | Add explicit approval on issue #35 and put that URL in PR #34. |
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
@@ -59,8 +61,9 @@ No new runtime code was changed in the latest evidence-refresh batch. The
 current code posture from this audit is:
 
 - Design gate hardening is intentional and tested; it prevents false approval.
-- The relay/P2P release lane is fail-closed. Missing release runtime/storage
-  markers are blockers, not silent passes.
+- The relay/P2P release lane is fail-closed. The release payload endpoint is
+  proof-bound and metadata-only; missing release runtime/storage/live proof
+  remains a blocker, not a silent pass.
 - CPU/process/startup/desktop packaged evidence passes on `HUGH_SECOND`.
 - No additional release-blocking code regression was found in the surfaces
   inspected during this refresh.

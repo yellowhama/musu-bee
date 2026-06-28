@@ -7,6 +7,7 @@ import { NextRequest } from "next/server";
 
 import { p2pControlOwnerKey } from "@/lib/p2pControlAuth";
 import { appendRelayLease, createRelayLease } from "@/lib/p2pRelayLeaseStore";
+import { queryRelayTransportProofs } from "@/lib/p2pRelayTransportProofStore";
 
 type Module = {
   GET: (req: NextRequest) => Promise<Response>;
@@ -24,6 +25,7 @@ const ENV_KEYS = [
   "MUSU_P2P_RELAY_ENABLED",
   "MUSU_P2P_RELAY_ENTITLEMENT",
   "MUSU_P2P_RELAY_LEASE_STORE_PATH",
+  "MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH",
   "MUSU_P2P_RELAY_TRANSPORT_WIRED",
   "MUSU_P2P_RELAY_URL",
 ] as const;
@@ -40,6 +42,7 @@ async function withRelayEnv(fn: () => Promise<void>): Promise<void> {
     delete process.env[key];
   }
   process.env.MUSU_P2P_RELAY_LEASE_STORE_PATH = join(tempDir, "leases.json");
+  process.env.MUSU_P2P_RELAY_TRANSPORT_PROOF_STORE_PATH = join(tempDir, "transport-proofs.json");
   try {
     await fn();
   } finally {
@@ -159,7 +162,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.method, "GET");
     assert.equal(body.release_payload_endpoint_path, "/api/v1/relay/payload");
     assert.equal(body.release_payload_endpoint_preflight_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_transport_kind, "quic_relay_tunnel");
@@ -168,7 +171,7 @@ test("reports release payload preflight without treating the queue as release tr
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.payload_transit_requires_lease, true);
     assert.equal(body.release_grade, false);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
   });
@@ -205,15 +208,15 @@ test("returns release payload preflight status fields for invalid JSON", async (
     assert.equal(body.payload_transported, false);
     assert.equal(body.lease_verified, false);
     assert.equal(body.release_payload_endpoint_preflight_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
   });
 });
 
-test("rejects release payload bytes before lease lookup while endpoint is preflight-only", async () => {
+test("rejects release payload bytes before lease lookup while endpoint accepts proof metadata only", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const { POST } = await loadModule("post-payload-bytes-rejected");
@@ -323,7 +326,7 @@ test("rejects unknown release payload preflight fields", async () => {
     assert.equal(body.payload_transported, false);
     assert.equal(body.lease_verified, false);
     assert.equal(body.release_payload_endpoint_preflight_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(
       body.issues.some((issue) => issue.message.includes("unexpected_release_field")),
@@ -332,7 +335,7 @@ test("rejects unknown release payload preflight fields", async () => {
   });
 });
 
-test("verifies relay lease metadata but rejects release payload transport while endpoint is unwired", async () => {
+test("verifies relay lease metadata but rejects release payload transport while runtime is unwired", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const lease = await seedLease();
@@ -373,13 +376,13 @@ test("verifies relay lease metadata but rejects release payload transport while 
 
     assert.equal(body.ok, false);
     assert.equal(body.method, "POST");
-    assert.equal(body.error, "relay_payload_endpoint_not_wired");
+    assert.equal(body.error, "relay_transport_not_wired");
     assert.equal(body.release_payload_accepted, false);
     assert.equal(body.payload_stored, false);
     assert.equal(body.payload_transported, false);
     assert.equal(body.lease_verified, true);
     assert.equal(body.release_payload_endpoint_preflight_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.release_grade, false);
@@ -390,7 +393,114 @@ test("verifies relay lease metadata but rejects release payload transport while 
     });
     assert.equal(body.delivery_proof, undefined);
     assert.equal(body.relay_transport_proof, undefined);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+  });
+});
+
+test("accepts lease-bound release payload proof metadata without storing raw payload bytes", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    const lease = await seedLease();
+    const { POST } = await loadModule("post-release-proof");
+    const payloadSha = "c".repeat(64);
+    const openedAt = "2026-06-28T01:00:00.000Z";
+    const closedAt = "2026-06-28T01:00:01.000Z";
+    const deliveredAt = "2026-06-28T01:00:02.000Z";
+    const res = await POST(payloadReq("POST", "test-token", {
+      schema: "musu.relay_payload_release_request.v1",
+      lease_id: lease.lease_id,
+      session_id: lease.session_id,
+      source_node_id: lease.source_node_id,
+      target_node_id: lease.target_node_id,
+      tunnel_id: "release-tunnel-1",
+      payload_kind: "forwarded_task_envelope",
+      payload_sha256: payloadSha,
+      relay_transport_proof: {
+        schema: "musu.relay_transport_proof.v1",
+        session_id: lease.session_id,
+        lease_id: lease.lease_id,
+        source_node_id: lease.source_node_id,
+        target_node_id: lease.target_node_id,
+        transport_kind: "quic_relay_tunnel",
+        relay_url: lease.relay_url,
+        tunnel_id: "release-tunnel-1",
+        handshake_ms: 17,
+        payload_bytes_transited: 512,
+        payload_transited_musu_infra: true,
+        peer_identity_verified: true,
+        peer_identity_method: "quic_tls_cert_fingerprint",
+        peer_public_key: "sha256:" + "d".repeat(64),
+        encryption: "quic_tls_1_3",
+        transport_verified_by: "musu_quic_tls_transport",
+        opened_at: openedAt,
+        closed_at: closedAt,
+      },
+      delivery_proof: {
+        schema: "musu.relay_payload_delivery_proof.v1",
+        payload_id: "release-payload-1",
+        session_id: lease.session_id,
+        lease_id: lease.lease_id,
+        source_node_id: lease.source_node_id,
+        target_node_id: lease.target_node_id,
+        relay_url: lease.relay_url,
+        tunnel_id: "release-tunnel-1",
+        payload_kind: "forwarded_task_envelope",
+        transport_kind: "quic_relay_tunnel",
+        relay_default_data_path: false,
+        release_grade: true,
+        payload_sha256: payloadSha,
+        payload_bytes: 512,
+        claimed_by: lease.target_node_id,
+        claimed_at: closedAt,
+        created_at: openedAt,
+        delivered_at: deliveredAt,
+      },
+    }));
+    assert.equal(res.status, 202);
+    const body = (await res.json()) as {
+      ok: boolean;
+      release_payload_contract: string;
+      release_payload_accepted: boolean;
+      payload_stored: boolean;
+      payload_transported: boolean;
+      release_grade: boolean;
+      relay_payload_endpoint_wired: boolean;
+      relay_transport_wired: boolean;
+      relay_transport_proof_store_release_grade: boolean;
+      proof_blockers: string[];
+      release_payload_metadata: {
+        payload_sha256: string;
+        payload_bytes_transited: number;
+      };
+      relay_transport_proof: { payload_bytes_transited: number; owner_key?: string };
+      delivery_proof: { payload_bytes: number; payload_sha256: string };
+    };
+
+    assert.equal(body.ok, true);
+    assert.equal(body.release_payload_contract, "musu.relay_payload_release.v1");
+    assert.equal(body.release_payload_accepted, true);
+    assert.equal(body.payload_stored, false);
+    assert.equal(body.payload_transported, true);
+    assert.equal(body.release_grade, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
+    assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_transport_proof_store_release_grade, false);
+    assert.deepEqual(body.proof_blockers, ["relay_transport_proof_store_backend_not_release_grade"]);
+    assert.equal(body.release_payload_metadata.payload_sha256, payloadSha);
+    assert.equal(body.release_payload_metadata.payload_bytes_transited, 512);
+    assert.equal(body.relay_transport_proof.payload_bytes_transited, 512);
+    assert.equal(body.relay_transport_proof.owner_key, undefined);
+    assert.equal(body.delivery_proof.payload_bytes, 512);
+    assert.equal(body.delivery_proof.payload_sha256, payloadSha);
+
+    const proofs = await queryRelayTransportProofs({
+      owner_key: p2pControlOwnerKey("test-token"),
+      lease_id: lease.lease_id,
+    });
+    assert.equal(proofs.length, 1);
+    assert.equal(proofs[0]?.payload_bytes_transited, 512);
+    assert.equal(Object.prototype.hasOwnProperty.call(proofs[0] ?? {}, "payload_sha256"), false);
   });
 });
 

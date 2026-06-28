@@ -159,7 +159,7 @@ Add-Check -Scope "tests" -Name "room work order outbound pickup regression test"
     -Message "Route tests cover queued outbound pickup, owner-scoped inbox listing, target Desktop claim, and cross-owner claim isolation."
 
 Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
-    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
+    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while release tunnel runtime is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
     -Message "P2P tests cover relay connect auth and lease-bound preflight while payload transport remains fail-closed."
 

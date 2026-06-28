@@ -229,19 +229,22 @@ that must be extracted and run on `hugh-main`.
 
 ## P2P / Relay Audit
 
-Fresh local source audit:
+Fresh local source audit after release payload proof endpoint wiring:
 
 - Command:
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -Json`
 - `schema=musu.p2p_store_forward_relay_contract.v1`
 - `ok=true`
 - `fail_count=0`
-- `generated_at=2026-06-28T11:11:37.1752339+09:00`
+- `generated_at=2026-06-28 18:05 KST`
 
 Interpretation: the source contract is internally consistent. The preview
-store-forward queue is correctly labeled non-release-grade, release preflight
-routes reject payload bytes, route evidence requires release transport proof,
-and tests cover the fail-closed separation.
+store-forward queue is still correctly labeled non-release-grade. The distinct
+release `/api/v1/relay/payload` route is now proof-bound rather than
+preflight-only: it accepts `musu.relay_payload_release_request.v1` metadata
+with nested `musu.relay_transport_proof.v1` and
+`musu.relay_payload_delivery_proof.v1`, records transport proof, and still
+rejects raw payload bytes.
 
 Fresh P2P environment status:
 
@@ -249,13 +252,14 @@ Fresh P2P environment status:
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json`
 - `schema=musu.p2p_control_plane_env_status.v1`
 - `ok=false`
-- `checked_at=2026-06-28T16:20:30.6528544+09:00`
+- `checked_at=2026-06-28 18:05 KST`
 - `relay_payload_queue_fallback_implemented=true`
 - `release_relay_connect_endpoint_implemented=true`
-- `release_relay_payload_endpoint_implemented=false`
+- `release_relay_payload_endpoint_implemented=true`
+- `release_payload_endpoint_proof_bound=true`
 - `release_payload_preflight_endpoint_implemented=true`
-- `release_payload_preflight_only=true`
-- `release_tunnel_payload_endpoint_missing=true`
+- `release_payload_preflight_only=false`
+- `release_tunnel_payload_endpoint_missing=false`
 - `release_relay_tunnel_runtime_implemented=false`
 - `release_relay_tunnel_runtime_source_contract_ready=true`
 - `release_relay_tunnel_runtime_not_implemented_branch_active=true`
@@ -278,14 +282,12 @@ Fresh P2P live evidence with integrity sidecar:
 - Meaning:
   the old sidecar-missing integrity warning is addressed by a current evidence
   file, but the P2P release lane remains NO-GO because relay lease storage,
-  release payload endpoint, relay tunnel runtime, release route evidence,
-  relay transport proof, and relay payload delivery proof are still missing.
+  relay tunnel runtime, release route evidence, relay transport proof, and relay
+  payload delivery proof are still missing.
 
 Active P2P blockers:
 
-- `source_release_relay_payload_endpoint_not_implemented`
 - `source_release_relay_tunnel_runtime_not_implemented`
-- `source_preview_store_forward_payload_queue_non_release_grade`
 - `missing_kv_rest_api_url_or_upstash_redis_rest_url`
 - `missing_kv_rest_api_token_or_upstash_redis_rest_token`
 - `live_evidence_unknown`
@@ -295,11 +297,11 @@ Active P2P blockers:
 - `live_evidence_relay_route_transport_proof_missing`
 - `live_evidence_relay_payload_delivery_proof_missing`
 
-Do not flip `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED` or
-`RELAY_TUNNEL_RUNTIME_IMPLEMENTED` until a real release tunnel moves payload
-bytes through `quic_relay_tunnel`, emits MUSU-bound `quic_tls_1_3` transport
-proof, and records release-grade route evidence. Marker-only changes would
-weaken the product contract and overclaim relay routing.
+Do not flip `RELAY_TUNNEL_RUNTIME_IMPLEMENTED` until a real release tunnel
+moves payload bytes through `quic_relay_tunnel`, emits MUSU-bound
+`quic_tls_1_3` transport proof, and records release-grade route evidence.
+`RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true` is now justified only by the
+proof-bound endpoint contract; it does not mean relay transport is release-ready.
 
 ## Public Metadata Audit
 
@@ -384,10 +386,10 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 |---|---|---|---|---|
 | NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T17:32:55.4349035+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
-| NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
+| NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, but `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Design approval is now URL-evidence-gated, but still missing. | `design-gate` requires a standalone `Design: Approved` line plus a GitHub `#issuecomment-...` approval URL; issue #35 currently has evidence-refresh comments, not approval. | PR #34 remains blocked and cannot be merged honestly. | Add explicit CEO/design approval on issue #35, then update the PR body with that approval comment URL. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
-| HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |
+| HIGH | P2P source is proof-bound but still fail-closed for release transport. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`; `/api/v1/relay/payload` accepts release proof metadata only and still rejects raw payload bytes. | The current code protects against false release relay claims while removing the source payload endpoint gap. | Preserve proof-bound behavior while building the real runtime. |
 | INFO | Public desktop artifact URL cache key is now artifact-bound instead of package-version-only. | GitHub release metadata reports `musu-desktop-x64.msix` size `40710731`; canary evidence `20260628-1455-desktop-release-canary-after-cachebuster.json` reports `ok=true` and `hosted_msix_length.ok=true`. | The one-line installer/download path no longer depends on stale CDN state after same-version `desktop-latest` clobber uploads. | Deploy the site so `musu.pro` serves the updated URLs; apex DNS/TLS still needs separate repair. |
 | INFO | HUGH_SECOND current-package freshness was restored after design-gate hardening. | The 17:23 clean gate has `single_machine_verified=true`, `process_ownership_verified=true`, `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`, and `runtime_cpu_second_pc_route_attempt_verified=true`; latest evidence includes `20260628-170703`, `20260628-170721`, `20260628-171002`, `20260628-171057`, and `20260628-171827` files. | Local package smoke/process/startup/desktop and targeted route-attempt lanes are no longer blockers. | Keep these lanes fresh after any runtime-affecting source or package change. |
 | HIGH | Runtime CPU remains one-machine evidence. | Latest go/no-go has `runtime_idle_cpu_verified=false` and `runtime_cpu_scenario_matrix_verified=false` even though HUGH_SECOND evidence passes. | Release cannot claim CPU/matrix readiness until `hugh-main` also produces verifier-passing evidence. | Run/import the second-PC kit from `hugh-main`. |
