@@ -21,6 +21,17 @@ proof for rc.22. It still does not prove the full product: design approval,
 Store release/Store-signed install evidence, real relay transport, and V34
 stale self-heal proof still remain.
 
+2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
+P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
+the source contract is internally consistent and still fail-closed. The P2P
+environment status remains `ok=false`: release relay payload endpoint and
+release tunnel runtime are intentionally false, KV/Upstash release storage is
+not configured, and live release relay route/transport/delivery proof is
+missing. The public metadata verifier still fails all canonical
+`https://musu.pro` routes with `request_failed`. See
+`docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` for the current blocker
+map and next actions.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

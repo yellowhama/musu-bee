@@ -9430,4 +9430,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `RuntimeCpuRouteTarget hugh_second`, and
   `552b239eef0ced04f3a08658c5dc82ced2a90145`.
 
+- 2026-06-28 product spec completion audit refresh:
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` records the current
+  full-spec NO-GO state from `HUGH_SECOND`. Latest go/no-go remains
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `public_metadata_ok=false`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. Fresh
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` reports
+  `schema=musu.p2p_store_forward_relay_contract.v1`, `ok=true`,
+  `fail_count=0`, proving the P2P source contract is fail-closed and
+  internally consistent. Fresh `show-musu-pro-p2p-env-status.ps1 -Json`
+  remains `ok=false` with `release_relay_payload_endpoint_implemented=false`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `preview_store_forward_payload_queue_non_release_grade=true`, and missing
+  KV/Upstash plus live relay route/transport/delivery proof. Fresh
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` remains
+  `ok=false`, `fail_count=3`, `failure_kinds=request_failed` for `/privacy`,
+  `/support`, and `/api/public-config`. Search terms should include
+  `PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url`, and
+  `failure_kinds=request_failed`.
+
 **End of WIKI_INDEX.md.**
