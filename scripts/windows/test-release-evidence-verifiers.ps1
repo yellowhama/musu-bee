@@ -796,7 +796,9 @@ function Test-SecondPcKitJsonOutputContract {
         'schema = "musu.multidevice_test_kit_prepare.v1"',
         'zip_sha256 = $zipHash.Hash.ToLowerInvariant()',
         'metadata_path = Join-Path $kitRoot "kit-build-metadata.json"',
-        '$result | ConvertTo-Json -Depth 8'
+        '$resultJson = $result | ConvertTo-Json -Depth 8',
+        '$latestOutputPath = Join-Path $OutputRoot "latest-prepare-output.json"',
+        'Move-Item -LiteralPath $latestTempPath -Destination $latestOutputPath -Force'
     )
 
     foreach ($needle in $requiredNeedles) {

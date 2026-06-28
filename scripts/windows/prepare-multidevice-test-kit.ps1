@@ -578,8 +578,14 @@ $result = [pscustomobject]@{
     includes_desktop_shell = [bool]$IncludeDesktopShell
 }
 
+$resultJson = $result | ConvertTo-Json -Depth 8
+$latestOutputPath = Join-Path $OutputRoot "latest-prepare-output.json"
+$latestTempPath = "$latestOutputPath.tmp"
+$resultJson | Set-Content -LiteralPath $latestTempPath -Encoding UTF8
+Move-Item -LiteralPath $latestTempPath -Destination $latestOutputPath -Force
+
 if ($Json) {
-    $result | ConvertTo-Json -Depth 8
+    $resultJson
 } else {
     $result
 }
