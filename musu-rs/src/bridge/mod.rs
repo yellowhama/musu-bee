@@ -312,10 +312,10 @@ pub async fn run() -> Result<()> {
     // peer_token = None and 401s every cross-machine sibling until manually
     // restarted (peer_token was read once at config load). join-account is a
     // separate process and cannot signal the running bridge, so a file watch is
-    // the only channel. We mirror indexer::watch's notify pattern and ALSO run
-    // a periodic re-read as the correctness backstop if the watcher backend
-    // dies. Watcher init failure is logged and swallowed — local-token auth
-    // still works, so it must never abort bridge boot.
+    // the only channel. This uses the same notify-driven shape as the explicit
+    // file watcher commands and ALSO runs a periodic re-read as the correctness
+    // backstop if the watcher backend dies. Watcher init failure is logged and
+    // swallowed: local-token auth still works, so it must never abort bridge boot.
     spawn_mesh_bearer_watcher(auth_state.clone());
 
     // W15: Universal Clipboard broadcast monitor.

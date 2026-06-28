@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
@@ -220,6 +220,15 @@ pub fn validate_release_relay_tunnel_submission(
     }
     if !peer_public_key.trim().starts_with("sha256:") {
         return Err("release_relay_tunnel_peer_public_key_not_fingerprint");
+    }
+    if payload.source_node_id.trim().is_empty() {
+        return Err("release_relay_tunnel_source_node_id_missing");
+    }
+    if payload.target_node_id.trim().is_empty() {
+        return Err("release_relay_tunnel_target_node_id_missing");
+    }
+    if payload.tunnel_id.trim().is_empty() {
+        return Err("release_relay_tunnel_id_missing");
     }
     if payload.payload_kind.trim() != "forwarded_task_envelope" {
         return Err("release_relay_tunnel_payload_kind_not_forwarded_task_envelope");
@@ -1021,6 +1030,42 @@ mod tests {
             &payload,
         )
         .expect("release relay tunnel submission contract");
+
+        let mut missing_source_payload = payload.clone();
+        missing_source_payload.source_node_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_source_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_source_node_id_missing"
+        );
+
+        let mut missing_target_payload = payload.clone();
+        missing_target_payload.target_node_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_target_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_target_node_id_missing"
+        );
+
+        let mut missing_tunnel_payload = payload.clone();
+        missing_tunnel_payload.tunnel_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_tunnel_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_id_missing"
+        );
 
         let mut preview_payload = payload.clone();
         preview_payload.payload_kind = "task_callback_envelope".to_string();

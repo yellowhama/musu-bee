@@ -405,6 +405,7 @@ if (-not (Test-Path -LiteralPath $rustSourceRoot)) {
 }
 else {
     $allowedFilesystemWatcherFiles = @(
+        "musu-rs\src\bridge\mod.rs",
         "musu-rs\src\indexer\watch.rs",
         "musu-rs\src\install\sync.rs"
     )

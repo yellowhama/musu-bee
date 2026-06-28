@@ -192,7 +192,7 @@ test("Tauri shell refresh uses one-shot low-duty scheduling", () => {
   assert.match(shellText, /setTimeout\(runScheduledRefresh,\s*delayMs\)/);
 });
 
-test("dashboard axis pages never use raw browser-auto-retry EventSource", () => {
+test("dashboard axis pages use bounded EventSource instead of browser auto-retry", () => {
   // Contract intent: no page may spin up a raw `new EventSource(...)` (whose
   // unbounded browser auto-retry loop runs forever in the background). A page
   // satisfies this by EITHER using the bounded hook OR using no SSE at all

@@ -622,6 +622,59 @@ This aligns the physical proof collection path with the roadmap, but does not
 close the lane. `relay_transport_product_verified=false` remains correct until
 real relay runtime and direct-blocked physical evidence exist.
 
+## 2026-06-28 Static Readiness Audit Closure
+
+Follow-up code audit found three source-level release readiness gaps that could
+be closed without waiting for Store approval or a second physical proof run:
+
+- The frontend polling contract audit expected an explicit regression marker
+  for dashboard pages using bounded EventSource behavior instead of browser
+  auto-retry. The test name now matches that contract and
+  `audit-frontend-polling-contract.ps1 -Json` reports `ok=true`.
+- The Rust background-loop contract audit treated the bridge token watcher as
+  an unapproved filesystem watcher and also tripped on a comment that named the
+  indexer watcher. The audit allowlist now explicitly includes
+  `musu-rs/src/bridge/mod.rs`, and the bridge comment describes the watcher
+  without suggesting the bridge starts indexer watch. The audit now reports
+  `ok=true`.
+- The P2P store-forward relay source contract now rejects release relay tunnel
+  submissions with blank `source_node_id`, `target_node_id`, or `tunnel_id`
+  before the fail-closed runtime marker. This prevents a metadata-free payload
+  from being accepted as a future release relay tunnel submission. The audit now
+  reports `ok=true`.
+
+Verification:
+
+- `scripts/windows/audit-frontend-polling-contract.ps1 -Json` reports
+  `ok=true`, `fail_count=0`.
+- `scripts/windows/audit-rust-background-loop-contract.ps1 -Json` reports
+  `ok=true`, `fail_count=0`.
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` reports
+  `ok=true`, `fail_count=0`.
+- `npm run test:runtime-polling` reports `20` passing tests.
+- `npm run test:p2p` reports `124` passing tests.
+
+Non-proof caveats:
+
+- A targeted Rust unit test for the relay tunnel submission contract was
+  attempted, but this Windows environment failed the compile with
+  `rustc-LLVM ERROR: out of memory` followed by cascading missing-prelude
+  errors. That run is not source-level failure evidence and is not counted as a
+  release proof.
+- `cargo fmt --check` still reports pre-existing crate-wide rustfmt drift
+  outside this change. The current update only corrected the touched import
+  ordering and intentionally does not reformat unrelated Rust files.
+- Local HTTPS verification of `https://musu.pro/privacy` and public config from
+  this PC currently fails with a Cloudflare/TLS reset even though the public web
+  surface is observable through browser/search. Until the canonical local
+  verifier can produce current JSON evidence, `public_metadata_ok=false` remains
+  a valid local go/no-go blocker.
+
+This closes three static audit blockers, but it does not change the full product
+status. The remaining release lanes are still design approval, real relay
+transport evidence, V34 physical stale self-heal proof, Store distribution
+approval/install proof, and current local public metadata verification.
+
 ## Current Completion State
 
 | Area | Status | Evidence | Completion claim allowed |
@@ -632,12 +685,12 @@ real relay runtime and direct-blocked physical evidence exist.
 | Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
 | Direct delegated-work route | Complete for current rc.22 package over direct LAN | Packaged `musu route` from `hugh_second` to `hugh-main` wrote `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`; `verify-direct-route-evidence.ps1` reports `ok=true`, `fail_count=0`; MSIX install evidence `20260628-050309-HUGH_SECOND.*` verifies the installed package | A visible direct online node is proven work-targetable over LAN for rc.22; this does not claim relay fallback or release-grade peer identity |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
-| Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented | Cannot claim relay task execution |
+| Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission now has stricter source/target/tunnel metadata checks but still fails closed before runtime | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and route-evidence-bound strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; verifier/recorder now require Partner Center approval plus Store-signed install evidence, installed desktop-entrypoint evidence, and Store install/launch timestamps; actual Microsoft Store evidence is not present | Cannot claim Microsoft Store readiness |
 | Release candidate manifest | Complete for local artifacts | Current rc.22 local sideload, Store-reviewed MSIX, Store submission bundle, Tauri MSI/NSIS, and multi-device kit are in the manifest | Manifest no longer accepts stale `1.15.0.0` artifacts or bundles |
-| Support/operator evidence | Complete for current rc.22 governance | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*` | Support availability remains required and verified through public metadata |
+| Support/operator evidence | Partly complete in latest local gate | Historical mailbox delivery proof is replaced by verified public support metadata proof, scoped by `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md` and recorded in `20260628-033452-support-operator-gate-retirement.*`; latest local HTTPS verifier from this PC cannot fetch current public metadata because the TLS connection resets | Support availability remains required; do not claim this lane green again until current canonical public metadata verification passes locally |
 
 ## Full Product Definition Of Done
 

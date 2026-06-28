@@ -9306,4 +9306,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json`, and
   `musu.relay_payload_delivery_proof.v1`.
 
+- 2026-06-28 static readiness audit closure:
+  follow-up audit closed three source-level blockers without changing the full
+  product No-Go status. The frontend polling contract marker now names bounded
+  EventSource behavior instead of browser auto-retry and
+  `audit-frontend-polling-contract.ps1 -Json` reports `ok=true`, `fail_count=0`.
+  The Rust background-loop audit now explicitly allows the bridge mesh bearer
+  token watcher in `musu-rs/src/bridge/mod.rs`, and the bridge comment no longer
+  trips the indexer-watch false positive; `audit-rust-background-loop-contract.ps1`
+  reports `ok=true`, `fail_count=0`. The P2P store-forward relay source contract
+  now rejects release relay tunnel submissions with blank `source_node_id`,
+  `target_node_id`, or `tunnel_id` before the fail-closed runtime marker;
+  `audit-p2p-store-forward-relay-contract.ps1` reports `ok=true`,
+  `fail_count=0`. App-level tests passed with `npm run test:runtime-polling`
+  (`20/20`) and `npm run test:p2p` (`124/124`). A targeted Rust unit test was
+  attempted but the local Windows compile failed with `rustc-LLVM ERROR: out of
+  memory` followed by cascading missing-prelude errors, so it is not counted as
+  release proof. `cargo fmt --check` still reports pre-existing crate-wide
+  rustfmt drift outside this change. Local HTTPS verification of
+  `https://musu.pro/privacy` and public config currently fails from this PC with
+  a Cloudflare/TLS reset, so current canonical local public metadata evidence is
+  still not green. Full-product blockers remain design approval, real relay
+  transport, V34 physical self-heal proof, Store distribution proof, and current
+  local public metadata verification. Search terms should include
+  `dashboard axis pages use bounded EventSource instead of browser auto-retry`,
+  `audit-rust-background-loop-contract ok=true`, `release_relay_tunnel_source_node_id_missing`,
+  `release_relay_tunnel_target_node_id_missing`,
+  `release_relay_tunnel_id_missing`, `rustc-LLVM ERROR: out of memory`, and
+  `public_metadata_ok=false`.
+
 **End of WIKI_INDEX.md.**
