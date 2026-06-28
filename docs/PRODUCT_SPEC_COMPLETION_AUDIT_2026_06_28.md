@@ -157,6 +157,19 @@ PR body says approval is pending or only mentions the token as an instruction.
 This prevents a false design approval pass; it does not close the blocker
 because issue #35 still lacks an explicit CEO/design approval comment.
 
+2026-06-28 21:20 KST W-7 relay source-node auth binding hardening:
+`MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` now maps bearer token SHA-256 values to
+allowed `source_node_id` values, and the web P2P control plane rejects configured
+mismatches with `source_node_id_auth_mismatch`. The gate is enforced on
+rendezvous, room rendezvous, relay lease, relay payload, relay transport proof,
+and route evidence writes. Verification passed targeted 48-test coverage,
+`npm run test:p2p` with 129 tests, `npm run typecheck`, and
+`audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+`fail_count=0`. This closes a source-level spoofing gap only. The product remains
+NO-GO until the live control plane is deployed/configured and release-grade relay
+transport, storage, route evidence, transport proof, and payload delivery proof
+exist.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.

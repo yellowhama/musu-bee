@@ -61,6 +61,7 @@ $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts
 $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
 $releasePayloadPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\payload\route.test.ts"
 $leaseRoutePath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.ts"
+$leaseRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.test.ts"
 $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
 $transportProofRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.ts"
 $transportProofRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.test.ts"
@@ -86,6 +87,7 @@ $statusScriptPath = "scripts\windows\show-musu-pro-p2p-env-status.ps1"
 $p2pEvidenceVerifierPath = "scripts\windows\verify-p2p-control-plane-evidence.ps1"
 $releaseEvidenceVerifierTestPath = "scripts\windows\test-release-evidence-verifiers.ps1"
 $packageJsonPath = "musu-bee\package.json"
+$p2pControlAuthPath = "musu-bee\src\lib\p2pControlAuth.ts"
 
 $policy = Get-RepoText $policyPath
 $releaseConnectPreflightRoute = Get-RepoText $releaseConnectPreflightRoutePath
@@ -97,6 +99,7 @@ $payloadRouteTest = Get-RepoText $payloadRouteTestPath
 $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
 $releasePayloadPreflightRouteTest = Get-RepoText $releasePayloadPreflightRouteTestPath
 $leaseRoute = Get-RepoText $leaseRoutePath
+$leaseRouteTest = Get-RepoText $leaseRouteTestPath
 $transportRoute = Get-RepoText $transportRoutePath
 $transportProofRoute = Get-RepoText $transportProofRoutePath
 $transportProofRouteTest = Get-RepoText $transportProofRouteTestPath
@@ -122,6 +125,7 @@ $statusScript = Get-RepoText $statusScriptPath
 $p2pEvidenceVerifier = Get-RepoText $p2pEvidenceVerifierPath
 $releaseEvidenceVerifierTest = Get-RepoText $releaseEvidenceVerifierTestPath
 $packageJson = Get-RepoText $packageJsonPath
+$p2pControlAuth = Get-RepoText $p2pControlAuthPath
 
 Add-Check `
     -Scope "policy" `
@@ -150,6 +154,54 @@ Add-Check `
     ) `
     -Path $policyPath `
     -Message "Relay connect and payload proof endpoints can be source-wired without allowing env flags, preview queues, or missing tunnel runtime to claim release-grade payload transport."
+
+Add-Check `
+    -Scope "web-auth" `
+    -Name "P2P control auth binds bearer token hashes to source nodes" `
+    -Passed (
+        Test-ContainsAll -Text $p2pControlAuth -Needles @(
+            "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
+            "configuredP2pControlTokenNodeBindings",
+            "p2pControlTokenSha256",
+            "bound_source_node_id",
+            "p2pSourceNodeAuthMismatch",
+            "source_node_id_auth_mismatch"
+        )
+    ) `
+    -Path $p2pControlAuthPath `
+    -Message "P2P control auth supports hash-based source_node_id binding without storing raw node tokens."
+
+Add-Check `
+    -Scope "web-auth" `
+    -Name "source node auth binding is enforced on source-claiming control-plane writes" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $payloadRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $transportProofRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidence -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        ))
+    ) `
+    -Path $p2pControlAuthPath `
+    -Message "Rendezvous, relay lease, relay payload, transport proof, and route evidence writes fail closed when an authenticated node token is bound to a different source_node_id."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -877,6 +929,30 @@ Add-Check `
     ) `
     -Path $statusScriptPath `
     -Message "Hosted P2P status reports implemented queue fallback separately from missing release tunnel endpoints."
+
+Add-Check `
+    -Scope "tests" `
+    -Name "source node auth binding regression coverage" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRouteTest -Needles @(
+            "rejects relay lease when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $payloadRouteTest -Needles @(
+            "rejects relay payload when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
+            "rejects rendezvous creation when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
+            "POST rejects room rendezvous creation when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        ))
+    ) `
+    -Path $payloadRouteTestPath `
+    -Message "P2P tests cover source_node_id auth binding failures on relay payload and rendezvous writes."
 
 Add-Check `
     -Scope "tests" `

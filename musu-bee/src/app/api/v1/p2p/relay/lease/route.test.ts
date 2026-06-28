@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ const ENV_KEYS = [
   "UPSTASH_REDIS_REST_TOKEN",
   "UPSTASH_REDIS_REST_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_P2P_RELAY_ENABLED",
@@ -31,6 +33,10 @@ const ENV_KEYS = [
   "MUSU_ROUTE_EVIDENCE_TOKEN",
   "MUSU_TOKEN",
 ] as const;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 const leaseRequest = {
   session_id: "rv_test",
@@ -183,6 +189,34 @@ test("issues a store-and-forward relay lease once env policy is enabled", async 
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_lease_store_configured, true);
     assert.deepEqual(body.blockers, []);
+  });
+});
+
+test("rejects relay lease when bearer token is bound to another source node", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("source-node-auth-binding");
+    enableRelayLeasePolicy();
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${sha256("test-token")}=pc-a`;
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      source_node_id: "pc-c",
+    }));
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      lease_issued: boolean;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.lease_issued, false);
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "pc-a");
+    assert.equal(body.declared_source_node_id, "pc-c");
   });
 });
 

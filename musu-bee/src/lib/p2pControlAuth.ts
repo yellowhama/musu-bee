@@ -24,8 +24,24 @@ export function configuredP2pControlTokenHashes(): string[] {
     .filter((value) => /^[a-f0-9]{64}$/.test(value));
 }
 
+export function configuredP2pControlTokenNodeBindings(): Map<string, string> {
+  const raw = process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS ?? "";
+  const bindings = new Map<string, string>();
+  for (const entry of raw.split(/[,\n\r;]+/)) {
+    const [rawHash, ...rawNodeParts] = entry.split("=");
+    const nodeId = rawNodeParts.join("=").trim();
+    const hash = rawHash?.trim().replace(/^sha256:/i, "").toLowerCase() ?? "";
+    if (/^[a-f0-9]{64}$/.test(hash) && nodeId) {
+      bindings.set(hash, nodeId);
+    }
+  }
+  return bindings;
+}
+
 export type P2pControlPrincipal = {
   owner_key: string;
+  token_sha256: string;
+  bound_source_node_id?: string;
 };
 
 export function bearerToken(req: NextRequest): string {
@@ -34,12 +50,16 @@ export function bearerToken(req: NextRequest): string {
   return match?.[1]?.trim() ?? "";
 }
 
+export function p2pControlTokenSha256(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export function p2pControlOwnerKey(token: string): string {
-  return `token-sha256:${createHash("sha256").update(token).digest("hex")}`;
+  return `token-sha256:${p2pControlTokenSha256(token)}`;
 }
 
 function tokenHash(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  return p2pControlTokenSha256(token);
 }
 
 function timingSafeStringEqual(left: string, right: string): boolean {
@@ -101,7 +121,36 @@ export function authorizeP2pControl(req: NextRequest): NextResponse | null {
 }
 
 export function p2pControlPrincipal(req: NextRequest): P2pControlPrincipal {
+  const token = bearerToken(req);
+  const presentedHash = tokenHash(token);
   return {
-    owner_key: p2pControlOwnerKey(bearerToken(req)),
+    owner_key: p2pControlOwnerKey(token),
+    token_sha256: presentedHash,
+    bound_source_node_id: configuredP2pControlTokenNodeBindings().get(presentedHash),
+  };
+}
+
+export function p2pSourceNodeAuthBindingFields(principal: P2pControlPrincipal): {
+  source_node_auth_bound: boolean;
+} {
+  return {
+    source_node_auth_bound: Boolean(principal.bound_source_node_id?.trim()),
+  };
+}
+
+export function p2pSourceNodeAuthMismatch(
+  principal: P2pControlPrincipal,
+  sourceNodeId: string
+): { error: "source_node_id_auth_mismatch"; bound_source_node_id: string } | null {
+  const boundSourceNodeId = principal.bound_source_node_id?.trim();
+  if (!boundSourceNodeId) {
+    return null;
+  }
+  if (sourceNodeId.trim() === boundSourceNodeId) {
+    return null;
+  }
+  return {
+    error: "source_node_id_auth_mismatch",
+    bound_source_node_id: boundSourceNodeId,
   };
 }

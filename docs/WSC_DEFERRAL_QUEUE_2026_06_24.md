@@ -1,9 +1,9 @@
 # WS-C — Deferred Follow-ups Queue (2026-06-24)
 
-Classification doc for master `cosmic-honking-cake.md` WS-C. These are NOT
-implemented here — each is queued as its own future sub-WS with its gate noted.
-Implementation starts only on explicit user approval (several need production
-deploy = Const VII / separate sign-off).
+Classification doc for master `cosmic-honking-cake.md` WS-C. Most items are
+not implemented here and remain queued as their own future sub-WS with gates
+noted. W-7 now has source-level implementation, but still needs production
+deploy/configuration evidence before it can be treated as live.
 
 ## P1 — should land next
 
@@ -15,8 +15,13 @@ deploy = Const VII / separate sign-off).
 - **Gate**: 🔴 production deploy (relay server is live). Needs its own master/plan
   + Const VII. Likely a small security-engineer Critic + dual-audit (auth/one-way
   blast). Carried from W-series.
-- **Status**: deferred; relay round-trip already works without it (W-1 callback +
-  C-1 token). This is hardening, not a functional blocker.
+- **Status**: source implemented on 2026-06-28:
+  `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` maps token SHA-256 values to allowed
+  `source_node_id` values, and rendezvous, relay lease, relay payload, relay
+  transport proof, and route evidence writes return
+  `source_node_id_auth_mismatch` on mismatch. Production deploy/configuration
+  and live evidence remain pending. Canonical report:
+  `docs/RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING_2026_06_28.md`.
 
 ### B-7 — login env / 안내 정합 (task #28)
 - **What**: align login environment-variable docs + in-app guidance with the
@@ -50,6 +55,7 @@ deploy = Const VII / separate sign-off).
 - **Uninstall lifecycle E2E** — packaged MSIX install→uninstall→reinstall. User env.
 
 ## How to pick up a deferral
-Each item → its own detail plan (`docs/WS<id>_..._PLAN.md`), agent-team flow
-(Critic → Builder → Auditor), gate per the table above. W-7 + B-3b touch
-CI/server → confirm Const VII / production sign-off before Builder.
+Each remaining item → its own detail plan (`docs/WS<id>_..._PLAN.md`),
+agent-team flow (Critic → Builder → Auditor), gate per the table above. W-7
+still needs Const VII / production sign-off before live deploy/configuration;
+B-3b touches CI/server and needs the same confirmation before Builder.

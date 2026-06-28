@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+} from "@/lib/p2pControlAuth";
 import {
   appendRelayLease,
   createRelayLease,
@@ -144,6 +149,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    return NextResponse.json(
+      {
+        ok: false,
+        lease_issued: false,
+        owner_scoped: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+      },
+      { status: 403 }
+    );
+  }
+
   const blockers = relayPolicyBlockers(parsed.data);
   if (blockers.length > 0) {
     return NextResponse.json(
@@ -151,6 +175,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         lease_issued: false,
         owner_scoped: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
         relay_control_plane_wired: true,
         relay_transport_wired: relayTransportWired(),
         relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
@@ -196,6 +221,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       lease_issued: true,
       owner_scoped: true,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
       relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
@@ -242,6 +268,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       owner_scoped: true,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_control_plane_wired: true,
       relay_transport_wired: relayTransportWired(),
       relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
@@ -260,6 +287,7 @@ export async function GET(req: NextRequest) {
         error: "relay_lease_query_failed",
         detail: error instanceof Error ? error.message : "unknown",
         relay_control_plane_wired: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
         relay_transport_wired: relayTransportWired(),
         relay_tunnel_runtime_implemented: relayTunnelRuntimeImplemented(),
         relay_connect_endpoint_wired: relayConnectEndpointWired(),

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+} from "@/lib/p2pControlAuth";
 import {
   createRendezvousSession,
   loadNodeCandidateSet,
@@ -97,7 +102,8 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
   if (failedAuth) {
     return failedAuth;
   }
-  const ownerKey = p2pControlPrincipal(req).owner_key;
+  const principal = p2pControlPrincipal(req);
+  const ownerKey = principal.owner_key;
 
   let json: unknown;
   try {
@@ -133,6 +139,26 @@ export async function POST(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
         issues: publicZodIssues(parsed.error),
       },
       { status: 400 }
+    );
+  }
+
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        room_id,
+        origin: "musu.pro",
+        ...p2pSourceNodeAuthBindingFields(principal),
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+      },
+      { status: 403 }
     );
   }
 

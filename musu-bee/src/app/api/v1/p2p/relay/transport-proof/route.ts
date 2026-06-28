@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+} from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   appendRelayTransportProof,
@@ -203,6 +208,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    const storeStatus = p2pRelayTransportProofStoreStatus();
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        stored: false,
+        owner_scoped: true,
+        release_grade: false,
+        ...p2pSourceNodeAuthBindingFields(principal),
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+        relay_transport_proof_store_configured: storeStatus.configured,
+        relay_transport_proof_store_backend: storeStatus.backend,
+        relay_transport_proof_store_release_grade: storeStatus.release_grade,
+      },
+      { status: 403 }
+    );
+  }
+
   const storeStatus = p2pRelayTransportProofStoreStatus();
   const blockers = [
     ...proofContentBlockers(parsed.data),
@@ -220,6 +250,7 @@ export async function POST(req: NextRequest) {
         stored: false,
         owner_scoped: true,
         release_grade: false,
+        ...p2pSourceNodeAuthBindingFields(principal),
         ...{
           relay_transport_proof_store_configured: storeStatus.configured,
           relay_transport_proof_store_backend: storeStatus.backend,
@@ -275,6 +306,7 @@ export async function POST(req: NextRequest) {
       stored: true,
       owner_scoped: true,
       release_grade: blockers.length === 0 && proof.release_grade && storeStatus.release_grade,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_transport_proof_store_configured: storeStatus.configured,
       relay_transport_proof_store_backend: storeStatus.backend,
       relay_transport_proof_store_release_grade: storeStatus.release_grade,
@@ -308,6 +340,7 @@ export async function GET(req: NextRequest) {
       schema: "musu.p2p_relay_transport_proofs.v1",
       ok: true,
       owner_scoped: true,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_transport_proof_store_configured: storeStatus.configured,
       relay_transport_proof_store_backend: storeStatus.backend,
       relay_transport_proof_store_release_grade: storeStatus.release_grade,

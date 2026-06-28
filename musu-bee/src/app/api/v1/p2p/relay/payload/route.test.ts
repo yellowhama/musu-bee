@@ -34,6 +34,7 @@ const ENV_KEYS = [
   "KV_REST_API_TOKEN",
   "KV_REST_API_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_P2P_RELAY_LEASE_STORE_PATH",
@@ -371,6 +372,41 @@ test("stores lease-bound relay payload as owner-scoped non release-grade queue r
     assert.equal(getBody.payloads[0]?.owner_key, undefined);
     assert.equal(getBody.payloads[0]?.payload_base64, undefined);
     assert.equal(getBody.payloads[0]?.payload_id, body.payload.payload_id);
+  });
+});
+
+test("rejects relay payload when bearer token is bound to another source node", async () => {
+  await withRelayEnv(async () => {
+    await seedLease("lease-source-auth");
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${createHash("sha256")
+      .update("test-token")
+      .digest("hex")}=node-a`;
+    const { GET, POST } = await loadModule("source-node-auth-binding");
+    const res = await POST(
+      bearerReq(
+        "http://localhost/api/v1/p2p/relay/payload",
+        payloadBody({ lease_id: "lease-source-auth", source_node_id: "node-c" })
+      )
+    );
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      stored: boolean;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.stored, false);
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "node-a");
+    assert.equal(body.declared_source_node_id, "node-c");
+
+    const getRes = await GET(bearerReq("http://localhost/api/v1/p2p/relay/payload"));
+    const getBody = (await getRes.json()) as { count: number };
+    assert.equal(getBody.count, 0);
   });
 });
 

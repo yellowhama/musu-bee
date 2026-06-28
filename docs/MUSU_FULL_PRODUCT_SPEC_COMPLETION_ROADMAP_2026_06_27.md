@@ -372,6 +372,25 @@ with SHA256
 This refreshes the `hugh-main` handoff artifact only; it does not close the
 second-PC evidence gate until the kit is run on the main PC and imported.
 
+2026-06-28 21:20 KST W-7 relay source-node auth binding hardening:
+`MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` now lets the web P2P control plane bind
+bearer token SHA-256 values to allowed `source_node_id` values without storing
+raw node tokens. When configured, source-claiming writes return
+`source_node_id_auth_mismatch` with HTTP 403 if the request declares a different
+source node. The gate is enforced on `POST /api/v1/p2p/rendezvous`,
+`POST /api/rooms/[roomId]/rendezvous`, `POST /api/v1/p2p/relay/lease`,
+`POST /api/v1/p2p/relay/payload`,
+`POST /api/v1/p2p/relay/transport-proof`, and
+`POST /api/v1/p2p/route-evidence`. Verification passed targeted 48-test
+coverage, `npm run test:p2p` (129 tests), `npm run typecheck`, and
+`audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+`fail_count=0`. This closes the source-level W-7 spoofing gap for configured
+node tokens only. It does not deploy production bindings, implement the release
+relay tunnel runtime, configure live KV/Upstash release storage, or produce live
+relay route/transport/delivery evidence. The product remains NO-GO on the same
+physical/external lanes. Canonical report:
+`docs/RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING_2026_06_28.md`.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not
@@ -1404,7 +1423,7 @@ delegated-work transport. The verifier is correct to fail closed.
 | Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.028s evidence `20260628-134854-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, `include_node=true`, `include_webview2=true`, and hot process count `0` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
 | Runtime CPU scenario matrix | Partly complete for current rc.22 package | HUGH_SECOND matrix `20260628-133611-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`, and targeted route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
-| Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission now has stricter source/target/tunnel metadata checks but still fails closed before runtime | Cannot claim relay task execution |
+| Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission has stricter source/target/tunnel metadata checks; web P2P writes now enforce hash-bound `source_node_id` when `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` is configured; the runtime still fails closed before real relay payload transit | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
 | V34 discovery/stale self-heal | Partly complete | Candidate endpoints, observed-source additive candidate, bridge route preflight, CLI explicit-target stale-candidate preflight/reorder, heartbeat TTL filter, boot/local reconcile source path, dedicated V34 proof recorder, and route-evidence-bound strict verifier are implemented | Needs rebuilt packaged proof plus physical stale registry/cache/manual-peer E2E proof before full self-heal claim |
 | Store release readiness | Not complete | Current rc.22 Store-reviewed MSIX and submission bundle verify locally; verifier/recorder now require Partner Center approval plus Store-signed install evidence, installed desktop-entrypoint evidence, and Store install/launch timestamps; actual Microsoft Store evidence is not present | Cannot claim Microsoft Store readiness |
@@ -1464,7 +1483,9 @@ MUSU is fully complete only when all of these are true at the same time:
 - Store release depends on current package artifacts, Partner Center setup,
   restricted capability review, certification, and Store-signed install proof.
 - Relay transport depends on router selection, transport implementation,
-  fail-closed proof schema, and two-PC failure-injection evidence.
+  fail-closed proof schema, live node-token source binding configuration, and
+  two-PC failure-injection evidence. Source-level source binding is implemented;
+  production deploy/configuration proof is still pending.
 - Brain product proof is closed for the current rc.22 fresh packaged launch;
   upgrade-in-place sidecar self-heal remains a future hardening proof if needed.
 - V34 self-heal depends on stale registry/cache/manual-peer cleanup,

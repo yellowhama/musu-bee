@@ -9983,4 +9983,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `inspect_output_uninformative`, `has_informative_output=true`,
   `20260628-204816`, and `20260628-204644`.
 
+- 2026-06-28 relay source-node auth binding hardening:
+  `docs/RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING_2026_06_28.md` records the
+  W-7 source-level closure. `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` maps bearer
+  token SHA-256 values to allowed `source_node_id` values without storing raw
+  node tokens. Configured mismatches fail closed with
+  `source_node_id_auth_mismatch` on P2P rendezvous, room rendezvous, relay
+  lease, relay payload, relay transport proof, and route evidence writes.
+  Verification: targeted 48-test lane passed, `npm run test:p2p` passed 129
+  tests, `npm run typecheck` passed, and
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` reported `ok=true`,
+  `fail_count=0`. This is source hardening only; production
+  deploy/configuration, live relay evidence, and real `quic_relay_tunnel`
+  runtime remain open. Search terms should include
+  `RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING`,
+  `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS`,
+  `source_node_id_auth_mismatch`, `bound_source_node_id`,
+  `p2pSourceNodeAuthMismatch`, and W-7.
+
 **End of WIKI_INDEX.md.**
