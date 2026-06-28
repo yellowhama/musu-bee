@@ -10013,4 +10013,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `vercel_edge_apex_tls_failed`. Search terms: `55f3f820`,
   `W-7 post-push`, `design-gate`, `apex_tls_handshake_failed`.
 
+- 2026-06-28 current-HEAD second-PC kit refresh after W-7 extension:
+  regenerated the second-PC handoff kit from clean commit
+  `7b53042177735ecab752bc857dd9455af996f6c7` at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-215431.zip`
+  with SHA256
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`.
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that
+  kit, and go/no-go at `2026-06-28T21:56:37.1321855+09:00` still reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. This updates
+  the evidence collection artifact only; physical second-PC import, Private
+  Mesh proof, public metadata DNS/TLS, Store, P2P relay, design approval, relay
+  transport, and V34 proof remain open. Post-refresh audits also passed:
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` and
+  `audit-operator-api-security-contract.ps1 -Json` both returned `ok=true`,
+  `fail_count=0`. Search terms: `20260628-215431`,
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`,
+  `after-current-head-second-pc-kit-refresh`, and `blockers=10`.
+
 **End of WIKI_INDEX.md.**

@@ -16,9 +16,11 @@ several release lanes still require external or physical evidence.
 
 Authoritative local gate:
 
-- Command source: `.local-build/go-no-go/latest.json`
-- Snapshot file: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T17:32:55.4349035+09:00`
+- Command source:
+  `.local-build/go-no-go/after-current-head-second-pc-kit-refresh.json`
+- Snapshot file:
+  `.local-build/go-no-go/after-current-head-second-pc-kit-refresh.json`
+- `generated_at`: `2026-06-28T21:56:37.1321855+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -37,7 +39,19 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `manifest_dirty=false`
+
+2026-06-28 21:56 KST current-HEAD second-PC kit refresh: after the W-7 release
+endpoint source-node binding extension, the second-PC handoff kit was regenerated
+from clean commit `7b53042177735ecab752bc857dd9455af996f6c7` at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-215431.zip`
+with SHA256
+`2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`.
+The fresh go/no-go snapshot still reports
+`full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and
+`manifest_git.dirty=false`. The kit refresh keeps the `hugh-main` evidence path
+current; it does not close any product lane until that kit is run on the main PC
+and the return zip/evidence is imported and verified.
 
 2026-06-28 17:23 KST current-package evidence refresh after design-gate
 hardening: after refreshing the HUGH_SECOND local package evidence and rerunning
@@ -231,19 +245,19 @@ evidence from at least two physical machines.
 Second-PC kit refresh after this evidence and the JSON next-action fix:
 
 - Kit zip:
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-163218.zip`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-215431.zip`.
 - Kit metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, commit
-  `067a22c4f837fac70a31bda219b5970dfc5260ce`, and `dirty=false`.
+  `7b53042177735ecab752bc857dd9455af996f6c7`, and `dirty=false`.
 - Generator result:
   `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
-  `generated_at=2026-06-28T16:32:32.0882236+09:00`, and
+  `generated_at=2026-06-28T21:54:42.3597840+09:00`, and
   `.local-build\multi-device-test-kit\latest-prepare-output.json` now proves
   the go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is
   executable and no longer leaves the latest pointer stale.
 - Release manifest artifact:
-  current generated zip size `81116474`, SHA256
-  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`.
+  current generated zip SHA256
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`.
 - Current handoff:
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
@@ -252,14 +266,23 @@ that must be extracted and run on `hugh-main`.
 
 ## P2P / Relay Audit
 
-Fresh local source audit after release payload proof endpoint wiring:
+Fresh local source audit after the current second-PC kit/documentation refresh:
 
 - Command:
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-p2p-store-forward-relay-contract.ps1 -Json`
 - `schema=musu.p2p_store_forward_relay_contract.v1`
 - `ok=true`
 - `fail_count=0`
-- `generated_at=2026-06-28 18:05 KST`
+- `generated_at=2026-06-28 21:59 KST`
+
+Fresh operator API security audit after the same docs-only refresh:
+
+- Command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-operator-api-security-contract.ps1 -Json`
+- `schema=musu.operator_api_security_contract.v1`
+- `ok=true`
+- `fail_count=0`
+- `generated_at=2026-06-28 21:59 KST`
 
 Interpretation: the source contract is internally consistent. The preview
 store-forward queue is still correctly labeled non-release-grade. The distinct
@@ -407,7 +430,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T17:32:55.4349035+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T21:56:37.1321855+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, but `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Design approval is now URL-evidence-gated, but still missing. | `design-gate` requires a standalone `Design: Approved` line plus a GitHub `#issuecomment-...` approval URL; issue #35 currently has evidence-refresh comments, not approval. | PR #34 remains blocked and cannot be merged honestly. | Add explicit CEO/design approval on issue #35, then update the PR body with that approval comment URL. |

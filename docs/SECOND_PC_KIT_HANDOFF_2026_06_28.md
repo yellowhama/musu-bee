@@ -9,16 +9,16 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-215431.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-215431`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `8e82fae46eb25b59171627627cab5dcfba7e847f`, `dirty=false`.
+  `7b53042177735ecab752bc857dd9455af996f6c7`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, after commit `8e82fae4`.
+  `HUGH_SECOND`, after commit `7b530421`.
 - Zip SHA256:
-  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
