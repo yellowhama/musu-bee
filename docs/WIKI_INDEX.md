@@ -9556,6 +9556,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2026-06-28T14:24:39.8780563+09:00`,
   `bcbaba71492722f1ebcf4435800789e959ea88ab`, and `blockers=10`.
 
+- 2026-06-28 P2P control-plane evidence integrity refresh:
+  `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -AllowUnverified -Json`
+  wrote
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json`,
+  `.sha256`, `.verification.json`, and `.summary.md`. Strict verification with
+  `verify-p2p-control-plane-evidence.ps1 -RequireIntegrity` reports
+  `ok=false`, `fail_count=39`, `evidence_integrity_status=verified`, and
+  `evidence_integrity_ok=true`. This replaces the stale sidecar-missing P2P
+  evidence warning candidate, but the release lane remains NO-GO because
+  `relay_transport_wired=false`,
+  `relay_transport_payload_endpoint_wired=false`,
+  `relay_payload_transport_proven=false`, and route/proof/delivery counts are
+  zero. Search terms should include `20260628-143223-musu.pro.evidence.json`,
+  `evidence_integrity_status=verified`, `fail_count=39`,
+  `relay_payload_transport_proven=false`, and
+  `p2p-control-plane-integrity`.
+
 - 2026-06-28 public metadata DNS diagnostic contract:
   `scripts/windows/verify-store-public-metadata.ps1` now emits
   `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when

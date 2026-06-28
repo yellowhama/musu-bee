@@ -157,6 +157,24 @@ Fresh P2P environment status:
 - `relay_transport_kind=quic_relay_tunnel`
 - `release_grade_transport_required=quic_tls_1_3`
 
+Fresh P2P live evidence with integrity sidecar:
+
+- Command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -AllowUnverified -Json`
+- Evidence:
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json`
+- Integrity sidecar:
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json.sha256`
+- Strict verification:
+  `verify-p2p-control-plane-evidence.ps1 -RequireIntegrity` reports
+  `ok=false`, `fail_count=39`, `evidence_integrity_status=verified`, and
+  `evidence_integrity_ok=true`.
+- Meaning:
+  the old sidecar-missing integrity warning is addressed by a current evidence
+  file, but the P2P release lane remains NO-GO because relay lease storage,
+  release payload endpoint, relay tunnel runtime, release route evidence,
+  relay transport proof, and relay payload delivery proof are still missing.
+
 Active P2P blockers:
 
 - `source_release_relay_payload_endpoint_not_implemented`

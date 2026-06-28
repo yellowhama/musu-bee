@@ -700,6 +700,32 @@ This aligns the physical proof collection path with the roadmap, but does not
 close the lane. `relay_transport_product_verified=false` remains correct until
 real relay runtime and direct-blocked physical evidence exist.
 
+## 2026-06-28 P2P Evidence Integrity Refresh
+
+The stale P2P control-plane evidence warning has a concrete current replacement
+evidence file, but the P2P/relay product lane is still not complete.
+
+Fresh evidence:
+
+- Recorder:
+  `scripts/windows/record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -AllowUnverified -Json`.
+- Evidence:
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json`.
+- Integrity sidecar:
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json.sha256`.
+- Verification:
+  `verify-p2p-control-plane-evidence.ps1 -RequireIntegrity` reports
+  `ok=false`, `fail_count=39`, `evidence_integrity_status=verified`, and
+  `evidence_integrity_ok=true`.
+
+This should remove the sidecar-missing integrity warning once committed and
+rechecked, but it intentionally does not mark P2P as complete. The current live
+relay evidence still reports `relay_transport_wired=false`,
+`relay_transport_payload_endpoint_wired=false`,
+`relay_payload_transport_proven=false`, and zero relay route/proof/delivery
+records. The release blockers remain real implementation/configuration gaps,
+not evidence tampering or stale evidence format.
+
 ## 2026-06-28 Static Readiness Audit Closure
 
 Follow-up code audit found three source-level release readiness gaps that could
