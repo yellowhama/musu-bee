@@ -9434,9 +9434,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` records the current
   full-spec NO-GO state from `HUGH_SECOND`. Latest go/no-go remains
   `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
-  `blockers=10`, `public_metadata_ok=false`,
+  `blockers=15`, `public_metadata_ok=false`,
   `p2p_control_plane_verified=false`, and
-  `relay_transport_product_verified=false`. Fresh
+  `relay_transport_product_verified=false`. The post-code-commit gate at
+  `2026-06-28T11:56:33.9311548+09:00` records clean commit
+  `fb90715d60303ac463e609b9543de14687f16261` and
+  `manifest_git.dirty=false`; local packaged evidence lanes such as
+  single-machine smoke, process ownership, startup single-instance, desktop
+  repeated activation, and CPU evidence must be refreshed for the current
+  package/source before the gate counts them again. Fresh
   `audit-p2p-store-forward-relay-contract.ps1 -Json` reports
   `schema=musu.p2p_store_forward_relay_contract.v1`, `ok=true`,
   `fail_count=0`, proving the P2P source contract is fail-closed and

@@ -47,6 +47,17 @@ gate still requires a rebuilt package, target-generated evidence from the
 opposite physical PC, and a verified release proof archive. Handoff:
 `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
 
+2026-06-28 11:56 KST post-code-commit gate: after committing the Private Mesh
+source/doc update, `write-release-go-no-go.ps1 -Json` still reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=15`, `warnings=1`, `manifest_git.dirty=false`, and commit
+`fb90715d60303ac463e609b9543de14687f16261`. The blocker count increased from
+the earlier 10-blocker snapshot because the current source commit means local
+packaged evidence lanes such as single-machine smoke, process ownership,
+startup single-instance, desktop repeated activation, and CPU evidence must be
+refreshed or rebuilt against the current package before the gate can count
+them. This is correct fail-closed behavior.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

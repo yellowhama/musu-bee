@@ -15,31 +15,37 @@ still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T11:15:57.8634815+09:00`
+- `generated_at`: `2026-06-28T11:56:33.9311548+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
-- `blockers=10`
+- `blockers=15`
 - `warnings=1`
 - `private_mesh_packaged_release_proof_verified=false`
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=ab3dfb22b9c9ee34c1083ee6822910fb069df162`
+- `commit=fb90715d60303ac463e609b9543de14687f16261`
 
 Current blockers:
 
-1. Real second-PC multi-device evidence is not recorded.
-2. Packaged desktop Private Mesh release proof archive is not verified.
-3. Runtime idle CPU evidence is valid on only one physical machine.
-4. Runtime CPU scenario matrix evidence is valid on only one physical machine.
-5. `https://musu.pro` public metadata fetches fail with `request_failed`.
-6. Partner Center, Microsoft certification, and restricted capability approval
+1. Fresh single-machine smoke evidence is not recorded for the current commit.
+2. Real second-PC multi-device evidence is not recorded.
+3. Packaged desktop Private Mesh release proof archive is not verified.
+4. Runtime idle CPU evidence is valid on too few physical machines.
+5. Runtime CPU scenario matrix evidence is valid on too few physical machines.
+6. Runtime CPU matrix evidence lacks a current second-PC post-route sample.
+7. Process ownership evidence is not current for the latest commit.
+8. Startup single-instance evidence is not current for the latest commit.
+9. Packaged desktop repeated-activation evidence is not current for the latest
+   commit.
+10. `https://musu.pro` public metadata fetches fail with `request_failed`.
+11. Partner Center, Microsoft certification, and restricted capability approval
    evidence is missing.
-7. P2P control-plane release relay evidence is not verified.
-8. Explicit design approval evidence is missing.
-9. Real delegated-work relay transport proof is missing.
-10. V34 stale self-heal physical proof is missing.
+12. P2P control-plane release relay evidence is not verified.
+13. Explicit design approval evidence is missing.
+14. Real delegated-work relay transport proof is missing.
+15. V34 stale self-heal physical proof is missing.
 
 ## P2P / Relay Audit
 
@@ -154,7 +160,9 @@ Scope: this validates the source fix and the local debug CLI path. It does not
 close `private_mesh_packaged_release_proof_verified`, because the release gate
 requires a current packaged build with this fix installed on physical machines,
 target-generated physical peer evidence from the opposite PC, and a verified
-release proof archive. See
+release proof archive. The new source commit also means earlier local packaged
+smoke/process/startup/desktop evidence must be refreshed for the current commit
+or rebuilt package before the gate can count those lanes again. See
 `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
 
 Build/test caveat: an earlier broad filtered Cargo test compiled unrelated
@@ -166,29 +174,33 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest go/no-go has `full_product_spec_ready=false` and 10 blockers. | A release-ready claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices only. |
+| NO-GO | Full product spec is not complete. | Latest go/no-go has `full_product_spec_ready=false` and 15 blockers. | A release-ready claim would overstate the evidence. | Keep the claim scoped to proven rc.22 slices only. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |
-| HIGH | Several remaining lanes require physical or external evidence. | second-PC CPU/matrix, Store, design approval, V34 physical proof remain blockers. | Local source edits alone cannot close the release gate. | Collect proof on `hugh-main`, Partner Center/Store, and V34 physical stale-state setup. |
+| HIGH | Several lanes need current-commit packaged evidence refreshed. | Latest go/no-go marks single-machine, process ownership, startup single-instance, desktop repeated activation, and CPU lanes as blockers. | Earlier rc.22 evidence cannot be treated as current after source changes unless the gate accepts it. | Rebuild/install the current package and rerun the HUGH_SECOND local packaged evidence suite before claiming those lanes. |
+| HIGH | Several remaining lanes require physical or external evidence. | second-PC multi-device/CPU/matrix, Store, design approval, relay, V34 physical proof remain blockers. | Local source edits alone cannot close the release gate. | Collect proof on `hugh-main`, Partner Center/Store, and V34 physical stale-state setup. |
 
 ## Next Actions
 
-1. On `hugh-main`, run the current second-PC kit from
+1. Rebuild/install the current package after this source fix, then rerun
+   HUGH_SECOND single-machine, process ownership, startup single-instance,
+   desktop repeated activation, and runtime CPU evidence.
+2. On `hugh-main`, run the current second-PC kit from
    `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` and return the generated
    `.local-build/second-pc-return/*.zip`.
-2. Build and install a current package containing the Private Mesh
+3. Build and install a current package containing the Private Mesh
    physical-peer evidence fallback fix, then follow
    `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
-3. Repair `https://musu.pro` apex DNS/TLS so `/privacy`, `/support`, and
+4. Repair `https://musu.pro` apex DNS/TLS so `/privacy`, `/support`, and
    `/api/public-config` pass from `HUGH_SECOND`.
-4. Provision release-grade P2P storage with KV or Upstash env values, without
+5. Provision release-grade P2P storage with KV or Upstash env values, without
    printing secret values.
-5. Build the real relay tunnel runtime before flipping release relay markers.
-6. Record V34 stale self-heal proof on two physical nodes with stale registry,
+6. Build the real relay tunnel runtime before flipping release relay markers.
+7. Record V34 stale self-heal proof on two physical nodes with stale registry,
    stale local cache, stale manual peer, boot reconcile, and route-preflight
    evidence.
-7. Obtain explicit design approval and Store/Partner Center evidence.
-8. Rerun `write-release-go-no-go.ps1`, index the final docs/evidence, and only
+8. Obtain explicit design approval and Store/Partner Center evidence.
+9. Rerun `write-release-go-no-go.ps1`, index the final docs/evidence, and only
    then claim full product spec completion.
