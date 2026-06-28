@@ -16,53 +16,47 @@ several release lanes still require external or physical evidence.
 Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T13:25:19.9894351+09:00`
+- `generated_at`: `2026-06-28T13:53:13.4340964+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
-- `blockers=15`
+- `blockers=10`
 - `warnings=1`
-- `single_machine_verified=false`
-- `process_ownership_verified=false`
-- `startup_single_instance_verified=false`
-- `desktop_single_instance_verified=false`
-- `runtime_cpu_second_pc_route_attempt_verified=false`
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
 - `runtime_idle_cpu_verified=false`
+- `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`
 - `runtime_cpu_scenario_matrix_verified=false`
 - `private_mesh_packaged_release_proof_verified=false`
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=9a68e69796337da5d3e91f4c98bd6496ee15409a`
+- `commit=a58a9fb039f9d39a7272f21474c75ac8aff8ab01`
 
-2026-06-28 13:25 KST clean-HEAD correction: public metadata verification now
-distinguishes the apex fetch failure from a DNS authority mismatch, and the
-post-commit go/no-go run is clean (`manifest_git.dirty=false`). Because release
-evidence is bound to the exact source commit, the local packaged HUGH_SECOND
-evidence that was green at `44fe2392` is now stale against `9a68e697`, reopening
-five freshness lanes. This is a release evidence freshness rule, not a new
-runtime regression finding.
+2026-06-28 13:53 KST current-HEAD refresh: after the public metadata diagnostic
+commits reopened five freshness lanes, fresh HUGH_SECOND packaged evidence was
+captured and committed. The local single-machine, process ownership,
+startup/desktop single-instance, and targeted second-PC route-attempt lanes are
+green again. The product remains NO-GO because the remaining blockers require
+second physical machine, DNS/edge, Store, relay, design, or V34 proof.
 
 Current blockers:
 
-1. Fresh single-machine smoke evidence is not recorded for current HEAD.
-2. Real second-PC multi-device evidence is not recorded.
-3. Packaged desktop Private Mesh release proof archive is not verified.
-4. Runtime idle CPU evidence is valid on too few physical machines.
-5. Runtime CPU scenario matrix evidence is valid on too few physical machines.
-6. Runtime CPU matrix evidence has not recorded a current post-route CPU sample
-   after a targeted second-PC route attempt.
-7. Process ownership evidence is not current for this HEAD.
-8. Startup single-instance evidence is not current for this HEAD.
-9. Packaged desktop repeated activation evidence is not current for this HEAD.
-10. `https://musu.pro` public metadata fetches fail with
+1. Real second-PC multi-device evidence is not recorded.
+2. Packaged desktop Private Mesh release proof archive is not verified.
+3. Runtime idle CPU evidence is valid on too few physical machines.
+4. Runtime CPU scenario matrix evidence is valid on too few physical machines.
+5. `https://musu.pro` public metadata fetches fail with
    `request_failed,dns_nameserver_mismatch`.
-11. Partner Center, Microsoft certification, and restricted capability approval
+6. Partner Center, Microsoft certification, and restricted capability approval
    evidence is missing.
-12. P2P control-plane release relay evidence is not verified.
-13. Explicit design approval evidence is missing.
-14. Real delegated-work relay transport proof is missing.
-15. V34 stale self-heal physical proof is missing.
+7. P2P control-plane release relay evidence is not verified.
+8. Explicit design approval evidence is missing.
+9. Real delegated-work relay transport proof is missing.
+10. V34 stale self-heal physical proof is missing.
 
 New current-package evidence recorded after the earlier 15-blocker snapshot:
 
@@ -70,24 +64,25 @@ New current-package evidence recorded after the earlier 15-blocker snapshot:
   `.local-build\msix\output\musu_1.15.0.22_x64_local-sideload-manual.msix`,
   last written `2026-06-28T12:26:06+09:00`, size `40710731` bytes.
 - Single-machine packaged smoke:
-  `docs/evidence/single-machine/1.15.0-rc.22/20260628-122829-HUGH_SECOND.evidence.json`
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-133347-HUGH_SECOND.evidence.json`
   plus verification and summary files; verification reports `ok=true`,
   `fail_count=0`, `allow_developer_runtime=false`, and bridge
   `http://127.0.0.1:1695`.
 - Process/startup/desktop instance evidence:
-  `20260628-122848-HUGH_SECOND.process-ownership.json`,
-  `20260628-122855-HUGH_SECOND.startup-single-instance.json`, and
-  `20260628-122908-HUGH_SECOND.desktop-single-instance.json` all report
+  `20260628-133347-HUGH_SECOND.process-ownership.json`,
+  `20260628-133347-HUGH_SECOND.startup-single-instance.json`, and
+  `20260628-133347-HUGH_SECOND.desktop-single-instance.json` all report
   `ok=true` and `fail_count=0`.
 - Runtime CPU evidence:
-  `20260628-123156-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`,
-  clean git, 60.022s sample, and `hot_process_count=0`.
+  `20260628-134854-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`,
+  clean git, `include_node=true`, `include_webview2=true`, 60.028s sample, and
+  `hot_process_count=0`.
 - Runtime CPU scenario matrix:
-  `20260628-123157-HUGH_SECOND.runtime-cpu-scenario-matrix.json` plus
+  `20260628-133611-HUGH_SECOND.runtime-cpu-scenario-matrix.json` plus
   `.verification.json` report `ok=true`, `fail_count=0`, clean git, required
   scenarios `startup-open`, `runtime-started`, `dashboard-open`,
   `desktop-open`, and `post-route`, with successful route probe to
-  `hugh-main` using token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157`.
+  `hugh-main` using token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611`.
 
 This closes the HUGH_SECOND current-package smoke/process/startup/desktop
 blockers and restores the current second-PC route-attempt lane. It does not
@@ -246,7 +241,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest clean product gate has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Refresh current-HEAD HUGH_SECOND packaged evidence to recover the five stale local lanes, then close the physical/external product blockers. |
+| NO-GO | Full product spec is not complete. | Latest clean product gate has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers; current HUGH_SECOND freshness lanes are green. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch`; current NS are Cloudflare, expected NS are Vercel DNS. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |

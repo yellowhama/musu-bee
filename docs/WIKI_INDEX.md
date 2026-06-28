@@ -9432,14 +9432,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   the current handoff points to the later `20260628-125326` kit.
 
 - 2026-06-28 product spec completion audit refresh:
-  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` records the current
-  full-spec NO-GO state from `HUGH_SECOND`. Latest go/no-go remains
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` recorded the then-current
+  full-spec NO-GO state from `HUGH_SECOND`. That go/no-go reported
   `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
   `blockers=15`, `public_metadata_ok=false`,
   `p2p_control_plane_verified=false`, and
   `relay_transport_product_verified=false`. The post-code-commit gate at
   `2026-06-28T11:56:33.9311548+09:00` records clean commit
   `fb90715d60303ac463e609b9543de14687f16261` and
+  is superseded by the later 13:53 current-HEAD evidence refresh below.
   `manifest_git.dirty=false`; local packaged evidence lanes such as
   single-machine smoke, process ownership, startup single-instance, desktop
   repeated activation, and CPU evidence must be refreshed for the current
@@ -9497,7 +9498,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-122855-HUGH_SECOND`, desktop repeated activation
   `20260628-122908-HUGH_SECOND`, desktop-open idle CPU
   `20260628-123156-HUGH_SECOND`, and runtime CPU scenario matrix
-  `20260628-123157-HUGH_SECOND`. The latest go/no-go remains
+  `20260628-123157-HUGH_SECOND`. That go/no-go reported
   `full_product_spec_ready=false` and `ready_for_public_desktop_release=false`,
   but blockers dropped to `10` with `single_machine_verified=true`,
   `process_ownership_verified=true`, `startup_single_instance_verified=true`,
@@ -9506,7 +9507,9 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   real second-PC multi-device proof, packaged Private Mesh release proof
   archive, two-machine runtime idle CPU/matrix proof, public metadata, Store
   release evidence, P2P control-plane relay proof, design approval, real relay
-  transport, and V34 physical stale self-heal proof. Search terms should
+  transport, and V34 physical stale self-heal proof. This older snapshot is
+  superseded by the later `20260628-133347-HUGH_SECOND` current-HEAD refresh.
+  Search terms should
   include `20260628-122829-HUGH_SECOND`, `20260628-123157-HUGH_SECOND`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157`, `blockers=10`,
   `runtime_cpu_second_pc_route_attempt_verified=true`, and
@@ -9561,11 +9564,41 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Reopened freshness lanes are `single-machine`, `process-ownership`,
   `startup-single-instance`, `desktop-single-instance`, and
   `runtime-cpu-second-pc-route-attempt`. This is not a new runtime regression;
-  it means current-HEAD packaged evidence must be rerun before the gate can
-  return to the previous 10 substantive physical/external blockers. Search
+  it meant current-HEAD packaged evidence had to be rerun before the gate could
+  return to the previous 10 substantive physical/external blockers. That rerun
+  is recorded in the next 13:53 entry. Search
   terms should include `blockers=15`, `manifest_git.dirty=false`,
   `single-machine freshness reopened`, `runtime-cpu-second-pc-route-attempt`,
   `9a68e69796337da5d3e91f4c98bd6496ee15409a`, and
   `44fe239241263f43c12be9af60fd6cae6d134104`.
+
+- 2026-06-28 HUGH_SECOND current-HEAD packaged evidence refresh:
+  fresh current-HEAD evidence restored the local freshness lanes after the
+  public metadata diagnostic commits. New evidence files are
+  `20260628-133347-HUGH_SECOND.evidence.json`,
+  `20260628-133347-HUGH_SECOND.process-ownership.json`,
+  `20260628-133347-HUGH_SECOND.startup-single-instance.json`,
+  `20260628-133347-HUGH_SECOND.desktop-single-instance.json`,
+  `20260628-134854-HUGH_SECOND.desktop-open.evidence.json`, and
+  `20260628-133611-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  `verify-single-machine-evidence.ps1` and
+  `verify-runtime-cpu-scenario-matrix.ps1` both report `ok=true`,
+  `fail_count=0`; the matrix route probe targeted `hugh-main` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611`. The clean go/no-go at
+  `2026-06-28T13:53:13.4340964+09:00` on commit
+  `a58a9fb039f9d39a7272f21474c75ac8aff8ab01` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=1`, `manifest_git.dirty=false`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, and
+  `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`. Remaining blockers are
+  multi-device, Private Mesh packaged release proof, two-machine CPU/matrix,
+  store-public-metadata DNS mismatch, Store release, P2P control-plane, design
+  approval, relay transport, and V34 stale self-heal. Search terms should
+  include `20260628-133347-HUGH_SECOND`, `20260628-134854-HUGH_SECOND`,
+  `20260628-133611-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611`,
+  `blockers=10`, `runtime_idle_cpu_valid_machines=1/2`, and
+  `a58a9fb039f9d39a7272f21474c75ac8aff8ab01`.
 
 **End of WIKI_INDEX.md.**
