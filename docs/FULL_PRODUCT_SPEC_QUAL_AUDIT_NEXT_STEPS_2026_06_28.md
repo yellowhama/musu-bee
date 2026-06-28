@@ -7,7 +7,7 @@ MUSU is not complete against the full product spec yet.
 Latest clean local gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-28T17:32:55.4349035+09:00`
+- Generated: `2026-06-28T18:56:04.7165221+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -24,24 +24,24 @@ release gates.
 
 ## Current Evidence
 
-New HUGH_SECOND evidence after the design-gate approval URL hardening:
+New HUGH_SECOND evidence after the V34 endpoint validation hardening:
 
 - Single-machine smoke:
-  `docs/evidence/single-machine/1.15.0-rc.22/20260628-170703-HUGH_SECOND.evidence.json`
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-184155-HUGH_SECOND.evidence.json`
 - Process ownership:
-  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-170721-HUGH_SECOND.process-ownership.json`
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-184214-HUGH_SECOND.process-ownership.json`
 - Startup single-instance:
-  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-170721-HUGH_SECOND.startup-single-instance.json`
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-184214-HUGH_SECOND.startup-single-instance.json`
 - Desktop repeated activation:
-  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-171002-HUGH_SECOND.desktop-single-instance.json`
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-185307-HUGH_SECOND.desktop-single-instance.json`
 - Runtime CPU matrix:
-  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - Runtime idle CPU:
-  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-171827-HUGH_SECOND.desktop-open.evidence.json`
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-184508-HUGH_SECOND.desktop-open.evidence.json`
 
 The runtime matrix route probe targeted `hugh-main` at `192.168.1.192:4387` and
-returned `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`. The idle CPU sample ran
-for 60.033s with six owned WebView2 helpers, zero owned Node helpers, and no hot
+returned `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`. The idle CPU sample ran
+for 60.022s with six owned WebView2 helpers, zero owned Node helpers, and no hot
 processes.
 
 ## Findings

@@ -21,7 +21,8 @@ proof for rc.22, and the current HUGH_SECOND package now has refreshed
 single-machine smoke, process ownership, startup single-instance, desktop
 single-instance, runtime CPU, and targeted post-route matrix evidence. The
 latest clean gate reports `blockers=10`, not 15, because those local freshness
-lanes were restored after the design-gate hardening commit. It still does not
+lanes were restored again after the V34 endpoint validation hardening commit.
+It still does not
 prove the full product: second-PC release evidence, packaged Private Mesh proof
 archive, public metadata, Store release/Store-signed install evidence, real
 relay transport, explicit design approval, and V34 stale self-heal proof still
@@ -694,6 +695,52 @@ This reduces false-positive V34 proof risk but does not close the lane:
 physical two-node stale-state evidence is recorded and verified under
 `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Canonical report:
 `docs/V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28.md`.
+
+## 2026-06-28 Post-V34 Endpoint Local Evidence Refresh
+
+After the V34 endpoint validation hardening commit, `write-release-go-no-go.ps1`
+correctly reopened local freshness lanes and reported `blockers=15`. The
+current HUGH_SECOND packaged `1.15.0-rc.22` install has now been refreshed
+against the current branch state:
+
+- Single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-184155-HUGH_SECOND.evidence.json`.
+- Process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-184214-HUGH_SECOND.process-ownership.json`.
+- Startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-184214-HUGH_SECOND.startup-single-instance.json`.
+- Desktop repeated activation:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-185307-HUGH_SECOND.desktop-single-instance.json`.
+- Desktop-open idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-184508-HUGH_SECOND.desktop-open.evidence.json`.
+- Full runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- Runtime CPU matrix verification:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
+
+The refreshed CPU matrix uses the packaged WindowsApps `musu.exe`, records
+`git_dirty=false`, covers `startup-open`, `runtime-started`, `dashboard-open`,
+`desktop-open`, and `post-route`, and the post-route probe targets `hugh-main`
+with token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`.
+
+Gate result:
+
+- `write-release-go-no-go.ps1 -Json` generated
+  `.local-build/go-no-go/latest.json` at `2026-06-28T18:56:04.7165221+09:00`.
+- `full_product_spec_ready=false`.
+- `ready_for_public_desktop_release=false`.
+- `blockers=10`.
+- `warnings=0`.
+- `manifest_git.dirty=false`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  3403 files and 3879 symbols; recall returns the new local evidence report,
+  runtime matrix route token, and desktop activation evidence file.
+
+This restores the local current-package lanes to green. It still does not close
+the product because the remaining blockers require physical second-PC proof,
+external DNS/TLS and Store work, real relay transport implementation/proof,
+explicit design approval, and V34 physical stale-state proof. Canonical report:
+`docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_V34_ENDPOINT.md`.
 
 ## 2026-06-28 V34 CLI Route Stale Candidate Preflight Update
 

@@ -9851,4 +9851,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   candidate`, `Split-EndpointAddr`, `case_count=214`, and
   `v34_stale_self_heal_verified=false`.
 
+- 2026-06-28 post-V34 endpoint local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_V34_ENDPOINT.md`
+  records the current HUGH_SECOND packaged evidence refresh after V34 endpoint
+  validation hardening reopened local freshness lanes. Evidence paths include
+  single-machine `20260628-184155`, process/startup `20260628-184214`,
+  desktop activation `20260628-185307`, idle CPU `20260628-184508`, runtime
+  CPU matrix `20260628-184627`, and matrix verification `ok=true`,
+  `fail_count=0`. The matrix route probe targeted `hugh-main` with token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`. Go/no-go at
+  `2026-06-28T18:56:04.7165221+09:00` returned `blockers=10`, `warnings=0`,
+  and `manifest_git.dirty=false`. `musu indexer sync --work-dir
+  F:\workspace\musu-bee --name musu-bee` indexed 3403 files and 3879 symbols,
+  with recall hits for the report, route token, and desktop evidence filename;
+  the product remains NO-GO on second-PC,
+  Private Mesh, public metadata, Store, P2P control-plane, design approval,
+  relay transport, and V34 physical proof lanes. Search terms should include
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_V34_ENDPOINT`,
+  `20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`, `blockers=10`, and
+  `manifest_git.dirty=false`.
+
 **End of WIKI_INDEX.md.**
