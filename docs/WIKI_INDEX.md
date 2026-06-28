@@ -9727,4 +9727,19 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`,
   `release_tunnel_payload_endpoint_missing=true`, and `failed_case_count=0`.
 
+- 2026-06-28 clean-HEAD go/no-go after latest kit pointer refresh:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-second-pc-latest-pointer-refresh.json` and
+  `.local-build\go-no-go\latest.json` at
+  `2026-06-28T16:37:04.1596814+09:00` for commit
+  `0bb6dbcda5cdd68b5eef6c5a13cb9a966d139f54`. It reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. Remaining
+  blocker areas are `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `store-public-metadata`,
+  `store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
+  and `v34-stale-self-heal`. Search terms should include
+  `after-second-pc-latest-pointer-refresh.json`, `0bb6dbcd`,
+  `blockers=10`, and `ready_for_public_desktop_release=false`.
+
 **End of WIKI_INDEX.md.**

@@ -173,6 +173,15 @@ relay route/transport/delivery proof missing. Do not flip release relay markers
 until real `quic_relay_tunnel` payload transit emits MUSU-bound
 `quic_tls_1_3` proof.
 
+2026-06-28 16:37 KST clean-HEAD gate recheck: after the second-PC latest-output
+contract fix and handoff/wiki refresh, `write-release-go-no-go.ps1 -Json`
+reports `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and
+`manifest_git.dirty=false` at commit
+`0bb6dbcda5cdd68b5eef6c5a13cb9a966d139f54`. This confirms the kit-pointer fix
+did not close or reopen product lanes; the remaining blockers are still
+physical/external release evidence and real relay/runtime implementation.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store

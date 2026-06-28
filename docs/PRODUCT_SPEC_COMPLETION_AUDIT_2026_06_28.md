@@ -17,7 +17,7 @@ Authoritative local gate:
 
 - Command source: `.local-build/go-no-go/latest.json`
 - Snapshot file: `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-28T16:16:15.3272415+09:00`
+- `generated_at`: `2026-06-28T16:37:04.1596814+09:00`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -36,7 +36,16 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
-- `commit=af13762f3e53d1dd460729bd6bd7bc971e3dc65f`
+- `commit=0bb6dbcda5cdd68b5eef6c5a13cb9a966d139f54`
+
+2026-06-28 16:37 KST clean-HEAD recheck: after the second-PC latest-output
+contract fix and handoff/wiki refresh, `write-release-go-no-go.ps1 -Json`
+still reports `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and
+`manifest_git.dirty=false`. The blocker list did not change: multi-device,
+Private Mesh packaged proof, two-machine idle CPU, two-machine CPU scenario
+matrix, store public metadata, Store release, P2P control plane, design
+approval, relay transport, and V34 stale self-heal remain open.
 
 2026-06-28 13:53 KST current-HEAD refresh: after the public metadata diagnostic
 commits reopened five freshness lanes, fresh HUGH_SECOND packaged evidence was
