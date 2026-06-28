@@ -199,7 +199,7 @@ fn relay_payload_poller_sleep_duration(
     )
 }
 
-fn relay_payload_poller_enabled() -> bool {
+pub fn relay_payload_poller_enabled() -> bool {
     // Default ON: relay is now the standard cross-machine fallback when direct/
     // tailnet reach fails, so a machine must receive relayed tasks without the
     // user setting any env (배관 숨김 — the user should never hand-edit a poller

@@ -4779,7 +4779,8 @@ fn check_background_features(
     let mdns_tailscale_enabled = env_truthy("MUSU_MDNS_ENABLE_TAILSCALE");
     let mdns_virtual_enabled = env_truthy("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES");
     let clipboard_enabled = env_truthy("MUSU_ENABLE_CLIPBOARD_SYNC");
-    let relay_payload_poller_enabled = env_truthy("MUSU_ENABLE_RELAY_PAYLOAD_POLLER");
+    let relay_payload_poller_enabled =
+        crate::bridge::handlers::relay_payload::relay_payload_poller_enabled();
     let relay_payload_poller_interval_sec =
         crate::bridge::handlers::relay_payload::normalize_relay_payload_poller_interval_sec(
             std::env::var("MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC")
@@ -4846,7 +4847,6 @@ fn check_background_features(
         mdns_virtual_enabled,
         clipboard_enabled,
         file_sync_enabled,
-        relay_payload_poller_enabled,
         planner_enabled,
         auto_update_supervise_enabled,
     ]
@@ -4923,13 +4923,13 @@ fn check_background_features(
             key: "relay_target_polling",
             label: "Relay target polling",
             active: relay_payload_poller_enabled,
-            activation_mode: "env-opt-in",
+            activation_mode: "default-on-opt-out",
             note: if relay_payload_poller_enabled {
                 format!(
                     "Relay target polling is active at {relay_payload_poller_interval_sec}s with empty backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
                 )
             } else {
-                "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set."
+                "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER opted it out."
                     .into()
             },
         },
@@ -5095,7 +5095,7 @@ fn check_background_features(
                     "Relay payload target polling is enabled at a bounded {relay_payload_poller_interval_sec}s interval, limit {relay_payload_poller_limit}, with empty/failure backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
                 )
             } else {
-                "Relay payload target polling is off by default; manual drain remains request-driven.".into()
+                "Relay payload target polling is disabled by MUSU_ENABLE_RELAY_PAYLOAD_POLLER opt-out; manual drain remains request-driven.".into()
             },
         },
         relay_payload_poller_interval_sec,
@@ -7056,7 +7056,7 @@ mod tests {
         assert_eq!(background.cloud_heartbeat_interval_sec, 300);
         assert_eq!(background.cloud_heartbeat_floor_sec, 60);
         assert_eq!(background.file_serve_root_count, 0);
-        assert!(!background.relay_payload_poller.enabled);
+        assert!(background.relay_payload_poller.enabled);
         assert_eq!(
             background.relay_payload_poller_interval_sec,
             crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC
@@ -7108,8 +7108,28 @@ mod tests {
             BRIDGE_HEALTH_POLL_MAX_MS
         );
         assert_eq!(background.runtime_loop_candidates.len(), 10);
+        assert_eq!(background.active_runtime_loop_candidate_count, 1);
+        assert_eq!(
+            background.active_runtime_loop_candidate_keys,
+            vec!["relay_target_polling"]
+        );
+    }
+
+    #[test]
+    fn doctor_background_relay_payload_poller_matches_runtime_opt_out() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        std::env::set_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER", "0");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Ok);
+        assert!(!background.relay_payload_poller.enabled);
         assert_eq!(background.active_runtime_loop_candidate_count, 0);
         assert!(background.active_runtime_loop_candidate_keys.is_empty());
+
+        std::env::remove_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER");
     }
 
     #[test]
@@ -7128,10 +7148,15 @@ mod tests {
         assert!(background.clipboard_sync.enabled);
         assert!(background.cloud_registration.enabled);
         assert_eq!(background.cloud_heartbeat_interval_sec, 60);
-        assert_eq!(background.active_runtime_loop_candidate_count, 3);
+        assert_eq!(background.active_runtime_loop_candidate_count, 4);
         assert_eq!(
             background.active_runtime_loop_candidate_keys,
-            vec!["mdns_discovery", "clipboard_polling", "cloud_heartbeat"]
+            vec![
+                "mdns_discovery",
+                "clipboard_polling",
+                "cloud_heartbeat",
+                "relay_target_polling"
+            ]
         );
 
         std::env::remove_var("MUSU_ENABLE_MDNS");
@@ -7171,7 +7196,7 @@ mod tests {
     }
 
     #[test]
-    fn doctor_background_warns_and_floors_relay_payload_poller_budget() {
+    fn doctor_background_floors_relay_payload_poller_budget() {
         let _guard = ENV_LOCK.lock().unwrap();
         clear_background_env();
         std::env::set_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER", "1");
@@ -7182,7 +7207,7 @@ mod tests {
 
         let background = check_background_features(tmp.path(), false);
 
-        assert_eq!(background.status, DoctorLevel::Warn);
+        assert_eq!(background.status, DoctorLevel::Ok);
         assert!(background.relay_payload_poller.enabled);
         assert_eq!(
             background.relay_payload_poller_interval_sec,
@@ -7223,10 +7248,14 @@ mod tests {
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
         );
-        assert_eq!(background.active_runtime_loop_candidate_count, 2);
+        assert_eq!(background.active_runtime_loop_candidate_count, 3);
         assert_eq!(
             background.active_runtime_loop_candidate_keys,
-            vec!["health_check_retry", "auto_update_supervisor"]
+            vec![
+                "relay_target_polling",
+                "health_check_retry",
+                "auto_update_supervisor"
+            ]
         );
     }
 

@@ -39,6 +39,14 @@ missing. The public metadata verifier still fails all canonical
 `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` for the current blocker
 map and next actions.
 
+2026-06-28 doctor relay poller alignment: the runtime relay payload poller is
+default-on with explicit opt-out, and `musu doctor --json` now uses the same
+runtime decision helper instead of treating `MUSU_ENABLE_RELAY_PAYLOAD_POLLER`
+as an env-opt-in. This fixes an evidence/observability mismatch only. It does
+not implement the release relay tunnel runtime, provision relay storage, prove
+payload delivery, or close `relay_transport_product_verified=false`. See
+`docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md`.
+
 2026-06-28 Private Mesh evidence update: the product still has
 `private_mesh_packaged_release_proof_verified=false`, but one proof generator
 defect is fixed in source. `musu mesh physical-peer-evidence` must not fail

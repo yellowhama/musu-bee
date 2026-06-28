@@ -10032,4 +10032,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`,
   `after-current-head-second-pc-kit-refresh`, and `blockers=10`.
 
+- 2026-06-28 doctor relay poller runtime alignment:
+  `docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md` records the source
+  audit fix that made `musu doctor --json` use the same
+  `relay_payload_poller_enabled()` helper as the bridge runtime. The relay
+  payload poller is default-on with explicit opt-out, so doctor now reports the
+  runtime-loop candidate as `default-on-opt-out` instead of treating
+  `MUSU_ENABLE_RELAY_PAYLOAD_POLLER` as env-opt-in. Verification passed
+  `cargo test --lib -j 1 doctor_background` and
+  `cargo test --lib -j 1 relay_payload_poller`. The P2P relay contract audit
+  wording now also says `target polling is default-on opt-out low duty` instead
+  of stale default-off wording. This fixes observability only: real release
+  relay tunnel runtime, hosted relay storage, live relay route/transport/delivery
+  proof, and `relay_transport_product_verified` remain open. Search terms should
+  include `DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT`, `default-on-opt-out`,
+  `target polling is default-on opt-out low duty`, `relay_payload_poller_enabled`,
+  `doctor_background_relay_payload_poller_matches_runtime_opt_out`, and
+  `release_relay_tunnel_runtime_not_implemented`.
+
 **End of WIKI_INDEX.md.**

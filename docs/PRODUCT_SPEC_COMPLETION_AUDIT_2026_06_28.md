@@ -17,10 +17,11 @@ several release lanes still require external or physical evidence.
 Authoritative local gate:
 
 - Command source:
-  `.local-build/go-no-go/after-current-head-second-pc-kit-refresh.json`
+  `.local-build/go-no-go/after-69b127f9-docs-refresh.json`
 - Snapshot file:
-  `.local-build/go-no-go/after-current-head-second-pc-kit-refresh.json`
-- `generated_at`: `2026-06-28T21:56:37.1321855+09:00`
+  `.local-build/go-no-go/after-69b127f9-docs-refresh.json`
+- `generated_at`: `2026-06-28T22:02:38.7818088+09:00`
+- `manifest_git.commit`: `69b127f94d0230177339cfeae278bcd5fb9bb1c1`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -39,6 +40,26 @@ Authoritative local gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 - `manifest_dirty=false`
+
+2026-06-28 22:02 KST clean docs-refresh gate: after commit
+`69b127f94d0230177339cfeae278bcd5fb9bb1c1`, the release gate still reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. The blocker list
+is still multi-device, Private Mesh packaged release proof, two-machine idle
+CPU, two-machine CPU scenario matrix, public metadata DNS/TLS, Store release,
+P2P control plane, explicit design approval, real relay transport, and V34
+stale self-heal physical proof.
+
+2026-06-28 doctor relay poller alignment: source audit found that the bridge
+relay payload poller runtime is default-on with explicit opt-out, while
+`musu doctor --json` treated it as env-opt-in. The doctor path now calls the
+runtime helper and reports relay target polling as `default-on-opt-out`; the
+P2P relay contract audit message was also aligned so future audit JSON no
+longer claims the target poller is default-off. This fixes evidence accuracy
+and background-loop attribution only. It does not close the relay transport
+product lane because `release_relay_tunnel_runtime` is still not implemented
+and live route/transport/delivery proof is still absent. See
+`docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md`.
 
 2026-06-28 21:56 KST current-HEAD second-PC kit refresh: after the W-7 release
 endpoint source-node binding extension, the second-PC handoff kit was regenerated
@@ -430,9 +451,10 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T21:56:37.1321855+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | Full product spec is not complete. | Latest clean product gate at `2026-06-28T22:02:38.7818088+09:00` on commit `69b127f94d0230177339cfeae278bcd5fb9bb1c1` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, but `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
+| HIGH | Doctor/background and P2P audit evidence previously disagreed with the relay poller runtime default. | Runtime relay payload polling is default-on opt-out, but doctor used a truthy env check and the P2P audit message still said default-off. Source now reuses `relay_payload_poller_enabled()`, the audit wording is aligned, and targeted tests pass. | Without this fix, runtime-loop/CPU evidence could under-report an active low-duty loop and mislead release audits. | Keep the helper shared; refresh package-bound evidence after this runtime source change. |
 | HIGH | Design approval is now URL-evidence-gated, but still missing. | `design-gate` requires a standalone `Design: Approved` line plus a GitHub `#issuecomment-...` approval URL; issue #35 currently has evidence-refresh comments, not approval. | PR #34 remains blocked and cannot be merged honestly. | Add explicit CEO/design approval on issue #35, then update the PR body with that approval comment URL. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is proof-bound but still fail-closed for release transport. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`; `/api/v1/relay/payload` accepts release proof metadata only and still rejects raw payload bytes. | The current code protects against false release relay claims while removing the source payload endpoint gap. | Preserve proof-bound behavior while building the real runtime. |

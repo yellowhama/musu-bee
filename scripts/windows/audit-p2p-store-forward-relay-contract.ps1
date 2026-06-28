@@ -865,18 +865,19 @@ Add-Check `
 
 Add-Check `
     -Scope "rust-target" `
-    -Name "target polling is default-off low duty" `
+    -Name "target polling is default-on opt-out low duty" `
     -Passed (
         Test-ContainsAll -Text $relayPayloadDrain -Needles @(
+            "default-on low-duty poller",
             "MUSU_ENABLE_RELAY_PAYLOAD_POLLER",
             "RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC: u64 = 60",
             "RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC: u64 = 30",
             "cancellation_token.cancelled()",
-            "relay payload poller disabled"
+            "relay payload poller disabled via MUSU_ENABLE_RELAY_PAYLOAD_POLLER opt-out"
         )
     ) `
     -Path $relayPayloadDrainPath `
-    -Message "Target-side relay poller is disabled by default and has explicit low-duty sleep/backoff/cancellation."
+    -Message "Target-side relay poller is default-on with explicit env opt-out and bounded low-duty sleep/backoff/cancellation."
 
 Add-Check `
     -Scope "rust-target" `
