@@ -80,10 +80,15 @@ reports
 `relay_transport_product_verified=false`. The product is still NO-GO, but the
 local current-package evidence lanes are no longer the blocker. The second-PC
 kit was regenerated at
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-141837.zip`
 with SHA256
-`39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`, and
+`c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`, and
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that kit.
+The kit generator itself was also tightened in commit
+`e9ed80a2bb55fb7b798327129e5e461dd7039f25`: the go/no-go next action command
+`prepare-multidevice-test-kit.ps1 -Json` now works and emits
+`musu.multidevice_test_kit_prepare.v1` with the kit zip SHA256 and metadata
+path.
 
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
@@ -904,22 +909,26 @@ TLS path is repaired and the canonical verifier passes again.
 
 After the current-package evidence refresh, the current rc.22 multi-device kit
 was regenerated from clean commit
-`44fe239241263f43c12be9af60fd6cae6d134104`.
+`e9ed80a2bb55fb7b798327129e5e461dd7039f25`.
 The concise handoff for the other physical machine is
 `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
 Generated artifact:
 
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-125326`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837`.
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-141837.zip`.
 - Metadata:
   `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`.
+  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, and `dirty=false`.
+- Generator result:
+  `latest-prepare-output.json` reports
+  `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`, and proves the
+  go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is executable.
 - SHA256:
-  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
+  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
 - Included proof tools:
   `run-second-pc-release-check.ps1`, `measure-musu-idle-cpu.ps1`,
   `measure-musu-runtime-cpu-scenarios.ps1`,

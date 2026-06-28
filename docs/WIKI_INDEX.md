@@ -9429,7 +9429,7 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
   `RuntimeCpuRouteTarget hugh_second`, and
   `552b239eef0ced04f3a08658c5dc82ced2a90145`. This kit is now historical;
-  the current handoff points to the later `20260628-125326` kit.
+  the current handoff points to the later `20260628-141837` kit.
 
 - 2026-06-28 product spec completion audit refresh:
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` recorded the then-current
@@ -9517,21 +9517,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
 
 - 2026-06-28 current second-PC kit supersedes the 11:00 kit:
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` to
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-141837.zip`.
   `kit-build-metadata.json` records `version=1.15.0-rc.22`, branch
   `feat/v33-residual-finalize`, commit
-  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`. The release
+  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, and `dirty=false`.
+  `prepare-multidevice-test-kit.ps1 -Json` now emits
+  `musu.multidevice_test_kit_prepare.v1` with `zip_sha256` and
+  `metadata_path`, fixing the go/no-go next action command. The release
   candidate manifest records this kit as role `multi_device_test_kit`, size
-  `81116414`, SHA256
-  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
+  `81116411`, SHA256
+  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
   The command for `hugh-main` remains:
   `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
   This advances the physical evidence path but does not close second-PC
   multi-device or two-machine CPU/matrix blockers until the return zip is
   imported and verified. Search terms should include
-  `musu-multidevice-1.15.0-rc.22-20260628-125326`,
-  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`,
-  and `44fe239241263f43c12be9af60fd6cae6d134104`.
+  `musu-multidevice-1.15.0-rc.22-20260628-141837`,
+  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`,
+  `musu.multidevice_test_kit_prepare.v1`, and
+  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`.
 
 - 2026-06-28 public metadata DNS diagnostic contract:
   `scripts/windows/verify-store-public-metadata.ps1` now emits

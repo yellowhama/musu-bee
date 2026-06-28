@@ -89,16 +89,22 @@ blockers and restores the current second-PC route-attempt lane. It does not
 close the runtime CPU release gates because those require verifier-passing
 evidence from at least two physical machines.
 
-Second-PC kit refresh after this evidence:
+Second-PC kit refresh after this evidence and the JSON next-action fix:
 
 - Kit zip:
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-125326.zip`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-141837.zip`.
 - Kit metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, commit
-  `44fe239241263f43c12be9af60fd6cae6d134104`, and `dirty=false`.
+  `e9ed80a2bb55fb7b798327129e5e461dd7039f25`, and `dirty=false`.
+- Generator result:
+  `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
+  `generated_at=2026-06-28T14:18:56.8022723+09:00`, and
+  `.local-build\multi-device-test-kit\latest-prepare-output.json` now proves
+  the go/no-go `prepare-multidevice-test-kit.ps1 -Json` next action is
+  executable.
 - Release manifest artifact:
-  role `multi_device_test_kit`, size `81116414`, SHA256
-  `39ca8c06b8eee3be6cbe3dfd291936e7bd1fe0ab1a50e08af9d65fb86b5e0dc6`.
+  role `multi_device_test_kit`, size `81116411`, SHA256
+  `c47c3204a08bc5ea0c427da29b9ef6a03e9df905e5ddf2b4ea66fdde8b431862`.
 - Current handoff:
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`.
 
