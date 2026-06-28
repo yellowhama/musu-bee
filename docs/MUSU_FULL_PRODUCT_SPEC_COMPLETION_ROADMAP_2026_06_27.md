@@ -112,6 +112,20 @@ the product is still NO-GO because the P2P release relay runtime, route
 metadata/proof, payload delivery proof, and the other physical/external gates
 are still missing.
 
+2026-06-28 14:55 KST desktop-latest cache-buster update: the guarded publisher
+uploaded the current rc.22 `musu-desktop-x64.msix` to the GitHub
+`desktop-latest` release, and GitHub release metadata now reports the expected
+current size `40710731` bytes. The old `?rc=1.15.0.22` download URL still
+returned the previous CDN object immediately after upload, so public desktop
+artifact URLs now include an `asset=` cache key derived from the current MSIX
+SHA256 (`74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1`).
+`canary-desktop-release.ps1 -Json` now passes with `ok=true`,
+`failure_count=0`, and `hosted_msix_length.remote_length=40710731` using those
+new URLs. Evidence:
+`docs/evidence/desktop-release-canary/1.15.0-rc.22/20260628-1455-desktop-release-canary-after-cachebuster.json`.
+This fixes a real install/download drift hazard, but it does not repair the
+canonical apex `https://musu.pro` DNS/TLS blocker.
+
 2026-06-28 update: Store distribution evidence is now fail-closed in tooling.
 `record-store-release-verification.ps1` and `verify-store-release-evidence.ps1`
 no longer accept Partner Center approval timestamps by themselves. The Store
@@ -953,6 +967,15 @@ This is a product-spec NO-GO because install, proof, privacy, support, and
 public config all use `https://musu.pro` as the canonical public surface. It
 cannot be closed by local code changes alone unless the domain authority/edge
 TLS path is repaired and the canonical verifier passes again.
+
+Follow-up at 2026-06-28 14:55 KST: the public desktop artifact URLs now have a
+strong cache key and the desktop release canary passes against GitHub
+`desktop-latest`. The apex metadata blocker remains separate: Vercel reports
+production deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ` as `Ready` and aliased
+to `https://musu.pro`, but `vercel domains inspect musu.pro` still reports
+current nameservers `blakely.ns.cloudflare.com` and
+`weston.ns.cloudflare.com`, not the intended Vercel nameservers. Local
+`curl.exe` still sees connection reset on `https://musu.pro/privacy`.
 
 ## 2026-06-28 Second-PC Kit Refresh
 

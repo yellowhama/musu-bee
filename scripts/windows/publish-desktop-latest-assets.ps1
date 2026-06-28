@@ -149,6 +149,13 @@ function Get-RequiredMatch {
     return $match.Groups[1].Value
 }
 
+function Get-UrlPathLeafWithoutQuery {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    $withoutQuery = ($Value -split "\?", 2)[0]
+    return Split-Path -Leaf $withoutQuery
+}
+
 function Get-AppInstallerVersions {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -182,10 +189,11 @@ if ($publicVersionFromSiteSource -ne $publicVersionFromFile) {
 
 $expectedPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $publicVersionFromFile
 $numericVersion = ($publicVersionFromFile -split "-", 2)[0].Trim()
-$setupAssetName = Get-RequiredMatch `
+$setupAssetSuffix = Get-RequiredMatch `
     -Text $publicReleaseText `
     -Pattern 'DESKTOP_SETUP_EXE_URL\s*=\s*`\$\{DESKTOP_RELEASE_BASE\}/([^`]+)`' `
     -Label "DESKTOP_SETUP_EXE_URL asset name from publicRelease.ts"
+$setupAssetName = Get-UrlPathLeafWithoutQuery -Value $setupAssetSuffix
 
 if ($setupAssetName -notmatch '^MUSU_(\d+\.\d+\.\d+)_x64-setup\.exe$') {
     throw "Unexpected setup asset name in publicRelease.ts: $setupAssetName"

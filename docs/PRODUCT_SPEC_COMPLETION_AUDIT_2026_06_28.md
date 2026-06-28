@@ -64,6 +64,18 @@ and `p2p_control_plane_evidence_integrity_ok=true`. This closes the stale
 integrity-sidecar warning only. The product remains NO-GO because
 `p2p_control_plane_verified=false` and `relay_transport_product_verified=false`.
 
+2026-06-28 14:55 KST desktop-latest cache-buster recheck: guarded upload updated
+the GitHub `desktop-latest` `musu-desktop-x64.msix` asset metadata to
+`40710731` bytes. The stale package-version-only URL continued to return the
+previous CDN object, so `publicRelease.ts` now appends the current MSIX SHA256 as
+an `asset=` cache key on every desktop-latest URL. Fresh canary evidence at
+`docs/evidence/desktop-release-canary/1.15.0-rc.22/20260628-1455-desktop-release-canary-after-cachebuster.json`
+reports `ok=true`, `failure_count=0`, and hosted MSIX/setup lengths matching
+local artifacts. This closes the desktop asset cache/drift issue found during
+the site-deploy preflight, but the canonical `https://musu.pro` public metadata
+blocker remains because apex HTTPS still resets and DNS authority still points
+at Cloudflare nameservers.
+
 Current blockers:
 
 1. Real second-PC multi-device evidence is not recorded.
@@ -291,6 +303,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status has release payload endpoint false, runtime false, and live relay proof missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, proof emission, and direct-blocked two-PC proof. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |
 | HIGH | P2P source is fail-closed rather than broken. | Store-forward relay contract audit reports `ok=true`, `fail_count=0`. | The current code protects against false release relay claims. | Preserve fail-closed behavior while building the real runtime. |
+| INFO | Public desktop artifact URL cache key is now artifact-bound instead of package-version-only. | GitHub release metadata reports `musu-desktop-x64.msix` size `40710731`; canary evidence `20260628-1455-desktop-release-canary-after-cachebuster.json` reports `ok=true` and `hosted_msix_length.ok=true`. | The one-line installer/download path no longer depends on stale CDN state after same-version `desktop-latest` clobber uploads. | Deploy the site so `musu.pro` serves the updated URLs; apex DNS/TLS still needs separate repair. |
 | INFO | Current HUGH_SECOND packaged local evidence is refreshed. | Latest go/no-go has `single_machine_verified=true`, `process_ownership_verified=true`, `startup_single_instance_verified=true`, and `desktop_single_instance_verified=true`. | The previous current-package local evidence blockers are closed. | Keep the evidence committed; rerun only after source/package changes. |
 | HIGH | Runtime CPU remains one-machine evidence. | Latest go/no-go has `runtime_idle_cpu_verified=false` and `runtime_cpu_scenario_matrix_verified=false` even though HUGH_SECOND evidence passes. | Release cannot claim CPU/matrix readiness until `hugh-main` also produces verifier-passing evidence. | Run/import the second-PC kit from `hugh-main`. |
 | HIGH | Several remaining lanes require physical or external evidence. | second-PC multi-device/CPU/matrix, Private Mesh packaged archive, Store, design approval, relay, and V34 physical proof remain blockers. | Local source edits alone cannot close the release gate. | Collect proof on `hugh-main`, Partner Center/Store, and V34 physical stale-state setup. |

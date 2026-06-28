@@ -502,7 +502,7 @@ if ($SkipLocalArtifactLengthChecks) {
     $setupExeLengthCheck.error = "DESKTOP_SETUP_EXE_URL not found in publicRelease.ts"
 } else {
     if ([string]::IsNullOrWhiteSpace($SetupExePath)) {
-        $setupLeaf = ($setupExeTarget.Url -split "/")[-1]
+        $setupLeaf = (($setupExeTarget.Url -split "/")[-1] -split "\?", 2)[0]
         $SetupExePath = Join-PathParts -Base $repoRoot -Parts @("musu-bee", "src-tauri", "target", "release", "bundle", "nsis", $setupLeaf)
         $setupExeLengthCheck.local_path = $SetupExePath
     }

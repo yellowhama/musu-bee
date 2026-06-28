@@ -1,0 +1,126 @@
+{
+    "schema":  "musu.desktop_release_canary.v6",
+    "ok":  true,
+    "failure_count":  0,
+    "public_version":  "1.15.0-rc.22",
+    "expected_package_version":  "1.15.0.22",
+    "public_release_path":  "F:\\workspace\\musu-bee\\musu-bee\\src\\lib\\publicRelease.ts",
+    "version_path":  "F:\\workspace\\musu-bee\\VERSION",
+    "output_dir":  "F:\\workspace\\musu-bee\\.local-build\\msix\\output",
+    "urls":  [
+                 {
+                     "name":  "DESKTOP_APPINSTALLER_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu.appinstaller?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "768",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_MSIX_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu-desktop-x64.msix?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "40710731",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_CERT_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/blossompark.musu.cer?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "788",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_INSTALL_SCRIPT_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/Install-MUSU.ps1?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "16587",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_REPAIR_FLEET_SCRIPT_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/repair-fleet-node-public-url.ps1?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "7195",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_UNINSTALL_SCRIPT_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/Uninstall-MUSU.ps1?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "10364",
+                     "ok":  true
+                 },
+                 {
+                     "name":  "DESKTOP_SETUP_EXE_URL",
+                     "url":  "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/MUSU_1.15.0_x64-setup.exe?rc=1.15.0.22\u0026asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1",
+                     "status":  200,
+                     "content_length":  "215402484",
+                     "ok":  true
+                 }
+             ],
+    "appinstaller_version":  {
+                                 "ok":  true,
+                                 "expected_package_version":  "1.15.0.22",
+                                 "appinstaller_version":  "1.15.0.22",
+                                 "main_package_version":  "1.15.0.22",
+                                 "error":  null
+                             },
+    "installer_script":  {
+                             "ok":  true,
+                             "expected_public_version":  "1.15.0-rc.22",
+                             "local_path":  "F:\\workspace\\musu-bee\\scripts\\windows\\Install-MUSU.ps1",
+                             "local_sha256":  "920a7382053bf36ee2af895d4f1a490a0002b65eda9a06e8f339197c196e8826",
+                             "hosted_sha256":  "920a7382053bf36ee2af895d4f1a490a0002b65eda9a06e8f339197c196e8826",
+                             "local_length":  16587,
+                             "hosted_length":  16587,
+                             "hash_match":  true,
+                             "hosted_expected_release_version":  "1.15.0-rc.22",
+                             "hosted_expected_cert_thumbprint":  "65F5926444D563966C75F000C384C8530B1D8DD8",
+                             "error":  null
+                         },
+    "uninstaller_script":  {
+                               "ok":  true,
+                               "local_path":  "F:\\workspace\\musu-bee\\scripts\\windows\\Uninstall-MUSU.ps1",
+                               "local_sha256":  "a5d9eb079e7434dedbe4b6e031eb0643f7ecbfceaba6be1dc394199aedb9fec8",
+                               "hosted_sha256":  "a5d9eb079e7434dedbe4b6e031eb0643f7ecbfceaba6be1dc394199aedb9fec8",
+                               "local_length":  10364,
+                               "hosted_length":  10364,
+                               "hash_match":  true,
+                               "error":  null
+                           },
+    "repair_fleet_script":  {
+                                "ok":  true,
+                                "local_path":  "F:\\workspace\\musu-bee\\scripts\\windows\\repair-fleet-node-public-url.ps1",
+                                "local_sha256":  "c2edd8dfefdffec0b8d866ac267ab61ef89e4a4333808612d2c2aa3493bb71a1",
+                                "hosted_sha256":  "c2edd8dfefdffec0b8d866ac267ab61ef89e4a4333808612d2c2aa3493bb71a1",
+                                "local_length":  7195,
+                                "hosted_length":  7195,
+                                "hash_match":  true,
+                                "hosted_schema_present":  true,
+                                "hosted_expected_node_guard_present":  true,
+                                "error":  null
+                            },
+    "cert_thumbprint":  {
+                            "ok":  true,
+                            "skipped":  false,
+                            "expected_thumbprint":  "65F5926444D563966C75F000C384C8530B1D8DD8",
+                            "hosted_thumbprint":  "65F5926444D563966C75F000C384C8530B1D8DD8",
+                            "error":  null
+                        },
+    "hosted_msix_length":  {
+                               "ok":  true,
+                               "skipped":  false,
+                               "local_path":  "F:\\workspace\\musu-bee\\.local-build\\msix\\output\\musu-desktop-x64.msix",
+                               "local_length":  40710731,
+                               "remote_length":  40710731,
+                               "error":  null
+                           },
+    "hosted_setup_exe_length":  {
+                                    "ok":  true,
+                                    "skipped":  false,
+                                    "local_path":  "F:\\workspace\\musu-bee\\musu-bee\\src-tauri\\target\\release\\bundle\\nsis\\MUSU_1.15.0_x64-setup.exe",
+                                    "local_length":  215402484,
+                                    "remote_length":  215402484,
+                                    "error":  null
+                                }
+}

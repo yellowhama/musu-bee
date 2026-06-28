@@ -106,6 +106,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "musu-bee/src/app/api/v1/p2p/*",
         "musu-bee/src/app/api/v1/relay/*",
         "musu-bee/src/app/api/rooms/*",
+        "musu-bee/src/lib/publicRelease.ts",
         "musu-bee/src/lib/routeEvidence*.ts",
         "musu-bee/src/lib/p2p*.ts"
     )
@@ -142,6 +143,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/audit-secret-storage-contract.ps1",
         "scripts/windows/capture-msix-install-evidence.ps1",
         "scripts/windows/check-msix-legacy-conflicts.ps1",
+        "scripts/windows/canary-desktop-release.ps1",
         "scripts/windows/complete-final-operator-gates.ps1",
         "scripts/windows/configure-musu-pro-p2p-env.ps1",
         "scripts/windows/import-second-pc-return.ps1",
@@ -150,6 +152,7 @@ function Test-ReleaseEvidenceFreshnessAllowedPath {
         "scripts/windows/prepare-final-operator-gate-packet.ps1",
         "scripts/windows/prepare-multidevice-test-kit.ps1",
         "scripts/windows/prepare-operator-action-pack.ps1",
+        "scripts/windows/publish-desktop-latest-assets.ps1",
         "scripts/windows/prepare-support-mailbox-verification-request.ps1",
         "scripts/windows/repair-packaged-local-runtime-state.ps1",
         "scripts/windows/record-route-reachability-diagnostic.ps1",

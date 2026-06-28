@@ -9585,6 +9585,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `p2p_control_plane_verified=false` and
   `relay_transport_product_verified=false`; the product remains NO-GO.
 
+- 2026-06-28 desktop-latest asset cache-buster:
+  the guarded publisher uploaded the current rc.22 `musu-desktop-x64.msix` to
+  GitHub `desktop-latest`; release metadata reports `40710731` bytes. Because
+  the old package-version-only URL could still return stale CDN content, desktop
+  public release URLs in `musu-bee/src/lib/publicRelease.ts` now append
+  `asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1`.
+  `scripts/windows/canary-desktop-release.ps1 -Json` passes with `ok=true` and
+  `failure_count=0` in
+  `docs/evidence/desktop-release-canary/1.15.0-rc.22/20260628-1455-desktop-release-canary-after-cachebuster.json`.
+  This advances the install/download artifact lane but does not fix the
+  `https://musu.pro` apex DNS/TLS public metadata blocker.
+
 - 2026-06-28 public metadata DNS diagnostic contract:
   `scripts/windows/verify-store-public-metadata.ps1` now emits
   `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when

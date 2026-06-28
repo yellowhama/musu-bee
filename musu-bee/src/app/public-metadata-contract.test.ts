@@ -106,6 +106,7 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   const workflow = source("../.github/workflows/deploy-musu-bee.yml");
   const testWorkflow = source("../.github/workflows/test.yml");
   const packageJson = source("package.json");
+  const releaseSource = source("src/lib/publicRelease.ts");
   const canary = source("../scripts/windows/canary-desktop-release.ps1");
   const installChannelVerifier = source("../scripts/windows/verify-musu-pro-install-channel.ps1");
   const desktopPublisher = source("../scripts/windows/publish-desktop-latest-assets.ps1");
@@ -113,6 +114,8 @@ test("production site deploy is gated by the desktop-latest release canary", () 
   const deployManual = source("../docs/AGENT_DEPLOY_MUSU_PRO_SITE.md");
 
   assert.match(packageJson, /"test:public-release"/);
+  assert.match(releaseSource, /asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1/);
+  assert.doesNotMatch(releaseSource, /musu-desktop-x64\.msix\?rc=1\.15\.0\.22`/);
   assert.match(testWorkflow, /Public release contract tests/);
   assert.match(testWorkflow, /npm run test:public-release/);
   assert.match(canary, /SkipLocalArtifactLengthChecks/);
