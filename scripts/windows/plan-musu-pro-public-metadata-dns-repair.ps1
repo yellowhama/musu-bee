@@ -227,35 +227,75 @@ function Invoke-VercelInspect {
         [string]$Token
     )
 
+    $commandLabel = "vercel domains inspect $Domain --token `$env:VERCEL_TOKEN"
     if (-not $RunVercelInspect) {
         return [pscustomobject]@{
             ran = $false
             reason = "RunVercelInspect_not_set"
-            command = "vercel domains inspect $Domain --token `$env:VERCEL_TOKEN"
+            ok = $false
+            has_informative_output = $false
+            command = $commandLabel
+            exit_code = $null
+            output_tail = ""
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Token)) {
+        return [pscustomobject]@{
+            ran = $false
+            reason = "token_missing"
+            ok = $false
+            has_informative_output = $false
+            command = $commandLabel
             exit_code = $null
             output_tail = ""
         }
     }
 
     $args = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)
-    if (-not [string]::IsNullOrWhiteSpace($Token)) {
-        $args += @("--token", $Token)
-    }
+    $args += @("--token", $Token)
 
     $raw = & npx @args 2>&1
     $exitCode = $LASTEXITCODE
     $text = ($raw | Out-String).Trim()
-    if (-not [string]::IsNullOrWhiteSpace($Token)) {
-        $text = $text -replace [regex]::Escape($Token), "<redacted>"
-    }
+    $text = $text -replace [regex]::Escape($Token), "<redacted>"
     if ($text.Length -gt 2400) {
         $text = $text.Substring($text.Length - 2400)
     }
 
+    $signalText = @(
+        $text -split "`r?`n" |
+            ForEach-Object { ([string]$_).Trim() } |
+            Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_) -and
+                $_ -notmatch '^Microsoft Windows \[Version ' -and
+                $_ -notmatch '^\(c\) Microsoft Corporation\.' -and
+                $_ -notmatch '^[A-Z]:\\.*>$' -and
+                $_ -notmatch '^PS [A-Z]:\\'
+            }
+    ) -join "`n"
+    $domainPattern = [regex]::Escape($Domain)
+    $hasInformativeOutput = (
+        -not [string]::IsNullOrWhiteSpace($signalText) -and
+        (
+            $signalText -match $domainPattern -or
+            $signalText -match '(?i)\b(domain|project|nameserver|configured|verified|invalid|error|cname|apex|record)\b'
+        )
+    )
+    $reason = $null
+    if ($exitCode -ne 0) {
+        $reason = "inspect_command_failed"
+    }
+    elseif (-not $hasInformativeOutput) {
+        $reason = "inspect_output_uninformative"
+    }
+
     return [pscustomobject]@{
         ran = $true
-        reason = $null
-        command = "vercel domains inspect $Domain --token `$env:VERCEL_TOKEN"
+        reason = $reason
+        ok = ($exitCode -eq 0 -and $hasInformativeOutput)
+        has_informative_output = [bool]$hasInformativeOutput
+        command = $commandLabel
         exit_code = $exitCode
         output_tail = $text
     }

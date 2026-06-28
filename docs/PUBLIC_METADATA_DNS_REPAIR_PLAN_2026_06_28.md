@@ -35,6 +35,29 @@ The planner output reports:
 - `apex_tls.ok=false`
 - `www_tls.ok=true`
 - `vercel_edge_apex_tls_ok=false`
+- Latest fail-closed inspect evidence:
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+- Latest fail-closed inspect SHA256:
+  `2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`
+- With `-RunVercelInspect` and no `VERCEL_TOKEN`, the planner now reports
+  `vercel_inspect.ran=false`, `reason=token_missing`, `ok=false`, and
+  `has_informative_output=false` instead of running an unauthenticated inspect
+  command and preserving a misleading shell/noise output tail.
+
+## Planner Safety Update
+
+`scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` is now
+fail-closed around Vercel inspect:
+
+- no `VERCEL_TOKEN` -> `reason=token_missing`
+- nonzero Vercel CLI exit -> `reason=inspect_command_failed`
+- zero exit but empty/shell-noise output -> `reason=inspect_output_uninformative`
+- useful output must contain a domain/project/DNS/error signal and is marked by
+  `has_informative_output=true`
+
+This closes a diagnostic-quality gap only. It does not close the
+`store-public-metadata` blocker until canonical `https://musu.pro` verification
+passes.
 
 ## Repair Paths
 

@@ -44,6 +44,18 @@ returned `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`. The idle CPU sample ran
 for 60.022s with six owned WebView2 helpers, zero owned Node helpers, and no hot
 processes.
 
+Public metadata planner hardening evidence:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+- SHA256:
+  `2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`
+- `vercel_inspect.reason=token_missing`
+- `vercel_inspect.ok=false`
+- `vercel_inspect.has_informative_output=false`
+- Regression:
+  `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+  `case_count=214`, `failed_case_count=0`.
+
 ## Findings
 
 | Severity | Finding | Evidence | Next |
@@ -56,6 +68,7 @@ processes.
 | HIGH | Design approval is correctly fail-closed. | The design gate now requires a real GitHub issue approval comment URL. | Add explicit approval on issue #35 and put that URL in PR #34. |
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
 | INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
+| INFO | Public metadata planner inspect output is now fail-closed. | `-RunVercelInspect` without `VERCEL_TOKEN` records `token_missing`; uninformative CLI output records `inspect_output_uninformative`; regression passed 214 cases. | Use a real Vercel token for `domains inspect`, then fix DNS/TLS externally. |
 | INFO | Local current-package evidence is healthy. | Single-machine, process ownership, startup, desktop activation, and route-attempt lanes are green again. | Keep these fresh after runtime-affecting changes. |
 
 ## Code Audit
@@ -67,6 +80,9 @@ current code posture from this audit is:
 - The relay/P2P release lane is fail-closed. The release payload endpoint is
   proof-bound and metadata-only; missing release runtime/storage/live proof
   remains a blocker, not a silent pass.
+- The public metadata DNS repair planner is fail-closed around Vercel inspect:
+  missing token, failed command, or uninformative output cannot look like a
+  trustworthy inspect result.
 - CPU/process/startup/desktop packaged evidence passes on `HUGH_SECOND`.
 - No additional release-blocking code regression was found in the surfaces
   inspected during this refresh.

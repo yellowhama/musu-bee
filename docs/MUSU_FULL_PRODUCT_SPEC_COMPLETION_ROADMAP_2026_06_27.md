@@ -260,6 +260,21 @@ menu app launches `musu-desktop.exe`, and install/launch timestamps ordered
 after certification and restricted capability approval. This tightens the gate;
 it does not close the Store lane until real Store-signed evidence exists.
 
+2026-06-28 19:13 KST public metadata planner inspect hardening:
+`plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect` now fails
+closed when Vercel inspect cannot produce trustworthy diagnostics. Missing
+`VERCEL_TOKEN` records `vercel_inspect.ran=false`, `reason=token_missing`,
+`ok=false`, and `has_informative_output=false`; nonzero CLI exits record
+`inspect_command_failed`; empty or shell-noise output records
+`inspect_output_uninformative`. Evidence:
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+with SHA256
+`2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`.
+Regression `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+`case_count=214`, and `failed_case_count=0`. This improves operator safety but
+does not close the public metadata lane; the canonical apex DNS/TLS path still
+requires external repair.
+
 ## 2026-06-27 Gate Implementation Update
 
 Phase 1 is now implemented in tooling, but the full product is still not

@@ -9872,4 +9872,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`, `blockers=10`, and
   `manifest_git.dirty=false`.
 
+- 2026-06-28 public metadata Vercel inspect fail-closed update:
+  `docs/PUBLIC_METADATA_VERCEL_INSPECT_FAIL_CLOSED_2026_06_28.md` records the
+  planner hardening for `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1`.
+  `-RunVercelInspect` without `VERCEL_TOKEN` now records
+  `vercel_inspect.ran=false`, `reason=token_missing`, `ok=false`, and
+  `has_informative_output=false`; nonzero CLI exits record
+  `inspect_command_failed`; empty/shell-noise output records
+  `inspect_output_uninformative`. Evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+  has SHA256 `2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`.
+  Regression `test-release-evidence-verifiers.ps1 -Json` passed with
+  `ok=true`, `case_count=214`, and `failed_case_count=0`. The product remains
+  NO-GO because external apex DNS/TLS still fails. Search terms should include
+  `PUBLIC_METADATA_VERCEL_INSPECT_FAIL_CLOSED_2026_06_28`,
+  `inspect_output_uninformative`, `token_missing`, and
+  `has_informative_output=false`.
+
 **End of WIKI_INDEX.md.**
