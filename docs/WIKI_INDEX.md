@@ -10056,4 +10056,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `blockers=15`, and
   `release_relay_tunnel_runtime_not_implemented`.
 
+- 2026-06-28 wrap-up local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP.md` records the final
+  status for today's session. The brain sidecar pin now points to
+  `F:\musu_2nd_brain` HEAD
+  `63bf5bb9729c96d1c507ba13e7ec1a338cdf2c02`; sidecars were rebuilt, the local
+  sideload MSIX was repackaged and installed, and packaged runtime repair
+  passed on `HUGH_SECOND` at `0.0.0.0:3845`. Fresh evidence includes
+  `20260628-231247-HUGH_SECOND` MSIX install, `20260628-231344-HUGH_SECOND`
+  single-machine smoke, `20260628-231440-HUGH_SECOND` process ownership,
+  `20260628-231459-HUGH_SECOND` startup single-instance,
+  `20260628-231520-HUGH_SECOND` desktop single-instance, and
+  `20260628-231633-HUGH_SECOND` runtime idle CPU attempt. Clean go/no-go at
+  `2026-06-28T23:21:19.6978900+09:00` on commit
+  `58df8e0b6d8f8afcc7cdf5fd3baec83a39b3b2c8` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=11`, `warnings=0`, and `manifest_git.dirty=false`. The idle CPU
+  attempt itself reports `ok=true`, but go/no-go does not count it because
+  `-RequireOwnedWebView2`, `-IncludeNode`, and `-IncludeWebView2` were missing;
+  the runtime CPU scenario matrix and second-PC route-attempt lanes were not
+  rerun before wrap-up. Search terms should include
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP`, `brain pin 63bf5bb`,
+  `after-58df8e0b-wrapup-clean`, `blockers=11`,
+  `20260628-231633-HUGH_SECOND.desktop-open.evidence`, and
+  `RequireOwnedWebView2 IncludeNode IncludeWebView2`.
+
 **End of WIKI_INDEX.md.**

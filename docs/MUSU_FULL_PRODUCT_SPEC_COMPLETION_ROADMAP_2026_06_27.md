@@ -1726,6 +1726,55 @@ Exit criteria:
 - "MUSU product spec complete" becomes an evidence-backed release claim, not a
   summary judgment.
 
+## 2026-06-28 Wrap-Up Local Packaged Evidence Refresh
+
+Today closed the post-source local package freshness drift as far as the
+short-running package identity lanes are concerned, but it did not complete the
+product spec.
+
+Clean wrap-up gate:
+
+- `.local-build/go-no-go/after-58df8e0b-wrapup-clean.json`
+- `generated_at=2026-06-28T23:21:19.6978900+09:00`
+- `manifest_git.commit=58df8e0b6d8f8afcc7cdf5fd3baec83a39b3b2c8`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=11`
+- `warnings=0`
+
+Changes and evidence:
+
+- Brain sidecar pin moved to current `F:\musu_2nd_brain` HEAD
+  `63bf5bb9729c96d1c507ba13e7ec1a338cdf2c02`.
+- `repair-packaged-local-runtime-state.ps1` now tolerates a null helper record
+  during repo orphan helper cleanup.
+- Sidecars were rebuilt, the local sideload MSIX was repackaged and installed,
+  and packaged runtime repair passed on `HUGH_SECOND`.
+- New evidence paths:
+  `20260628-231247-HUGH_SECOND` MSIX install,
+  `20260628-231344-HUGH_SECOND` single-machine smoke,
+  `20260628-231440-HUGH_SECOND` process ownership,
+  `20260628-231459-HUGH_SECOND` startup single-instance,
+  `20260628-231520-HUGH_SECOND` desktop single-instance, and
+  `20260628-231633-HUGH_SECOND` runtime idle CPU attempt.
+
+Current qualitative status:
+
+- Local packaged install/runtime identity is healthy on `HUGH_SECOND`.
+- The strict runtime idle CPU lane remains open because the latest sample did
+  not include required Node/WebView2/owned-WebView2 flags.
+- The runtime CPU scenario matrix and second-PC route-attempt lanes remain open
+  because they were not rerun during wrap-up.
+- The full-product blocker set remains physical/external or not-yet-built:
+  multi-device, Private Mesh packaged proof, two-machine CPU/matrix, public
+  metadata DNS/TLS, Store, live P2P control-plane, design approval, real relay
+  transport, and V34 physical stale self-heal.
+
+Canonical wrap-up report:
+
+- `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP.md`
+
 ## Confidence
 
 High confidence:

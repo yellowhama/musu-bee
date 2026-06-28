@@ -14,6 +14,46 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
+Authoritative 2026-06-28 wrap-up clean gate:
+
+- Command source:
+  `.local-build/go-no-go/after-58df8e0b-wrapup-clean.json`
+- Snapshot file:
+  `.local-build/go-no-go/latest.json`
+- `generated_at`: `2026-06-28T23:21:19.6978900+09:00`
+- `manifest_git.commit`: `58df8e0b6d8f8afcc7cdf5fd3baec83a39b3b2c8`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=11`
+- `warnings=0`
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `msix_install_verified=true`
+- `runtime_idle_cpu_verified=false`
+- `runtime_idle_cpu_valid_machine_count=0/2`
+- `runtime_cpu_scenario_matrix_verified=false`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0/2`
+- `runtime_cpu_second_pc_route_attempt_verified=false`
+- `brain_product_verified=true`
+- `public_metadata_ok=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+2026-06-28 23:21 KST wrap-up: after updating the brain sidecar pin to
+`63bf5bb9729c96d1c507ba13e7ec1a338cdf2c02`, rebuilding sidecars, repackaging
+and reinstalling the local MSIX, repairing the packaged runtime, and committing
+fresh local install/smoke/process/startup/desktop evidence, the local package
+identity lanes are green again. The product still remains NO-GO. Blocker count
+is `11`, not `10`, because today's runtime idle CPU sample was captured without
+the strict release flags required by go/no-go
+(`-RequireOwnedWebView2`, `-IncludeNode`, `-IncludeWebView2`), and the runtime
+CPU scenario matrix / second-PC route-attempt evidence was intentionally left
+for the next session instead of running another long measurement. See
+`docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP.md`.
+
 Authoritative post-source-change local gate:
 
 - Command source:
