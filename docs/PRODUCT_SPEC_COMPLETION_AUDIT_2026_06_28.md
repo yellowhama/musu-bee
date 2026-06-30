@@ -18,8 +18,8 @@ Authoritative 2026-06-30 runtime CPU refresh gate:
 
 - Command source:
   `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-30T15:03:45.1745611+09:00`
-- `manifest_git.commit`: `9a316828f9fe403785612808f54f504ea48b37ed`
+- `generated_at`: `2026-06-30T15:12:29.3167592+09:00`
+- `manifest_git.commit`: `b0581d235088296f90b42e90dbeed2f27e53b4f9`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -35,7 +35,7 @@ Authoritative 2026-06-30 runtime CPU refresh gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 
-2026-06-30 15:03 KST update: HUGH_SECOND recaptured release-required
+2026-06-30 15:12 KST post-commit update: HUGH_SECOND recaptured release-required
 `desktop-open` idle CPU with `-RequireOwnedWebView2`, `-IncludeNode`, and
 `-IncludeWebView2`, then recaptured the full five-scenario runtime CPU matrix
 with `-RunRouteProbe -RouteTarget hugh-main`. Both captures were clean
@@ -45,6 +45,20 @@ remains NO-GO because idle CPU and matrix evidence are still only `1/2`
 machines, and the remaining blockers still require second-PC, external DNS/TLS,
 Store, P2P, design approval, relay transport, and V34 stale-state proof. See
 `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md`.
+
+2026-06-30 relay transport code audit: the release relay lane is correctly
+fail-closed, not accidentally complete. `musu-rs/src/bridge/router.rs` still
+documents that relay is not selected because relay/tunnel transport is not
+implemented. `musu-rs/src/bridge/rendezvous.rs` validates release relay tunnel
+metadata, then returns `release_relay_tunnel_runtime_not_implemented`.
+`musu-rs/src/bridge/handlers/relay_payload.rs` implements the target-side
+store-forward queue drain/poller and requires a separate
+`musu_quic_tls_transport` proof before recording release-grade delivery. This
+is a safer product state than overclaiming relay, but it keeps
+`relay_transport_product_verified=false` and `p2p_control_plane_verified=false`
+until a real `quic_relay_tunnel` runtime plus two-PC direct-blocked proof
+exists. Canonical next-step document:
+`docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md`.
 
 Authoritative 2026-06-28 wrap-up clean gate:
 

@@ -16,17 +16,20 @@ targetability for the current rc.22 package: the installed CLI selected the LAN
 candidate `192.168.1.192:4387`, submitted successfully, waited for completion,
 and wrote verifier-passing `musu.route_evidence.v1`.
 
-The fresh packaged desktop now also records a passing hidden-brain product
-proof for rc.22, and the current HUGH_SECOND package now has refreshed
-single-machine smoke, process ownership, startup single-instance, desktop
-single-instance, runtime CPU, and targeted post-route matrix evidence for the
-pre-relay-poller-alignment source snapshot. After the doctor relay poller
-runtime alignment source commit, the post-source gate reports `blockers=15`
-because package-bound smoke/process/startup/desktop/post-route evidence must be
-refreshed for the new source commit. This is expected fail-closed freshness
-behavior. It still does not prove the full product: second-PC release evidence,
-packaged Private Mesh proof archive, public metadata, Store release/Store-signed
-install evidence, real relay transport, explicit design approval, and V34 stale
+The fresh packaged desktop also records a passing hidden-brain product proof
+for rc.22, and HUGH_SECOND now has refreshed runtime CPU evidence for the
+current gate: `desktop-open` idle CPU and the full five-scenario runtime CPU
+matrix both verify on `HUGH_SECOND`, including a targeted `hugh-main`
+post-route probe. The latest clean go/no-go recheck at
+`2026-06-30T15:12:29.3167592+09:00` on commit
+`b0581d235088296f90b42e90dbeed2f27e53b4f9` still reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
+
+That current state still does not prove the full product: second-machine CPU
+evidence, release-grade multi-device route identity, packaged Private Mesh
+proof archive, public metadata DNS/TLS, Store release/Store-signed install
+evidence, real relay transport, explicit design approval, and V34 stale
 self-heal proof still remain.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
@@ -1471,8 +1474,8 @@ delegated-work transport. The verifier is correct to fail closed.
 | Release-grade multi-device route proof | Not complete | Fresh HUGH_SECOND -> `hugh-main` diagnostic smoke at `.local-build/multi-device/musu-multidevice-smoke-20260628-192637.json` completed the LAN task, but `verify-multidevice-evidence.ps1` failed with `fail_count=6`: no verified peer identity, missing peer method/key, legacy `none_http_bearer`, no `quic_tls_1_3`, no `musu_quic_tls_transport`; HTTPS health failed on both installed bridge ports while HTTP health returned 200 | Cannot claim full multi-device product completion or release-grade delegated-work transport |
 | Single-machine packaged smoke | Complete on HUGH_SECOND for current rc.22 package | `20260628-133347-HUGH_SECOND.evidence.json` verifies packaged WindowsApps `musu.exe`, bridge-only local surface `http://127.0.0.1:1695`, CLI route checked, `ok=true`, `fail_count=0` | HUGH_SECOND proves fresh packaged local smoke for rc.22; this does not satisfy second-PC multi-device or two-machine CPU/matrix gates |
 | Local packaged process/startup/desktop instance evidence | Complete on HUGH_SECOND for current rc.22 package | Process ownership `20260628-133347-HUGH_SECOND`, startup single-instance `20260628-133347-HUGH_SECOND`, and desktop repeated activation `20260628-133347-HUGH_SECOND` all report `ok=true` | HUGH_SECOND proves packaged runtime ownership and single-instance behavior; this does not satisfy two-machine CPU/matrix or private-mesh packaged proof gates |
-| Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.028s evidence `20260628-134854-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, `include_node=true`, `include_webview2=true`, and hot process count `0` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
-| Runtime CPU scenario matrix | Partly complete for current rc.22 package | HUGH_SECOND matrix `20260628-133611-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`, and targeted route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
+| Runtime idle CPU evidence | Partly complete for current rc.22 package | HUGH_SECOND desktop-open 60.028s evidence `20260630-145344-HUGH_SECOND.desktop-open.evidence.json` reports `ok=true`, `git_dirty=false`, owned WebView2 required, Node/WebView2 budgets included, and hot process count `0` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
+| Runtime CPU scenario matrix | Partly complete for current rc.22 package | HUGH_SECOND matrix `20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.json` verifies `startup-open`, `runtime-started`, `dashboard-open`, `desktop-open`, `post-route`, and targeted route token `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_145519`; strict verification has `ok=true`, `fail_count=0` | Counts as HUGH_SECOND side only; release gate still requires a second physical machine |
 | Fleet relay display | Partly complete | UI/spec keeps relay as display/freshness state only | Relay can be shown, but not claimed as delegated-work routing |
 | Real delegated-work relay transport | Not complete | `musu-rs/src/bridge/router.rs` says relay is not selected because relay/tunnel transport is not implemented; release tunnel submission has stricter source/target/tunnel metadata checks; web P2P writes now enforce hash-bound `source_node_id` when `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` is configured; the runtime still fails closed before real relay payload transit | Cannot claim relay task execution |
 | Brain sidecar product bonding | Complete for current rc.22 packaged fresh launch | Sidecar bundle, `~/.musu/brain`, token ACL, non-shared store, task ingest hook, dedicated verifier/recorder, and `20260628-014357-HUGH_SECOND.brain-product-verification.json` with `fail_count=0` | Hidden brain chip is alive, loopback-only, version-coherent, and ingesting task/capture knowledge for rc.22 fresh launch |
@@ -1514,7 +1517,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-28T21:56:37.1321855+09:00` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, local freshness lanes green, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-30T15:12:29.3167592+09:00` on commit `b0581d235088296f90b42e90dbeed2f27e53b4f9` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, runtime CPU evidence valid on `HUGH_SECOND` only, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Release-grade multi-device proof is still missing even though direct LAN work completed. | Fresh HUGH_SECOND -> `hugh-main` smoke completed `MUSU_REMOTE_ROUTE_OK`, but the strict multi-device verifier failed with `fail_count=6` because the route evidence was HTTP bearer with no verified peer identity and no `quic_tls_1_3`/`musu_quic_tls_transport` proof. | A healthy fleet plus a successful legacy LAN task is not enough for the full product spec. | Implement/start the hardened release transport on both packaged machines, rerun the smoke, and commit verifier-passing evidence. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |
@@ -1783,13 +1786,17 @@ release-required flags and a real peer route target.
 Clean gate:
 
 - `.local-build/go-no-go/latest.json`
-- `generated_at=2026-06-30T15:03:45.1745611+09:00`
-- `manifest_git.commit=9a316828f9fe403785612808f54f504ea48b37ed`
+- `generated_at=2026-06-30T15:12:29.3167592+09:00`
+- `manifest_git.commit=b0581d235088296f90b42e90dbeed2f27e53b4f9`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
 - `warnings=0`
+
+This is the post-commit recheck after documenting and committing the evidence
+refresh, so the documentation/evidence commit did not reopen runtime source
+freshness blockers.
 
 New evidence:
 

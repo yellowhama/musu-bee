@@ -9,8 +9,8 @@ one-machine evidence for two more runtime CPU lanes.
 Latest clean gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-30T15:03:45.1745611+09:00`
-- Commit: `9a316828f9fe403785612808f54f504ea48b37ed`
+- Generated: `2026-06-30T15:12:29.3167592+09:00`
+- Commit: `b0581d235088296f90b42e90dbeed2f27e53b4f9`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -57,6 +57,11 @@ After this refresh:
 - `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
 - `runtime_cpu_second_pc_route_attempt_verified=true`
 - `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`
+
+The post-commit gate recheck at `2026-06-30T15:12:29.3167592+09:00` keeps the
+same `blockers=10`, `warnings=0`, and clean manifest state on commit
+`b0581d235088296f90b42e90dbeed2f27e53b4f9`, so the committed documentation and
+evidence refresh did not reopen runtime-source freshness blockers.
 
 ## Findings
 

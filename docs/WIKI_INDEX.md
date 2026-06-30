@@ -10091,8 +10091,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
   The idle capture used `-RequireOwnedWebView2`, `-IncludeNode`, and
   `-IncludeWebView2`; the matrix used `-RunRouteProbe -RouteTarget hugh-main`.
-  Clean go/no-go at `2026-06-30T15:03:45.1745611+09:00` on commit
-  `9a316828f9fe403785612808f54f504ea48b37ed` reports
+  Clean post-commit go/no-go at `2026-06-30T15:12:29.3167592+09:00` on commit
+  `b0581d235088296f90b42e90dbeed2f27e53b4f9` reports
   `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
   `blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
   `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
@@ -10107,5 +10107,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix`,
   `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_145519`, `blockers=10`, and
   `runtime_cpu_second_pc_route_attempt_verified=true`.
+
+- 2026-06-30 relay transport code audit:
+  `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md` records the relay lane audit.
+  Source is internally consistent and fail-closed: `router.rs` still does not
+  select relay as a work route, `rendezvous.rs` still returns
+  `release_relay_tunnel_runtime_not_implemented` after release metadata
+  validation, and `relay_payload.rs` treats target-side queue drain/poller as
+  separate from release-grade `musu_quic_tls_transport` proof. Official
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` at
+  `2026-06-30T15:20:00.1832727+09:00` returned `ok=true`, `fail_count=0`.
+  Latest clean gate remains `blockers=10`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. Next steps are dedicated relay
+  design approval, real `quic_relay_tunnel` runtime, owner-scoped release
+  storage/env, route evidence binding, and two-PC direct-blocked physical proof.
+  Search terms should include `RELAY_TRANSPORT_CODE_AUDIT_2026_06_30`,
+  `release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `musu_quic_tls_transport`, and `relay_transport_product_verified=false`.
 
 **End of WIKI_INDEX.md.**
