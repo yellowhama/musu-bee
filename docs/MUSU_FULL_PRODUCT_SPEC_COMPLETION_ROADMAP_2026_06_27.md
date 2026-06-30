@@ -90,6 +90,45 @@ meaning: this closes an intent-boundary gap only; after commit the package
 freshness lanes must be rebuilt/reinstalled and recaptured before current local
 package evidence can apply to the new source revision.
 
+2026-07-01 05:35 KST current local package evidence refresh after relay intent
+gate:
+the relay release-tunnel intent source revision has now been rebuilt,
+reinstalled, and recaptured on `HUGH_SECOND`. Canonical report:
+`docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01.md`.
+Fresh evidence includes MSIX install `20260701-051853`, single-machine smoke
+`20260701-051917`, process ownership `20260701-051924`, startup
+single-instance `20260701-051937`, desktop single-instance `20260701-051957`,
+desktop-open idle CPU `20260701-053248`, and full runtime CPU matrix plus
+targeted `hugh-main` post-route probe `20260701-052025`. The idle CPU sample
+is clean (`git_dirty=false`) and shows the hottest owned process at `0.73%` of
+one logical CPU, with MUSU process count `2` and owned WebView2 helpers `6`.
+The matrix is also clean (`git_dirty=false`) and proves a targeted LAN route
+attempt to `hugh-main` at `192.168.1.192:4387`, but the route is still
+`http_bearer`, `peer_identity_verified=false`, and
+`route_evidence_ready=false`. Dirty pre-final go/no-go at
+`2026-07-01T05:35:50.3641264+09:00` reports local evidence selected correctly:
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`; it still reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and
+`blockers=11` because the worktree is dirty before this documentation commit
+and because remaining blockers require physical second-PC, public metadata,
+Store, P2P/relay, design, Private Mesh, and V34 evidence. Current package brain
+proof `20260701-054634` also passes with `fail_count=0`, root
+`C:\Users\empty\.musu\brain`, and loopback `http://127.0.0.1:8080`; this was
+captured after observing that the packaged bridge/desktop were still alive
+while the hidden brain sidecar was not listening, so brain sidecar
+observability/self-heal remains a MED follow-up. Product brain source ingest
+under `local/musu` created 3 sources, processed 3, recovered 0, and query
+returned top title
+`wiki/1202 current local package evidence refresh after relay intent gate`.
+Index refresh indexed `3602 files` and `3917 symbols`; searches for
+`wiki/1202`,
+`CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT`, and
+`20260701-054634` return the new docs/evidence entries.
+Product meaning: local package freshness is restored again for this PC, but
+full product completion remains NO-GO.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

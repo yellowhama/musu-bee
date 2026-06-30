@@ -10842,4 +10842,50 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   commit the package-bound evidence lanes must be rebuilt/reinstalled and
   recaptured for the new source revision.
 
+- 2026-07-01 current local package evidence refresh after relay intent gate:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1202`: the relay release-tunnel intent source
+  revision was rebuilt, reinstalled, and recaptured on `HUGH_SECOND`.
+  Evidence includes MSIX install `20260701-051853`, single-machine smoke
+  `20260701-051917`, process ownership `20260701-051924`, startup
+  single-instance `20260701-051937`, desktop single-instance
+  `20260701-051957`, desktop-open idle CPU `20260701-053248`, and runtime CPU
+  matrix plus targeted `hugh-main` post-route probe `20260701-052025`.
+  Desktop-open idle CPU is clean (`git_dirty=false`) with hottest owned process
+  `0.73%` of one logical CPU, MUSU process count `2`, and owned WebView2
+  helpers `6`. The runtime CPU matrix is also clean and target-route
+  verification passes, but route explain still reports
+  `current_transport=http_bearer`, `peer_identity_verified=false`, and
+  `route_evidence_ready=false`. Current package brain product proof
+  `20260701-054634` passes with `fail_count=0`, root
+  `C:\Users\empty\.musu\brain`, and loopback `http://127.0.0.1:8080`.
+  Dirty pre-final go/no-go at
+  `2026-07-01T05:35:50.3641264+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  and `blockers=11` including the expected pre-commit `git` blocker. Product
+  brain source ingest under `local/musu` created 3 sources, processed 3,
+  recovered 0, and query returned top title
+  `wiki/1202 current local package evidence refresh after relay intent gate`.
+  Index refresh indexed `3602 files` and `3917 symbols`; searches for
+  `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT`, and
+  `20260701-054634` return the new docs/evidence entries.
+  Audit note: packaged bridge/desktop were alive while no `musu-brain` process
+  or `127.0.0.1:8080` listener existed before the packaged brain binary was
+  restarted with product root/env, so brain sidecar observability/self-heal is
+  still a MED follow-up. Search terms should include `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_052025`, `20260701-053248`,
+  `20260701-052025`, `20260701-054634`, `hugh-main`,
+  `192.168.1.192:4387`, `http_bearer`, `route_evidence_ready=false`,
+  `runtime_idle_cpu_valid_machine_count=1`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`. Product meaning:
+  current local package freshness is restored again for `HUGH_SECOND`, but full
+  product completion remains NO-GO because the remaining lanes require the
+  required second-machine count and external/physical release proofs.
+
 **End of WIKI_INDEX.md.**

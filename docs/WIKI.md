@@ -23484,3 +23484,80 @@ Product meaning:
 - After this commit, the previous package-bound local evidence is stale for the
   new source revision; rebuild/reinstall and recapture current package evidence
   before treating local package lanes as fresh again.
+
+## wiki/1202 - 2026-07-01 Current local package evidence refresh after relay intent gate
+
+Canonical report:
+
+- `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- The relay release-tunnel intent source revision was rebuilt into the local
+  sideload MSIX and reinstalled on `HUGH_SECOND`.
+- Current local package evidence was recaptured from the installed package:
+  MSIX install `20260701-051853`, single-machine smoke `20260701-051917`,
+  process ownership `20260701-051924`, startup single-instance
+  `20260701-051937`, desktop single-instance `20260701-051957`, desktop-open
+  idle CPU `20260701-053248`, and runtime CPU matrix `20260701-052025`.
+
+Verification:
+
+- MSIX package `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc` is installed.
+- `musu-brain.exe` remains present in the package and declared as an MSIX
+  fullTrust process.
+- Single-machine smoke passes against packaged bridge `http://127.0.0.1:1863`.
+- Process ownership passes with packaged runtime `1`, packaged desktop shell
+  `1`, owned Node helpers `0`, and owned WebView2 helpers `6`.
+- Startup single-instance passes: three invocations reuse bridge PID `33160`.
+- Desktop single-instance passes with `git_dirty=false`: three activations keep
+  one desktop shell.
+- Desktop-open idle CPU passes with `git_dirty=false`: 60.027s sample, MUSU
+  process count `2`, owned WebView2 `6`, hottest owned process `0.73%` of one
+  logical CPU.
+- Current package brain product proof `20260701-054634` passes with
+  `fail_count=0`, root `C:\Users\empty\.musu\brain`, and loopback
+  `http://127.0.0.1:8080`.
+- Runtime CPU matrix passes with `git_dirty=false` for
+  `startup-open,runtime-started,dashboard-open,desktop-open,post-route`.
+- Targeted route attempt verification passes for `hugh-main`, but route explain
+  still reports `current_transport=http_bearer`,
+  `peer_identity_verified=false`, and `route_evidence_ready=false`.
+- Dirty pre-final go/no-go at `2026-07-01T05:35:50.3641264+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  and `blockers=11` including the expected pre-commit `git` blocker.
+- Product brain source ingest under `local/musu` created 3 sources,
+  `/v1/process` reported `processed=3`, `recovered=0`, and `/v1/query`
+  returned 3 results with top title
+  `wiki/1202 current local package evidence refresh after relay intent gate`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3602 files` and `3917 symbols`; searches for `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT`, and
+  `20260701-054634` return the new docs/evidence entries.
+- Audit note: during final brain indexing, packaged bridge PID `33160` and
+  desktop PID `18492` were running, but no `musu-brain` process or
+  `127.0.0.1:8080` listener existed. The packaged `musu-brain.exe` was started
+  with product root/env and proof then passed, so brain sidecar
+  observability/self-heal remains a MED follow-up.
+
+Product meaning:
+
+- Current local package freshness is restored again for `HUGH_SECOND`.
+- The release harness is slow by design because the CPU matrix runs five
+  60-second scenarios plus route probing; current idle CPU evidence does not
+  show a product busy-loop.
+- Full product completion remains NO-GO. The local PC has valid CPU evidence,
+  but the release gates still require the required machine count and external
+  proofs.
+- Search terms: `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01`,
+  `20260701-053248`, `20260701-052025`,
+  `20260701-054634`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_052025`, `hugh-main`,
+  `192.168.1.192:4387`, `http_bearer`, `peer_identity_verified=false`,
+  `route_evidence_ready=false`, `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`.
