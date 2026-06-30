@@ -10243,4 +10243,21 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_tunnel_runtime_not_implemented`,
   `missing_p2p_control_plane_evidence`, and `quic_relay_tunnel`.
 
+- 2026-06-30 Vercel P2P env sync REST hardening:
+  `docs/VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30.md` records the deploy workflow
+  change from `vercel env add` to Vercel REST env upsert for production P2P
+  control-plane values. The workflow now posts to
+  `/v10/projects/{projectId}/env?upsert=true`, targets `production`, marks
+  token/entitlement values as Vercel sensitive env, and avoids raw response-body
+  logging. `audit-secret-storage-contract.ps1` now source-checks this contract
+  and rejects a `vercel env add` regression. This reduces deployment-path risk
+  for the hosted KV/Upstash/control-token blocker, but does not provision
+  external env values or close live P2P proof. Verification passed
+  `audit-secret-storage-contract.ps1 -Json -FailOnProblem` with `ok=true`,
+  `fail_count=0`, and `test-release-evidence-verifiers.ps1 -Json` with
+  `ok=true`, `case_count=219`, `failed_case_count=0`. Search terms should include
+  `VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30`, `Vercel REST env upsert`,
+  `type: "sensitive"`, `KV_REST_API_TOKEN`, `UPSTASH_REDIS_REST_TOKEN`, and
+  `vercel env add`.
+
 **End of WIKI_INDEX.md.**

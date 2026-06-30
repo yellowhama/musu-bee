@@ -22288,8 +22288,8 @@ Current relay source status is endpoint-closed but runtime-open.
 Verification:
 
 - `write-release-go-no-go.ps1 -Json`:
-  `generated_at=2026-06-30T17:12:09.0426437+09:00`, commit
-  `9fb71e933293b4658ae9de8f3b692d33a969b5cb`, `blockers=10`,
+  `generated_at=2026-06-30T17:19:51.4144555+09:00`, commit
+  `fa0acd2d9733b0256a006732666e86cdabb8cecd`, `blockers=10`,
   `warnings=0`, `manifest_git.dirty=false`
 - `audit-p2p-store-forward-relay-contract.ps1 -Json`:
   `ok=true`, `fail_count=0`
@@ -22302,3 +22302,42 @@ Canonical reports:
 - `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md`
 - `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`
 - `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+## wiki/1176 — 2026-06-30 Vercel P2P env sync REST hardening
+
+The `musu.pro` production P2P env sync path now uses Vercel REST upsert instead
+of `vercel env add`.
+
+Changed:
+
+- `.github/workflows/deploy-musu-bee.yml`
+- REST endpoint shape: `POST /v10/projects/{projectId}/env?upsert=true`
+- target: `production`
+- sensitive env type for `MUSU_P2P_CONTROL_TOKEN_SHA256S`,
+  `KV_REST_API_TOKEN`, `UPSTASH_REDIS_REST_TOKEN`, and
+  `MUSU_P2P_RELAY_ENTITLEMENT`
+- failure logs avoid raw response-body dumps
+- `audit-secret-storage-contract.ps1` now checks the workflow source contract
+  and rejects `vercel env add`
+
+Verification:
+
+- `audit-secret-storage-contract.ps1 -Json -FailOnProblem`: `ok=true`,
+  `fail_count=0`
+- `audit-p2p-store-forward-relay-contract.ps1 -Json`: `ok=true`,
+  `fail_count=0`
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`, `case_count=219`,
+  `failed_case_count=0`
+- `show-musu-pro-p2p-env-status.ps1 -Json`: `ok=false` as expected, because
+  KV/Upstash env, live hosted P2P proof, and relay tunnel runtime remain missing
+
+Still NO-GO:
+
+- no local KV/Upstash values are present
+- no production env mutation was performed by this commit
+- live hosted P2P control-plane proof is still missing
+- relay tunnel runtime and relay proof remain separate blockers
+
+Canonical report:
+
+- `docs/VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30.md`

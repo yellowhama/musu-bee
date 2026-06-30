@@ -21,8 +21,8 @@ for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
-latest clean go/no-go recheck at `2026-06-30T17:12:09+09:00` on commit
-`9fb71e933293b4658ae9de8f3b692d33a969b5cb` still reports
+latest clean go/no-go recheck at `2026-06-30T17:19:51+09:00` on commit
+`fa0acd2d9733b0256a006732666e86cdabb8cecd` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -63,6 +63,23 @@ KV/Upstash URL/token configuration, and missing live P2P control-plane
 evidence. The local P2P store-forward relay source audit at
 `2026-06-30T17:11:06+09:00` passed with `ok=true`, `fail_count=0`; this proves
 the fail-closed source contract, not release relay transport completion.
+
+2026-06-30 17:26 KST Vercel P2P env sync hardening:
+`.github/workflows/deploy-musu-bee.yml` now syncs production P2P control-plane
+env through Vercel REST `POST /v10/projects/{projectId}/env?upsert=true`
+instead of `vercel env add`. Token-bearing values are marked Vercel
+`sensitive`, and failure logs report only key/status summaries. The
+`audit-secret-storage-contract.ps1` source contract now guards that workflow
+shape and rejects a return to `vercel env add` or raw response-body logging.
+Verification passed `audit-secret-storage-contract.ps1 -Json -FailOnProblem`
+with `ok=true`, `fail_count=0`, and
+`test-release-evidence-verifiers.ps1 -Json` with `ok=true`, `case_count=219`,
+`failed_case_count=0`.
+Canonical report:
+`docs/VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30.md`. This reduces the deployment
+path risk for the hosted P2P blocker, but it does not close the lane until real
+KV/Upstash/env values are present in GitHub/Vercel, production deploy succeeds,
+and live P2P control-plane evidence passes.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
@@ -1551,7 +1568,7 @@ MUSU is fully complete only when all of these are true at the same time:
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-30T15:12:29.3167592+09:00` on commit `b0581d235088296f90b42e90dbeed2f27e53b4f9` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, runtime CPU evidence valid on `HUGH_SECOND` only, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
+| NO-GO | The full product cannot be called complete today. | Latest clean product gate at `2026-06-30T17:19:51.4144555+09:00` on commit `fa0acd2d9733b0256a006732666e86cdabb8cecd` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, runtime CPU evidence valid on `HUGH_SECOND` only, and `manifest_git.dirty=false`. | A broad "complete" claim would overstate the evidence. | Close the remaining physical/external product blockers. |
 | NO-GO | Release-grade multi-device proof is still missing even though direct LAN work completed. | Fresh HUGH_SECOND -> `hugh-main` smoke completed `MUSU_REMOTE_ROUTE_OK`, but the strict multi-device verifier failed with `fail_count=6` because the route evidence was HTTP bearer with no verified peer identity and no `quic_tls_1_3`/`musu_quic_tls_transport` proof. | A healthy fleet plus a successful legacy LAN task is not enough for the full product spec. | Implement/start the hardened release transport on both packaged machines, rerun the smoke, and commit verifier-passing evidence. |
 | NO-GO | Canonical `https://musu.pro` apex HTTPS resets during the public metadata verifier and now has a structured DNS/TLS repair plan. | `verify-store-public-metadata.ps1` fails with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; `plan-musu-pro-public-metadata-dns-repair.ps1` records Cloudflare NS, Cloudflare apex A/AAAA, missing Vercel apex A, missing `www` CNAME, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Public metadata, install channel, privacy/support, and Store metadata proof cannot be considered current from this machine. | Run the non-mutating repair planner, fix external DNS/TLS, then rerun public metadata and go/no-go verification. |
 | NO-GO | PR #34 cannot merge without explicit design approval. | `Design: Pending` keeps `design-gate` failing. | The current implementation branch remains blocked even if code checks pass. | Get approval on issue #35, update PR body to `Design: Approved` with the approval URL, rerun checks. |

@@ -204,7 +204,7 @@ After a successful production run, run
 ## Environment variables (set in Vercel, never in the repo)
 
 Required for the site to work — set via the Vercel dashboard or the CI
-`sync_vercel_env` step (`deploy-musu-bee.yml`), **never committed**:
+production P2P env sync step (`deploy-musu-bee.yml`), **never committed**:
 - `MUSU_BRIDGE_URL` — bridge backend URL (browser→bridge calls 502 if missing/unreachable)
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — auth
 - `NEXT_PUBLIC_AUTH_ENABLED` — `false` to bypass login while debugging
@@ -212,8 +212,9 @@ Required for the site to work — set via the Vercel dashboard or the CI
 Optional: Paddle (payments), `KV_REST_API_*` (subscription cache), worker URL — full
 table in `musu-bee/DEPLOY.md`.
 
-> ⚠️ `vercel env add` via a shell **pipe** has a known empty-value bug — set env through
-> the dashboard or the CI `sync_vercel_env` helper, not by piping a value in.
+> ⚠️ Do not pipe values into `vercel env add`. The CI P2P env helper now uses
+> Vercel REST `POST /v10/projects/{projectId}/env?upsert=true` and marks token
+> values as sensitive; use that path or the Vercel dashboard for production env.
 
 ---
 

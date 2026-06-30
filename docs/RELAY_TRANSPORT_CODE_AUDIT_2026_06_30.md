@@ -10,8 +10,8 @@ runtime with `quic_tls_1_3` and verified peer identity.
 Latest clean gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-30T17:12:09.0426437+09:00`
-- Commit: `9fb71e933293b4658ae9de8f3b692d33a969b5cb`
+- Generated: `2026-06-30T17:19:51.4144555+09:00`
+- Commit: `fa0acd2d9733b0256a006732666e86cdabb8cecd`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
