@@ -225,6 +225,22 @@ The fresh go/no-go snapshot still reports
 current; it does not close any product lane until that kit is run on the main PC
 and the return zip/evidence is imported and verified.
 
+2026-06-30 16:31 KST current-HEAD second-PC kit refresh: after the rc.22 local
+evidence/docs update, the second-PC handoff kit was regenerated again from clean
+commit `aeaec9570a575c7ad367329ad10f711f3a766e8d` at
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-163138.zip`
+with SHA256
+`97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`.
+`latest-prepare-output.json` reports
+`schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
+`generated_at=2026-06-30T16:31:53.8009169+09:00`, branch
+`feat/v33-residual-finalize`, `dirty=false`, and package
+`musu_1.15.0.22_x64_local-sideload-manual.msix`. The current `hugh-main`
+handoff command remains target-bound to `hugh_second`. This update removes stale
+handoff risk only; the runtime idle CPU, runtime CPU scenario matrix, and
+multi-device product lanes remain open until `hugh-main` returns verifier-
+passing evidence.
+
 2026-06-28 17:23 KST current-package evidence refresh after design-gate
 hardening: after refreshing the HUGH_SECOND local package evidence and rerunning
 `write-release-go-no-go.ps1 -Json`, the gate reports

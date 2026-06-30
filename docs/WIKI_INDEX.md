@@ -10032,6 +10032,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`,
   `after-current-head-second-pc-kit-refresh`, and `blockers=10`.
 
+- 2026-06-30 current-HEAD second-PC kit refresh after rc22 local evidence
+  update: regenerated the `hugh-main` handoff kit from clean commit
+  `aeaec9570a575c7ad367329ad10f711f3a766e8d` at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-163138.zip`
+  with SHA256
+  `97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`.
+  `latest-prepare-output.json` reports
+  `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
+  `generated_at=2026-06-30T16:31:53.8009169+09:00`, `dirty=false`, and package
+  `musu_1.15.0.22_x64_local-sideload-manual.msix`. The target-bound command for
+  `hugh-main` remains
+  `run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This is a handoff artifact refresh only; second-machine CPU/matrix and
+  multi-device blockers remain open until the returned zip is imported and
+  verified. Search terms: `20260630-163138`,
+  `97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`,
+  `aeaec9570a575c7ad367329ad10f711f3a766e8d`, and `hugh-main handoff`.
+
 - 2026-06-28 doctor relay poller runtime alignment:
   `docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md` records the source
   audit fix that made `musu doctor --json` use the same

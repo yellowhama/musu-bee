@@ -21,8 +21,8 @@ for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
-latest clean go/no-go recheck at `2026-06-30T16:18:55.8408998+09:00` on commit
-`507a47b06584e610ba20d7b6927de2ca84bf058b` still reports
+latest clean go/no-go recheck at `2026-06-30T16:24:51+09:00` on commit
+`aeaec9570a575c7ad367329ad10f711f3a766e8d` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -1850,6 +1850,42 @@ What did not change:
 Canonical report:
 
 - `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md`
+
+## 2026-06-30 Current-HEAD Second-PC Kit Refresh
+
+The second physical machine evidence path was refreshed again after the rc.22
+local evidence and docs update. The generated kit is current to clean commit
+`aeaec9570a575c7ad367329ad10f711f3a766e8d` and is the kit that should be run
+on `hugh-main` for the next two-machine CPU/matrix attempt.
+
+Generated artifact:
+
+- Kit root:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-163138`.
+- Kit zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-163138.zip`.
+- Metadata:
+  `kit-build-metadata.json` reports `version=1.15.0-rc.22`, branch
+  `feat/v33-residual-finalize`, commit
+  `aeaec9570a575c7ad367329ad10f711f3a766e8d`, and `dirty=false`.
+- Generator result:
+  `latest-prepare-output.json` reports
+  `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
+  `generated_at=2026-06-30T16:31:53.8009169+09:00`, and points at this kit.
+- SHA256:
+  `97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`.
+
+On `hugh-main`, run the targeted release-grade return command from the extracted
+kit directory:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix
+```
+
+This refresh does not close the runtime idle CPU, runtime CPU matrix, or
+multi-device product blockers by itself. It only removes stale handoff risk so
+the next `hugh-main` return zip can be imported and judged against the current
+rc.22 evidence contract.
 
 ## 2026-06-30 Public Metadata DNS/TLS Evidence Refresh
 
