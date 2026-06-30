@@ -46,6 +46,22 @@ Diff whitespace check passed:
 
 - `git diff --check`
 
+Post-commit go/no-go check:
+
+- Command: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json`
+- `generated_at=2026-06-30T19:52:21.4907949+09:00`
+- `manifest_git.commit=6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=15`
+- `warnings=0`
+
+The increase from the prior 10 blockers is expected after a Rust source change:
+previous package-bound evidence was captured for an older commit. It cannot be
+counted as current product evidence until the fixed binary is rebuilt and the
+release evidence lanes are recaptured.
+
 Formatting note:
 
 - `rustfmt --edition 2024 --check musu-rs\src\install\cli_commands.rs` reports

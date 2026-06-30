@@ -22559,3 +22559,37 @@ Qualitative audit:
 Canonical report:
 
 - `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`
+
+## wiki/1182 - 2026-06-30 Remote file CLI post-fix No-Go
+
+After commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`,
+`write-release-go-no-go.ps1 -Json` reported:
+
+- `generated_at=2026-06-30T19:52:21.4907949+09:00`
+- `ready_for_public_desktop_release=false`
+- `full_product_spec_ready=false`
+- `blockers=15`
+- `warnings=0`
+- `manifest_git.dirty=false`
+- `runtime_idle_cpu_valid_machine_count=0`
+- `runtime_cpu_scenario_matrix_valid_machine_count=0`
+- `public_metadata_ok=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+Interpretation:
+
+- This is the correct fail-closed state after a Rust source change.
+- The remote file CLI auth source bug is fixed, but the installed rc.22 package
+  still needs rebuild/reinstall before package-bound evidence can count for
+  current HEAD.
+- The package freshness lanes reopened: single-machine smoke, process
+  ownership, startup single-instance, desktop repeated activation, runtime idle
+  CPU, runtime CPU matrix, and targeted post-route CPU sample.
+- The external/physical blockers remain: second-PC evidence, Private Mesh
+  packaged proof, DNS/TLS public metadata, Store, P2P control plane, design
+  approval, relay transport, and V34 stale self-heal.
+
+Canonical report:
+
+- `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`

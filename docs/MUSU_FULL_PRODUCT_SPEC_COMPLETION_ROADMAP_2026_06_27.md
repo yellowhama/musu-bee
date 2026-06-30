@@ -48,6 +48,15 @@ passed `cargo test --manifest-path musu-rs\Cargo.toml remote_file_token --lib`
 correctness fix only; the installed package and product gate remain stale until
 both PCs are rebuilt/reinstalled and real `musu ls/get/put` evidence passes.
 
+Post-fix current-HEAD gate at `2026-06-30T19:52:21+09:00` on commit
+`6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. This is expected:
+the Rust source changed after the previous package-bound evidence refresh, so
+single-machine smoke, process ownership, startup/desktop single-instance,
+runtime idle CPU, runtime CPU matrix, and targeted post-route CPU sample must
+be recaptured from a rebuilt package before those lanes count again.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path

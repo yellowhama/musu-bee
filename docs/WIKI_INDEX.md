@@ -10367,4 +10367,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `remote_file_token_accepts_musu_token_env_as_shared_bearer_override`,
   `get_outbound_peer_token`, `run_ls`, `run_get`, and `run_put`.
 
+- 2026-06-30 remote file CLI post-fix No-Go:
+  After commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`,
+  `write-release-go-no-go.ps1 -Json` generated
+  `2026-06-30T19:52:21.4907949+09:00` with
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. This is the
+  expected fail-closed source-freshness reset after the Rust file CLI auth fix:
+  previous package-bound evidence was captured for commit `0db4b39e`, so
+  single-machine smoke, process ownership, startup/desktop single-instance,
+  runtime idle CPU, runtime CPU matrix, and targeted post-route CPU sample must
+  be recaptured after rebuild/reinstall. Search terms should include
+  `wiki/1182`, `6484c5ce`, `blockers=15`, `package freshness lanes reopened`,
+  `remote file CLI post-fix No-Go`, and `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
 **End of WIKI_INDEX.md.**
