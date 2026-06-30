@@ -4404,7 +4404,9 @@ function New-V34SelfHealProofEvidence {
         [switch]$RouteEvidenceVersionMismatch,
         [switch]$MissingSourceArtifacts,
         [switch]$BadSourceSnapshotSchema,
-        [switch]$MinimalRouteEvidence
+        [switch]$MinimalRouteEvidence,
+        [switch]$MissingSourceArtifactPaths,
+        [switch]$BadSourceType
     )
 
     $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
@@ -4425,6 +4427,7 @@ function New-V34SelfHealProofEvidence {
     $routeEvidenceVersion = if ($RouteEvidenceVersionMismatch) { "0.0.0-rc.0" } else { $ExpectedVersion }
     $ttlSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_ttl_snapshot.fixture.v1" } else { "musu.v34_ttl_snapshot.v1" }
     $bootSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_boot_snapshot.fixture.v1" } else { "musu.v34_boot_snapshot.v1" }
+    $sourceType = if ($BadSourceType) { "hand_written_fixture" } else { "operator_snapshot_pair" }
     $routeEvidenceObject = [ordered]@{
         schema = "musu.route_evidence.v1"
         version = $routeEvidenceVersion
@@ -4492,13 +4495,14 @@ function New-V34SelfHealProofEvidence {
             route_evidence_candidate_addr = $routeEvidenceCandidate
             route_evidence_candidate_matches_selected = (-not [bool]$RouteEvidenceCandidateMismatch)
             node_pair_distinct = (-not [bool]$RouteEvidenceNodeMismatch)
-            ttl_source_evidence_path = $(if ($MissingSourceArtifacts) { $null } else { "fixture-v34-ttl-source.json" })
+            ttl_source_evidence_path = $(if ($MissingSourceArtifacts -or $MissingSourceArtifactPaths) { $null } else { "fixture-v34-ttl-source.json" })
             ttl_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "2222222222222222222222222222222222222222222222222222222222222222" })
             ttl_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
             ttl_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
                 [pscustomobject]@{
                     schema = "musu.v34_ttl_prune_source.v1"
                     version = $ExpectedVersion
+                    source_type = $sourceType
                     stale_row_injected = $true
                     registry_current_excludes_stale_rows = $true
                     expired_rows_hidden = $true
@@ -4526,13 +4530,14 @@ function New-V34SelfHealProofEvidence {
                     }
                 }
             })
-            boot_source_evidence_path = $(if ($MissingSourceArtifacts) { $null } else { "fixture-v34-boot-source.json" })
+            boot_source_evidence_path = $(if ($MissingSourceArtifacts -or $MissingSourceArtifactPaths) { $null } else { "fixture-v34-boot-source.json" })
             boot_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "3333333333333333333333333333333333333333333333333333333333333333" })
             boot_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
             boot_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
                 [pscustomobject]@{
                     schema = "musu.v34_boot_reconcile_source.v1"
                     version = $ExpectedVersion
+                    source_type = $sourceType
                     cache_available = $true
                     manual_peer_count_before = 4
                     manual_peer_count_after = 3
@@ -6692,6 +6697,7 @@ $fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $
 $v34TtlSourceEvidence = [pscustomobject]@{
     schema = "musu.v34_ttl_prune_source.v1"
     version = $ExpectedVersion
+    source_type = "operator_snapshot_pair"
     stale_row_injected = $true
     registry_current_excludes_stale_rows = $true
     expired_rows_hidden = $true
@@ -6722,6 +6728,7 @@ $v34TtlSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-ttl-source" -
 $v34BootSourceEvidence = [pscustomobject]@{
     schema = "musu.v34_boot_reconcile_source.v1"
     version = $ExpectedVersion
+    source_type = "operator_snapshot_pair"
     cache_available = $true
     manual_peer_count_before = 4
     manual_peer_count_after = 3
@@ -6835,6 +6842,14 @@ Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence version
 $fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifacts" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifacts)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without TTL and boot source artifacts" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifact-paths" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifactPaths)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without source artifact paths" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-bad-source-type" -Object (New-V34SelfHealProofEvidence -BadSourceType)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects non-operator source artifact type" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "v34-self-heal-minimal-route-evidence" -Object (New-V34SelfHealProofEvidence -MinimalRouteEvidence)
 $invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")

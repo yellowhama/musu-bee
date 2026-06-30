@@ -83,6 +83,17 @@ the correct fail-closed state; the next action is a human approval comment on
 issue #35, then a PR body update with `Design: Approved` plus the exact
 approval comment URL.
 
+2026-06-30 V34 source artifact path/type hardening:
+`docs/V34_SOURCE_ARTIFACT_PATH_TYPE_HARDENING_2026_06_30.md` records a
+verifier hardening for the V34 stale self-heal lane. `verify-v34-self-heal-proof.ps1`
+now rejects final proof wrappers that omit
+`ttl_source_evidence_path` / `boot_source_evidence_path`, and it requires both
+embedded source artifacts to declare `source_type=operator_snapshot_pair`.
+`test-release-evidence-verifiers.ps1 -Json` passed with `ok=true`,
+`case_count=216`, and `failed_case_count=0`. This is a proof-gate hardening
+only; `v34_stale_self_heal_verified=false` remains correct until physical
+two-node stale-state evidence is committed.
+
 Authoritative 2026-06-28 wrap-up clean gate:
 
 - Command source:

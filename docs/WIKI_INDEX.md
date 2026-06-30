@@ -10157,4 +10157,22 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `issuecomment-4813006122`, `issuecomment-4814296271`,
   `issuecomment-4814487029`, `Design: Pending`, and `design-gate`.
 
+- 2026-06-30 V34 source artifact path/type hardening:
+  `docs/V34_SOURCE_ARTIFACT_PATH_TYPE_HARDENING_2026_06_30.md` records a
+  verifier hardening for the V34 stale self-heal proof lane.
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now requires non-empty
+  `ttl_source_evidence_path` and `boot_source_evidence_path`, and requires both
+  embedded TTL/boot source artifacts to declare
+  `source_type=operator_snapshot_pair`. Regression coverage in
+  `scripts/windows/test-release-evidence-verifiers.ps1` adds rejection cases
+  for missing source artifact paths and non-operator source artifact type.
+  Verification passed with `ok=true`, `case_count=216`,
+  `failed_case_count=0`. This does not close the lane:
+  `v34_stale_self_heal_verified=false` remains correct until physical two-node
+  stale-state evidence is committed. Search terms should include
+  `V34_SOURCE_ARTIFACT_PATH_TYPE_HARDENING_2026_06_30`,
+  `operator_snapshot_pair`, `ttl_source_evidence_path`,
+  `boot_source_evidence_path`, and `V34 self-heal rejects non-operator source
+  artifact type`.
+
 **End of WIKI_INDEX.md.**

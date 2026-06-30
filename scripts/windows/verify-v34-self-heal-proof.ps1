@@ -520,6 +520,16 @@ if ($evidence) {
     } else {
         Add-Check "ttl source schema" "fail" "source_evidence.ttl_source_evidence must have schema musu.v34_ttl_prune_source.v1"
     }
+    if ($ttlSource -and [string](Get-Prop $ttlSource "source_type") -eq "operator_snapshot_pair") {
+        Add-Check "ttl source type" "pass" "TTL source evidence came from an operator snapshot pair"
+    } else {
+        Add-Check "ttl source type" "fail" "source_evidence.ttl_source_evidence.source_type must be operator_snapshot_pair"
+    }
+    if ($sourceEvidence -and (Test-NonEmptyString $sourceEvidence "ttl_source_evidence_path")) {
+        Add-Check "ttl source path" "pass" "TTL source evidence path is present"
+    } else {
+        Add-Check "ttl source path" "fail" "source_evidence.ttl_source_evidence_path is required"
+    }
     if ($sourceEvidence -and (Test-Sha256 ([string](Get-Prop $sourceEvidence "ttl_source_evidence_sha256")))) {
         Add-Check "ttl source hash" "pass" "TTL source evidence is hash-bound"
     } else {
@@ -621,6 +631,16 @@ if ($evidence) {
         Add-Check "boot source schema" "pass" "boot source evidence schema is valid"
     } else {
         Add-Check "boot source schema" "fail" "source_evidence.boot_source_evidence must have schema musu.v34_boot_reconcile_source.v1"
+    }
+    if ($bootSource -and [string](Get-Prop $bootSource "source_type") -eq "operator_snapshot_pair") {
+        Add-Check "boot source type" "pass" "boot source evidence came from an operator snapshot pair"
+    } else {
+        Add-Check "boot source type" "fail" "source_evidence.boot_source_evidence.source_type must be operator_snapshot_pair"
+    }
+    if ($sourceEvidence -and (Test-NonEmptyString $sourceEvidence "boot_source_evidence_path")) {
+        Add-Check "boot source path" "pass" "boot source evidence path is present"
+    } else {
+        Add-Check "boot source path" "fail" "source_evidence.boot_source_evidence_path is required"
     }
     if ($sourceEvidence -and (Test-Sha256 ([string](Get-Prop $sourceEvidence "boot_source_evidence_sha256")))) {
         Add-Check "boot source hash" "pass" "boot source evidence is hash-bound"
