@@ -10613,4 +10613,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01`, `hugh-main`, `hugh_second`,
   `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
 
+- 2026-07-01 packaged brain MSIX fullTrust repair:
+  `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`,
+  `docs/HANDOFF-musu-integration.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1194`: installed MSIX brain sidecar requires
+  an AppxManifest `windows.fullTrustProcess` declaration for
+  `musu-brain.exe`. File staging and Tauri `externalBin` were not sufficient;
+  the missing declaration produced an installed package where the executable was
+  present but the hidden brain could not start. Fresh evidence
+  `20260701-012657-HUGH_SECOND` records `brain_full_trust_process=true`, and
+  `20260701-012822-HUGH_SECOND` records a passing brain product proof with
+  root `C:\Users\empty\.musu\brain`, loopback `127.0.0.1:8080`, observed
+  sidecar process, ingest, and recall. Code/doc snippets from the six touched
+  MSIX/installer verifier scripts plus seven current docs were indexed into
+  the local brain workspace under `local/musu`; recall query
+  `wiki/1194 packaged brain MSIX fullTrustProcess musu-brain.exe` returned
+  this audit and the verifier scripts. Search terms should include `wiki/1194`,
+  `CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01`, `windows.fullTrustProcess`,
+  `musu-brain.exe`, `brain_full_trust_process=true`, `20260701-012657`,
+  `20260701-012822`, `~/.musu/brain`, `HANDOFF-musu-integration`,
+  `none_http_bearer`, and `peer_identity_verified=false`. Product meaning:
+  the local `HUGH_SECOND` motherboard+chip brain lane is green, but full product
+  completion remains NO-GO until hosted channel freshness, second-PC evidence,
+  release-grade route transport, public metadata DNS/TLS, Store, relay, V34,
+  Private Mesh archive proof, and design approval are closed.
+
 **End of WIKI_INDEX.md.**

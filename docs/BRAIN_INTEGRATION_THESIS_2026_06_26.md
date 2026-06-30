@@ -169,6 +169,32 @@ package evidence 이후의 source change라서 다음 release claim에는 재빌
 
 관련 문서: `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`.
 
+### 2026-07-01 MSIX fullTrustProcess 패키지 계약
+
+`~/.musu/brain` root-env 계약을 재빌드/재설치해서 검증하는 과정에서
+중요한 Windows 패키징 계약이 추가로 확정됐다. `musu-brain.exe`를
+MSIX 안에 복사하고 Tauri `externalBin`에 올리는 것만으로는 충분하지
+않다. 설치된 패키지의 AppxManifest가 `musu-brain.exe`를
+`windows.fullTrustProcess`로 선언해야 숨은 brain sidecar가 실제로
+실행된다.
+
+확정된 제품 계약:
+
+1. `musu-brain.exe`는 MSIX에 포함된다.
+2. AppxManifest는 `musu-brain.exe`의 `windows.fullTrustProcess` 선언을
+   포함한다.
+3. package verifier와 installed-package verifier는 둘 중 하나라도 빠지면
+   실패한다.
+4. `capture-msix-install-evidence.ps1`와
+   `verify-msix-install-evidence.ps1`는 `brain_full_trust_process=true`를
+   release evidence 계약으로 본다.
+5. proof는 `~/.musu/brain`, loopback `127.0.0.1:8080`, sidecar process,
+   token ACL, ingest/recall까지 같이 본다.
+
+현재 `HUGH_SECOND` 로컬 sideload package evidence는 이 계약을 통과한다.
+정식 정리 문서:
+`CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`.
+
 관련 메모리: [[musubrain-지식엔진]] [[decision-musu-3tier-thesis]] [[decision-musu-v28-fleet-as-one-device]]
 [[feedback-no-yagni-architecture]] [[feedback-self-contained-product]] [[reference-musubrain-stableid-overwrite]].
 관련 문서: `SINGLE_BINARY_INTEGRATION_PLAN_2026_06_11.md`, `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md`(wiki/456).

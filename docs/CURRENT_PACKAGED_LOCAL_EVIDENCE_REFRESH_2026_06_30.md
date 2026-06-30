@@ -7,6 +7,12 @@ The current `HUGH_SECOND` package-bound local lanes are green again after the
 remote file dynamic-share reload and the latest `musu-brain` sidecar pin
 refresh, but the product is not complete.
 
+2026-07-01 update: this report is superseded for the brain package lane by
+`docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`. The newer audit records
+the MSIX `windows.fullTrustProcess` requirement for `musu-brain.exe` and fresh
+`20260701` package/brain/CPU evidence. The NO-GO conclusion for the full product
+still stands.
+
 Current evidence refresh anchor:
 
 - package version: `1.15.0.22`

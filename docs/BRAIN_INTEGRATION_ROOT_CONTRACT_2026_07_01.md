@@ -10,6 +10,12 @@ also describes the standalone brain defaults under `~/.musubrain`. For the MUSU
 desktop product, the standalone default is not the product contract. MUSU owns
 the resolver and pins the product root under the existing MUSU profile root.
 
+2026-07-01 package proof update: the root contract has now been rebuilt into
+the local-sideload MSIX on `HUGH_SECOND` and re-proven through
+`docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`. The package proof also
+found and fixed the missing MSIX `fullTrustProcess` declaration for
+`musu-brain.exe`, which is now part of the product contract and verifiers.
+
 ## Product Contract
 
 - Product root: `~/.musu/brain`.
@@ -57,14 +63,18 @@ HEAD.
 
 | Severity | Finding | Evidence | Impact | Next |
 |---|---|---|---|---|
-| HIGH | The root conflict is resolved for MUSU source, but package proof is stale until a rebuild. | Source now exports root env vars and pin moved to `eb0c0ec`; installed package evidence predates this source change. | Do not claim a new package contains this contract until rebuilt and re-proven. | Rebuild/reinstall rc.22 successor or next package, then rerun brain product proof. |
+| HIGH | The root conflict is resolved for MUSU source and now locally package-proven on `HUGH_SECOND`. | `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`; `20260701-012822` brain product proof uses `C:\Users\empty\.musu\brain`. | The local MSIX package contains the root contract. Public channel and second-PC freshness still need separate proof. | Keep this lane green after any source/package change; refresh hosted channel before other-PC install. |
+| HIGH | MSIX must declare the brain sidecar as full trust. | `20260701-012657` MSIX install evidence records `brain_full_trust_process=true`. | File presence alone can produce a dead hidden brain sidecar. | Keep package and installed-package verifiers rejecting missing `fullTrustProcess`. |
 | HIGH | The standalone brain default remains `~/.musubrain`. | Brain handoff Part 1 describes standalone data layout. | Future agents could reintroduce split stores if they follow standalone defaults inside MUSU. | Treat this document and `BRAIN_INTEGRATION_THESIS` as the MUSU product overlay. |
 | MED | MCP registration is still a policy/UX task. | Brain handoff recommends `print-config` and print-don't-write. | Auto-editing Codex/Claude/Gemini config without consent would violate the brain handoff. | Cockpit/installer should show paste snippets or use an explicit user-consent gate. |
 
 ## Next Steps
 
-1. Run targeted Tauri tests for the knowledge root contract.
-2. Run the MSIX brain pin preflight path before the next package build.
-3. Rebuild/reinstall the package and recapture `record-brain-product-proof.ps1`.
+1. Keep targeted Tauri tests and the MSIX brain pin preflight path in every
+   package build.
+2. Keep MSIX package/install evidence requiring `musu-brain.exe` full-trust
+   declaration.
+3. Refresh the hosted `musu.pro` install channel before installing this fixed
+   package on `hugh-main`.
 4. Keep cockpit recall/capture UX and autocollect expansion behind this root
    contract plus fresh package evidence.

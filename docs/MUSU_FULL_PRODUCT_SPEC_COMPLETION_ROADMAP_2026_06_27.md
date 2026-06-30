@@ -40,6 +40,37 @@ second-PC kit is
 with SHA256
 `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`.
 
+2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
+the rebuilt local-sideload package now proves the hidden brain chip from the
+installed MSIX on `HUGH_SECOND`. The earlier package could contain
+`musu-brain.exe` but still fail to launch it because the AppxManifest lacked a
+`windows.fullTrustProcess` declaration for the brain executable. That is now
+fixed and verifier-gated. Canonical report:
+`docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`.
+
+Fresh evidence:
+
+- MSIX install:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-012657-HUGH_SECOND.evidence.json`
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-012822-HUGH_SECOND.brain-product-proof.json`
+- single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-012801-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-013023-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-013155-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-013333-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Product meaning: the local packaged motherboard+chip lane is now real on
+`HUGH_SECOND`: `musu-brain.exe` is installed, declared as full trust, started as
+a hidden sidecar, uses `~/.musu/brain`, passes loopback health, and passes
+ingest/recall proof. This does not close public channel freshness,
+second-machine package evidence, Store release, public metadata DNS/TLS,
+release-grade transport, relay, V34, Private Mesh archive proof, or design
+approval.
+
 That current state still does not prove the full product: second-machine CPU
 evidence, release-grade multi-device route identity, packaged Private Mesh
 proof archive, public metadata DNS/TLS, Store release/Store-signed install

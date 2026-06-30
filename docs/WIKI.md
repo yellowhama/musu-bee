@@ -23071,3 +23071,64 @@ Product meaning:
 - It does not close `multi-device`, `runtime-idle-cpu`,
   `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, relay,
   V34, public metadata, Store, or design approval by itself.
+
+## wiki/1194 - 2026-07-01 Packaged brain MSIX fullTrust repair
+
+Current reports:
+
+- `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`
+- `docs/HANDOFF-musu-integration.md`
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+- `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- `musu-brain.exe` must be declared in the MSIX AppxManifest as
+  `windows.fullTrustProcess`; staging the file and Tauri `externalBin` alone is
+  not sufficient.
+- `scripts/windows/build-msix.ps1` now emits the brain full-trust extension.
+- `scripts/windows/verify-msix-package.ps1` and
+  `scripts/windows/verify-installed-msix-package.ps1` now reject missing brain
+  executable/fullTrustProcess declarations.
+- `scripts/windows/msix-common.ps1`,
+  `scripts/windows/capture-msix-install-evidence.ps1`, and
+  `scripts/windows/verify-msix-install-evidence.ps1` now carry the brain
+  fullTrust contract into release evidence.
+- The brain handoff from `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
+  was copied into `docs/HANDOFF-musu-integration.md` with a local MUSU product
+  overlay note: standalone `~/.musubrain` is not the desktop product root;
+  product root remains `~/.musu/brain`.
+
+Evidence:
+
+- MSIX install:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-012657-HUGH_SECOND.evidence.json`
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-012822-HUGH_SECOND.brain-product-proof.json`
+- single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-012801-HUGH_SECOND.evidence.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-013023-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-013155-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-013333-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- local brain indexing:
+  code/doc snippets from six MSIX verifier/build scripts plus seven current
+  docs were indexed under token scope `local/musu`; recall query
+  `wiki/1194 packaged brain MSIX fullTrustProcess musu-brain.exe` returned 5
+  hits, including this audit and the verifier scripts.
+
+Product meaning:
+
+- The current local `HUGH_SECOND` package now proves the hidden
+  motherboard+chip brain lane: installed `musu-brain.exe`, fullTrustProcess
+  declaration, `~/.musu/brain`, loopback health, token ACL, sidecar process,
+  ingest, and recall.
+- The full product is still not complete. Current route evidence to
+  `hugh-main` remains `peer_identity_verified=false` and
+  `encryption=none_http_bearer`, so it proves LAN work-targetability only, not
+  release-grade transport.
+- Hosted `musu.pro` install channel freshness and second-PC proof for this
+  exact fixed package still need separate evidence.
