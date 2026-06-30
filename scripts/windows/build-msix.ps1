@@ -404,6 +404,7 @@ function New-ManifestContent {
         [string]$AppDescription,
         [string]$ApplicationExecutable,
         [string]$RuntimeExecutable,
+        [string]$BrainExecutable,
         [string]$StartupExecutable,
         [string]$StartupContract
     )
@@ -482,6 +483,12 @@ $rescap5Namespace
             <desktop:ExecutionAlias Alias="$RuntimeExecutable" />
           </uap3:AppExecutionAlias>
         </uap3:Extension>
+        <desktop:Extension
+          Category="windows.fullTrustProcess"
+          Executable="$BrainExecutable"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop:FullTrustProcess />
+        </desktop:Extension>
         <desktop:Extension
           Category="windows.startupTask"
           Executable="$StartupExecutable"
@@ -775,6 +782,7 @@ $manifestContent = New-ManifestContent `
     -AppDescription $Description `
     -ApplicationExecutable $ApplicationExecutable `
     -RuntimeExecutable $RuntimeExecutable `
+    -BrainExecutable $BrainExecutable `
     -StartupExecutable $StartupExecutable `
     -StartupContract $StartupContract
 
