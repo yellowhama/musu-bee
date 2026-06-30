@@ -52,6 +52,21 @@ the Go chip itself.
 | HIGH | Runtime CPU evidence is only valid for `HUGH_SECOND`. | Matrix and idle CPU verifiers pass for one machine only. | Public desktop release still needs required machine count. | Run/import second-PC CPU/matrix evidence. |
 | MED | Sidecar spawn failures are hard to diagnose. | `spawn_knowledge_sidecar_autostart()` discards stdout/stderr and does not record a persistent readiness result after spawn. | Failures can look like a user/config problem instead of a lifecycle bug. | Persist sidecar spawn attempt status in product logs and surface it through doctor/cockpit. |
 
+## Source Follow-Up
+
+This report found the hidden brain lifecycle failure. The source-level follow-up
+is documented in `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`.
+
+That follow-up adds guarded brain autostart, persistent launch status under
+`~/.musu/brain/runtime/sidecar-autostart-status.json`, stdout/stderr logs under
+the same runtime directory, bounded `/health` readiness probing, and
+`musu doctor --json` fields for `knowledge.autostart_status_path`,
+`knowledge.autostart_status`, and `knowledge.autostart_status_error`.
+
+This does not change the verdict of this package report: the installed package
+evidence here remains NO-GO for brain lifecycle until the source follow-up is
+rebuilt into a new MSIX and recaptured without manually starting `musu-brain`.
+
 ## Verification
 
 - `build-msix.ps1 -NoBump -PreflightOnly` passed version coherence including
@@ -89,10 +104,11 @@ the Go chip itself.
 
 1. Treat hidden brain lifecycle as the next local blocker: the desktop must
    prove it can start or restart `musu-brain` without a manual server command.
-2. Add durable spawn diagnostics for command path, root, exit/error, and health
-   readiness after `spawn_knowledge_sidecar_autostart()`.
+2. Rebuild/reinstall the source follow-up from
+   `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`.
 3. Recapture brain product proof from a clean packaged desktop launch with no
-   manually started `musu-brain` process.
+   manually started `musu-brain` process, and inspect
+   `knowledge.autostart_status` if it fails.
 4. Continue the existing release blockers: second-PC CPU/matrix, Private Mesh,
    P2P/relay transport, Store/public metadata, Store release, design approval,
    and V34 stale self-heal evidence.

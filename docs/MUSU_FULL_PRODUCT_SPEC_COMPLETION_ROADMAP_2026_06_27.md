@@ -192,6 +192,41 @@ Clean go/no-go after the docs/evidence commit at
 `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
 `brain_product_verified=false`.
 
+2026-07-01 07:52 KST brain sidecar autostart supervision source fix:
+the lifecycle gap found in the `20260701-071746` failed brain product proof is
+now source-fixed but not package-proven. Canonical report:
+`docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`. The desktop brain
+autostart path now uses a brain-side start gate, persists
+`~/.musu/brain/runtime/sidecar-autostart-status.json` with schema
+`musu.knowledge_sidecar_autostart.v1`, writes sidecar stdout/stderr logs under
+the same runtime directory, waits up to 10 seconds for
+`http://127.0.0.1:8080/health`, and records `started`,
+`already_healthy`, `start_in_progress`, `spawn_failed`,
+`exited_before_ready`, or `readiness_timeout` outcomes. `musu doctor --json`
+now surfaces `knowledge.autostart_status_path`,
+`knowledge.autostart_status`, and `knowledge.autostart_status_error`.
+Verification passed touched-file rustfmt, `git diff --check`,
+`cargo test --manifest-path musu-bee\src-tauri\Cargo.toml knowledge --lib -j 1 -- --nocapture --test-threads=1`
+(`6 passed`),
+`cargo test --manifest-path musu-rs\Cargo.toml knowledge_sidecar_autostart_status_reader --lib -j 1 -- --nocapture --test-threads=1`
+(`1 passed`),
+`cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps_include_hidden_brain_sidecar_warning --lib -j 1 -- --nocapture --test-threads=1`
+(`1 passed`), and
+`cargo test --manifest-path musu-bee\src-tauri\Cargo.toml doctor_status_summary_flags_alias_shadowing_and_local_only_mode --lib -j 1 -- --nocapture --test-threads=1`
+(`1 passed`). Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3627 files` and `3938 symbols`; product brain CLI ingest under `local/musu`
+created 8 sources, processed 8, and recall for
+`BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01` returned the new report
+source. Product meaning: the code now leaves actionable evidence for the hidden
+brain lifecycle, but the product remains NO-GO until this commit is
+rebuilt/reinstalled and a clean packaged desktop launch passes brain product
+proof without manual sidecar start. Clean go/no-go after this source change
+reports `manifest_git.dirty=false`, `warnings=0`, `blockers=16`,
+`brain_product_verified=false`, and package-bound CPU/matrix counts at `0`
+because the new source revision has not been rebuilt/reinstalled and
+recaptured.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

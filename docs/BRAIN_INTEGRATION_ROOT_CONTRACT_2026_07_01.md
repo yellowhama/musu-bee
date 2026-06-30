@@ -23,6 +23,15 @@ the hidden `musu-brain` process was not. Manually starting the same packaged
 binary with `-root ~/.musu/brain` made `/health` return OK, so the root and chip
 are valid; the unresolved contract gap is desktop lifecycle supervision.
 
+2026-07-01 autostart supervision source update: lifecycle supervision now has
+source-level durable evidence. `spawn_knowledge_sidecar_autostart()` is guarded
+against overlapping start attempts, writes
+`~/.musu/brain/runtime/sidecar-autostart-status.json`, appends sidecar
+stdout/stderr logs under `~/.musu/brain/runtime`, and waits for loopback health
+readiness. This update is not yet package-proven; the package proof lane stays
+open until a rebuilt MSIX passes brain product proof without manual sidecar
+start.
+
 ## Product Contract
 
 - Product root: `~/.musu/brain`.
@@ -44,6 +53,10 @@ Current code now makes the root contract explicit in the desktop process tree:
   `musu_home().join("brain")`.
 - `spawn_knowledge_sidecar_autostart()` starts `musu-brain server` with
   `-root <~/.musu/brain>`.
+- `spawn_knowledge_sidecar_autostart()` now records guarded launch status under
+  `~/.musu/brain/runtime/sidecar-autostart-status.json` using schema
+  `musu.knowledge_sidecar_autostart.v1`.
+- Sidecar stdout/stderr logs are written under the same runtime directory.
 - The same sidecar spawn now exports:
   - `MUSU_KNOWLEDGE_ROOT=<~/.musu/brain>`
   - `MUSUBRAIN_ROOT=<~/.musu/brain>`
@@ -74,7 +87,7 @@ HEAD.
 | Severity | Finding | Evidence | Impact | Next |
 |---|---|---|---|---|
 | HIGH | The root conflict is resolved for MUSU source and now locally package-proven on `HUGH_SECOND`. | `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`; `20260701-012822` brain product proof uses `C:\Users\empty\.musu\brain`. | The local MSIX package contains the root contract. Public channel and second-PC freshness still need separate proof. | Keep this lane green after any source/package change; refresh hosted channel before other-PC install. |
-| NO-GO | The hidden brain lifecycle is not currently package-proven after the doctor/status rebuild. | `docs/evidence/brain-product/1.15.0-rc.22/20260701-071746-HUGH_SECOND.brain-product-verification.json` has `ok=false`, `fail_count=14`, no sidecar process, and no health proof. | The product cannot claim the user-invisible motherboard+chip experience is complete. | Add sidecar launch/readiness logging and recapture brain product proof from a clean packaged desktop launch without manual sidecar start. |
+| NO-GO | The hidden brain lifecycle is source-fixed but not currently package-proven after the doctor/status rebuild. | `docs/evidence/brain-product/1.15.0-rc.22/20260701-071746-HUGH_SECOND.brain-product-verification.json` has `ok=false`, `fail_count=14`, no sidecar process, and no health proof; `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md` records the source fix. | The product cannot claim the user-invisible motherboard+chip experience is complete until the source fix is rebuilt and proven from the installed package. | Rebuild/reinstall, inspect `knowledge.autostart_status`, and recapture brain product proof from a clean packaged desktop launch without manual sidecar start. |
 | HIGH | MSIX must declare the brain sidecar as full trust. | `20260701-012657` MSIX install evidence records `brain_full_trust_process=true`. | File presence alone can produce a dead hidden brain sidecar. | Keep package and installed-package verifiers rejecting missing `fullTrustProcess`. |
 | HIGH | The standalone brain default remains `~/.musubrain`. | Brain handoff Part 1 describes standalone data layout. | Future agents could reintroduce split stores if they follow standalone defaults inside MUSU. | Treat this document and `BRAIN_INTEGRATION_THESIS` as the MUSU product overlay. |
 | MED | MCP registration is still a policy/UX task. | Brain handoff recommends `print-config` and print-don't-write. | Auto-editing Codex/Claude/Gemini config without consent would violate the brain handoff. | Cockpit/installer should show paste snippets or use an explicit user-consent gate. |
@@ -89,6 +102,6 @@ HEAD.
    package on `hugh-main`.
 4. Keep cockpit recall/capture UX and autocollect expansion behind this root
    contract plus fresh package evidence.
-5. Reopen the lifecycle proof lane until `spawn_knowledge_sidecar_autostart()`
-   proves command path, root, spawn result, and health readiness in package
-   evidence.
+5. Keep the lifecycle proof lane open until the rebuilt package records
+   `knowledge.autostart_status.readiness_ok=true` and brain product proof passes
+   without manual sidecar start.

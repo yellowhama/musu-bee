@@ -29,6 +29,13 @@ const KNOWLEDGE_TENANT_ID: &str = "local";
 const KNOWLEDGE_WORKSPACE_ID: &str = "musu";
 const KNOWLEDGE_ROOT_ENV: &str = "MUSU_KNOWLEDGE_ROOT";
 const BRAIN_ROOT_ENV: &str = "MUSUBRAIN_ROOT";
+const KNOWLEDGE_AUTOSTART_STATUS_SCHEMA: &str = "musu.knowledge_sidecar_autostart.v1";
+const KNOWLEDGE_AUTOSTART_STATUS_FILE: &str = "sidecar-autostart-status.json";
+const KNOWLEDGE_AUTOSTART_STDOUT_LOG_FILE: &str = "sidecar-stdout.log";
+const KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE: &str = "sidecar-stderr.log";
+const KNOWLEDGE_READY_TIMEOUT_SECS: u64 = 10;
+const KNOWLEDGE_READY_POLL_INITIAL_MS: u64 = 250;
+const KNOWLEDGE_READY_POLL_MAX_MS: u64 = 2_000;
 
 /// Installed package identity name (NOT the family name) — the stable key the
 /// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
@@ -516,9 +523,14 @@ impl Drop for RuntimeStartGuard<'_> {
 }
 
 static RUNTIME_START_GATE: std::sync::OnceLock<RuntimeStartGate> = std::sync::OnceLock::new();
+static KNOWLEDGE_START_GATE: std::sync::OnceLock<RuntimeStartGate> = std::sync::OnceLock::new();
 
 fn runtime_start_gate() -> &'static RuntimeStartGate {
     RUNTIME_START_GATE.get_or_init(RuntimeStartGate::default)
+}
+
+fn knowledge_start_gate() -> &'static RuntimeStartGate {
+    KNOWLEDGE_START_GATE.get_or_init(RuntimeStartGate::default)
 }
 
 fn can_start_runtime(
@@ -6012,39 +6024,341 @@ fn spawn_knowledge_sidecar_autostart() {
     let _ = std::thread::Builder::new()
         .name("musu-knowledge-autostart".to_string())
         .spawn(|| {
-            if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
-                return;
-            }
-
-            let command = knowledge_sidecar_command_path();
-            let root = knowledge_root();
-            if let Err(err) = ensure_knowledge_workspace_and_token(&command, &root) {
-                eprintln!("MUSU knowledge sidecar autostart skipped: {err}");
-                return;
-            }
-
-            let root_arg = root.to_string_lossy().to_string();
-            let mut cmd = std::process::Command::new(&command);
-            cmd.args([
-                "server",
-                "-root",
-                root_arg.as_str(),
-                "-addr",
-                KNOWLEDGE_ADDR,
-            ])
-            .env("MUSU_HOME", musu_home())
-            .env(KNOWLEDGE_ROOT_ENV, &root)
-            .env(BRAIN_ROOT_ENV, &root)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null());
-            if let Err(err) = no_window(&mut cmd).spawn() {
-                eprintln!(
-                    "MUSU knowledge sidecar autostart failed for {}: {err}",
-                    command.display()
-                );
-            }
+            run_knowledge_sidecar_autostart();
         });
+}
+
+#[derive(serde::Serialize)]
+struct KnowledgeSidecarAutostartStatus {
+    schema: &'static str,
+    generated_at: String,
+    result: String,
+    stage: String,
+    command: String,
+    root: String,
+    addr: String,
+    health_url: String,
+    pid: Option<u32>,
+    readiness_ok: bool,
+    elapsed_ms: u128,
+    stdout_log: Option<String>,
+    stderr_log: Option<String>,
+    detail: String,
+}
+
+struct KnowledgeSidecarReadiness {
+    ready: bool,
+    exited: bool,
+    detail: String,
+}
+
+fn run_knowledge_sidecar_autostart() {
+    let started_at = std::time::Instant::now();
+    let command = knowledge_sidecar_command_path();
+    let root = knowledge_root();
+
+    if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "already_healthy".to_string(),
+            stage: "probe".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: true,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Hidden brain sidecar health endpoint was already reachable.".to_string(),
+        });
+        return;
+    }
+
+    let Some(_guard) = knowledge_start_gate().try_acquire() else {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "start_in_progress".to_string(),
+            stage: "gate".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: false,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Another hidden brain sidecar autostart attempt is already in flight."
+                .to_string(),
+        });
+        return;
+    };
+
+    if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "already_healthy".to_string(),
+            stage: "post_gate_probe".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: true,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Hidden brain sidecar became healthy before a new spawn was needed."
+                .to_string(),
+        });
+        return;
+    }
+
+    if let Err(err) = ensure_knowledge_workspace_and_token(&command, &root) {
+        eprintln!("MUSU knowledge sidecar autostart skipped: {err}");
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "workspace_failed".to_string(),
+            stage: "workspace".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: false,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: err,
+        });
+        return;
+    }
+
+    let stdout_log = knowledge_sidecar_stdout_log_path();
+    let stderr_log = knowledge_sidecar_stderr_log_path();
+    let mut log_warnings = Vec::new();
+
+    let stdout = match open_knowledge_sidecar_log(&stdout_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+    let stderr = match open_knowledge_sidecar_log(&stderr_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+
+    let root_arg = root.to_string_lossy().to_string();
+    let mut cmd = std::process::Command::new(&command);
+    cmd.args([
+        "server",
+        "-root",
+        root_arg.as_str(),
+        "-addr",
+        KNOWLEDGE_ADDR,
+    ])
+    .env("MUSU_HOME", musu_home())
+    .env(KNOWLEDGE_ROOT_ENV, &root)
+    .env(BRAIN_ROOT_ENV, &root)
+    .stdin(std::process::Stdio::null())
+    .stdout(stdout)
+    .stderr(stderr);
+
+    let mut child = match no_window(&mut cmd).spawn() {
+        Ok(child) => child,
+        Err(err) => {
+            let detail = format!(
+                "Failed to spawn hidden brain sidecar from {}: {err}",
+                command.display()
+            );
+            eprintln!("MUSU knowledge sidecar autostart failed: {detail}");
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: "spawn_failed".to_string(),
+                stage: "spawn".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: false,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: Some(stdout_log.display().to_string()),
+                stderr_log: Some(stderr_log.display().to_string()),
+                detail,
+            });
+            return;
+        }
+    };
+
+    let pid = child.id();
+    let readiness = wait_for_knowledge_sidecar_ready(&mut child);
+    let mut detail = readiness.detail;
+    if !log_warnings.is_empty() {
+        detail.push_str(" Log warning: ");
+        detail.push_str(&log_warnings.join("; "));
+    }
+    let result = if readiness.ready {
+        "started"
+    } else if readiness.exited {
+        "exited_before_ready"
+    } else {
+        "readiness_timeout"
+    };
+
+    write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+        schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        result: result.to_string(),
+        stage: "readiness".to_string(),
+        command: command.display().to_string(),
+        root: root.display().to_string(),
+        addr: KNOWLEDGE_ADDR.to_string(),
+        health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+        pid: Some(pid),
+        readiness_ok: readiness.ready,
+        elapsed_ms: started_at.elapsed().as_millis(),
+        stdout_log: Some(stdout_log.display().to_string()),
+        stderr_log: Some(stderr_log.display().to_string()),
+        detail,
+    });
+}
+
+fn wait_for_knowledge_sidecar_ready(child: &mut std::process::Child) -> KnowledgeSidecarReadiness {
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(KNOWLEDGE_READY_TIMEOUT_SECS);
+    let mut attempt = 0_u32;
+    loop {
+        if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+            return KnowledgeSidecarReadiness {
+                ready: true,
+                exited: false,
+                detail: "Hidden brain sidecar became healthy after spawn.".to_string(),
+            };
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                return KnowledgeSidecarReadiness {
+                    ready: false,
+                    exited: true,
+                    detail: format!(
+                        "Hidden brain sidecar exited before health became reachable: {status}"
+                    ),
+                };
+            }
+            Ok(None) => {}
+            Err(err) => {
+                return KnowledgeSidecarReadiness {
+                    ready: false,
+                    exited: false,
+                    detail: format!("Failed to inspect hidden brain sidecar process: {err}"),
+                };
+            }
+        }
+
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return KnowledgeSidecarReadiness {
+                ready: false,
+                exited: false,
+                detail: format!(
+                    "Hidden brain sidecar did not become healthy within {KNOWLEDGE_READY_TIMEOUT_SECS}s."
+                ),
+            };
+        }
+
+        let delay =
+            knowledge_ready_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        std::thread::sleep(delay);
+    }
+}
+
+fn knowledge_ready_poll_delay(attempt: u32) -> std::time::Duration {
+    let multiplier = 1_u64 << attempt.min(3);
+    std::time::Duration::from_millis(
+        KNOWLEDGE_READY_POLL_INITIAL_MS
+            .saturating_mul(multiplier)
+            .min(KNOWLEDGE_READY_POLL_MAX_MS),
+    )
+}
+
+fn write_knowledge_sidecar_autostart_status_best_effort(status: KnowledgeSidecarAutostartStatus) {
+    if let Err(err) = write_knowledge_sidecar_autostart_status(&status) {
+        eprintln!("MUSU knowledge sidecar autostart status write failed: {err}");
+    }
+}
+
+fn write_knowledge_sidecar_autostart_status(
+    status: &KnowledgeSidecarAutostartStatus,
+) -> Result<(), String> {
+    let path = knowledge_sidecar_autostart_status_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar status dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    let text = serde_json::to_string_pretty(status)
+        .map_err(|err| format!("failed to serialize knowledge sidecar status: {err}"))?;
+    std::fs::write(&path, text).map_err(|err| {
+        format!(
+            "failed to write knowledge sidecar status {}: {err}",
+            path.display()
+        )
+    })
+}
+
+fn open_knowledge_sidecar_log(path: &std::path::Path) -> Result<std::fs::File, String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar log dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|err| {
+            format!(
+                "failed to open knowledge sidecar log {}: {err}",
+                path.display()
+            )
+        })
+}
+
+fn knowledge_runtime_dir() -> std::path::PathBuf {
+    knowledge_root().join("runtime")
+}
+
+fn knowledge_sidecar_autostart_status_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STATUS_FILE)
+}
+
+fn knowledge_sidecar_stdout_log_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STDOUT_LOG_FILE)
+}
+
+fn knowledge_sidecar_stderr_log_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE)
 }
 
 fn ensure_knowledge_workspace_and_token(
@@ -6233,7 +6547,7 @@ fn knowledge_root() -> std::path::PathBuf {
 }
 
 fn knowledge_token_file_path() -> std::path::PathBuf {
-    knowledge_root().join("runtime").join("musu-ingest.token")
+    knowledge_runtime_dir().join("musu-ingest.token")
 }
 
 fn knowledge_sidecar_command_path() -> std::path::PathBuf {
@@ -6403,7 +6717,9 @@ mod tests {
         attach_route_evidence_integrity, bridge_is_healthy,
         bridge_registry_status_with_pid_checker, bridge_status_label, can_start_runtime,
         developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
-        is_packaged_desktop_runtime_path, is_tailnet_ipv4, knowledge_root,
+        is_packaged_desktop_runtime_path, is_tailnet_ipv4, knowledge_ready_poll_delay,
+        knowledge_root, knowledge_runtime_dir, knowledge_sidecar_autostart_status_path,
+        knowledge_sidecar_stderr_log_path, knowledge_sidecar_stdout_log_path,
         latest_physical_peer_evidence_from_home, latest_release_evidence_from_home,
         local_os_hostname, musu_command_path_for_current_exe, parse_appinstaller_version,
         parse_doctor_status_summary, parse_private_mesh_desktop_status,
@@ -6412,9 +6728,11 @@ mod tests {
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
         sha256_hex, startup_marker_path, summarize_process_ownership, update_helper_script,
         update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
-        version_to_tuple, write_json_sidecar_for_file, write_restricted_knowledge_token,
+        version_to_tuple, write_json_sidecar_for_file, write_knowledge_sidecar_autostart_status,
+        write_restricted_knowledge_token, KnowledgeSidecarAutostartStatus,
         PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL,
-        PACKAGE_IDENTITY_NAME, PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
+        KNOWLEDGE_AUTOSTART_STATUS_SCHEMA, PACKAGE_IDENTITY_NAME,
+        PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
 
     // WS-U version-compare tests. The normalization rules these assert are the
@@ -8373,6 +8691,75 @@ mod tests {
     }
 
     #[test]
+    fn knowledge_runtime_contract_keeps_sidecar_state_under_musu_brain_runtime() {
+        let home = make_temp_home("knowledge-runtime-contract");
+        std::env::set_var("MUSU_HOME", &home);
+        let runtime_dir = knowledge_runtime_dir();
+        let status_path = knowledge_sidecar_autostart_status_path();
+        let stdout_log = knowledge_sidecar_stdout_log_path();
+        let stderr_log = knowledge_sidecar_stderr_log_path();
+        std::env::remove_var("MUSU_HOME");
+
+        assert_eq!(runtime_dir, home.join("brain").join("runtime"));
+        assert_eq!(
+            status_path,
+            runtime_dir.join("sidecar-autostart-status.json")
+        );
+        assert_eq!(stdout_log, runtime_dir.join("sidecar-stdout.log"));
+        assert_eq!(stderr_log, runtime_dir.join("sidecar-stderr.log"));
+        assert!(
+            !runtime_dir.to_string_lossy().contains("LocalState"),
+            "brain runtime diagnostics must survive MSIX package uninstall/reinstall"
+        );
+    }
+
+    #[test]
+    fn knowledge_autostart_status_is_persisted_without_token_material() {
+        let home = make_temp_home("knowledge-autostart-status");
+        std::env::set_var("MUSU_HOME", &home);
+        let status = KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "started".to_string(),
+            stage: "readiness".to_string(),
+            command: "musu-brain.exe".to_string(),
+            root: knowledge_root().display().to_string(),
+            addr: "127.0.0.1:8080".to_string(),
+            health_url: "http://127.0.0.1:8080/health".to_string(),
+            pid: Some(1234),
+            readiness_ok: true,
+            elapsed_ms: 42,
+            stdout_log: Some(knowledge_sidecar_stdout_log_path().display().to_string()),
+            stderr_log: Some(knowledge_sidecar_stderr_log_path().display().to_string()),
+            detail: "healthy".to_string(),
+        };
+
+        write_knowledge_sidecar_autostart_status(&status)
+            .expect("autostart status should be persisted");
+        let status_path = knowledge_sidecar_autostart_status_path();
+        std::env::remove_var("MUSU_HOME");
+
+        let body = std::fs::read_to_string(&status_path).expect("status file should be readable");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&body).expect("status file should be valid JSON");
+
+        assert_eq!(
+            parsed.get("schema").and_then(|value| value.as_str()),
+            Some(KNOWLEDGE_AUTOSTART_STATUS_SCHEMA)
+        );
+        assert_eq!(
+            parsed.get("result").and_then(|value| value.as_str()),
+            Some("started")
+        );
+        assert_eq!(
+            parsed.get("readiness_ok").and_then(|value| value.as_bool()),
+            Some(true)
+        );
+        assert!(!body.contains("secret-token-value"));
+        assert!(!body.contains("musu-ingest.token"));
+    }
+
+    #[test]
     fn stale_bridge_registry_is_removed_before_status_probe() {
         let home = make_temp_home("stale-bridge-registry");
         let services = home.join("services");
@@ -8422,6 +8809,22 @@ mod tests {
         drop(first);
         assert!(!gate.is_in_progress());
         assert!(gate.try_acquire().is_some());
+    }
+
+    #[test]
+    fn knowledge_ready_poll_delay_backs_off_with_cap() {
+        assert_eq!(
+            knowledge_ready_poll_delay(0),
+            std::time::Duration::from_millis(250)
+        );
+        assert_eq!(
+            knowledge_ready_poll_delay(1),
+            std::time::Duration::from_millis(500)
+        );
+        assert_eq!(
+            knowledge_ready_poll_delay(10),
+            std::time::Duration::from_millis(2_000)
+        );
     }
 
     #[test]

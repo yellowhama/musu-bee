@@ -3986,6 +3986,9 @@ struct DoctorKnowledge {
     root_exists: bool,
     token_path: String,
     token_present: bool,
+    autostart_status_path: String,
+    autostart_status: Option<serde_json::Value>,
+    autostart_status_error: Option<String>,
     health_url: String,
     health_http_status: Option<u16>,
     health_body: Option<serde_json::Value>,
@@ -4745,6 +4748,9 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
 async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
     let root = home.join("brain");
     let token_path = root.join("runtime").join("musu-ingest.token");
+    let autostart_status_path = root.join("runtime").join("sidecar-autostart-status.json");
+    let (autostart_status, autostart_status_error) =
+        read_knowledge_sidecar_autostart_status(&autostart_status_path);
     let root_exists = root.exists();
     let token_present = token_path
         .try_exists()
@@ -4778,6 +4784,9 @@ async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
                 root_exists,
                 token_path: token_path.display().to_string(),
                 token_present,
+                autostart_status_path: autostart_status_path.display().to_string(),
+                autostart_status,
+                autostart_status_error,
                 health_url,
                 health_http_status,
                 health_body,
@@ -4798,6 +4807,9 @@ async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
             root_exists,
             token_path: token_path.display().to_string(),
             token_present,
+            autostart_status_path: autostart_status_path.display().to_string(),
+            autostart_status,
+            autostart_status_error,
             health_url,
             health_http_status: None,
             health_body: None,
@@ -4809,6 +4821,31 @@ async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
                 "Hidden brain sidecar is not reachable and the ingest token is missing.".into()
             },
         },
+    }
+}
+
+fn read_knowledge_sidecar_autostart_status(
+    path: &std::path::Path,
+) -> (Option<serde_json::Value>, Option<String>) {
+    match std::fs::read_to_string(path) {
+        Ok(text) => match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(value) => (Some(value), None),
+            Err(err) => (
+                None,
+                Some(format!(
+                    "failed to parse hidden brain autostart status {}: {err}",
+                    path.display()
+                )),
+            ),
+        },
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => (None, None),
+        Err(err) => (
+            None,
+            Some(format!(
+                "failed to read hidden brain autostart status {}: {err}",
+                path.display()
+            )),
+        ),
     }
 }
 
@@ -6537,6 +6574,48 @@ mod tests {
             .any(|step| step.contains("hidden brain sidecar")));
         assert!(steps.iter().any(|step| step.contains("knowledge.status")));
         assert!(!steps.iter().any(|step| step.contains("System looks ready")));
+    }
+
+    #[test]
+    fn knowledge_sidecar_autostart_status_reader_handles_missing_valid_and_invalid_json() {
+        let tmp = tempfile::tempdir().unwrap();
+        let status_path = tmp
+            .path()
+            .join("brain")
+            .join("runtime")
+            .join("sidecar-autostart-status.json");
+
+        let (missing, missing_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(missing.is_none());
+        assert!(missing_error.is_none());
+
+        std::fs::create_dir_all(status_path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &status_path,
+            r#"{
+  "schema": "musu.knowledge_sidecar_autostart.v1",
+  "result": "started",
+  "readiness_ok": true
+}"#,
+        )
+        .unwrap();
+        let (valid, valid_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(valid_error.is_none());
+        assert_eq!(
+            valid
+                .as_ref()
+                .and_then(|value| value.get("result"))
+                .and_then(|value| value.as_str()),
+            Some("started")
+        );
+
+        std::fs::write(&status_path, "{not-json").unwrap();
+        let (invalid, invalid_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(invalid.is_none());
+        assert!(invalid_error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("failed to parse hidden brain autostart status"));
     }
 
     #[test]

@@ -23681,3 +23681,71 @@ Product meaning:
   `192.168.1.192:4387`, `http_bearer`, `none_http_bearer`,
   `route_evidence_ready=false`, `brain product proof failed`,
   `hidden brain lifecycle`, `musu-brain sidecar process was not observed`.
+
+## wiki/1205 - 2026-07-01 Brain sidecar autostart supervision source fix
+
+Canonical report:
+
+- `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`
+- `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+
+What changed:
+
+- The lifecycle gap found in wiki/1204 is source-fixed but not yet
+  package-proven.
+- `spawn_knowledge_sidecar_autostart()` now runs as a guarded brain autostart
+  operation instead of unguarded fire-and-forget spawn attempts.
+- The desktop records durable launch evidence at
+  `~/.musu/brain/runtime/sidecar-autostart-status.json` using schema
+  `musu.knowledge_sidecar_autostart.v1`.
+- Sidecar stdout/stderr are persisted as
+  `~/.musu/brain/runtime/sidecar-stdout.log` and
+  `~/.musu/brain/runtime/sidecar-stderr.log`.
+- The desktop waits up to 10 seconds for `http://127.0.0.1:8080/health` after
+  spawn and records `started`, `already_healthy`, `start_in_progress`,
+  `spawn_failed`, `exited_before_ready`, or `readiness_timeout`.
+- `musu doctor --json` now surfaces `knowledge.autostart_status_path`,
+  `knowledge.autostart_status`, and `knowledge.autostart_status_error`.
+
+Verification:
+
+- `rustfmt --edition 2021 --check
+  musu-bee\src-tauri\src\lib.rs
+  musu-rs\src\install\cli_commands.rs` passed.
+- `git diff --check` passed.
+- `cargo test --manifest-path musu-bee\src-tauri\Cargo.toml knowledge --lib -j 1 -- --nocapture --test-threads=1`
+  passed: 6 tests.
+- `cargo test --manifest-path musu-rs\Cargo.toml knowledge_sidecar_autostart_status_reader --lib -j 1 -- --nocapture --test-threads=1`
+  passed: 1 test.
+- `cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps_include_hidden_brain_sidecar_warning --lib -j 1 -- --nocapture --test-threads=1`
+  passed: 1 test.
+- `cargo test --manifest-path musu-bee\src-tauri\Cargo.toml doctor_status_summary_flags_alias_shadowing_and_local_only_mode --lib -j 1 -- --nocapture --test-threads=1`
+  passed: 1 test.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3627 files` and `3938 symbols`.
+- Product brain CLI ingest under `local/musu` created 8 sources, processed 8,
+  and recall for `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01` returned
+  the new report source.
+- Clean go/no-go after this source change reports `manifest_git.dirty=false`,
+  `warnings=0`, `blockers=16`, `ready_for_public_desktop_release=false`,
+  `full_product_spec_ready=false`, `brain_product_verified=false`, and
+  package-bound CPU/matrix counts at `0` because this source change is not yet
+  rebuilt/reinstalled.
+
+Product meaning:
+
+- The next package proof can diagnose whether hidden brain failed due to missing
+  binary, spawn failure, early exit, readiness timeout, or successful readiness.
+- Full product completion remains NO-GO until this source fix is rebuilt into a
+  package and clean packaged brain product proof passes without manual sidecar
+  start.
+- Search terms: `wiki/1205`,
+  `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01`,
+  `musu.knowledge_sidecar_autostart.v1`,
+  `sidecar-autostart-status.json`, `sidecar-stdout.log`,
+  `sidecar-stderr.log`, `knowledge.autostart_status`,
+  `knowledge.autostart_status_path`, `knowledge.autostart_status_error`,
+  `readiness_ok`, `exited_before_ready`, `readiness_timeout`,
+  `spawn_knowledge_sidecar_autostart`, `~/.musu/brain/runtime`.

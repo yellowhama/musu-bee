@@ -10956,4 +10956,43 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `brain product proof failed`, and
   `musu-brain sidecar process was not observed`.
 
+- 2026-07-01 brain sidecar autostart supervision source fix:
+  `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`,
+  `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`, and `docs/WIKI.md`
+  now record `wiki/1205`: the hidden brain lifecycle gap found in wiki/1204 is
+  source-fixed but not package-proven. `spawn_knowledge_sidecar_autostart()`
+  now uses a brain-side start gate, writes
+  `~/.musu/brain/runtime/sidecar-autostart-status.json` with schema
+  `musu.knowledge_sidecar_autostart.v1`, appends
+  `sidecar-stdout.log` and `sidecar-stderr.log`, waits up to 10 seconds for
+  `http://127.0.0.1:8080/health`, and records outcomes including `started`,
+  `already_healthy`, `start_in_progress`, `spawn_failed`,
+  `exited_before_ready`, and `readiness_timeout`. `musu doctor --json` now
+  exposes `knowledge.autostart_status_path`, `knowledge.autostart_status`, and
+  `knowledge.autostart_status_error`. Verification passed touched-file rustfmt,
+  `git diff --check`, Tauri knowledge tests (`6 passed`), CLI autostart status
+  reader test (`1 passed`), hidden-brain next-step test (`1 passed`), and
+  desktop doctor summary parse test (`1 passed`). Index refresh indexed `3627
+  files` and `3938 symbols`; product brain CLI ingest under `local/musu`
+  created 8 sources, processed 8, and recall returned the new report source
+  for `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01`. Clean go/no-go after
+  this source change reports `manifest_git.dirty=false`, `warnings=0`,
+  `blockers=16`, `ready_for_public_desktop_release=false`,
+  `full_product_spec_ready=false`, `brain_product_verified=false`, and
+  package-bound CPU/matrix counts at `0` because this source change is not yet
+  rebuilt/reinstalled. Product meaning:
+  this gives the next package proof actionable hidden-brain lifecycle
+  diagnostics, but full product completion remains NO-GO until a rebuilt MSIX
+  passes clean packaged brain product proof without manual sidecar start. Search
+  terms should include `wiki/1205`,
+  `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01`,
+  `musu.knowledge_sidecar_autostart.v1`,
+  `sidecar-autostart-status.json`, `sidecar-stdout.log`,
+  `sidecar-stderr.log`, `knowledge.autostart_status`,
+  `knowledge.autostart_status_path`, `knowledge.autostart_status_error`,
+  `readiness_ok`, `exited_before_ready`, `readiness_timeout`,
+  `spawn_knowledge_sidecar_autostart`, and `~/.musu/brain/runtime`.
+
 **End of WIKI_INDEX.md.**
