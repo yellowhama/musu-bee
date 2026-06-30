@@ -3,14 +3,14 @@
 ## Verdict
 
 MUSU remains **NO-GO** against the full product spec, but today's local
-HUGH_SECOND runtime CPU refresh closed one blocker and restored valid
-one-machine evidence for two more runtime CPU lanes.
+HUGH_SECOND evidence refresh restored the current single-machine smoke lane
+and the targeted second-PC route-attempt CPU lane for the latest evidence HEAD.
 
 Latest clean gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-30T15:12:29.3167592+09:00`
-- Commit: `b0581d235088296f90b42e90dbeed2f27e53b4f9`
+- Generated: `2026-06-30T16:18:55.8408998+09:00`
+- Commit: `507a47b06584e610ba20d7b6927de2ca84bf058b`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -19,7 +19,22 @@ Latest clean gate:
 
 ## Evidence
 
-Release-required idle CPU was recaptured with the missing strict flags:
+Current single-machine smoke was recaptured after the V34 proof-gate commit
+reopened source freshness:
+
+- Command shape:
+  `smoke-single-machine-beta.ps1` followed by
+  `record-single-machine-evidence.ps1 -EvidencePath ... -Json`
+- Evidence:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.evidence.json`
+- Strict verification:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.verification.json`
+- Result: `ok=true`, `fail_count=0`, `allow_developer_runtime=false`,
+  `single_machine_surface=local-bridge-only`, packaged WindowsApps `musu.exe`,
+  bridge `http://127.0.0.1:5117`, and `cli_route_checked=true`.
+
+The previously captured release-required idle CPU evidence remains the counted
+HUGH_SECOND idle CPU proof:
 
 - Command shape:
   `measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -IncludeNode -IncludeWebView2 -FailOnHot -Json`
@@ -35,33 +50,34 @@ target:
 - Command shape:
   `measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget hugh-main -AllowFailedRouteProbe -Json`
 - Matrix:
-  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
 - Strict verification:
-  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
 - Result: `ok=true`, `fail_count=0`, `git_dirty=false`, all five scenarios
   present, packaged WindowsApps MUSU command used, route target `hugh-main`
   present, non-self, non-local, and route output contained
-  `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_145519`.
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_161009`.
 
 ## Gate Movement
 
-Before this refresh, the 2026-06-30 14:52 KST gate reported `blockers=11`,
-`runtime_idle_cpu_valid_machine_count=0`,
-`runtime_cpu_scenario_matrix_valid_machine_count=0`, and
-`runtime_cpu_second_pc_route_attempt_verified=false`.
+Before the 16:18 refresh, the 2026-06-30 15:56 KST gate on commit
+`2c69cd39c2b1c9fe54464041b82141d58b782be7` reported `blockers=12` because
+`single-machine` and `runtime-cpu-second-pc-route-attempt` had been reopened by
+source/evidence freshness after the V34 verifier hardening.
 
 After this refresh:
 
 - `blockers=10`
 - `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
 - `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `single_machine_verified=true`
 - `runtime_cpu_second_pc_route_attempt_verified=true`
 - `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`
 
-The post-commit gate recheck at `2026-06-30T15:12:29.3167592+09:00` keeps the
+The post-commit gate recheck at `2026-06-30T16:18:55.8408998+09:00` keeps the
 same `blockers=10`, `warnings=0`, and clean manifest state on commit
-`b0581d235088296f90b42e90dbeed2f27e53b4f9`, so the committed documentation and
-evidence refresh did not reopen runtime-source freshness blockers.
+`507a47b06584e610ba20d7b6927de2ca84bf058b`, so the committed evidence refresh
+did not reopen runtime-source freshness blockers.
 
 ## Findings
 

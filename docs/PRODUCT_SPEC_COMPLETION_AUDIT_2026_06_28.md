@@ -14,17 +14,18 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
-Authoritative 2026-06-30 runtime CPU refresh gate:
+Authoritative 2026-06-30 local evidence refresh gate:
 
 - Command source:
   `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-30T15:12:29.3167592+09:00`
-- `manifest_git.commit`: `b0581d235088296f90b42e90dbeed2f27e53b4f9`
+- `generated_at`: `2026-06-30T16:18:55.8408998+09:00`
+- `manifest_git.commit`: `507a47b06584e610ba20d7b6927de2ca84bf058b`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
 - `warnings=0`
+- `single_machine_verified=true`
 - `runtime_idle_cpu_verified=false`
 - `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
 - `runtime_cpu_scenario_matrix_verified=false`
@@ -34,6 +35,22 @@ Authoritative 2026-06-30 runtime CPU refresh gate:
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
+
+2026-06-30 16:18 KST post-V34-hardening evidence refresh: after the V34
+proof-gate commit reopened source freshness, HUGH_SECOND recaptured
+single-machine packaged smoke and then recaptured the full five-scenario
+runtime CPU matrix from a clean tree with `-RunRouteProbe -RouteTarget
+hugh-main`. New evidence:
+`docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.evidence.json`
+plus verification, and
+`docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+plus verification. The clean go/no-go at `2026-06-30T16:18:55.8408998+09:00`
+reports `blockers=10`, `single_machine_verified=true`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`. The product remains
+NO-GO because CPU/matrix evidence is still one-machine only and the remaining
+blockers require second-PC, Private Mesh packaged proof, public DNS/TLS, Store,
+P2P, design approval, relay transport, and V34 physical stale-state proof.
 
 2026-06-30 15:12 KST post-commit update: HUGH_SECOND recaptured release-required
 `desktop-open` idle CPU with `-RequireOwnedWebView2`, `-IncludeNode`, and

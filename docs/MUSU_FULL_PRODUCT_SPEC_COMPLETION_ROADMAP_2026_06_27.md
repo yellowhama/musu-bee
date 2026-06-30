@@ -17,12 +17,12 @@ candidate `192.168.1.192:4387`, submitted successfully, waited for completion,
 and wrote verifier-passing `musu.route_evidence.v1`.
 
 The fresh packaged desktop also records a passing hidden-brain product proof
-for rc.22, and HUGH_SECOND now has refreshed runtime CPU evidence for the
-current gate: `desktop-open` idle CPU and the full five-scenario runtime CPU
-matrix both verify on `HUGH_SECOND`, including a targeted `hugh-main`
-post-route probe. The latest clean go/no-go recheck at
-`2026-06-30T15:12:29.3167592+09:00` on commit
-`b0581d235088296f90b42e90dbeed2f27e53b4f9` still reports
+for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
+single-machine smoke lane plus runtime CPU evidence for the current gate:
+`desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
+verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
+latest clean go/no-go recheck at `2026-06-30T16:18:55.8408998+09:00` on commit
+`507a47b06584e610ba20d7b6927de2ca84bf058b` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -1790,13 +1790,15 @@ Canonical wrap-up report:
 ## 2026-06-30 HUGH_SECOND Runtime CPU Evidence Refresh
 
 The next local runtime CPU pass was completed on `HUGH_SECOND` using the
-release-required flags and a real peer route target.
+release-required flags and a real peer route target. A later same-day refresh
+also restored the current single-machine smoke evidence after V34 proof-gate
+hardening reopened source freshness.
 
 Clean gate:
 
 - `.local-build/go-no-go/latest.json`
-- `generated_at=2026-06-30T15:12:29.3167592+09:00`
-- `manifest_git.commit=b0581d235088296f90b42e90dbeed2f27e53b4f9`
+- `generated_at=2026-06-30T16:18:55.8408998+09:00`
+- `manifest_git.commit=507a47b06584e610ba20d7b6927de2ca84bf058b`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -1810,8 +1812,10 @@ freshness blockers.
 New evidence:
 
 - `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-145344-HUGH_SECOND.desktop-open.evidence.json`
-- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
-- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+- `docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.evidence.json`
+- `docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.verification.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
 
 What changed:
 
@@ -1823,6 +1827,8 @@ What changed:
   `dashboard-open`, `desktop-open`, and `post-route` with
   `-RunRouteProbe -RouteTarget hugh-main`; strict verification passes with
   `fail_count=0`.
+- The new single-machine smoke verification passes with `fail_count=0`,
+  `single_machine_surface=local-bridge-only`, and `cli_route_checked=true`.
 - `runtime_cpu_second_pc_route_attempt_verified=true`, so this pass removes the
   `runtime-cpu-second-pc-route-attempt` blocker.
 
