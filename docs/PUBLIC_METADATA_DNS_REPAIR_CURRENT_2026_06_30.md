@@ -11,14 +11,17 @@ metadata path.
 ## Evidence
 
 - Planner evidence:
-  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-152710-musu-pro-dns-repair-plan-current.json`
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
 - SHA256:
-  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`
 - Schema: `musu.public_metadata_dns_repair_plan.v1`
-- Generated: `2026-06-30T15:27:11.7382112+09:00`
+- Generated: `2026-06-30T20:59:43.1029616+09:00`
 - `release_blocker_present=true`
 - `ready_for_public_metadata_verifier=false`
 - `will_mutate_external_dns=false`
+- `vercel_inspect.ok=true`
+- Vercel project binding still resolves to `musu-pro`, with intended
+  nameservers `ns1.vercel-dns.com` and `ns2.vercel-dns.com`.
 
 ## Current DNS/TLS State
 
@@ -40,6 +43,31 @@ Failure kinds remain:
 - `dns_nameserver_mismatch`
 - `apex_tls_handshake_failed`
 - `vercel_edge_apex_tls_failed`
+
+## Code Audit
+
+The local source change in this batch is diagnostic tooling only:
+`scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now tolerates
+normal Vercel CLI stderr/banner output while still recording the real exit code
+and redacting the token from captured diagnostics. Before this hardening,
+`-RunVercelInspect` could terminate early with a PowerShell
+`NativeCommandError` even when `vercel domains inspect musu.pro` returned
+useful output and exit code 0.
+
+This does not mutate DNS, does not change the Next.js public metadata routes,
+and does not close the release gate. It only makes the failure evidence more
+reliable. The new planner output confirms the same product blocker:
+`musu.pro` is known to Vercel under project `musu-pro`, but the live apex DNS
+authority and TLS path still do not satisfy the canonical public metadata
+verifier.
+
+Verification:
+
+- PowerShell parser check for
+  `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1`: passed.
+- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
+  `case_count=219`, `failed_case_count=0`, generated at
+  `2026-06-30T21:10:04.5000475+09:00`.
 
 ## Next Action
 

@@ -272,6 +272,20 @@ A/AAAA records, missing expected Vercel apex A `76.76.21.21`, missing expected
 `vercel_edge_apex_tls_ok=false`. Canonical next-step document:
 `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`.
 
+2026-06-30 20:59 KST public metadata planner recheck: after hardening
+`Invoke-VercelInspect` against normal Vercel CLI stderr/banner output, the same
+non-mutating planner completed with Vercel inspect enabled and wrote
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+with SHA256
+`950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`.
+The new evidence reports `ok=true`, `vercel_inspect.ok=true`,
+`release_blocker_present=true`, and
+`ready_for_public_metadata_verifier=false`. Vercel confirms domain/project
+binding (`musu.pro` -> `musu-pro`) and intended Vercel nameservers, but live
+DNS remains Cloudflare, apex TLS still fails, and direct Vercel edge apex TLS
+still fails. Qualitative read: app source/content is not the observed blocker;
+external DNS/TLS authority is.
+
 2026-06-30 design approval current-state refresh:
 `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub check
 of PR #34 and issue #35. PR #34 is still `OPEN`, merge state `BLOCKED`, and
@@ -809,7 +823,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
 | NO-GO | Full product spec is not complete. | Latest clean gate at `2026-06-30T19:52:21.4907949+09:00` on commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Rebuild/reinstall after the remote file CLI source fix, recapture package-bound evidence, close the remaining physical/external product blockers, and finish the real relay runtime/proof lane. |
-| NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
+| NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the latest DNS repair planner evidence `20260630-205941` has `vercel_inspect.ok=true`, confirms `musu.pro` is bound to Vercel project `musu-pro`, and still records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, and relay leases now expose explicit `transport_intent=release_tunnel` that stays fail-closed; however `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Doctor/background and P2P audit evidence previously disagreed with the relay poller runtime default. | Runtime relay payload polling is default-on opt-out, but doctor used a truthy env check and the P2P audit message still said default-off. Source now reuses `relay_payload_poller_enabled()`, the audit wording is aligned, and targeted tests pass. | Without this fix, runtime-loop/CPU evidence could under-report an active low-duty loop and mislead release audits. | Keep the helper shared; refresh package-bound evidence after this runtime source change. |
 | HIGH | Design approval is now URL-evidence-gated, but still missing. | `design-gate` requires a standalone `Design: Approved` line plus a GitHub `#issuecomment-...` approval URL; issue #35 currently has evidence-refresh comments, not approval. | PR #34 remains blocked and cannot be merged honestly. | Add explicit CEO/design approval on issue #35, then update the PR body with that approval comment URL. |

@@ -22649,3 +22649,47 @@ Interpretation:
 Canonical report:
 
 - `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`
+
+## wiki/1184 - 2026-06-30 Public metadata DNS/TLS recheck
+
+The canonical public metadata lane remains NO-GO, but the diagnosis is now
+cleaner. `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1`
+handles normal Vercel CLI stderr/banner output during `-RunVercelInspect`
+without aborting the whole planner.
+
+New evidence:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+- SHA256:
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`
+- `ok=true`
+- `vercel_inspect.ok=true`
+- `release_blocker_present=true`
+- `ready_for_public_metadata_verifier=false`
+- live nameservers: `blakely.ns.cloudflare.com`,
+  `weston.ns.cloudflare.com`
+- Vercel intended nameservers: `ns1.vercel-dns.com`,
+  `ns2.vercel-dns.com`
+- `apex_tls.ok=false`
+- `www_tls.ok=true`
+- `vercel_edge_apex_tls_ok=false`
+
+Qualitative audit:
+
+- `musu.pro` is visible to Vercel and bound to project `musu-pro`.
+- `www.musu.pro` can complete TLS, but redirects to the broken canonical apex.
+- The Next.js privacy/support/public-config source is not the observed blocker.
+- The remaining blocker is external DNS/TLS authority for canonical
+  `https://musu.pro`.
+- No local code or evidence-only change can close `store-public-metadata`; the
+  verifier must pass after DNS/TLS repair.
+
+Verification:
+
+- PowerShell parser check for the DNS repair planner: passed.
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
+  `case_count=219`, `failed_case_count=0`.
+
+Canonical report:
+
+- `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`

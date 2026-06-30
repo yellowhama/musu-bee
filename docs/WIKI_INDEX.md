@@ -10407,4 +10407,27 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
   `musu ls get put physical proof pending`, and `none_http_bearer`.
 
+- 2026-06-30 public metadata DNS/TLS recheck:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the current public metadata DNS/TLS blocker after
+  `plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect` was hardened
+  to tolerate normal Vercel CLI stderr/banner output. Fresh evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+  has SHA256
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`,
+  `ok=true`, `vercel_inspect.ok=true`,
+  `release_blocker_present=true`, and
+  `ready_for_public_metadata_verifier=false`. Vercel confirms `musu.pro` is
+  bound to project `musu-pro`, but live nameservers are still Cloudflare
+  `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, apex TLS fails,
+  `www_tls.ok=true`, and direct Vercel edge apex TLS fails. Search terms should
+  include `wiki/1184`, `PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30`,
+  `20260630-205941-musu-pro-dns-repair-plan-current`, `musu-pro`,
+  `vercel_inspect.ok=true`, `Cloudflare nameservers`, `apex TLS reset`, and
+  `store-public-metadata`. Validation passed PowerShell parser check and
+  `test-release-evidence-verifiers.ps1 -Json` with `case_count=219`,
+  `failed_case_count=0`.
+
 **End of WIKI_INDEX.md.**

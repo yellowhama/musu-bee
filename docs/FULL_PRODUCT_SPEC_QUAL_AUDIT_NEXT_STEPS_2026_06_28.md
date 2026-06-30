@@ -72,6 +72,19 @@ Public metadata planner hardening evidence:
   `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
   `case_count=214`, `failed_case_count=0`.
 
+2026-06-30 refresh:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+- SHA256:
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`
+- `vercel_inspect.ok=true`
+- Vercel domain/project binding: `musu.pro` -> `musu-pro`
+- Current nameservers remain Cloudflare:
+  `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`
+- `ready_for_public_metadata_verifier=false`
+- `apex_tls.ok=false`, `www_tls.ok=true`,
+  `vercel_edge_apex_tls_ok=false`
+
 Latest second-PC kit:
 
 - `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
@@ -112,7 +125,7 @@ Live multi-device route audit:
 | HIGH | Design approval is correctly fail-closed. | The design gate now requires a real GitHub issue approval comment URL. | Add explicit approval on issue #35 and put that URL in PR #34. |
 | HIGH | V34 source/tooling is stronger than its proof. | Recorder/verifier and second-PC kit exist, but `v34-stale-self-heal` still lacks physical stale-state proof. | Run the physical stale registry/cache/manual-peer scenario and verify the proof. |
 | INFO | V34 selected-candidate validation is stricter. | `verify-v34-self-heal-proof.ps1`, `record-v34-self-heal-proof.ps1`, and `capture-v34-source-snapshot.ps1` now reject port-zero, negative-port, URL-loopback, wildcard, and IPv4-mapped loopback/wildcard endpoints. | Keep the physical proof lane blocked until real two-node stale-state evidence exists. |
-| INFO | Public metadata planner inspect output now captures real Vercel diagnostics when a token is present. | `$args` was replaced with `$vercelArgs` in `Invoke-VercelInspect`; fixed evidence records `vercel_inspect.ok=true` and `has_informative_output=true` for `musu.pro`; regression passed 214 cases. | Fix DNS/TLS externally; diagnostics alone do not close public metadata. |
+| INFO | Public metadata planner inspect output now captures real Vercel diagnostics when a token is present. | `$args` was replaced with `$vercelArgs` earlier, and the current script also tolerates normal Vercel CLI stderr/banner output without converting a successful inspect into a failed planner run. Fresh evidence `20260630-205941` records `vercel_inspect.ok=true` for `musu.pro`. | Fix DNS/TLS externally; diagnostics alone do not close public metadata. |
 | INFO | Local package identity freshness is restored for HUGH_SECOND, but CPU release evidence still needs another pass. | MSIX install, single-machine, process ownership, startup single-instance, and desktop single-instance are current. The latest idle sample was not counted by go/no-go because required helper flags were missing; the CPU matrix was not rerun. | Re-run idle CPU and scenario matrix with the release-required flags before trying to reduce blocker count again. |
 
 ## Code Audit
@@ -126,7 +139,8 @@ current code posture from this audit is:
   remains a blocker, not a silent pass.
 - The public metadata DNS repair planner is fail-closed around Vercel inspect:
   missing token, failed command, or uninformative output cannot look like a
-  trustworthy inspect result.
+  trustworthy inspect result. It now also preserves a successful inspect when
+  the Vercel CLI writes normal banner text to stderr.
 - CPU/process/startup/desktop packaged evidence passes on `HUGH_SECOND`.
 - Multi-device evidence verification is correctly fail-closed: direct HTTP LAN
   routing can complete work, but it cannot satisfy the release-grade

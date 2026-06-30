@@ -255,8 +255,22 @@ function Invoke-VercelInspect {
     $vercelArgs = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)
     $vercelArgs += @("--token", $Token)
 
-    $raw = & npx @vercelArgs 2>&1
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $raw = @()
+    $exitCode = 1
+    try {
+        $raw = & npx @vercelArgs 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        $raw = @($_.Exception.Message)
+        $exitCode = 1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
     $text = ($raw | Out-String).Trim()
     $text = $text -replace [regex]::Escape($Token), "<redacted>"
     if ($text.Length -gt 2400) {

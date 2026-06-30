@@ -77,6 +77,22 @@ legacy `none_http_bearer` with `peer_identity_verified=false`; it proves
 work-targetability, not release-grade transport. Canonical report:
 `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`.
 
+2026-06-30 20:59 KST public metadata DNS/TLS recheck:
+`plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect` now completes
+from this machine even when Vercel CLI writes its normal banner to stderr. New
+evidence at
+`docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+has SHA256
+`950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`,
+`ok=true`, `vercel_inspect.ok=true`, and
+`ready_for_public_metadata_verifier=false`. Vercel still reports `musu.pro`
+under project `musu-pro` with intended nameservers `ns1.vercel-dns.com` and
+`ns2.vercel-dns.com`, while live DNS remains Cloudflare
+`blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`. Apex TLS and direct
+Vercel edge apex TLS still fail. This is a stronger diagnosis, not completion:
+the `store-public-metadata` blocker remains until external DNS/TLS is repaired
+and `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path
@@ -2079,6 +2095,22 @@ fails, `www` TLS passes, and direct Vercel edge apex TLS fails. This is still
 an external DNS/TLS repair blocker, not a local code blocker. Canonical report:
 
 - `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`
+
+Later same-day recheck:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+- SHA256:
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`
+- `vercel_inspect.ok=true`
+- `release_blocker_present=true`
+- `ready_for_public_metadata_verifier=false`
+- `apex_tls.ok=false`
+- `www_tls.ok=true`
+- `vercel_edge_apex_tls_ok=false`
+
+This recheck confirms the blocker is still external DNS/TLS. The planner itself
+is now more robust around Vercel CLI stderr handling, but the product remains
+NO-GO until the canonical public metadata verifier passes.
 
 ## Confidence
 
