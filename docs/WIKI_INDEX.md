@@ -10641,4 +10641,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   release-grade route transport, public metadata DNS/TLS, Store, relay, V34,
   Private Mesh archive proof, and design approval are closed.
 
+- 2026-07-01 public metadata verifier timeout bound:
+  `docs/PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1195`: `verify-store-public-metadata.ps1`
+  no longer uses an unbounded synchronous `SslStream.AuthenticateAsClient()`
+  call during TLS diagnostics. `Test-TlsHandshake` now uses
+  `AuthenticateAsClientAsync` with the bounded probe timeout and returns
+  structured `tls_handshake_timeout` / `tls_handshake_canceled` /
+  `tls_handshake_failed` evidence. Direct verifier recheck with
+  `-TimeoutSec 3` returned structured failure evidence in about 5.1s, and clean
+  `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 180 -Json` completed in
+  81216ms, with the public metadata child finishing in 4493ms and
+  `manifest_git.dirty=false`. Search terms should include
+  `wiki/1195`, `PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01`,
+  `AuthenticateAsClientAsync`, `tls_handshake_timeout`,
+  `verify-store-public-metadata.ps1`, `store-public-metadata`,
+  `dns_configuration_mismatch`, `apex_tls_handshake_failed`, and
+  `vercel_edge_apex_tls_failed`. Product meaning: verifier reliability is
+  improved, but the public metadata blocker remains until external DNS/TLS is
+  repaired and the canonical verifier passes.
+
 **End of WIKI_INDEX.md.**

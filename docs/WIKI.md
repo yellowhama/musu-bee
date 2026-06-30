@@ -23132,3 +23132,39 @@ Product meaning:
   release-grade transport.
 - Hosted `musu.pro` install channel freshness and second-PC proof for this
   exact fixed package still need separate evidence.
+
+## wiki/1195 - 2026-07-01 Public metadata verifier timeout bound
+
+Current report:
+
+- `docs/PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01.md`
+
+What changed:
+
+- `scripts/windows/verify-store-public-metadata.ps1::Test-TlsHandshake` now
+  runs TLS handshakes with `AuthenticateAsClientAsync` and waits only for the
+  bounded probe timeout.
+- TLS handshake timeout now returns structured
+  `failure_kind="tls_handshake_timeout"`.
+- Canceled async handshakes return
+  `failure_kind="tls_handshake_canceled"`.
+- Handshake exceptions still return `tls_handshake_failed`.
+
+Evidence:
+
+- Parser check passed with `parse_error_count=0`.
+- `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -TimeoutSec 3
+  -Json` returned in about 5.5s with structured `ok=false` public metadata
+  evidence instead of hanging.
+- Clean `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 180 -Json` completed
+  in 81216ms; its public metadata verifier invocation completed in 4493ms with
+  `timed_out=false`, `json_returned=true`, and `exit_code=1`.
+
+Product meaning:
+
+- This does not close `store-public-metadata`.
+- It does close a verifier reliability issue: public metadata DNS/TLS failure is
+  now surfaced as bounded evidence, not a stuck go/no-go run.
+- Live DNS/TLS still needs external repair: current nameservers are Cloudflare,
+  apex A records are Cloudflare, apex AAAA records exist, `www_tls.ok=true`,
+  apex TLS fails, and direct Vercel edge apex TLS fails.

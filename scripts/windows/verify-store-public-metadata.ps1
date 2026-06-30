@@ -298,12 +298,48 @@ function Test-TlsHandshake {
             }
         }
 
-        $callback = [System.Net.Security.RemoteCertificateValidationCallback]{
-            param($sender, $certificate, $chain, $sslPolicyErrors)
-            return ($sslPolicyErrors -eq [System.Net.Security.SslPolicyErrors]::None)
+        $ssl = [System.Net.Security.SslStream]::new($tcp.GetStream(), $false)
+        $handshakeTask = $ssl.AuthenticateAsClientAsync($ServerName)
+        $handshakeCompleted = $false
+        try {
+            $handshakeCompleted = $handshakeTask.Wait([TimeSpan]::FromSeconds($TimeoutSeconds))
         }
-        $ssl = [System.Net.Security.SslStream]::new($tcp.GetStream(), $false, $callback)
-        $ssl.AuthenticateAsClient($ServerName)
+        catch [System.AggregateException] {
+            throw $_.Exception.GetBaseException()
+        }
+        if (-not $handshakeCompleted) {
+            return [pscustomobject]@{
+                name = $Name
+                ok = $false
+                failure_kind = "tls_handshake_timeout"
+                connect_host = $ConnectHost
+                server_name = $ServerName
+                port = $Port
+                timeout_sec = $TimeoutSeconds
+                error = "TLS handshake timed out."
+                tls_protocol = $null
+                certificate_subject = $null
+                certificate_thumbprint = $null
+            }
+        }
+        if ($handshakeTask.IsFaulted) {
+            throw $handshakeTask.Exception.GetBaseException()
+        }
+        if ($handshakeTask.IsCanceled) {
+            return [pscustomobject]@{
+                name = $Name
+                ok = $false
+                failure_kind = "tls_handshake_canceled"
+                connect_host = $ConnectHost
+                server_name = $ServerName
+                port = $Port
+                timeout_sec = $TimeoutSeconds
+                error = "TLS handshake was canceled."
+                tls_protocol = $null
+                certificate_subject = $null
+                certificate_thumbprint = $null
+            }
+        }
 
         $certSubject = $null
         $certThumbprint = $null

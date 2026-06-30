@@ -137,6 +137,21 @@ Vercel edge apex TLS still fail. This is a stronger diagnosis, not completion:
 the `store-public-metadata` blocker remains until external DNS/TLS is repaired
 and `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
 
+2026-07-01 02:03 KST public metadata verifier timeout-bound fix:
+`verify-store-public-metadata.ps1::Test-TlsHandshake` now runs TLS handshake via
+`AuthenticateAsClientAsync` and waits only for the bounded probe timeout. This
+fixes a verifier reliability bug where go/no-go could hang during public
+metadata TLS probing even though the DNS/TLS lane was already known blocked.
+Direct verifier recheck with `-TimeoutSec 3` returned structured `ok=false`
+evidence in about 5.1s. Clean `write-release-go-no-go.ps1
+-ScriptTimeoutSeconds 180 -Json` completed at
+`2026-07-01T02:06:27.0080512+09:00` with `manifest_git.dirty=false`,
+`blockers=11`, and the public metadata verifier child finishing in 4493ms.
+The blocker remains: live DNS is still Cloudflare nameservers/A/AAAA,
+`www_tls.ok=true`, apex TLS fails, and direct Vercel edge apex TLS fails.
+Canonical report:
+`docs/PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01.md`.
+
 2026-06-30 21:40 KST current-HEAD second-PC kit refresh (historical,
 superseded by the 23:20 KST kit):
 the next `hugh-main` evidence run then had a fresh kit generated from clean HEAD
