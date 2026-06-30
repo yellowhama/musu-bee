@@ -1,0 +1,349 @@
+﻿{
+    "schema":  "musu.process_ownership_audit.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.22",
+    "git_commit":  "353a7e65e9d33265144350b1f586ca64aa72d5cc",
+    "recorded_at":  "2026-07-01T01:28:59.8808327+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "repo_root":  "F:\\workspace\\musu-bee",
+    "musu_home":  "C:\\Users\\empty\\.musu",
+    "allow_developer_runtime":  false,
+    "max_musu_runtime_processes":  1,
+    "max_musu_desktop_processes":  1,
+    "max_owned_node_processes":  1,
+    "max_owned_webview2_processes":  12,
+    "fail_count":  0,
+    "process_counts":  {
+                           "all_target_processes":  16,
+                           "musu_runtime":  1,
+                           "musu_cli":  0,
+                           "desktop_shell":  1,
+                           "owned_node":  0,
+                           "owned_webview2":  6,
+                           "machine_wide_node":  2,
+                           "machine_wide_webview2":  12,
+                           "orphan_repo_helpers":  0,
+                           "repo_related_runtime":  0,
+                           "packaged_runtime":  1,
+                           "non_packaged_runtime":  0,
+                           "non_packaged_desktop_shell":  0
+                       },
+    "bridge_registry":  {
+                            "path":  "C:\\Users\\empty\\.musu\\services\\bridge.json",
+                            "exists":  true,
+                            "parse_error":  null,
+                            "pid":  25612,
+                            "addr":  "0.0.0.0:4163",
+                            "pid_alive":  true,
+                            "health":  {
+                                           "ok":  true,
+                                           "detail":  "HTTP 200 via 127.0.0.1:4163",
+                                           "status_code":  200,
+                                           "checked_addr":  "127.0.0.1:4163"
+                                       }
+                        },
+    "packaged_runtime_identity":  {
+                                      "packaged_desktop_active":  true,
+                                      "packaged_desktop_pids":  [
+                                                                    31888
+                                                                ],
+                                      "bridge_pid_packaged_runtime":  true,
+                                      "bridge_pid_repo_related":  false,
+                                      "dashboard_pid":  null,
+                                      "dashboard_pid_repo_related":  false
+                                  },
+    "checks":  [
+                   {
+                       "name":  "native parent lookup",
+                       "status":  "pass",
+                       "message":  "native parent-process lookup is available"
+                   },
+                   {
+                       "name":  "MUSU runtime process count",
+                       "status":  "pass",
+                       "message":  "1 MUSU runtime process(es) running"
+                   },
+                   {
+                       "name":  "MUSU desktop process count",
+                       "status":  "pass",
+                       "message":  "1 MUSU desktop shell process(es)"
+                   },
+                   {
+                       "name":  "release runtime identity",
+                       "status":  "pass",
+                       "message":  "all MUSU runtime processes belong to the packaged WindowsApps runtime"
+                   },
+                   {
+                       "name":  "release desktop shell identity",
+                       "status":  "pass",
+                       "message":  "desktop shell processes are packaged WindowsApps runtime(s) or absent"
+                   },
+                   {
+                       "name":  "owned Node helper count",
+                       "status":  "pass",
+                       "message":  "0 owned Node helper process(es)"
+                   },
+                   {
+                       "name":  "owned WebView2 helper count",
+                       "status":  "pass",
+                       "message":  "6 owned WebView2 helper process(es)"
+                   },
+                   {
+                       "name":  "orphan repo helper count",
+                       "status":  "pass",
+                       "message":  "no repo-related orphan Node/WebView2 helpers"
+                   },
+                   {
+                       "name":  "bridge registry exists",
+                       "status":  "pass",
+                       "message":  "bridge registry exists"
+                   },
+                   {
+                       "name":  "bridge registry parse",
+                       "status":  "pass",
+                       "message":  "bridge registry parses"
+                   },
+                   {
+                       "name":  "bridge registry pid alive",
+                       "status":  "pass",
+                       "message":  "bridge registry pid is a live MUSU process"
+                   },
+                   {
+                       "name":  "bridge health",
+                       "status":  "pass",
+                       "message":  "bridge /health is reachable at 0.0.0.0:4163"
+                   },
+                   {
+                       "name":  "bridge registry runtime identity",
+                       "status":  "pass",
+                       "message":  "bridge registry PID belongs to the packaged WindowsApps runtime"
+                   },
+                   {
+                       "name":  "dashboard server identity",
+                       "status":  "pass",
+                       "message":  "dashboard listener is absent or not a repo/workspace server"
+                   },
+                   {
+                       "name":  "packaged desktop bridge runtime identity",
+                       "status":  "pass",
+                       "message":  "packaged desktop is not active or bridge registry PID belongs to the packaged WindowsApps runtime"
+                   },
+                   {
+                       "name":  "packaged desktop dashboard server identity",
+                       "status":  "pass",
+                       "message":  "packaged desktop is not active or dashboard listener is not a repo/workspace server"
+                   }
+               ],
+    "processes":  [
+                      {
+                          "pid":  31888,
+                          "process_name":  "musu-desktop",
+                          "role":  "desktop_shell",
+                          "parent_pid":  10328,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu-desktop.exe",
+                          "command_line":  "\"C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu-desktop.exe\" ",
+                          "start_time":  "2026-07-01T01:23:12.0189350+09:00",
+                          "cpu_seconds":  0.3125,
+                          "working_set_mb":  25.99
+                      },
+                      {
+                          "pid":  25612,
+                          "process_name":  "musu",
+                          "role":  "musu_runtime",
+                          "parent_pid":  23564,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu.exe",
+                          "command_line":  "\"C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu.exe\" bridge",
+                          "start_time":  "2026-07-01T01:21:21.0590867+09:00",
+                          "cpu_seconds":  0.34375,
+                          "working_set_mb":  22.72
+                      },
+                      {
+                          "pid":  12168,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  21264,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "command_line":  "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\empty\\AppData\\Roaming\\npm/node_modules/@openai/codex/bin/codex.js",
+                          "start_time":  "2026-06-30T22:54:57.1422463+09:00",
+                          "cpu_seconds":  0.0625,
+                          "working_set_mb":  24.12
+                      },
+                      {
+                          "pid":  34276,
+                          "process_name":  "node",
+                          "role":  "node_helper",
+                          "parent_pid":  33864,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files\\nodejs\\node.exe",
+                          "command_line":  "\"C:\\Program Files\\nodejs\\node.exe\" C:/Users/empty/godot-mcp/build/index.js",
+                          "start_time":  "2026-06-30T22:55:49.4543016+09:00",
+                          "cpu_seconds":  0.171875,
+                          "working_set_mb":  25.14
+                      },
+                      {
+                          "pid":  200,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  32100,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0-rc.22 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2324,i,16948616344523979076,4746551659314926465,524288 --field-trial-handle=2040,i,16477125220412300427,2805791981295988266,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=2036,i,211488659419626720,13569982443063422072,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2340 /prefetch:11 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926",
+                          "start_time":  "2026-07-01T01:23:12.4061973+09:00",
+                          "cpu_seconds":  0.3125,
+                          "working_set_mb":  36.94
+                      },
+                      {
+                          "pid":  7652,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  32100,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0-rc.22 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2624,i,12085859339995056074,7375475913054616816,524288 --field-trial-handle=2040,i,16477125220412300427,2805791981295988266,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=2036,i,211488659419626720,13569982443063422072,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2644 /prefetch:13 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926",
+                          "start_time":  "2026-07-01T01:23:12.4540660+09:00",
+                          "cpu_seconds":  0.125,
+                          "working_set_mb":  19.79
+                      },
+                      {
+                          "pid":  9396,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17560,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8655) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 149.0.4022.69)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2604.28014.500.0 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=ko --device-scale-factor=1 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --js-flags=\"--expose-gc --ms-user-locale=ko_KR\" --time-ticks-at-unix-epoch=-1782790609207870 --launch-time-ticks=47812617 --always-read-main-dll --metrics-shmem-handle=3752,i,10382751146732080347,8056696486175096572,2097152 --field-trial-handle=1896,i,16753183173097225500,1132528867327091761,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1900,i,4921856983236675353,11531286807855816535,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=3808 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb /prefetch:1",
+                          "start_time":  "2026-06-30T12:37:37.0816438+09:00",
+                          "cpu_seconds":  2.171875,
+                          "working_set_mb":  59.95
+                      },
+                      {
+                          "pid":  16796,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  32100,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView /prefetch:4 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\\Crashpad --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=149.0.7827.201 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=149.0.4022.98 --initial-client-data=0x178,0x17c,0x180,0x154,0x188,0x7ff9150e9c38,0x7ff9150e9c44,0x7ff9150e9c50",
+                          "start_time":  "2026-07-01T01:23:12.1907513+09:00",
+                          "cpu_seconds":  0.09375,
+                          "working_set_mb":  13.12
+                      },
+                      {
+                          "pid":  17364,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17560,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=ko --service-sandbox-type=service --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8655) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 149.0.4022.69)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2604.28014.500.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=2468,i,7895282891198721473,10233918762557273531,524288 --field-trial-handle=1896,i,16753183173097225500,1132528867327091761,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1900,i,4921856983236675353,11531286807855816535,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2500 /prefetch:13 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                          "start_time":  "2026-06-30T12:37:36.8749411+09:00",
+                          "cpu_seconds":  0.375,
+                          "working_set_mb":  18.2
+                      },
+                      {
+                          "pid":  17560,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  15756,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=SearchHost.exe --webview-exe-version=2604.28014.500.0 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --noerrdialogs --disable-features=msSmartScreenProtection --edge-webview-enable-mojo-ipcz --enable-features=msEdgeFluentOverlayScrollbar --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8655) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 149.0.4022.69)\" --lang=ko --mojo-named-platform-channel-pipe=15756.9400.9937770631805683664 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                          "start_time":  "2026-06-30T12:37:35.9210335+09:00",
+                          "cpu_seconds":  7.59375,
+                          "working_set_mb":  102.84
+                      },
+                      {
+                          "pid":  17692,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  32100,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0-rc.22 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --startup-read-main-dll --metrics-shmem-handle=1904,i,7526476079996956945,7871262579597257949,262144 --field-trial-handle=2040,i,16477125220412300427,2805791981295988266,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=2036,i,211488659419626720,13569982443063422072,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=2024 /prefetch:2 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926",
+                          "start_time":  "2026-07-01T01:23:12.3958989+09:00",
+                          "cpu_seconds":  4.265625,
+                          "working_set_mb":  83.52
+                      },
+                      {
+                          "pid":  18100,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  32100,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\" --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0-rc.22 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --video-capture-use-gpu-memory-buffer --lang=ko --device-scale-factor=1 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --js-flags=\"--expose-gc --ms-user-locale=ko_KR\" --time-ticks-at-unix-epoch=-1782790606835802 --launch-time-ticks=45985747511 --ssd-no-pressure-read-main-dll --metrics-shmem-handle=4020,i,11500352891220050779,8049478788884735668,2097152 --field-trial-handle=2040,i,16477125220412300427,2805791981295988266,262144 --disable-features=msPdfOOUI,msSmartScreenProtection,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=2036,i,211488659419626720,13569982443063422072,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=3632 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926 /prefetch:1",
+                          "start_time":  "2026-07-01T01:23:12.5958322+09:00",
+                          "cpu_seconds":  1.328125,
+                          "working_set_mb":  75.52
+                      },
+                      {
+                          "pid":  18648,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17560,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView /prefetch:4 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\\Crashpad --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=149.0.7827.201 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=149.0.4022.98 --initial-client-data=0x16c,0x170,0x174,0x148,0x17c,0x7ff9150e9c38,0x7ff9150e9c44,0x7ff9150e9c50",
+                          "start_time":  "2026-06-30T12:37:36.1080818+09:00",
+                          "cpu_seconds":  0.28125,
+                          "working_set_mb":  11.51
+                      },
+                      {
+                          "pid":  19380,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17560,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=ko --service-sandbox-type=none --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8655) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 149.0.4022.69)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2604.28014.500.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=2124,i,16326913357520427919,12105256155494602743,524288 --field-trial-handle=1896,i,16753183173097225500,1132528867327091761,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1900,i,4921856983236675353,11531286807855816535,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2184 /prefetch:11 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                          "start_time":  "2026-06-30T12:37:36.7982339+09:00",
+                          "cpu_seconds":  1.796875,
+                          "working_set_mb":  36.3
+                      },
+                      {
+                          "pid":  19388,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  17560,
+                          "owned_by_musu":  false,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --type=gpu-process --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.8655) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 149.0.4022.69)\" --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2604.28014.500.0 --embedded-browser-webview=1 --gpu-preferences=SAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --always-read-main-dll --metrics-shmem-handle=1732,i,1765645658298053239,7432883202758405352,262144 --field-trial-handle=1896,i,16753183173097225500,1132528867327091761,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=1900,i,4921856983236675353,11531286807855816535,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1892 /prefetch:2 /pfhostedapp:e8ddc9dac93984b1f73fa31a488b20613cc7a5eb",
+                          "start_time":  "2026-06-30T12:37:36.8001405+09:00",
+                          "cpu_seconds":  1.796875,
+                          "working_set_mb":  52.92
+                      },
+                      {
+                          "pid":  32100,
+                          "process_name":  "msedgewebview2",
+                          "role":  "webview2_helper",
+                          "parent_pid":  31888,
+                          "owned_by_musu":  true,
+                          "repo_related":  false,
+                          "path":  "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe",
+                          "command_line":  "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\149.0.4022.98\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=musu-desktop.exe --webview-exe-version=1.15.0-rc.22 --user-data-dir=\"C:\\Users\\empty\\AppData\\Local\\com.blossompark.musu\\EBWebView\" --noerrdialogs --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --lang=ko-KR --mojo-named-platform-channel-pipe=31888.34396.7814539316940523394 /pfhostedapp:f8ae7478bfe017326a0ebb9e96ee6277e3c38926",
+                          "start_time":  "2026-07-01T01:23:12.1215014+09:00",
+                          "cpu_seconds":  2.34375,
+                          "working_set_mb":  121.62
+                      }
+                  ],
+    "evidence_path":  "docs\\evidence\\process-ownership\\1.15.0-rc.22\\20260701-0128-HUGH_SECOND.process-ownership.json"
+}

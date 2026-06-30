@@ -1,0 +1,173 @@
+﻿{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\single-machine\\20260701-012738-HUGH_SECOND.evidence.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "git_commit":  "353a7e65e9d33265144350b1f586ca64aa72d5cc",
+    "musu_exe":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "allow_developer_runtime":  false,
+    "dashboard_base_url":  "",
+    "dashboard_base_url_source":  "bridge-only-packaged-runtime",
+    "dashboard_required":  false,
+    "single_machine_surface":  "local-bridge-only",
+    "dashboard_task_id":  "",
+    "bridge_url":  "http://127.0.0.1:4163",
+    "cli_route_checked":  true,
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "pass",
+                       "message":  "evidence reports ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version is present"
+                   },
+                   {
+                       "name":  "expected version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "git commit",
+                       "status":  "pass",
+                       "message":  "git commit is present"
+                   },
+                   {
+                       "name":  "musu executable",
+                       "status":  "pass",
+                       "message":  "musu_exe is present"
+                   },
+                   {
+                       "name":  "release runtime identity",
+                       "status":  "pass",
+                       "message":  "single-machine smoke used the packaged WindowsApps MUSU runtime"
+                   },
+                   {
+                       "name":  "expected git commit",
+                       "status":  "pass",
+                       "message":  "git commit matches current HEAD 353a7e65e9d33265144350b1f586ca64aa72d5cc or differs only by documentation/evidence/status/tooling-only commits"
+                   },
+                   {
+                       "name":  "started timestamp",
+                       "status":  "pass",
+                       "message":  "started_at parses"
+                   },
+                   {
+                       "name":  "completed timestamp",
+                       "status":  "pass",
+                       "message":  "completed_at parses"
+                   },
+                   {
+                       "name":  "time order",
+                       "status":  "pass",
+                       "message":  "completed_at is at or after started_at"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "completed_at is within 30 days"
+                   },
+                   {
+                       "name":  "started_at not future",
+                       "status":  "pass",
+                       "message":  "started_at is not in the future"
+                   },
+                   {
+                       "name":  "completed_at not future",
+                       "status":  "pass",
+                       "message":  "completed_at is not in the future"
+                   },
+                   {
+                       "name":  "dashboard surface mode",
+                       "status":  "pass",
+                       "message":  "single-machine surface mode is valid"
+                   },
+                   {
+                       "name":  "dashboard required flag",
+                       "status":  "pass",
+                       "message":  "dashboard_required is valid for the recorded surface"
+                   },
+                   {
+                       "name":  "dashboard base url",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url is present or intentionally absent for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard base url source",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url_source is present"
+                   },
+                   {
+                       "name":  "dashboard url auto-discovered",
+                       "status":  "pass",
+                       "message":  "dashboard URL came from runtime reachable_url or is intentionally absent for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard reachable url",
+                       "status":  "pass",
+                       "message":  "dashboard_reachable_url is present or intentionally absent for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard no dev-port default",
+                       "status":  "pass",
+                       "message":  "dashboard_base_url is not a dev dashboard default"
+                   },
+                   {
+                       "name":  "bridge url",
+                       "status":  "pass",
+                       "message":  "bridge_url is localhost"
+                   },
+                   {
+                       "name":  "doctor overall",
+                       "status":  "pass",
+                       "message":  "doctor overall is not fail"
+                   },
+                   {
+                       "name":  "dashboard doctor overall",
+                       "status":  "pass",
+                       "message":  "dashboard doctor overall is not fail"
+                   },
+                   {
+                       "name":  "device nodes",
+                       "status":  "pass",
+                       "message":  "device-status returned at least one node or is intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard task id",
+                       "status":  "pass",
+                       "message":  "dashboard task id is present or intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard task status",
+                       "status":  "pass",
+                       "message":  "dashboard task status is done or intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "dashboard output",
+                       "status":  "pass",
+                       "message":  "dashboard output contains expected text or is intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "SSE status",
+                       "status":  "pass",
+                       "message":  "SSE endpoint returned 200 or is intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "SSE content-type",
+                       "status":  "pass",
+                       "message":  "SSE endpoint returned text/event-stream or is intentionally skipped for bridge-only packaged runtime"
+                   },
+                   {
+                       "name":  "CLI output",
+                       "status":  "pass",
+                       "message":  "CLI route output contains expected text"
+                   }
+               ]
+}
