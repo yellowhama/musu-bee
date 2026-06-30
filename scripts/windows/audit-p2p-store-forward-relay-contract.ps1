@@ -398,6 +398,30 @@ Add-Check `
     -Message "Release tunnel lease requests are explicit and remain blocked by release transport/runtime gates instead of falling through to store-forward leases."
 
 Add-Check `
+    -Scope "rust-lease-transport" `
+    -Name "Rust relay lease DTO carries explicit transport intent" `
+    -Passed (
+        (Test-ContainsAll -Text $cloud -Needles @(
+            "pub enum RelayTransportIntent",
+            "StoreForwardQueue",
+            "ReleaseTunnel",
+            "pub transport_intent: Option<RelayTransportIntent>",
+            'assert_eq!(value["transport_intent"], "store_forward_queue")',
+            'assert_eq!(value["transport_intent"], "release_tunnel")'
+        )) -and
+        (Test-ContainsAll -Text $rendezvous -Needles @(
+            "transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)",
+            "relay_lease_request_for_direct_failure"
+        )) -and
+        (Test-ContainsAll -Text $forward -Needles @(
+            "transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)",
+            "queue_callback_via_relay"
+        ))
+    ) `
+    -Path $cloudPath `
+    -Message "Rust runtime lease requests explicitly serialize the preview store-forward intent today, while the release_tunnel enum is available for the future release runtime and remains fail-closed."
+
+Add-Check `
     -Scope "web-lease-transport" `
     -Name "transport preflight reports queue and tunnel separately" `
     -Passed (

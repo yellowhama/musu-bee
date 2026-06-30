@@ -22376,3 +22376,44 @@ Still NO-GO:
 Canonical report:
 
 - `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`
+
+## wiki/1178 — 2026-06-30 Rust relay lease intent DTO alignment
+
+The Rust runtime/client side now carries the same relay lease transport-intent
+contract as the hosted API.
+
+Changed:
+
+- `musu-rs/src/cloud/mod.rs` defines
+  `RelayTransportIntent::{StoreForwardQueue, ReleaseTunnel}`.
+- `P2pRelayLeaseRequest.transport_intent` serializes the explicit intent.
+- `P2pRelayLeaseResponse.transport_intent` accepts the hosted response shape.
+- direct-failure rendezvous fallback and queued callback fallback both send
+  `store_forward_queue`.
+- `release_tunnel` exists only as the future fail-closed runtime intent; no
+  release tunnel byte transport is implemented by this change.
+
+Verification:
+
+- touched-file `rustfmt --check`: passed
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_lease_request_serializes --lib -j 1`:
+  `2/2`
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_lease_request_records_failed_direct_paths_without_using_relay_as_default --lib -j 1`:
+  `1/1`
+- `audit-p2p-store-forward-relay-contract.ps1 -Json`: `ok=true`,
+  `fail_count=0`, generated `2026-06-30T18:17:50.2333327+09:00`
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
+  `case_count=219`, `failed_case_count=0`, generated
+  `2026-06-30T18:21:38.4387320+09:00`
+
+Still NO-GO:
+
+- real `quic_relay_tunnel` runtime is not implemented
+- live hosted KV/Upstash release storage/env remains missing
+- live P2P control-plane evidence remains missing
+- relay route evidence, transport proof, payload delivery proof, and
+  direct-blocked two-PC proof remain missing
+
+Canonical report:
+
+- `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`

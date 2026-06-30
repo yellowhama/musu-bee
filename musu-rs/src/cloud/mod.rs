@@ -227,6 +227,14 @@ pub enum RelayProtocol {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[allow(dead_code)] // Relay lease DTO; release tunnel runtime remains fail-closed until wired.
+#[serde(rename_all = "snake_case")]
+pub enum RelayTransportIntent {
+    StoreForwardQueue,
+    ReleaseTunnel,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[allow(dead_code)] // P2P control-plane DTO; wired after the route selector lands.
 #[serde(rename_all = "snake_case")]
 pub enum RouteAttemptResult {
@@ -527,6 +535,8 @@ pub struct P2pRelayLeaseRequest {
     pub target_node_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requested_capability: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_intent: Option<RelayTransportIntent>,
     pub attempted_route_kinds: Vec<RouteKind>,
     pub direct_path_failed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -558,6 +568,8 @@ pub struct P2pRelayLeaseResponse {
     pub relay_control_plane_wired: bool,
     pub relay_transport_wired: bool,
     pub relay_default_data_path: bool,
+    #[serde(default)]
+    pub transport_intent: Option<RelayTransportIntent>,
     pub policy: String,
     #[serde(default)]
     pub blockers: Vec<String>,
@@ -2484,6 +2496,7 @@ mod tests {
             source_node_id: "pc-a".into(),
             target_node_id: "pc-b".into(),
             requested_capability: Some("remote_command".into()),
+            transport_intent: Some(RelayTransportIntent::StoreForwardQueue),
             attempted_route_kinds: vec![
                 RouteKind::Lan,
                 RouteKind::Tailscale,
@@ -2495,10 +2508,29 @@ mod tests {
 
         let value = serde_json::to_value(req).unwrap();
         assert_eq!(value["session_id"], "rv_123");
+        assert_eq!(value["transport_intent"], "store_forward_queue");
         assert_eq!(value["attempted_route_kinds"][0], "lan");
         assert_eq!(value["attempted_route_kinds"][2], "direct_quic");
         assert_eq!(value["direct_path_failed"], true);
         assert_eq!(value["failure_class"], "connect_timeout");
+    }
+
+    #[test]
+    fn relay_lease_request_serializes_release_tunnel_intent() {
+        let req = P2pRelayLeaseRequest {
+            session_id: "rv_123".into(),
+            source_node_id: "pc-a".into(),
+            target_node_id: "pc-b".into(),
+            requested_capability: Some("remote_command".into()),
+            transport_intent: Some(RelayTransportIntent::ReleaseTunnel),
+            attempted_route_kinds: vec![RouteKind::Lan, RouteKind::DirectQuic],
+            direct_path_failed: true,
+            failure_class: Some("direct_exhausted".into()),
+        };
+
+        let value = serde_json::to_value(req).unwrap();
+        assert_eq!(value["transport_intent"], "release_tunnel");
+        assert_eq!(value["direct_path_failed"], true);
     }
 
     #[test]

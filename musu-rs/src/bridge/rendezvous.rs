@@ -482,6 +482,7 @@ fn relay_lease_request_for_direct_failure(
         source_node_id: cfg.node_name.clone(),
         target_node_id: crate::bridge::route_evidence::target_node_id(fallback_peer),
         requested_capability: requested_capability.map(str::to_string),
+        transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue),
         attempted_route_kinds: relay_attempted_route_kinds(fallback_peer, attempted_peers),
         direct_path_failed: true,
         failure_class: Some(failure_class.to_string()),
@@ -1486,6 +1487,10 @@ mod tests {
         assert_eq!(req.source_node_id, "source-node");
         assert_eq!(req.target_node_id, "target-node");
         assert_eq!(req.requested_capability.as_deref(), Some("remote_command"));
+        assert_eq!(
+            req.transport_intent,
+            Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)
+        );
         assert_eq!(
             req.attempted_route_kinds,
             vec![

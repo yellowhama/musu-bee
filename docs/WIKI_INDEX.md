@@ -10280,4 +10280,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_tunnel_runtime_not_implemented`, and
   `rejects unknown relay transport intent`.
 
+- 2026-06-30 Rust relay lease intent DTO alignment:
+  `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`,
+  `docs/P2P_CONTROL_PLANE.md`,
+  `docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`, and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now record
+  that Rust relay lease DTOs match the hosted API intent split.
+  `musu-rs/src/cloud/mod.rs` defines `RelayTransportIntent` with
+  `store_forward_queue` and `release_tunnel`, `P2pRelayLeaseRequest` carries
+  `transport_intent`, and both direct-failure rendezvous fallback and queued
+  callback fallback explicitly send `store_forward_queue`. This removes a
+  typed-client contract drift risk, but it does not implement release relay
+  tunnel byte transport or close the product NO-GO. Validation includes
+  touched-file `rustfmt --check`, targeted Rust lease tests (`2/2` and `1/1`),
+  and `audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+  `fail_count=0`, generated at `2026-06-30T18:17:50.2333327+09:00`.
+  `test-release-evidence-verifiers.ps1 -Json` also passed with `ok=true`,
+  `case_count=219`, `failed_case_count=0`, generated at
+  `2026-06-30T18:21:38.4387320+09:00`.
+  Search terms should include
+  `RelayTransportIntent`, `P2pRelayLeaseRequest.transport_intent`,
+  `queue_callback_via_relay`, `relay_lease_request_for_direct_failure`,
+  `store_forward_queue`, `release_tunnel`, and `rust relay lease intent DTO`.
+
 **End of WIKI_INDEX.md.**

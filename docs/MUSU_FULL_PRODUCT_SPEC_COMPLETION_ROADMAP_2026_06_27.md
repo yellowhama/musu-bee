@@ -98,6 +98,20 @@ for release tunnel readiness, but the product remains NO-GO because
 live P2P evidence, relay route evidence, transport proof, delivery proof, and
 two-PC direct-blocked proof are still missing.
 
+2026-06-30 18:14 KST Rust relay lease intent DTO alignment:
+the Rust runtime/client contract now carries the same lease intent boundary as
+the web API. `musu-rs/src/cloud/mod.rs` adds `RelayTransportIntent` and
+`P2pRelayLeaseRequest.transport_intent`; direct-failure and callback fallback
+callers in `rendezvous.rs` and `forward.rs` explicitly serialize
+`store_forward_queue`. `release_tunnel` exists as a typed enum variant for the
+future release runtime, but it is not used to claim relay readiness and the
+runtime blocker remains active. Targeted verification passed touched-file
+`rustfmt --check`, `cargo test ... relay_lease_request_serializes --lib`
+(`2 passed`), `cargo test ...
+relay_lease_request_records_failed_direct_paths_without_using_relay_as_default
+--lib` (`1 passed`), and the P2P relay contract audit. This is a prerequisite
+for implementing release relay runtime; it does not change the NO-GO gate.
+
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
 the source contract is internally consistent and still fail-closed. The P2P

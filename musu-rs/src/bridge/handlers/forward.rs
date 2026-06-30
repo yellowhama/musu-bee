@@ -426,6 +426,7 @@ pub async fn queue_callback_via_relay(
         source_node_id: source_node_id.to_string(),
         target_node_id: target_node_id.to_string(),
         requested_capability: Some("task_callback".to_string()),
+        transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue),
         attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
         direct_path_failed: true,
         failure_class: Some("callback_direct_post_failed".to_string()),

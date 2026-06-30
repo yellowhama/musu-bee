@@ -2512,6 +2512,13 @@ Spec meaning:
 - release payload endpoint and release relay tunnel runtime markers remain
   false until the real byte path is implemented and proven.
 
+2026-06-30 Rust relay lease intent alignment: the Rust client DTO now matches
+the web lease API's `transport_intent` contract. `P2pRelayLeaseRequest` can
+serialize `store_forward_queue` and `release_tunnel`; current runtime
+direct-failure and callback fallback callers explicitly send
+`store_forward_queue`; `release_tunnel` remains reserved for the future real
+`quic_relay_tunnel` runtime and must not be treated as implemented transport.
+
 The local-fleet SaaS research addendum strengthens the same split:
 
 - MUSU.PRO is the control plane and command room;

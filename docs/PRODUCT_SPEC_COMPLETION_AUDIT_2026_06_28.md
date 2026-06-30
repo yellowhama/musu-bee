@@ -100,6 +100,18 @@ evidence, relay route proof, transport proof, delivery proof, and direct-blocked
 two-PC proof remain missing. Canonical report:
 `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`.
 
+2026-06-30 18:14 KST Rust relay lease intent DTO alignment: the web lease
+intent split is now represented in the Rust client DTO. `RelayTransportIntent`
+serializes `store_forward_queue` and `release_tunnel`, `P2pRelayLeaseRequest`
+has optional `transport_intent`, and existing runtime fallback/callback lease
+builders explicitly send `StoreForwardQueue`. Targeted verification passed
+touched-file `rustfmt --check`, `cargo test ... relay_lease_request_serializes
+--lib` (`2 passed`), `cargo test ...
+relay_lease_request_records_failed_direct_paths_without_using_relay_as_default
+--lib` (`1 passed`), and the P2P relay contract audit. Qualitative read: this
+removes a typed-client gap that would have blocked future release tunnel work,
+but it is not byte transit and does not reduce the product blocker count.
+
 2026-06-30 16:18 KST post-V34-hardening evidence refresh: after the V34
 proof-gate commit reopened source freshness, HUGH_SECOND recaptured
 single-machine packaged smoke and then recaptured the full five-scenario
