@@ -1,0 +1,248 @@
+﻿{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\msix-install\\20260701-070004-HUGH_SECOND.evidence.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "startup_contract":  "local-sideload-manual",
+    "package_full_name":  "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "install_location":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "alias_shadowing_mode":  "fail",
+    "alias_shadowing_accepted":  false,
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "pass",
+                       "message":  "evidence reports ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version is present"
+                   },
+                   {
+                       "name":  "expected version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "startup contract",
+                       "status":  "pass",
+                       "message":  "startup contract is valid"
+                   },
+                   {
+                       "name":  "recorded timestamp",
+                       "status":  "pass",
+                       "message":  "recorded_at parses"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "recorded_at is within 30 days"
+                   },
+                   {
+                       "name":  "recorded timestamp not future",
+                       "status":  "pass",
+                       "message":  "recorded_at is not in the future"
+                   },
+                   {
+                       "name":  "package name",
+                       "status":  "pass",
+                       "message":  "package name is present"
+                   },
+                   {
+                       "name":  "package full name",
+                       "status":  "pass",
+                       "message":  "package full name is present"
+                   },
+                   {
+                       "name":  "installed version",
+                       "status":  "pass",
+                       "message":  "installed version is present"
+                   },
+                   {
+                       "name":  "artifact version",
+                       "status":  "pass",
+                       "message":  "artifact version is present"
+                   },
+                   {
+                       "name":  "installed artifact version match",
+                       "status":  "pass",
+                       "message":  "installed version matches artifact version"
+                   },
+                   {
+                       "name":  "install location",
+                       "status":  "pass",
+                       "message":  "install location is present"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "operator user",
+                       "status":  "pass",
+                       "message":  "operator_user is present"
+                   },
+                   {
+                       "name":  "artifact contract match",
+                       "status":  "pass",
+                       "message":  "installed contract matches artifact"
+                   },
+                   {
+                       "name":  "brain fullTrust process",
+                       "status":  "pass",
+                       "message":  "brain fullTrustProcess is declared"
+                   },
+                   {
+                       "name":  "brain executable",
+                       "status":  "pass",
+                       "message":  "brain executable is musu-brain.exe"
+                   },
+                   {
+                       "name":  "WindowsApps alias",
+                       "status":  "pass",
+                       "message":  "WindowsApps alias exists"
+                   },
+                   {
+                       "name":  "alias discoverable",
+                       "status":  "pass",
+                       "message":  "alias is discoverable via Get-Command"
+                   },
+                   {
+                       "name":  "alias shadowing mode",
+                       "status":  "pass",
+                       "message":  "alias shadowing mode is valid"
+                   },
+                   {
+                       "name":  "alias shadowing policy",
+                       "status":  "pass",
+                       "message":  "no PATH alias shadowing is present"
+                   },
+                   {
+                       "name":  "alias not shadowed",
+                       "status":  "pass",
+                       "message":  "alias is not shadowed"
+                   },
+                   {
+                       "name":  "startup task",
+                       "status":  "pass",
+                       "message":  "startup task id is present"
+                   },
+                   {
+                       "name":  "startup conflicts",
+                       "status":  "pass",
+                       "message":  "no legacy startup conflicts"
+                   },
+                   {
+                       "name":  "alias shadowing conflicts",
+                       "status":  "pass",
+                       "message":  "no alias shadowing conflicts"
+                   },
+                   {
+                       "name":  "legacy conflicts",
+                       "status":  "pass",
+                       "message":  "no legacy conflicts"
+                   },
+                   {
+                       "name":  "nested checks present",
+                       "status":  "pass",
+                       "message":  "capture checks are present"
+                   },
+                   {
+                       "name":  "capture check: artifact path",
+                       "status":  "pass",
+                       "message":  "capture check \u0027artifact path\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: package identity",
+                       "status":  "pass",
+                       "message":  "capture check \u0027package identity\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: installed package",
+                       "status":  "pass",
+                       "message":  "capture check \u0027installed package\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: musu exe",
+                       "status":  "pass",
+                       "message":  "capture check \u0027musu exe\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: brain exe",
+                       "status":  "pass",
+                       "message":  "capture check \u0027brain exe\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: startup exe",
+                       "status":  "pass",
+                       "message":  "capture check \u0027startup exe\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: installed manifest",
+                       "status":  "pass",
+                       "message":  "capture check \u0027installed manifest\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: installed alias contract",
+                       "status":  "pass",
+                       "message":  "capture check \u0027installed alias contract\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: installed brain fullTrust process",
+                       "status":  "pass",
+                       "message":  "capture check \u0027installed brain fullTrust process\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: installed startup contract",
+                       "status":  "pass",
+                       "message":  "capture check \u0027installed startup contract\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: artifact contract match",
+                       "status":  "pass",
+                       "message":  "capture check \u0027artifact contract match\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: version match",
+                       "status":  "pass",
+                       "message":  "capture check \u0027version match\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: windowsapps alias file",
+                       "status":  "pass",
+                       "message":  "capture check \u0027windowsapps alias file\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: windowsapps alias discoverable",
+                       "status":  "pass",
+                       "message":  "capture check \u0027windowsapps alias discoverable\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: alias not shadowed",
+                       "status":  "pass",
+                       "message":  "capture check \u0027alias not shadowed\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: legacy startup conflicts",
+                       "status":  "pass",
+                       "message":  "capture check \u0027legacy startup conflicts\u0027 passed"
+                   },
+                   {
+                       "name":  "capture check: legacy alias shadowing",
+                       "status":  "pass",
+                       "message":  "capture check \u0027legacy alias shadowing\u0027 passed"
+                   },
+                   {
+                       "name":  "nested checks",
+                       "status":  "pass",
+                       "message":  "capture checks have no failures"
+                   }
+               ]
+}
