@@ -410,8 +410,14 @@ Add-Check `
             'assert_eq!(value["transport_intent"], "release_tunnel")'
         )) -and
         (Test-ContainsAll -Text $rendezvous -Needles @(
-            "transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)",
-            "relay_lease_request_for_direct_failure"
+            "relay_transport_intent_for_direct_failure",
+            'std::env::var(name)',
+            "MUSU_P2P_RELAY_TRANSPORT_WIRED",
+            "crate::cloud::RelayTransportIntent::ReleaseTunnel",
+            "crate::cloud::RelayTransportIntent::StoreForwardQueue",
+            "relay_lease_request_for_direct_failure",
+            "relay_lease_request_records_failed_direct_paths_without_using_relay_as_default",
+            "relay_lease_request_uses_release_tunnel_intent_when_transport_flag_is_set"
         )) -and
         (Test-ContainsAll -Text $forward -Needles @(
             "transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)",
@@ -419,7 +425,7 @@ Add-Check `
         ))
     ) `
     -Path $cloudPath `
-    -Message "Rust runtime lease requests explicitly serialize the preview store-forward intent today, while the release_tunnel enum is available for the future release runtime and remains fail-closed."
+    -Message "Rust runtime lease requests default to preview store-forward, can explicitly request release_tunnel only when the local transport flag is set, and keep callback relay leases on store-forward until the release runtime lands."
 
 Add-Check `
     -Scope "web-lease-transport" `

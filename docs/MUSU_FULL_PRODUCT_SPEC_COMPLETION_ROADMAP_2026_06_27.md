@@ -64,6 +64,32 @@ Private Mesh, P2P/relay, V34, and design-approval gates. Index refresh:
 `local/musu` processed 3 sources and query returned top title
 `wiki/1200 current local package evidence refresh report`.
 
+2026-07-01 04:26 KST relay release-tunnel intent opt-in audit:
+the Rust direct-failure lease request now preserves `store_forward_queue` as
+the default but sends `release_tunnel` intent when the local
+`MUSU_P2P_RELAY_TRANSPORT_WIRED=1` flag is explicitly set. Callback relay
+leases remain store-forward. This is not relay runtime completion:
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` is unchanged, the Rust source still
+contains the `release_relay_tunnel_runtime_not_implemented` branch, and
+`show-musu-pro-p2p-env-status.ps1 -Json` still reports `ok=false` with
+`source_release_relay_tunnel_runtime_not_implemented` plus hosted KV/live proof
+blockers. Targeted verification passed `rustfmt`, `cargo test --manifest-path
+musu-rs\Cargo.toml relay_lease_request --lib -j 1 -- --nocapture` (`4
+passed`), `audit-p2p-store-forward-relay-contract.ps1 -Json` (`ok=true`), and
+`git diff --check`. Pre-commit go/no-go at
+`2026-07-01T04:26:16.562248+09:00` reports
+`ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+`blockers=11`, and `manifest_git.dirty=true` for the current source/docs
+changes. Canonical report:
+`docs/RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01.md`. Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3579 files` and `3917 symbols`; product brain source ingest under
+`local/musu` created 3 sources, processed 3, recovered 0, and query returned
+top title `wiki/1201 relay release tunnel intent opt-in wiki entry`. Product
+meaning: this closes an intent-boundary gap only; after commit the package
+freshness lanes must be rebuilt/reinstalled and recaptured before current local
+package evidence can apply to the new source revision.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

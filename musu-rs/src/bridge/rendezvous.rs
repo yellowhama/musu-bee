@@ -469,6 +469,26 @@ fn relay_attempted_route_kinds(
     kinds
 }
 
+fn env_truthy(name: &str) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn relay_transport_intent_for_direct_failure() -> crate::cloud::RelayTransportIntent {
+    if env_truthy("MUSU_P2P_RELAY_TRANSPORT_WIRED") {
+        crate::cloud::RelayTransportIntent::ReleaseTunnel
+    } else {
+        crate::cloud::RelayTransportIntent::StoreForwardQueue
+    }
+}
+
 fn relay_lease_request_for_direct_failure(
     cfg: &crate::bridge::config::BridgeConfig,
     fallback_peer: &ResolvedPeer,
@@ -482,7 +502,7 @@ fn relay_lease_request_for_direct_failure(
         source_node_id: cfg.node_name.clone(),
         target_node_id: crate::bridge::route_evidence::target_node_id(fallback_peer),
         requested_capability: requested_capability.map(str::to_string),
-        transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue),
+        transport_intent: Some(relay_transport_intent_for_direct_failure()),
         attempted_route_kinds: relay_attempted_route_kinds(fallback_peer, attempted_peers),
         direct_path_failed: true,
         failure_class: Some(failure_class.to_string()),
@@ -983,6 +1003,42 @@ pub async fn submit_relay_payload_after_lease(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{LazyLock, Mutex, MutexGuard};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    struct EnvRestore {
+        values: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    }
+
+    impl EnvRestore {
+        fn capture(keys: &[&'static str]) -> Self {
+            Self {
+                values: keys
+                    .iter()
+                    .map(|key| (*key, std::env::var_os(key)))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvRestore {
+        fn drop(&mut self) {
+            for (key, value) in &self.values {
+                if let Some(value) = value {
+                    std::env::set_var(key, value);
+                } else {
+                    std::env::remove_var(key);
+                }
+            }
+        }
+    }
+
+    fn lock_env() -> MutexGuard<'static, ()> {
+        ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     #[test]
     fn endpoint_addr_from_url_preserves_host_port() {
@@ -1431,6 +1487,10 @@ mod tests {
 
     #[test]
     fn relay_lease_request_records_failed_direct_paths_without_using_relay_as_default() {
+        let _env_guard = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_P2P_RELAY_TRANSPORT_WIRED"]);
+        std::env::remove_var("MUSU_P2P_RELAY_TRANSPORT_WIRED");
+
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 8070,
@@ -1498,6 +1558,64 @@ mod tests {
                 crate::cloud::RouteKind::Tailscale,
                 crate::cloud::RouteKind::DirectQuic,
             ]
+        );
+        assert!(req.direct_path_failed);
+        assert_eq!(
+            req.failure_class.as_deref(),
+            Some("forward_failed_after_retries")
+        );
+    }
+
+    #[test]
+    fn relay_lease_request_uses_release_tunnel_intent_when_transport_flag_is_set() {
+        let _env_guard = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_P2P_RELAY_TRANSPORT_WIRED"]);
+        std::env::set_var("MUSU_P2P_RELAY_TRANSPORT_WIRED", "1");
+
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 8070,
+            public_url: Some("http://127.0.0.1:8070".to_string()),
+            node_name: "source-node".to_string(),
+            db_path: ":memory:".into(),
+            audit_db_path: ":memory:".into(),
+            nodes_toml_path: ".musu/nodes.toml".into(),
+            token: "x".repeat(32),
+            peer_token: None,
+            localhost_auth_required: true,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+        let fallback_peer = ResolvedPeer {
+            addr: "203.0.113.10:8070".to_string(),
+            name: Some("target-node".to_string()),
+            source: crate::peer::discovery::PeerSource::Registry,
+            meta: None,
+        };
+
+        let req = relay_lease_request_for_direct_failure(
+            &cfg,
+            &fallback_peer,
+            "rv_release_tunnel_intent",
+            &[],
+            "forward_failed_after_retries",
+            Some("remote_command"),
+        );
+
+        assert_eq!(
+            req.transport_intent,
+            Some(crate::cloud::RelayTransportIntent::ReleaseTunnel)
+        );
+        assert_eq!(
+            req.attempted_route_kinds,
+            vec![crate::cloud::RouteKind::DirectQuic]
         );
         assert!(req.direct_path_failed);
         assert_eq!(

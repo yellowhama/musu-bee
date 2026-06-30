@@ -23431,3 +23431,56 @@ Product meaning:
   `private-mesh-packaged-release-proof`, `store-public-metadata`,
   `store-release`, `p2p-control-plane`, `design-approval`,
   `relay-transport`, or `v34-stale-self-heal`.
+
+## wiki/1201 - 2026-07-01 Relay release-tunnel intent opt-in audit
+
+Canonical report:
+
+- `docs/RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- `musu-rs/src/bridge/rendezvous.rs` now keeps direct-failure relay lease
+  requests on `store_forward_queue` by default.
+- When the local runtime flag `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` is explicitly
+  set, direct-failure lease requests now send `transport_intent=release_tunnel`.
+- Callback relay leases remain `store_forward_queue`.
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1` now verifies
+  that split.
+
+Verification:
+
+- `rustfmt --edition 2021 --check musu-rs\src\bridge\rendezvous.rs` passed.
+- `cargo test --manifest-path musu-rs\Cargo.toml relay_lease_request --lib -j
+  1 -- --nocapture` passed: `4 passed`, `551 filtered out`.
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` passed:
+  `ok=true`, `fail_count=0`,
+  `generated_at=2026-07-01T04:15:46.9315977+09:00`.
+- `scripts/windows/show-musu-pro-p2p-env-status.ps1 -Json` still reports
+  `ok=false`, `release_relay_tunnel_runtime_implemented=false`, and
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`.
+- Pre-commit `write-release-go-no-go.ps1 -Json` at
+  `2026-07-01T04:26:16.562248+09:00` reports
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=11`, and `manifest_git.dirty=true`.
+- `git diff --check` passed.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3579 files` and `3917 symbols`.
+- Index search for
+  `relay_transport_intent_for_direct_failure MUSU_P2P_RELAY_TRANSPORT_WIRED`
+  returns the new audit report.
+- Product brain source ingest under `local/musu` created 3 sources,
+  `/v1/process` reported `processed=3`, `recovered=0`, and `/v1/query`
+  returned 4 results with top title
+  `wiki/1201 relay release tunnel intent opt-in wiki entry`.
+
+Product meaning:
+
+- This is source-level intent-boundary hardening only.
+- It does not implement `quic_relay_tunnel`, does not move delegated-work bytes
+  through relay, and does not prove release-grade relay route evidence.
+- `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` stays correct.
+- After this commit, the previous package-bound local evidence is stale for the
+  new source revision; rebuild/reinstall and recapture current package evidence
+  before treating local package lanes as fresh again.

@@ -10811,4 +10811,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   NO-GO because remaining blockers are physical, external, Store, design, P2P,
   relay, and V34 gates.
 
+- 2026-07-01 relay release-tunnel intent opt-in audit:
+  `docs/RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1201`: Rust direct-failure relay lease
+  requests still default to `transport_intent=store_forward_queue`, but when
+  the local `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` flag is explicitly set they now
+  request `transport_intent=release_tunnel`. Callback relay leases remain
+  store-forward. Verification passed touched-file `rustfmt`, `cargo test
+  --manifest-path musu-rs\Cargo.toml relay_lease_request --lib -j 1 -- --nocapture`
+  (`4 passed`), `audit-p2p-store-forward-relay-contract.ps1 -Json`
+  (`ok=true`), `show-musu-pro-p2p-env-status.ps1 -Json` (`ok=false`, runtime
+  still not implemented), and `git diff --check`. Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3579 files` and `3917 symbols`; index search for
+  `relay_transport_intent_for_direct_failure MUSU_P2P_RELAY_TRANSPORT_WIRED`
+  returns the new audit report. Product brain source ingest under
+  `local/musu` created 3 sources, `/v1/process` reported `processed=3`,
+  `recovered=0`, and `/v1/query` returned 4 results with top title
+  `wiki/1201 relay release tunnel intent opt-in wiki entry`. Pre-commit go/no-go at
+  `2026-07-01T04:26:16.562248+09:00` reports
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=11`, and `manifest_git.dirty=true`. Search terms should include
+  `wiki/1201`, `RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01`,
+  `relay_transport_intent_for_direct_failure`,
+  `MUSU_P2P_RELAY_TRANSPORT_WIRED`, `release_tunnel`,
+  `store_forward_queue`, `release_relay_tunnel_runtime_not_implemented`, and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`. Product meaning: this is a
+  source-level intent-boundary improvement, not release relay completion; after
+  commit the package-bound evidence lanes must be rebuilt/reinstalled and
+  recaptured for the new source revision.
+
 **End of WIKI_INDEX.md.**
