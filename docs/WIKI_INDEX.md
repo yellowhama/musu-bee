@@ -10461,15 +10461,15 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
   `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
   `docs/WIKI.md` now point the next `hugh-main` physical evidence run at
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`.
-  The kit was generated at `2026-06-30T21:16:14.7882354+09:00` from clean
-  commit `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`, with SHA256
-  `98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`.
+  The kit was generated at `2026-06-30T21:40:22.8818407+09:00` from clean
+  commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
+  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
   It includes the second-PC release wrapper, runtime CPU tools, route
   diagnostics, Private Mesh release-proof tools, P2P/relay evidence tools, V34
   proof tooling, and install-channel verification. Search terms should include
-  `wiki/1185`, `SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260630-211559`,
-  `98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`,
+  `wiki/1186`, `SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260630-214014`,
+  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`,
   `run-second-pc-release-check`, `hugh-main`, `hugh_second`, and
   `private-mesh-packaged-release-proof`.
 

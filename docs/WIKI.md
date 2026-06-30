@@ -22752,21 +22752,21 @@ Canonical report:
 
 - `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`
 
-## wiki/1185 - 2026-06-30 Current-HEAD second-PC kit refresh
+## wiki/1186 - 2026-06-30 Current-HEAD second-PC kit refresh
 
 The next physical `hugh-main` evidence run now has a current kit generated from
-clean HEAD after the public metadata DNS/TLS recheck commit.
+clean HEAD after the remote file CLI policy-blocker documentation commit.
 
 Generated kit:
 
-- `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+- `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 - SHA256:
-  `98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`
+  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`
 - source commit:
-  `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`
+  `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`
 - `dirty=false`
 - generated at:
-  `2026-06-30T21:16:14.7882354+09:00`
+  `2026-06-30T21:40:22.8818407+09:00`
 
 Kit contents spot check:
 

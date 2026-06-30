@@ -304,12 +304,12 @@ DNS remains Cloudflare, apex TLS still fails, and direct Vercel edge apex TLS
 still fails. Qualitative read: app source/content is not the observed blocker;
 external DNS/TLS authority is.
 
-2026-06-30 21:16 KST second-PC kit refresh: a fresh multi-device test kit was
-generated from clean commit `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`.
+2026-06-30 21:40 KST second-PC kit refresh: a fresh multi-device test kit was
+generated from clean commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`.
 Current kit:
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`,
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`,
 SHA256
-`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+`5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 The kit includes the release wrapper, runtime CPU tools, route diagnostics,
 Private Mesh proof tooling, P2P/relay evidence tooling, and V34 proof tooling.
 Qualitative read: this keeps the physical evidence handoff current for
@@ -852,7 +852,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Latest clean gate after the second-PC kit refresh on commit `d1a8d5213c7ec59bb27b552230bc11992237936c` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blocker_count=10`, `warning_count=0`, `manifest_git.dirty=false`, and `public_metadata_ok=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers and finish the real relay runtime/proof lane. |
+| NO-GO | Full product spec is not complete. | Latest clean gate after the current second-PC kit refresh on commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, `manifest_git.dirty=false`, and `public_metadata_ok=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers and finish the real relay runtime/proof lane. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the latest DNS repair planner evidence `20260630-205941` has `vercel_inspect.ok=true`, confirms `musu.pro` is bound to Vercel project `musu-pro`, and still records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, and relay leases now expose explicit `transport_intent=release_tunnel` that stays fail-closed; however `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Remote file CLI physical proof is blocked by target file-share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` has `ok=false`; `put` returns `file writes disabled`, and `ls/get` return `MUSU_FILE_SERVE_ROOTS not configured`. | The earlier token mismatch is no longer the observed blocker, but cross-PC file browsing/download/upload still cannot be claimed complete. | On `hugh-main`, run `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart bridge, then rerun `ls/get/put` proof. |

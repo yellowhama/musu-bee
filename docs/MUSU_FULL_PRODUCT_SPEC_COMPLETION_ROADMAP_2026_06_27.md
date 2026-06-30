@@ -22,8 +22,8 @@ single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted successful `hugh-main`
 post-route probe. The latest clean go/no-go recheck at
-`2026-06-30T19:19:32+09:00` on commit
-`0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15` still reports
+`2026-06-30T21:37:50+09:00` on commit
+`25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -93,17 +93,17 @@ Vercel edge apex TLS still fail. This is a stronger diagnosis, not completion:
 the `store-public-metadata` blocker remains until external DNS/TLS is repaired
 and `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
 
-2026-06-30 21:16 KST current-HEAD second-PC kit refresh:
+2026-06-30 21:40 KST current-HEAD second-PC kit refresh:
 the next `hugh-main` evidence run now has a fresh kit generated from clean HEAD
-`327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`. The kit is
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+`25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`. The kit is
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 with SHA256
-`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+`5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 It includes `run-second-pc-release-check.ps1`, runtime CPU tools, route
 diagnostics, Private Mesh proof tools, P2P/relay evidence tools, and V34 proof
-tools. This removes stale handoff risk after the public metadata recheck commit,
-but it does not close the second-PC blockers until `hugh-main` runs the kit and
-the return zip is imported and verified.
+tools. This removes stale handoff risk after the remote file CLI policy-blocker
+documentation commit, but it does not close the second-PC blockers until
+`hugh-main` runs the kit and the return zip is imported and verified.
 
 2026-06-30 21:24 KST remote file CLI physical proof policy blocker:
 a real `musu ls/get/put` attempt was run from `HUGH_SECOND` to `hugh-main`
@@ -2078,12 +2078,13 @@ multi-device product blockers by itself. It only removes stale handoff risk so
 the next `hugh-main` return zip can be imported and judged against the current
 rc.22 evidence contract.
 
-2026-06-30 21:16 KST successor kit:
-`.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+2026-06-30 21:40 KST successor kit:
+`.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 was generated from clean commit
-`327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`, with SHA256
-`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
-Use this kit for the next `hugh-main` run instead of earlier 2026-06-30 kits.
+`25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
+`5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
+Use this kit for the next `hugh-main` run instead of earlier 2026-06-30 kits,
+including `20260630-211559`.
 
 ## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
 
