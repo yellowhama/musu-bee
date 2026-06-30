@@ -12,11 +12,11 @@ Current local evidence report:
 
 Current second-PC kit:
 
-- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516.zip`
+- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
 - SHA256:
-  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`
 - source commit:
-  `33b0ca155991ba4f46422288cde9cc36d0b5840c`
+  `c7ab4d916efa03f143e251b738511bd61598ef55`
 
 ## What Is Proven
 

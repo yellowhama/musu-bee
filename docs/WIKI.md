@@ -22905,9 +22905,9 @@ Current next-step handoff:
 
 Superseded:
 
-- The kit pointer in this snapshot is superseded by `wiki/1191`
-  (`20260701-000516`, SHA256
-  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`).
+- The kit pointer in this snapshot is superseded by `wiki/1193`
+  (`20260701-003206`, SHA256
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`).
 
 Priority order:
 
@@ -22968,7 +22968,7 @@ Product meaning:
 - Public metadata can close only after one accepted DNS path is repaired and
   `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
 
-## wiki/1191 - 2026-07-01 Current second-PC kit refresh
+## wiki/1191 - 2026-07-01 Second-PC kit refresh (superseded)
 
 Current handoffs:
 
@@ -22977,7 +22977,7 @@ Current handoffs:
 - `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`
 - `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`
 
-Current second-PC kit:
+Superseded second-PC kit:
 
 - `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516.zip`
 - SHA256:
@@ -22991,14 +22991,17 @@ Why regenerated:
 
 - The previous `20260630-232004` kit was clean, but its source commit was
   `e280648f2a9c2632e869d679bf1a4d4e221f7005`.
-- Current HEAD is `33b0ca155991ba4f46422288cde9cc36d0b5840c` after the public
-  metadata DNS path-mode verifier/planner fix and latest wiki/handoff updates.
+- HEAD at that snapshot was `33b0ca155991ba4f46422288cde9cc36d0b5840c` after
+  the public metadata DNS path-mode verifier/planner fix and latest wiki/handoff
+  updates.
 - The next `hugh-main` physical run should use the current kit so returned
   evidence is source-bound to the latest branch state.
 
 Product meaning:
 
-- This removes stale-kit risk for the next physical `hugh-main` run.
+- This removed stale-kit risk for the next physical `hugh-main` run at that
+  point, but it is now superseded by `wiki/1193` after the brain root contract
+  source update.
 - It does not close `multi-device`, `runtime-idle-cpu`,
   `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, relay,
   V34, public metadata, Store, or design approval by itself.
@@ -23033,3 +23036,38 @@ Product meaning:
 - Next release evidence must rebuild/reinstall and rerun
   `record-brain-product-proof.ps1` before claiming this contract is in the
   package.
+
+## wiki/1193 - 2026-07-01 Current second-PC kit after brain root contract
+
+Current handoffs:
+
+- `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`
+- `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`
+- `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`
+- `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`
+
+Current second-PC kit:
+
+- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
+- SHA256:
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`
+- source commit:
+  `c7ab4d916efa03f143e251b738511bd61598ef55`
+- generated:
+  `2026-07-01T00:32:15.2333262+09:00`
+
+Why regenerated:
+
+- The previous `20260701-000516` kit was clean, but its source commit was
+  `33b0ca155991ba4f46422288cde9cc36d0b5840c`.
+- Current HEAD is `c7ab4d916efa03f143e251b738511bd61598ef55` after the brain
+  root-env source contract and `musu-brain.pin.json` update.
+- The next `hugh-main` physical run should use the current kit so returned
+  evidence is source-bound to the latest branch state.
+
+Product meaning:
+
+- This removes stale-kit risk for the next physical `hugh-main` run.
+- It does not close `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, relay,
+  V34, public metadata, Store, or design approval by itself.

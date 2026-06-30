@@ -11,23 +11,24 @@ not tied to stale source.
 - Version: `1.15.0-rc.22`
 - Package: `musu_1.15.0.22_x64_local-sideload-manual.msix`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206`
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
 - SHA256:
-  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`
-- Generated at: `2026-07-01T00:05:27.9288438+09:00`
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`
+- Generated at: `2026-07-01T00:32:15.2333262+09:00`
 - Source branch: `feat/v33-residual-finalize`
-- Source commit: `33b0ca155991ba4f46422288cde9cc36d0b5840c`
+- Source commit: `c7ab4d916efa03f143e251b738511bd61598ef55`
 - Dirty: `false`
 
 ## Why This Matters
 
-The previous current kit was `20260630-232004`, generated from clean commit
-`e280648f2a9c2632e869d679bf1a4d4e221f7005`. The branch has since gained the
-public metadata DNS path-mode verifier/planner fix and updated handoff/wiki
-state. Returning second-PC evidence from the older kit would be source-stale
-relative to the current branch.
+The previous current kit was `20260701-000516`, generated from clean commit
+`33b0ca155991ba4f46422288cde9cc36d0b5840c`. The branch has since gained the
+brain root-env source contract and the `musu-brain.pin.json` update to clean
+brain commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`. Returning second-PC
+evidence from the older kit would be source-stale relative to the current
+branch.
 
 ## Updated Handoffs
 
@@ -41,9 +42,10 @@ relative to the current branch.
 ## Indexing
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-  indexed `3527 files` and `3907 symbols`.
-- Search for `CURRENT_SECOND_PC_KIT_REFRESH current second PC kit` returns this
-  document and `docs/WIKI.md`.
+  indexed `3528 files` and `3908 symbols`.
+- Search for `003206 second PC kit` returns this document,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, `docs/WIKI.md`, and
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
 
 ## Product Status
 

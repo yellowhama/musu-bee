@@ -10519,18 +10519,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
   `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
-  `docs/WIKI.md` now point the next physical `hugh-main` run at
-  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`,
-  SHA256 `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`,
-  source commit `e280648f2a9c2632e869d679bf1a4d4e221f7005`. It also records
+  `docs/WIKI.md` now point the next physical `hugh-main` run at the current
+  `20260701-003206` kit after the brain root contract source update. It also records
   the remote file proof setup (`musu share ... --writable` on `hugh-main`) and
-  the brain data-root resolver as the next integration constraint. Search terms
+  the brain root-env package proof as the next integration constraint. Search terms
   should include `wiki/1189`,
-  `NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30`, `20260630-232004`,
-  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`,
+  `NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30`, `20260701-003206`,
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`,
   `run-second-pc-release-check`, `remote-file-proof`, `musu put`, `musu ls`,
-  `musu get`, `brain data-root resolver`, and `hugh-main`. This snapshot is now
-  superseded by `wiki/1191` for the current second-PC kit pointer.
+  `musu get`, `brain root-env proof`, and `hugh-main`. This snapshot is now
+  superseded by `wiki/1193` for the current second-PC kit pointer.
 
 - 2026-06-30 public metadata DNS path-mode fix:
   `docs/PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30.md`,
@@ -10556,20 +10554,20 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `www_cname_matches_expected`, and `store-public-metadata`. Validation passed
   parser checks and `test-release-evidence-verifiers.ps1`.
 
-- 2026-07-01 current second-PC kit refresh:
+- 2026-07-01 second-PC kit refresh, superseded by the brain root contract kit:
   `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
   `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
   `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
   `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
   `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
-  `docs/WIKI.md` now point the next physical `hugh-main` run at
+  `docs/WIKI.md` previously pointed the next physical `hugh-main` run at
   `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-000516.zip`.
   The kit was generated at `2026-07-01T00:05:27.9288438+09:00` from clean
   commit `33b0ca155991ba4f46422288cde9cc36d0b5840c`, with SHA256
   `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`.
   This supersedes `20260630-232004` for the next physical return because
   current HEAD now includes the public metadata DNS path-mode verifier/planner
-  fix. Search terms should include `wiki/1191`,
+  fix. It is now superseded by `wiki/1193`. Search terms should include `wiki/1191`,
   `20260701-000516`, `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`,
   `33b0ca155991ba4f46422288cde9cc36d0b5840c`,
   `SECOND_PC_KIT_HANDOFF_2026_06_28`, `hugh-main`, `hugh_second`,
@@ -10595,5 +10593,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `sqlite sidecar files`, `*.db-shm`, and `*.db-wal`. Product meaning: source
   root split is resolved, but the current installed package predates this
   source change and needs rebuilt brain product proof before release claims.
+
+- 2026-07-01 current second-PC kit refresh after brain root contract:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next physical `hugh-main` run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-003206.zip`.
+  The kit was generated at `2026-07-01T00:32:15.2333262+09:00` from clean
+  commit `c7ab4d916efa03f143e251b738511bd61598ef55`, with SHA256
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`.
+  This supersedes `20260701-000516` because current HEAD now includes the
+  brain root-env source contract and `musu-brain.pin.json` update. Search terms
+  should include `wiki/1193`, `20260701-003206`,
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`,
+  `c7ab4d916efa03f143e251b738511bd61598ef55`,
+  `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
 
 **End of WIKI_INDEX.md.**
