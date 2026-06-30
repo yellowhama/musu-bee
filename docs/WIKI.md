@@ -22377,6 +22377,36 @@ Canonical report:
 
 - `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`
 
+## wiki/1179 — 2026-06-30 Rust relay lease DTO post-commit No-Go
+
+After commit `235dc8cfe6630b96030035e6e51127fa0a77b1c6`,
+`write-release-go-no-go.ps1 -Json` reported:
+
+- `generated_at=2026-06-30T18:26:41.7712848+09:00`
+- `ready_for_public_desktop_release=false`
+- `full_product_spec_ready=false`
+- `blockers=15`
+- `warnings=0`
+- `manifest_git.dirty=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+The increase from the prior 10 blockers is expected: Rust runtime source changed
+after the previous package-bound evidence refresh. The current HEAD therefore
+needs fresh packaged evidence for single-machine smoke, process ownership,
+startup/desktop single-instance, runtime idle CPU, runtime CPU matrix, and
+targeted second-PC route-attempt CPU sample before those lanes can count again.
+
+This does not roll back the Rust DTO improvement. It only means the product
+remains NO-GO until current-package evidence and the external/physical relay,
+P2P, DNS/TLS, Store, design, and V34 blockers are closed.
+
+Canonical reports:
+
+- `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`
+- `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
 ## wiki/1178 — 2026-06-30 Rust relay lease intent DTO alignment
 
 The Rust runtime/client side now carries the same relay lease transport-intent

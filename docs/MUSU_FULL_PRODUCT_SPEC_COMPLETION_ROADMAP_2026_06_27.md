@@ -1969,6 +1969,38 @@ multi-device product blockers by itself. It only removes stale handoff risk so
 the next `hugh-main` return zip can be imported and judged against the current
 rc.22 evidence contract.
 
+## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
+
+Commit `235dc8cfe6630b96030035e6e51127fa0a77b1c6` aligns Rust relay lease
+DTOs with the hosted relay lease `transport_intent` contract:
+
+- `RelayTransportIntent::{StoreForwardQueue, ReleaseTunnel}` now exists in
+  `musu-rs/src/cloud/mod.rs`.
+- direct-failure rendezvous fallback and queued callback fallback explicitly
+  send `store_forward_queue`.
+- `release_tunnel` remains a future fail-closed intent, not a runtime path.
+
+Verification:
+
+- touched-file `rustfmt --check`: passed
+- targeted Rust relay lease tests: `2/2` and `1/1` passed
+- P2P relay contract audit: `ok=true`, `fail_count=0`
+- release evidence verifier regression: `ok=true`, `case_count=219`,
+  `failed_case_count=0`
+- musubrain index refresh: `3458 files`, `3896 symbols`; recall returns
+  `musu-rs/src/cloud/mod.rs` for `RelayTransportIntent`
+
+Post-commit go/no-go at `2026-06-30T18:26:41.7712848+09:00` remains
+NO-GO: `ready_for_public_desktop_release=false`,
+`full_product_spec_ready=false`, `blockers=15`, `warnings=0`,
+`manifest_git.dirty=false`, `p2p_control_plane_verified=false`, and
+`relay_transport_product_verified=false`.
+
+This source change intentionally resets package-bound freshness lanes until
+new evidence is recorded: single-machine smoke, process ownership,
+startup/desktop single-instance, runtime idle CPU, runtime CPU matrix, and
+targeted second-PC route-attempt CPU sample.
+
 ## 2026-06-30 Public Metadata DNS/TLS Evidence Refresh
 
 The public metadata lane was refreshed with the non-mutating DNS repair

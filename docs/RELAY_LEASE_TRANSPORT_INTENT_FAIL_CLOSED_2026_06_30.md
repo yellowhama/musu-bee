@@ -68,6 +68,32 @@ The product spec now has a clearer relay lease contract:
    live P2P control-plane evidence, route proof, transport proof, delivery
    proof, and two-PC direct-blocked physical proof.
 
+## Post-Commit Go/No-Go
+
+After commit `235dc8cfe6630b96030035e6e51127fa0a77b1c6`,
+`scripts/windows/write-release-go-no-go.ps1 -Json` reported:
+
+- `generated_at=2026-06-30T18:26:41.7712848+09:00`
+- `ready_for_public_desktop_release=false`
+- `full_product_spec_ready=false`
+- `blockers=15`
+- `warnings=0`
+- `manifest_git.dirty=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+The blocker count increased because Rust runtime source changed after the
+previous package-bound evidence refresh. That invalidates freshness-sensitive
+lanes until new packaged evidence is recorded:
+
+- single-machine smoke
+- process ownership
+- startup single-instance
+- desktop single-instance
+- runtime idle CPU
+- runtime CPU scenario matrix
+- targeted second-PC route-attempt CPU sample
+
 ## Next Steps
 
 1. Implement the release tunnel byte path rather than expanding the preview

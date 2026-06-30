@@ -10304,4 +10304,18 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `queue_callback_via_relay`, `relay_lease_request_for_direct_failure`,
   `store_forward_queue`, `release_tunnel`, and `rust relay lease intent DTO`.
 
+- 2026-06-30 Rust relay lease DTO post-commit No-Go:
+  clean go/no-go at `2026-06-30T18:26:41.7712848+09:00` on commit
+  `235dc8cfe6630b96030035e6e51127fa0a77b1c6` reports
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=15`, `warnings=0`, `manifest_git.dirty=false`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. The Rust source change invalidates
+  package-bound freshness lanes until current HEAD evidence is refreshed:
+  single-machine smoke, process ownership, startup/desktop single-instance,
+  runtime idle CPU, runtime CPU matrix, and targeted second-PC route-attempt CPU
+  sample. Search terms should include `235dc8cf`, `blockers=15`,
+  `ready_for_public_desktop_release=false`, `package-bound freshness reset`,
+  `RelayTransportIntent`, and `runtime source changed`.
+
 **End of WIKI_INDEX.md.**
