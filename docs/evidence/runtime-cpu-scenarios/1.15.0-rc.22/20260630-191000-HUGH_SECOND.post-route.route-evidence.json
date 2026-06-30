@@ -1,0 +1,18 @@
+{
+  "schema": "musu.route_evidence.v1",
+  "version": "1.15.0-rc.22",
+  "source_node_id": "hugh_second",
+  "target_node_id": "hugh-main",
+  "session_id": null,
+  "route_kind": "lan",
+  "candidate_addr": "192.168.1.192:4387",
+  "handshake_ms": 10,
+  "total_attempt_ms": 14081,
+  "peer_identity_verified": false,
+  "encryption": "none_http_bearer",
+  "payload_transited_musu_infra": false,
+  "result": "success",
+  "failure_class": null,
+  "recorded_at": "2026-06-30T10:14:54.175530400+00:00",
+  "note": "Actual CLI route attempt evidence. HTTPS peers with advertised sha256 certificate fingerprints are recorded only after a fingerprint-pinned request succeeds; HTTP and advertised-only metadata remain non-release-grade until QUIC/TLS proof is wired."
+}
