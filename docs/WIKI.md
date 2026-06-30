@@ -22272,3 +22272,33 @@ Verification:
 Canonical report:
 
 - `docs/RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28.md`
+
+## wiki/1175 — 2026-06-30 P2P relay current-state correction
+
+Current relay source status is endpoint-closed but runtime-open.
+
+- `release_relay_payload_endpoint_implemented=true`
+- `release_payload_endpoint_proof_bound=true`
+- `release_tunnel_payload_endpoint_missing=false`
+- `release_relay_tunnel_runtime_implemented=false`
+- `release_relay_tunnel_runtime_not_implemented_branch_active=true`
+- preview store-forward queue remains non-release-grade
+- KV/Upstash release storage and live P2P control-plane proof remain missing
+
+Verification:
+
+- `write-release-go-no-go.ps1 -Json`:
+  `generated_at=2026-06-30T17:12:09.0426437+09:00`, commit
+  `9fb71e933293b4658ae9de8f3b692d33a969b5cb`, `blockers=10`,
+  `warnings=0`, `manifest_git.dirty=false`
+- `audit-p2p-store-forward-relay-contract.ps1 -Json`:
+  `ok=true`, `fail_count=0`
+- `show-musu-pro-p2p-env-status.ps1 -Json`:
+  `ok=false`; direct blockers are release tunnel runtime, missing storage env,
+  and missing live P2P evidence
+
+Canonical reports:
+
+- `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md`
+- `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`

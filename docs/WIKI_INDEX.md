@@ -10223,4 +10223,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `musu.private_mesh_physical_peer_evidence.v1`, `87ffa7a5`, and
   `case_count=219`.
 
+- 2026-06-30 P2P/relay current-state correction:
+  `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`, and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now reflect
+  the current relay source contract. `show-musu-pro-p2p-env-status.ps1 -Json`
+  at `2026-06-30T17:11:08.2291762+09:00` reports
+  `release_relay_payload_endpoint_implemented=true`,
+  `release_payload_endpoint_proof_bound=true`,
+  `release_tunnel_payload_endpoint_missing=false`,
+  `release_relay_tunnel_runtime_implemented=false`, and
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`.
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` at
+  `2026-06-30T17:11:06.7683867+09:00` passed with `ok=true`,
+  `fail_count=0`. The correct qualitative status is: source endpoint gap
+  closed, release tunnel runtime/storage/live proof still NO-GO. Search terms
+  should include `release_payload_endpoint_proof_bound`,
+  `release_tunnel_payload_endpoint_missing=false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `missing_p2p_control_plane_evidence`, and `quic_relay_tunnel`.
+
 **End of WIKI_INDEX.md.**

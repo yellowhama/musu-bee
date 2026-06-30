@@ -10,8 +10,8 @@ runtime with `quic_tls_1_3` and verified peer identity.
 Latest clean gate:
 
 - Source: `.local-build/go-no-go/latest.json`
-- Generated: `2026-06-30T15:12:29.3167592+09:00`
-- Commit: `b0581d235088296f90b42e90dbeed2f27e53b4f9`
+- Generated: `2026-06-30T17:12:09.0426437+09:00`
+- Commit: `9fb71e933293b4658ae9de8f3b692d33a969b5cb`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
@@ -21,9 +21,22 @@ Latest clean gate:
 Official source contract audit:
 
 - Command: `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json`
-- Generated: `2026-06-30T15:20:00.1832727+09:00`
+- Generated: `2026-06-30T17:11:06.7683867+09:00`
 - `ok=true`
 - `fail_count=0`
+
+Current P2P env status:
+
+- Command: `scripts/windows/show-musu-pro-p2p-env-status.ps1 -Json`
+- Checked: `2026-06-30T17:11:08.2291762+09:00`
+- `ok=false`
+- `release_relay_payload_endpoint_implemented=true`
+- `release_payload_endpoint_proof_bound=true`
+- `release_tunnel_payload_endpoint_missing=false`
+- `release_relay_tunnel_runtime_implemented=false`
+- `release_relay_tunnel_runtime_source_contract_ready=true`
+- `release_relay_tunnel_runtime_not_implemented_branch_active=true`
+- `preview_store_forward_payload_queue_non_release_grade=true`
 
 ## Findings
 
@@ -31,6 +44,7 @@ Official source contract audit:
 |---|---|---|---|---|
 | NO-GO | Release relay tunnel runtime is not implemented. | `musu-rs/src/bridge/rendezvous.rs` validates release relay tunnel metadata, then returns `release_relay_tunnel_runtime_not_implemented`. | Relay cannot be claimed as delegated-work transport. | Implement the real tunnel runtime or keep the lane red. |
 | NO-GO | Router does not select relay as a work route. | `musu-rs/src/bridge/router.rs` documents relay is not selected because relay/tunnel transport is not implemented. | UI relay state must stay display/freshness only. | Add relay fallback only after runtime transport and proof are real. |
+| HIGH | Release payload endpoint source gap is closed, but this is not transport completion. | Env status reports `release_relay_payload_endpoint_implemented=true`, `release_payload_endpoint_proof_bound=true`, and `release_tunnel_payload_endpoint_missing=false`; the endpoint accepts proof metadata and rejects raw payload bytes. | The old endpoint-missing diagnosis is stale, but relay still cannot move delegated-work bytes over MUSU infra. | Keep endpoint and runtime gates separate. |
 | HIGH | Store-forward queue is useful but not release transport. | `musu-rs/src/bridge/handlers/relay_payload.rs` implements target-side drain/poller and delivery proof, while release delivery requires an attached `musu_quic_tls_transport` proof. | Queue delivery cannot stand in for QUIC/TLS peer-identity proof. | Keep queue evidence separate from release transport evidence. |
 | HIGH | Hosted P2P control plane still lacks release storage/env proof. | Latest go/no-go blocker lists missing KV/Upstash env and live relay route metadata/transport/delivery proof. | Even a source fix would still need deployed control-plane configuration and live evidence. | Configure release storage and record owner-scoped live evidence after runtime implementation. |
 | INFO | Current fail-closed behavior is correct. | Go/no-go still reports `relay_transport_product_verified=false` and `p2p_control_plane_verified=false`. | The product avoids overclaiming relay. | Preserve these red gates until two-PC direct-blocked proof passes. |

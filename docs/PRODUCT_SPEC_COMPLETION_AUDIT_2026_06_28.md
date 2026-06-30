@@ -18,8 +18,8 @@ Authoritative 2026-06-30 local evidence refresh gate:
 
 - Command source:
   `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-30T16:57:05.1755488+09:00`
-- `manifest_git.commit`: `87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc`
+- `generated_at`: `2026-06-30T17:12:09.0426437+09:00`
+- `manifest_git.commit`: `9fb71e933293b4658ae9de8f3b692d33a969b5cb`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -51,6 +51,25 @@ a manual handoff gap and reduces the chance that the final proof uses stale or
 wrong-machine physical-peer JSON. It does not reduce the blocker count because
 the release gate still needs `hugh-main` physical return evidence and a
 verified packaged desktop Private Mesh release-proof archive.
+
+2026-06-30 17:12 KST P2P/relay current-state correction: the hosted source
+payload endpoint gap is no longer the active source blocker.
+`show-musu-pro-p2p-env-status.ps1 -Json` at
+`2026-06-30T17:11:08.2291762+09:00` reports
+`release_relay_payload_endpoint_implemented=true`,
+`release_payload_endpoint_proof_bound=true`,
+`release_payload_preflight_only=false`, and
+`release_tunnel_payload_endpoint_missing=false`. The remaining P2P/relay
+source blockers are narrower and more serious:
+`release_relay_tunnel_runtime_implemented=false`,
+`release_relay_tunnel_runtime_not_implemented_branch_active=true`,
+`preview_store_forward_payload_queue_non_release_grade=true`, missing
+KV/Upstash release storage env, and missing live release-grade P2P control-plane
+evidence. `audit-p2p-store-forward-relay-contract.ps1 -Json` at
+`2026-06-30T17:11:06.7683867+09:00` passed with `ok=true`, `fail_count=0`.
+Qualitative read: no false-green release relay claim was found; the code is
+still fail-closed, and the real blocker is implementation/deployment/proof of
+the `quic_relay_tunnel` runtime.
 
 2026-06-30 16:18 KST post-V34-hardening evidence refresh: after the V34
 proof-gate commit reopened source freshness, HUGH_SECOND recaptured
@@ -477,7 +496,7 @@ Fresh local source audit after the current second-PC kit/documentation refresh:
 - `schema=musu.p2p_store_forward_relay_contract.v1`
 - `ok=true`
 - `fail_count=0`
-- `generated_at=2026-06-28 21:59 KST`
+- `generated_at=2026-06-30 17:11 KST`
 
 Fresh operator API security audit after the same docs-only refresh:
 
@@ -502,7 +521,7 @@ Fresh P2P environment status:
   `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json`
 - `schema=musu.p2p_control_plane_env_status.v1`
 - `ok=false`
-- `checked_at=2026-06-28 18:05 KST`
+- `checked_at=2026-06-30 17:11 KST`
 - `relay_payload_queue_fallback_implemented=true`
 - `release_relay_connect_endpoint_implemented=true`
 - `release_relay_payload_endpoint_implemented=true`
@@ -516,6 +535,14 @@ Fresh P2P environment status:
 - `preview_store_forward_payload_queue_non_release_grade=true`
 - `relay_transport_kind=quic_relay_tunnel`
 - `release_grade_transport_required=quic_tls_1_3`
+
+Without a stale live evidence file attached, the direct env-status blockers are
+`source_release_relay_tunnel_runtime_not_implemented`,
+`missing_kv_rest_api_url_or_upstash_redis_rest_url`,
+`missing_kv_rest_api_token_or_upstash_redis_rest_token`, and
+`missing_p2p_control_plane_evidence`. The go/no-go gate still expands the
+canonical stale live-evidence blocker set because the latest committed live
+P2P evidence remains the 2026-06-28 file below.
 
 Fresh P2P live evidence with integrity sidecar:
 
@@ -634,7 +661,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Full product spec is not complete. | Post-source-change gate at `2026-06-28T22:26:26.9390333+09:00` on commit `fb971909670df187f364c3741d0a2fc54e45a26f` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. The extra five blockers are expected package-evidence freshness invalidations after the runtime source fix. | A release-ready claim would overstate the evidence. | Rebuild/reinstall and refresh package-bound evidence, then close the remaining physical/external product blockers. |
+| NO-GO | Full product spec is not complete. | Latest clean gate at `2026-06-30T17:12:09.0426437+09:00` on commit `9fb71e933293b4658ae9de8f3b692d33a969b5cb` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers and the real relay runtime/proof lane. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the DNS repair planner records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, but `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
 | HIGH | Doctor/background and P2P audit evidence previously disagreed with the relay poller runtime default. | Runtime relay payload polling is default-on opt-out, but doctor used a truthy env check and the P2P audit message still said default-off. Source now reuses `relay_payload_poller_enabled()`, the audit wording is aligned, and targeted tests pass. | Without this fix, runtime-loop/CPU evidence could under-report an active low-duty loop and mislead release audits. | Keep the helper shared; refresh package-bound evidence after this runtime source change. |

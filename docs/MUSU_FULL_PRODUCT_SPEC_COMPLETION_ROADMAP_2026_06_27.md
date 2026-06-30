@@ -21,8 +21,8 @@ for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
-latest clean go/no-go recheck at `2026-06-30T16:57:05+09:00` on commit
-`87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc` still reports
+latest clean go/no-go recheck at `2026-06-30T17:12:09+09:00` on commit
+`9fb71e933293b4658ae9de8f3b692d33a969b5cb` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -48,6 +48,21 @@ the `private-mesh-packaged-release-proof` lane, but it does not close that
 lane: `hugh-main` must still return the zip, the source PC must run/import a
 packaged desktop Private Mesh release-proof archive, and the archive verifier
 must pass before `private_mesh_packaged_release_proof_verified=true`.
+
+2026-06-30 17:12 KST P2P/relay status correction:
+`show-musu-pro-p2p-env-status.ps1 -Json` now reports
+`release_relay_payload_endpoint_implemented=true`,
+`release_payload_endpoint_proof_bound=true`, and
+`release_tunnel_payload_endpoint_missing=false`. The old "release payload
+endpoint missing" source gap is therefore superseded. The product remains
+NO-GO because the same status still reports
+`release_relay_tunnel_runtime_implemented=false`,
+`release_relay_tunnel_runtime_not_implemented_branch_active=true`,
+`preview_store_forward_payload_queue_non_release_grade=true`, missing
+KV/Upstash URL/token configuration, and missing live P2P control-plane
+evidence. The local P2P store-forward relay source audit at
+`2026-06-30T17:11:06+09:00` passed with `ok=true`, `fail_count=0`; this proves
+the fail-closed source contract, not release relay transport completion.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
@@ -203,8 +218,10 @@ This is a sharper operator path, not a closure of the lane; the product remains
 NO-GO until external DNS/TLS is repaired and `verify-store-public-metadata.ps1`
 passes.
 
-2026-06-28 16:20 KST P2P env recheck: the source remains deliberately
-fail-closed for release relay. `show-musu-pro-p2p-env-status.ps1 -Json`
+2026-06-28 16:20 KST P2P env recheck (historical, superseded by the 2026-06-28
+18:00 payload endpoint closure and the 2026-06-30 17:12 status above): the
+source remains deliberately fail-closed for release relay.
+`show-musu-pro-p2p-env-status.ps1 -Json`
 reports `ok=false`, `release_relay_payload_endpoint_implemented=false`,
 `release_relay_tunnel_runtime_implemented=false`,
 `release_tunnel_payload_endpoint_missing=true`, and missing KV/Upstash release
