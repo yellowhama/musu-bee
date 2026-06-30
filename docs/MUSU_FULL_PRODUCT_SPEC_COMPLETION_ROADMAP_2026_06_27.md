@@ -176,6 +176,24 @@ install/launch evidence remain external gates. Canonical report:
 `3559 files` and `3908 symbols`; product brain source ingest under
 `local/musu` created 3 sources and recall returned the new wiki/report entries.
 
+2026-07-01 brain handoff alignment audit:
+`F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` remains the canonical
+brain-side handoff, and `docs/HANDOFF-musu-integration.md` remains the local
+`musu-bee` reference copy with only the intentional MUSU product overlay note.
+The brain repo is clean and pushed on `main` at
+`eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, and
+`musu-bee/src-tauri/musu-brain.pin.json` points to that exact revision.
+`build-msix.ps1 -NoBump -PreflightOnly` passes version coherence plus clean
+brain pin checks, and the targeted Tauri test
+`knowledge_root_contract_uses_musu_profile_brain` passes. This verifies the
+handoff/pin/root contract alignment; it does not close the remaining full
+product blockers. Canonical report:
+`docs/BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01.md`. Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3560 files` and `3908 symbols`; product brain source ingest under
+`local/musu` created 3 sources and query returned the new audit report as the
+top result.
+
 2026-06-30 21:40 KST current-HEAD second-PC kit refresh (historical,
 superseded by the 23:20 KST kit):
 the next `hugh-main` evidence run then had a fresh kit generated from clean HEAD

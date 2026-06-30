@@ -10690,4 +10690,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   release remains blocked by Partner Center certification/restricted-capability
   approval and Store-signed install/launch evidence.
 
+- 2026-07-01 brain handoff alignment audit:
+  `docs/BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01.md`,
+  `docs/HANDOFF-musu-integration.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1197`: the canonical brain handoff in
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` is aligned with the
+  local `musu-bee` copy, with only the intentional MUSU-BEE local overlay note
+  added. Brain repo `main` is clean and pushed at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, and
+  `musu-bee/src-tauri/musu-brain.pin.json` points to that revision.
+  `build-msix.ps1 -NoBump -PreflightOnly` passed version coherence plus brain
+  pin checks, and targeted Tauri test
+  `knowledge_root_contract_uses_musu_profile_brain` passed. Search terms
+  should include `wiki/1197`, `BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01`,
+  `HANDOFF-musu-integration`, `MUSU-BEE local copy note`, `~/.musu/brain`,
+  `~/.musubrain`, `musu-brain.pin.json`,
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, `build-msix.ps1 -PreflightOnly`,
+  and `knowledge_root_contract_uses_musu_profile_brain`.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3560 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources, processed 3, and query
+  `wiki/1197 brain handoff alignment eb0c0ec
+  knowledge_root_contract_uses_musu_profile_brain` returned 5 results with top
+  title `wiki/1197 brain handoff alignment audit report`.
+  Product meaning: handoff/pin/root alignment is green, but full product
+  completion remains NO-GO until the remaining go/no-go blockers close.
+
 **End of WIKI_INDEX.md.**

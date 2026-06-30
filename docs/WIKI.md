@@ -23221,3 +23221,48 @@ Product meaning:
   packaged proof, two-machine idle CPU, two-machine runtime CPU matrix, public
   metadata DNS/TLS, Store release, P2P control plane, design approval, real
   relay transport, and V34 stale self-heal.
+
+## wiki/1197 - 2026-07-01 Brain handoff alignment audit
+
+Current report:
+
+- `docs/BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01.md`
+
+What changed:
+
+- No source behavior changed.
+- The brain-side canonical handoff at
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` was rechecked against
+  the local `musu-bee` copy.
+- The local copy intentionally differs only by its top `MUSU-BEE local copy
+  note`, which says the standalone `~/.musubrain` default is not the MUSU
+  desktop product contract.
+- The current MUSU product contract remains `~/.musu/brain`,
+  `musu-brain.exe` as a hidden Go sidecar chip, MSIX fullTrustProcess
+  declaration, and no shared SQLite writes.
+
+Evidence:
+
+- Brain repo `F:\musu_2nd_brain` is clean and pushed on `main` at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- `musu-bee/src-tauri/musu-brain.pin.json` points to that exact revision.
+- `git diff --no-index` between the canonical handoff and local copy showed
+  only the inserted MUSU-BEE local note.
+- `build-msix.ps1 -NoBump -PreflightOnly` passed version coherence and brain
+  pin checks.
+- `cargo test --manifest-path musu-bee\src-tauri\Cargo.toml
+  knowledge_root_contract_uses_musu_profile_brain --lib` passed.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3560 files` and `3908 symbols`.
+- Product brain source ingest under `local/musu` created 3 sources and query
+  `wiki/1197 brain handoff alignment eb0c0ec
+  knowledge_root_contract_uses_musu_profile_brain` returned 5 results with top
+  title `wiki/1197 brain handoff alignment audit report`.
+
+Product meaning:
+
+- Handoff/pin/root alignment is green.
+- This is not a full release-ready claim. The product still needs the remaining
+  go/no-go blockers closed: second-PC freshness, Private Mesh archive proof,
+  public metadata DNS/TLS, Store release, release-grade P2P/relay, V34 stale
+  self-heal, and design approval.
