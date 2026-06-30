@@ -73,6 +73,16 @@ A/AAAA records, missing expected Vercel apex A `76.76.21.21`, missing expected
 `vercel_edge_apex_tls_ok=false`. Canonical next-step document:
 `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`.
 
+2026-06-30 design approval current-state refresh:
+`docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub check
+of PR #34 and issue #35. PR #34 is still `OPEN`, merge state `BLOCKED`, and
+the PR body still says `Design: Pending`. Issue #35 has three evidence-refresh
+comments, but no explicit CEO/design approval comment. `gh pr checks 34`
+shows all visible non-design checks passing and `design-gate` failing. This is
+the correct fail-closed state; the next action is a human approval comment on
+issue #35, then a PR body update with `Design: Approved` plus the exact
+approval comment URL.
+
 Authoritative 2026-06-28 wrap-up clean gate:
 
 - Command source:

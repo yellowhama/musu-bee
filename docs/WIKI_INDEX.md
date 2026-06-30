@@ -10145,4 +10145,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ready_for_public_metadata_verifier=false`, and
   `vercel_edge_apex_tls_ok=false`.
 
+- 2026-06-30 PR #34 design approval current-state refresh:
+  `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub
+  check of PR #34 and issue #35. PR #34 remains `OPEN`/`BLOCKED`, the PR body
+  still says `Design: Pending`, issue #35 has evidence-refresh comments but no
+  explicit approval comment, and `gh pr checks 34` shows `design-gate` failing
+  while the visible non-design checks pass. The next valid unblock is an
+  authorized approval comment on issue #35, then updating the PR body to
+  `Design: Approved` with the exact `#issuecomment-...` approval URL. Search
+  terms should include `DESIGN_APPROVAL_CURRENT_STATE_2026_06_30`,
+  `issuecomment-4813006122`, `issuecomment-4814296271`,
+  `issuecomment-4814487029`, `Design: Pending`, and `design-gate`.
+
 **End of WIKI_INDEX.md.**

@@ -1467,7 +1467,7 @@ delegated-work transport. The verifier is correct to fail closed.
 | Area | Status | Evidence | Completion claim allowed |
 |---|---|---|---|
 | PR #34 code/test/deploy checks | Mostly green | Deploy, Playwright, web build/typecheck, Rust core tests, SaaS gate, landing gate passed at current PR state | Code path is not the current blocker |
-| PR #34 design approval | Not complete | PR body still uses `Design: Pending`; `design-gate` is failing by design | Cannot merge PR #34 |
+| PR #34 design approval | Not complete | 2026-06-30 GitHub refresh shows PR #34 still `OPEN`/`BLOCKED`, PR body still uses `Design: Pending`, issue #35 has evidence-refresh comments but no explicit approval comment, and `design-gate` is failing by design; see `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` | Cannot merge PR #34 |
 | rc.22 public install/proof channel | Complete for current rc.22 package | `fleet-proof.ps1` on `hugh-main`, install-channel verifier, package `1.15.0.22` | Public install/proof channel is valid for rc.22 |
 | Two-PC direct fleet health | Complete for current rc.22 proof | `hugh-main-20260627T010201Z.fleet-proof.json`, `online_nodes=2`, `direct_healthy_nodes=2` | Direct two-PC fleet health/readiness is proven, but this is not the same as delegated task proof |
 | Direct delegated-work route | Complete for current rc.22 package over direct LAN | Packaged `musu route` from `hugh_second` to `hugh-main` wrote `20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`; `verify-direct-route-evidence.ps1` reports `ok=true`, `fail_count=0`; MSIX install evidence `20260628-050309-HUGH_SECOND.*` verifies the installed package | A visible direct online node is proven work-targetable over LAN for rc.22; this does not claim relay fallback or release-grade peer identity |
@@ -1576,6 +1576,12 @@ Proof:
 
 Exit criteria:
 - No `Design: Pending` status remains on PR #34.
+
+Current 2026-06-30 note:
+`docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` confirms this phase is
+still blocked externally. Do not bypass the gate in source or PR text. The only
+valid unblock is an explicit approval issue comment followed by a PR body update
+that includes that exact `#issuecomment-...` URL.
 
 ### Phase 1 - Freeze The Product Readiness Gate
 
