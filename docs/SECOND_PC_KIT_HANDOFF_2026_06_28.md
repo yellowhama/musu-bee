@@ -9,17 +9,17 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-000516`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `e280648f2a9c2632e869d679bf1a4d4e221f7005`, `dirty=false`.
+  `33b0ca155991ba4f46422288cde9cc36d0b5840c`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, at `2026-06-30T23:20:18.8205192+09:00`, from clean commit
-  `e280648f`.
+  `HUGH_SECOND`, at `2026-07-01T00:05:27.9288438+09:00`, from clean commit
+  `33b0ca15`.
 - Zip SHA256:
-  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`.
+  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
@@ -30,9 +30,9 @@ The generator supports the go/no-go next action command with `-Json` and
 persists the latest `schema=musu.multidevice_test_kit_prepare.v1`,
 `zip_sha256`, `metadata_path`, and source git metadata to
 `.local-build/multi-device-test-kit/latest-prepare-output.json`. The current
-kit supersedes the earlier `20260630-214014` kit because it was generated after
-the dynamic-share package refresh, refreshed brain sidecar pin, and latest
-HUGH_SECOND runtime evidence commits.
+kit supersedes the earlier `20260630-232004` kit because it was generated from
+the current clean HEAD after the public metadata DNS path-mode verifier/planner
+fix and latest handoff/wiki updates.
 
 ## Command For hugh-main
 

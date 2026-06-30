@@ -10529,7 +10529,8 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30`, `20260630-232004`,
   `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`,
   `run-second-pc-release-check`, `remote-file-proof`, `musu put`, `musu ls`,
-  `musu get`, `brain data-root resolver`, and `hugh-main`.
+  `musu get`, `brain data-root resolver`, and `hugh-main`. This snapshot is now
+  superseded by `wiki/1191` for the current second-PC kit pointer.
 
 - 2026-06-30 public metadata DNS path-mode fix:
   `docs/PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30.md`,
@@ -10554,5 +10555,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `external_dns_records_match_expected`, `apex_aaaa_records_absent`,
   `www_cname_matches_expected`, and `store-public-metadata`. Validation passed
   parser checks and `test-release-evidence-verifiers.ps1`.
+
+- 2026-07-01 current second-PC kit refresh:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next physical `hugh-main` run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-000516.zip`.
+  The kit was generated at `2026-07-01T00:05:27.9288438+09:00` from clean
+  commit `33b0ca155991ba4f46422288cde9cc36d0b5840c`, with SHA256
+  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`.
+  This supersedes `20260630-232004` for the next physical return because
+  current HEAD now includes the public metadata DNS path-mode verifier/planner
+  fix. Search terms should include `wiki/1191`,
+  `20260701-000516`, `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`,
+  `33b0ca155991ba4f46422288cde9cc36d0b5840c`,
+  `SECOND_PC_KIT_HANDOFF_2026_06_28`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
 
 **End of WIKI_INDEX.md.**

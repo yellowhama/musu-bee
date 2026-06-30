@@ -36,9 +36,9 @@ package-bound evidence refresh is anchored by
 single-instance `20260630-230448`, desktop-open idle CPU `20260630-230512`,
 and runtime CPU matrix `20260630-230631` all pass for `HUGH_SECOND`. The fresh
 second-PC kit is
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-000516.zip`
 with SHA256
-`cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`.
+`2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`.
 
 That current state still does not prove the full product: second-machine CPU
 evidence, release-grade multi-device route identity, packaged Private Mesh
@@ -117,7 +117,8 @@ It includes `run-second-pc-release-check.ps1`, runtime CPU tools, route
 diagnostics, Private Mesh proof tools, P2P/relay evidence tools, and V34 proof
 tools. This removed stale handoff risk after the remote file CLI
 policy-blocker documentation commit at that time, but it is no longer the
-current kit. Use the 23:20 KST `20260630-232004` kit for the next physical run.
+current kit. It is now superseded by the 2026-07-01 00:05 KST
+`20260701-000516` kit for the next physical run.
 
 2026-06-30 21:24 KST remote file CLI physical proof policy blocker:
 a real `musu ls/get/put` attempt was run from `HUGH_SECOND` to `hugh-main`
@@ -171,12 +172,23 @@ but remains `peer_identity_verified=false` and `encryption=none_http_bearer`,
 so it proves work targetability only. Canonical report:
 `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
 
-2026-06-30 23:20 KST current second-PC kit:
+2026-06-30 23:20 KST second-PC kit (historical, superseded):
 the next physical `hugh-main` run should use
 `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`,
 generated from clean commit `e280648f2a9c2632e869d679bf1a4d4e221f7005`, SHA256
 `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`. This
-supersedes the earlier `20260630-214014` kit.
+supersedes the earlier `20260630-214014` kit, but it is now superseded by the
+2026-07-01 00:05 KST kit below.
+
+2026-07-01 00:05 KST current second-PC kit:
+the next physical `hugh-main` run should use
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-000516.zip`,
+generated from clean commit `33b0ca155991ba4f46422288cde9cc36d0b5840c`, SHA256
+`2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`. This
+supersedes the `20260630-232004` kit because current HEAD now includes the
+public metadata DNS path-mode verifier/planner fix and latest handoff/wiki
+updates. It does not close the second-PC lanes by itself; it only gives
+`hugh-main` the current source-bound package and proof scripts.
 
 2026-06-30 brain handoff update:
 brain repo now carries
@@ -2142,13 +2154,13 @@ multi-device product blockers by itself. It only removes stale handoff risk so
 the next `hugh-main` return zip can be imported and judged against the current
 rc.22 evidence contract.
 
-2026-06-30 21:40 KST successor kit (historical, superseded by 23:20 KST):
+2026-06-30 21:40 KST successor kit (historical, superseded by later kits):
 `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 was generated from clean commit
 `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
 `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 This superseded earlier 2026-06-30 kits, including `20260630-211559`, but it is
-now itself superseded by the 23:20 KST `20260630-232004` kit.
+now itself superseded by the 2026-07-01 00:05 KST `20260701-000516` kit.
 
 ## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
 
