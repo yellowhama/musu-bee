@@ -40,6 +40,30 @@ second-PC kit is
 with SHA256
 `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`.
 
+2026-07-01 03:56 KST current local package evidence refresh after W6 relay
+preview alignment:
+the stale local package evidence invalidations created by the W6 docs/test
+contract commit are now closed. Canonical report:
+`docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01.md`. Fresh evidence
+includes single-machine smoke `20260701-033720`, process/startup/desktop
+single-instance `20260701-033657`, and runtime CPU matrix plus targeted
+`hugh-main` post-route probe `20260701-034606` on `HUGH_SECOND`. Clean
+`write-release-go-no-go.ps1 -Json` at
+`2026-07-01T03:56:21.0049347+09:00` on commit
+`b516fae25b0e6b92d7f61992ec3df2562ebcff7e` reports
+`manifest_git.dirty=false`, `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, and `blockers=10`.
+`single_machine_verified`, `process_ownership_verified`,
+`startup_single_instance_verified`, `desktop_single_instance_verified`, and
+`runtime_cpu_second_pc_route_attempt_verified` are true. Product meaning:
+current local package freshness is restored, but the product remains NO-GO
+because the remaining blockers are two-machine, Store/public metadata,
+Private Mesh, P2P/relay, V34, and design-approval gates. Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3578 files` and `3908 symbols`; product brain source ingest under
+`local/musu` processed 3 sources and query returned top title
+`wiki/1200 current local package evidence refresh report`.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain
@@ -439,6 +463,17 @@ alignment report`. The W6 integration target itself stalled during test target
 compile in this run and is not counted as fresh release evidence. Canonical
 report:
 `docs/W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01.md`.
+
+2026-07-01 03:56 KST local package evidence recheck after W6:
+`docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01.md` records fresh
+current rc.22 `HUGH_SECOND` local package evidence after the W6 source/doc
+change. Clean go/no-go on commit
+`b516fae25b0e6b92d7f61992ec3df2562ebcff7e` has `blockers=10`,
+`warnings=0`, `manifest_git.dirty=false`, and confirms the local freshness
+lanes are green. The targeted post-route CPU sample reaches `hugh-main` over
+LAN `192.168.1.192:4387`, but the route is still `http` with
+`none_http_bearer` and `peer_identity_verified=false`; it proves targetability,
+not release-grade transport. Product remains NO-GO.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so

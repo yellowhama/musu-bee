@@ -23368,3 +23368,66 @@ Product meaning:
 - Full product completion remains NO-GO until real `quic_relay_tunnel`
   transport, bound relay route evidence, payload delivery proof, and
   direct-blocked two-PC physical proof exist.
+
+## wiki/1200 - 2026-07-01 Current local package evidence refresh after W6
+
+Canonical report:
+
+- `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- No runtime code changed in this refresh.
+- Fresh current rc.22 `HUGH_SECOND` evidence was recorded after the W6 relay
+  preview contract alignment commit invalidated the local package freshness
+  lanes.
+- Evidence commits:
+  `9574e11b125847120f409a550ad115560f21edc9`
+  `test: refresh local package evidence` and
+  `b516fae25b0e6b92d7f61992ec3df2562ebcff7e`
+  `test: refresh runtime CPU route evidence`.
+
+Evidence:
+
+- Single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-033720-HUGH_SECOND.evidence.json`
+- Process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-033657-HUGH_SECOND.process-ownership.json`
+- Startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-033657-HUGH_SECOND.startup-single-instance.json`
+- Desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-033657-HUGH_SECOND.desktop-single-instance.json`
+- Runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-034606-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- Target-route verification:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-034606-HUGH_SECOND.target-route.verification.json`
+- Clean go/no-go:
+  `.local-build/go-no-go/latest.json` generated at
+  `2026-07-01T03:56:21.0049347+09:00` on commit
+  `b516fae25b0e6b92d7f61992ec3df2562ebcff7e`, `dirty=false`,
+  `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `blockers=10`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3578 files` and `3908 symbols`.
+- Index search for `wiki/1200`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH`, and `20260701-034606` returns the
+  new wiki/report/evidence entries.
+- Product brain source ingest under `local/musu` posted 3 sources, `/v1/process`
+  reported `processed=3`, `recovered=0`, and `/v1/query` returned 5 results
+  with top title `wiki/1200 current local package evidence refresh report`.
+
+Product meaning:
+
+- Current local package freshness is restored after W6.
+- `single_machine_verified`, `process_ownership_verified`,
+  `startup_single_instance_verified`, `desktop_single_instance_verified`, and
+  `runtime_cpu_second_pc_route_attempt_verified` are true.
+- The targeted post-route CPU sample reaches `hugh-main` over direct LAN
+  `192.168.1.192:4387`, but the route remains `http`,
+  `none_http_bearer`, and `peer_identity_verified=false`.
+- This proves direct targetability only. It does not close `multi-device`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `private-mesh-packaged-release-proof`, `store-public-metadata`,
+  `store-release`, `p2p-control-plane`, `design-approval`,
+  `relay-transport`, or `v34-stale-self-heal`.

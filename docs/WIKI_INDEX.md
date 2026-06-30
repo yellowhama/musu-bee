@@ -10780,4 +10780,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `relay_transport_product_verified=false`. Product meaning: this closes a mock
   relay overclaim risk, not the release relay blocker.
 
+- 2026-07-01 current local package evidence refresh after W6:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1200`: fresh current rc.22 `HUGH_SECOND`
+  local package evidence was recorded after W6 relay preview contract alignment
+  invalidated local freshness lanes. Evidence includes single-machine smoke
+  `20260701-033720`, process/startup/desktop single-instance
+  `20260701-033657`, and runtime CPU matrix plus targeted `hugh-main`
+  post-route probe `20260701-034606`. Clean go/no-go at
+  `2026-07-01T03:56:21.0049347+09:00` on commit
+  `b516fae25b0e6b92d7f61992ec3df2562ebcff7e` reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, and `blockers=10`.
+  Search terms should include `wiki/1200`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01`,
+  `20260701-033720`, `20260701-033657`, `20260701-034606`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_034606`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, `hugh-main`,
+  `192.168.1.192:4387`, `none_http_bearer`, and
+  `peer_identity_verified=false`. Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3578 files` and `3908 symbols`; index search for `wiki/1200`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH`, and `20260701-034606` returns the
+  new wiki/report/evidence entries. Product brain source ingest under
+  `local/musu` posted 3 sources, `/v1/process` reported `processed=3`,
+  `recovered=0`, and `/v1/query` returned 5 results with top title
+  `wiki/1200 current local package evidence refresh report`. Product meaning:
+  local package freshness is restored, but full product completion remains
+  NO-GO because remaining blockers are physical, external, Store, design, P2P,
+  relay, and V34 gates.
+
 **End of WIKI_INDEX.md.**
