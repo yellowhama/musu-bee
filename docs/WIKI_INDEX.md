@@ -10888,4 +10888,34 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   product completion remains NO-GO because the remaining lanes require the
   required second-machine count and external/physical release proofs.
 
+- 2026-07-01 brain sidecar doctor/status self-heal:
+  `docs/BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1203`: `musu doctor --json` emits a
+  `knowledge` object for the hidden `musu-brain` sidecar, including product
+  root `~/.musu/brain`, token presence, loopback health URL/status/body, error,
+  restart hint, and note without exposing token values. `desktop_status` now
+  exposes `knowledge_status`, `knowledge_detail`, `knowledge_health_url`, and
+  `knowledge_token_present`, and manual desktop status refresh calls
+  `spawn_knowledge_sidecar_autostart()` so status refresh can self-heal a dead
+  hidden brain sidecar. Verification passed touched-file rustfmt,
+  `cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps --lib -j 1 -- --nocapture`
+  (`3 passed`), `cargo test --manifest-path
+  musu-bee\src-tauri\Cargo.toml doctor_status_summary --lib -j 1 -- --nocapture`
+  (`3 passed`), and source-run `musu doctor --json` produced
+  `knowledge.status=ok`, `token_present=true`, `health_http_status=200`, and
+  `health_body.ok=true`. Index refresh indexed `3603 files` and `3920 symbols`;
+  product brain source ingest under `local/musu` created 3 sources, processed
+  3, recovered 0, and query returned top title
+  `wiki/1203 brain sidecar doctor/status self-heal`. Product meaning: closes a
+  MED visibility/self-heal follow-up, not the full-product NO-GO blockers;
+  rebuild/reinstall before
+  treating this as installed package evidence. Search terms should include
+  `wiki/1203`, `BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01`,
+  `knowledge.status`, `knowledge_status`, `knowledge_detail`,
+  `knowledge_health_url`, `knowledge_token_present`,
+  `spawn_knowledge_sidecar_autostart`, `musu doctor --json knowledge`,
+  `127.0.0.1:8080/health`, `~/.musu/brain`, `musu-ingest.token`, and
+  `hidden brain sidecar`.
+
 **End of WIKI_INDEX.md.**

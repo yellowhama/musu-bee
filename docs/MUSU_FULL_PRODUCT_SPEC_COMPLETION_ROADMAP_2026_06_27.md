@@ -129,6 +129,29 @@ Index refresh indexed `3602 files` and `3917 symbols`; searches for
 Product meaning: local package freshness is restored again for this PC, but
 full product completion remains NO-GO.
 
+2026-07-01 06:17 KST brain sidecar doctor/status self-heal:
+the hidden `musu-brain` sidecar observability gap found during the current
+package refresh is source-fixed. Canonical report:
+`docs/BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01.md`. `musu doctor --json` now
+emits a `knowledge` section with product root `~/.musu/brain`, token presence,
+loopback health URL/status/body, and a restart hint without exposing token
+values. `desktop_status` now surfaces `knowledge_status`,
+`knowledge_detail`, `knowledge_health_url`, and `knowledge_token_present`, and
+manual desktop status refresh calls the existing knowledge sidecar autostart
+path as a safe self-heal trigger. Verification passed touched-file rustfmt,
+`cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps --lib -j 1 -- --nocapture`
+(`3 passed`), `cargo test --manifest-path
+musu-bee\src-tauri\Cargo.toml doctor_status_summary --lib -j 1 -- --nocapture`
+(`3 passed`), and source-run `musu doctor --json` produced
+`knowledge.status=ok`, `token_present=true`, `health_http_status=200`, and
+`health_body.ok=true`. Index refresh indexed `3603 files` and `3920 symbols`;
+product brain source ingest under `local/musu` created 3 sources, processed 3,
+recovered 0, and query returned top title
+`wiki/1203 brain sidecar doctor/status self-heal`. Product meaning: this closes
+the MED visibility/self-heal follow-up, but not the remaining full-product
+NO-GO blockers. The installed package must be rebuilt/reinstalled before this
+new status surface counts as current package evidence.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

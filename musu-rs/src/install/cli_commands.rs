@@ -42,6 +42,8 @@ pub async fn run_login_desktop() -> anyhow::Result<()> {
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
 const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
 const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
+const KNOWLEDGE_BASE_URL: &str = "http://127.0.0.1:8080";
+const KNOWLEDGE_HEALTH_TIMEOUT_SECS: u64 = 2;
 const ROUTE_WAIT_DEFAULT_TIMEOUT_SECS: u64 = 300;
 const ROUTE_WAIT_MAX_TIMEOUT_SECS: u64 = 3_600;
 const ROUTE_WAIT_POLL_INTERVAL_SECS: u64 = 2;
@@ -3919,6 +3921,7 @@ struct DoctorReport {
     binary: DoctorBinary,
     account: DoctorAccount,
     bridge: DoctorBridge,
+    knowledge: DoctorKnowledge,
     dashboard: DoctorDashboard,
     package: DoctorPackage,
     background: DoctorBackground,
@@ -3973,6 +3976,21 @@ struct DoctorBridge {
     health_http_status: Option<u16>,
     health_body: Option<serde_json::Value>,
     error: Option<String>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorKnowledge {
+    status: DoctorLevel,
+    root: String,
+    root_exists: bool,
+    token_path: String,
+    token_present: bool,
+    health_url: String,
+    health_http_status: Option<u16>,
+    health_body: Option<serde_json::Value>,
+    error: Option<String>,
+    restart_hint: String,
     note: String,
 }
 
@@ -4198,6 +4216,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
     let distribution_mode = crate::install::distribution::DistributionMode::current();
     let distribution = distribution_mode.as_str().to_string();
     let bridge_check = check_bridge(&home).await;
+    let knowledge_check = check_knowledge_sidecar(&home).await;
     let dashboard_check = check_dashboard(distribution_mode).await;
     let background_check = check_background_features(&home, account_token_present);
     let package_status = if cfg!(windows) {
@@ -4222,6 +4241,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         binary_check.status,
         account_check.status,
         bridge_check.status,
+        knowledge_check.status,
         dashboard_check.status,
         background_check.status,
     ];
@@ -4238,6 +4258,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         bridge_check.public_url_valid
             && bridge_check.advertised_public_url_valid
             && bridge_check.advertised_public_url_remote_usable,
+        knowledge_check.status,
     );
 
     let report = DoctorReport {
@@ -4249,6 +4270,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         binary: binary_check,
         account: account_check,
         bridge: bridge_check,
+        knowledge: knowledge_check,
         dashboard: dashboard_check,
         package: package_check,
         background: background_check,
@@ -4716,6 +4738,76 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
             health_body: None,
             error: Some(err.to_string()),
             note: "Local bridge is not reachable. Start it with `musu bridge`.".into(),
+        },
+    }
+}
+
+async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
+    let root = home.join("brain");
+    let token_path = root.join("runtime").join("musu-ingest.token");
+    let root_exists = root.exists();
+    let token_present = token_path
+        .try_exists()
+        .unwrap_or_else(|_| token_path.exists());
+    let health_url = format!("{}/health", KNOWLEDGE_BASE_URL);
+    let restart_hint =
+        "Open or restart the packaged MUSU desktop so it relaunches the hidden brain sidecar."
+            .to_string();
+
+    let client = reqwest::Client::new();
+    match client
+        .get(&health_url)
+        .timeout(std::time::Duration::from_secs(
+            KNOWLEDGE_HEALTH_TIMEOUT_SECS,
+        ))
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let health_http_status = Some(status.as_u16());
+            let health_body = resp.json::<serde_json::Value>().await.ok();
+            let level = if status.is_success() {
+                DoctorLevel::Ok
+            } else {
+                DoctorLevel::Warn
+            };
+            DoctorKnowledge {
+                status: level,
+                root: root.display().to_string(),
+                root_exists,
+                token_path: token_path.display().to_string(),
+                token_present,
+                health_url,
+                health_http_status,
+                health_body,
+                error: None,
+                restart_hint,
+                note: match level {
+                    DoctorLevel::Ok => "Hidden brain sidecar is reachable.".into(),
+                    DoctorLevel::Warn => {
+                        "Hidden brain sidecar health endpoint returned an error status.".into()
+                    }
+                    DoctorLevel::Fail => unreachable!("knowledge checker does not emit fail"),
+                },
+            }
+        }
+        Err(err) => DoctorKnowledge {
+            status: DoctorLevel::Warn,
+            root: root.display().to_string(),
+            root_exists,
+            token_path: token_path.display().to_string(),
+            token_present,
+            health_url,
+            health_http_status: None,
+            health_body: None,
+            error: Some(err.to_string()),
+            restart_hint,
+            note: if token_present {
+                "Hidden brain sidecar is not reachable, but the ingest token exists.".into()
+            } else {
+                "Hidden brain sidecar is not reachable and the ingest token is missing.".into()
+            },
         },
     }
 }
@@ -5386,6 +5478,7 @@ fn next_steps_for(
     dashboard: DoctorLevel,
     dashboard_required: bool,
     public_url_valid: bool,
+    knowledge: DoctorLevel,
 ) -> Vec<String> {
     let mut steps = Vec::new();
     if !account.account_token_present {
@@ -5411,6 +5504,12 @@ fn next_steps_for(
     }
     if dashboard_required && matches!(dashboard, DoctorLevel::Warn | DoctorLevel::Fail) {
         steps.push("Start the dashboard from `musu-bee`: `npm run dev` for port 3000 or `npm start` for port 3001.".into());
+    }
+    if matches!(knowledge, DoctorLevel::Warn | DoctorLevel::Fail) {
+        steps.push(
+            "Open or restart the packaged MUSU desktop so it relaunches the hidden brain sidecar; then rerun `musu doctor --json` and confirm `knowledge.status` is `ok`."
+                .into(),
+        );
     }
     if steps.is_empty() {
         steps.push(
@@ -5540,6 +5639,14 @@ fn print_doctor_report(report: &DoctorReport) {
         "bridge",
         report.bridge.status,
         &format!("{} ({})", report.bridge.local_url, report.bridge.note),
+    );
+    print_line(
+        "knowledge",
+        report.knowledge.status,
+        &format!(
+            "{} ({})",
+            report.knowledge.health_url, report.knowledge.note
+        ),
     );
     print_line(
         "public URL",
@@ -6269,7 +6376,14 @@ mod tests {
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, false, true);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Warn,
+            false,
+            true,
+            DoctorLevel::Ok,
+        );
 
         assert!(!steps.iter().any(|step| step.contains("npm run dev")));
         assert!(steps.iter().any(|step| step.contains("MUSU.PRO")));
@@ -6287,7 +6401,14 @@ mod tests {
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, true, true);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Warn,
+            true,
+            true,
+            DoctorLevel::Ok,
+        );
 
         assert!(steps.iter().any(|step| step.contains("npm run dev")));
     }
@@ -6346,7 +6467,14 @@ mod tests {
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Ok, false, true);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            true,
+            DoctorLevel::Ok,
+        );
 
         assert!(steps.iter().any(|step| step.contains("cloud public_url")));
         assert!(steps
@@ -6370,9 +6498,44 @@ mod tests {
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Ok, false, false);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            false,
+            DoctorLevel::Ok,
+        );
 
         assert!(steps.iter().any(|step| step.contains("LAN/private-mesh")));
+        assert!(!steps.iter().any(|step| step.contains("System looks ready")));
+    }
+
+    #[test]
+    fn doctor_next_steps_include_hidden_brain_sidecar_warning() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Ok,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: Vec::new(),
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            true,
+            DoctorLevel::Warn,
+        );
+
+        assert!(steps
+            .iter()
+            .any(|step| step.contains("hidden brain sidecar")));
+        assert!(steps.iter().any(|step| step.contains("knowledge.status")));
         assert!(!steps.iter().any(|step| step.contains("System looks ready")));
     }
 

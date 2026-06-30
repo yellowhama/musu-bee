@@ -220,6 +220,10 @@ struct DesktopStatus {
     bridge_status: String,
     bridge_url: Option<String>,
     bridge_detail: String,
+    knowledge_status: String,
+    knowledge_detail: String,
+    knowledge_health_url: Option<String>,
+    knowledge_token_present: bool,
     dashboard_status: String,
     dashboard_url: Option<String>,
     dashboard_detail: String,
@@ -543,6 +547,9 @@ fn bridge_status_label(
 fn desktop_status() -> DesktopStatus {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let home = musu_home();
+    // The desktop can stay alive while the hidden knowledge sidecar exits.
+    // A manual status refresh is a safe, user-visible self-heal trigger.
+    spawn_knowledge_sidecar_autostart();
     let bridge_registry = bridge_registry_status(&home);
     let runtime_start_in_progress = runtime_start_gate().is_in_progress();
     let doctor_summary = doctor_status_summary(&musu_command_path(), bridge_registry.pid);
@@ -573,6 +580,10 @@ fn desktop_status() -> DesktopStatus {
         .to_string(),
         bridge_url: bridge_registry.url,
         bridge_detail: bridge_probe.detail,
+        knowledge_status: doctor_summary.knowledge_status,
+        knowledge_detail: doctor_summary.knowledge_detail,
+        knowledge_health_url: doctor_summary.knowledge_health_url,
+        knowledge_token_present: doctor_summary.knowledge_token_present,
         dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
         dashboard_url: dashboard_probe.url,
         dashboard_detail: dashboard_probe.detail,
@@ -2635,6 +2646,29 @@ fn parse_doctor_status_summary(
         ("Offline".to_string(), account_note)
     };
 
+    let knowledge_raw_status =
+        json_string(&value, &["knowledge", "status"]).unwrap_or_else(|| "unknown".to_string());
+    let knowledge_status = match knowledge_raw_status.as_str() {
+        "ok" => "Ready".to_string(),
+        "warn" => "Warning".to_string(),
+        "fail" => "Fail".to_string(),
+        _ => "Unknown".to_string(),
+    };
+    let knowledge_note = json_string(&value, &["knowledge", "note"])
+        .unwrap_or_else(|| "Hidden brain sidecar diagnostics are unavailable.".to_string());
+    let knowledge_health_url = json_string(&value, &["knowledge", "health_url"]);
+    let knowledge_token_present =
+        json_bool(&value, &["knowledge", "token_present"]).unwrap_or(false);
+    let knowledge_detail = match &knowledge_health_url {
+        Some(url) => format!("{url}. {knowledge_note}"),
+        None => knowledge_note.clone(),
+    };
+    if knowledge_status != "Ready" {
+        warnings.push(format!(
+            "Hidden brain sidecar status is {knowledge_status}: {knowledge_note}"
+        ));
+    }
+
     let (runtime_profile_status, runtime_profile_detail) = if active_runtime_loop_candidate_count
         > 0
     {
@@ -2659,6 +2693,10 @@ fn parse_doctor_status_summary(
         package_detail,
         auth_status,
         auth_detail,
+        knowledge_status,
+        knowledge_detail,
+        knowledge_health_url,
+        knowledge_token_present,
         runtime_profile_status,
         runtime_profile_detail,
         process_ownership_status: process_summary.status,
@@ -5555,6 +5593,10 @@ struct DoctorStatusSummary {
     package_detail: String,
     auth_status: String,
     auth_detail: String,
+    knowledge_status: String,
+    knowledge_detail: String,
+    knowledge_health_url: Option<String>,
+    knowledge_token_present: bool,
     runtime_profile_status: String,
     runtime_profile_detail: String,
     process_ownership_status: String,
@@ -5577,6 +5619,10 @@ impl DoctorStatusSummary {
             package_detail: detail.clone(),
             auth_status: "Unknown".to_string(),
             auth_detail: detail.clone(),
+            knowledge_status: "Unknown".to_string(),
+            knowledge_detail: detail.clone(),
+            knowledge_health_url: None,
+            knowledge_token_present: false,
             runtime_profile_status: "Unknown".to_string(),
             runtime_profile_detail: detail.clone(),
             process_ownership_status: process_summary.status,
@@ -8409,6 +8455,12 @@ mod tests {
                     "bridge_token_present": true,
                     "note": "Partial auth state: either account login or local bridge token is missing."
                 },
+                "knowledge": {
+                    "status": "ok",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is reachable."
+                },
                 "background": {
                     "active_runtime_loop_candidate_count": 0,
                     "active_runtime_loop_candidate_keys": [],
@@ -8448,6 +8500,12 @@ mod tests {
                     "bridge_token_present": true,
                     "note": "Account token is present."
                 },
+                "knowledge": {
+                    "status": "ok",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is reachable."
+                },
                 "background": {
                     "active_runtime_loop_candidate_count": 2,
                     "active_runtime_loop_candidate_keys": ["cloud_heartbeat", "relay_target_polling"],
@@ -8480,6 +8538,49 @@ mod tests {
             "{}",
             summary.runtime_profile_detail
         );
+    }
+
+    #[test]
+    fn doctor_status_summary_surfaces_hidden_brain_sidecar_warning() {
+        let summary = parse_doctor_status_summary(
+            r#"{
+                "distribution": "store-msix",
+                "binary": {
+                    "current_exe": "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU\\musu.exe",
+                    "note": "Packaged runtime is active."
+                },
+                "account": {
+                    "logged_in": true,
+                    "bridge_token_present": true,
+                    "note": "Account token is present."
+                },
+                "knowledge": {
+                    "status": "warn",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is not reachable, but the ingest token exists."
+                },
+                "background": {
+                    "active_runtime_loop_candidate_count": 0,
+                    "active_runtime_loop_candidate_keys": [],
+                    "runtime_loop_candidates": [],
+                    "note": "Background work is in the low-duty default profile."
+                }
+            }"#,
+            Some(32192),
+        )
+        .expect("doctor JSON should parse");
+
+        assert_eq!(summary.knowledge_status, "Warning");
+        assert!(summary.knowledge_token_present);
+        assert_eq!(
+            summary.knowledge_health_url.as_deref(),
+            Some("http://127.0.0.1:8080/health")
+        );
+        assert!(summary
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Hidden brain sidecar status is Warning")));
     }
 
     #[test]

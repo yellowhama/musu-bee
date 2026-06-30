@@ -23561,3 +23561,59 @@ Product meaning:
   `192.168.1.192:4387`, `http_bearer`, `peer_identity_verified=false`,
   `route_evidence_ready=false`, `runtime_idle_cpu_valid_machine_count=1`,
   `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
+## wiki/1203 - 2026-07-01 Brain sidecar doctor/status self-heal
+
+Canonical report:
+
+- `docs/BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- `musu doctor --json` now includes a `knowledge` object for the hidden
+  `musu-brain` sidecar.
+- The knowledge object reports product root `~/.musu/brain`, token path,
+  token presence, loopback health URL, health status/body, error, restart hint,
+  and note. Token values are not exposed.
+- `desktop_status` now exposes `knowledge_status`, `knowledge_detail`,
+  `knowledge_health_url`, and `knowledge_token_present`.
+- Manual desktop status refresh calls the existing
+  `spawn_knowledge_sidecar_autostart()` path, so status refresh can self-heal a
+  dead hidden brain sidecar.
+
+Verification:
+
+- `rustfmt --edition 2021 --check` passed for
+  `musu-rs/src/install/cli_commands.rs` and
+  `musu-bee/src-tauri/src/lib.rs`.
+- `cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps --lib -j
+  1 -- --nocapture` passed: `3 passed`.
+- `cargo test --manifest-path musu-bee\src-tauri\Cargo.toml
+  doctor_status_summary --lib -j 1 -- --nocapture` passed: `3 passed`.
+- `cargo run --manifest-path musu-rs\Cargo.toml --bin musu --quiet -- doctor
+  --json` produced `knowledge.status=ok`, `token_present=true`,
+  `health_url=http://127.0.0.1:8080/health`, `health_http_status=200`, and
+  `health_body.ok=true`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3603 files` and `3920 symbols`; searches for `wiki/1203`,
+  `BRAIN_SIDECAR_DOCTOR_SELF_HEAL`, and `knowledge_status knowledge_health_url`
+  return the new docs/code entries.
+- Product brain source ingest under `local/musu` created 3 sources,
+  `/v1/process` reported `processed=3`, `recovered=0`, and `/v1/query`
+  returned 5 results with top title
+  `wiki/1203 brain sidecar doctor/status self-heal`.
+
+Product meaning:
+
+- This closes the MED follow-up found in wiki/1202: bridge/desktop can be alive
+  while the hidden knowledge sidecar is down, and that state is now visible.
+- This does not close the full-product NO-GO blockers.
+- The installed package must be rebuilt/reinstalled before this source change
+  is package-bound evidence.
+- Search terms: `wiki/1203`,
+  `BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01`, `knowledge.status`,
+  `knowledge_status`, `knowledge_detail`, `knowledge_health_url`,
+  `knowledge_token_present`, `spawn_knowledge_sidecar_autostart`,
+  `musu doctor --json knowledge`, `127.0.0.1:8080/health`,
+  `~/.musu/brain`, `musu-ingest.token`, `hidden brain sidecar`.
