@@ -36,9 +36,9 @@ package-bound evidence refresh is anchored by
 single-instance `20260630-230448`, desktop-open idle CPU `20260630-230512`,
 and runtime CPU matrix `20260630-230631` all pass for `HUGH_SECOND`. The fresh
 second-PC kit is
-`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-025502.zip`
 with SHA256
-`b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`.
+`12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`.
 
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
@@ -278,15 +278,27 @@ public metadata DNS path-mode verifier/planner fix and latest handoff/wiki
 updates. It is now superseded by the 2026-07-01 00:32 KST `20260701-003206`
 kit after the brain root contract source update.
 
-2026-07-01 00:32 KST current second-PC kit:
-the next physical `hugh-main` run should use
+2026-07-01 00:32 KST second-PC kit (historical, superseded):
+the next physical `hugh-main` run was then prepared to use
 `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-003206.zip`,
 generated from clean commit `c7ab4d916efa03f143e251b738511bd61598ef55`, SHA256
 `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`. This
 supersedes the `20260701-000516` kit because current HEAD now includes the
 brain root-env source contract and `musu-brain.pin.json` update. It does not
 close the second-PC lanes by itself; it only gives `hugh-main` the current
-source-bound package and proof scripts.
+source-bound package and proof scripts. It is now superseded by the 2026-07-01
+02:55 KST `20260701-025502` kit below.
+
+2026-07-01 02:55 KST current second-PC kit after brain handoff alignment audit:
+the next physical `hugh-main` run should use
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-025502.zip`,
+generated from clean commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`, SHA256
+`12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`. This
+supersedes the `20260701-003206` kit because current HEAD now includes the
+brain handoff alignment audit, wiki/spec updates, and product-brain indexing
+record. It does not close the second-PC lanes by itself; it only gives
+`hugh-main` the current source-bound package and proof scripts for the next
+physical return.
 
 2026-06-30 brain handoff update:
 brain repo now carries
@@ -2274,7 +2286,7 @@ was generated from clean commit
 `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
 `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 This superseded earlier 2026-06-30 kits, including `20260630-211559`, but it is
-now itself superseded by the 2026-07-01 00:32 KST `20260701-003206` kit.
+now itself superseded by the 2026-07-01 02:55 KST `20260701-025502` kit.
 
 ## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
 

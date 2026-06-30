@@ -23266,3 +23266,58 @@ Product meaning:
   go/no-go blockers closed: second-PC freshness, Private Mesh archive proof,
   public metadata DNS/TLS, Store release, release-grade P2P/relay, V34 stale
   self-heal, and design approval.
+
+## wiki/1198 - 2026-07-01 Current second-PC kit after brain handoff alignment audit
+
+Current report:
+
+- `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`
+- `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`
+- `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`
+- `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- The current second-PC proof kit was regenerated from clean
+  `feat/v33-residual-finalize` HEAD after the brain handoff alignment audit
+  commit.
+- The prior current kit `20260701-003206` is now historical because it was
+  generated before commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`.
+- The current kit is
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`.
+
+Evidence:
+
+- Version: `1.15.0-rc.22`.
+- Package: `musu_1.15.0.22_x64_local-sideload-manual.msix`.
+- Source branch: `feat/v33-residual-finalize`.
+- Source commit: `635a161f49b2266fa9758de6b5d5ca14b040ca64`.
+- Git dirty: `false`.
+- Generated at: `2026-07-01T02:55:19.0243502+09:00`.
+- Metadata generated at: `2026-07-01T02:55:03.6466041+09:00`.
+- SHA256:
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`.
+- The kit contains the MSIX, certificate, second-PC release wrapper, runtime
+  CPU idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence
+  tools, Private Mesh packaged proof tools, and multi-device
+  recorder/verifier scripts.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3560 files` and `3908 symbols`.
+- Index search for the exact SHA returns the current kit report and handoff
+  docs; search for `wiki 1198 current second PC kit` returns this WIKI entry.
+- Product brain source ingest under `local/musu` created 3 sources, processed
+  3, recovered 0, and query
+  `wiki/1198 20260701-025502 12c607 second-PC kit` returned 3 results with top
+  title `wiki/1198 current second-PC kit report`.
+
+Product meaning:
+
+- This removes stale handoff risk for the next `hugh-main` run.
+- This does not close `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, relay
+  transport, V34 stale self-heal, public metadata DNS/TLS, Store release, or
+  design approval.
+- Full product completion remains NO-GO until the current kit is run on
+  `hugh-main`, the return zip is imported, and the relevant release verifiers
+  pass.

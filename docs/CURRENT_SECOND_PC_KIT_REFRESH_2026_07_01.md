@@ -4,31 +4,32 @@
 
 Regenerated the second-PC proof kit from the current clean
 `feat/v33-residual-finalize` HEAD so the next physical `hugh-main` return is
-not tied to stale source.
+not tied to stale source after the brain handoff alignment audit commit.
 
 ## Kit
 
 - Version: `1.15.0-rc.22`
 - Package: `musu_1.15.0.22_x64_local-sideload-manual.msix`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502`
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`
 - SHA256:
-  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`
-- Generated at: `2026-07-01T00:32:15.2333262+09:00`
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`
+- Generated at: `2026-07-01T02:55:19.0243502+09:00`
+- Metadata generated at: `2026-07-01T02:55:03.6466041+09:00`
 - Source branch: `feat/v33-residual-finalize`
-- Source commit: `c7ab4d916efa03f143e251b738511bd61598ef55`
+- Source commit: `635a161f49b2266fa9758de6b5d5ca14b040ca64`
 - Dirty: `false`
 
 ## Why This Matters
 
-The previous current kit was `20260701-000516`, generated from clean commit
-`33b0ca155991ba4f46422288cde9cc36d0b5840c`. The branch has since gained the
-brain root-env source contract and the `musu-brain.pin.json` update to clean
-brain commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`. Returning second-PC
-evidence from the older kit would be source-stale relative to the current
-branch.
+The previous current kit was `20260701-003206`, generated from clean commit
+`c7ab4d916efa03f143e251b738511bd61598ef55`. The branch has since gained the
+brain handoff alignment audit, wiki/spec updates, and product-brain indexing
+recorded at clean commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`.
+Returning second-PC evidence from the older kit would be source-stale relative
+to the current branch.
 
 ## Updated Handoffs
 
@@ -42,10 +43,17 @@ branch.
 ## Indexing
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-  indexed `3528 files` and `3908 symbols`.
-- Search for `003206 second PC kit` returns this document,
-  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, `docs/WIKI.md`, and
+  indexed `3560 files` and `3908 symbols`.
+- Search for exact SHA
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`
+  returns this document, `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, and
   `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`.
+- Search for `wiki 1198 current second PC kit` returns `docs/WIKI.md`.
+- Product brain source ingest under `tenant_id=local`, `workspace_id=musu`
+  created 3 sources for this report, the wiki entry, and the roadmap snippet.
+- `/v1/process` processed 3 new sources with `recovered=0`.
+- `/v1/query` for `wiki/1198 20260701-025502 12c607 second-PC kit` returned
+  3 results with top title `wiki/1198 current second-PC kit report`.
 
 ## Product Status
 

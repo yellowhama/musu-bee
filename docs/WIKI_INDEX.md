@@ -10719,4 +10719,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   Product meaning: handoff/pin/root alignment is green, but full product
   completion remains NO-GO until the remaining go/no-go blockers close.
 
+- 2026-07-01 current second-PC kit after brain handoff alignment audit:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1198`: the current `1.15.0-rc.22`
+  second-PC proof kit was regenerated from clean
+  `feat/v33-residual-finalize` HEAD after the brain handoff alignment audit.
+  The current kit is
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`,
+  SHA256
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`,
+  source commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`, `dirty=false`.
+  Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3560 files` and `3908 symbols`; exact-SHA search returns the
+  current kit report and handoff docs, and `wiki 1198 current second PC kit`
+  returns `docs/WIKI.md`. Product brain source ingest under `local/musu`
+  created 3 sources, processed 3, recovered 0, and query
+  `wiki/1198 20260701-025502 12c607 second-PC kit` returned 3 results with top
+  title `wiki/1198 current second-PC kit report`.
+  Search terms should include `wiki/1198`, `20260701-025502`,
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`,
+  `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+  `run-second-pc-release-check.ps1`, `private-mesh-packaged-release-proof`,
+  `runtime-cpu-scenario-matrix`, and `V34 stale self-heal`.
+  Product meaning: stale handoff risk is removed for the next `hugh-main`
+  physical run, but full product completion remains NO-GO until the current
+  kit is run, the return zip is imported, and the relevant release verifiers
+  pass.
+
 **End of WIKI_INDEX.md.**

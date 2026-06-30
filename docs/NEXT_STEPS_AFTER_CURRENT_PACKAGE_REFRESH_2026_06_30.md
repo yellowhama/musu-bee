@@ -12,11 +12,11 @@ Current local evidence report:
 
 Current second-PC kit:
 
-- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-003206.zip`
+- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`
 - SHA256:
-  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`
 - source commit:
-  `c7ab4d916efa03f143e251b738511bd61598ef55`
+  `635a161f49b2266fa9758de6b5d5ca14b040ca64`
 
 ## What Is Proven
 
@@ -26,10 +26,11 @@ Current second-PC kit:
 - `HUGH_SECOND` desktop-open idle CPU passes.
 - Full five-scenario runtime CPU matrix passes on `HUGH_SECOND`.
 - The post-route scenario can target `hugh-main` over LAN.
-- The current installed package was built before the 2026-07-01 brain root-env
-  source update. The source pin now points at clean brain commit
-  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, so the next package must be
-  rebuilt and re-proven.
+- The packaged hidden-brain lane now passes on `HUGH_SECOND` after the MSIX
+  `windows.fullTrustProcess` repair for `musu-brain.exe`.
+- The current second-PC kit was regenerated from clean HEAD after the brain
+  handoff alignment audit, so the next `hugh-main` run is not tied to the older
+  `20260701-003206` source snapshot.
 
 ## What Is Not Proven
 
@@ -44,8 +45,9 @@ Current second-PC kit:
 - Live P2P control-plane proof is not recorded.
 - Real relay transport, design approval, and V34 stale self-heal physical proof
   remain open.
-- Brain data-root contract is source-settled to `~/.musu/brain`, but the
-  installed package has not yet been rebuilt with the root-env update.
+- Brain data-root and handoff alignment are green on source and `HUGH_SECOND`
+  package proof, but the same current package still needs second-machine
+  evidence.
 
 ## Run On hugh-main
 
