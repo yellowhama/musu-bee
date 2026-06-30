@@ -10751,4 +10751,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   kit is run, the return zip is imported, and the relevant release verifiers
   pass.
 
+- 2026-07-01 W6 relay preview contract alignment:
+  `docs/W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01.md`,
+  `musu-rs/tests/w6_relay_roundtrip.rs`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1199`: W6 is a hermetic preview relay
+  fallback regression, not release-grade relay transport proof. The mock cloud
+  payload, claim, and delivery records now use
+  `transport_kind=http_store_forward_preview`, keep
+  `relay_default_data_path=false`, and name
+  `relay_payload_queue_not_quic_tls_transport` as the release-grade blocker.
+  Verification passed touched-file `rustfmt`, P2P relay source audit
+  `ok=true`, targeted Rust release-relay fail-closed contract test `1/1`,
+  Rust `relay_payload` tests `34/34`, and web P2P tests `133/133`. Index
+  refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3561 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources, processed 3, recovered 0, and
+  query
+  `wiki/1199 http_store_forward_preview relay_payload_queue_not_quic_tls_transport`
+  returned 3 results with top title
+  `wiki/1199 W6 relay preview contract alignment report`. The W6 integration
+  target itself stalled during test target compile and is not counted as fresh
+  release evidence. Search terms should include `wiki/1199`,
+  `W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01`,
+  `http_store_forward_preview`, `relay_default_data_path=false`,
+  `relay_payload_queue_not_quic_tls_transport`,
+  `release_relay_tunnel_runtime_implemented=false`, and
+  `relay_transport_product_verified=false`. Product meaning: this closes a mock
+  relay overclaim risk, not the release relay blocker.
+
 **End of WIKI_INDEX.md.**

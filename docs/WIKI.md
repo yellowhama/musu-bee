@@ -23321,3 +23321,50 @@ Product meaning:
 - Full product completion remains NO-GO until the current kit is run on
   `hugh-main`, the return zip is imported, and the relevant release verifiers
   pass.
+
+## wiki/1199 - 2026-07-01 W6 relay preview contract alignment
+
+Canonical report:
+
+- `docs/W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01.md`
+- `musu-rs/tests/w6_relay_roundtrip.rs`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- W6 now describes itself as preview relay fallback, not product thesis
+  release-grade relay transport proof.
+- Mock relay payload, claim, and delivery records now emit
+  `transport_kind=http_store_forward_preview`.
+- Mock relay metadata now keeps `relay_default_data_path=false`.
+- Mock release-grade blockers now include
+  `relay_payload_queue_not_quic_tls_transport`.
+
+Verification:
+
+- `rustfmt --edition 2021 --check musu-rs\tests\w6_relay_roundtrip.rs` passed.
+- `audit-p2p-store-forward-relay-contract.ps1 -Json`: `ok=true`,
+  `fail_count=0`.
+- Targeted Rust release-relay fail-closed contract test passed `1/1`.
+- Rust `relay_payload` tests passed `34/34`.
+- Web P2P tests passed `133/133`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3561 files` and `3908 symbols`.
+- Product brain source ingest under `local/musu` created 3 sources, processed
+  3, recovered 0, and query
+  `wiki/1199 http_store_forward_preview relay_payload_queue_not_quic_tls_transport`
+  returned 3 results with top title
+  `wiki/1199 W6 relay preview contract alignment report`.
+
+Known limitation:
+
+- The W6 integration target itself stalled during test target compile and was
+  killed in this run, so it is not counted as fresh release evidence today.
+
+Product meaning:
+
+- This closes a relay overclaim risk in a hermetic mock test.
+- It does not close `relay_transport_product_verified=false`.
+- Full product completion remains NO-GO until real `quic_relay_tunnel`
+  transport, bound relay route evidence, payload delivery proof, and
+  direct-blocked two-PC physical proof exist.

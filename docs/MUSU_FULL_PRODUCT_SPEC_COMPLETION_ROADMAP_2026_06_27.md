@@ -422,6 +422,24 @@ relay_lease_request_records_failed_direct_paths_without_using_relay_as_default
 --lib` (`1 passed`), and the P2P relay contract audit. This is a prerequisite
 for implementing release relay runtime; it does not change the NO-GO gate.
 
+2026-07-01 03:25 KST W6 relay preview contract alignment:
+`musu-rs/tests/w6_relay_roundtrip.rs` now explicitly models the W6 scenario as
+preview relay fallback, not release-grade relay transport proof. The mock cloud
+payload, claim, and delivery records now use
+`transport_kind=http_store_forward_preview`, keep
+`relay_default_data_path=false`, and name
+`relay_payload_queue_not_quic_tls_transport` as the release-grade blocker. This
+removes an overclaim risk where a hermetic store-forward queue test could be
+misread as product relay completion. Verification passed touched-file
+`rustfmt`, the P2P relay source audit, targeted Rust release-relay contract
+test, Rust `relay_payload` tests, web P2P tests, local code/document index
+refresh (`3561 files`, `3908 symbols`), and product brain source ingest under
+`local/musu` with query top title `wiki/1199 W6 relay preview contract
+alignment report`. The W6 integration target itself stalled during test target
+compile in this run and is not counted as fresh release evidence. Canonical
+report:
+`docs/W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01.md`.
+
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
 the source contract is internally consistent and still fail-closed. The P2P
