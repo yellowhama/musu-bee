@@ -182,6 +182,15 @@ Index refresh:
 processed 5 sources including this report, roadmap/root-contract docs, and the
 two touched brain-status code files, and query returned
 `wiki/sources/src_8a1a6ad9cb5024ce.md` for the new report.
+Clean go/no-go after the docs/evidence commit at
+`2026-07-01T07:30:46.4115150+09:00` on commit `27152fa0` reports
+`manifest_git.dirty=false`, `warnings=0`, `blockers=11`,
+`single_machine_verified=true`, `process_ownership_verified=true`,
+`startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+`runtime_cpu_second_pc_route_attempt_verified=true`,
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+`brain_product_verified=false`.
 
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the

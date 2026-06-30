@@ -73,6 +73,17 @@ the Go chip itself.
   `CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR src_8a1a6ad9 hidden brain lifecycle NO-GO`
   returned the new report source
   `wiki/sources/src_8a1a6ad9cb5024ce.md`.
+- Clean go/no-go after this report commit:
+  `.local-build/go-no-go/after-brain-lifecycle-audit-20260701.json`,
+  generated `2026-07-01T07:30:46.4115150+09:00`, commit `27152fa0`,
+  `manifest_git.dirty=false`, `warnings=0`, `blockers=11`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  and `brain_product_verified=false`.
 
 ## Next Steps
 

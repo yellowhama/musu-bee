@@ -10942,6 +10942,10 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   under `local/musu` processed 5 sources including docs and the two
   brain-status code files, and recall returned
   `wiki/sources/src_8a1a6ad9cb5024ce.md` for the new report.
+  Clean go/no-go at `2026-07-01T07:30:46.4115150+09:00` on commit
+  `27152fa0` reports `manifest_git.dirty=false`, `warnings=0`,
+  `blockers=11`, local runtime lanes true, one valid CPU/matrix machine, and
+  `brain_product_verified=false`.
   Product meaning: local runtime evidence is fresh, but full product completion
   remains NO-GO and hidden brain lifecycle is reopened until clean packaged
   desktop launch proof passes without manual sidecar start. Search terms should
