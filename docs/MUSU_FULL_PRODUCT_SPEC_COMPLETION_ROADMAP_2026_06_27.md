@@ -20,9 +20,10 @@ The fresh packaged desktop also records a passing hidden-brain product proof
 for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
-verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
-latest clean go/no-go recheck at `2026-06-30T17:19:51+09:00` on commit
-`fa0acd2d9733b0256a006732666e86cdabb8cecd` still reports
+verify on `HUGH_SECOND`, including a targeted successful `hugh-main`
+post-route probe. The latest clean go/no-go recheck at
+`2026-06-30T19:19:32+09:00` on commit
+`0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -31,6 +32,22 @@ evidence, release-grade multi-device route identity, packaged Private Mesh
 proof archive, public metadata DNS/TLS, Store release/Store-signed install
 evidence, real relay transport, explicit design approval, and V34 stale
 self-heal proof still remain.
+
+2026-06-30 19:19 KST current package-bound evidence refresh:
+`musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
+`1416969c976b9edcd905c287fa70ab3221297305` and module path
+`github.com/yellowhama/musu-brain`. A full local-sideload MSIX rebuild and
+install succeeded for `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`. Current
+HUGH_SECOND evidence now includes MSIX install, single-machine smoke, process
+ownership, startup single-instance, desktop single-instance, `desktop-open`
+idle CPU, and full five-state runtime CPU matrix. The matrix targets
+`hugh-main`, succeeds, and verifier-passes, so
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+Clean go/no-go at `2026-06-30T19:19:32.5816741+09:00` reports
+`blockers=10`, `warnings=0`, `runtime_idle_cpu_valid_machine_count=1/2
+[HUGH_SECOND]`, and `runtime_cpu_scenario_matrix_valid_machine_count=1/2
+[HUGH_SECOND]`. Canonical report:
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
 
 2026-06-30 16:57 KST second-PC kit / Private Mesh handoff update:
 `run-second-pc-release-check.ps1` now captures target-side

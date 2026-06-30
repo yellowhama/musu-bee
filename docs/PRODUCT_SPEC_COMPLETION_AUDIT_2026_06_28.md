@@ -14,27 +14,44 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
-Authoritative 2026-06-30 local evidence refresh gate:
+Authoritative 2026-06-30 current packaged local evidence refresh gate:
 
 - Command source:
   `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-30T17:19:51.4144555+09:00`
-- `manifest_git.commit`: `fa0acd2d9733b0256a006732666e86cdabb8cecd`
+- `generated_at`: `2026-06-30T19:19:32.5816741+09:00`
+- `manifest_git.commit`: `0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
 - `blockers=10`
 - `warnings=0`
 - `single_machine_verified=true`
+- `msix_install_verified=true`
 - `runtime_idle_cpu_verified=false`
 - `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
 - `runtime_cpu_scenario_matrix_verified=false`
 - `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
 - `runtime_cpu_second_pc_route_attempt_verified=true`
-- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
+
+2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
+now matches the latest clean `F:\musu_2nd_brain` HEAD
+`1416969c976b9edcd905c287fa70ab3221297305` and module path
+`github.com/yellowhama/musu-brain`. The local-sideload MSIX was rebuilt,
+installed, and verified, then HUGH_SECOND recaptured MSIX install,
+single-machine smoke, process ownership, startup single-instance, desktop
+single-instance, `desktop-open` idle CPU, and full runtime CPU matrix evidence.
+The runtime matrix targets `hugh-main`, succeeds, and both the full matrix
+verifier and target-route verifier pass. Qualitative read: the local packaged
+runtime is healthy and current, but the product still cannot be called complete
+because second-machine CPU evidence, release-grade route identity/transport,
+Private Mesh packaged proof, public metadata DNS/TLS, Store evidence, relay
+transport, design approval, and V34 physical stale-state proof remain open.
+Canonical report:
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
 
 2026-06-30 16:57 KST second-PC / Private Mesh handoff hardening: the current
 quality bar improved, but the product remains NO-GO. The second-PC release

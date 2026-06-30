@@ -10318,4 +10318,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ready_for_public_desktop_release=false`, `package-bound freshness reset`,
   `RelayTransportIntent`, and `runtime source changed`.
 
+- 2026-06-30 current packaged local evidence refresh:
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the current package-bound evidence state after
+  pinning the brain sidecar to
+  `github.com/yellowhama/musu-brain@1416969c976b9edcd905c287fa70ab3221297305`.
+  Current HUGH_SECOND evidence includes MSIX install `20260630-190259`,
+  single-machine smoke `20260630-190553`, process ownership `20260630-190627`,
+  startup single-instance `20260630-190639`, desktop single-instance
+  `20260630-190659`, desktop-open idle CPU `20260630-190831`, and full runtime
+  CPU matrix `20260630-191000`. Clean go/no-go at
+  `2026-06-30T19:19:32.5816741+09:00` on commit
+  `0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15` reports `blockers=10`,
+  `warnings=0`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+  The `hugh-main` route probe succeeds for targetability/CPU evidence, but the
+  route remains non-release-grade transport (`http_bearer`, unverified peer
+  identity, `none_http_bearer`). Search terms should include `wiki/1180`,
+  `CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30`, `code audit`,
+  `musu-bee/src-tauri/musu-brain.pin.json`, `0db4b39e`,
+  `1416969c976b9edcd905c287fa70ab3221297305`, `20260630-191000-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`, and
+  `store-public-metadata DNS/TLS`.
+
 **End of WIKI_INDEX.md.**

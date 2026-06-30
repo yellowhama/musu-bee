@@ -22447,3 +22447,67 @@ Still NO-GO:
 Canonical report:
 
 - `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`
+
+## wiki/1180 — 2026-06-30 Current packaged local evidence refresh
+
+Current package-bound local evidence is green again on `HUGH_SECOND`, but MUSU
+remains full-product NO-GO.
+
+Brain sidecar pin:
+
+- module path: `github.com/yellowhama/musu-brain`
+- pinned commit: `1416969c976b9edcd905c287fa70ab3221297305`
+- source repo: `F:\musu_2nd_brain`
+
+Package/build:
+
+- version: `1.15.0-rc.22`
+- package version: `1.15.0.22`
+- installed package:
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`
+- full local-sideload MSIX rebuild and install verification passed
+
+Fresh current evidence:
+
+- MSIX install: `20260630-190259-HUGH_SECOND`
+- single-machine smoke: `20260630-190553-HUGH_SECOND`
+- process ownership: `20260630-190627-HUGH_SECOND`
+- startup single-instance: `20260630-190639-HUGH_SECOND`
+- desktop single-instance: `20260630-190659-HUGH_SECOND`
+- desktop-open idle CPU: `20260630-190831-HUGH_SECOND`
+- runtime CPU matrix: `20260630-191000-HUGH_SECOND`
+
+Clean go/no-go:
+
+- `generated_at=2026-06-30T19:19:32.5816741+09:00`
+- `manifest_git.commit=0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15`
+- `manifest_git.dirty=false`
+- `ready_for_public_desktop_release=false`
+- `full_product_spec_ready=false`
+- `blockers=10`
+- `warnings=0`
+- `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`
+
+Qualitative audit:
+
+- Local packaged runtime is current and healthy.
+- Code audit scope is clean for this refresh: the only functional config delta
+  is `musu-bee/src-tauri/musu-brain.pin.json`, no source behavior was changed,
+  no secret value was added, and version-coherence/MSIX rebuild passed after
+  the pin.
+- The `hugh-main` route probe succeeds for targetability/CPU evidence.
+- The route still is not release-grade transport proof:
+  `current_transport=http_bearer`, `peer_identity_verified=false`, and
+  `encryption=none_http_bearer`.
+- Public metadata is currently red again because `https://musu.pro` apex
+  DNS/TLS/public-config/privacy/support verification fails.
+- Remaining blockers are external or physical product gates:
+  multi-device, Private Mesh packaged proof, second-machine CPU/matrix,
+  Store public metadata, Store release, P2P control plane, design approval,
+  relay transport, and V34 stale self-heal.
+
+Canonical report:
+
+- `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`
