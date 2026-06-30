@@ -192,6 +192,61 @@ test("issues a store-and-forward relay lease once env policy is enabled", async 
   });
 });
 
+test("release tunnel lease intent stays fail-closed until tunnel runtime exists", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("release-tunnel-intent");
+    enableRelayLeasePolicy();
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      transport_intent: "release_tunnel",
+    }));
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as {
+      lease_issued: boolean;
+      owner_scoped: boolean;
+      relay_transport_wired: boolean;
+      relay_tunnel_runtime_implemented: boolean;
+      relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
+      transport_intent: string;
+      blockers: string[];
+    };
+    assert.equal(body.lease_issued, false);
+    assert.equal(body.owner_scoped, true);
+    assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_tunnel_runtime_implemented, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
+    assert.equal(body.transport_intent, "release_tunnel");
+    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_queue_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+  });
+});
+
+test("rejects unknown relay transport intent", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("invalid-transport-intent");
+    enableRelayLeasePolicy();
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      transport_intent: "websocket_tunnel",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_lease_request");
+    assert.equal(body.issues[0]?.path, "transport_intent");
+  });
+});
+
 test("rejects relay lease when bearer token is bound to another source node", async () => {
   await withRelayEnv(async () => {
     const { POST } = await loadModule("source-node-auth-binding");

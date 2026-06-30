@@ -364,11 +364,38 @@ Add-Check `
             "relay_requires_direct_path_failure",
             "direct_route_attempt_required_before_relay",
             "relay_payload_endpoint_not_wired",
+            "transport_intent",
+            "store_forward_queue",
+            "release_tunnel",
+            "releaseTunnelLeaseBlockers",
+            "releaseGradeTunnelBlockers",
             "relay_default_data_path: false"
         )
     ) `
     -Path $leaseRoutePath `
     -Message "Relay lease policy remains fallback-only and cannot become default data path."
+
+Add-Check `
+    -Scope "web-lease-transport" `
+    -Name "release tunnel lease intent stays fail closed until runtime exists" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRoute -Needles @(
+            'transportIntent: RelayTransportIntent',
+            'parsed.data.transport_intent ?? "store_forward_queue"',
+            'intent === "release_tunnel"',
+            'relay_transport_not_wired',
+            'relay_tunnel_runtime_not_implemented'
+        )) -and
+        (Test-ContainsAll -Text $leaseRouteTest -Needles @(
+            'transport_intent: "release_tunnel"',
+            'release tunnel lease intent stays fail-closed until tunnel runtime exists',
+            'relay_transport_not_wired',
+            'relay_tunnel_runtime_not_implemented',
+            'rejects unknown relay transport intent'
+        ))
+    ) `
+    -Path $leaseRoutePath `
+    -Message "Release tunnel lease requests are explicit and remain blocked by release transport/runtime gates instead of falling through to store-forward leases."
 
 Add-Check `
     -Scope "web-lease-transport" `

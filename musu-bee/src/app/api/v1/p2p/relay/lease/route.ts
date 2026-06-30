@@ -31,16 +31,20 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const RouteKindSchema = z.enum(["lan", "tailscale", "direct_quic", "relay"]);
+const RelayTransportIntentSchema = z.enum(["store_forward_queue", "release_tunnel"]);
 
 const RelayLeaseRequestSchema = z.object({
   session_id: z.string().min(1),
   source_node_id: z.string().min(1),
   target_node_id: z.string().min(1),
   requested_capability: z.string().min(1).nullable().optional(),
+  transport_intent: RelayTransportIntentSchema.optional(),
   attempted_route_kinds: z.array(RouteKindSchema).min(1),
   direct_path_failed: z.boolean(),
   failure_class: z.string().min(1).nullable().optional(),
 }).passthrough();
+
+type RelayTransportIntent = z.infer<typeof RelayTransportIntentSchema>;
 
 /**
  * Two relay transports share this lease endpoint:
@@ -61,17 +65,13 @@ const RelayLeaseRequestSchema = z.object({
  * This is the cross-machine path that works WITHOUT Tailscale: musu's own relay
  * queue carries the task when direct/tailnet reach fails.
  */
-function storeAndForwardLeaseBlockers(input: {
+function fallbackLeaseBaseBlockers(input: {
   direct_path_failed: boolean;
   attempted_route_kinds: RelayRouteKind[];
 }): string[] {
   const blockers: string[] = [];
   if (!envEnabled("MUSU_P2P_RELAY_ENABLED")) {
     blockers.push("relay_disabled");
-  }
-  // The payload QUEUE (not the QUIC tunnel) is what store-and-forward needs.
-  if (!relayPayloadQueueEndpointWired()) {
-    blockers.push("relay_payload_queue_endpoint_not_wired");
   }
   if (!relayUrl()) {
     blockers.push("relay_url_not_configured");
@@ -87,6 +87,18 @@ function storeAndForwardLeaseBlockers(input: {
   }
   if (!input.attempted_route_kinds.some((kind) => kind !== "relay")) {
     blockers.push("direct_route_attempt_required_before_relay");
+  }
+  return blockers;
+}
+
+function storeAndForwardLeaseBlockers(input: {
+  direct_path_failed: boolean;
+  attempted_route_kinds: RelayRouteKind[];
+}): string[] {
+  const blockers = fallbackLeaseBaseBlockers(input);
+  // The payload QUEUE (not the QUIC tunnel) is what store-and-forward needs.
+  if (!relayPayloadQueueEndpointWired()) {
+    blockers.push("relay_payload_queue_endpoint_not_wired");
   }
   return blockers;
 }
@@ -108,11 +120,26 @@ function releaseGradeTunnelBlockers(): string[] {
   return blockers;
 }
 
-function relayPolicyBlockers(input: {
+function releaseTunnelLeaseBlockers(input: {
   direct_path_failed: boolean;
   attempted_route_kinds: RelayRouteKind[];
 }): string[] {
-  return storeAndForwardLeaseBlockers(input);
+  return [
+    ...fallbackLeaseBaseBlockers(input),
+    ...releaseGradeTunnelBlockers(),
+  ];
+}
+
+function relayPolicyBlockers(
+  input: {
+    direct_path_failed: boolean;
+    attempted_route_kinds: RelayRouteKind[];
+  },
+  intent: RelayTransportIntent
+): string[] {
+  return intent === "release_tunnel"
+    ? releaseTunnelLeaseBlockers(input)
+    : storeAndForwardLeaseBlockers(input);
 }
 
 function publicLease<T extends { owner_key: string }>(lease: T): Omit<T, "owner_key"> {
@@ -168,7 +195,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const blockers = relayPolicyBlockers(parsed.data);
+  const transportIntent: RelayTransportIntent =
+    parsed.data.transport_intent ?? "store_forward_queue";
+  const blockers = relayPolicyBlockers(parsed.data, transportIntent);
   if (blockers.length > 0) {
     return NextResponse.json(
       {
@@ -183,6 +212,7 @@ export async function POST(req: NextRequest) {
         relay_payload_endpoint_wired: relayPayloadEndpointWired(),
         relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
         relay_default_data_path: false,
+        transport_intent: transportIntent,
         ...relayLeaseStoreFields(),
         policy: "connect_pro_fallback_only",
         blockers,
@@ -229,6 +259,7 @@ export async function POST(req: NextRequest) {
       relay_payload_endpoint_wired: relayPayloadEndpointWired(),
       relay_payload_queue_endpoint_wired: relayPayloadQueueEndpointWired(),
       relay_default_data_path: false,
+      transport_intent: transportIntent,
       ...relayLeaseStoreFields(),
       policy: "connect_pro_fallback_only",
       blockers: [],

@@ -10260,4 +10260,24 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `type: "sensitive"`, `KV_REST_API_TOKEN`, `UPSTASH_REDIS_REST_TOKEN`, and
   `vercel env add`.
 
+- 2026-06-30 relay lease transport intent fail-closed:
+  `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md` records the
+  lease API contract split between preview store-forward and future release
+  tunnel. `POST /api/v1/p2p/relay/lease` now accepts optional
+  `transport_intent`; omitted intent defaults to `store_forward_queue`;
+  `transport_intent=release_tunnel` uses release tunnel blockers and stays
+  fail-closed with `relay_transport_not_wired` and
+  `relay_tunnel_runtime_not_implemented`; unknown intent values return 400.
+  Verification passed `npm run test:p2p` (`133/133`), `npm run typecheck`, and
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+  `fail_count=0`, generated at `2026-06-30T17:50:01.0020182+09:00`. This is
+  product-contract hardening only: release `quic_relay_tunnel` runtime,
+  hosted storage/env, live P2P control-plane proof, relay route evidence,
+  transport proof, delivery proof, and direct-blocked two-PC proof remain
+  missing. Search terms should include
+  `RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30`,
+  `transport_intent`, `store_forward_queue`, `release_tunnel`,
+  `relay_tunnel_runtime_not_implemented`, and
+  `rejects unknown relay transport intent`.
+
 **End of WIKI_INDEX.md.**

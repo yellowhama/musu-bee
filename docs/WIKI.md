@@ -22341,3 +22341,38 @@ Still NO-GO:
 Canonical report:
 
 - `docs/VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30.md`
+
+## wiki/1177 — 2026-06-30 Relay lease transport intent fail-closed
+
+The P2P relay lease API now separates preview store-forward leases from future
+release tunnel intent.
+
+Changed:
+
+- `POST /api/v1/p2p/relay/lease` accepts optional `transport_intent`.
+- omitted intent defaults to `store_forward_queue`.
+- `transport_intent=release_tunnel` uses release tunnel blockers and stays
+  fail-closed while the real tunnel runtime is absent.
+- unknown intent values are rejected with a 400 validation error.
+- `audit-p2p-store-forward-relay-contract.ps1` now checks the lease intent
+  split and the release-runtime fail-closed blockers.
+
+Verification:
+
+- `npm run test:p2p`: `133/133`
+- `npm run typecheck`: passed
+- `audit-p2p-store-forward-relay-contract.ps1 -Json`: `ok=true`,
+  `fail_count=0`, generated
+  `2026-06-30T17:50:01.0020182+09:00`
+
+Still NO-GO:
+
+- release `quic_relay_tunnel` runtime is not implemented
+- live hosted KV/Upstash release storage/env remains missing
+- live P2P control-plane evidence remains missing
+- relay route evidence, transport proof, payload delivery proof, and
+  direct-blocked two-PC proof remain missing
+
+Canonical report:
+
+- `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`

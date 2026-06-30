@@ -81,6 +81,23 @@ path risk for the hosted P2P blocker, but it does not close the lane until real
 KV/Upstash/env values are present in GitHub/Vercel, production deploy succeeds,
 and live P2P control-plane evidence passes.
 
+2026-06-30 17:50 KST relay lease transport intent fail-closed update:
+`POST /api/v1/p2p/relay/lease` now accepts optional `transport_intent`.
+The default `store_forward_queue` preserves the preview store-forward lease
+path, while explicit `release_tunnel` requests stay fail-closed with
+`relay_transport_not_wired` and `relay_tunnel_runtime_not_implemented` until
+the real release tunnel runtime exists. Unknown intent values are rejected by
+request validation. Verification passed `npm run test:p2p` (`133/133`),
+`npm run typecheck`, and `audit-p2p-store-forward-relay-contract.ps1 -Json`
+with `ok=true`, `fail_count=0`, generated at
+`2026-06-30T17:50:01.0020182+09:00`. Canonical report:
+`docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`. This sharpens
+the source contract and prevents preview queue readiness from being mistaken
+for release tunnel readiness, but the product remains NO-GO because
+`release_relay_tunnel_runtime_implemented=false`, live hosted storage/env,
+live P2P evidence, relay route evidence, transport proof, delivery proof, and
+two-PC direct-blocked proof are still missing.
+
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so
 the source contract is internally consistent and still fail-closed. The P2P
