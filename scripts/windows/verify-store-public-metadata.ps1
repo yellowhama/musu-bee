@@ -3,6 +3,8 @@ param(
     [string]$BaseUrl = "https://musu.pro",
     [string]$ExpectedSupportEmail,
     [string[]]$ExpectedNameservers = @("ns1.vercel-dns.com", "ns2.vercel-dns.com"),
+    [string[]]$ExpectedApexARecords = @("76.76.21.21"),
+    [string]$ExpectedWwwCname = "cname.vercel-dns-0.com",
     [string[]]$VercelEdgeIps = @("76.76.21.21"),
     [int]$TimeoutSec = 20,
     [switch]$SkipDnsDiagnostics,
@@ -126,7 +128,9 @@ function Resolve-DnsValues {
 function Get-PublicMetadataDnsDiagnostics {
     param(
         [Parameter(Mandatory = $true)][string]$Base,
-        [string[]]$ExpectedNs
+        [string[]]$ExpectedNs,
+        [string[]]$ExpectedApexA,
+        [string]$ExpectedWww
     )
 
     $hostName = ""
@@ -144,9 +148,20 @@ function Get-PublicMetadataDnsDiagnostics {
             unexpected_nameservers = @()
             nameserver_check_applicable = $false
             nameserver_matches_expected = $false
+            dns_path_matches_expected = $false
             provider_guess = "unknown"
+            expected_apex_a_records = @()
             a_records = @()
             aaaa_records = @()
+            missing_expected_apex_a_records = @()
+            unexpected_apex_a_records = @()
+            apex_a_matches_expected = $false
+            apex_aaaa_records_absent = $false
+            expected_www_cname = $ExpectedWww
+            current_www_cname_records = @()
+            current_www_a_records = @()
+            www_cname_matches_expected = $false
+            external_dns_records_match_expected = $false
         }
     }
 
@@ -162,8 +177,16 @@ function Get-PublicMetadataDnsDiagnostics {
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
             Sort-Object -Unique
     )
+    $wwwHost = if ($hostName -eq "musu.pro") { "www.musu.pro" } else { "www.$hostName" }
     $aRecords = @(Resolve-DnsValues -Name $hostName -Type "A" -Property "IPAddress")
     $aaaaRecords = @(Resolve-DnsValues -Name $hostName -Type "AAAA" -Property "IPAddress")
+    $wwwCnameRecords = @(
+        Resolve-DnsValues -Name $wwwHost -Type "CNAME" -Property "NameHost" |
+            ForEach-Object { Normalize-DnsName -Value $_ } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    $wwwARecords = @(Resolve-DnsValues -Name $wwwHost -Type "A" -Property "IPAddress")
     $nameserverCheckApplicable = ($hostName -eq "musu.pro" -or $hostName.EndsWith(".musu.pro"))
     $missingExpected = @($normalizedExpected | Where-Object { $currentNs -notcontains $_ })
     $unexpected = @($currentNs | Where-Object { $normalizedExpected -notcontains $_ })
@@ -173,6 +196,31 @@ function Get-PublicMetadataDnsDiagnostics {
         $missingExpected.Count -eq 0 -and
         $unexpected.Count -eq 0
     )
+    $expectedApexARecords = @(
+        $ExpectedApexA |
+            ForEach-Object { [string]$_ } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    $missingExpectedApexA = @($expectedApexARecords | Where-Object { $aRecords -notcontains $_ })
+    $unexpectedApexA = @($aRecords | Where-Object { $expectedApexARecords -notcontains $_ })
+    $apexAMatchesExpected = (
+        $expectedApexARecords.Count -gt 0 -and
+        $missingExpectedApexA.Count -eq 0 -and
+        $unexpectedApexA.Count -eq 0
+    )
+    $expectedWwwNormalized = Normalize-DnsName -Value $ExpectedWww
+    $wwwCnameMatchesExpected = (
+        -not [string]::IsNullOrWhiteSpace($expectedWwwNormalized) -and
+        $wwwCnameRecords -contains $expectedWwwNormalized
+    )
+    $apexAaaaRecordsAbsent = ($aaaaRecords.Count -eq 0)
+    $externalDnsRecordsMatchExpected = (
+        $apexAMatchesExpected -and
+        $apexAaaaRecordsAbsent -and
+        $wwwCnameMatchesExpected
+    )
+    $dnsPathMatchesExpected = ($matchesExpected -or $externalDnsRecordsMatchExpected)
     $providerGuess = "unknown"
     if (@($currentNs | Where-Object { $_ -like "*.cloudflare.com" }).Count -gt 0) {
         $providerGuess = "cloudflare"
@@ -194,9 +242,20 @@ function Get-PublicMetadataDnsDiagnostics {
         unexpected_nameservers = @($unexpected)
         nameserver_check_applicable = [bool]$nameserverCheckApplicable
         nameserver_matches_expected = [bool]$matchesExpected
+        dns_path_matches_expected = [bool]$dnsPathMatchesExpected
         provider_guess = $providerGuess
+        expected_apex_a_records = @($expectedApexARecords)
         a_records = @($aRecords)
         aaaa_records = @($aaaaRecords)
+        missing_expected_apex_a_records = @($missingExpectedApexA)
+        unexpected_apex_a_records = @($unexpectedApexA)
+        apex_a_matches_expected = [bool]$apexAMatchesExpected
+        apex_aaaa_records_absent = [bool]$apexAaaaRecordsAbsent
+        expected_www_cname = $expectedWwwNormalized
+        current_www_cname_records = @($wwwCnameRecords)
+        current_www_a_records = @($wwwARecords)
+        www_cname_matches_expected = [bool]$wwwCnameMatchesExpected
+        external_dns_records_match_expected = [bool]$externalDnsRecordsMatchExpected
     }
 }
 
@@ -528,7 +587,7 @@ $supportUrl = Join-Url -Base $base -Path "/support"
 $publicConfigUrl = Join-Url -Base $base -Path "/api/public-config"
 
 if (-not $SkipDnsDiagnostics) {
-    $dnsDiagnostics = Get-PublicMetadataDnsDiagnostics -Base $base -ExpectedNs $ExpectedNameservers
+    $dnsDiagnostics = Get-PublicMetadataDnsDiagnostics -Base $base -ExpectedNs $ExpectedNameservers -ExpectedApexA $ExpectedApexARecords -ExpectedWww $ExpectedWwwCname
 }
 if (-not $SkipEdgeDiagnostics) {
     $edgeTlsDiagnostics = Get-PublicMetadataEdgeTlsDiagnostics -Base $base -EdgeIps $VercelEdgeIps -TimeoutSeconds ([Math]::Min($TimeoutSec, 8))
@@ -571,7 +630,15 @@ $dnsNameserverMismatch = (
     $dnsDiagnostics.PSObject.Properties["nameserver_matches_expected"] -and
     -not [bool]$dnsDiagnostics.nameserver_matches_expected
 )
-if ($requestFailed -and $dnsNameserverMismatch) {
+$dnsPathMismatch = (
+    $dnsDiagnostics -and
+    $dnsDiagnostics.PSObject.Properties["dns_path_matches_expected"] -and
+    -not [bool]$dnsDiagnostics.dns_path_matches_expected
+)
+if ($requestFailed -and $dnsPathMismatch) {
+    $failureKinds = @(@($failureKinds) + "dns_configuration_mismatch") | Select-Object -Unique
+}
+if ($requestFailed -and $dnsNameserverMismatch -and $dnsPathMismatch) {
     $failureKinds = @(@($failureKinds) + "dns_nameserver_mismatch") | Select-Object -Unique
 }
 $apexTlsHandshakeFailed = (

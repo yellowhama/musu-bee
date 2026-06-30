@@ -5,17 +5,15 @@
 MUSU remains **NO-GO** for the public metadata lane. The latest non-mutating DNS
 repair planner confirms the external blocker is still active: canonical
 `https://musu.pro` fails request/TLS verification because the apex DNS authority
-path still points at Cloudflare records instead of the expected Vercel public
-metadata path.
+path still points at Cloudflare records and does not satisfy either accepted
+Vercel public metadata path.
 
 ## Evidence
 
 - Planner evidence:
-  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
-- SHA256:
-  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-235400-musu-pro-dns-repair-plan-path-mode.json`
 - Schema: `musu.public_metadata_dns_repair_plan.v1`
-- Generated: `2026-06-30T20:59:43.1029616+09:00`
+- Generated: `2026-06-30T23:54:23.3863963+09:00`
 - `release_blocker_present=true`
 - `ready_for_public_metadata_verifier=false`
 - `will_mutate_external_dns=false`
@@ -29,6 +27,8 @@ metadata path.
 |---|---|---|
 | DNS provider guess | `cloudflare` | Vercel DNS or Cloudflare external DNS matching Vercel's exact records |
 | Nameservers | `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com` | `ns1.vercel-dns.com`, `ns2.vercel-dns.com` if using Vercel DNS |
+| DNS path match | `false` | Vercel nameservers OR exact external Vercel records |
+| External DNS records match | `false` | Apex A exact, apex AAAA absent, www CNAME exact |
 | Apex A | `104.21.82.53`, `172.67.196.17` | `76.76.21.21` for the current Vercel path |
 | Apex AAAA | Cloudflare IPv6 records present | Remove conflicting AAAA unless Vercel explicitly requires them |
 | `www` CNAME | missing; `www` resolves through A records | `cname.vercel-dns-0.com` or exact value from `vercel domains inspect` |
@@ -40,19 +40,24 @@ metadata path.
 Failure kinds remain:
 
 - `request_failed`
+- `dns_configuration_mismatch`
 - `dns_nameserver_mismatch`
 - `apex_tls_handshake_failed`
 - `vercel_edge_apex_tls_failed`
 
 ## Code Audit
 
-The local source change in this batch is diagnostic tooling only:
-`scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now tolerates
-normal Vercel CLI stderr/banner output while still recording the real exit code
-and redacting the token from captured diagnostics. Before this hardening,
-`-RunVercelInspect` could terminate early with a PowerShell
-`NativeCommandError` even when `vercel domains inspect musu.pro` returned
-useful output and exit code 0.
+The local source changes in this batch are diagnostic tooling only:
+
+- `scripts/windows/verify-store-public-metadata.ps1` now emits
+  `external_dns_records_match_expected` and `dns_path_matches_expected`, so the
+  release gate can distinguish Vercel authoritative DNS from valid
+  Cloudflare/third-party external DNS.
+- `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now computes
+  `needsDnsRepair` from `dns_path_matches_expected`, not nameserver delegation
+  alone.
+- `scripts/windows/test-release-evidence-verifiers.ps1` now locks that source
+  contract.
 
 This does not mutate DNS, does not change the Next.js public metadata routes,
 and does not close the release gate. It only makes the failure evidence more
@@ -64,10 +69,14 @@ verifier.
 Verification:
 
 - PowerShell parser check for
+  `scripts/windows/verify-store-public-metadata.ps1`: passed.
+- PowerShell parser check for
   `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1`: passed.
-- `scripts/windows/test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
-  `case_count=219`, `failed_case_count=0`, generated at
-  `2026-06-30T21:10:04.5000475+09:00`.
+- PowerShell parser check for
+  `scripts/windows/test-release-evidence-verifiers.ps1`: passed.
+- `scripts/windows/test-release-evidence-verifiers.ps1`: `ok=True`, generated
+  output root
+  `.local-build/release-evidence-verifier-tests/20260630-235057`.
 
 ## Next Action
 

@@ -10531,4 +10531,28 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `run-second-pc-release-check`, `remote-file-proof`, `musu put`, `musu ls`,
   `musu get`, `brain data-root resolver`, and `hugh-main`.
 
+- 2026-06-30 public metadata DNS path-mode fix:
+  `docs/PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30.md`,
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the path-aware DNS/TLS verifier/planner contract.
+  `verify-store-public-metadata.ps1` now emits
+  `external_dns_records_match_expected`, `dns_path_matches_expected`,
+  `apex_aaaa_records_absent`, and `www_cname_matches_expected`.
+  `plan-musu-pro-public-metadata-dns-repair.ps1` now computes
+  `needsDnsRepair` from `dns_path_matches_expected`, allowing either Vercel
+  authoritative DNS or exact Vercel external DNS records. Fresh evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-235400-musu-pro-dns-repair-plan-path-mode.json`
+  still reports `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `external_dns_records_match_expected=false`, `dns_path_matches_expected=false`,
+  `apex_tls.ok=false`, `www_tls.ok=true`, and `vercel_inspect.ok=true`.
+  Search terms should include `wiki/1190`,
+  `PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30`,
+  `20260630-235400-musu-pro-dns-repair-plan-path-mode`,
+  `dns_configuration_mismatch`, `dns_path_matches_expected`,
+  `external_dns_records_match_expected`, `apex_aaaa_records_absent`,
+  `www_cname_matches_expected`, and `store-public-metadata`. Validation passed
+  parser checks and `test-release-evidence-verifiers.ps1`.
+
 **End of WIKI_INDEX.md.**

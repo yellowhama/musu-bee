@@ -22915,3 +22915,49 @@ Priority order:
 6. Complete release-grade route transport and relay proof.
 7. Record Store, design approval, live P2P control-plane, and V34 stale
    self-heal evidence.
+
+## wiki/1190 - 2026-06-30 Public metadata DNS path-mode fix
+
+Current report:
+
+- `docs/PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30.md`
+- Updated current-state doc:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`
+
+What changed:
+
+- `scripts/windows/verify-store-public-metadata.ps1` now reports whether the
+  live domain satisfies either accepted DNS path:
+  - Vercel authoritative DNS.
+  - Cloudflare/third-party external DNS with exact Vercel records.
+- `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` now computes
+  `needsDnsRepair` from `dns_path_matches_expected`, not nameserver mismatch
+  alone.
+- `scripts/windows/test-release-evidence-verifiers.ps1` locks the source
+  contract.
+
+Fresh evidence:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-235400-musu-pro-dns-repair-plan-path-mode.json`
+
+Current result:
+
+- `release_blocker_present=true`
+- `ready_for_public_metadata_verifier=false`
+- `provider_guess=cloudflare`
+- `nameserver_matches_expected=false`
+- `external_dns_records_match_expected=false`
+- `dns_path_matches_expected=false`
+- `apex_a_matches_expected=false`
+- `apex_aaaa_records_absent=false`
+- `www_cname_matches_expected=false`
+- `apex_tls.ok=false`
+- `www_tls.ok=true`
+- `vercel_inspect.ok=true`
+
+Product meaning:
+
+- This is a tooling/spec accuracy fix only.
+- `store-public-metadata` remains a release blocker.
+- Public metadata can close only after one accepted DNS path is repaired and
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.

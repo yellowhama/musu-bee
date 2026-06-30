@@ -396,8 +396,11 @@ $expectedA = @($ExpectedVercelApexA | Where-Object { -not [string]::IsNullOrWhit
 $missingExpectedA = @($expectedA | Where-Object { $apexA -notcontains $_ })
 $unexpectedA = @($apexA | Where-Object { $expectedA -notcontains $_ })
 $apexAMatchesExpected = ($expectedA.Count -gt 0 -and $missingExpectedA.Count -eq 0 -and $unexpectedA.Count -eq 0)
+$apexAaaaRecordsAbsent = ($apexAaaa.Count -eq 0)
 $expectedWww = Normalize-DnsName -Value $ExpectedWwwCname
 $wwwCnameMatchesExpected = (-not [string]::IsNullOrWhiteSpace($expectedWww) -and $wwwCname -contains $expectedWww)
+$externalDnsRecordsMatchExpected = ($apexAMatchesExpected -and $apexAaaaRecordsAbsent -and $wwwCnameMatchesExpected)
+$dnsPathMatchesExpected = ($nameserverMatchesExpected -or $externalDnsRecordsMatchExpected)
 
 $apexTls = Test-TlsHandshake -Name "apex_tls" -ConnectHost $hostName -ServerName $hostName -TimeoutSeconds $TimeoutSec
 $wwwTls = Test-TlsHandshake -Name "www_tls" -ConnectHost $wwwHost -ServerName $wwwHost -TimeoutSeconds $TimeoutSec
@@ -420,7 +423,7 @@ if ($metadataVerification.parse_ok -and $metadataVerification.json -and $metadat
 $vercelInspect = Invoke-VercelInspect -Domain $hostName -Token $VercelToken
 $cloudflareTokenStatus = Get-CloudflareTokenStatus -Token $CloudflareApiToken
 
-$needsDnsRepair = (-not $nameserverMatchesExpected -or -not $apexAMatchesExpected -or -not $wwwCnameMatchesExpected)
+$needsDnsRepair = (-not $dnsPathMatchesExpected)
 $needsTlsRepair = (-not [bool]$apexTls.ok -or -not [bool]$vercelEdgeTlsOk)
 $metadataOk = ($metadataVerification.parse_ok -and [bool]$metadataVerification.ok)
 
@@ -429,7 +432,7 @@ if ($needsDnsRepair) {
     $actions.Add([pscustomobject]@{
         priority = 1
         name = "repair_dns_authority_and_records"
-        reason = "Current DNS does not match the expected Vercel public metadata path."
+        reason = "Current DNS matches neither accepted public metadata path: Vercel authoritative DNS, or external DNS with exact Vercel apex/www records."
         manual_steps = @(
             "Run: vercel domains inspect $hostName --token `$env:VERCEL_TOKEN",
             "Choose one DNS authority path before editing records: switch the registrar nameservers to Vercel DNS, or keep Cloudflare/third-party DNS and configure Vercel's exact external records.",
@@ -470,7 +473,7 @@ $result = [ordered]@{
     host = $hostName
     www_host = $wwwHost
     release_blocker_present = (-not $metadataOk)
-    ready_for_public_metadata_verifier = ($metadataOk -or (-not $needsDnsRepair -and -not $needsTlsRepair))
+    ready_for_public_metadata_verifier = ($metadataOk -or ($dnsPathMatchesExpected -and -not $needsTlsRepair))
     will_mutate_external_dns = $false
     apply_requested = [bool]$ConfirmCloudflareApply
     apply_supported = $false
@@ -481,11 +484,14 @@ $result = [ordered]@{
         expected_nameservers = @($expectedNs)
         current_nameservers = @($currentNs)
         nameserver_matches_expected = [bool]$nameserverMatchesExpected
+        external_dns_records_match_expected = [bool]$externalDnsRecordsMatchExpected
+        dns_path_matches_expected = [bool]$dnsPathMatchesExpected
         missing_expected_nameservers = @($missingExpectedNs)
         unexpected_nameservers = @($unexpectedNs)
         expected_apex_a_records = @($expectedA)
         current_apex_a_records = @($apexA)
         current_apex_aaaa_records = @($apexAaaa)
+        apex_aaaa_records_absent = [bool]$apexAaaaRecordsAbsent
         apex_a_matches_expected = [bool]$apexAMatchesExpected
         missing_expected_apex_a_records = @($missingExpectedA)
         unexpected_apex_a_records = @($unexpectedA)
