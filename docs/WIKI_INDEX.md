@@ -10126,4 +10126,23 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
   `musu_quic_tls_transport`, and `relay_transport_product_verified=false`.
 
+- 2026-06-30 public metadata DNS/TLS current-state refresh:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md` records fresh
+  non-mutating DNS repair planner evidence at
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-152710-musu-pro-dns-repair-plan-current.json`
+  with SHA256
+  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`.
+  It confirms `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+  provider guess `cloudflare`, nameservers `blakely.ns.cloudflare.com` and
+  `weston.ns.cloudflare.com`, apex A `104.21.82.53` and `172.67.196.17`,
+  apex AAAA Cloudflare records, missing Vercel apex A `76.76.21.21`, missing
+  `www` CNAME `cname.vercel-dns-0.com`, `apex_tls.ok=false`,
+  `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. Search terms should
+  include `PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30`,
+  `20260630-152710-musu-pro-dns-repair-plan-current`,
+  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`,
+  `ready_for_public_metadata_verifier=false`, and
+  `vercel_edge_apex_tls_ok=false`.
+
 **End of WIKI_INDEX.md.**

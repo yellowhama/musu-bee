@@ -1836,6 +1836,24 @@ Canonical report:
 
 - `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md`
 
+## 2026-06-30 Public Metadata DNS/TLS Evidence Refresh
+
+The public metadata lane was refreshed with the non-mutating DNS repair
+planner. New evidence:
+
+- `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-152710-musu-pro-dns-repair-plan-current.json`
+- SHA256:
+  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`
+
+The evidence confirms `release_blocker_present=true`,
+`ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+Cloudflare nameservers/A/AAAA are still active for the apex, expected Vercel
+apex A `76.76.21.21` is missing, expected `www` CNAME is missing, apex TLS
+fails, `www` TLS passes, and direct Vercel edge apex TLS fails. This is still
+an external DNS/TLS repair blocker, not a local code blocker. Canonical report:
+
+- `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`
+
 ## Confidence
 
 High confidence:
