@@ -9,6 +9,13 @@ current local sideload package on `HUGH_SECOND`, installed, and re-proven for
 the local package-bound gates. This restores the package freshness lanes that
 were intentionally reopened by the Rust source change.
 
+A later physical `musu ls/get/put` attempt from `HUGH_SECOND` to `hugh-main`
+did not pass, but it changed the diagnosis. The old `unauthorized: invalid
+bearer` failure is no longer the observed blocker. The target bridge now
+returns fail-closed file policy errors because `hugh-main` has not configured a
+file serve root and writable share for the proof path. Canonical follow-up:
+`docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.
+
 Clean go/no-go after the post-fix package evidence commit:
 
 - `generated_at`: `2026-06-30T20:41:01.8166825+09:00`
@@ -66,6 +73,15 @@ Current CPU evidence:
 - `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-202916-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
 - `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-202916-HUGH_SECOND.target-route.verification.json`
 
+Remote file CLI physical proof attempt:
+
+- `docs/evidence/remote-file-cli/1.15.0-rc.22/20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json`
+- Result: `ok=false`
+- `musu put`: `forbidden: file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1`
+- `musu ls` / `musu get`: `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`
+- Interpretation: token selection reached the target bridge; target-side share
+  policy is the current blocker.
+
 Notable CPU facts:
 
 - `desktop-open` idle CPU: `ok=true`, `git_dirty=false`, `60.022s`, hot
@@ -87,6 +103,7 @@ Notable CPU facts:
 | NO-GO | Direct route targetability is proven, but not release-grade transport. | Matrix route explain selected LAN with `peer_identity_verified=false` and `encryption=none_http_bearer`. | Good for targetability and CPU route-attempt evidence; insufficient for release-grade identity/encryption. | Implement/prove the accepted QUIC/TLS or release-grade transport path. |
 | NO-GO | Public metadata is failing at canonical `https://musu.pro`. | go/no-go `store-public-metadata` blocker reports request failures, Cloudflare nameserver mismatch, apex TLS failure, and public-config missing fields. | Store/public release metadata cannot be called ready. | Repair DNS/TLS/public metadata and rerun verifier. |
 | NO-GO | Relay transport remains unimplemented as delegated-work byte transport. | `p2p_control_plane_verified=false`, `relay_transport_product_verified=false`. | Relay may not be advertised as a completed work route. | Implement `quic_relay_tunnel`, storage/env, route proof, transport proof, and payload delivery proof. |
+| HIGH | Real sibling file CLI proof is blocked by target share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` returns file API/writable policy errors from `hugh-main`. | Remote file browsing/download/upload cannot be claimed complete yet, even though the token source bug is no longer the observed failure. | On `hugh-main`, create the proof directory, run `musu share <dir> --writable`, restart bridge, then rerun `musu ls/get/put` proof. |
 | HIGH | Private Mesh packaged release proof is still missing. | `private-mesh-packaged-release-proof` blocker remains. | Packaged desktop Private Mesh claim remains unproven. | Run second-PC return/import and package release-proof archive. |
 | HIGH | V34 stale self-heal is not physically proven. | `v34-stale-self-heal` blocker remains. | Stale registry/cache/manual-peer recovery cannot be claimed release-complete. | Record physical stale-state TTL, reconcile, and route-preflight proof. |
 
@@ -98,6 +115,9 @@ Focused code audit result for this refresh:
   selection, but remote file commands could send the local bridge token.
 - The fix aligns remote file CLI token selection with route submission without
   changing the release-grade transport claim.
+- The follow-up physical failure is now a file serving policy failure, not an
+  auth source failure: the target bridge returns `forbidden` policy messages,
+  not `unauthorized: invalid bearer`.
 - Targeted source tests already passed before packaging:
   `remote_file_token` (`3/3`), `remote_route_token` (`3/3`), and
   `git diff --check`.
@@ -108,7 +128,8 @@ Focused code audit result for this refresh:
 Remaining code/product risks:
 
 - real `musu ls/get/put` evidence still must be captured after the fixed
-  package is installed on both PCs.
+  package is installed on both PCs and the target PC has a configured writable
+  `musu share` for the proof path.
 - direct LAN uses legacy HTTP bearer and unverified peer identity.
 - release relay tunnel runtime is still intentionally absent.
 - public metadata/DNS/TLS is an external deployment blocker, not a local code
@@ -140,15 +161,19 @@ Clean go/no-go reports these blocker areas:
   as a LAN work route, but the transport is explicitly not release-grade.
 - File CLI sibling behavior is now source-correct and package-built locally,
   but the product spec should not count it complete until real
-  `musu ls/get/put` proof is captured after both PCs install the fixed package.
+  `musu ls/get/put` proof is captured after both PCs install the fixed package
+  and `hugh-main` exposes the proof directory through `musu share --writable`
+  with a restarted bridge.
 - The live public site lane is red: canonical `https://musu.pro` privacy,
   support, and public-config verification fails through the current DNS/TLS
   path.
 
 ## Next Steps
 
-1. Install the fixed package on `hugh-main`, then capture real
-   `musu ls/get/put` proof from `HUGH_SECOND` to `hugh-main`.
+1. On `hugh-main`, create `C:\Users\empty\.musu\codex-remote-file-proof`, run
+   `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart
+   the packaged bridge, then capture real `musu ls/get/put` proof from
+   `HUGH_SECOND` to `hugh-main`.
 2. Run/import `hugh-main` `desktop-open` idle CPU and full runtime CPU matrix
    evidence so the 2-machine CPU gates can close.
 3. Complete the second-PC return/import path and packaged Private Mesh release

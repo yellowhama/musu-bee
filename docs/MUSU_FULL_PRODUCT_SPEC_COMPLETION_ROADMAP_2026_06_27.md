@@ -105,6 +105,25 @@ tools. This removes stale handoff risk after the public metadata recheck commit,
 but it does not close the second-PC blockers until `hugh-main` runs the kit and
 the return zip is imported and verified.
 
+2026-06-30 21:24 KST remote file CLI physical proof policy blocker:
+a real `musu ls/get/put` attempt was run from `HUGH_SECOND` to `hugh-main`
+using the package that contains the remote file CLI mesh-bearer fix. Evidence
+`docs/evidence/remote-file-cli/1.15.0-rc.22/20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json`
+records `ok=false`. The observed target responses are no longer
+`unauthorized: invalid bearer`; they are target-side file policy failures:
+`musu put` returns `forbidden: file writes disabled: set
+MUSU_FILE_SERVE_WRITABLE=1`, while `musu ls` and `musu get` return
+`forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`. Code
+audit confirms this is expected fail-closed behavior: `musu share` writes
+`~/.musu/shares.toml`, `BridgeConfig::from_env()` merges those roots at bridge
+startup, and the bridge must be restarted after share changes. The next
+execution step is therefore target setup on `hugh-main`: create
+`C:\Users\empty\.musu\codex-remote-file-proof`, run
+`musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart
+the packaged bridge, then rerun the three-command `ls/get/put` proof from
+`hugh_second`. Canonical report:
+`docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path
@@ -1725,10 +1744,11 @@ merging the current rc.22 proof/fleet fixes.
 The immediate product-evidence constraint has moved past legacy direct
 delegated-work proof, but not past release-grade multi-device transport proof.
 The remaining product-evidence constraints are strict multi-device route proof,
-second-PC CPU/matrix proof, Private Mesh packaged proof, public metadata DNS/TLS,
-Store release evidence, real relay transport, and V34 stale self-heal evidence.
-These are independent enough to run as parallel lanes, but the completion claim
-must stay scoped until every lane has machine evidence.
+second-PC CPU/matrix proof, remote file CLI proof after target-side writable
+share setup, Private Mesh packaged proof, public metadata DNS/TLS, Store release
+evidence, real relay transport, and V34 stale self-heal evidence. These are
+independent enough to run as parallel lanes, but the completion claim must stay
+scoped until every lane has machine evidence.
 
 ## Roadmap
 

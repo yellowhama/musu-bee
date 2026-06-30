@@ -10407,6 +10407,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
   `musu ls get put physical proof pending`, and `none_http_bearer`.
 
+- 2026-06-30 remote file CLI physical proof policy blocker:
+  `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`,
+  `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, plus `docs/WIKI.md`, now record
+  the first post-fix physical `musu ls/get/put` attempt from `HUGH_SECOND` to
+  `hugh-main`. Evidence
+  `docs/evidence/remote-file-cli/1.15.0-rc.22/20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json`
+  has `ok=false`, but the observed blocker is target-side file policy rather
+  than token auth: `put` returns `file writes disabled`, and `ls/get` return
+  `MUSU_FILE_SERVE_ROOTS not configured`. Code audit confirms `musu share`
+  writes `~/.musu/shares.toml`, `BridgeConfig::from_env()` merges those roots
+  at bridge startup, and the target bridge must be restarted after share
+  changes. Next step: on `hugh-main`, create
+  `C:\Users\empty\.musu\codex-remote-file-proof`, run `musu share
+  C:\Users\empty\.musu\codex-remote-file-proof --writable --label
+  remote-file-cli-proof`, restart bridge, then rerun the three-command proof
+  from `hugh_second`. Search terms should include `wiki/1185`,
+  `REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30`,
+  `musu.remote_file_cli_physical_proof.v1`, `MUSU_FILE_SERVE_ROOTS`,
+  `MUSU_FILE_SERVE_WRITABLE`, `shares.toml`, `musu share --writable`,
+  `file API disabled`, `file writes disabled`, and
+  `20260630-212409-HUGH_SECOND-to-hugh-main`.
+
 - 2026-06-30 public metadata DNS/TLS recheck:
   `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,
   `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,

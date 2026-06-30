@@ -1,0 +1,43 @@
+{
+  "schema": "musu.remote_file_cli_physical_proof.v1",
+  "generated_at": "2026-06-30T21:24:12.7589192+09:00",
+  "ok": false,
+  "version": "1.15.0-rc.22",
+  "source_node": "hugh_second",
+  "target_node": "hugh-main",
+  "remote_dir": "C:\\Users\\empty\\.musu\\codex-remote-file-proof",
+  "remote_file": "C:\\Users\\empty\\.musu\\codex-remote-file-proof\\remote-file-cli-proof-20260630-212409.txt",
+  "local_source_path": "F:\\workspace\\musu-bee\\.local-build\\remote-file-cli-proof\\20260630-212409\\remote-file-cli-proof-20260630-212409.txt",
+  "local_download_path": ".local-build\\remote-file-cli-proof\\20260630-212409\\downloaded-20260630-212409.txt",
+  "source_sha256": "dabb3b8a04253ba7bf3dc8576593f7b963cf879db3a025e454017eb71fddcf3d",
+  "downloaded_sha256": null,
+  "content_matches": false,
+  "listing_contains_uploaded_file": [],
+  "steps": [
+    {
+      "name": "put",
+      "command": "musu put .local-build\\remote-file-cli-proof\\20260630-212409\\remote-file-cli-proof-20260630-212409.txt hugh-main:C:\\Users\\empty\\.musu\\codex-remote-file-proof\\remote-file-cli-proof-20260630-212409.txt",
+      "exit_code": 1,
+      "elapsed_ms": 1083,
+      "stdout": "→ Uploading .local-build\\remote-file-cli-proof\\20260630-212409\\remote-file-cli-proof-20260630-212409.txt to hugh-main:C:\\Users\\empty\\.musu\\codex-remote-file-proof\\remote-file-cli-proof-20260630-212409.txt...\n",
+      "stderr": "Error: failed: {\"error\":\"forbidden: file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1\",\"code\":\"forbidden\"}\n"
+    },
+    {
+      "name": "ls",
+      "command": "musu ls hugh-main:C:\\Users\\empty\\.musu\\codex-remote-file-proof",
+      "exit_code": 1,
+      "elapsed_ms": 1109,
+      "stdout": null,
+      "stderr": "Error: failed: {\"error\":\"forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured\",\"code\":\"forbidden\"}\n"
+    },
+    {
+      "name": "get",
+      "command": "musu get -o .local-build\\remote-file-cli-proof\\20260630-212409\\downloaded-20260630-212409.txt hugh-main:C:\\Users\\empty\\.musu\\codex-remote-file-proof\\remote-file-cli-proof-20260630-212409.txt",
+      "exit_code": 1,
+      "elapsed_ms": 1081,
+      "stdout": "→ Downloading hugh-main:C:\\Users\\empty\\.musu\\codex-remote-file-proof\\remote-file-cli-proof-20260630-212409.txt...\n",
+      "stderr": "Error: failed: {\"error\":\"forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured\",\"code\":\"forbidden\"}\n"
+    }
+  ],
+  "product_scope": "physical direct remote file CLI proof for ls/get/put; not release-grade transport identity proof"
+}

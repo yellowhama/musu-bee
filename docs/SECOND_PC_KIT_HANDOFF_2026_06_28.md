@@ -59,6 +59,27 @@ material for the `private-mesh-packaged-release-proof` lane; it still must be
 combined with a packaged desktop release-proof archive before the gate can turn
 green.
 
+## Remote File CLI Proof Setup
+
+The post-fix remote file CLI proof is still open. A physical attempt from
+`HUGH_SECOND` to `hugh-main` on 2026-06-30 reached the target bridge but failed
+closed because `hugh-main` had not configured a file serve root or writable
+share. Before rerunning `musu ls/get/put` proof from `hugh_second`, prepare the
+target on `hugh-main`:
+
+```powershell
+New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
+musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
+```
+
+Then restart the packaged bridge on `hugh-main` so it rereads
+`~/.musu/shares.toml`. After that, rerun the remote file proof from
+`hugh_second` and require all three commands to pass: `musu put`, `musu ls`,
+and `musu get`.
+
+Canonical blocker report:
+`docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.
+
 ## Product Meaning
 
 This handoff prepares the second physical machine evidence path only. It does

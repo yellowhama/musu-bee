@@ -22616,6 +22616,64 @@ Canonical report:
 
 - `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`
 
+## wiki/1185 - 2026-06-30 Remote file CLI physical proof policy blocker
+
+A real sibling-machine remote file CLI proof was attempted from `HUGH_SECOND`
+to `hugh-main` after the mesh-bearer file CLI fix was rebuilt into the local
+package.
+
+Evidence:
+
+- `docs/evidence/remote-file-cli/1.15.0-rc.22/20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json`
+- schema: `musu.remote_file_cli_physical_proof.v1`
+- generated_at: `2026-06-30T21:24:12.7589192+09:00`
+- source_node: `hugh_second`
+- target_node: `hugh-main`
+- remote_dir: `C:\Users\empty\.musu\codex-remote-file-proof`
+- ok: `false`
+
+Observed:
+
+- `musu put` failed with
+  `forbidden: file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1`.
+- `musu ls` and `musu get` failed with
+  `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`.
+- The old `unauthorized: invalid bearer` failure is not the observed blocker
+  in this proof.
+
+Code contract:
+
+- `musu share <PATH> --writable` writes `~/.musu/shares.toml`.
+- `BridgeConfig::from_env()` merges `MUSU_FILE_SERVE_ROOTS` and
+  `shares.toml` into `file_serve_roots` during bridge startup.
+- `musu share` prints `Restart bridge to apply: musu bridge`, so the packaged
+  bridge must be restarted before the target exposes the new share.
+- `files.rs` is fail-closed: no roots means file API disabled; no writable mode
+  means write endpoints are disabled.
+
+Qualitative audit:
+
+- Remote file CLI token source correctness is source/package supported on
+  `HUGH_SECOND`.
+- Remote file workflow is not complete because `hugh-main` has not exposed a
+  writable proof share.
+- Release-grade transport identity remains a separate blocker because the LAN
+  route is still HTTP bearer with `peer_identity_verified=false`.
+
+Next execution step:
+
+```powershell
+New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
+musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
+```
+
+Then restart the `hugh-main` packaged bridge and rerun `musu put`, `musu ls`,
+and `musu get` from `hugh_second`.
+
+Canonical report:
+
+- `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`
+
 ## wiki/1182 - 2026-06-30 Remote file CLI post-fix No-Go
 
 After commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`,
