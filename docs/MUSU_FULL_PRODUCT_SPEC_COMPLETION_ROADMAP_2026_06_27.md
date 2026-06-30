@@ -27,9 +27,18 @@ recheck at `2026-06-30T21:46:16+09:00` on commit
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
-The later remote file API dynamic-share source change intentionally makes the
-current installed package/evidence stale again until a rebuild, reinstall, and
-fresh package-bound proofs are recorded.
+The later remote file API dynamic-share source change and brain pin refresh
+have now been rebuilt, reinstalled, and recaptured on `HUGH_SECOND`. The current
+package-bound evidence refresh is anchored by
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`: MSIX install
+`20260630-225859`, single-machine smoke `20260630-230117`, process ownership
+`20260630-230403`, startup single-instance `20260630-230424`, desktop
+single-instance `20260630-230448`, desktop-open idle CPU `20260630-230512`,
+and runtime CPU matrix `20260630-230631` all pass for `HUGH_SECOND`. The fresh
+second-PC kit is
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
+with SHA256
+`cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`.
 
 That current state still does not prove the full product: second-machine CPU
 evidence, release-grade multi-device route identity, packaged Private Mesh
@@ -97,17 +106,18 @@ Vercel edge apex TLS still fail. This is a stronger diagnosis, not completion:
 the `store-public-metadata` blocker remains until external DNS/TLS is repaired
 and `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
 
-2026-06-30 21:40 KST current-HEAD second-PC kit refresh:
-the next `hugh-main` evidence run now has a fresh kit generated from clean HEAD
+2026-06-30 21:40 KST current-HEAD second-PC kit refresh (historical,
+superseded by the 23:20 KST kit):
+the next `hugh-main` evidence run then had a fresh kit generated from clean HEAD
 `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`. The kit is
 `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 with SHA256
 `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 It includes `run-second-pc-release-check.ps1`, runtime CPU tools, route
 diagnostics, Private Mesh proof tools, P2P/relay evidence tools, and V34 proof
-tools. This removes stale handoff risk after the remote file CLI policy-blocker
-documentation commit, but it does not close the second-PC blockers until
-`hugh-main` runs the kit and the return zip is imported and verified.
+tools. This removed stale handoff risk after the remote file CLI
+policy-blocker documentation commit at that time, but it is no longer the
+current kit. Use the 23:20 KST `20260630-232004` kit for the next physical run.
 
 2026-06-30 21:24 KST remote file CLI physical proof policy blocker:
 a real `musu ls/get/put` attempt was run from `HUGH_SECOND` to `hugh-main`
@@ -143,9 +153,40 @@ watched roots. Verification passed
 (`2 passed`) and touched-file
 `rustfmt --edition 2021 --check musu-rs\src\bridge\handlers\files.rs`.
 Canonical report:
-`docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`. This is a
-source-level fix only; current package-bound evidence is stale until rebuild,
-reinstall, and fresh proofs are recorded.
+`docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`. At this point it was
+a source-level fix only and package-bound evidence was stale; the 23:20 KST
+refresh below supersedes that stale-package state for `HUGH_SECOND`.
+
+2026-06-30 23:20 KST current package/evidence refresh after dynamic share:
+the dynamic-share source fix and refreshed brain sidecar pin are now in the
+local sideload package on `HUGH_SECOND`. `musu-brain.pin.json` points to clean
+brain commit `c477c004691a7fe5d555e4403d91bab71a3c303f`
+(`vcs_time=2026-06-30T22:39:03+09:00`). The MSIX rebuild/reinstall passed, and
+current package-bound evidence exists for MSIX install `20260630-225859`,
+single-machine smoke `20260630-230117`, process ownership `20260630-230403`,
+startup single-instance `20260630-230424`, desktop single-instance
+`20260630-230448`, desktop-open idle CPU `20260630-230512`, and full runtime
+CPU matrix `20260630-230631`. The route probe to `hugh-main` succeeds over LAN,
+but remains `peer_identity_verified=false` and `encryption=none_http_bearer`,
+so it proves work targetability only. Canonical report:
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
+
+2026-06-30 23:20 KST current second-PC kit:
+the next physical `hugh-main` run should use
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`,
+generated from clean commit `e280648f2a9c2632e869d679bf1a4d4e221f7005`, SHA256
+`cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`. This
+supersedes the earlier `20260630-214014` kit.
+
+2026-06-30 brain handoff update:
+brain repo now carries
+`F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` on clean/pushed `main`
+commit `88a3df5`. The handoff confirms brain as the Go self-contained chip and
+MUSU as the motherboard that owns data, lifecycle, and UX. It also introduces a
+root-contract issue that must be resolved before deeper brain UX/autocollect:
+current musu-bee proof uses `~/.musu/brain`, while the brain handoff describes
+`~/.musubrain`. A single MUSU-owned resolver/env contract is now a required
+next step.
 
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
@@ -2101,13 +2142,13 @@ multi-device product blockers by itself. It only removes stale handoff risk so
 the next `hugh-main` return zip can be imported and judged against the current
 rc.22 evidence contract.
 
-2026-06-30 21:40 KST successor kit:
+2026-06-30 21:40 KST successor kit (historical, superseded by 23:20 KST):
 `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
 was generated from clean commit
 `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
 `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
-Use this kit for the next `hugh-main` run instead of earlier 2026-06-30 kits,
-including `20260630-211559`.
+This superseded earlier 2026-06-30 kits, including `20260630-211559`, but it is
+now itself superseded by the 23:20 KST `20260630-232004` kit.
 
 ## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
 

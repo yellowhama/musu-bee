@@ -22833,3 +22833,85 @@ Product meaning:
 Canonical handoff:
 
 - `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`
+
+## wiki/1188 - 2026-06-30 Current package refresh after dynamic share and brain pin
+
+The dynamic-share source fix and refreshed brain sidecar pin have been rebuilt,
+reinstalled, and recaptured on `HUGH_SECOND`.
+
+Current report:
+
+- `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`
+
+Package/evidence facts:
+
+- version: `1.15.0-rc.22`
+- package version: `1.15.0.22`
+- installed package:
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`
+- brain pin:
+  `github.com/yellowhama/musu-brain@c477c004691a7fe5d555e4403d91bab71a3c303f`
+- MSIX install evidence:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260630-225859-HUGH_SECOND.evidence.json`
+- single-machine evidence:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260630-230117-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260630-230403-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260630-230424-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260630-230448-HUGH_SECOND.desktop-single-instance.json`
+- idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-230512-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-230631-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- target-route verifier:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-230631-HUGH_SECOND.target-route.verification.json`
+
+Route meaning:
+
+- `hugh-main` is targetable over LAN candidate `192.168.1.192:4387`.
+- This is not release-grade transport proof:
+  `peer_identity_verified=false`, `encryption=none_http_bearer`, and
+  `payload_transited_musu_infra=false`.
+
+Brain handoff note:
+
+- Canonical brain handoff exists at
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`.
+- It confirms the motherboard+chip model, Go self-contained/no-Python
+  boundary, print-don't-write MCP registration, and user-note non-push rule.
+- It also creates a data-root conflict to resolve:
+  current package proof uses `~/.musu/brain`, while brain handoff text
+  describes `~/.musubrain`.
+
+Product meaning:
+
+- HUGH_SECOND package-bound local lanes are green again.
+- Product remains NO-GO until `hugh-main` returns current evidence and the
+  external/release-transport gates close.
+
+## wiki/1189 - 2026-06-30 Next steps after current package refresh
+
+Current next-step handoff:
+
+- `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`
+- Current second-PC kit:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
+- SHA256:
+  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`
+- source commit:
+  `e280648f2a9c2632e869d679bf1a4d4e221f7005`
+
+Priority order:
+
+1. Run/import the `hugh-main` second-PC kit return.
+2. Configure `hugh-main` writable remote-file proof share and pass
+   `musu put`, `musu ls`, and `musu get` from `hugh_second`.
+3. Resolve the brain data-root contract (`~/.musu/brain` versus
+   `~/.musubrain`) through one MUSU-owned resolver/env.
+4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
+5. Produce Private Mesh packaged proof archive.
+6. Complete release-grade route transport and relay proof.
+7. Record Store, design approval, live P2P control-plane, and V34 stale
+   self-heal evidence.

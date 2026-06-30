@@ -58,6 +58,12 @@ close the physical remote file proof because the installed package on both PCs
 must be rebuilt/reinstalled before this behavior exists in the packaged bridge,
 and `hugh-main` still needs a writable proof share configured.
 
+2026-06-30 23:20 KST update: this source change has now been rebuilt and
+reinstalled on `HUGH_SECOND`; current local package evidence is recorded in
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`. The second PC
+still needs the current kit installed before the physical `musu put/ls/get`
+proof can close.
+
 After the next package refresh, the expected physical proof flow is:
 
 ```powershell

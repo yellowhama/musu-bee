@@ -9,27 +9,30 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-214014.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-214014`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, `dirty=false`.
+  `e280648f2a9c2632e869d679bf1a4d4e221f7005`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, at `2026-06-30T21:40:22.8818407+09:00`, from clean commit
-  `25b2a510`.
+  `HUGH_SECOND`, at `2026-06-30T23:20:18.8205192+09:00`, from clean commit
+  `e280648f`.
 - Zip SHA256:
-  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
+  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
 Private Mesh packaged release-proof tools, and multi-device recorder/verifier
 scripts.
 
-The generator now supports the go/no-go next action command with `-Json` and
+The generator supports the go/no-go next action command with `-Json` and
 persists the latest `schema=musu.multidevice_test_kit_prepare.v1`,
 `zip_sha256`, `metadata_path`, and source git metadata to
-`.local-build/multi-device-test-kit/latest-prepare-output.json`.
+`.local-build/multi-device-test-kit/latest-prepare-output.json`. The current
+kit supersedes the earlier `20260630-214014` kit because it was generated after
+the dynamic-share package refresh, refreshed brain sidecar pin, and latest
+HUGH_SECOND runtime evidence commits.
 
 ## Command For hugh-main
 
@@ -72,14 +75,14 @@ New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
 musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
 ```
 
-After the dynamic-share-reload source fix is rebuilt and installed, the
-packaged bridge should not need a manual restart for the remote file API to
-reread `~/.musu/shares.toml`. Rerun the remote file proof from `hugh_second`
-and require all three commands to pass: `musu put`, `musu ls`, and `musu get`.
+After installing the current kit package, the packaged bridge should not need a
+manual restart for the remote file API to reread `~/.musu/shares.toml`. Rerun
+the remote file proof from `hugh_second` and require all three commands to
+pass: `musu put`, `musu ls`, and `musu get`.
 
-If `hugh-main` is still running the earlier rc.22 package, rebuild/reinstall
-first or restart the packaged bridge after `musu share`; otherwise the installed
-bridge may still hold the old startup-only file policy.
+If `hugh-main` is still running an earlier rc.22 package, install the current
+kit package first; otherwise the installed bridge may still hold the old
+startup-only file policy.
 
 Canonical blocker report:
 `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.

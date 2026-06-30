@@ -14,6 +14,44 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
+Authoritative 2026-06-30 current package/evidence refresh after dynamic-share
+rebuild:
+
+- Evidence source:
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`
+- Evidence anchor commit:
+  `e280648f2a9c2632e869d679bf1a4d4e221f7005`
+- Brain pin:
+  `github.com/yellowhama/musu-brain@c477c004691a7fe5d555e4403d91bab71a3c303f`
+- MSIX install:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260630-225859-HUGH_SECOND.evidence.json`
+- Single-machine smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260630-230117-HUGH_SECOND.evidence.json`
+- Process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260630-230403-HUGH_SECOND.process-ownership.json`
+- Startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260630-230424-HUGH_SECOND.startup-single-instance.json`
+- Desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260630-230448-HUGH_SECOND.desktop-single-instance.json`
+- Runtime idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-230512-HUGH_SECOND.desktop-open.evidence.json`
+- Runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-230631-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- Target route verifier:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-230631-HUGH_SECOND.target-route.verification.json`
+- Current second-PC kit:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-232004.zip`
+- Kit SHA256:
+  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`
+
+Qualitative read: the local package freshness debt from the dynamic-share
+source change and brain pin refresh is cleared on `HUGH_SECOND`. This still
+does not close the product because `hugh-main` has not returned current CPU
+evidence, remote file physical proof has not passed, release-grade route
+identity/transport is not proven, and the public metadata, Store, relay,
+Private Mesh, design approval, P2P control-plane, and V34 physical lanes remain
+open.
+
 Authoritative 2026-06-30 post-remote-file-CLI source-change gate:
 
 - Command source:
@@ -158,6 +196,32 @@ source-level usability/proof-path fix; package-bound evidence is stale until a
 new package is built/reinstalled and the physical `ls/get/put` proof is rerun.
 Canonical report:
 `docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`.
+
+2026-06-30 23:20 KST package/evidence refresh after dynamic share and brain
+pin update: `musu-brain.pin.json` now points to clean brain commit
+`c477c004691a7fe5d555e4403d91bab71a3c303f`, the local sideload MSIX was
+rebuilt/reinstalled on `HUGH_SECOND`, and package-bound evidence was recaptured
+for MSIX install, single-machine smoke, process ownership, startup
+single-instance, desktop single-instance, `desktop-open` idle CPU, and full
+five-scenario runtime CPU matrix. The matrix includes a successful targeted
+post-route attempt to `hugh-main`; verifier output passes both matrix
+completeness and target-route checks. Qualitative read: HUGH_SECOND is again
+healthy for the local packaged runtime, but the route proof remains
+non-release-grade (`peer_identity_verified=false`,
+`encryption=none_http_bearer`) and second-machine evidence is still missing.
+Canonical report:
+`docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
+
+2026-06-30 brain integration handoff refresh: the brain repo now has canonical
+handoff documentation at `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
+on clean/pushed `main` commit `88a3df5`. It confirms the motherboard+chip
+model, Go self-contained/no-Python boundary, print-don't-write MCP registration
+priority, user-note non-push rule, and automatic collection direction. It also
+surfaces an actionable spec conflict: current musu-bee proof uses
+`~/.musu/brain`, while the brain handoff describes `~/.musubrain`. This is now
+a HIGH integration risk until a single MUSU-owned resolver/env contract is
+documented and proven. Canonical thesis:
+`docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`.
 
 2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
 now matches the latest clean `F:\musu_2nd_brain` HEAD
@@ -321,15 +385,16 @@ external DNS/TLS authority is.
 
 2026-06-30 21:40 KST second-PC kit refresh: a fresh multi-device test kit was
 generated from clean commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`.
-Current kit:
+This is now historical and superseded by the 23:20 KST `20260630-232004` kit.
+Historical kit:
 `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`,
 SHA256
 `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
 The kit includes the release wrapper, runtime CPU tools, route diagnostics,
 Private Mesh proof tooling, P2P/relay evidence tooling, and V34 proof tooling.
-Qualitative read: this keeps the physical evidence handoff current for
-`hugh-main`; it does not reduce blocker count until the return zip is actually
-produced, imported, and verifier-passing.
+Qualitative read at the time: this kept the physical evidence handoff current
+for `hugh-main`; it did not reduce blocker count until the return zip was
+actually produced, imported, and verifier-passing.
 
 2026-06-30 design approval current-state refresh:
 `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub check

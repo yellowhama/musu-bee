@@ -10496,4 +10496,39 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `run-second-pc-release-check`, `hugh-main`, `hugh_second`, and
   `private-mesh-packaged-release-proof`.
 
+- 2026-06-30 current package refresh after dynamic share and brain pin:
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`, and `docs/WIKI.md` now record
+  the package-bound HUGH_SECOND refresh after dynamic-share reload and brain pin
+  update. Current evidence includes MSIX install `20260630-225859`, smoke
+  `20260630-230117`, process ownership `20260630-230403`, startup
+  single-instance `20260630-230424`, desktop single-instance
+  `20260630-230448`, idle CPU `20260630-230512`, and runtime CPU matrix
+  `20260630-230631`. The brain pin is
+  `github.com/yellowhama/musu-brain@c477c004691a7fe5d555e4403d91bab71a3c303f`.
+  The route to `hugh-main` succeeds over LAN but remains non-release-grade
+  (`peer_identity_verified=false`, `encryption=none_http_bearer`). Search terms
+  should include `wiki/1188`, `CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30`,
+  `20260630-230631-HUGH_SECOND`, `c477c004691a7fe5d555e4403d91bab71a3c303f`,
+  `musu-brain.pin.json`, `HANDOFF-musu-integration`, `~/.musu/brain`,
+  `~/.musubrain`, `none_http_bearer`, and `HUGH_SECOND package-bound lanes`.
+
+- 2026-06-30 next steps after current package refresh:
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next physical `hugh-main` run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-232004.zip`,
+  SHA256 `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`,
+  source commit `e280648f2a9c2632e869d679bf1a4d4e221f7005`. It also records
+  the remote file proof setup (`musu share ... --writable` on `hugh-main`) and
+  the brain data-root resolver as the next integration constraint. Search terms
+  should include `wiki/1189`,
+  `NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30`, `20260630-232004`,
+  `cbb42b29af996828105bb345547ac99c5be88d8ed09c5d9ccacd69d07f5c650e`,
+  `run-second-pc-release-check`, `remote-file-proof`, `musu put`, `musu ls`,
+  `musu get`, `brain data-root resolver`, and `hugh-main`.
+
 **End of WIKI_INDEX.md.**
