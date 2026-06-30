@@ -766,6 +766,53 @@ function Test-SecondPcReleaseCheckRouteTargetConsistencyContract {
     return $true
 }
 
+function Test-SecondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'SkipPrivateMeshPhysicalPeerEvidence',
+        'FailOnPrivateMeshPhysicalPeerEvidence',
+        '.local-build\private-mesh-physical-peer',
+        'musu mesh physical-peer-evidence',
+        'private_mesh_physical_peer_evidence_path',
+        'private_mesh_physical_peer_evidence_sha256_path',
+        'private_mesh_physical_peer_evidence_ok',
+        'private_mesh_physical_peer_evidence_report',
+        'private_mesh_physical_peer_evidence_error'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Copy-Sha256SidecarIntoRoot',
+        'musu.private_mesh_physical_peer_evidence.v1',
+        '.local-build\private-mesh-physical-peer',
+        'private_mesh_physical_peer_evidence_path',
+        'private_mesh_physical_peer_evidence_sha256_path',
+        'private_mesh_physical_peer_evidence_imported',
+        'private_mesh_physical_peer_evidence_release_check_ok',
+        'private_mesh_physical_peer_evidence_matches_release_check'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitMetadataContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1127,6 +1174,37 @@ function Test-SecondPcKitRouteReachabilityContract {
         'peer not found',
         'not release-grade multi-device proof',
         'verify-route-reachability-diagnostic.ps1 -EvidencePath'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"run-private-mesh-release-proof.ps1"',
+        '"smoke-private-mesh-route-proof.ps1"',
+        '"verify-private-mesh-route-proof-evidence.ps1"',
+        '"verify-private-mesh-release-proof-bundle.ps1"',
+        '"archive-private-mesh-release-proof-bundle.ps1"',
+        '"import-private-mesh-release-proof-archive.ps1"',
+        '"verify-private-mesh-release-proof-archive.ps1"',
+        '## Private Mesh packaged release proof handoff',
+        '.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json',
+        'musu mesh physical-peer-evidence --output',
+        'import-second-pc-return.ps1 -ReturnZipPath',
+        'PhysicalPeerEvidencePath',
+        'DesktopRuntimeKind packaged_desktop',
+        'SkipPrivateMeshPhysicalPeerEvidence',
+        'FailOnPrivateMeshPhysicalPeerEvidence',
+        'packaged desktop release-proof archive'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -5149,6 +5227,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC release check must capture and return target-side Private Mesh physical-peer evidence for packaged release-proof handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check returns Private Mesh physical-peer evidence" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcImportSubroleContractOk = Test-SecondPcImportRuntimeCpuSubroleContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportSubroleContractOk `
@@ -5205,6 +5295,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC return import verifies route reachability diagnostics" `
     -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcImportPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcImportPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC return import must copy Private Mesh physical-peer evidence and its sha256 sidecar into the canonical proof handoff root"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import preserves Private Mesh physical-peer evidence" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
     -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
@@ -5385,6 +5487,18 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit includes route reachability diagnostic handoff" `
     -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcKitPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC transfer kit must include Private Mesh proof tools and document the target-side physical-peer evidence handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes Private Mesh physical-peer proof handoff" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
     -Invocation $invocation

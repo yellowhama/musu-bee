@@ -68,6 +68,13 @@ $scriptFiles = @(
     "show-musu-pro-p2p-env-status.ps1",
     "record-p2p-control-plane-evidence.ps1",
     "verify-p2p-control-plane-evidence.ps1",
+    "run-private-mesh-release-proof.ps1",
+    "smoke-private-mesh-route-proof.ps1",
+    "verify-private-mesh-route-proof-evidence.ps1",
+    "verify-private-mesh-release-proof-bundle.ps1",
+    "archive-private-mesh-release-proof-bundle.ps1",
+    "import-private-mesh-release-proof-archive.ps1",
+    "verify-private-mesh-release-proof-archive.ps1",
     "capture-v34-source-snapshot.ps1",
     "record-v34-source-artifacts.ps1",
     "record-v34-self-heal-proof.ps1",
@@ -176,6 +183,7 @@ The wrapper runs the same steps below, writes
 `.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
 `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`,
+`.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json`,
 `.local-build\process-attribution\*.process-attribution-summary.json`,
 `.local-build\runtime-cleanup\*.runtime-cleanup.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
@@ -243,6 +251,38 @@ It resolves `suggested_remote_addrs`, runs `musu peer add`, confirms
 prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
 `smoke-multidevice-beta.ps1` commands to use next. This catches the
 `peer not found` state before wasting a 60s post-route CPU matrix.
+
+## Private Mesh packaged release proof handoff
+
+The second-PC wrapper now captures target-side Private Mesh physical-peer
+evidence with:
+
+```powershell
+musu mesh physical-peer-evidence --output .local-build\private-mesh-physical-peer\<TARGET>.physical-peer-evidence.json --json
+```
+
+That JSON and its `.sha256` sidecar are included in
+`.local-build\second-pc-return\*.zip`. When this kit is run on `hugh-main`, copy
+the return zip back to the primary release repo and import it with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+Then use the imported
+`.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json` as the
+`-PhysicalPeerEvidencePath` input for the source-PC Private Mesh packaged
+release proof:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-private-mesh-release-proof.ps1 -TargetNode hugh-main -TargetIp <HUGH_MAIN_100_X_IP> -ExpectedControlServerUrl https://mesh.musu.pro -PhysicalPeerEvidencePath .local-build\private-mesh-physical-peer\<HUGH_MAIN>.physical-peer-evidence.json -DesktopRuntimeKind packaged_desktop -Archive -Json
+```
+
+Use `-SkipPrivateMeshPhysicalPeerEvidence` only for diagnosing non-mesh
+install/handoff failures. Use `-FailOnPrivateMeshPhysicalPeerEvidence` for the
+final proof run. Physical-peer evidence by itself is not the final release
+proof; the gate closes only after the packaged desktop release-proof archive
+verifies.
 
 ## Relay transport failure-injection proof
 
