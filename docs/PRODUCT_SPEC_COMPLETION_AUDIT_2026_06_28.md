@@ -18,8 +18,8 @@ Authoritative 2026-06-30 local evidence refresh gate:
 
 - Command source:
   `.local-build/go-no-go/latest.json`
-- `generated_at`: `2026-06-30T16:18:55.8408998+09:00`
-- `manifest_git.commit`: `507a47b06584e610ba20d7b6927de2ca84bf058b`
+- `generated_at`: `2026-06-30T16:57:05.1755488+09:00`
+- `manifest_git.commit`: `87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc`
 - `manifest_git.dirty=false`
 - `full_product_spec_ready=false`
 - `ready_for_public_desktop_release=false`
@@ -35,6 +35,22 @@ Authoritative 2026-06-30 local evidence refresh gate:
 - `public_metadata_ok=false`
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
+
+2026-06-30 16:57 KST second-PC / Private Mesh handoff hardening: the current
+quality bar improved, but the product remains NO-GO. The second-PC release
+wrapper now captures target-side Private Mesh physical-peer evidence, returns
+the JSON plus `.sha256` sidecar in the second-PC zip, and the importer copies
+it into `.local-build\private-mesh-physical-peer\` for the final packaged
+Private Mesh proof archive. The regenerated kit is
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`
+with SHA256
+`78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`.
+`test-release-evidence-verifiers.ps1 -Json` passed with `case_count=219` and
+`failed_case_count=0`. This is a good evidence-pipeline improvement: it closes
+a manual handoff gap and reduces the chance that the final proof uses stale or
+wrong-machine physical-peer JSON. It does not reduce the blocker count because
+the release gate still needs `hugh-main` physical return evidence and a
+verified packaged desktop Private Mesh release-proof archive.
 
 2026-06-30 16:18 KST post-V34-hardening evidence refresh: after the V34
 proof-gate commit reopened source freshness, HUGH_SECOND recaptured

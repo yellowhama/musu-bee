@@ -21,8 +21,8 @@ for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted `hugh-main` post-route probe. The
-latest clean go/no-go recheck at `2026-06-30T16:24:51+09:00` on commit
-`aeaec9570a575c7ad367329ad10f711f3a766e8d` still reports
+latest clean go/no-go recheck at `2026-06-30T16:57:05+09:00` on commit
+`87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
 
@@ -31,6 +31,23 @@ evidence, release-grade multi-device route identity, packaged Private Mesh
 proof archive, public metadata DNS/TLS, Store release/Store-signed install
 evidence, real relay transport, explicit design approval, and V34 stale
 self-heal proof still remain.
+
+2026-06-30 16:57 KST second-PC kit / Private Mesh handoff update:
+`run-second-pc-release-check.ps1` now captures target-side
+`musu.private_mesh_physical_peer_evidence.v1` by default, includes the JSON and
+`.sha256` sidecar in the second-PC return zip, and
+`import-second-pc-return.ps1` imports that evidence into
+`.local-build\private-mesh-physical-peer\`. The regenerated clean-HEAD kit is:
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`,
+SHA256
+`78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`,
+source commit `87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc`, `dirty=false`.
+Regression verifier: `test-release-evidence-verifiers.ps1 -Json` passed with
+`case_count=219`, `failed_case_count=0`. This reduces operator friction for
+the `private-mesh-packaged-release-proof` lane, but it does not close that
+lane: `hugh-main` must still return the zip, the source PC must run/import a
+packaged desktop Private Mesh release-proof archive, and the archive verifier
+must pass before `private_mesh_packaged_release_proof_verified=true`.
 
 2026-06-28 11:11 KST audit refresh: the product remains NO-GO. The fresh local
 P2P store-forward relay contract audit passes (`ok=true`, `fail_count=0`), so

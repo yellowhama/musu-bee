@@ -736,6 +736,15 @@ Multi-device packet:
 - second-PC one-command release check: `scripts\windows\run-second-pc-release-check.ps1`
 - second-PC return archive: `.local-build\second-pc-return\*.zip`
 - second-PC return importer: `scripts\windows\import-second-pc-return.ps1`
+- Private Mesh physical-peer handoff: `run-second-pc-release-check.ps1` now
+  captures target-side `musu.private_mesh_physical_peer_evidence.v1`, returns
+  the JSON plus `.sha256` sidecar in the second-PC zip, and
+  `import-second-pc-return.ps1` copies it to
+  `.local-build\private-mesh-physical-peer\` for
+  `run-private-mesh-release-proof.ps1 -PhysicalPeerEvidencePath`; use
+  `-FailOnPrivateMeshPhysicalPeerEvidence` for the final `hugh-main` return
+  run. This handoff is not itself the final packaged Private Mesh proof; the
+  archive verifier still must pass with `DesktopRuntimeKind packaged_desktop`.
 - MSIX legacy conflict preflight: `scripts\windows\check-msix-legacy-conflicts.ps1 -Json -FailOnProblem`
 - release imports should use `-RequireReleaseGateEvidence` so MSIX-only return
   archives and stale CPU returns without subrole attribution cannot be mistaken

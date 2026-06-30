@@ -10198,4 +10198,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `boot_source_evidence_path`, and `V34 self-heal rejects non-operator source
   artifact type`.
 
+- 2026-06-30 second-PC kit Private Mesh physical-peer handoff:
+  `scripts/windows/run-second-pc-release-check.ps1` now captures target-side
+  `musu.private_mesh_physical_peer_evidence.v1` by default, returns the JSON
+  and `.sha256` sidecar in `.local-build\second-pc-return\*.zip`, and
+  `scripts/windows/import-second-pc-return.ps1` imports it into
+  `.local-build\private-mesh-physical-peer\` for the final packaged Private
+  Mesh release-proof archive. `prepare-multidevice-test-kit.ps1` now bundles
+  the Private Mesh proof/archive/import/verifier scripts and documents the
+  handoff. Clean regenerated kit:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`,
+  SHA256
+  `78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`,
+  source commit `87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc`, `dirty=false`.
+  `test-release-evidence-verifiers.ps1 -Json` passed with `case_count=219`,
+  `failed_case_count=0`; clean go/no-go at
+  `2026-06-30T16:57:05.1755488+09:00` still reports `blockers=10`,
+  `warnings=0`, and `private_mesh_packaged_release_proof_verified=false`.
+  This is an evidence-pipeline improvement, not proof completion. Search terms
+  should include `20260630-165500`,
+  `78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`,
+  `private_mesh_physical_peer_evidence_path`,
+  `FailOnPrivateMeshPhysicalPeerEvidence`,
+  `musu.private_mesh_physical_peer_evidence.v1`, `87ffa7a5`, and
+  `case_count=219`.
+
 **End of WIKI_INDEX.md.**

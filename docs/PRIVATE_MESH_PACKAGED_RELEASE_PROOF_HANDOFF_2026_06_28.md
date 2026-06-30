@@ -12,6 +12,17 @@ Tailscale status already reports `Self.HostName`. It also prefers the live
 What is not closed: the full release gate still requires a packaged desktop
 release proof archive generated from two physical machines.
 
+2026-06-30 update: the second-PC release wrapper and regenerated test kit now
+carry the target-side physical-peer evidence handoff. When the kit is run on
+`hugh-main`, `run-second-pc-release-check.ps1` captures
+`musu.private_mesh_physical_peer_evidence.v1`, includes the JSON and `.sha256`
+sidecar in `.local-build\second-pc-return\*.zip`, and
+`import-second-pc-return.ps1` copies it into
+`.local-build\private-mesh-physical-peer\`. This removes one manual copy step
+from the final proof path, but it does not close the release gate by itself.
+The gate still requires a verifier-passing packaged desktop release-proof
+archive with `desktop_runtime_kind=packaged_desktop`.
+
 ## Root Cause Found On HUGH_SECOND
 
 `musu mesh status --json` could infer the live node state:
@@ -95,18 +106,33 @@ or build host capacity is increased.
 
 ## Next Steps To Close The Gate
 
-1. Build a new current MSIX that includes the `physical-peer-evidence` fallback
-   fix.
-2. Install that packaged build on both physical PCs.
-3. On `hugh-main`, generate target-side evidence:
+1. Use the current regenerated second-PC kit:
+   `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`
+   (`SHA256=78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`).
+2. On `hugh-main`, run the packaged second-PC release check with Private Mesh
+   physical-peer evidence fail-closed:
 
 ```powershell
-musu mesh physical-peer-evidence --json
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 `
+  -RouteReachabilityTarget hugh_second `
+  -RuntimeCpuRouteTarget hugh_second `
+  -FailOnRouteReachabilityDiagnostic `
+  -FailOnRuntimeCpuScenarioMatrix `
+  -FailOnPrivateMeshPhysicalPeerEvidence
 ```
 
-4. Copy the generated JSON and its `.sha256` sidecar from `hugh-main` to this
-   source PC.
-5. On this source PC, run the final packaged proof:
+3. Copy the generated `.local-build\second-pc-return\*.zip` from `hugh-main`
+   to this source PC and import it:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts\windows\import-second-pc-return.ps1 `
+  -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> `
+  -Json
+```
+
+4. On this source PC, run the final packaged proof using the imported
+   `.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
@@ -114,12 +140,14 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -TargetNode hugh-main `
   -TargetIp <hugh-main-100.64.x.y> `
   -ExpectedControlServerUrl https://mesh.musu.pro `
-  -PhysicalPeerEvidencePath <copied-hugh-main-evidence-json> `
+  -PhysicalPeerEvidencePath .local-build\private-mesh-physical-peer\<hugh-main-evidence-json> `
+  -DesktopRuntimeKind packaged_desktop `
+  -Archive `
   -Json
 ```
 
-6. Verify/import the produced release proof archive.
-7. Rerun `scripts\windows\write-release-go-no-go.ps1 -Json`.
+5. Verify/import the produced release proof archive.
+6. Rerun `scripts\windows\write-release-go-no-go.ps1 -Json`.
 
 Only after the archive verifier passes should
 `private_mesh_packaged_release_proof_verified=true` be expected.
