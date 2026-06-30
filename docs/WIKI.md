@@ -22511,3 +22511,51 @@ Qualitative audit:
 Canonical report:
 
 - `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`
+
+## wiki/1181 - 2026-06-30 Remote file CLI mesh bearer fix
+
+Two-PC audit found a route/file auth split.
+
+Observed:
+
+- `musu route -t hugh-main --adapter echo` from `hugh_second` to `hugh-main`
+  succeeded and wrote verifier-passing route evidence.
+- `musu ls/get/put` against the same sibling node failed with
+  `unauthorized: invalid bearer`.
+
+Root cause:
+
+- route commands used `get_outbound_peer_token(&home)`, which prefers the
+  shared account/mesh bearer.
+- remote file commands used `get_token()`, which can prefer the local bridge
+  token. That token is not valid against a sibling machine's bridge.
+
+Changed:
+
+- `musu-rs/src/install/cli_commands.rs`
+  - `run_ls` now uses `get_outbound_peer_token(&home)`.
+  - `run_get` now uses `get_outbound_peer_token(&home)`.
+  - `run_put` now uses `get_outbound_peer_token(&home)`.
+
+Verification:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml remote_file_token --lib`:
+  `3/3`
+- `cargo test --manifest-path musu-rs\Cargo.toml remote_route_token --lib`:
+  `3/3`
+- `git diff --check`: passed
+
+Qualitative audit:
+
+- Source-level bug is fixed.
+- Route token precedence was preserved.
+- Both persisted mesh-bearer and `MUSU_MESH_BEARER` env paths are covered.
+- Packaged evidence is not refreshed yet for this source commit, so installed
+  rc.22 file-command behavior remains stale until rebuild/reinstall.
+- This does not close release-grade transport, peer identity, DNS/TLS, Store,
+  P2P control plane, relay transport, design approval, Private Mesh packaged
+  proof, V34 stale self-heal, or second-machine CPU/matrix blockers.
+
+Canonical report:
+
+- `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`

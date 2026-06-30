@@ -33,6 +33,21 @@ proof archive, public metadata DNS/TLS, Store release/Store-signed install
 evidence, real relay transport, explicit design approval, and V34 stale
 self-heal proof still remain.
 
+2026-06-30 19:45 KST remote file CLI mesh-bearer correction:
+the two-PC audit found that `musu route` could submit direct work from
+`hugh_second` to `hugh-main`, but sibling file commands (`musu ls/get/put`)
+failed with `unauthorized: invalid bearer`. Source audit found a real token
+policy mismatch: remote file commands used `get_token()` and therefore preferred
+the local bridge token, while route submission used `get_outbound_peer_token`
+and preferred the shared mesh bearer. `musu-rs/src/install/cli_commands.rs` now
+aligns `run_ls`, `run_get`, and `run_put` with route auth. Targeted verification
+passed `cargo test --manifest-path musu-rs\Cargo.toml remote_file_token --lib`
+(`3 passed`), `cargo test --manifest-path musu-rs\Cargo.toml remote_route_token
+--lib` (`3 passed`), and `git diff --check`. Canonical report:
+`docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`. This is a source-level
+correctness fix only; the installed package and product gate remain stale until
+both PCs are rebuilt/reinstalled and real `musu ls/get/put` evidence passes.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path

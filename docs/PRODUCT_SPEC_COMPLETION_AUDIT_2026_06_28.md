@@ -37,6 +37,21 @@ Authoritative 2026-06-30 current packaged local evidence refresh gate:
 - `p2p_control_plane_verified=false`
 - `relay_transport_product_verified=false`
 
+2026-06-30 19:45 KST remote file CLI auth audit: a real source-level product
+bug was found during sibling-PC testing. `musu route -t hugh-main --adapter
+echo` succeeded from `hugh_second`, but `musu ls/get/put` against `hugh-main`
+failed with `unauthorized: invalid bearer`. Code audit showed that file CLI
+commands used `get_token()` and therefore could send the local bridge token to a
+remote peer, while route commands already used `get_outbound_peer_token(&home)`
+and preferred the shared mesh bearer. `musu-rs/src/install/cli_commands.rs` now
+uses the outbound peer token path for `run_ls`, `run_get`, and `run_put`.
+Regression coverage passed `remote_file_token` (`3/3`) and `remote_route_token`
+(`3/3`), and `git diff --check` passed. Qualitative read: this closes a real
+multi-device usability gap in source, but it does not close the release gate
+until the fixed binary is packaged on both PCs and `musu ls/get/put` succeeds
+in physical evidence. Canonical report:
+`docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`.
+
 2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
 now matches the latest clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path

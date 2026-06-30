@@ -10345,4 +10345,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`, and
   `store-public-metadata DNS/TLS`.
 
+- 2026-06-30 remote file CLI mesh bearer fix:
+  `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the source-level fix for sibling file CLI auth.
+  During two-PC audit, `musu route -t hugh-main --adapter echo` succeeded from
+  `hugh_second`, but `musu ls/get/put` failed with `unauthorized: invalid
+  bearer`. `musu-rs/src/install/cli_commands.rs` now uses
+  `get_outbound_peer_token(&home)` for `run_ls`, `run_get`, and `run_put`,
+  matching route auth and preferring the shared mesh bearer over the local
+  bridge token. Validation passed `cargo test --manifest-path
+  musu-rs\Cargo.toml remote_file_token --lib` (`3/3`),
+  `cargo test --manifest-path musu-rs\Cargo.toml remote_route_token --lib`
+  (`3/3`), and `git diff --check`. This is a source fix only; package-bound
+  evidence remains stale until both PCs are rebuilt/reinstalled and real
+  `musu ls/get/put` proof passes. Search terms should include `wiki/1181`,
+  `REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30`, `invalid bearer`,
+  `remote_file_token_prefers_mesh_bearer_over_local_bridge_token`,
+  `remote_file_token_accepts_musu_mesh_bearer_env`,
+  `remote_file_token_accepts_musu_token_env_as_shared_bearer_override`,
+  `get_outbound_peer_token`, `run_ls`, `run_get`, and `run_put`.
+
 **End of WIKI_INDEX.md.**

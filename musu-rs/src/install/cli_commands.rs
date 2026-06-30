@@ -3644,7 +3644,7 @@ async fn run_room_presence_list(opts: RoomPresenceListOpts) -> Result<()> {
 /// `musu ls peer-name:/path` — list files on a remote peer.
 pub async fn run_ls(opts: LsOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -3691,7 +3691,7 @@ pub async fn run_ls(opts: LsOpts) -> Result<()> {
 /// `musu get peer-name:/path/to/file` — download a file from a peer.
 pub async fn run_get(opts: GetOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -3726,7 +3726,7 @@ pub async fn run_get(opts: GetOpts) -> Result<()> {
 /// `musu put local-file peer-name:/path/to/dest` — upload a file to a peer.
 pub async fn run_put(opts: PutOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -7304,6 +7304,49 @@ mod tests {
 
         assert_eq!(get_route_token(tmp.path(), true), "shared-env-musu-token");
         assert_eq!(get_route_token(tmp.path(), false), "local-env-bridge-token");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_prefers_mesh_bearer_over_local_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("bridge.env"),
+            "MUSU_BRIDGE_TOKEN=local-bridge-token-0123456789abcdef\n",
+        )
+        .unwrap();
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_outbound_peer_token(tmp.path()), "shared-mesh-bearer");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_accepts_musu_mesh_bearer_env() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_MESH_BEARER", "shared-env-mesh-bearer");
+
+        assert_eq!(
+            get_outbound_peer_token(tmp.path()),
+            "shared-env-mesh-bearer"
+        );
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_accepts_musu_token_env_as_shared_bearer_override() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        std::env::set_var("MUSU_TOKEN", "shared-env-musu-token");
+
+        assert_eq!(get_outbound_peer_token(tmp.path()), "shared-env-musu-token");
         clear_route_token_env();
     }
 
