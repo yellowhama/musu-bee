@@ -6,6 +6,15 @@ MUSU remains **NO-GO** for the full product spec and for public desktop
 release, but the current package-bound local evidence lanes are green again on
 `HUGH_SECOND`.
 
+Latest superseding refresh:
+
+- `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`
+- `generated_at`: `2026-06-30T20:41:01.8166825+09:00`
+- `manifest_git.commit`: `fbb759ed5fd7891c6db274963c7d37fc830a7c44`
+- `blockers=10`, `warnings=0`, `manifest_git.dirty=false`
+- This post-fix refresh rebuilt/reinstalled the remote file CLI mesh-bearer fix
+  and restored the local package-bound evidence lanes on `HUGH_SECOND`.
+
 Clean go/no-go after this refresh:
 
 - `generated_at`: `2026-06-30T19:19:32.5816741+09:00`

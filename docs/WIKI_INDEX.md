@@ -10381,4 +10381,30 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `wiki/1182`, `6484c5ce`, `blockers=15`, `package freshness lanes reopened`,
   `remote file CLI post-fix No-Go`, and `runtime_cpu_scenario_matrix_valid_machine_count=0`.
 
+- 2026-06-30 remote file CLI post-fix package evidence refresh:
+  `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the package-bound evidence refresh after the file
+  CLI mesh-bearer source fix. The fixed local sideload package was rebuilt and
+  installed on `HUGH_SECOND`, then MSIX install `20260630-202448`,
+  single-machine smoke `20260630-202515`, process ownership
+  `20260630-202444`, startup/desktop single-instance `20260630-202444`,
+  desktop-open idle CPU `20260630-202444`, and runtime CPU matrix
+  `20260630-202916` were recorded. Clean go/no-go at
+  `2026-06-30T20:41:01.8166825+09:00` on commit
+  `fbb759ed5fd7891c6db274963c7d37fc830a7c44` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+  The `hugh-main` route probe succeeds over LAN but remains
+  `peer_identity_verified=false` and `encryption=none_http_bearer`, so it is
+  targetability proof, not release-grade transport. Search terms should include
+  `wiki/1183`, `REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30`,
+  `fbb759ed`, `20260630-202916-HUGH_SECOND`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
+  `musu ls get put physical proof pending`, and `none_http_bearer`.
+
 **End of WIKI_INDEX.md.**

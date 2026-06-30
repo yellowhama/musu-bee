@@ -22560,6 +22560,62 @@ Canonical report:
 
 - `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`
 
+## wiki/1183 - 2026-06-30 Remote file CLI post-fix package evidence refresh
+
+After rebuilding and reinstalling the local sideload package with the remote
+file CLI mesh-bearer fix, `HUGH_SECOND` package-bound local evidence is current
+again.
+
+New evidence:
+
+- MSIX install: `20260630-202448-HUGH_SECOND`
+- single-machine smoke: `20260630-202515-HUGH_SECOND`
+- process ownership: `20260630-202444-HUGH_SECOND`
+- startup single-instance: `20260630-202444-HUGH_SECOND`
+- desktop single-instance: `20260630-202444-HUGH_SECOND`
+- desktop-open idle CPU: `20260630-202444-HUGH_SECOND`
+- runtime CPU matrix: `20260630-202916-HUGH_SECOND`
+
+Clean go/no-go:
+
+- `generated_at=2026-06-30T20:41:01.8166825+09:00`
+- `manifest_git.commit=fbb759ed5fd7891c6db274963c7d37fc830a7c44`
+- `manifest_git.dirty=false`
+- `ready_for_public_desktop_release=false`
+- `full_product_spec_ready=false`
+- `blockers=10`
+- `warnings=0`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`
+- `public_metadata_ok=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+Qualitative audit:
+
+- The file CLI auth source fix is now package-built and locally proven on
+  `HUGH_SECOND`.
+- The local runtime is package-owned, single-instance, and CPU-quiet across the
+  measured desktop and route scenarios.
+- The `hugh-main` route probe succeeds over LAN and proves targetability.
+- The route still is not release-grade transport:
+  `peer_identity_verified=false` and `encryption=none_http_bearer`.
+- Real sibling `musu ls/get/put` behavior still needs physical proof after
+  both PCs install the fixed package.
+- Remaining blockers are still product/external gates: second-PC evidence,
+  Private Mesh packaged proof, DNS/TLS public metadata, Store, P2P control
+  plane, design approval, relay transport, and V34 stale self-heal.
+
+Canonical report:
+
+- `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`
+
 ## wiki/1182 - 2026-06-30 Remote file CLI post-fix No-Go
 
 After commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`,

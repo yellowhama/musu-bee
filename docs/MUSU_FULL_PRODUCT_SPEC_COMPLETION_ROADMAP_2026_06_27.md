@@ -57,6 +57,26 @@ single-machine smoke, process ownership, startup/desktop single-instance,
 runtime idle CPU, runtime CPU matrix, and targeted post-route CPU sample must
 be recaptured from a rebuilt package before those lanes count again.
 
+2026-06-30 20:41 KST post-fix package evidence refresh:
+the remote file CLI mesh-bearer source fix has now been rebuilt into the
+current local sideload package on `HUGH_SECOND`, installed, and re-proven for
+the local package-bound lanes. Clean go/no-go at
+`2026-06-30T20:41:01.8166825+09:00` on commit
+`fbb759ed5fd7891c6db274963c7d37fc830a7c44` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
+`single_machine_verified`, `msix_install_verified`,
+`process_ownership_verified`, `startup_single_instance_verified`, and
+`desktop_single_instance_verified` are true again. Runtime CPU evidence is
+valid for `HUGH_SECOND` only:
+`runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+The targeted route probe to `hugh-main` succeeds over LAN, but it remains
+legacy `none_http_bearer` with `peer_identity_verified=false`; it proves
+work-targetability, not release-grade transport. Canonical report:
+`docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path

@@ -43,6 +43,37 @@ evidence for commit `0db4b39e`, but it is no longer current for HEAD. The new
 source fix intentionally reopens package freshness lanes until a rebuilt MSIX is
 installed and evidence is recaptured.
 
+Authoritative 2026-06-30 post-fix package evidence refresh gate:
+
+- Command source:
+  `.local-build/go-no-go/latest.json`
+- `generated_at`: `2026-06-30T20:41:01.8166825+09:00`
+- `manifest_git.commit`: `fbb759ed5fd7891c6db274963c7d37fc830a7c44`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=10`
+- `warnings=0`
+- `single_machine_verified=true`
+- `msix_install_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_verified=false`
+- `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_verified=false`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`
+- `public_metadata_ok=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+This supersedes the 19:52 stale package-freshness snapshot for current local
+package evidence. It does not supersede the product NO-GO: only `HUGH_SECOND`
+has current CPU evidence, public metadata is red, and the release-grade P2P,
+relay, Store, design approval, Private Mesh, and V34 proof lanes remain open.
+
 Authoritative 2026-06-30 current packaged local evidence refresh gate:
 
 - Command source:
@@ -80,6 +111,20 @@ multi-device usability gap in source, but it does not close the release gate
 until the fixed binary is packaged on both PCs and `musu ls/get/put` succeeds
 in physical evidence. Canonical report:
 `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`.
+
+2026-06-30 20:41 KST post-fix package evidence refresh: after the file CLI
+auth fix, the local MSIX was rebuilt and reinstalled on `HUGH_SECOND`, then
+MSIX install, single-machine smoke, process ownership, startup single-instance,
+desktop single-instance, `desktop-open` idle CPU, and full runtime CPU matrix
+evidence were recaptured. The matrix targets `hugh-main`, succeeds, and both
+normal and target-route verifiers pass. Qualitative read: the local package
+freshness debt caused by the file CLI source fix is cleared on `HUGH_SECOND`.
+It is still not a full product completion signal because second-machine CPU
+evidence, physical `musu ls/get/put` proof after both PCs install the fixed
+package, release-grade route identity/transport, Private Mesh packaged proof,
+public metadata DNS/TLS, Store evidence, relay transport, design approval, and
+V34 stale-state proof remain open. Canonical report:
+`docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`.
 
 2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
 now matches the latest clean `F:\musu_2nd_brain` HEAD
