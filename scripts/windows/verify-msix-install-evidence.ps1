@@ -217,6 +217,8 @@ Add-CheckFromCondition "install location" (-not [string]::IsNullOrWhiteSpace($in
 Add-CheckFromCondition "operator machine" (-not [string]::IsNullOrWhiteSpace($operatorMachine)) "operator_machine is present" "operator_machine is missing"
 Add-CheckFromCondition "operator user" (-not [string]::IsNullOrWhiteSpace($operatorUser)) "operator_user is present" "operator_user is missing"
 Add-CheckFromCondition "artifact contract match" (Get-BoolProperty -Object $evidence -Name "artifact_contract_match") "installed contract matches artifact" "installed contract does not match artifact"
+Add-CheckFromCondition "brain fullTrust process" (Get-BoolProperty -Object $evidence -Name "brain_full_trust_process") "brain fullTrustProcess is declared" "brain fullTrustProcess is not declared"
+Add-CheckFromCondition "brain executable" ((Get-StringProperty -Object $evidence -Name "brain_executable") -eq "musu-brain.exe") "brain executable is musu-brain.exe" "brain executable is missing or invalid"
 Add-CheckFromCondition "WindowsApps alias" (Get-BoolProperty -Object $evidence -Name "windowsapps_alias_present") "WindowsApps alias exists" "WindowsApps alias is missing"
 Add-CheckFromCondition "alias discoverable" (Get-BoolProperty -Object $evidence -Name "alias_visible_in_get_command") "alias is discoverable via Get-Command" "alias is not discoverable via Get-Command"
 Add-CheckFromCondition "alias shadowing mode" ($evidenceAliasShadowingMode -in @("fail", "warn-explicit-windowsapps")) "alias shadowing mode is valid" "alias shadowing mode is invalid"
@@ -248,9 +250,11 @@ $requiredNestedChecks = @(
     "package identity",
     "installed package",
     "musu exe",
+    "brain exe",
     "startup exe",
     "installed manifest",
     "installed alias contract",
+    "installed brain fullTrust process",
     "installed startup contract",
     "artifact contract match",
     "version match",

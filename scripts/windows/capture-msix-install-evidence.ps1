@@ -118,10 +118,12 @@ try {
     if ($pkg) {
         $installLocation = $pkg.InstallLocation
         $musuExe = Join-Path $installLocation "musu.exe"
+        $brainExe = Join-Path $installLocation "musu-brain.exe"
         $startupExe = Join-Path $installLocation "musu-startup.exe"
         $manifestPath = Join-Path $installLocation "AppxManifest.xml"
 
         Add-CheckFromCondition "musu exe" (Test-Path -LiteralPath $musuExe) "musu.exe exists in installed package" "musu.exe is missing in installed package"
+        Add-CheckFromCondition "brain exe" (Test-Path -LiteralPath $brainExe) "musu-brain.exe exists in installed package" "musu-brain.exe is missing in installed package"
         Add-CheckFromCondition "startup exe" (Test-Path -LiteralPath $startupExe) "musu-startup.exe exists in installed package" "musu-startup.exe is missing in installed package"
         Add-CheckFromCondition "installed manifest" (Test-Path -LiteralPath $manifestPath) "AppxManifest.xml exists in installed package" "AppxManifest.xml is missing in installed package"
 
@@ -129,6 +131,7 @@ try {
             [xml]$manifestXml = Get-Content -LiteralPath $manifestPath
             $installedContract = Get-MsixStartupContract -Manifest $manifestXml
             Add-CheckFromCondition "installed alias contract" ([bool]$installedContract.HasAlias) "installed manifest declares appExecutionAlias" "installed manifest does not declare appExecutionAlias"
+            Add-CheckFromCondition "installed brain fullTrust process" ([bool]$installedContract.HasBrainFullTrustProcess -and $installedContract.BrainExecutable -eq "musu-brain.exe") "installed manifest declares brain fullTrustProcess" "installed manifest does not declare brain fullTrustProcess"
             Add-CheckFromCondition "installed startup contract" ([bool]$installedContract.HasStartupTask) "installed manifest declares startupTask" "installed manifest does not declare startupTask"
             if ($artifactContract) {
                 Add-CheckFromCondition `
@@ -235,6 +238,8 @@ $evidence = [pscustomobject]@{
     install_location = $installLocation
     startup_task_id = if ($installedContract) { $installedContract.StartupTaskId } else { $null }
     startup_enabled = if ($installedContract) { $installedContract.StartupEnabled } else { $null }
+    brain_full_trust_process = if ($installedContract) { [bool]$installedContract.HasBrainFullTrustProcess } else { $false }
+    brain_executable = if ($installedContract) { $installedContract.BrainExecutable } else { $null }
     startup_immediate_registration = if ($installedContract) { $installedContract.StartupImmediateRegistration } else { $null }
     non_user_configurable_startup_capability = if ($installedContract) { [bool]$installedContract.HasNonUserConfigurableStartupCapability } else { $false }
     run_full_trust = if ($installedContract) { [bool]$installedContract.HasRunFullTrust } else { $false }
