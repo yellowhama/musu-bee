@@ -1775,6 +1775,60 @@ Canonical wrap-up report:
 
 - `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP.md`
 
+## 2026-06-30 HUGH_SECOND Runtime CPU Evidence Refresh
+
+The next local runtime CPU pass was completed on `HUGH_SECOND` using the
+release-required flags and a real peer route target.
+
+Clean gate:
+
+- `.local-build/go-no-go/latest.json`
+- `generated_at=2026-06-30T15:03:45.1745611+09:00`
+- `manifest_git.commit=9a316828f9fe403785612808f54f504ea48b37ed`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=10`
+- `warnings=0`
+
+New evidence:
+
+- `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-145344-HUGH_SECOND.desktop-open.evidence.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+
+What changed:
+
+- The prior idle CPU attempt was not counted because it omitted strict release
+  flags. The new idle capture includes `-RequireOwnedWebView2`, `-IncludeNode`,
+  and `-IncludeWebView2`, and go/no-go now records
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`.
+- The new full matrix covers `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route` with
+  `-RunRouteProbe -RouteTarget hugh-main`; strict verification passes with
+  `fail_count=0`.
+- `runtime_cpu_second_pc_route_attempt_verified=true`, so this pass removes the
+  `runtime-cpu-second-pc-route-attempt` blocker.
+
+What did not change:
+
+- Full product readiness is still false.
+- Runtime idle CPU and runtime CPU scenario matrix still need a second physical
+  machine to reach `2/2`.
+- The `hugh-main` route attempt proves a CPU post-route sample after a targeted
+  peer route, not release-grade peer identity. The route explain still records
+  legacy `http_bearer`, `peer_identity_verified=false`, and
+  `encryption=none_http_bearer`, so multi-device/release transport blockers
+  remain open.
+- The remaining blocker set is now: multi-device, Private Mesh packaged proof,
+  second-machine idle CPU, second-machine runtime CPU matrix, public metadata,
+  Store, P2P control plane, design approval, relay transport, and V34 stale
+  self-heal.
+
+Canonical report:
+
+- `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md`
+
 ## Confidence
 
 High confidence:

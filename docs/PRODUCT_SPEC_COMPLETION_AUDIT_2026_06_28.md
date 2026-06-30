@@ -14,6 +14,38 @@ several release lanes still require external or physical evidence.
 
 ## Latest Gate Snapshot
 
+Authoritative 2026-06-30 runtime CPU refresh gate:
+
+- Command source:
+  `.local-build/go-no-go/latest.json`
+- `generated_at`: `2026-06-30T15:03:45.1745611+09:00`
+- `manifest_git.commit`: `9a316828f9fe403785612808f54f504ea48b37ed`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `blockers=10`
+- `warnings=0`
+- `runtime_idle_cpu_verified=false`
+- `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_scenario_matrix_verified=false`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`
+- `public_metadata_ok=false`
+- `p2p_control_plane_verified=false`
+- `relay_transport_product_verified=false`
+
+2026-06-30 15:03 KST update: HUGH_SECOND recaptured release-required
+`desktop-open` idle CPU with `-RequireOwnedWebView2`, `-IncludeNode`, and
+`-IncludeWebView2`, then recaptured the full five-scenario runtime CPU matrix
+with `-RunRouteProbe -RouteTarget hugh-main`. Both captures were clean
+(`git_dirty=false`) and verifier-passing. This moves blocker count from `11` to
+`10` because `runtime_cpu_second_pc_route_attempt_verified=true`. The product
+remains NO-GO because idle CPU and matrix evidence are still only `1/2`
+machines, and the remaining blockers still require second-PC, external DNS/TLS,
+Store, P2P, design approval, relay transport, and V34 stale-state proof. See
+`docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md`.
+
 Authoritative 2026-06-28 wrap-up clean gate:
 
 - Command source:

@@ -10081,4 +10081,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260628-231633-HUGH_SECOND.desktop-open.evidence`, and
   `RequireOwnedWebView2 IncludeNode IncludeWebView2`.
 
+- 2026-06-30 HUGH_SECOND runtime CPU evidence refresh:
+  `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md` records the latest local
+  CPU evidence pass. New evidence includes
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-145344-HUGH_SECOND.desktop-open.evidence.json`
+  and
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  plus strict verification
+  `20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
+  The idle capture used `-RequireOwnedWebView2`, `-IncludeNode`, and
+  `-IncludeWebView2`; the matrix used `-RunRouteProbe -RouteTarget hugh-main`.
+  Clean go/no-go at `2026-06-30T15:03:45.1745611+09:00` on commit
+  `9a316828f9fe403785612808f54f504ea48b37ed` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. This removes the
+  `runtime-cpu-second-pc-route-attempt` blocker only; it does not close
+  second-machine CPU, multi-device release transport, relay transport, public
+  metadata, Store, P2P control plane, design approval, Private Mesh packaged
+  proof, or V34 stale self-heal. Search terms should include
+  `RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30`,
+  `20260630-145344-HUGH_SECOND.desktop-open.evidence`,
+  `20260630-145519-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_145519`, `blockers=10`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+
 **End of WIKI_INDEX.md.**
