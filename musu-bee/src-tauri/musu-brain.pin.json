@@ -4,6 +4,6 @@
   "module_path": "github.com/yellowhama/musu-brain",
   "main_package": "./cmd/musu-brain",
   "default_repo_hint": "F:\\musu_2nd_brain",
-  "vcs_revision": "1416969c976b9edcd905c287fa70ab3221297305",
-  "vcs_time": "2026-06-30T18:04:37+09:00"
+  "vcs_revision": "c477c004691a7fe5d555e4403d91bab71a3c303f",
+  "vcs_time": "2026-06-30T22:39:03+09:00"
 }
