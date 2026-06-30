@@ -1003,7 +1003,8 @@ pub async fn run_share(opts: ShareOpts) -> Result<()> {
     } else {
         println!("  Mode: read-only");
     }
-    println!("  Restart bridge to apply: musu bridge");
+    println!("  Remote file API: applies without bridge restart");
+    println!("  File watcher/sync: restart bridge to refresh watched roots");
     Ok(())
 }
 

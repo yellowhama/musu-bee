@@ -72,10 +72,14 @@ New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
 musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
 ```
 
-Then restart the packaged bridge on `hugh-main` so it rereads
-`~/.musu/shares.toml`. After that, rerun the remote file proof from
-`hugh_second` and require all three commands to pass: `musu put`, `musu ls`,
-and `musu get`.
+After the dynamic-share-reload source fix is rebuilt and installed, the
+packaged bridge should not need a manual restart for the remote file API to
+reread `~/.musu/shares.toml`. Rerun the remote file proof from `hugh_second`
+and require all three commands to pass: `musu put`, `musu ls`, and `musu get`.
+
+If `hugh-main` is still running the earlier rc.22 package, rebuild/reinstall
+first or restart the packaged bridge after `musu share`; otherwise the installed
+bridge may still hold the old startup-only file policy.
 
 Canonical blocker report:
 `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.

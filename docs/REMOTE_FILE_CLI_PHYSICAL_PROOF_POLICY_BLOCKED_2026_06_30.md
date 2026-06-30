@@ -15,8 +15,12 @@ The current blocker is target-side file API enablement:
 - `hugh-main` has no configured file serve root.
 - write proof additionally requires writable sharing.
 - `musu share` persists the policy in `~/.musu/shares.toml`.
-- the bridge must be restarted after share changes, because
-  `BridgeConfig::from_env()` reads shares during bridge startup.
+- this proof package read shares during bridge startup, so the running bridge
+  did not expose a newly shared root without policy reload.
+
+Superseding source note: `docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`
+removes the remote file API restart requirement for future packages by
+reloading file-share policy per request.
 
 ## Evidence
 
@@ -48,24 +52,24 @@ The code audit matches the runtime behavior.
   implements `musu share`, `musu shares`, and `musu unshare` by writing
   `~/.musu/shares.toml`.
 - [musu-rs/src/install/shares.rs](../musu-rs/src/install/shares.rs) documents
-  the intended policy: bridge startup merges `shares.toml` into
-  `file_serve_roots`, so operators do not hand-edit env vars.
+  the intended policy: remote file API requests reload `shares.toml`, while
+  bridge startup still merges roots for watcher/sync setup.
 - [musu-rs/src/bridge/config.rs](../musu-rs/src/bridge/config.rs) merges
   `MUSU_FILE_SERVE_ROOTS` plus `shares.toml`, and sets writable mode from
   `MUSU_FILE_SERVE_WRITABLE` or any writable share.
 - [musu-rs/src/bridge/handlers/files.rs](../musu-rs/src/bridge/handlers/files.rs)
   fails closed when no file serve root is configured, and separately fails
   closed when write support is disabled.
-- `musu share` prints `Restart bridge to apply: musu bridge`, so a share change
-  is not live for an already-running packaged bridge until restart/repair.
+- Newer source changes `musu share` output to state that remote file API policy
+  applies without bridge restart; watcher/sync roots still need restart.
 
 ## Findings
 
 | Severity | Issue | Evidence | Impact | Next |
 |---|---|---|---|---|
-| NO-GO | Remote file CLI physical proof is not complete. | `ok=false` proof file above; all `ls/get/put` steps exit 1. | File browsing/download/upload across the two installed PCs cannot be claimed complete yet. | Enable a target share on `hugh-main`, restart bridge, rerun proof. |
+| NO-GO | Remote file CLI physical proof is not complete. | `ok=false` proof file above; all `ls/get/put` steps exit 1. | File browsing/download/upload across the two installed PCs cannot be claimed complete yet. | Enable a target share on `hugh-main`, rebuild/reinstall the dynamic-share package or restart the older bridge, rerun proof. |
 | INFO | The earlier token bug is not the observed blocker anymore. | Target returned `forbidden`, not `unauthorized: invalid bearer`. | The mesh-bearer source/package fix appears to have moved the flow past auth selection. | Keep token tests, but focus next run on target file policy. |
-| HIGH | The product needs an operator-safe proof path for remote file sharing. | Required setup exists as `musu share <PATH> --writable`, but current second-PC proof run did not configure it. | Operators can fail the proof even when networking/auth are healthy. | Add the target-side share/restart step to the second-PC remote-file proof run card. |
+| HIGH | The product needs an operator-safe proof path for remote file sharing. | Required setup exists as `musu share <PATH> --writable`, but current second-PC proof run did not configure it. Source now removes the remote file API restart requirement for future packages. | Operators can fail the proof even when networking/auth are healthy. | Rebuild/reinstall, add the target-side share step to the second-PC remote-file proof run card, and rerun the proof. |
 
 ## Next Execution Procedure
 
@@ -76,11 +80,12 @@ New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
 musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
 ```
 
-Then restart the packaged bridge on `hugh-main`. Use the existing hosted repair
-path or a normal app/bridge restart; the important requirement is that the
-new bridge process rereads `~/.musu/shares.toml`.
+With a package that includes the dynamic share reload source fix, a bridge
+restart should not be required for the remote file API to reread
+`~/.musu/shares.toml`. If `hugh-main` is still running the earlier package used
+for this failed proof, rebuild/reinstall first or restart the packaged bridge.
 
-After restart, rerun from `hugh_second`:
+Then rerun from `hugh_second`:
 
 ```powershell
 musu put .local-build\remote-file-cli-proof\<stamp>\remote-file-cli-proof-<stamp>.txt hugh-main:C:\Users\empty\.musu\codex-remote-file-proof\remote-file-cli-proof-<stamp>.txt

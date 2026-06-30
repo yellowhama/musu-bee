@@ -136,13 +136,28 @@ the target bridge returned `forbidden` file policy responses, not
 disabled, while `musu ls` and `musu get` were rejected because no
 `MUSU_FILE_SERVE_ROOTS` or `musu share` root is configured on `hugh-main`.
 Code audit confirms the expected contract: `musu share` persists
-`~/.musu/shares.toml`; bridge startup merges those roots into
-`file_serve_roots`; and a bridge restart is required after share changes.
+`~/.musu/shares.toml`; the file API is fail-closed until a share/root exists;
+and the package used for this proof had not exposed the proof root.
 Qualitative read: token source correctness is now source/package supported on
 `HUGH_SECOND`, but the remote file workflow is still not complete until
-`hugh-main` exposes a writable proof share, the bridge restarts, and the
-three-command physical proof passes. Canonical report:
+`hugh-main` exposes a writable proof share and the three-command physical proof
+passes. Canonical report:
 `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.
+
+2026-06-30 22:06 KST remote file CLI dynamic share reload: source now removes
+the bridge-restart requirement for remote file API policy changes. The file API
+handlers reload current policy from `MUSU_FILE_SERVE_ROOTS`,
+`MUSU_FILE_SERVE_WRITABLE`, and `~/.musu/shares.toml` per request, so future
+packaged bridges should see `musu share --writable` and `musu unshare` without
+manual restart. The fail-closed behavior is preserved when no root or writable
+policy is configured. `musu share` output now distinguishes this hot-reloaded
+file API policy from watcher/sync roots, which still refresh at bridge startup.
+Verification passed `cargo test --manifest-path musu-rs\Cargo.toml
+file_serve_policy --lib -j 1` (`2 passed`) and touched-file rustfmt. This is a
+source-level usability/proof-path fix; package-bound evidence is stale until a
+new package is built/reinstalled and the physical `ls/get/put` proof is rerun.
+Canonical report:
+`docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`.
 
 2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
 now matches the latest clean `F:\musu_2nd_brain` HEAD
@@ -855,7 +870,7 @@ errors (`os error 1455`, `LNK1102`). Narrow checks should use `--lib` and
 | NO-GO | Full product spec is not complete. | Latest clean gate after the current second-PC kit refresh on commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3` has `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, `blockers=10`, `warnings=0`, `manifest_git.dirty=false`, and `public_metadata_ok=false`. | A release-ready claim would overstate the evidence. | Close the remaining physical/external product blockers and finish the real relay runtime/proof lane. |
 | NO-GO | Public metadata cannot be verified over canonical HTTPS and DNS authority does not match Vercel's intended nameservers. | `verify-store-public-metadata.ps1` fails all three canonical routes with `request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`; the latest DNS repair planner evidence `20260630-205941` has `vercel_inspect.ok=true`, confirms `musu.pro` is bound to Vercel project `musu-pro`, and still records Cloudflare NS plus Cloudflare apex A/AAAA records, apex TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. | Privacy/support/public-config and Store metadata proof remain blocked. | Repair apex DNS/TLS using the non-mutating planner output, then rerun verifier and go/no-go. |
 | NO-GO | Relay is not a delegated-work transport yet. | P2P env status now has `release_relay_payload_endpoint_implemented=true` and `release_payload_endpoint_proof_bound=true`, and relay leases now expose explicit `transport_intent=release_tunnel` that stays fail-closed; however `release_relay_tunnel_runtime_implemented=false`, KV/Upstash storage is missing, and live relay route/transport/delivery proof is missing. | Relay cannot be marketed as task routing fallback. | Implement release tunnel runtime, provision hosted storage, then record direct-blocked two-PC relay proof. |
-| HIGH | Remote file CLI physical proof is blocked by target file-share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` has `ok=false`; `put` returns `file writes disabled`, and `ls/get` return `MUSU_FILE_SERVE_ROOTS not configured`. | The earlier token mismatch is no longer the observed blocker, but cross-PC file browsing/download/upload still cannot be claimed complete. | On `hugh-main`, run `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart bridge, then rerun `ls/get/put` proof. |
+| HIGH | Remote file CLI physical proof is blocked by target file-share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` has `ok=false`; `put` returns `file writes disabled`, and `ls/get` return `MUSU_FILE_SERVE_ROOTS not configured`. Source now hot-reloads share policy per file API request, but this is not in the installed proof package yet. | The earlier token mismatch is no longer the observed blocker, but cross-PC file browsing/download/upload still cannot be claimed complete. | Rebuild/reinstall the package, on `hugh-main` run `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, then rerun `ls/get/put` proof. |
 | HIGH | Doctor/background and P2P audit evidence previously disagreed with the relay poller runtime default. | Runtime relay payload polling is default-on opt-out, but doctor used a truthy env check and the P2P audit message still said default-off. Source now reuses `relay_payload_poller_enabled()`, the audit wording is aligned, and targeted tests pass. | Without this fix, runtime-loop/CPU evidence could under-report an active low-duty loop and mislead release audits. | Keep the helper shared; refresh package-bound evidence after this runtime source change. |
 | HIGH | Design approval is now URL-evidence-gated, but still missing. | `design-gate` requires a standalone `Design: Approved` line plus a GitHub `#issuecomment-...` approval URL; issue #35 currently has evidence-refresh comments, not approval. | PR #34 remains blocked and cannot be merged honestly. | Add explicit CEO/design approval on issue #35, then update the PR body with that approval comment URL. |
 | HIGH | Private Mesh physical-peer evidence had stale-config coupling. | `mesh.node_name` missing and persisted tailnet IP stale, while live Tailscale state was usable. Source now falls back to live `Self.HostName` and `tailscale ip -4`; debug CLI evidence generation passes. | This removes a local proof generator failure, but not the packaged release proof blocker. | Rebuild/install the package with this fix on both PCs, collect target evidence from `hugh-main`, then run the archive verifier. |

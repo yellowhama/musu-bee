@@ -11,7 +11,7 @@
 //!   - DELETE /api/files          — delete a file or directory
 //!   - GET    /api/files/info     — get file/dir metadata
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use axum::body::Body;
 use axum::extract::{Query, State};
@@ -124,6 +124,53 @@ fn validate_path(roots: &[PathBuf], user_path: &str) -> std::result::Result<Path
     )))
 }
 
+#[derive(Debug, Clone)]
+struct FileServePolicy {
+    roots: Vec<PathBuf>,
+    writable: bool,
+}
+
+fn env_truthy(name: &str) -> bool {
+    matches!(
+        std::env::var(name).as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
+}
+
+fn env_file_serve_roots() -> Vec<PathBuf> {
+    std::env::var("MUSU_FILE_SERVE_ROOTS")
+        .unwrap_or_default()
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
+fn file_serve_policy_from_sources(musu_home: &Path) -> FileServePolicy {
+    let shares = crate::install::shares::SharesConfig::load(musu_home);
+
+    let mut roots = env_file_serve_roots();
+    for root in shares.roots() {
+        if !roots.contains(&root) {
+            roots.push(root);
+        }
+    }
+
+    FileServePolicy {
+        roots,
+        writable: env_truthy("MUSU_FILE_SERVE_WRITABLE") || shares.any_writable(),
+    }
+}
+
+fn current_file_serve_policy(config: &crate::bridge::config::BridgeConfig) -> FileServePolicy {
+    let musu_home = config
+        .nodes_toml_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    file_serve_policy_from_sources(musu_home)
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────
 
 /// GET /api/files?path=/some/dir — list directory contents.
@@ -131,7 +178,8 @@ pub async fn list_dir(
     State(state): State<AppState>,
     Query(params): Query<FilePathParams>,
 ) -> Result<Json<DirListing>> {
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let policy = current_file_serve_policy(state.config.as_ref());
+    let path = validate_path(&policy.roots, &params.path)?;
 
     if !path.is_dir() {
         return Err(MusuError::BadRequest(format!(
@@ -183,7 +231,8 @@ pub async fn read_file(
     State(state): State<AppState>,
     Query(params): Query<FilePathParams>,
 ) -> Result<impl IntoResponse> {
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let policy = current_file_serve_policy(state.config.as_ref());
+    let path = validate_path(&policy.roots, &params.path)?;
 
     if !path.is_file() {
         return Err(MusuError::NotFound(format!(
@@ -234,13 +283,14 @@ pub async fn write_file(
     Query(params): Query<FilePathParams>,
     body: axum::body::Bytes,
 ) -> Result<Json<WriteResponse>> {
-    if !state.config.file_serve_writable {
+    let policy = current_file_serve_policy(state.config.as_ref());
+    if !policy.writable {
         return Err(MusuError::Forbidden(
             "file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1".into(),
         ));
     }
 
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let path = validate_path(&policy.roots, &params.path)?;
 
     // Create parent directories if needed
     if let Some(parent) = path.parent() {
@@ -271,13 +321,14 @@ pub async fn mkdir(
     State(state): State<AppState>,
     Query(params): Query<FilePathParams>,
 ) -> Result<StatusCode> {
-    if !state.config.file_serve_writable {
+    let policy = current_file_serve_policy(state.config.as_ref());
+    if !policy.writable {
         return Err(MusuError::Forbidden(
             "file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1".into(),
         ));
     }
 
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let path = validate_path(&policy.roots, &params.path)?;
 
     tokio::fs::create_dir_all(&path)
         .await
@@ -293,13 +344,14 @@ pub async fn delete_path(
     State(state): State<AppState>,
     Query(params): Query<FilePathParams>,
 ) -> Result<StatusCode> {
-    if !state.config.file_serve_writable {
+    let policy = current_file_serve_policy(state.config.as_ref());
+    if !policy.writable {
         return Err(MusuError::Forbidden(
             "file writes disabled: set MUSU_FILE_SERVE_WRITABLE=1".into(),
         ));
     }
 
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let path = validate_path(&policy.roots, &params.path)?;
 
     if !path.exists() {
         return Err(MusuError::NotFound(format!(
@@ -328,7 +380,8 @@ pub async fn file_info(
     State(state): State<AppState>,
     Query(params): Query<FilePathParams>,
 ) -> Result<Json<FileInfo>> {
-    let path = validate_path(&state.config.file_serve_roots, &params.path)?;
+    let policy = current_file_serve_policy(state.config.as_ref());
+    let path = validate_path(&policy.roots, &params.path)?;
 
     if !path.exists() {
         return Ok(Json(FileInfo {
@@ -360,6 +413,14 @@ pub async fn file_info(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn clear_file_serve_env() {
+        std::env::remove_var("MUSU_FILE_SERVE_ROOTS");
+        std::env::remove_var("MUSU_FILE_SERVE_WRITABLE");
+    }
 
     #[test]
     fn validate_path_rejects_empty_roots() {
@@ -379,5 +440,59 @@ mod tests {
         let roots = vec![PathBuf::from("C:\\workspace")];
         let result = validate_path(&roots, "C:\\workspace\\..\\..\\etc\\passwd");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn file_serve_policy_reads_current_shares_without_bridge_restart() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_file_serve_env();
+
+        let musu_home =
+            std::env::temp_dir().join(format!("musu-file-serve-policy-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&musu_home).unwrap();
+        let shared_root = musu_home.join("remote-file-proof");
+        std::fs::create_dir_all(&shared_root).unwrap();
+
+        let before = file_serve_policy_from_sources(&musu_home);
+        assert!(before.roots.is_empty());
+        assert!(!before.writable);
+
+        let mut shares = crate::install::shares::SharesConfig::default();
+        shares.add(
+            shared_root.to_string_lossy().as_ref(),
+            true,
+            Some("remote-file-cli-proof".to_string()),
+        );
+        shares.save(&musu_home).unwrap();
+
+        let after = file_serve_policy_from_sources(&musu_home);
+        assert_eq!(after.roots, vec![shared_root]);
+        assert!(after.writable);
+    }
+
+    #[test]
+    fn file_serve_policy_reflects_unshare_without_bridge_restart() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_file_serve_env();
+
+        let musu_home = std::env::temp_dir().join(format!(
+            "musu-file-serve-policy-unshare-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&musu_home).unwrap();
+        let shared_root = musu_home.join("remote-file-proof");
+        std::fs::create_dir_all(&shared_root).unwrap();
+
+        let mut shares = crate::install::shares::SharesConfig::default();
+        shares.add(shared_root.to_string_lossy().as_ref(), true, None);
+        shares.save(&musu_home).unwrap();
+        assert_eq!(file_serve_policy_from_sources(&musu_home).roots.len(), 1);
+
+        let shares = crate::install::shares::SharesConfig::default();
+        shares.save(&musu_home).unwrap();
+
+        let after = file_serve_policy_from_sources(&musu_home);
+        assert!(after.roots.is_empty());
+        assert!(!after.writable);
     }
 }

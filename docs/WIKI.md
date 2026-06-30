@@ -22644,10 +22644,8 @@ Observed:
 Code contract:
 
 - `musu share <PATH> --writable` writes `~/.musu/shares.toml`.
-- `BridgeConfig::from_env()` merges `MUSU_FILE_SERVE_ROOTS` and
-  `shares.toml` into `file_serve_roots` during bridge startup.
-- `musu share` prints `Restart bridge to apply: musu bridge`, so the packaged
-  bridge must be restarted before the target exposes the new share.
+- The package used for this proof read `shares.toml` at bridge startup, so the
+  proof target did not expose a root until share setup plus policy reload.
 - `files.rs` is fail-closed: no roots means file API disabled; no writable mode
   means write endpoints are disabled.
 
@@ -22667,12 +22665,57 @@ New-Item -ItemType Directory -Force C:\Users\empty\.musu\codex-remote-file-proof
 musu share C:\Users\empty\.musu\codex-remote-file-proof --writable --label remote-file-cli-proof
 ```
 
-Then restart the `hugh-main` packaged bridge and rerun `musu put`, `musu ls`,
-and `musu get` from `hugh_second`.
+Then rerun `musu put`, `musu ls`, and `musu get` from `hugh_second`. If
+`hugh-main` is still on the earlier package, rebuild/reinstall or restart the
+packaged bridge after `musu share`.
 
 Canonical report:
 
 - `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`
+
+## wiki/1187 - 2026-06-30 Remote file CLI dynamic share reload
+
+The remote file API source now reloads file-share policy per request instead of
+requiring a bridge restart after `musu share`.
+
+Changed files:
+
+- `musu-rs/src/bridge/handlers/files.rs`
+- `musu-rs/src/install/shares.rs`
+- `musu-rs/src/install/cli_commands.rs`
+
+Product contract:
+
+- `musu share <PATH> --writable` should become visible to remote file API
+  commands without bridge restart once this source is packaged.
+- `musu unshare <PATH>` is also reflected by later file API requests.
+- No configured root still disables the file API.
+- No writable policy still disables write/mkdir/delete.
+- File watcher/sync roots still refresh at bridge startup; this change is for
+  remote file API policy, not watcher hot reload.
+
+Verification:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml file_serve_policy --lib -j 1`:
+  `2 passed`
+- `rustfmt --edition 2021 --check musu-rs\src\bridge\handlers\files.rs`:
+  passed
+- `test-release-evidence-verifiers.ps1 -Json`: `ok=true`,
+  `case_count=219`, `failed_case_count=0`
+
+Release meaning:
+
+- This removes one operator-friction point in the remote file CLI physical
+  proof path.
+- It does not close the proof yet. Both PCs need a rebuilt/reinstalled package,
+  `hugh-main` still needs a writable proof share, and `hugh_second` still must
+  record a passing `musu put`, `musu ls`, and `musu get` proof.
+- Because this is a Rust source change, package-bound evidence becomes stale
+  until a new package/evidence refresh is recorded.
+
+Canonical report:
+
+- `docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`
 
 ## wiki/1182 - 2026-06-30 Remote file CLI post-fix No-Go
 

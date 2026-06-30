@@ -10419,18 +10419,41 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   has `ok=false`, but the observed blocker is target-side file policy rather
   than token auth: `put` returns `file writes disabled`, and `ls/get` return
   `MUSU_FILE_SERVE_ROOTS not configured`. Code audit confirms `musu share`
-  writes `~/.musu/shares.toml`, `BridgeConfig::from_env()` merges those roots
-  at bridge startup, and the target bridge must be restarted after share
-  changes. Next step: on `hugh-main`, create
+  writes `~/.musu/shares.toml`, and the package used for this proof had not
+  exposed a file serve root. Next step: on `hugh-main`, create
   `C:\Users\empty\.musu\codex-remote-file-proof`, run `musu share
   C:\Users\empty\.musu\codex-remote-file-proof --writable --label
-  remote-file-cli-proof`, restart bridge, then rerun the three-command proof
-  from `hugh_second`. Search terms should include `wiki/1185`,
+  remote-file-cli-proof`, then rerun the three-command proof from
+  `hugh_second`. If the earlier rc.22 package is still installed,
+  rebuild/reinstall or restart the packaged bridge after `musu share`. Search
+  terms should include `wiki/1185`,
   `REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30`,
   `musu.remote_file_cli_physical_proof.v1`, `MUSU_FILE_SERVE_ROOTS`,
   `MUSU_FILE_SERVE_WRITABLE`, `shares.toml`, `musu share --writable`,
   `file API disabled`, `file writes disabled`, and
   `20260630-212409-HUGH_SECOND-to-hugh-main`.
+
+- 2026-06-30 remote file CLI dynamic share reload:
+  `docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, and `docs/WIKI.md` now record
+  that the remote file API source reloads current file-share policy per request
+  from `MUSU_FILE_SERVE_ROOTS`, `MUSU_FILE_SERVE_WRITABLE`, and
+  `~/.musu/shares.toml`. `musu share <PATH> --writable` and `musu unshare
+  <PATH>` should affect later remote file API requests without bridge restart
+  once this source is packaged. The fail-closed contract remains: no root means
+  file API disabled, and no writable policy means write/mkdir/delete disabled.
+  File watcher/sync roots still refresh at bridge startup. Verification:
+  `cargo test --manifest-path musu-rs\Cargo.toml file_serve_policy --lib -j 1`
+  passed `2/2`, and `rustfmt --edition 2021 --check
+  musu-rs\src\bridge\handlers\files.rs` passed. Release verifier regression
+  also passed with `ok=true`, `case_count=219`, `failed_case_count=0`. Search
+  terms should include
+  `wiki/1187`, `REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30`,
+  `file_serve_policy_from_sources`, `current_file_serve_policy`,
+  `musu share applies without bridge restart`, `musu unshare`, and
+  `remote file API dynamic share reload`.
 
 - 2026-06-30 public metadata DNS/TLS recheck:
   `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,

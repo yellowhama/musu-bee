@@ -103,7 +103,7 @@ Notable CPU facts:
 | NO-GO | Direct route targetability is proven, but not release-grade transport. | Matrix route explain selected LAN with `peer_identity_verified=false` and `encryption=none_http_bearer`. | Good for targetability and CPU route-attempt evidence; insufficient for release-grade identity/encryption. | Implement/prove the accepted QUIC/TLS or release-grade transport path. |
 | NO-GO | Public metadata is failing at canonical `https://musu.pro`. | go/no-go `store-public-metadata` blocker reports request failures, Cloudflare nameserver mismatch, apex TLS failure, and public-config missing fields. | Store/public release metadata cannot be called ready. | Repair DNS/TLS/public metadata and rerun verifier. |
 | NO-GO | Relay transport remains unimplemented as delegated-work byte transport. | `p2p_control_plane_verified=false`, `relay_transport_product_verified=false`. | Relay may not be advertised as a completed work route. | Implement `quic_relay_tunnel`, storage/env, route proof, transport proof, and payload delivery proof. |
-| HIGH | Real sibling file CLI proof is blocked by target share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` returns file API/writable policy errors from `hugh-main`. | Remote file browsing/download/upload cannot be claimed complete yet, even though the token source bug is no longer the observed failure. | On `hugh-main`, create the proof directory, run `musu share <dir> --writable`, restart bridge, then rerun `musu ls/get/put` proof. |
+| HIGH | Real sibling file CLI proof is blocked by target share policy. | `20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json` returns file API/writable policy errors from `hugh-main`. Later source now hot-reloads share policy per file API request, but the installed proof package did not include that behavior. | Remote file browsing/download/upload cannot be claimed complete yet, even though the token source bug is no longer the observed failure. | Rebuild/reinstall the dynamic-share package, on `hugh-main` create the proof directory and run `musu share <dir> --writable`, then rerun `musu ls/get/put` proof. |
 | HIGH | Private Mesh packaged release proof is still missing. | `private-mesh-packaged-release-proof` blocker remains. | Packaged desktop Private Mesh claim remains unproven. | Run second-PC return/import and package release-proof archive. |
 | HIGH | V34 stale self-heal is not physically proven. | `v34-stale-self-heal` blocker remains. | Stale registry/cache/manual-peer recovery cannot be claimed release-complete. | Record physical stale-state TTL, reconcile, and route-preflight proof. |
 
@@ -130,6 +130,8 @@ Remaining code/product risks:
 - real `musu ls/get/put` evidence still must be captured after the fixed
   package is installed on both PCs and the target PC has a configured writable
   `musu share` for the proof path.
+- the later dynamic-share source fix must be rebuilt/reinstalled before the
+  file API can observe `musu share` changes without bridge restart.
 - direct LAN uses legacy HTTP bearer and unverified peer identity.
 - release relay tunnel runtime is still intentionally absent.
 - public metadata/DNS/TLS is an external deployment blocker, not a local code
@@ -163,7 +165,7 @@ Clean go/no-go reports these blocker areas:
   but the product spec should not count it complete until real
   `musu ls/get/put` proof is captured after both PCs install the fixed package
   and `hugh-main` exposes the proof directory through `musu share --writable`
-  with a restarted bridge.
+  with either the dynamic-share reload package or a restarted older bridge.
 - The live public site lane is red: canonical `https://musu.pro` privacy,
   support, and public-config verification fails through the current DNS/TLS
   path.
@@ -171,9 +173,10 @@ Clean go/no-go reports these blocker areas:
 ## Next Steps
 
 1. On `hugh-main`, create `C:\Users\empty\.musu\codex-remote-file-proof`, run
-   `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart
-   the packaged bridge, then capture real `musu ls/get/put` proof from
-   `HUGH_SECOND` to `hugh-main`.
+   `musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, then
+   capture real `musu ls/get/put` proof from `HUGH_SECOND` to `hugh-main`.
+   Rebuild/reinstall first for the dynamic-share source fix; if using the older
+   installed package, restart the packaged bridge after `musu share`.
 2. Run/import `hugh-main` `desktop-open` idle CPU and full runtime CPU matrix
    evidence so the 2-machine CPU gates can close.
 3. Complete the second-PC return/import path and packaged Private Mesh release

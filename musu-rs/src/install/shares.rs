@@ -1,8 +1,9 @@
 //! Shared directory management — V27.
 //!
 //! Manages `~/.musu/shares.toml` for directories exposed to peers.
-//! The bridge reads this at startup and merges the listed roots into
-//! `file_serve_roots`, so operators never hand-edit env vars.
+//! The remote file API reloads this file when handling requests, so operators
+//! can change exposed roots without hand-editing env vars. Bridge startup also
+//! merges these roots for boot-time file watcher/sync setup.
 
 use std::path::{Path, PathBuf};
 

@@ -21,11 +21,15 @@ for rc.22, and HUGH_SECOND now has refreshed current evidence for the local
 single-machine smoke lane plus runtime CPU evidence for the current gate:
 `desktop-open` idle CPU and the full five-scenario runtime CPU matrix both
 verify on `HUGH_SECOND`, including a targeted successful `hugh-main`
-post-route probe. The latest clean go/no-go recheck at
-`2026-06-30T21:37:50+09:00` on commit
-`25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3` still reports
+post-route probe. The latest pre-dynamic-share source-change clean go/no-go
+recheck at `2026-06-30T21:46:16+09:00` on commit
+`b652dcced113d77abc5aea2e3e231b7a3cba4e9b` still reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`.
+
+The later remote file API dynamic-share source change intentionally makes the
+current installed package/evidence stale again until a rebuild, reinstall, and
+fresh package-bound proofs are recorded.
 
 That current state still does not prove the full product: second-machine CPU
 evidence, release-grade multi-device route identity, packaged Private Mesh
@@ -115,14 +119,33 @@ records `ok=false`. The observed target responses are no longer
 MUSU_FILE_SERVE_WRITABLE=1`, while `musu ls` and `musu get` return
 `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`. Code
 audit confirms this is expected fail-closed behavior: `musu share` writes
-`~/.musu/shares.toml`, `BridgeConfig::from_env()` merges those roots at bridge
-startup, and the bridge must be restarted after share changes. The next
-execution step is therefore target setup on `hugh-main`: create
+`~/.musu/shares.toml`, and the packaged bridge used by this proof had no active
+file serve root. The next execution step is therefore target setup on
+`hugh-main`: create
 `C:\Users\empty\.musu\codex-remote-file-proof`, run
-`musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, restart
-the packaged bridge, then rerun the three-command `ls/get/put` proof from
+`musu share C:\Users\empty\.musu\codex-remote-file-proof --writable`, then
+rerun the three-command `ls/get/put` proof from
 `hugh_second`. Canonical report:
 `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`.
+
+2026-06-30 22:06 KST remote file CLI dynamic share reload:
+the source proof path has been tightened so future packaged bridges no longer
+need a manual bridge restart after `musu share` for remote file API commands.
+`musu-rs/src/bridge/handlers/files.rs` now reloads the current file-serve
+policy from `MUSU_FILE_SERVE_ROOTS`, `MUSU_FILE_SERVE_WRITABLE`, and
+`~/.musu/shares.toml` per file API request. `musu unshare` is also reflected by
+subsequent file API requests. The fail-closed policy remains: no root still
+disables the API, and no writable policy still disables write/mkdir/delete.
+`musu share` CLI output now says remote file API changes apply without bridge
+restart, while file watcher/sync still needs a bridge restart to refresh
+watched roots. Verification passed
+`cargo test --manifest-path musu-rs\Cargo.toml file_serve_policy --lib -j 1`
+(`2 passed`) and touched-file
+`rustfmt --edition 2021 --check musu-rs\src\bridge\handlers\files.rs`.
+Canonical report:
+`docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`. This is a
+source-level fix only; current package-bound evidence is stale until rebuild,
+reinstall, and fresh proofs are recorded.
 
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
