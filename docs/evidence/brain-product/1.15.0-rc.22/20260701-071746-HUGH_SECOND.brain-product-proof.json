@@ -1,0 +1,124 @@
+﻿{
+    "schema":  "musu.brain_product_proof.v1",
+    "ok":  false,
+    "version":  "1.15.0-rc.22",
+    "package_version":  "1.15.0.22",
+    "expected_package_version":  "1.15.0.22",
+    "package_full_name":  "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "install_location":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "brain_binary_path":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu-brain.exe",
+    "brain_binary_packaged":  true,
+    "sidecar_process_observed":  false,
+    "generated_at":  "2026-07-01T07:17:46.4743797+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "brain_root":  "C:\\Users\\empty\\.musu\\brain",
+    "base_url":  "http://127.0.0.1:8080",
+    "product_owned_loopback":  true,
+    "brain_http_public_surface_exposed":  false,
+    "token_present":  true,
+    "token_acl_restricted":  true,
+    "token_path":  "C:\\Users\\empty\\.musu\\brain\\runtime\\musu-ingest.token",
+    "version_coherence_ok":  true,
+    "source_store_owner":  "musu-brain",
+    "musu_db_shared_write":  false,
+    "tenant_id":  "local",
+    "workspace_id":  "musu",
+    "health_ok":  false,
+    "workspace_ok":  false,
+    "task_ingest_ok":  false,
+    "task_source_id":  "",
+    "task_marker":  "musu-brain-proof-task-20260701071746-048437a0",
+    "task_process_ok":  false,
+    "task_recall_ok":  false,
+    "task_recall_result_count":  0,
+    "recall_capture_ux_ok":  false,
+    "capture_clip_ok":  false,
+    "capture_source_id":  "",
+    "capture_marker":  "musu-brain-proof-capture-20260701071746-048437a0",
+    "capture_process_ok":  false,
+    "capture_recall_ok":  false,
+    "capture_recall_result_count":  0,
+    "checks":  [
+                   {
+                       "name":  "installed package",
+                       "status":  "pass",
+                       "message":  "MUSU MSIX package is installed"
+                   },
+                   {
+                       "name":  "package version",
+                       "status":  "pass",
+                       "message":  "installed package version matches 1.15.0.22"
+                   },
+                   {
+                       "name":  "brain binary packaged",
+                       "status":  "pass",
+                       "message":  "musu-brain.exe is present in the package install location"
+                   },
+                   {
+                       "name":  "brain root",
+                       "status":  "pass",
+                       "message":  "brain root is under ~/.musu/brain"
+                   },
+                   {
+                       "name":  "base url loopback",
+                       "status":  "pass",
+                       "message":  "base URL is product-owned loopback"
+                   },
+                   {
+                       "name":  "sidecar process",
+                       "status":  "fail",
+                       "message":  "musu-brain sidecar process is not running"
+                   },
+                   {
+                       "name":  "token present",
+                       "status":  "pass",
+                       "message":  "brain ingest token exists"
+                   },
+                   {
+                       "name":  "token acl",
+                       "status":  "pass",
+                       "message":  "brain ingest token ACL is restricted"
+                   },
+                   {
+                       "name":  "health",
+                       "status":  "fail",
+                       "message":  "brain /health is not reachable: 원격 서버에 연결할 수 없습니다."
+                   },
+                   {
+                       "name":  "workspace",
+                       "status":  "fail",
+                       "message":  "brain workspace scope is not ready: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "task ingest",
+                       "status":  "fail",
+                       "message":  "task source ingest failed: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "task process",
+                       "status":  "fail",
+                       "message":  "task source processing failed: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "task recall",
+                       "status":  "fail",
+                       "message":  "task marker was not recalled: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "capture clip",
+                       "status":  "fail",
+                       "message":  "capture clip failed: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "capture process",
+                       "status":  "fail",
+                       "message":  "capture source processing failed: Unable to connect to the remote server"
+                   },
+                   {
+                       "name":  "capture recall",
+                       "status":  "fail",
+                       "message":  "capture marker was not recalled: Unable to connect to the remote server"
+                   }
+               ]
+}

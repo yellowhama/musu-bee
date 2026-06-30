@@ -147,10 +147,41 @@ musu-bee\src-tauri\Cargo.toml doctor_status_summary --lib -j 1 -- --nocapture`
 `health_body.ok=true`. Index refresh indexed `3603 files` and `3920 symbols`;
 product brain source ingest under `local/musu` created 3 sources, processed 3,
 recovered 0, and query returned top title
-`wiki/1203 brain sidecar doctor/status self-heal`. Product meaning: this closes
+ `wiki/1203 brain sidecar doctor/status self-heal`. Product meaning: this closes
 the MED visibility/self-heal follow-up, but not the remaining full-product
 NO-GO blockers. The installed package must be rebuilt/reinstalled before this
 new status surface counts as current package evidence.
+
+2026-07-01 07:17 KST current package evidence refresh after brain doctor:
+the `aedb6ade` brain doctor/status source change was rebuilt, reinstalled, and
+recaptured on `HUGH_SECOND`. Canonical report:
+`docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`.
+Fresh package evidence passes for MSIX install `20260701-070010`,
+single-machine smoke `20260701-070056`, process ownership `20260701-070115`,
+startup single-instance `20260701-070138`, desktop single-instance
+`20260701-070544`, desktop-open idle CPU `20260701-070556`, and runtime CPU
+matrix plus targeted `hugh-main` post-route probe `20260701-070713`. Matrix and
+target-route verifiers both pass with `fail_count=0`; the post-route probe
+reaches `hugh-main` over LAN `192.168.1.192:4387` and returns
+`MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`. This still is not release-grade
+transport: route explain records `current_transport=http_bearer`,
+`encryption=none_http_bearer`, `peer_identity_verified=false`, and
+`route_evidence_ready=false`. The important new audit result is negative:
+fresh brain product proof `20260701-071746` fails with `fail_count=14` because
+the packaged desktop was alive while no `musu-brain` sidecar process or
+`127.0.0.1:8080/health` response existed. Manually starting the same packaged
+`musu-brain.exe server -root ~/.musu/brain -addr 127.0.0.1:8080` makes health
+return OK, so the binary/root are valid and the remaining issue is desktop
+lifecycle supervision/diagnostics. Product meaning: local package evidence is
+fresh for core runtime lanes, but full product completion remains NO-GO and the
+hidden brain lifecycle lane is reopened until a clean packaged desktop launch
+recaptures brain product proof without manual sidecar start.
+Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3626 files` and `3920 symbols`; product brain CLI ingest under `local/musu`
+processed 5 sources including this report, roadmap/root-contract docs, and the
+two touched brain-status code files, and query returned
+`wiki/sources/src_8a1a6ad9cb5024ce.md` for the new report.
 
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the

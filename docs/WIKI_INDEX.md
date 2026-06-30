@@ -10918,4 +10918,38 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `127.0.0.1:8080/health`, `~/.musu/brain`, `musu-ingest.token`, and
   `hidden brain sidecar`.
 
+- 2026-07-01 current package evidence refresh after brain doctor:
+  `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`, and `docs/WIKI.md`
+  now record `wiki/1204`: the `aedb6ade` brain doctor/status source change was
+  rebuilt, installed, and recaptured on `HUGH_SECOND`. Evidence passes for MSIX
+  install `20260701-070010`, single-machine smoke `20260701-070056`, process
+  ownership `20260701-070115`, startup single-instance `20260701-070138`,
+  desktop single-instance `20260701-070544`, desktop-open idle CPU
+  `20260701-070556`, and runtime CPU matrix `20260701-070713`. Runtime matrix
+  and target-route verification both pass with `fail_count=0`, and the
+  targeted route reaches `hugh-main` at `192.168.1.192:4387` with
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`. Route transport remains
+  non-release-grade (`http_bearer`, `none_http_bearer`,
+  `peer_identity_verified=false`, `route_evidence_ready=false`). Fresh brain
+  product proof `20260701-071746` fails with `ok=false`, `fail_count=14`, no
+  sidecar process, and no health/ingest/recall proof. Manual diagnostic showed
+  the same packaged `musu-brain.exe` can serve `/health` from `~/.musu/brain`,
+  so the issue is desktop lifecycle supervision, not binary/root validity.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3626 files` and `3920 symbols`; product brain CLI ingest
+  under `local/musu` processed 5 sources including docs and the two
+  brain-status code files, and recall returned
+  `wiki/sources/src_8a1a6ad9cb5024ce.md` for the new report.
+  Product meaning: local runtime evidence is fresh, but full product completion
+  remains NO-GO and hidden brain lifecycle is reopened until clean packaged
+  desktop launch proof passes without manual sidecar start. Search terms should
+  include `wiki/1204`,
+  `CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01`,
+  `20260701-070713`, `20260701-071746`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`, `hidden brain lifecycle`,
+  `brain product proof failed`, and
+  `musu-brain sidecar process was not observed`.
+
 **End of WIKI_INDEX.md.**

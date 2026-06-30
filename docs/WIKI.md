@@ -23617,3 +23617,63 @@ Product meaning:
   `knowledge_token_present`, `spawn_knowledge_sidecar_autostart`,
   `musu doctor --json knowledge`, `127.0.0.1:8080/health`,
   `~/.musu/brain`, `musu-ingest.token`, `hidden brain sidecar`.
+
+## wiki/1204 - 2026-07-01 Current package evidence refresh after brain doctor
+
+Canonical report:
+
+- `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+
+What changed:
+
+- The `aedb6ade` brain doctor/status source change was rebuilt into the
+  local-sideload MSIX and reinstalled on `HUGH_SECOND`.
+- Local package evidence was refreshed for MSIX install `20260701-070010`,
+  single-machine smoke `20260701-070056`, process ownership `20260701-070115`,
+  startup single-instance `20260701-070138`, desktop single-instance
+  `20260701-070544`, desktop-open idle CPU `20260701-070556`, and runtime CPU
+  matrix `20260701-070713`.
+
+Verification:
+
+- Runtime CPU matrix verification passed with `ok=true`, `fail_count=0`.
+- Target-route verification passed with `ok=true`, `fail_count=0`.
+- The targeted post-route probe reached `hugh-main` over LAN
+  `192.168.1.192:4387` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`.
+- Route explain still reports `current_transport=http_bearer`,
+  `encryption=none_http_bearer`, `peer_identity_verified=false`, and
+  `route_evidence_ready=false`.
+- Fresh brain product proof `20260701-071746` failed with `ok=false` and
+  `fail_count=14`: no `musu-brain` sidecar process, no `/health`, no task
+  ingest/recall, and no capture recall.
+- Manual diagnostic only: starting the same packaged `musu-brain.exe server`
+  with product root `~/.musu/brain` made `/health` return OK. This proves the
+  binary/root are valid, but it does not satisfy product lifecycle evidence.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3626 files` and `3920 symbols`.
+- Product brain CLI ingest under `local/musu` processed 5 sources: this report,
+  the full-product roadmap, the brain root contract,
+  `musu-bee/src-tauri/src/lib.rs`, and
+  `musu-rs/src/install/cli_commands.rs`.
+- Product brain recall for
+  `CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR src_8a1a6ad9 hidden brain lifecycle NO-GO`
+  returned `wiki/sources/src_8a1a6ad9cb5024ce.md`.
+
+Product meaning:
+
+- Current package evidence is fresh for core local runtime lanes on
+  `HUGH_SECOND`.
+- Full product completion remains NO-GO.
+- Hidden brain lifecycle is reopened as a local blocker until a clean packaged
+  desktop launch starts/restarts `musu-brain` and passes brain product proof
+  without manual sidecar start.
+- Search terms: `wiki/1204`,
+  `CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01`,
+  `20260701-070713`, `20260701-071746`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`, `hugh-main`,
+  `192.168.1.192:4387`, `http_bearer`, `none_http_bearer`,
+  `route_evidence_ready=false`, `brain product proof failed`,
+  `hidden brain lifecycle`, `musu-brain sidecar process was not observed`.
