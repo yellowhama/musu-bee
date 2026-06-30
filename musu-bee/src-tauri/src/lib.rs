@@ -27,6 +27,8 @@ const KNOWLEDGE_BASE_URL: &str = "http://127.0.0.1:8080";
 const KNOWLEDGE_ADDR: &str = "127.0.0.1:8080";
 const KNOWLEDGE_TENANT_ID: &str = "local";
 const KNOWLEDGE_WORKSPACE_ID: &str = "musu";
+const KNOWLEDGE_ROOT_ENV: &str = "MUSU_KNOWLEDGE_ROOT";
+const BRAIN_ROOT_ENV: &str = "MUSUBRAIN_ROOT";
 
 /// Installed package identity name (NOT the family name) — the stable key the
 /// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
@@ -881,7 +883,10 @@ fn spawn_musu_startup_open() -> Result<(), String> {
 }
 
 fn apply_knowledge_env(cmd: &mut std::process::Command) {
+    let root = knowledge_root();
     cmd.env("MUSU_KNOWLEDGE_INGEST", "1")
+        .env(KNOWLEDGE_ROOT_ENV, &root)
+        .env(BRAIN_ROOT_ENV, &root)
         .env(
             "MUSU_KNOWLEDGE_INGEST_URL",
             format!("{KNOWLEDGE_BASE_URL}/v1/sources"),
@@ -5982,6 +5987,8 @@ fn spawn_knowledge_sidecar_autostart() {
                 KNOWLEDGE_ADDR,
             ])
             .env("MUSU_HOME", musu_home())
+            .env(KNOWLEDGE_ROOT_ENV, &root)
+            .env(BRAIN_ROOT_ENV, &root)
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null());
@@ -6350,9 +6357,10 @@ mod tests {
         attach_route_evidence_integrity, bridge_is_healthy,
         bridge_registry_status_with_pid_checker, bridge_status_label, can_start_runtime,
         developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
-        is_packaged_desktop_runtime_path, is_tailnet_ipv4, latest_physical_peer_evidence_from_home,
-        latest_release_evidence_from_home, local_os_hostname, musu_command_path_for_current_exe,
-        parse_appinstaller_version, parse_doctor_status_summary, parse_private_mesh_desktop_status,
+        is_packaged_desktop_runtime_path, is_tailnet_ipv4, knowledge_root,
+        latest_physical_peer_evidence_from_home, latest_release_evidence_from_home,
+        local_os_hostname, musu_command_path_for_current_exe, parse_appinstaller_version,
+        parse_doctor_status_summary, parse_private_mesh_desktop_status,
         parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
@@ -8302,6 +8310,20 @@ mod tests {
 
         let stored = std::fs::read_to_string(&token_path).expect("token file should be readable");
         assert_eq!(stored, "secret-token-value");
+    }
+
+    #[test]
+    fn knowledge_root_contract_uses_musu_profile_brain() {
+        let home = make_temp_home("knowledge-root-contract");
+        std::env::set_var("MUSU_HOME", &home);
+        let root = knowledge_root();
+        std::env::remove_var("MUSU_HOME");
+
+        assert_eq!(root, home.join("brain"));
+        assert!(
+            !root.to_string_lossy().contains(".musubrain"),
+            "MUSU product root must not fall back to standalone brain defaults"
+        );
     }
 
     #[test]

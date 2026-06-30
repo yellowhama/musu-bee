@@ -47,15 +47,20 @@ knowledge layer and "chip" in the motherboard+chip model, keeps the Go binary
 self-contained, and keeps MCP registration as the first integration path via
 `print-config`.
 
-Important spec conflict recorded from that handoff:
+Important spec conflict recorded from that handoff, now superseded by the
+2026-07-01 source contract:
 
 - Earlier musu-bee integration thesis and current package proof use
   `~/.musu/brain`.
 - The new brain handoff describes brain defaults under `~/.musubrain`.
-- This must be resolved by one MUSU-owned resolver before expanding UX or
-  automatic collection. Do not let both products guess the root independently.
-  The release rule remains unchanged: the brain data root must be outside MSIX
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md` resolves the MUSU
+  product contract to `~/.musu/brain` and `musu-bee/src-tauri/src/lib.rs`
+  now injects `MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` with that same value.
+- The release rule remains unchanged: the brain data root must be outside MSIX
   LocalState and user notes must never be pushed.
+- Because this is a source change after the package-bound evidence below, the
+  installed package must be rebuilt and re-proven before the new root-env
+  contract counts as package evidence.
 
 ## Evidence Recorded
 
@@ -100,7 +105,7 @@ Notable CPU and route facts:
 | NO-GO | Direct LAN route works but is not release-grade transport proof. | Route evidence: `lan`, `192.168.1.192:4387`, `peer_identity_verified=false`, `none_http_bearer`. | Good targetability evidence; insufficient for encrypted/identity-verified release claims. | Implement/prove QUIC/TLS or the accepted release-grade transport path. |
 | NO-GO | Public metadata remains externally blocked. | The latest DNS/TLS planner still records Cloudflare nameservers and apex TLS failure. | Store/public metadata cannot be called ready. | Repair DNS/TLS, then rerun public metadata verifier. |
 | NO-GO | Relay transport is still not a release runtime. | Relay route still lacks real tunnel runtime, transport proof, and delivery proof. | Relay must not be described as delegated-work transport. | Build/prove release relay tunnel runtime. |
-| HIGH | Brain integration handoff adds a root resolver conflict. | Brain handoff says `~/.musubrain`; current musu-bee thesis/proofs use `~/.musu/brain`. | A split root would fragment recall and create data-loss/operator confusion. | Add one MUSU-owned resolver/env contract before deeper UX/autocollect wiring. |
+| HIGH | Brain root resolver conflict is source-resolved but package evidence is stale. | `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`; Tauri now exports `MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` as `~/.musu/brain`. | Split-store risk is closed in source, but the installed package predates the change. | Rebuild/reinstall and rerun brain product proof before release-complete claims. |
 | HIGH | Private Mesh packaged proof is still not recorded. | No current packaged release-proof archive from both PCs. | Private Mesh product claim remains unproven. | Use the new kit return as input to packaged Private Mesh archive proof. |
 | HIGH | Remote file proof still requires a target share and a passing physical rerun. | Dynamic share reload is packaged locally, but no passing `musu put/ls/get` proof exists yet. | File CLI sibling workflow remains open. | Configure writable proof share on `hugh-main`, rerun proof from `hugh_second`. |
 | MED | Build warnings are known but should stay visible. | Rust placeholder warnings and one Tauri `unused_mut`. | Not a current blocker, but warning noise can hide future regressions. | Clean after relay runtime lane stabilizes. |
@@ -119,8 +124,10 @@ Focused code audit scope for this refresh:
   audit proof includes `brain_ingest_token_acl_restricted`.
 - The route lane remains intentionally conservative: current evidence proves
   direct targetability, not release-grade identity or encryption.
-- The main new spec risk is not a code regression; it is a documentation/spec
-  divergence between `~/.musu/brain` and `~/.musubrain`.
+- The main new spec risk from the brain handoff was a documentation/spec
+  divergence between `~/.musu/brain` and `~/.musubrain`; that is now resolved
+  at source/spec level by `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  but still needs rebuilt package evidence.
 
 ## Remaining Blockers
 
@@ -148,9 +155,10 @@ The blocker map is still:
   still legacy HTTP bearer and not release-grade.
 - Current second-PC handoff artifact is the `20260630-232004` kit generated
   from clean commit `e280648f2a9c2632e869d679bf1a4d4e221f7005`.
-- Brain integration must now treat the brain repo handoff as canonical context,
-  while explicitly resolving the data-root conflict before adding cockpit UX or
-  automatic collection.
+- Brain integration treats the brain repo handoff as canonical context, with
+  the MUSU product overlay fixed to `~/.musu/brain`. The next package proof
+  must show that this overlay is present in the installed app before cockpit UX
+  or automatic collection is called release-grade.
 
 ## Next Steps
 
@@ -158,8 +166,8 @@ The blocker map is still:
    the generated `.local-build/second-pc-return/*.zip`.
 2. Configure `hugh-main` writable proof share and rerun physical
    `musu put`, `musu ls`, and `musu get` from `hugh_second`.
-3. Resolve the brain data-root contract (`~/.musu/brain` vs `~/.musubrain`) in
-   one resolver/env surface before deeper brain UX/autocollect integration.
+3. Rebuild/reinstall after the 2026-07-01 brain root-env source change and
+   rerun `record-brain-product-proof.ps1`.
 4. Repair `https://musu.pro` apex DNS/TLS/public metadata verification.
 5. Complete Private Mesh packaged proof archive, Store evidence, design
    approval evidence, V34 stale self-heal physical proof, live P2P

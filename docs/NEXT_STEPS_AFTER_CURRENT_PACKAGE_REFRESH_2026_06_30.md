@@ -26,8 +26,10 @@ Current second-PC kit:
 - `HUGH_SECOND` desktop-open idle CPU passes.
 - Full five-scenario runtime CPU matrix passes on `HUGH_SECOND`.
 - The post-route scenario can target `hugh-main` over LAN.
-- The current package pins clean brain commit
-  `c477c004691a7fe5d555e4403d91bab71a3c303f`.
+- The current installed package was built before the 2026-07-01 brain root-env
+  source update. The source pin now points at clean brain commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, so the next package must be
+  rebuilt and re-proven.
 
 ## What Is Not Proven
 
@@ -42,9 +44,8 @@ Current second-PC kit:
 - Live P2P control-plane proof is not recorded.
 - Real relay transport, design approval, and V34 stale self-heal physical proof
   remain open.
-- Brain data-root contract is not fully settled:
-  current package proof uses `~/.musu/brain`, while the brain repo handoff
-  describes `~/.musubrain`.
+- Brain data-root contract is source-settled to `~/.musu/brain`, but the
+  installed package has not yet been rebuilt with the root-env update.
 
 ## Run On hugh-main
 
@@ -84,27 +85,30 @@ pass:
 
 ## Brain Integration Next Constraint
 
-Before expanding cockpit recall/capture UX or automatic collection, resolve the
-data root contract in one place:
+Before expanding cockpit recall/capture UX or automatic collection, rebuild and
+prove the source-level data root contract:
 
-- Current musu-bee thesis/proof: `~/.musu/brain`
-- Current brain handoff language: `~/.musubrain`
+- MUSU product root: `~/.musu/brain`
+- Standalone brain default mentioned by brain handoff: `~/.musubrain`
+- MUSU source contract:
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
 - Canonical brain handoff:
   `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
 
-Required decision:
+Required proof:
 
-1. One MUSU-owned resolver/env contract.
-2. Tauri sidecar, runtime bridge env, proof scripts, and docs use the same
-   root.
-3. Root stays outside MSIX LocalState.
-4. If changing root, add migration/compat proof before release claims.
+1. Rebuild/reinstall a package containing the 2026-07-01 source update.
+2. Confirm Tauri exports `MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` as
+   `~/.musu/brain`.
+3. Rerun `record-brain-product-proof.ps1`.
+4. Keep root outside MSIX LocalState and keep user notes out of product sync.
 
 ## Priority Order
 
 1. Run/import `hugh-main` kit return.
 2. Pass physical remote file `put/ls/get` proof.
-3. Resolve brain data-root contract.
+3. Rebuild/reinstall after the brain root-env source update and rerun brain
+   product proof.
 4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
 5. Produce Private Mesh packaged proof archive.
 6. Complete release-grade route transport and relay proof.

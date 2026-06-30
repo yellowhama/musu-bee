@@ -22914,8 +22914,8 @@ Priority order:
 1. Run/import the `hugh-main` second-PC kit return.
 2. Configure `hugh-main` writable remote-file proof share and pass
    `musu put`, `musu ls`, and `musu get` from `hugh_second`.
-3. Resolve the brain data-root contract (`~/.musu/brain` versus
-   `~/.musubrain`) through one MUSU-owned resolver/env.
+3. Rebuild/reinstall after the `wiki/1192` brain root-env source change and
+   rerun brain product proof.
 4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
 5. Produce Private Mesh packaged proof archive.
 6. Complete release-grade route transport and relay proof.
@@ -23002,3 +23002,34 @@ Product meaning:
 - It does not close `multi-device`, `runtime-idle-cpu`,
   `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, relay,
   V34, public metadata, Store, or design approval by itself.
+
+## wiki/1192 - 2026-07-01 Brain integration root contract
+
+Current report:
+
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+
+What changed:
+
+- MUSU product root for the hidden brain chip is explicitly `~/.musu/brain`.
+- The standalone brain default `~/.musubrain` remains brain-only context and is
+  not the MUSU desktop product contract.
+- `musu-bee/src-tauri/src/lib.rs` now injects both `MUSU_KNOWLEDGE_ROOT` and
+  `MUSUBRAIN_ROOT` as `~/.musu/brain` into the runtime child and hidden
+  `musu-brain` sidecar.
+- The sidecar is still started with `musu-brain server -root <~/.musu/brain>`.
+- A Tauri source test locks the root contract against fallback to
+  `~/.musubrain`.
+- The brain repo was advanced to clean/pushed commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, adding `.gitignore` coverage for
+  SQLite `*.db-shm` and `*.db-wal` sidecars.
+- `musu-bee/src-tauri/musu-brain.pin.json` now points at that clean brain HEAD.
+
+Product meaning:
+
+- The root split is resolved at source/spec level.
+- The current installed package predates this source change, so package-bound
+  brain proof is stale for the new root-env contract.
+- Next release evidence must rebuild/reinstall and rerun
+  `record-brain-product-proof.ps1` before claiming this contract is in the
+  package.

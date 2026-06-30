@@ -10575,4 +10575,25 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `SECOND_PC_KIT_HANDOFF_2026_06_28`, `hugh-main`, `hugh_second`,
   `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
 
+- 2026-07-01 brain integration root contract:
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now resolve the MUSU product brain root to `~/.musu/brain`.
+  The standalone brain handoff still describes `~/.musubrain`, but that is not
+  the MUSU desktop product contract. Tauri now exports both
+  `MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` with the `~/.musu/brain` value to
+  the runtime child and hidden `musu-brain` sidecar, while still starting the
+  sidecar with `-root <~/.musu/brain>`. The brain repo was advanced to clean
+  pushed commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, and
+  `musu-bee/src-tauri/musu-brain.pin.json` now points there. Search terms
+  should include `wiki/1192`,
+  `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01`, `MUSU_KNOWLEDGE_ROOT`,
+  `MUSUBRAIN_ROOT`, `~/.musu/brain`, `~/.musubrain`,
+  `musu-brain.pin.json`, `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`,
+  `sqlite sidecar files`, `*.db-shm`, and `*.db-wal`. Product meaning: source
+  root split is resolved, but the current installed package predates this
+  source change and needs rebuilt brain product proof before release claims.
+
 **End of WIKI_INDEX.md.**

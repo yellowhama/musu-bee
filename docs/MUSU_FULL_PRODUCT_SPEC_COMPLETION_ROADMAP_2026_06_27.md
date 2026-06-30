@@ -200,6 +200,22 @@ current musu-bee proof uses `~/.musu/brain`, while the brain handoff describes
 `~/.musubrain`. A single MUSU-owned resolver/env contract is now a required
 next step.
 
+2026-07-01 brain root contract source update:
+the MUSU product contract is now explicitly `~/.musu/brain`, not the standalone
+brain default `~/.musubrain`. `musu-bee/src-tauri/src/lib.rs` exports both
+`MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` with the same `~/.musu/brain` value
+to the runtime child and hidden `musu-brain` sidecar, while still starting the
+sidecar with `-root <~/.musu/brain>`. A Tauri source test locks this contract.
+The brain repo was also advanced to clean/pushed commit
+`eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, adding `.gitignore` coverage for
+SQLite `*.db-shm`/`*.db-wal` sidecars so the external-chip checkout does not
+look dirty to `build-msix.ps1::Assert-BrainRepoMatchesPin`.
+`musu-bee/src-tauri/musu-brain.pin.json` now points at that clean brain HEAD.
+Canonical contract doc: `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`.
+This resolves the root split at source/spec level, but it is a new source
+change after the current package-bound evidence. The next release claim needs a
+rebuild/reinstall and fresh brain product proof.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path

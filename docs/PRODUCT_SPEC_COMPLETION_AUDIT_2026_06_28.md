@@ -212,16 +212,18 @@ non-release-grade (`peer_identity_verified=false`,
 Canonical report:
 `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`.
 
-2026-06-30 brain integration handoff refresh: the brain repo now has canonical
-handoff documentation at `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
-on clean/pushed `main` commit `88a3df5`. It confirms the motherboard+chip
-model, Go self-contained/no-Python boundary, print-don't-write MCP registration
-priority, user-note non-push rule, and automatic collection direction. It also
-surfaces an actionable spec conflict: current musu-bee proof uses
-`~/.musu/brain`, while the brain handoff describes `~/.musubrain`. This is now
-a HIGH integration risk until a single MUSU-owned resolver/env contract is
-documented and proven. Canonical thesis:
-`docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`.
+2026-06-30 brain integration handoff refresh, updated 2026-07-01: the brain
+repo has canonical handoff documentation at
+`F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`. It confirms the
+motherboard+chip model, Go self-contained/no-Python boundary, print-don't-write
+MCP registration priority, user-note non-push rule, and automatic collection
+direction. The handoff surfaced a root conflict: current MUSU proof used
+`~/.musu/brain`, while standalone brain docs described `~/.musubrain`.
+`docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md` now resolves the MUSU
+product contract to `~/.musu/brain`, and Tauri injects both
+`MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` with that value. This is
+source-resolved, not package-proven; the next package must be rebuilt and
+re-proven. Canonical thesis: `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`.
 
 2026-06-30 19:19 KST current packaged evidence refresh: the brain sidecar pin
 now matches the latest clean `F:\musu_2nd_brain` HEAD
