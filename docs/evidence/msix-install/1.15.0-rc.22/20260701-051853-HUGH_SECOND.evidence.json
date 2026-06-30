@@ -1,0 +1,141 @@
+﻿{
+    "schema":  "musu.msix_install_evidence.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.22",
+    "startup_contract":  "local-sideload-manual",
+    "recorded_at":  "2026-07-01T05:18:53.1737513+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "package_path":  "F:\\workspace\\musu-bee\\.local-build\\msix\\output\\musu_1.15.0.22_x64_local-sideload-manual.msix",
+    "package_name":  "blossompark.musu",
+    "artifact_version":  "1.15.0.22",
+    "package_full_name":  "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "installed_version":  "1.15.0.22",
+    "install_location":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "startup_task_id":  "MusuBridgeStartup",
+    "startup_enabled":  "true",
+    "brain_full_trust_process":  true,
+    "brain_executable":  "musu-brain.exe",
+    "startup_immediate_registration":  "",
+    "non_user_configurable_startup_capability":  false,
+    "run_full_trust":  true,
+    "artifact_contract_match":  true,
+    "windowsapps_alias_present":  true,
+    "alias_visible_in_get_command":  true,
+    "windowsapps_alias_invocation":  "\u0026 \"C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe\"",
+    "first_alias_path":  "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe",
+    "alias_shadowed_by":  null,
+    "alias_shadowing_mode":  "fail",
+    "alias_shadowing_accepted":  false,
+    "alias_shadowing_release_gate":  "strict",
+    "alias_resolution_order":  [
+                                   "C:\\Users\\empty\\AppData\\Local\\Microsoft\\WindowsApps\\musu.exe"
+                               ],
+    "alternate_alias_count":  0,
+    "alternate_alias_sources":  [
+
+                                ],
+    "alias_remediation":  null,
+    "start_menu_entry":  true,
+    "expected_start_app_id":  "blossompark.musu_f5h38pf4yt4gc!MUSU",
+    "startup_conflict_count":  0,
+    "alias_shadowing_count":  0,
+    "legacy_conflict_count":  0,
+    "legacy_startup_helpers":  "",
+    "legacy_scheduled_tasks":  "",
+    "legacy_bins":  "",
+    "fail_count":  0,
+    "checks":  [
+                   {
+                       "name":  "artifact path",
+                       "status":  "pass",
+                       "message":  "MSIX artifact exists"
+                   },
+                   {
+                       "name":  "package identity",
+                       "status":  "pass",
+                       "message":  "package identity resolved"
+                   },
+                   {
+                       "name":  "installed package",
+                       "status":  "pass",
+                       "message":  "package is installed for current user"
+                   },
+                   {
+                       "name":  "musu exe",
+                       "status":  "pass",
+                       "message":  "musu.exe exists in installed package"
+                   },
+                   {
+                       "name":  "brain exe",
+                       "status":  "pass",
+                       "message":  "musu-brain.exe exists in installed package"
+                   },
+                   {
+                       "name":  "startup exe",
+                       "status":  "pass",
+                       "message":  "musu-startup.exe exists in installed package"
+                   },
+                   {
+                       "name":  "installed manifest",
+                       "status":  "pass",
+                       "message":  "AppxManifest.xml exists in installed package"
+                   },
+                   {
+                       "name":  "installed alias contract",
+                       "status":  "pass",
+                       "message":  "installed manifest declares appExecutionAlias"
+                   },
+                   {
+                       "name":  "installed brain fullTrust process",
+                       "status":  "pass",
+                       "message":  "installed manifest declares brain fullTrustProcess"
+                   },
+                   {
+                       "name":  "installed startup contract",
+                       "status":  "pass",
+                       "message":  "installed manifest declares startupTask"
+                   },
+                   {
+                       "name":  "artifact contract match",
+                       "status":  "pass",
+                       "message":  "installed startup contract matches current artifact"
+                   },
+                   {
+                       "name":  "version match",
+                       "status":  "pass",
+                       "message":  "installed version matches artifact"
+                   },
+                   {
+                       "name":  "windowsapps alias file",
+                       "status":  "pass",
+                       "message":  "WindowsApps alias file exists"
+                   },
+                   {
+                       "name":  "windowsapps alias discoverable",
+                       "status":  "pass",
+                       "message":  "WindowsApps alias is discoverable via Get-Command"
+                   },
+                   {
+                       "name":  "alias not shadowed",
+                       "status":  "pass",
+                       "message":  "PATH resolves WindowsApps alias first"
+                   },
+                   {
+                       "name":  "legacy startup conflicts",
+                       "status":  "pass",
+                       "message":  "no legacy startup/bin conflicts found"
+                   },
+                   {
+                       "name":  "legacy alias shadowing",
+                       "status":  "pass",
+                       "message":  "no legacy alias shadowing found"
+                   },
+                   {
+                       "name":  "alias shadowing policy",
+                       "status":  "pass",
+                       "message":  "alias shadowing mode \u0027fail\u0027 is satisfied"
+                   }
+               ],
+    "error":  null
+}
