@@ -152,6 +152,30 @@ The blocker remains: live DNS is still Cloudflare nameservers/A/AAAA,
 Canonical report:
 `docs/PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01.md`.
 
+2026-07-01 02:22 KST Store-reviewed bundle refresh: the Store-reviewed MSIX
+output and Partner Center submission bundle were stale after the packaged brain
+sidecar full-trust fix. The old
+`.local-build\msix\submission-bundles\store-reviewed-20260628-005038` bundle
+still failed `verify-store-submission-bundle.ps1` because its MSIX manifest was
+missing the `windows.fullTrustProcess` declaration for `musu-brain.exe`. The
+Store-reviewed package was rebuilt with `build-msix.ps1 -StartupContract
+store-reviewed-immediate-registration -NoBump`, then repackaged into
+`.local-build\msix\submission-bundles\store-reviewed-20260701-021954`.
+`verify-msix-package.ps1`, `audit-msix-desktop-entrypoint.ps1`, and
+`verify-store-submission-bundle.ps1` all pass for the refreshed Store-reviewed
+artifact/bundle. Clean go/no-go at `2026-07-01T02:22:47.3375209+09:00` on
+commit `411f19579e4c36565cdd351087ecef27f57b4edd` reports
+`runtime_package_ready=true`, `local_artifacts_ready=true`,
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. This closes the
+local stale Store-reviewed artifact problem but does not close Store release:
+Partner Center certification, restricted capability approval, and Store-signed
+install/launch evidence remain external gates. Canonical report:
+`docs/STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01.md`. Index refresh:
+`musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+`3559 files` and `3908 symbols`; product brain source ingest under
+`local/musu` created 3 sources and recall returned the new wiki/report entries.
+
 2026-06-30 21:40 KST current-HEAD second-PC kit refresh (historical,
 superseded by the 23:20 KST kit):
 the next `hugh-main` evidence run then had a fresh kit generated from clean HEAD

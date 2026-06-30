@@ -10662,4 +10662,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   improved, but the public metadata blocker remains until external DNS/TLS is
   repaired and the canonical verifier passes.
 
+- 2026-07-01 Store-reviewed bundle refresh after brain sidecar fix:
+  `docs/STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1196`: the Store-reviewed MSIX output and
+  Partner Center submission bundle were refreshed after the packaged brain
+  sidecar `windows.fullTrustProcess` fix. The stale
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038` bundle
+  still failed on missing `musu-brain.exe` full-trust manifest declaration.
+  The current bundle is
+  `.local-build\msix\submission-bundles\store-reviewed-20260701-021954`.
+  `verify-msix-package.ps1`, `audit-msix-desktop-entrypoint.ps1`, and
+  `verify-store-submission-bundle.ps1` pass for the refreshed Store-reviewed
+  artifact/bundle. Clean go/no-go at `2026-07-01T02:22:47.3375209+09:00`
+  reports `runtime_package_ready=true`, `local_artifacts_ready=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `manifest_git.dirty=false`. Search terms should include
+  `wiki/1196`, `STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01`,
+  `store-reviewed-20260701-021954`, `musu_1.15.0.22_x64_store-reviewed`,
+  `musu-brain.exe`, `windows.fullTrustProcess`, `runtime_package_ready=true`,
+  `local_artifacts_ready=true`, and `Store submission bundle verification`.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3559 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources and recall returned the new
+  wiki/report entries.
+  Product meaning: local runtime package readiness is green again, but Store
+  release remains blocked by Partner Center certification/restricted-capability
+  approval and Store-signed install/launch evidence.
+
 **End of WIKI_INDEX.md.**

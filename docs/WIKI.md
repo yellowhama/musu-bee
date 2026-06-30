@@ -23168,3 +23168,56 @@ Product meaning:
 - Live DNS/TLS still needs external repair: current nameservers are Cloudflare,
   apex A records are Cloudflare, apex AAAA records exist, `www_tls.ok=true`,
   apex TLS fails, and direct Vercel edge apex TLS fails.
+
+## wiki/1196 - 2026-07-01 Store-reviewed bundle refresh after brain sidecar fix
+
+Current report:
+
+- `docs/STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- The Store-reviewed MSIX output was rebuilt after the packaged brain sidecar
+  `windows.fullTrustProcess` fix.
+- The old Store submission bundle
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038` is no
+  longer current because it still failed on missing `musu-brain.exe`
+  full-trust manifest declaration.
+- The refreshed bundle is
+  `.local-build\msix\submission-bundles\store-reviewed-20260701-021954`.
+
+Evidence:
+
+- `verify-msix-package.ps1` passes for
+  `.local-build\msix\output\musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`
+  and confirms `IncludesBrain=True`, `StartupImmediateRegistration=true`, and
+  `HasRestrictedStartupCapability=True`.
+- `audit-msix-desktop-entrypoint.ps1` passes for the Store-reviewed artifact
+  with `ok=true` and application executable `musu-desktop.exe`.
+- `verify-store-submission-bundle.ps1 -BundleDir
+  .local-build\msix\submission-bundles\store-reviewed-20260701-021954 -Json`
+  returns `ok=true`, `fail_count=0`.
+- Clean `write-release-go-no-go.ps1 -Json` at
+  `2026-07-01T02:22:47.3375209+09:00` reports
+  `runtime_package_ready=true`, `local_artifacts_ready=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `manifest_git.dirty=false`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3559 files` and `3908 symbols`; search returns this report and the
+  wiki entry.
+- Product brain source ingest under `local/musu` created 3 sources and query
+  `wiki/1196 store-reviewed-20260701-021954 runtime_package_ready` returned 3
+  results with top title `wiki/1196 WIKI entry`.
+
+Product meaning:
+
+- The local `runtime-package` blocker caused by stale Store-reviewed artifacts
+  is closed.
+- Store release is not closed: Partner Center certification, restricted
+  capability approval, and Store-signed install/launch evidence remain external
+  gates.
+- Full product remains NO-GO with 10 blockers: multi-device, Private Mesh
+  packaged proof, two-machine idle CPU, two-machine runtime CPU matrix, public
+  metadata DNS/TLS, Store release, P2P control plane, design approval, real
+  relay transport, and V34 stale self-heal.
