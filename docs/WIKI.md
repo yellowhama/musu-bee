@@ -22693,3 +22693,42 @@ Verification:
 Canonical report:
 
 - `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`
+
+## wiki/1185 - 2026-06-30 Current-HEAD second-PC kit refresh
+
+The next physical `hugh-main` evidence run now has a current kit generated from
+clean HEAD after the public metadata DNS/TLS recheck commit.
+
+Generated kit:
+
+- `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+- SHA256:
+  `98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`
+- source commit:
+  `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`
+- `dirty=false`
+- generated at:
+  `2026-06-30T21:16:14.7882354+09:00`
+
+Kit contents spot check:
+
+- `run-second-pc-release-check.ps1`
+- runtime CPU idle/matrix scripts
+- route reachability diagnostic scripts
+- Private Mesh release-proof scripts
+- P2P/relay evidence scripts
+- V34 source/proof scripts
+- `verify-musu-pro-install-channel.ps1`
+
+Product meaning:
+
+- This removes stale kit handoff risk for the next `hugh-main` run.
+- It does not close `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, or `private-mesh-packaged-release-proof` by
+  itself.
+- Those lanes require `hugh-main` to run the kit, return
+  `.local-build\second-pc-return\*.zip`, and pass import/verifier checks.
+
+Canonical handoff:
+
+- `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`

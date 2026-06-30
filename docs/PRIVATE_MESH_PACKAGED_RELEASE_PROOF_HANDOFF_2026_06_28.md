@@ -107,8 +107,9 @@ or build host capacity is increased.
 ## Next Steps To Close The Gate
 
 1. Use the current regenerated second-PC kit:
-   `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`
-   (`SHA256=78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`).
+   `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+   (`SHA256=98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`,
+   source commit `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`, `dirty=false`).
 2. On `hugh-main`, run the packaged second-PC release check with Private Mesh
    physical-peer evidence fail-closed:
 

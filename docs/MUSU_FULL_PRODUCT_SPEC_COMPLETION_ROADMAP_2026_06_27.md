@@ -93,6 +93,18 @@ Vercel edge apex TLS still fail. This is a stronger diagnosis, not completion:
 the `store-public-metadata` blocker remains until external DNS/TLS is repaired
 and `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
 
+2026-06-30 21:16 KST current-HEAD second-PC kit refresh:
+the next `hugh-main` evidence run now has a fresh kit generated from clean HEAD
+`327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`. The kit is
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+with SHA256
+`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+It includes `run-second-pc-release-check.ps1`, runtime CPU tools, route
+diagnostics, Private Mesh proof tools, P2P/relay evidence tools, and V34 proof
+tools. This removes stale handoff risk after the public metadata recheck commit,
+but it does not close the second-PC blockers until `hugh-main` runs the kit and
+the return zip is imported and verified.
+
 2026-06-30 19:19 KST current package-bound evidence refresh:
 `musu-brain.pin.json` now matches the clean `F:\musu_2nd_brain` HEAD
 `1416969c976b9edcd905c287fa70ab3221297305` and module path
@@ -2045,6 +2057,13 @@ This refresh does not close the runtime idle CPU, runtime CPU matrix, or
 multi-device product blockers by itself. It only removes stale handoff risk so
 the next `hugh-main` return zip can be imported and judged against the current
 rc.22 evidence contract.
+
+2026-06-30 21:16 KST successor kit:
+`.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260630-211559.zip`
+was generated from clean commit
+`327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`, with SHA256
+`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+Use this kit for the next `hugh-main` run instead of earlier 2026-06-30 kits.
 
 ## 2026-06-30 Rust Relay Lease DTO Post-Commit Gate
 

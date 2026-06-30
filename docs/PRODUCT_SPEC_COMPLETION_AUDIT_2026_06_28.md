@@ -286,6 +286,18 @@ DNS remains Cloudflare, apex TLS still fails, and direct Vercel edge apex TLS
 still fails. Qualitative read: app source/content is not the observed blocker;
 external DNS/TLS authority is.
 
+2026-06-30 21:16 KST second-PC kit refresh: a fresh multi-device test kit was
+generated from clean commit `327e2d9477d540cd04d53dd6fa4c2bf4d051ab91`.
+Current kit:
+`.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-211559.zip`,
+SHA256
+`98aa5060001a202b7ac379e43911874fb920a1655537077439750f6222f6afe3`.
+The kit includes the release wrapper, runtime CPU tools, route diagnostics,
+Private Mesh proof tooling, P2P/relay evidence tooling, and V34 proof tooling.
+Qualitative read: this keeps the physical evidence handoff current for
+`hugh-main`; it does not reduce blocker count until the return zip is actually
+produced, imported, and verifier-passing.
+
 2026-06-30 design approval current-state refresh:
 `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub check
 of PR #34 and issue #35. PR #34 is still `OPEN`, merge state `BLOCKED`, and
