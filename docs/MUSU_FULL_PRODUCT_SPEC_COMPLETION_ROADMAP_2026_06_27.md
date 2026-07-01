@@ -1,5 +1,45 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 14:31 KST P2P store-forward relay audit coverage refresh
+
+Canonical report:
+`docs/P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01.md`.
+
+Clean go/no-go on commit `58b73147649cb730917e0b3602740d740d4579de`
+surfaced `p2p-store-forward-relay` again because
+`audit-p2p-store-forward-relay-contract.ps1` still looked for the older release
+payload proof test name that accepted lease-bound proof metadata. The product
+contract changed in `wiki/1220`: release payload proof metadata must fail closed
+with `release_relay_tunnel_runtime_not_implemented` while
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`.
+
+Fix:
+
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1` now requires the
+  current fail-closed test name:
+  `rejects lease-bound release payload proof metadata while release tunnel
+  runtime is unwired`.
+- The audit also requires the coverage strings
+  `release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_proof_ready`, and `assert.equal(proofs.length, 0)`, so the
+  regression gate proves no relay transport proof record is written while the
+  runtime is absent.
+
+Verification:
+
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` passed:
+  `ok=true`, `fail_count=0`.
+- `npm exec -- tsx --test src/app/api/v1/relay/payload/route.test.ts` passed
+  `10/10`; `npm run test:p2p` passed `133/133`; `npm run typecheck` passed.
+- `git diff --check` and
+  `scripts/windows/test-release-evidence-verifiers.ps1 -Json` passed; release
+  evidence verifier regression is `219/219`.
+
+Product meaning: this closes a stale source-audit blocker shape only. It does
+not close `relay-transport` or `p2p-control-plane`; those still require real
+`quic_relay_tunnel` byte transit, bound `quic_tls_1_3` proof, and live
+owner-scoped payload delivery evidence.
+
 ## 2026-07-01 14:10 KST relay payload proof runtime fail-closed
 
 Canonical report:

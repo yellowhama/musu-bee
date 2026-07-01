@@ -11484,4 +11484,26 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `release_payload_accepted=false`, `payload_transported=false`,
   `test:p2p 133/133`, and `relay-transport NO-GO`.
 
+- 2026-07-01 P2P store-forward relay audit coverage refresh:
+  `docs/P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1221`: clean go/no-go on
+  `58b73147649cb730917e0b3602740d740d4579de` surfaced
+  `p2p-store-forward-relay` because
+  `audit-p2p-store-forward-relay-contract.ps1` still required the older
+  accepted-proof-metadata release payload test name. The audit now requires the
+  current fail-closed release payload proof test name, the
+  `release_relay_tunnel_runtime_not_implemented` error, `release_payload_proof_ready`,
+  and `assert.equal(proofs.length, 0)`. Verification:
+  `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` passed with
+  `ok=true`, `fail_count=0`; focused relay payload route test passed `10/10`;
+  `npm run test:p2p` passed `133/133`; `npm run typecheck` passed;
+  `git diff --check` passed; release evidence verifier regression passed
+  `219/219`. This removes a stale source-audit blocker shape but does not
+  implement release relay transport. Search terms should include
+  `wiki/1221`, `P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01`,
+  `p2p-store-forward-relay`, `audit-p2p-store-forward-relay-contract.ps1`,
+  `release_relay_tunnel_runtime_not_implemented`, and
+  `assert.equal(proofs.length, 0)`.
+
 **End of WIKI_INDEX.md.**

@@ -24690,3 +24690,40 @@ Search terms: `wiki/1220`,
 `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
 `src/app/api/v1/relay/payload/route.ts`, `test:p2p 133/133`,
 `relay-transport NO-GO`.
+
+## wiki/1221 - 2026-07-01 P2P store-forward relay audit coverage refresh
+
+Canonical report:
+`docs/P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01.md`.
+
+Clean go/no-go on `58b73147649cb730917e0b3602740d740d4579de` showed
+`p2p-store-forward-relay` as a blocker. Direct audit narrowed it to one stale
+coverage check: `audit-p2p-store-forward-relay-contract.ps1` still required the
+old release payload proof test name that accepted lease-bound proof metadata.
+
+The audit now matches `wiki/1220`: release payload proof metadata must be
+rejected while `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`. The source audit now
+requires the test name
+`rejects lease-bound release payload proof metadata while release tunnel runtime
+is unwired`, plus `release_relay_tunnel_runtime_not_implemented`,
+`release_payload_proof_ready`, and `assert.equal(proofs.length, 0)`.
+
+Verification:
+
+- `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` passed:
+  `ok=true`, `fail_count=0`.
+- `npm exec -- tsx --test src/app/api/v1/relay/payload/route.test.ts` passed
+  `10/10`; `npm run test:p2p` passed `133/133`; `npm run typecheck` passed.
+- `git diff --check` and release evidence verifier regression passed;
+  `test-release-evidence-verifiers.ps1 -Json` is `219/219`.
+
+Product meaning: this removes a stale source-audit blocker shape; it does not
+implement release relay transport. `relay-transport` and `p2p-control-plane`
+remain NO-GO until real `quic_relay_tunnel` byte transit and live bound proof
+exist.
+
+Search terms: `wiki/1221`,
+`P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01`,
+`p2p-store-forward-relay`, `audit-p2p-store-forward-relay-contract.ps1`,
+`release_relay_tunnel_runtime_not_implemented`,
+`assert.equal(proofs.length, 0)`, `relay-transport NO-GO`.

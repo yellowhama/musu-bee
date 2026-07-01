@@ -1084,14 +1084,17 @@ Add-Check `
             "release_relay_lease_relay_url_mismatch",
             "unexpected_release_field",
             "verifies relay lease metadata but rejects release payload transport while runtime is unwired",
-            "accepts lease-bound release payload proof metadata without storing raw payload bytes",
+            "rejects lease-bound release payload proof metadata while release tunnel runtime is unwired",
+            "release_relay_tunnel_runtime_not_implemented",
             "musu.relay_payload_release_request.v1",
             "musu.relay_transport_proof.v1",
             "musu.relay_payload_delivery_proof.v1",
             "lease_verified",
+            "release_payload_proof_ready",
             "release_payload_accepted",
             "payload_stored",
-            "payload_transported"
+            "payload_transported",
+            "assert.equal(proofs.length, 0)"
         ))
     ) `
     -Path $releasePayloadPreflightRouteTestPath `
