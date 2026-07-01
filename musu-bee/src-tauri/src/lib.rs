@@ -6204,38 +6204,13 @@ fn run_knowledge_sidecar_autostart() {
     let stderr_log = knowledge_sidecar_stderr_log_path();
     let mut log_warnings = Vec::new();
 
-    let stdout = match open_knowledge_sidecar_log(&stdout_log) {
-        Ok(file) => std::process::Stdio::from(file),
-        Err(err) => {
-            log_warnings.push(err);
-            std::process::Stdio::null()
-        }
-    };
-    let stderr = match open_knowledge_sidecar_log(&stderr_log) {
-        Ok(file) => std::process::Stdio::from(file),
-        Err(err) => {
-            log_warnings.push(err);
-            std::process::Stdio::null()
-        }
-    };
-
-    let root_arg = root.to_string_lossy().to_string();
-    let mut cmd = std::process::Command::new(&command);
-    cmd.args([
-        "server",
-        "-root",
-        root_arg.as_str(),
-        "-addr",
-        KNOWLEDGE_ADDR,
-    ])
-    .env("MUSU_HOME", musu_home())
-    .env(KNOWLEDGE_ROOT_ENV, &root)
-    .env(BRAIN_ROOT_ENV, &root)
-    .stdin(std::process::Stdio::null())
-    .stdout(stdout)
-    .stderr(stderr);
-
-    let mut child = match no_window(&mut cmd).spawn() {
+    let mut child = match spawn_knowledge_sidecar_process(
+        &command,
+        &root,
+        &stdout_log,
+        &stderr_log,
+        &mut log_warnings,
+    ) {
         Ok(child) => child,
         Err(err) => {
             let detail = format!(
@@ -6263,9 +6238,52 @@ fn run_knowledge_sidecar_autostart() {
         }
     };
 
-    let pid = child.id();
-    let readiness = wait_for_knowledge_sidecar_ready(&mut child);
-    let mut detail = readiness.detail;
+    let mut pid = child.id();
+    let mut readiness = wait_for_knowledge_sidecar_ready(&mut child);
+    let mut retry_detail = String::new();
+    if !readiness.ready && readiness.exited {
+        let initial_pid = pid;
+        let initial_detail = readiness.detail.clone();
+        let winner_readiness = wait_for_existing_knowledge_sidecar_start();
+        if winner_readiness.ready {
+            readiness = winner_readiness;
+            retry_detail = format!(
+                "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); "
+            );
+        } else {
+            match spawn_knowledge_sidecar_process(
+                &command,
+                &root,
+                &stdout_log,
+                &stderr_log,
+                &mut log_warnings,
+            ) {
+                Ok(mut retry_child) => {
+                    pid = retry_child.id();
+                    readiness = wait_for_knowledge_sidecar_ready(&mut retry_child);
+                    retry_detail = format!(
+                        "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); retry process {pid} was started after no competing healthy sidecar appeared. "
+                    );
+                }
+                Err(err) => {
+                    readiness = KnowledgeSidecarReadiness {
+                        ready: false,
+                        exited: false,
+                        detail: format!(
+                            "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); retry spawn failed: {err}"
+                        ),
+                    };
+                    retry_detail.clear();
+                }
+            }
+        }
+    }
+
+    let mut detail = if retry_detail.is_empty() {
+        readiness.detail
+    } else {
+        format!("{retry_detail}{}", readiness.detail)
+    };
     if !log_warnings.is_empty() {
         detail.push_str(" Log warning: ");
         detail.push_str(&log_warnings.join("; "));
@@ -6294,6 +6312,47 @@ fn run_knowledge_sidecar_autostart() {
         stderr_log: Some(stderr_log.display().to_string()),
         detail,
     });
+}
+
+fn spawn_knowledge_sidecar_process(
+    command: &std::path::Path,
+    root: &std::path::Path,
+    stdout_log: &std::path::Path,
+    stderr_log: &std::path::Path,
+    log_warnings: &mut Vec<String>,
+) -> Result<std::process::Child, String> {
+    let stdout = match open_knowledge_sidecar_log(stdout_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+    let stderr = match open_knowledge_sidecar_log(stderr_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+
+    let root_arg = root.to_string_lossy().to_string();
+    let mut cmd = std::process::Command::new(command);
+    cmd.args([
+        "server",
+        "-root",
+        root_arg.as_str(),
+        "-addr",
+        KNOWLEDGE_ADDR,
+    ])
+    .env("MUSU_HOME", musu_home())
+    .env(KNOWLEDGE_ROOT_ENV, root)
+    .env(BRAIN_ROOT_ENV, root)
+    .stdin(std::process::Stdio::null())
+    .stdout(stdout)
+    .stderr(stderr);
+
+    no_window(&mut cmd).spawn().map_err(|err| err.to_string())
 }
 
 fn try_acquire_knowledge_start_file_lock() -> Result<Option<KnowledgeStartFileLock>, String> {
