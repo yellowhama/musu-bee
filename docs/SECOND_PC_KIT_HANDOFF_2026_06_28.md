@@ -9,19 +9,19 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`, `dirty=false`.
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, at `2026-07-01T11:23:58.6689761+09:00`, from clean commit
-  `6fdc1f3c`.
+  `HUGH_SECOND`, at `2026-07-01T13:56:40.1524203+09:00`, from clean commit
+  `9ce134bb`.
 - Zip SHA256:
-  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`.
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`.
 - Internal checksum verification:
-  `ok=true`, `checksum_mismatches=0`, `file_count=51`.
+  `ok=true`, `checksum_mismatches=0`, `checksum_count=50`, `file_count=51`.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
@@ -32,9 +32,10 @@ The generator supports the go/no-go next action command with `-Json` and
 persists the latest `schema=musu.multidevice_test_kit_prepare.v1`,
 `zip_sha256`, `metadata_path`, and source git metadata to
 `.local-build/multi-device-test-kit/latest-prepare-output.json`. The current
-kit supersedes the earlier `20260701-025502` kit because it was generated from
-the current clean HEAD after the final local evidence closeout, post-doc
-go/no-go recheck, and final wiki/index/recall commit.
+kit supersedes the earlier `20260701-112343` kit because it was generated from
+the current clean HEAD after the shell cancel latch source fix, local package
+evidence refresh, runtime CPU evidence refresh, clean go/no-go recheck, and
+wiki/spec/index updates.
 
 The canonical brain-side handoff remains
 `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` on clean brain repo

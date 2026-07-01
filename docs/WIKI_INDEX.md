@@ -11431,4 +11431,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `Local Packaged Evidence Refresh After Shell Cancel Fix 2026 07 01 wiki 1218`
   returned the new report as the top result.
 
+- 2026-07-01 current second-PC kit after shell cancel package proof:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1219`: the current second-PC kit is
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`,
+  SHA256
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`,
+  generated at `2026-07-01T13:56:40.1524203+09:00` from clean commit
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`. Internal checksum replay passed
+  with `ok=true`, `checksum_mismatches=0`, `checksum_count=50`, and
+  `file_count=51`. This supersedes the `20260701-112343` kit from `6fdc1f3c`
+  because it includes the shell cancel latch fix, rebuilt local package
+  evidence, runtime CPU refresh, clean go/no-go recheck, and wiki/spec/index
+  updates. It does not close product blockers by itself; `hugh-main` must run
+  the kit and return/import `.local-build/second-pc-return/*.zip`. Index
+  refresh: `musu indexer sync` indexed `3698 files` and `3949 symbols`;
+  product brain ingest under `local/musu` posted `6` sources, processed `6`,
+  and recall for exact kit key
+  `20260701-135632 3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+  returned the updated second-PC handoff as the top result. Search terms should
+  include `wiki/1219`, `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+  `SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260701-135632`,
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`,
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check.ps1`, and `full product NO-GO`.
+
 **End of WIKI_INDEX.md.**

@@ -4,34 +4,34 @@
 
 Regenerated the second-PC proof kit from the current clean
 `feat/v33-residual-finalize` HEAD so the next physical `hugh-main` return is
-not tied to stale source after the final local evidence closeout and final
-wiki/index commit.
+not tied to stale source after the shell cancel latch source fix, local package
+evidence refresh, and clean go/no-go documentation commits.
 
 ## Kit
 
 - Version: `1.15.0-rc.22`
 - Package: `musu_1.15.0.22_x64_local-sideload-manual.msix`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632`
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
 - SHA256:
-  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`
-- Generated at: `2026-07-01T11:23:58.6689761+09:00`
-- Metadata generated at: `2026-07-01T11:23:45.4221057+09:00`
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+- Generated at: `2026-07-01T13:56:40.1524203+09:00`
+- Metadata generated at: `2026-07-01T13:56:33.6591365+09:00`
 - Source branch: `feat/v33-residual-finalize`
-- Source commit: `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`
+- Source commit: `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`
 - Dirty: `false`
 - Internal checksum verification: `ok=true`, `checksum_mismatches=0`,
-  `file_count=51`.
+  `checksum_count=50`, `file_count=51`.
 
 ## Why This Matters
 
-The previous current kit was `20260701-025502`, generated from clean commit
-`635a161f49b2266fa9758de6b5d5ca14b040ca64`. The branch has since gained the
-final local evidence closeout, the post-documentation go/no-go recheck, and the
-final wiki/index/recall commit recorded at clean commit
-`6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`.
+The previous current kit was `20260701-112343`, generated from clean commit
+`6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`. The branch has since gained the
+shell cancel latch source fix, rebuilt local package evidence, runtime CPU
+evidence refresh, clean go/no-go recheck, and wiki/spec/index updates recorded
+at clean commit `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`.
 Returning second-PC evidence from the older kit would be source-stale relative
 to the current branch.
 
@@ -61,19 +61,14 @@ not change that contract.
 ## Indexing
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
-  indexed `3674 files` and `3947 symbols`.
-- Search for exact SHA
-  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`
-  returns this document, `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
-  `docs/WIKI.md`, and the roadmap.
-- Search for `wiki 1214 current second PC kit final local evidence` returns
-  this document and `docs/WIKI.md`.
+  indexed `3698 files` and `3949 symbols`.
 - Product brain source ingest under `tenant_id=local`, `workspace_id=musu`
-  posted 5 sources for this report, the second-PC handoff, the roadmap
-  section, the wiki entry, and the wiki index entry.
-- `/v1/process` processed 5 sources with `recovered=0`.
-- `/v1/query` for `wiki/1214 20260701-112343 ea7711 second-PC kit` returned
-  5 results with top title `wiki/1214 final current second-PC kit report`.
+  posted `6` sources for this report, the second-PC handoff, next steps,
+  roadmap, wiki, and wiki index.
+- `/v1/process` processed `6` sources.
+- `/v1/query` for exact kit key
+  `20260701-135632 3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+  returned `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` as the top result.
 
 ## Product Status
 

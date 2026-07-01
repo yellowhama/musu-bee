@@ -8,15 +8,15 @@ blockers are physical, external, or release-transport proof gates.
 
 Current local evidence report:
 
-- `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`
+- `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`
 
 Current second-PC kit:
 
-- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`
+- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
 - SHA256:
-  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
 - source commit:
-  `635a161f49b2266fa9758de6b5d5ca14b040ca64`
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`
 
 ## What Is Proven
 
@@ -24,13 +24,14 @@ Current second-PC kit:
 - `HUGH_SECOND` single-machine smoke passes.
 - Process ownership, startup single-instance, and desktop single-instance pass.
 - `HUGH_SECOND` desktop-open idle CPU passes.
-- Full five-scenario runtime CPU matrix passes on `HUGH_SECOND`.
-- The post-route scenario can target `hugh-main` over LAN.
+- Five-scenario runtime CPU matrix captures on `HUGH_SECOND`; the targeted
+  route-attempt verifier passes for `hugh-main`, but the default successful
+  post-route matrix gate remains open because `route_ok=false`.
 - The packaged hidden-brain lane now passes on `HUGH_SECOND` after the MSIX
   `windows.fullTrustProcess` repair for `musu-brain.exe`.
-- The current second-PC kit was regenerated from clean HEAD after the brain
-  handoff alignment audit, so the next `hugh-main` run is not tied to the older
-  `20260701-003206` source snapshot.
+- The current second-PC kit was regenerated from clean HEAD after the shell
+  cancel latch fix and local package evidence refresh, so the next `hugh-main`
+  run is not tied to the older `20260701-112343` source snapshot.
 
 ## What Is Not Proven
 
@@ -109,10 +110,8 @@ Required proof:
 
 1. Run/import `hugh-main` kit return.
 2. Pass physical remote file `put/ls/get` proof.
-3. Rebuild/reinstall after the brain root-env source update and rerun brain
-   product proof.
-4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
-5. Produce Private Mesh packaged proof archive.
-6. Complete release-grade route transport and relay proof.
-7. Record Store, design approval, live P2P control-plane, and V34 stale
+3. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
+4. Produce Private Mesh packaged proof archive.
+5. Complete release-grade route transport and relay proof.
+6. Record Store, design approval, live P2P control-plane, and V34 stale
    self-heal evidence.

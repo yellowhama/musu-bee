@@ -1,5 +1,43 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 13:59 KST current second-PC kit after shell cancel package proof
+
+The current second-PC kit has been regenerated from clean
+`feat/v33-residual-finalize` HEAD after the shell cancel latch source fix and
+local package evidence refresh:
+
+- zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
+- root:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632`
+- SHA256:
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+- source commit: `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`
+- source dirty: `false`
+- generated at: `2026-07-01T13:56:40.1524203+09:00`
+- internal checksum replay: `ok=true`, `checksum_mismatches=0`,
+  `checksum_count=50`, `file_count=51`
+
+The kit includes the local-sideload MSIX, public cert,
+`run-second-pc-release-check.ps1`, runtime idle CPU and runtime CPU matrix
+tools, V34 self-heal proof tools, Private Mesh release-proof tools, and route
+diagnostic scripts. It supersedes `20260701-112343`, which was built from
+`6fdc1f3c` before the shell cancel package proof and clean go/no-go updates.
+
+Product meaning: this narrows the next physical action to a current kit run on
+`hugh-main`. It does not close `multi-device`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, or any
+external release gate until the returned evidence is imported and verified.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3698 files` and `3949 symbols`.
+- Product brain ingest under `local/musu` posted `6` sources and processed `6`.
+- Recall for exact kit key
+  `20260701-135632 3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+  returned the updated second-PC handoff as the top result.
+
 ## 2026-07-01 13:47 KST local package evidence refresh after shell cancel fix
 
 Canonical report:

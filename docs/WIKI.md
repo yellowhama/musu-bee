@@ -24590,3 +24590,62 @@ Search terms: `wiki/1218`,
 `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`,
 `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, `route_ok=false`,
 `full product NO-GO`, `~/.musu/brain`, `HANDOFF-musu-integration`.
+
+## wiki/1219 - 2026-07-01 Current second-PC kit after shell cancel package proof
+
+Canonical reports:
+
+- `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`
+- `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`
+- `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+Current kit:
+
+- zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
+- root:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632`
+- SHA256:
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+- source commit: `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`
+- generated at: `2026-07-01T13:56:40.1524203+09:00`
+- source dirty: `false`
+- checksum replay: `ok=true`, `checksum_mismatches=0`,
+  `checksum_count=50`, `file_count=51`
+
+Why it supersedes the previous kit:
+
+- Previous kit `20260701-112343` was built from
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`.
+- Current kit `20260701-135632` is built from `9ce134bb`, which includes the
+  shell cancel latch fix, rebuilt local package evidence, runtime CPU refresh,
+  clean go/no-go recheck, and wiki/spec/index updates.
+
+Product meaning:
+
+- This is a handoff artifact only. It does not close product blockers by
+  itself.
+- The next release-moving action is to run this kit on `hugh-main`, return
+  `.local-build/second-pc-return/*.zip`, import it, and verify the returned
+  evidence.
+- The product remains NO-GO until physical second-PC evidence, successful
+  post-route matrix proof, Private Mesh packaged proof, public metadata
+  DNS/TLS, Store, P2P, relay transport, design approval, and V34 proof are
+  closed.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3698 files` and `3949 symbols`.
+- Product brain ingest under `local/musu` posted `6` sources and processed `6`.
+- Recall for exact kit key
+  `20260701-135632 3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+  returned the updated second-PC handoff as the top result.
+
+Search terms: `wiki/1219`, `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+`SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260701-135632`,
+`3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`,
+`9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `hugh-main`,
+`hugh_second`, `run-second-pc-release-check.ps1`, `checksum_mismatches=0`,
+`full product NO-GO`.
