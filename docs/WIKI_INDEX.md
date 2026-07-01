@@ -11613,4 +11613,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260701-154029-HUGH_SECOND`, `20260701-154046-HUGH_SECOND`,
   `20260701-154133-HUGH_SECOND`, and `blocker_count=11`.
 
+- 2026-07-01 brain sidecar retry and local CPU refresh:
+  `docs/BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1225`: packaged hidden brain lifecycle now
+  handles the observed `exited_before_ready` bind race by waiting for an
+  existing healthy sidecar and retrying one hidden spawn only if none appears.
+  Source touched: `musu-bee/src-tauri/src/lib.rs` with
+  `spawn_knowledge_sidecar_process`. Evidence includes
+  `20260701-161221-HUGH_SECOND` brain product proof,
+  `20260701-161658-HUGH_SECOND` idle CPU,
+  `20260701-161810-HUGH_SECOND` runtime CPU matrix and route evidence,
+  `20260701-163238-HUGH_SECOND` single-machine,
+  `20260701-163326-HUGH_SECOND` process ownership,
+  `20260701-163336-HUGH_SECOND` startup single-instance, and
+  `20260701-163413-HUGH_SECOND` desktop single-instance. Verification passed
+  Tauri knowledge tests (`7/7`), rustfmt check, MSIX rebuild/reinstall, brain
+  product verifier, `musu doctor --json` with `knowledge.status=ok`, idle CPU
+  max one-core CPU `0.88%`, and runtime matrix verifier with
+  `-AllowFailedPostRouteProbe -ExpectedPostRouteTarget hugh-main`. Go/no-go
+  after evidence refresh shows local packaged lanes and brain product true,
+  `runtime_idle_cpu_valid_machine_count=1 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0` because strict matrix
+  still needs successful post-route wait-token completion. Product remains
+  NO-GO. Search terms should include `wiki/1225`,
+  `BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01`,
+  `spawn_knowledge_sidecar_process`, `exited_before_ready`,
+  `sidecar-autostart-status.json`, `20260701-161810-HUGH_SECOND`,
+  `20260701-163413-HUGH_SECOND`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
 **End of WIKI_INDEX.md.**

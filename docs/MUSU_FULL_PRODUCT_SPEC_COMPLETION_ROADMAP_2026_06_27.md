@@ -1,5 +1,66 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 16:34 KST brain sidecar retry and local CPU refresh
+
+Canonical report:
+`docs/BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01.md`.
+
+After the hidden brain sidecar package proof was refreshed, a real packaged
+desktop lifecycle race was observed: the first hidden `musu-brain` child could
+exit before readiness with a loopback bind error while another sidecar was
+taking `127.0.0.1:8080`. `musu-bee/src-tauri/src/lib.rs` now retries this path
+conservatively: if the first child exits before readiness, MUSU first waits for
+an existing healthy sidecar; if none appears, it retries one spawn and records
+the combined detail in `sidecar-autostart-status.json`.
+
+Evidence refreshed on source commit
+`7789f8d3f4c0f823edbbea90f41d60b8771d78ce`:
+
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-161221-HUGH_SECOND.brain-product-proof.json`
+- single-machine:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-163238-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-163326-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-163336-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-163413-HUGH_SECOND.desktop-single-instance.json`
+- runtime idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-161658-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU scenario matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-161810-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Verification:
+
+- Tauri knowledge tests passed (`7/7`) and rustfmt check passed for the touched
+  source file.
+- MSIX rebuild/reinstall succeeded with version coherence still at
+  `1.15.0-rc.22` / package `1.15.0.22`.
+- `musu doctor --json` showed `knowledge.status=ok`, `health_http_status=200`,
+  and `autostart_status.result=started`.
+- Brain product proof verified with `ok=true`, `fail_count=0`.
+- Idle CPU passed on HUGH_SECOND with `git_dirty=false`, 60s sample, owned
+  WebView2 required, and max observed one-core CPU `0.88%`.
+- Runtime matrix verifier passed only with
+  `-AllowFailedPostRouteProbe -ExpectedPostRouteTarget hugh-main`; the strict
+  go/no-go matrix lane remains open because it requires successful post-route
+  wait-token completion.
+- Go/no-go after evidence refresh reports `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, `brain_product_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
+Product meaning: local packaged hygiene and packaged brain lifecycle are healthy
+again on HUGH_SECOND, but full product completion remains NO-GO. Remaining
+substantive blockers are multi-device, Private Mesh packaged proof, second
+machine idle CPU, successful runtime CPU matrix, store-public-metadata,
+Store release, P2P control-plane, design approval, relay transport, and
+V34 stale self-heal. A transient `git` blocker is expected while this evidence
+and docs update are staged.
+
 ## 2026-07-01 15:43 KST local packaged evidence refresh
 
 Canonical report:

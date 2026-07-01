@@ -24904,3 +24904,62 @@ Search terms: `wiki/1224`,
 `20260701-154133-HUGH_SECOND`, `single_machine_verified=true`,
 `process_ownership_verified=true`, `startup_single_instance_verified=true`,
 `desktop_single_instance_verified=true`, `blocker_count=11`.
+
+## wiki/1225 - 2026-07-01 Brain sidecar retry and local CPU refresh
+
+Canonical report:
+`docs/BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01.md`.
+
+A packaged desktop hidden brain lifecycle race was found and fixed. Before the
+fix, `sidecar-autostart-status.json` could show `result=exited_before_ready`
+after `musu-brain` failed to bind `127.0.0.1:8080`. The source fix in
+`musu-bee/src-tauri/src/lib.rs` factors hidden sidecar spawning into
+`spawn_knowledge_sidecar_process` and adds one conservative retry path: wait for
+an existing healthy sidecar first, then retry once only if no competing healthy
+sidecar appears.
+
+Current proof set on source commit
+`7789f8d3f4c0f823edbbea90f41d60b8771d78ce`:
+
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-161221-HUGH_SECOND.brain-product-proof.json`
+- local packaged baseline:
+  `20260701-163238-HUGH_SECOND` single-machine,
+  `20260701-163326-HUGH_SECOND` process ownership,
+  `20260701-163336-HUGH_SECOND` startup single-instance,
+  `20260701-163413-HUGH_SECOND` desktop single-instance
+- runtime CPU:
+  `20260701-161658-HUGH_SECOND.desktop-open.evidence.json` and
+  `20260701-161810-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Verification passed: Tauri knowledge tests (`7/7`), rustfmt check, MSIX
+rebuild/reinstall, brain product verifier, `musu doctor --json` with
+`knowledge.status=ok`, 60s idle CPU with max one-core CPU `0.88%`, and runtime
+matrix verifier with `-AllowFailedPostRouteProbe -ExpectedPostRouteTarget
+hugh-main`.
+
+Go/no-go meaning: `single_machine_verified`, `process_ownership_verified`,
+`startup_single_instance_verified`, `desktop_single_instance_verified`, and
+`brain_product_verified` are true. `runtime_idle_cpu_valid_machine_count=1`
+for `HUGH_SECOND`, and
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1` for `HUGH_SECOND`.
+The strict runtime matrix lane remains NO-GO with
+`runtime_cpu_scenario_matrix_valid_machine_count=0` because the matrix requires
+successful post-route wait-token completion, not only allowed failed route
+attempt metadata.
+
+Product status remains NO-GO. Remaining substantive blockers are
+`multi-device`, `private-mesh-packaged-release-proof`, second-machine
+`runtime-idle-cpu`, successful `runtime-cpu-scenario-matrix`,
+`store-public-metadata`, `store-release`, `p2p-control-plane`,
+`design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+
+Search terms: `wiki/1225`,
+`BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01`,
+`spawn_knowledge_sidecar_process`, `exited_before_ready`,
+`sidecar-autostart-status.json`, `20260701-161221-HUGH_SECOND`,
+`20260701-161658-HUGH_SECOND`, `20260701-161810-HUGH_SECOND`,
+`20260701-163238-HUGH_SECOND`, `20260701-163326-HUGH_SECOND`,
+`20260701-163336-HUGH_SECOND`, `20260701-163413-HUGH_SECOND`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0`, and
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1`.
