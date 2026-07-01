@@ -2856,3 +2856,63 @@ Spec status:
   wait for propagation, then rerun
   `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` and
   `write-release-go-no-go.ps1 -Json`.
+
+## 2026-07-01 Final Local Evidence Closeout
+
+Canonical report:
+
+- `docs/CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01.md`
+
+Current HEAD:
+
+- `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`
+
+Clean go/no-go:
+
+- Generated at `2026-07-01T11:06:33.5228571+09:00`.
+- `manifest_git.dirty=false`.
+- `full_product_spec_ready=false`.
+- `ready_for_public_desktop_release=false`.
+- `blockers=10`.
+
+What is now fresh on `HUGH_SECOND`:
+
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+
+New evidence:
+
+- Local freshness:
+  `20260701-104134-HUGH_SECOND`, `20260701-104158-HUGH_SECOND`,
+  `20260701-104213-HUGH_SECOND`, `20260701-104403-HUGH_SECOND`.
+- Runtime CPU:
+  `20260701-110350-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260701-105201-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `20260701-105201-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`,
+  and `20260701-105201-HUGH_SECOND.target-route.verification.json`.
+
+Spec status:
+
+- **NO-GO remains correct.**
+- The local package is green on `HUGH_SECOND`; remaining runtime CPU blockers
+  are now second-machine coverage blockers.
+- The target route-attempt CPU lane is closed for this machine, but it is not
+  release-grade relay transport. The evidence still records LAN HTTP bearer,
+  `peer_identity_verified=false`, and `encryption=none_http_bearer`.
+- Remaining blockers: `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+  `p2p-control-plane`, `design-approval`, `relay-transport`, and
+  `v34-stale-self-heal`.
+
+Next step:
+
+- Move to second-machine and external gates: `hugh-main` CPU/multi-device
+  return, Cloudflare DNS apply and verifier pass, release-grade relay transport,
+  Private Mesh packaged proof, V34 physical stale self-heal, Store evidence,
+  and design approval.

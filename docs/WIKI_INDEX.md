@@ -11206,4 +11206,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `cloudflare_token_missing`, `76.76.21.21`, `cname.vercel-dns-0.com`,
   `will_mutate_external_dns=false`, and `test:public-release 17/17`.
 
+- 2026-07-01 final local evidence closeout:
+  `docs/CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1213`: current
+  HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` has fresh
+  `HUGH_SECOND` local package evidence for single-machine
+  `20260701-104134-HUGH_SECOND`, process ownership
+  `20260701-104158-HUGH_SECOND`, startup single-instance
+  `20260701-104213-HUGH_SECOND`, desktop single-instance
+  `20260701-104403-HUGH_SECOND`, desktop-open idle CPU
+  `20260701-110350-HUGH_SECOND.desktop-open.evidence.json`, and runtime CPU
+  matrix `20260701-105201-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Clean go/no-go at `2026-07-01T11:06:33.5228571+09:00` reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `blockers=10`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Product remains NO-GO:
+  the remaining CPU blockers require the second physical machine, and the
+  route-attempt evidence remains LAN HTTP bearer with
+  `peer_identity_verified=false` and `encryption=none_http_bearer`, not
+  release-grade `quic_relay_tunnel` / `quic_tls_1_3` relay proof. Search terms
+  should include `wiki/1213`,
+  `CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01`,
+  `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`,
+  `20260701-110350-HUGH_SECOND`, `20260701-105201-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, `none_http_bearer`,
+  `quic_relay_tunnel`, and `quic_tls_1_3`.
+
 **End of WIKI_INDEX.md.**

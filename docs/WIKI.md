@@ -24141,3 +24141,63 @@ Search terms: `wiki/1212`,
 `cloudflare_token_missing`, `76.76.21.21`,
 `cname.vercel-dns-0.com`, `will_mutate_external_dns=false`,
 `test:public-release 17/17`.
+
+## wiki/1213 - 2026-07-01 Final local evidence closeout
+
+Canonical report:
+
+- `docs/CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- Current HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` now has fresh local
+  package evidence for `HUGH_SECOND`.
+- Fresh local evidence paths include single-machine
+  `20260701-104134-HUGH_SECOND`, process ownership
+  `20260701-104158-HUGH_SECOND`, startup single-instance
+  `20260701-104213-HUGH_SECOND`, desktop single-instance
+  `20260701-104403-HUGH_SECOND`, desktop-open idle CPU
+  `20260701-110350-HUGH_SECOND.desktop-open.evidence.json`, and runtime CPU
+  matrix `20260701-105201-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+- Runtime CPU matrix verification and target-route verification both pass for
+  `20260701-105201-HUGH_SECOND`; target is `hugh-main`.
+- Clean go/no-go at `2026-07-01T11:06:33.5228571+09:00` reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, and `blockers=10`.
+
+Current green local lanes:
+
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `runtime_idle_cpu_valid_machine_count=1`
+- `runtime_cpu_scenario_matrix_valid_machine_count=1`
+- `runtime_cpu_second_pc_route_attempt_verified=true`
+
+Product meaning:
+
+- The local packaged app is not showing a busy-loop or process ownership
+  regression on `HUGH_SECOND`.
+- The remaining CPU blockers are machine-count blockers: the release gate needs
+  `hugh-main` evidence too.
+- The target route-attempt is operational evidence only. It still records LAN
+  HTTP bearer with `peer_identity_verified=false` and
+  `encryption=none_http_bearer`; do not treat it as release-grade
+  `quic_relay_tunnel` / `quic_tls_1_3` relay proof.
+- Product status remains NO-GO because the remaining blocker areas are
+  `multi-device`, `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+  `p2p-control-plane`, `design-approval`, `relay-transport`, and
+  `v34-stale-self-heal`.
+
+Search terms: `wiki/1213`,
+`CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01`,
+`8fd1360feedd50b11c4a528ddf4b7faddbd124cb`,
+`go-no-go 11:06:33`, `20260701-110350-HUGH_SECOND`,
+`20260701-105201-HUGH_SECOND`, `runtime_cpu_second_pc_route_attempt_verified=true`,
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`,
+`peer_identity_verified=false`, `none_http_bearer`, `quic_relay_tunnel`,
+`quic_tls_1_3`.
