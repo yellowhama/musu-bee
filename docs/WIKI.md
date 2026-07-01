@@ -23919,3 +23919,54 @@ Product meaning:
   `runtime_cpu_second_pc_route_attempt_verified=true`,
   `runtime_idle_cpu_valid_machine_count=1`,
   `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
+## wiki/1209 - 2026-07-01 Current product closeout audit
+
+Canonical report:
+
+- `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/HANDOFF-musu-integration.md`
+- `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+
+What changed:
+
+- Current HEAD `e4959eaf298661752055b8e131573c67018fadd9` was rechecked with
+  clean go/no-go at `2026-07-01T09:49:52.5926629+09:00`.
+- Result remains `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `warnings=0`, `blockers=10`, and
+  `manifest_git.dirty=false`.
+- Local `HUGH_SECOND` lanes are green: single-machine, process ownership,
+  startup single-instance, desktop single-instance, MSIX install, brain product,
+  and targeted `hugh-main` route-attempt CPU proof.
+- CPU idle and matrix release gates still have only one valid physical machine.
+- Brain handoff is aligned with the brain repo canonical handoff at
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` and brain repo commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- P2P code audit confirms store-forward relay fallback passes its contract
+  audit, but release-grade relay remains fail-closed:
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` and Rust still returns
+  `release_relay_tunnel_runtime_not_implemented`.
+
+Product meaning:
+
+- The local package is not showing a busy-loop regression and the hidden brain
+  lane is locally package-proven on `HUGH_SECOND`.
+- Full product completion remains NO-GO because the remaining evidence is
+  external/physical/release-grade: `hugh-main` returned evidence, Private Mesh,
+  `musu.pro` DNS/TLS/metadata, Store release, design approval, V34 stale
+  self-heal, and actual `quic_relay_tunnel` + `quic_tls_1_3` relay proof.
+- Store-forward queue fallback must not be marketed or verified as
+  release-grade relay transport.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3652 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted 8 sources, processed 8, recovered 0, and recall for
+  `wiki/1209 current product closeout audit release_relay_tunnel_runtime_not_implemented`
+  returned top title `wiki/1209 current product closeout audit report`.
+
+Search terms: `wiki/1209`, `CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01`,
+`e4959eaf298661752055b8e131573c67018fadd9`, `go-no-go 09:49:52`,
+`blockers=10`, `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
+`release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+`quic_tls_1_3`, `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`,
+`~/.musu/brain`, `store-forward fallback non-release-grade`.

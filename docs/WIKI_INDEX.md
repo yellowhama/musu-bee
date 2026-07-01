@@ -11091,4 +11091,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_idle_cpu_valid_machine_count=1`, and
   `runtime_cpu_scenario_matrix_valid_machine_count=1`.
 
+- 2026-07-01 current product closeout audit:
+  `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1209`: current
+  HEAD `e4959eaf298661752055b8e131573c67018fadd9` was rechecked with clean
+  go/no-go at `2026-07-01T09:49:52.5926629+09:00`. Result remains
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`, and `manifest_git.dirty=false`. Local
+  `HUGH_SECOND` lanes are green for single-machine, process ownership, startup
+  single-instance, desktop single-instance, MSIX install, brain product, and
+  targeted `hugh-main` route-attempt CPU proof; CPU idle/matrix full release
+  gates still have one valid machine. Brain handoff is aligned with
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` at brain repo commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`. P2P audit confirms
+  store-forward fallback is contract-wired but non-release-grade, while
+  release relay remains fail-closed with
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` and Rust
+  `release_relay_tunnel_runtime_not_implemented`. Search terms should include
+  `wiki/1209`, `CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01`,
+  `go-no-go 09:49:52`, `blockers=10`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `store-forward fallback non-release-grade`, and
+  `~/.musu/brain`. Index refresh: `musu indexer sync` indexed `3652 files` and
+  `3947 symbols`; product brain ingest under `local/musu` posted 8 sources,
+  processed 8, recovered 0, and recall returned top title
+  `wiki/1209 current product closeout audit report`.
+
 **End of WIKI_INDEX.md.**

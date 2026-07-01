@@ -1,5 +1,51 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 09:50 KST closeout audit
+
+Canonical report:
+`docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`.
+
+Current HEAD `e4959eaf298661752055b8e131573c67018fadd9` is clean and still
+NO-GO for the full product spec. Fresh clean go/no-go at
+`2026-07-01T09:49:52.5926629+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`warnings=0`, and `blockers=10`. Local `HUGH_SECOND` lanes remain green:
+single-machine, process ownership, startup single-instance, desktop
+single-instance, MSIX install, hidden brain product proof, and targeted
+`hugh-main` route-attempt CPU proof. The CPU release gate still has only one
+valid machine for idle and matrix evidence.
+
+Brain handoff status is aligned: canonical brain handoff remains
+`F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` at brain repo `main`
+commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, with local reference copy
+`docs/HANDOFF-musu-integration.md` and product overlay
+`docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`. Product contract remains
+`musu-brain.exe` as Go chip, MUSU as motherboard, product data root
+`~/.musu/brain`, no MSIX LocalState data root, no shared SQLite writes, and
+print-don't-write MCP registration.
+
+P2P audit status: `audit-p2p-store-forward-relay-contract.ps1 -Json` passes
+with `ok=true`, proving the store-forward fallback chain is wired. This is not
+release-grade relay. `show-musu-pro-p2p-env-status.ps1 -Json` still reports
+`ok=false`: `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`, Rust still returns
+`release_relay_tunnel_runtime_not_implemented`, KV/Upstash env is missing, and
+live relay evidence lacks route metadata, transport proof, and payload delivery
+proof. Product meaning: do not flip relay flags or relabel queue fallback as
+release-grade; release relay needs actual `quic_relay_tunnel` byte transit with
+`quic_tls_1_3` proof.
+
+Remaining blockers are concrete: second physical machine evidence, Private Mesh
+packaged release proof, `musu.pro` DNS/TLS/public metadata, Store release,
+P2P/relay release transport, design approval, V34 stale self-heal proof, and
+two-machine CPU coverage.
+
+Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+musu-bee` indexed `3652 files` and `3947 symbols`; product brain ingest under
+`local/musu` posted 8 sources, `/v1/process` reported `processed=8`,
+`recovered=0`, and recall for
+`wiki/1209 current product closeout audit release_relay_tunnel_runtime_not_implemented`
+returned top title `wiki/1209 current product closeout audit report`.
+
 ## Direct Answer
 
 MUSU is not fully complete against the whole product spec yet.
