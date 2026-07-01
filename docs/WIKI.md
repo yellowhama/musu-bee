@@ -24151,8 +24151,11 @@ Canonical report:
 
 What changed:
 
-- Current HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` now has fresh local
-  package evidence for `HUGH_SECOND`.
+- Evidence source HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` now has
+  fresh local package evidence for `HUGH_SECOND`.
+- Documentation closeout commit `85b521dd9b8d55e9ced41c51a244217648b0d8bc`
+  was rechecked with clean go/no-go at
+  `2026-07-01T11:13:57.6189601+09:00`.
 - Fresh local evidence paths include single-machine
   `20260701-104134-HUGH_SECOND`, process ownership
   `20260701-104158-HUGH_SECOND`, startup single-instance
@@ -24165,6 +24168,8 @@ What changed:
 - Clean go/no-go at `2026-07-01T11:06:33.5228571+09:00` reports
   `manifest_git.dirty=false`, `full_product_spec_ready=false`,
   `ready_for_public_desktop_release=false`, and `blockers=10`.
+- Post-documentation clean go/no-go at `2026-07-01T11:13:57.6189601+09:00`
+  reports the same product verdict and blocker count.
 
 Current green local lanes:
 
@@ -24195,6 +24200,7 @@ Product meaning:
 Search terms: `wiki/1213`,
 `CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01`,
 `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`,
+`85b521dd9b8d55e9ced41c51a244217648b0d8bc`,
 `go-no-go 11:06:33`, `20260701-110350-HUGH_SECOND`,
 `20260701-105201-HUGH_SECOND`, `runtime_cpu_second_pc_route_attempt_verified=true`,
 `runtime_idle_cpu_valid_machine_count=1`,

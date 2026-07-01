@@ -2,9 +2,10 @@
 
 ## Verdict
 
-Current HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` has fresh
+Evidence source HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` has fresh
 `HUGH_SECOND` packaged evidence for the local lanes that can be proven from
-this machine:
+this machine. Documentation closeout commit
+`85b521dd9b8d55e9ced41c51a244217648b0d8bc` was also rechecked clean.
 
 - single-machine smoke
 - process ownership
@@ -18,6 +19,14 @@ The product is still **NO-GO**. The clean go/no-go run at
 `2026-07-01T11:06:33.5228571+09:00` reports
 `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
 `manifest_git.dirty=false`, and `blockers=10`.
+
+Post-documentation clean go/no-go at `2026-07-01T11:13:57.6189601+09:00` on
+`85b521dd9b8d55e9ced41c51a244217648b0d8bc` reports the same product verdict:
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`manifest_git.dirty=false`, `blockers=10`,
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`.
 
 ## Evidence
 

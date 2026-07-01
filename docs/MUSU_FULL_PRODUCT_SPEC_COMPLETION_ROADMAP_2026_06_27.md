@@ -2863,9 +2863,13 @@ Canonical report:
 
 - `docs/CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01.md`
 
-Current HEAD:
+Evidence source HEAD:
 
 - `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`
+
+Post-documentation clean go/no-go HEAD:
+
+- `85b521dd9b8d55e9ced41c51a244217648b0d8bc`
 
 Clean go/no-go:
 
@@ -2874,6 +2878,9 @@ Clean go/no-go:
 - `full_product_spec_ready=false`.
 - `ready_for_public_desktop_release=false`.
 - `blockers=10`.
+- Post-documentation recheck at `2026-07-01T11:13:57.6189601+09:00` produced
+  the same verdict and blocker count on
+  `85b521dd9b8d55e9ced41c51a244217648b0d8bc`.
 
 What is now fresh on `HUGH_SECOND`:
 
