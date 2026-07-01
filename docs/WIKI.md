@@ -25121,3 +25121,51 @@ Search terms: `wiki/1228`,
 `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`,
 `kit-build-metadata.json`, `86bd6a2fe1f809a7788173f6936bf6c97042652e`,
 and `hugh-main`.
+
+## wiki/1229 - 2026-07-01 Product spec audit stop point
+
+Canonical report:
+`docs/CURRENT_PRODUCT_SPEC_AUDIT_STOP_POINT_2026_07_01.md`.
+
+This is the end-of-day product-spec audit stop point. Baseline HEAD before this
+report is `b346e93f2270ae38a960341f077e1584e7c76ad3`. Clean go/no-go at
+`2026-07-01T19:08:29.8415898+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and
+`blockers=10`: `multi-device`, `private-mesh-packaged-release-proof`,
+`runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `store-public-metadata`,
+`store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
+and `v34-stale-self-heal`.
+
+Audit evidence added for the next operator:
+
+- public metadata DNS/TLS inspect:
+  `.local-build/public-metadata-dns-repair/20260701-1929-musu-pro-public-metadata-dns-repair-vercel-inspect.json`
+- Cloudflare repair fail-closed because token was missing:
+  `.local-build/public-metadata-dns-repair/20260701-1930-musu-pro-cloudflare-dns-apply-token-missing.json`
+- V34 route attempt:
+  `.local-build/v34-route-evidence/20260701-191310/20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence.json`
+
+Product meaning: local `HUGH_SECOND` package and brain sidecar lanes are
+healthy, and the current second-PC kit exists, but the full product remains
+NO-GO. `musu.pro` public metadata is DNS/TLS blocked. The route to `hugh-main`
+is directly reachable over LAN, but the proof timed out on remote task wait and
+task `9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after
+cancel attempts. Code audit found that the cancel endpoint does not
+independently terminalize the DB row; orphan cleanup is tied to bridge
+construction. Next action is `hugh-main` bridge repair/restart or a proved
+stale-task cleanup path, then rerun fleet proof and strict runtime CPU matrix.
+
+Indexing: `musu indexer sync` returned `3746 files` / `3952 symbols`. Product
+brain ingested and processed `10` primary stop-point code/docs sources plus a
+final `4` changed stop-point docs into `C:\Users\empty\.musu\brain` tenant
+`local`, workspace `musu`; recall for `wiki/1229 product spec audit stop point
+remote_task_wait_timeout stale running task store-public-metadata` returned the
+canonical report in the top results.
+
+Search terms: `wiki/1229`,
+`CURRENT_PRODUCT_SPEC_AUDIT_STOP_POINT_2026_07_01`,
+`20260701-1929-musu-pro-public-metadata-dns-repair-vercel-inspect`,
+`20260701-1930-musu-pro-cloudflare-dns-apply-token-missing`,
+`20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence`,
+`remote_task_wait_timeout`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
+`store-public-metadata`, `v34-stale-self-heal`, and `blockers=10`.

@@ -1,5 +1,53 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 19:30 KST product spec audit stop point
+
+Canonical report:
+`docs/CURRENT_PRODUCT_SPEC_AUDIT_STOP_POINT_2026_07_01.md`.
+
+This is the end-of-day audit stop point. Baseline HEAD before the report is
+`b346e93f2270ae38a960341f077e1584e7c76ad3`. Clean go/no-go at
+`2026-07-01T19:08:29.8415898+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and
+`blockers=10`: `multi-device`, `private-mesh-packaged-release-proof`,
+`runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `store-public-metadata`,
+`store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
+and `v34-stale-self-heal`.
+
+Public metadata audit evidence:
+
+- Vercel/DNS inspect:
+  `.local-build/public-metadata-dns-repair/20260701-1929-musu-pro-public-metadata-dns-repair-vercel-inspect.json`
+- Cloudflare apply fail-closed evidence:
+  `.local-build/public-metadata-dns-repair/20260701-1930-musu-pro-cloudflare-dns-apply-token-missing.json`
+
+The public `musu.pro` route is still DNS/TLS blocked: current nameservers are
+Cloudflare while the intended Vercel nameservers are `ns1.vercel-dns.com` and
+`ns2.vercel-dns.com`; current apex A records are Cloudflare IPs instead of
+`76.76.21.21`; apex AAAA records are present; apex TLS and Vercel edge apex TLS
+checks fail.
+
+Fleet audit evidence:
+
+- Route evidence:
+  `.local-build/v34-route-evidence/20260701-191310/20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence.json`
+
+The route reached `hugh-main` over LAN with `handshake_ms=7`, but ended
+`remote_task_wait_timeout`. After cancellation attempts, task
+`9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` on
+`hugh-main`. Code audit found that `DELETE /api/tasks/:id` cancels the live
+runner handle but does not independently terminalize the DB row; orphan cleanup
+runs on bridge construction. Therefore the immediate next product step is
+either restart/repair `hugh-main` bridge and rerun proof, or implement/prove a
+stale-task cleanup path.
+
+Indexing for this stop point was refreshed: `musu indexer sync` returned
+`3746 files` / `3952 symbols`, product brain ingested and processed `10`
+primary code/docs sources plus a final `4` changed stop-point docs into
+`C:\Users\empty\.musu\brain` (`local` / `musu`), and recall for `wiki/1229
+product spec audit stop point remote_task_wait_timeout` returned the canonical
+report in the top results.
+
 ## 2026-07-01 19:00 KST current second-PC kit refresh after brain pin update
 
 Canonical report:
