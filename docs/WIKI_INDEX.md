@@ -11499,8 +11499,16 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ok=true`, `fail_count=0`; focused relay payload route test passed `10/10`;
   `npm run test:p2p` passed `133/133`; `npm run typecheck` passed;
   `git diff --check` passed; release evidence verifier regression passed
-  `219/219`. This removes a stale source-audit blocker shape but does not
-  implement release relay transport. Search terms should include
+  `219/219`; clean go/no-go on
+  `011bf42d95ad24d799332329f15cfcc9a6bd11b4` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`, and `p2p-store-forward-relay` is no longer a
+  blocker. Indexing: `musu indexer sync` indexed `3700` files / `3949` symbols;
+  `musu-brain.exe ingest/process` processed 5 changed files. Recall for
+  `wiki/1221 p2p store forward relay audit coverage refresh` returned the
+  canonical report, roadmap entry, and audit source. This removes a stale
+  source-audit blocker shape but does not implement release relay transport.
+  Search terms should include
   `wiki/1221`, `P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01`,
   `p2p-store-forward-relay`, `audit-p2p-store-forward-relay-contract.ps1`,
   `release_relay_tunnel_runtime_not_implemented`, and

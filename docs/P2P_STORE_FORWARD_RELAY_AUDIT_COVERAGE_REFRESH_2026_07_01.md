@@ -40,6 +40,23 @@ relay transport proof records in that state.
 - `git diff --check` passed.
 - `scripts/windows/test-release-evidence-verifiers.ps1 -Json` passed:
   `219/219` cases, `failed_case_count=0`.
+- Clean `scripts/windows/write-release-go-no-go.ps1 -ScriptTimeoutSeconds 180
+  -Json` on commit `011bf42d95ad24d799332329f15cfcc9a6bd11b4` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=10`. `p2p-store-forward-relay` is no longer in
+  the blocker list.
+
+## Indexing
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3700` files and `3949` symbols.
+- `musu-brain.exe ingest/process` processed 5 changed files: this report,
+  roadmap, wiki, wiki index, and
+  `scripts/windows/audit-p2p-store-forward-relay-contract.ps1`.
+- Recall check `wiki/1221 p2p store forward relay audit coverage refresh`
+  returned this report, the roadmap entry, and the audit script source.
+- Recall check `p2p-store-forward-relay blockers 10 011bf42d` returned the
+  blocker-removal context.
 
 ## Product Status
 

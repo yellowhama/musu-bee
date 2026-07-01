@@ -34,6 +34,14 @@ Verification:
 - `git diff --check` and
   `scripts/windows/test-release-evidence-verifiers.ps1 -Json` passed; release
   evidence verifier regression is `219/219`.
+- Clean go/no-go on commit `011bf42d95ad24d799332329f15cfcc9a6bd11b4` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`; `p2p-store-forward-relay` is no longer a
+  blocker.
+- Indexing: `musu indexer sync` indexed `3700` files / `3949` symbols;
+  `musu-brain.exe ingest/process` processed 5 changed files. Recall for
+  `wiki/1221 p2p store forward relay audit coverage refresh` returned the
+  canonical report, this roadmap entry, and the audit source.
 
 Product meaning: this closes a stale source-audit blocker shape only. It does
 not close `relay-transport` or `p2p-control-plane`; those still require real

@@ -24716,6 +24716,15 @@ Verification:
   `10/10`; `npm run test:p2p` passed `133/133`; `npm run typecheck` passed.
 - `git diff --check` and release evidence verifier regression passed;
   `test-release-evidence-verifiers.ps1 -Json` is `219/219`.
+- Clean go/no-go on `011bf42d95ad24d799332329f15cfcc9a6bd11b4` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`; `p2p-store-forward-relay` is no longer a
+  blocker.
+
+Indexing: `musu indexer sync` indexed `3700` files / `3949` symbols.
+`musu-brain.exe ingest/process` processed 5 changed files. Recall for
+`wiki/1221 p2p store forward relay audit coverage refresh` returned the
+canonical report, roadmap entry, and audit source.
 
 Product meaning: this removes a stale source-audit blocker shape; it does not
 implement release relay transport. `relay-transport` and `p2p-control-plane`
