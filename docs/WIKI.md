@@ -25088,3 +25088,36 @@ Search terms: `wiki/1227`,
 `20260701-183437-HUGH_SECOND`, `runtime_idle_cpu_valid_machine_count=1`,
 `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`,
 `runtime_cpu_scenario_matrix_valid_machine_count=0`, and `blockers=10`.
+
+## wiki/1228 - 2026-07-01 Current second-PC kit refresh after brain pin update
+
+Canonical report:
+`docs/CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`.
+
+The second-PC release-check kit has been regenerated from current clean source
+commit `86bd6a2fe1f809a7788173f6936bf6c97042652e` after the brain pin package
+refresh. `prepare-multidevice-test-kit.ps1 -Json` returned `ok=true`,
+`schema=musu.multidevice_test_kit_prepare.v1`, and `git.dirty=false`.
+
+Current kit:
+
+- zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956.zip`
+- SHA256:
+  `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`
+- metadata:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956/kit-build-metadata.json`
+- included package:
+  `musu_1.15.0.22_x64_local-sideload-manual.msix`
+
+Product meaning: this replaces the stale `20260701-135632` second-PC kit for
+the next `hugh-main` run. It does not close `multi-device`,
+`runtime-idle-cpu`, or `runtime-cpu-scenario-matrix`; the other physical PC
+must run the kit and return evidence before those gates can move.
+
+Search terms: `wiki/1228`,
+`CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01`,
+`musu-multidevice-1.15.0-rc.22-20260701-185956.zip`,
+`4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`,
+`kit-build-metadata.json`, `86bd6a2fe1f809a7788173f6936bf6c97042652e`,
+and `hugh-main`.

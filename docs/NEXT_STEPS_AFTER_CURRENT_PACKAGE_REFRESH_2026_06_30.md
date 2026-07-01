@@ -12,12 +12,16 @@ Current local evidence report:
 
 Current second-PC kit status:
 
-- The older `20260701-135632` kit is stale for the current source/package
-  because the local package has since moved to commit
-  `ee597c7e03fa12da853451e2c1339d63b93de52b` and brain pin
-  `0b47c430e94fa504029c9b754dea70055beeee6e`.
-- Regenerate or republish the second-PC install/check path before treating a
-  new `hugh-main` return as current release evidence.
+- Current kit:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956.zip`
+- SHA256:
+  `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`
+- source commit:
+  `86bd6a2fe1f809a7788173f6936bf6c97042652e`
+- source dirty:
+  `false`
+- Canonical kit refresh report:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`
 
 ## What Is Proven
 
@@ -55,9 +59,7 @@ Current second-PC kit status:
 
 ## Run On hugh-main
 
-First install or otherwise deliver the current package built from
-`ee597c7e03fa12da853451e2c1339d63b93de52b` to `hugh-main`. Then run the current
-second-PC release check from a regenerated kit or equivalent current scripts:
+Extract the current kit on `hugh-main`, then run from inside the extracted kit:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix -FailOnPrivateMeshPhysicalPeerEvidence
@@ -71,9 +73,7 @@ Return the generated:
 .local-build/second-pc-return/*.zip
 ```
 
-Then import it on this repo before recording final two-machine gates. Do not
-reuse the older `20260701-135632` kit as release-grade evidence for the current
-source.
+Then import it on this repo before recording final two-machine gates.
 
 ## Remote File Proof Setup
 
@@ -115,11 +115,10 @@ Required proof:
 
 ## Priority Order
 
-1. Regenerate/publish the current `hugh-main` install and release-check path.
-2. Run/import `hugh-main` kit return.
-3. Pass physical remote file `put/ls/get` proof.
-4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
-5. Produce Private Mesh packaged proof archive.
-6. Complete release-grade route transport and relay proof.
-7. Record Store, design approval, live P2P control-plane, and V34 stale
+1. Run/import `hugh-main` kit return from the `20260701-185956` kit.
+2. Pass physical remote file `put/ls/get` proof.
+3. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
+4. Produce Private Mesh packaged proof archive.
+5. Complete release-grade route transport and relay proof.
+6. Record Store, design approval, live P2P control-plane, and V34 stale
    self-heal evidence.

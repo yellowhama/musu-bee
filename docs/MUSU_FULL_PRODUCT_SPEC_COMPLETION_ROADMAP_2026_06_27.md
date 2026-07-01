@@ -1,5 +1,35 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 19:00 KST current second-PC kit refresh after brain pin update
+
+Canonical report:
+`docs/CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`.
+
+The second-PC release-check kit has been regenerated from current clean source
+commit `86bd6a2fe1f809a7788173f6936bf6c97042652e` after the brain pin package
+refresh. This replaces the stale `20260701-135632` kit reference for the next
+`hugh-main` run.
+
+Current kit:
+
+- zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956.zip`
+- SHA256:
+  `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`
+- metadata:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956/kit-build-metadata.json`
+- included package:
+  `musu_1.15.0.22_x64_local-sideload-manual.msix`
+- source branch:
+  `feat/v33-residual-finalize`
+- source dirty:
+  `false`
+
+This does not close `multi-device`, `runtime-idle-cpu`, or
+`runtime-cpu-scenario-matrix`; it only prepares the current `hugh-main` execution
+packet. The next proof must come from the other physical PC and then be imported
+back into this repo.
+
 ## 2026-07-01 18:50 KST local package refresh after brain pin update
 
 Canonical report:
