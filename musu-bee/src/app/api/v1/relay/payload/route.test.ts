@@ -443,7 +443,7 @@ test("rejects release payload preflight when bearer token is bound to another so
   });
 });
 
-test("accepts lease-bound release payload proof metadata without storing raw payload bytes", async () => {
+test("rejects lease-bound release payload proof metadata while release tunnel runtime is unwired", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const lease = await seedLease();
@@ -502,50 +502,55 @@ test("accepts lease-bound release payload proof metadata without storing raw pay
         delivered_at: deliveredAt,
       },
     }));
-    assert.equal(res.status, 202);
+    assert.equal(res.status, 409);
     const body = (await res.json()) as {
       ok: boolean;
-      release_payload_contract: string;
+      error: string;
       release_payload_accepted: boolean;
       payload_stored: boolean;
       payload_transported: boolean;
-      release_grade: boolean;
+      lease_verified: boolean;
+      release_payload_lease_ready: boolean;
+      release_payload_proof_ready: boolean;
       relay_payload_endpoint_wired: boolean;
+      relay_tunnel_runtime_implemented: boolean;
       relay_transport_wired: boolean;
       relay_transport_proof_store_release_grade: boolean;
       proof_blockers: string[];
+      blockers: string[];
       release_payload_metadata: {
         payload_sha256: string;
         payload_bytes_transited: number;
       };
-      relay_transport_proof: { payload_bytes_transited: number; owner_key?: string };
-      delivery_proof: { payload_bytes: number; payload_sha256: string };
+      relay_transport_proof?: unknown;
+      delivery_proof?: unknown;
     };
 
-    assert.equal(body.ok, true);
-    assert.equal(body.release_payload_contract, "musu.relay_payload_release.v1");
-    assert.equal(body.release_payload_accepted, true);
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "release_relay_tunnel_runtime_not_implemented");
+    assert.equal(body.release_payload_accepted, false);
     assert.equal(body.payload_stored, false);
-    assert.equal(body.payload_transported, true);
-    assert.equal(body.release_grade, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.lease_verified, true);
+    assert.equal(body.release_payload_lease_ready, true);
+    assert.equal(body.release_payload_proof_ready, true);
     assert.equal(body.relay_payload_endpoint_wired, true);
+    assert.equal(body.relay_tunnel_runtime_implemented, false);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_transport_proof_store_release_grade, false);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
+    assert.match(body.blockers.join(","), /release_relay_tunnel_runtime_not_implemented/);
     assert.deepEqual(body.proof_blockers, ["relay_transport_proof_store_backend_not_release_grade"]);
     assert.equal(body.release_payload_metadata.payload_sha256, payloadSha);
     assert.equal(body.release_payload_metadata.payload_bytes_transited, 512);
-    assert.equal(body.relay_transport_proof.payload_bytes_transited, 512);
-    assert.equal(body.relay_transport_proof.owner_key, undefined);
-    assert.equal(body.delivery_proof.payload_bytes, 512);
-    assert.equal(body.delivery_proof.payload_sha256, payloadSha);
+    assert.equal(body.relay_transport_proof, undefined);
+    assert.equal(body.delivery_proof, undefined);
 
     const proofs = await queryRelayTransportProofs({
       owner_key: p2pControlOwnerKey("test-token"),
       lease_id: lease.lease_id,
     });
-    assert.equal(proofs.length, 1);
-    assert.equal(proofs[0]?.payload_bytes_transited, 512);
-    assert.equal(Object.prototype.hasOwnProperty.call(proofs[0] ?? {}, "payload_sha256"), false);
+    assert.equal(proofs.length, 0);
   });
 });
 

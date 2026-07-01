@@ -1,5 +1,47 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 14:10 KST relay payload proof runtime fail-closed
+
+Canonical report:
+`docs/RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01.md`.
+
+Code audit of the relay payload release endpoint found a contract gap:
+`/api/v1/relay/payload` could accept lease-bound release proof metadata and
+return `release_payload_accepted=true` / `payload_transported=true` while the
+product policy still had `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`.
+
+Fix:
+
+- `musu-bee/src/app/api/v1/relay/payload/route.ts` now rejects valid release
+  proof metadata with HTTP `409`,
+  `error=release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_accepted=false`, and `payload_transported=false` until the
+  local release relay tunnel runtime is actually implemented.
+- `musu-bee/src/app/api/v1/relay/payload/route.test.ts` now verifies the
+  fail-closed behavior and confirms no relay transport proof is stored while the
+  runtime marker is false.
+
+Verification:
+
+- `npm exec -- tsx --test src/app/api/v1/relay/payload/route.test.ts` passed
+  `10/10`.
+- `npm run test:p2p` passed `133/133`.
+- `npm run typecheck`, `git diff --check`, and
+  `scripts/windows/test-release-evidence-verifiers.ps1 -Json` passed; release
+  evidence verifier regression is `219/219`.
+- `scripts/windows/show-musu-pro-p2p-env-status.ps1 -Json` still reports
+  `ok=false` and `source_release_relay_tunnel_runtime_not_implemented`, which is
+  correct until real byte transit exists.
+- Indexing: `musu indexer sync` indexed `3699` files / `3949` symbols;
+  `musu-brain.exe ingest/process` processed 7 changed files, and recall for
+  `wiki/1220 relay payload proof runtime fail closed` returned the canonical
+  report plus this roadmap entry.
+
+Product meaning: this reduces proof-forgery / proof-ordering risk but does not
+close `relay-transport` or `p2p-control-plane`. The next release-moving relay
+step remains the real `quic_relay_tunnel` runtime with bound `quic_tls_1_3`
+transport proof and payload delivery proof.
+
 ## 2026-07-01 13:59 KST current second-PC kit after shell cancel package proof
 
 The current second-PC kit has been regenerated from clean

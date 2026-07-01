@@ -11459,4 +11459,29 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `hugh-main`, `hugh_second`,
   `run-second-pc-release-check.ps1`, and `full product NO-GO`.
 
+- 2026-07-01 relay payload proof runtime fail-closed:
+  `docs/RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1220`: `/api/v1/relay/payload` no longer
+  accepts lease-bound release proof metadata as transported while
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`. Valid proof metadata now returns
+  HTTP `409`, `error=release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_accepted=false`, `payload_transported=false`, and writes no
+  relay transport proof record. Verification: focused relay payload route test
+  passed `10/10`, `npm run test:p2p` passed `133/133`, `npm run typecheck`
+  passed, `git diff --check` passed, release evidence verifier regression
+  passed `219/219`, and `show-musu-pro-p2p-env-status.ps1 -Json` still reports
+  `source_release_relay_tunnel_runtime_not_implemented`. This is safety
+  hardening only; `relay-transport` and `p2p-control-plane` remain NO-GO until
+  real `quic_relay_tunnel` byte transit emits bound `quic_tls_1_3` transport
+  proof and payload delivery proof. Indexing: `musu indexer sync` indexed
+  `3699` files / `3949` symbols, `musu-brain.exe ingest/process` processed 7
+  changed files, and recall for `wiki/1220 relay payload proof runtime fail
+  closed` returned the canonical report plus roadmap entry. Search terms should
+  include `wiki/1220`,
+  `RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01`,
+  `release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_accepted=false`, `payload_transported=false`,
+  `test:p2p 133/133`, and `relay-transport NO-GO`.
+
 **End of WIKI_INDEX.md.**

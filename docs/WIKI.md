@@ -24649,3 +24649,44 @@ Search terms: `wiki/1219`, `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
 `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `hugh-main`,
 `hugh_second`, `run-second-pc-release-check.ps1`, `checksum_mismatches=0`,
 `full product NO-GO`.
+
+## wiki/1220 - 2026-07-01 Relay payload proof runtime fail-closed
+
+Canonical report:
+`docs/RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01.md`.
+
+Code audit found that `/api/v1/relay/payload` could accept lease-bound release
+proof metadata and return `release_payload_accepted=true` /
+`payload_transported=true` even while `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`.
+The endpoint now fails closed in that state: valid release proof metadata returns
+HTTP `409` with `error=release_relay_tunnel_runtime_not_implemented`,
+`release_payload_accepted=false`, `payload_transported=false`, and no relay
+transport proof store write.
+
+Verification:
+
+- `npm exec -- tsx --test src/app/api/v1/relay/payload/route.test.ts` passed
+  `10/10`.
+- `npm run test:p2p` passed `133/133`.
+- `npm run typecheck`, `git diff --check`, and release evidence verifier
+  regression passed; `test-release-evidence-verifiers.ps1 -Json` is `219/219`.
+- `show-musu-pro-p2p-env-status.ps1 -Json` still reports
+  `source_release_relay_tunnel_runtime_not_implemented`.
+
+Indexing: `musu indexer sync` indexed `3699` files / `3949` symbols.
+`musu-brain.exe ingest/process` processed 7 changed files. Recall for
+`wiki/1220 relay payload proof runtime fail closed` returned the canonical
+report and roadmap entry.
+
+Product meaning: this is safety hardening only. It does not close
+`relay-transport` or `p2p-control-plane`; the real next step is still a local
+`quic_relay_tunnel` runtime with bound `quic_tls_1_3` transport proof and
+payload delivery proof.
+
+Search terms: `wiki/1220`,
+`RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01`,
+`release_relay_tunnel_runtime_not_implemented`,
+`release_payload_accepted=false`, `payload_transported=false`,
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`,
+`src/app/api/v1/relay/payload/route.ts`, `test:p2p 133/133`,
+`relay-transport NO-GO`.

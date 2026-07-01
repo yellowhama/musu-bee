@@ -4676,9 +4676,11 @@ function New-MsixInstallEvidence {
         "package identity",
         "installed package",
         "musu exe",
+        "brain exe",
         "startup exe",
         "installed manifest",
         "installed alias contract",
+        "installed brain fullTrust process",
         "installed startup contract",
         "artifact contract match",
         "version match",
@@ -4705,6 +4707,8 @@ function New-MsixInstallEvidence {
         install_location = "C:\Program Files\WindowsApps\blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc"
         startup_task_id = "MusuBridgeStartup"
         startup_enabled = "true"
+        brain_full_trust_process = $true
+        brain_executable = "musu-brain.exe"
         startup_immediate_registration = "false"
         non_user_configurable_startup_capability = $false
         run_full_trust = $true

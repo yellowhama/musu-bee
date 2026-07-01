@@ -391,6 +391,43 @@ async function releasePayloadProofAccepted(
     );
   }
 
+  if (!relayTunnelRuntimeImplemented()) {
+    const blockers = uniqueBlockers([
+      ...relayTransportPreflightBlockers(),
+      "release_relay_tunnel_runtime_not_implemented",
+    ]);
+    return NextResponse.json(
+      {
+        ...releasePayloadPreflightStatus(method, blockers, principal),
+        ok: false,
+        release_payload_accepted: false,
+        payload_stored: false,
+        payload_transported: false,
+        lease_verified: true,
+        release_payload_lease_ready: true,
+        release_payload_proof_ready: true,
+        error: "release_relay_tunnel_runtime_not_implemented",
+        proof_blockers: readinessBlockers,
+        relay_transport_proof_store_configured: storeStatus.configured,
+        relay_transport_proof_store_backend: storeStatus.backend,
+        relay_transport_proof_store_release_grade: storeStatus.release_grade,
+        release_payload_metadata: {
+          tunnel_id: request.tunnel_id,
+          payload_kind: request.payload_kind,
+          payload_sha256: request.payload_sha256,
+          payload_bytes_transited: proof.payload_bytes_transited,
+        },
+        lease: publicReleaseRelayLease(lease),
+        next_steps: [
+          "implement the local release relay tunnel runtime before accepting release payload proof metadata",
+          "emit release-grade quic_tls_1_3 relay transport proof from the actual payload byte path",
+          "keep proof metadata fail-closed while relay_tunnel_runtime_implemented=false",
+        ],
+      },
+      { status: 409 }
+    );
+  }
+
   const storedProof = createRelayTransportProof({
     owner_key: lease.owner_key,
     session_id: proof.session_id,
