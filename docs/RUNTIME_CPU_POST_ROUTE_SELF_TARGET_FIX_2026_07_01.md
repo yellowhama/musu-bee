@@ -70,6 +70,12 @@ the probe sends a target-bound route and requires a completed wait token.
   `blocker_count=11`, `warnings=0`, and `manifest_dirty=true`. The extra
   blocker is the expected `git` blocker while this source/docs update is
   uncommitted.
+- First clean go/no-go after source commit `a0b115a0` at
+  `2026-07-01T17:52:22.441498+09:00` reported
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. This is expected:
+  the source fix makes prior package-bound evidence stale until the package is
+  rebuilt/reinstalled and the local/runtime proof lanes are recaptured.
 
 ## Indexing
 

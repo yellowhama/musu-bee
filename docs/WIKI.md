@@ -24998,6 +24998,11 @@ Verification:
 - Dirty go/no-go at `2026-07-01T17:28:07.6821307+09:00` reported
   `blocker_count=11`, `warnings=0`, and `manifest_dirty=true`; the extra
   blocker is expected while the source/docs update is uncommitted.
+- First clean go/no-go after source commit `a0b115a0` at
+  `2026-07-01T17:52:22.441498+09:00` reported
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. Prior
+  package-bound evidence is stale until rebuild/reinstall and recapture.
 
 Live diagnostic cleanup: `hugh-main` had stale CLI tasks after route-probe
 timeouts. Stale rows
