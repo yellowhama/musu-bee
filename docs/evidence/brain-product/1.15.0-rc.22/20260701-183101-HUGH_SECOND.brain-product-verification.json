@@ -1,0 +1,199 @@
+﻿{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\brain-product\\1.15.0-rc.22\\20260701-183101-HUGH_SECOND.brain-product-proof.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "package_version":  "1.15.0.22",
+    "package_full_name":  "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "base_url":  "http://127.0.0.1:8080",
+    "brain_root":  "C:\\Users\\empty\\.musu\\brain",
+    "task_source_id":  "src_7b347730b675fe2b",
+    "capture_source_id":  "src_d52e96873fb9db9a",
+    "checks":  [
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "evidence ok",
+                       "status":  "pass",
+                       "message":  "evidence reports ok=true"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "package version",
+                       "status":  "pass",
+                       "message":  "package_version matches 1.15.0.22"
+                   },
+                   {
+                       "name":  "package identity",
+                       "status":  "pass",
+                       "message":  "package_full_name carries expected package version"
+                   },
+                   {
+                       "name":  "generated timestamp",
+                       "status":  "pass",
+                       "message":  "generated_at parses"
+                   },
+                   {
+                       "name":  "generated not future",
+                       "status":  "pass",
+                       "message":  "generated_at is not in the future"
+                   },
+                   {
+                       "name":  "evidence age",
+                       "status":  "pass",
+                       "message":  "generated_at is within 14 days"
+                   },
+                   {
+                       "name":  "brain root",
+                       "status":  "pass",
+                       "message":  "brain_root is under ~/.musu/brain and not LocalState"
+                   },
+                   {
+                       "name":  "base url loopback",
+                       "status":  "pass",
+                       "message":  "base_url is loopback HTTP"
+                   },
+                   {
+                       "name":  "base url expected",
+                       "status":  "pass",
+                       "message":  "base_url matches http://127.0.0.1:8080"
+                   },
+                   {
+                       "name":  "product owned loopback",
+                       "status":  "pass",
+                       "message":  "product_owned_loopback is true"
+                   },
+                   {
+                       "name":  "public surface",
+                       "status":  "pass",
+                       "message":  "brain HTTP surface is not public"
+                   },
+                   {
+                       "name":  "brain binary packaged",
+                       "status":  "pass",
+                       "message":  "packaged brain binary is present"
+                   },
+                   {
+                       "name":  "brain binary path",
+                       "status":  "pass",
+                       "message":  "brain_binary_path points to musu-brain.exe"
+                   },
+                   {
+                       "name":  "sidecar process",
+                       "status":  "pass",
+                       "message":  "musu-brain sidecar process was observed"
+                   },
+                   {
+                       "name":  "token present",
+                       "status":  "pass",
+                       "message":  "brain ingest token is present"
+                   },
+                   {
+                       "name":  "token acl",
+                       "status":  "pass",
+                       "message":  "brain ingest token ACL is restricted"
+                   },
+                   {
+                       "name":  "no bearer leak",
+                       "status":  "pass",
+                       "message":  "evidence does not contain a Bearer token"
+                   },
+                   {
+                       "name":  "no token property",
+                       "status":  "pass",
+                       "message":  "evidence does not expose a token property"
+                   },
+                   {
+                       "name":  "version coherence",
+                       "status":  "pass",
+                       "message":  "version coherence was checked"
+                   },
+                   {
+                       "name":  "store ownership",
+                       "status":  "pass",
+                       "message":  "brain is the source store owner"
+                   },
+                   {
+                       "name":  "no shared sqlite write",
+                       "status":  "pass",
+                       "message":  "musu.db shared write is false"
+                   },
+                   {
+                       "name":  "health",
+                       "status":  "pass",
+                       "message":  "brain /health is OK"
+                   },
+                   {
+                       "name":  "task ingest",
+                       "status":  "pass",
+                       "message":  "task source ingest succeeded"
+                   },
+                   {
+                       "name":  "task source id",
+                       "status":  "pass",
+                       "message":  "task_source_id is present"
+                   },
+                   {
+                       "name":  "task marker",
+                       "status":  "pass",
+                       "message":  "task_marker has the proof prefix"
+                   },
+                   {
+                       "name":  "task process",
+                       "status":  "pass",
+                       "message":  "task source was processed"
+                   },
+                   {
+                       "name":  "task recall",
+                       "status":  "pass",
+                       "message":  "task source was recalled"
+                   },
+                   {
+                       "name":  "task recall count",
+                       "status":  "pass",
+                       "message":  "task recall returned results"
+                   },
+                   {
+                       "name":  "capture ux",
+                       "status":  "pass",
+                       "message":  "recall/capture product path succeeded"
+                   },
+                   {
+                       "name":  "capture clip",
+                       "status":  "pass",
+                       "message":  "capture clip ingest succeeded"
+                   },
+                   {
+                       "name":  "capture source id",
+                       "status":  "pass",
+                       "message":  "capture_source_id is present"
+                   },
+                   {
+                       "name":  "capture marker",
+                       "status":  "pass",
+                       "message":  "capture_marker has the proof prefix"
+                   },
+                   {
+                       "name":  "capture process",
+                       "status":  "pass",
+                       "message":  "capture source was processed"
+                   },
+                   {
+                       "name":  "capture recall",
+                       "status":  "pass",
+                       "message":  "capture source was recalled"
+                   },
+                   {
+                       "name":  "capture recall count",
+                       "status":  "pass",
+                       "message":  "capture recall returned results"
+                   }
+               ]
+}
