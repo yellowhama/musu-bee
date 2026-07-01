@@ -26,6 +26,11 @@ areas are still `multi-device`, `private-mesh-packaged-release-proof`,
 `store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
 and `v34-stale-self-heal`.
 
+Post-commit clean go/no-go at `2026-07-01T13:49:49.4299299+09:00` after
+evidence/docs commit `92f5143a` reports `manifest_git.dirty=false`,
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`warnings=0`, and `blockers=10` with the same substantive blocker set.
+
 Runtime CPU details:
 
 - `runtime_idle_cpu_valid_machine_count=1/2`.

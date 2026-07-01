@@ -11404,7 +11404,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   go/no-go at `2026-07-01T13:42:33.0531675+09:00` reports
   `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
   `warnings=0`, and `blockers=11`; the `git` blocker is expected before this
-  evidence/docs commit. Runtime CPU counts are
+  evidence/docs commit. Post-commit clean go/no-go after commit `92f5143a`,
+  generated at `2026-07-01T13:49:49.4299299+09:00`, reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `warnings=0`, and `blockers=10`.
+  Runtime CPU counts are
   `runtime_idle_cpu_valid_machine_count=1/2`,
   `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, and
   `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`. The targeted

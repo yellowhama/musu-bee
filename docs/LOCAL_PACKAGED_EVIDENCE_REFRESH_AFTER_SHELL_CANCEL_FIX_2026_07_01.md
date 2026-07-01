@@ -83,6 +83,21 @@ The `git` blocker is expected before this documentation/evidence commit. After
 commit, the expected blocker count should return to the substantive 10 blocker
 set unless another evidence freshness rule changes.
 
+Post-commit clean go/no-go:
+`.local-build/go-no-go/20260701-134949-after-local-package-cpu-refresh-clean.json`.
+
+- evidence/docs commit: `92f5143a`
+- generated at `2026-07-01T13:49:49.4299299+09:00`
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `warnings=0`
+- `blockers=10`
+- blocker areas: `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`,
+  `store-public-metadata`, `store-release`, `p2p-control-plane`,
+  `design-approval`, `relay-transport`, `v34-stale-self-heal`
+
 Runtime CPU status:
 
 - `runtime_idle_cpu_valid_machine_count=1/2`
