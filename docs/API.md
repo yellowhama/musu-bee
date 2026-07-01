@@ -100,8 +100,10 @@ Poll task status. Returns summary (<=500 chars) + full output.
 **Response:** `{"id": "uuid", "status": "done", "summary": "...", "output": "...", "created_at": "..."}`
 
 ### `DELETE /api/tasks/{task_id}`
-Cancel a running task. Kills the live asyncio task.
-**Response:** `{"cancelled": "uuid"}`
+Cancel a running task by signalling the live Rust `TaskRunner` entry. The
+cancel signal is latched before waking current waiters so subprocess adapters
+can observe it on the next cancellation check.
+**Response:** `{"task_id": "uuid", "cancelled": true}`
 
 ### `GET /api/tasks/{task_id}/sprint-contract`
 Get the sprint contract linked to a delegated task.

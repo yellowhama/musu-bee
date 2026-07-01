@@ -113,29 +113,53 @@ impl Adapter for ShellAdapter {
         )
         .await;
 
-        let exit = handle.child.wait().await.ok();
-        let code = exit.and_then(|s| s.code()).unwrap_or(-1);
+        finalize(&mut handle, outcome, sink).await
+    }
+}
 
-        match outcome {
-            CliOutcome::Done { .. } => {
-                let summary = if sink.out.is_empty() {
-                    format!("(no output; exit {code})")
-                } else {
-                    sink.out
-                };
-                Ok(AdapterResult {
-                    success: code == 0,
-                    summary,
-                    session_id: None,
-                    usage: None,
-                    error_code: None,
-                })
-            }
-            CliOutcome::Cancelled => Err(AdapterError::Unknown("shell: cancelled".into())),
-            CliOutcome::Timeout => Err(AdapterError::Timeout),
-            CliOutcome::IoError(e) => Err(AdapterError::Unknown(format!("shell io error: {e}"))),
+async fn finalize(
+    handle: &mut cli_common::CliChild,
+    outcome: CliOutcome,
+    sink: ShellSink,
+) -> Result<AdapterResult, AdapterError> {
+    match outcome {
+        CliOutcome::Done { .. } => {
+            let exit = tokio::time::timeout(Duration::from_secs(5), handle.child.wait())
+                .await
+                .ok()
+                .and_then(|r| r.ok());
+            let code = exit.and_then(|s| s.code()).unwrap_or(-1);
+            let summary = if sink.out.is_empty() {
+                format!("(no output; exit {code})")
+            } else {
+                sink.out
+            };
+            Ok(AdapterResult {
+                success: code == 0,
+                summary,
+                session_id: None,
+                usage: None,
+                error_code: None,
+            })
+        }
+        CliOutcome::Cancelled => {
+            kill(handle).await;
+            Err(AdapterError::Unknown("shell: cancelled".into()))
+        }
+        CliOutcome::Timeout => {
+            kill(handle).await;
+            Err(AdapterError::Timeout)
+        }
+        CliOutcome::IoError(e) => {
+            kill(handle).await;
+            Err(AdapterError::Unknown(format!("shell io error: {e}")))
         }
     }
+}
+
+async fn kill(handle: &mut cli_common::CliChild) {
+    let pid = handle.child.id();
+    crate::writer::runner::graceful_kill(&mut handle.child, pid).await;
 }
 
 #[allow(dead_code)]
@@ -175,6 +199,16 @@ mod tests {
         }
     }
 
+    #[cfg(windows)]
+    fn long_running_command() -> &'static str {
+        "ping 127.0.0.1 -n 30"
+    }
+
+    #[cfg(not(windows))]
+    fn long_running_command() -> &'static str {
+        "printf started; sleep 30"
+    }
+
     #[tokio::test]
     async fn shell_runs_echo_and_captures_stdout() {
         let result = ShellAdapter
@@ -187,6 +221,31 @@ mod tests {
             "summary={}",
             result.summary
         );
+    }
+
+    #[tokio::test]
+    async fn shell_cancel_signal_returns_promptly() {
+        let cancel = std::sync::Arc::new(tokio::sync::Notify::new());
+        let mut ctx = ctx(long_running_command());
+        ctx.cancel = Some(cancel.clone());
+
+        let fut = ShellAdapter.execute(&ctx);
+        tokio::pin!(fut);
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        cancel.notify_one();
+
+        let result = tokio::time::timeout(Duration::from_secs(6), fut).await;
+        assert!(
+            result.is_ok(),
+            "shell cancel should not wait for command exit"
+        );
+        let err = result.unwrap();
+        assert!(
+            err.is_err(),
+            "cancel should return an adapter error, got {err:?}"
+        );
+        let message = format!("{:?}", err.err().unwrap());
+        assert!(message.contains("cancelled"), "message={message}");
     }
 
     #[tokio::test]

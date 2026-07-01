@@ -11354,4 +11354,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   CLI ingest under `~/.musu/brain` scope `local/musu` ingested `4` sources,
   processed `4`, and recall returned the new audit report as the top result.
 
+- 2026-07-01 shell task cancel latch source fix:
+  `docs/SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/API.md` now record `wiki/1217`: the stuck shell
+  task issue from `wiki/1216` is fixed at source level. `shell.rs` now kills
+  the subprocess path on `CliOutcome::Cancelled`, `Timeout`, and `IoError`
+  instead of waiting on the child first; `TaskRunnerHandle::cancel` now calls
+  `notify_one()` before `notify_waiters()` so cancellation is latched for the
+  next `notified()` check; and `docs/API.md` now documents the Rust response
+  `{"task_id":"uuid","cancelled":true}`. Verification passed:
+  `shell_cancel_signal_returns_promptly`, all `adapter::shell::tests::*`, and
+  `cancel_signal_transitions_to_cancelled`. Product meaning: source-fixed, but
+  not yet package-proven on `hugh-main`; remote file physical proof and full
+  product completion remain NO-GO. Index refresh: `musu indexer sync` indexed
+  `3677 files` and `3949 symbols`; product brain CLI ingest under
+  `~/.musu/brain` scope `local/musu` ingested `8` sources and processed `8`;
+  recall for
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01 TaskRunnerHandle cancel notify_one`
+  returned the new source-fix report as the top result, and recall
+  for `shell_cancel_signal_returns_promptly CliOutcome Cancelled graceful_kill runner.rs`
+  returned indexed `runner.rs` source as the top result. Search terms should
+  include `wiki/1217`,
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01`,
+  `shell_cancel_signal_returns_promptly`, `TaskRunnerHandle::cancel`,
+  `notify_one`, `notify_waiters`, `writer::runner::graceful_kill`,
+  `CliOutcome::Cancelled`, `DELETE /api/tasks/{task_id}`,
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `status=running`,
+  `cancelled=true`, `hugh-main`, `hugh_second`, and `full product NO-GO`.
+
 **End of WIKI_INDEX.md.**

@@ -19,6 +19,19 @@ by enabling the documented remote file proof root on `hugh-main`, then using
 `musu put` / `musu ls` / `musu get` to move proof files without a separate
 operator file-transfer step.
 
+## Follow-Up Source Fix
+
+The shell cancel issue found here is now source-fixed in
+`docs/SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01.md`: `shell.rs` kills the
+subprocess path on cancel/timeout/I/O error, and `TaskRunnerHandle::cancel`
+uses `notify_one()` before `notify_waiters()` so cancellation is latched for
+the next `notified()` check.
+
+This follow-up does not change the physical proof status from this audit. The
+installed `hugh-main` runtime used during this audit does not contain the source
+fix, and the remote file proof still requires target-side bridge restart or a
+rebuilt package plus fresh `musu ls` / `musu put` / `musu get` evidence.
+
 ## Evidence Collected
 
 Direct route health was already known-good and was reconfirmed during this

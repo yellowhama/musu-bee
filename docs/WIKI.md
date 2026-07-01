@@ -24429,3 +24429,64 @@ Search terms: `wiki/1216`,
 `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `hugh-main`,
 `hugh_second`, `cancelled=true`, `status=running`, `musu share`,
 `musu down --json`, `musu up --json`.
+
+## wiki/1217 - 2026-07-01 Shell task cancel latch source fix
+
+Canonical report:
+
+- `docs/SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/API.md`
+
+What changed:
+
+- `musu-rs/src/adapter/shell.rs` no longer waits on the child process before
+  handling `CliOutcome::Cancelled`, `Timeout`, or `IoError`. Those paths now
+  call `writer::runner::graceful_kill` before returning.
+- `musu-rs/src/writer/runner.rs` now calls `notify_one()` before
+  `notify_waiters()` in `TaskRunnerHandle::cancel`, so cancellation is latched
+  even if the adapter is between `notified()` polls.
+- `docs/API.md` now documents the Rust cancel response as
+  `{"task_id":"uuid","cancelled":true}` and removes the old asyncio wording.
+
+Verification:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 shell_cancel_signal_returns_promptly --lib -- --nocapture --test-threads=1`
+  passed.
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 adapter::shell::tests:: --lib -- --nocapture --test-threads=1`
+  passed with `4 passed`.
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 cancel_signal_transitions_to_cancelled --lib -- --nocapture --test-threads=1`
+  passed.
+
+Product meaning:
+
+- The shell cancel issue from `wiki/1216` is source-fixed.
+- The installed `hugh-main` package does not yet contain this source fix, and
+  the existing stuck task row was observed on the old runtime.
+- Remote file physical proof remains blocked until the target share policy is
+  applied on `hugh-main` and `musu ls` / `musu put` / `musu get` pass from
+  `hugh_second`.
+- Full product completion remains NO-GO.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3677 files` and `3949 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `8` sources: `shell.rs`, `runner.rs`, this report, the remote file/share
+  audit, the roadmap, this wiki, `WIKI_INDEX`, and `API`.
+- `musu-brain process` reported `processed: 8`.
+- Recall for
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01 TaskRunnerHandle cancel notify_one`
+  returned the new source-fix report as the top result.
+- Recall for
+  `shell_cancel_signal_returns_promptly CliOutcome Cancelled graceful_kill runner.rs`
+  returned indexed `runner.rs` source as the top result.
+
+Search terms: `wiki/1217`,
+`SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01`, `shell_cancel_signal_returns_promptly`,
+`TaskRunnerHandle::cancel`, `notify_one`, `notify_waiters`,
+`writer::runner::graceful_kill`, `CliOutcome::Cancelled`, `shell.rs`,
+`runner.rs`, `DELETE /api/tasks/{task_id}`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
+`status=running`, `cancelled=true`, `hugh-main`, `hugh_second`,
+`full product NO-GO`.

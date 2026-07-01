@@ -324,6 +324,11 @@ impl TaskRunnerHandle {
     /// Cancel signal for a specific task. Returns true if found+signalled.
     pub fn cancel(&self, task_id: &str) -> bool {
         if let Some(entry) = self.inner.registry.get(task_id) {
+            // `notify_waiters` only wakes tasks that are already parked on
+            // `notified()`. Cancellation must behave like a latched signal:
+            // if it arrives while an adapter is processing stdout, the next
+            // cancel check still has to observe it.
+            entry.cancel.notify_one();
             entry.cancel.notify_waiters();
             true
         } else {

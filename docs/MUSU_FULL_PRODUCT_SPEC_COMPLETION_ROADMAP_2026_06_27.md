@@ -1,5 +1,67 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 12:37 KST shell task cancel latch source fix
+
+Canonical report:
+`docs/SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01.md`.
+
+The `wiki/1216` remote-file/share audit found a real operations bug: direct
+`DELETE /api/tasks/9dba3497-c80c-417a-8e59-dcb4a2d869ea` returned
+`cancelled=true`, but the task row stayed `status=running`. Code audit traced
+that to two source issues:
+
+- `shell.rs` waited on the shell child before handling
+  `CliOutcome::Cancelled`, `Timeout`, or `IoError`.
+- `TaskRunnerHandle::cancel` used `Notify::notify_waiters()`, which can lose a
+  cancellation signal if no task is parked on `notified()` at that exact
+  instant.
+
+Source fix:
+
+- `musu-rs/src/adapter/shell.rs` now finalizes like the safer subprocess
+  adapters: `Done` waits with a bounded timeout, while cancel/timeout/I/O error
+  paths call `writer::runner::graceful_kill` before returning.
+- `musu-rs/src/writer/runner.rs` now calls `notify_one()` before
+  `notify_waiters()`, making the cancel signal latched for the next waiter.
+- `docs/API.md` now documents the current Rust cancel response as
+  `{ "task_id": "...", "cancelled": true }` instead of the old facade-era
+  asyncio wording.
+
+Verification:
+
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 shell_cancel_signal_returns_promptly --lib -- --nocapture --test-threads=1`
+  passed: `1 passed; 0 failed`.
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 adapter::shell::tests:: --lib -- --nocapture --test-threads=1`
+  passed: `4 passed; 0 failed`.
+- `cargo test --manifest-path .\musu-rs\Cargo.toml -j 1 cancel_signal_transitions_to_cancelled --lib -- --nocapture --test-threads=1`
+  passed: `1 passed; 0 failed`.
+
+Product meaning:
+
+- This closes the shell cancel bug at source level.
+- It does not close the installed-package or two-PC proof. The current
+  `hugh-main` runtime does not contain this source fix, and the existing stuck
+  task was observed on that old runtime.
+- Remote file proof remains blocked until `hugh-main` locally restarts/applies
+  the registered share policy and `musu ls` / `musu put` / `musu get` pass from
+  `hugh_second`.
+- Full product status remains NO-GO.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3677 files` and `3949 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `8` sources, including `shell.rs`, `runner.rs`, this roadmap, the new source
+  fix report, the remote-file audit, `WIKI`, `WIKI_INDEX`, and `API`.
+- `/process` reported `processed: 8`.
+- Recall for
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01 TaskRunnerHandle cancel notify_one`
+  returned the new source-fix report as the top result.
+- Recall for
+  `shell_cancel_signal_returns_promptly CliOutcome Cancelled graceful_kill runner.rs`
+  returned indexed `runner.rs` source as the top result.
+
 ## 2026-07-01 12:10 KST remote file share and shell cancel audit
 
 Canonical report:
