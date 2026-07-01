@@ -11232,7 +11232,11 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   the remaining CPU blockers require the second physical machine, and the
   route-attempt evidence remains LAN HTTP bearer with
   `peer_identity_verified=false` and `encryption=none_http_bearer`, not
-  release-grade `quic_relay_tunnel` / `quic_tls_1_3` relay proof. Search terms
+  release-grade `quic_relay_tunnel` / `quic_tls_1_3` relay proof. Index
+  refresh: `musu indexer sync` indexed `3674 files` and `3947 symbols`;
+  product brain ingest under `local/musu` posted `4` sources, processed `5`,
+  recovered `0`, and recall returned top title
+  `wiki/1213 final local evidence closeout`. Search terms
   should include `wiki/1213`,
   `CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01`,
   `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`,

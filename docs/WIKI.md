@@ -24181,6 +24181,14 @@ Current green local lanes:
 - `runtime_cpu_scenario_matrix_valid_machine_count=1`
 - `runtime_cpu_second_pc_route_attempt_verified=true`
 
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3674 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources, `/v1/process`
+  processed `5`, recovered `0`, and recall returned top title
+  `wiki/1213 final local evidence closeout`.
+
 Product meaning:
 
 - The local packaged app is not showing a busy-loop or process ownership

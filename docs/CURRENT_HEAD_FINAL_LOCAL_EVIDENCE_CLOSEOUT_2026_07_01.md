@@ -74,6 +74,11 @@ Validation:
 - `git diff --check` passed before documentation commit.
 - `npm run test:public-release` passed `17/17` from
   `F:\workspace\musu-bee\musu-bee`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3674 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources, `/v1/process`
+  processed `5`, recovered `0`, and recall returned top title
+  `wiki/1213 final local evidence closeout`.
 
 Remaining blocker areas:
 
