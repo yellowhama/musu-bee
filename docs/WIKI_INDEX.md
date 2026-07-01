@@ -11150,4 +11150,31 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   recall returned top title
   `wiki/1210 current blocker triage and day closeout report`.
 
+- 2026-07-01 P2P env secret sync:
+  `docs/P2P_ENV_SECRET_SYNC_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1211`: Vercel
+  production env already had `KV_REST_API_URL` and `KV_REST_API_TOKEN`, but
+  GitHub repository secrets for `yellowhama/musu-bee` were missing those names.
+  The existing production values were copied to GitHub repo secrets without
+  printing or committing secret values, and the temporary `.local-build` env file
+  was deleted. Verification: `gh secret list --repo yellowhama/musu-bee --json
+  name` includes `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`; `show-musu-pro-p2p-env-status.ps1 -Json` at
+  `2026-07-01T10:23:49.6405807+09:00` reports
+  `github.missing_required_names=[]`. The blockers
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url` and
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token` are gone. P2P remains
+  NO-GO because `source_release_relay_tunnel_runtime_not_implemented` and the
+  live relay evidence blockers remain; `musu.pro` apex DNS/TLS still blocks live
+  hosted evidence capture. Index refresh: `musu indexer sync` indexed
+  `3654 files` and `3947 symbols`; product brain ingest under `local/musu`
+  posted `3` sources, processed `3`, recovered `0`, and recall returned top
+  title `wiki/1211 p2p env secret sync wiki and index delta`. Search terms
+  should include `wiki/1211`,
+  `P2P_ENV_SECRET_SYNC_2026_07_01`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`,
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`, `github.missing_required_names=[]`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  and `quic_tls_1_3`.
+
 **End of WIKI_INDEX.md.**

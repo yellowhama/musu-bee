@@ -2770,3 +2770,44 @@ Spec status:
   and proven.
 - Current V34 code/tooling must still be backed by physical two-node stale
   registry/cache/manual-peer proof before the blocker closes.
+
+## 2026-07-01 P2P Env Secret Sync
+
+Canonical report:
+
+- `docs/P2P_ENV_SECRET_SYNC_2026_07_01.md`
+
+External environment change:
+
+- Vercel production env already had `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN`.
+- GitHub repository secrets for `yellowhama/musu-bee` were missing those two
+  names.
+- The existing Vercel production values were copied into GitHub repository
+  secrets without printing, committing, or retaining secret values in tracked
+  files.
+
+Verification:
+
+- `gh secret list --repo yellowhama/musu-bee --json name` now includes
+  `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`.
+- `show-musu-pro-p2p-env-status.ps1 -Json` at
+  `2026-07-01T10:23:49.6405807+09:00` reports
+  `github.missing_required_names=[]`.
+- The previous P2P blockers
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url` and
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token` are no longer present.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3654 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` sources, processed `3`, recovered `0`, and recall
+  returned top title `wiki/1211 p2p env secret sync wiki and index delta`.
+
+Spec status:
+
+- The hosted P2P GitHub-secret storage configuration sub-blocker is closed.
+- P2P remains **NO-GO** for release because
+  `source_release_relay_tunnel_runtime_not_implemented` and the live relay
+  evidence blockers remain.
+- The `musu.pro` apex DNS/TLS blocker still prevents live hosted API evidence
+  from this machine.

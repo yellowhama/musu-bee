@@ -24027,3 +24027,64 @@ Search terms: `wiki/1210`, `CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT`,
 `test:public-release 16/16`, `source_release_relay_tunnel_runtime_not_implemented`,
 `quic_relay_tunnel`, `quic_tls_1_3`, `HANDOFF-musu-integration`,
 `~/.musu/brain`, `V34 physical two-node stale proof`.
+
+## wiki/1211 - 2026-07-01 P2P env secret sync
+
+Canonical report:
+
+- `docs/P2P_ENV_SECRET_SYNC_2026_07_01.md`
+
+What changed:
+
+- Vercel production env already had `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN`.
+- GitHub repository secrets for `yellowhama/musu-bee` were missing those two
+  names, so `show-musu-pro-p2p-env-status.ps1` still reported the hosted P2P
+  storage env sub-blockers.
+- The existing Vercel production values were pulled through a temporary
+  `.local-build` env file and copied to GitHub repo secrets without printing or
+  committing secret values.
+- The temporary env file was deleted; `.local-build\secret-sync` had zero
+  remaining temp files after the sync.
+
+Verification:
+
+- `vercel whoami` authenticated as `yellowhama` using the local Vercel token
+  source without printing the token value.
+- `gh secret list --repo yellowhama/musu-bee --json name` now includes
+  `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json` at
+  `2026-07-01T10:23:49.6405807+09:00` reports
+  `github.missing_required_names=[]`.
+- The blockers `missing_kv_rest_api_url_or_upstash_redis_rest_url` and
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token` are gone.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3654 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` sources, processed `3`, recovered `0`, and recall
+  returned top title `wiki/1211 p2p env secret sync wiki and index delta`.
+
+Remaining product blockers:
+
+- `source_release_relay_tunnel_runtime_not_implemented`
+- `live_evidence_unknown`
+- `live_evidence_relay_transport_not_wired`
+- `live_evidence_relay_route_not_proven`
+- `live_evidence_relay_route_metadata_missing`
+- `live_evidence_relay_route_transport_proof_missing`
+- `live_evidence_relay_payload_delivery_proof_missing`
+
+Product meaning:
+
+- The GitHub-secret storage configuration sub-blocker for hosted P2P is closed.
+- P2P release readiness is still NO-GO because release-grade relay runtime and
+  evidence are missing.
+- Live `https://musu.pro` apex DNS/TLS is still broken, so hosted live evidence
+  capture is also blocked until DNS/TLS is repaired.
+
+Search terms: `wiki/1211`, `P2P_ENV_SECRET_SYNC_2026_07_01`,
+`KV_REST_API_URL`, `KV_REST_API_TOKEN`,
+`MUSU_P2P_CONTROL_TOKEN_SHA256S`, `github.missing_required_names=[]`,
+`source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+`quic_tls_1_3`.
