@@ -447,7 +447,22 @@ function Get-ReleaseNextActions {
                 break
             }
             "store-public-metadata" {
-                $actions.Add((New-NextAction -Area $area -Summary "Plan and repair the canonical apex DNS/TLS path before rerunning public metadata verification." -ActionType "manual_then_command" -ManualSteps @("Run the public metadata DNS/TLS repair planner first.", "Run vercel domains inspect for the exact Vercel-recommended DNS records.", "Choose one DNS authority path: Vercel nameservers or Cloudflare/third-party external DNS, then repair apex DNS/TLS.", "Repair the apex DNS/TLS path, then run the public metadata verifier command.") -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -EvidencePath ".local-build\public-metadata-dns-repair\*.json; $PublicMetadataBaseUrl/privacy, $PublicMetadataBaseUrl/support, $PublicMetadataBaseUrl/api/public-config" -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" -AutomationBlockedReason "The command is diagnostic and does not mutate DNS/provider settings; live DNS/TLS repair is required before this verifier can pass.")) | Out-Null
+                $actions.Add((New-NextAction `
+                    -Area $area `
+                    -Summary "Plan and repair the canonical apex DNS/TLS path before rerunning public metadata verification." `
+                    -ActionType "manual_then_command" `
+                    -ManualSteps @(
+                        "Run the public metadata DNS/TLS repair planner first.",
+                        "Run vercel domains inspect for the exact Vercel-recommended DNS records.",
+                        "Choose one DNS authority path: Vercel nameservers or Cloudflare/third-party external DNS, then repair apex DNS/TLS.",
+                        "If staying on Cloudflare/third-party DNS, run the Cloudflare DNS apply helper in dry-run mode before any DNS mutation: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1 -BaseUrl $PublicMetadataBaseUrl -Json",
+                        "Only after reviewing the dry-run, provide a scoped Cloudflare token and rerun the helper with -ConfirmApply: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1 -BaseUrl $PublicMetadataBaseUrl -ConfirmApply -Json",
+                        "Repair the apex DNS/TLS path, then run the public metadata verifier command."
+                    ) `
+                    -Command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" `
+                    -EvidencePath ".local-build\public-metadata-dns-repair\*.json; $PublicMetadataBaseUrl/privacy, $PublicMetadataBaseUrl/support, $PublicMetadataBaseUrl/api/public-config" `
+                    -VerificationCommand "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json" `
+                    -AutomationBlockedReason "The planner is diagnostic and does not mutate DNS/provider settings; the Cloudflare helper must be dry-run reviewed and explicitly rerun with -ConfirmApply before live DNS mutation. Live DNS/TLS repair is required before this verifier can pass.")) | Out-Null
                 break
             }
             "support-mailbox" {

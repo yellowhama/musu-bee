@@ -24736,3 +24736,65 @@ Search terms: `wiki/1221`,
 `p2p-store-forward-relay`, `audit-p2p-store-forward-relay-contract.ps1`,
 `release_relay_tunnel_runtime_not_implemented`,
 `assert.equal(proofs.length, 0)`, `relay-transport NO-GO`.
+
+## wiki/1222 - 2026-07-01 Public metadata DNS repair operator path
+
+Canonical report:
+`docs/PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01.md`.
+
+The `store-public-metadata` lane remains NO-GO. Live
+`verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` still reports
+`ok=false`, `fail_count=3`, and failure kinds `request_failed`,
+`dns_configuration_mismatch`, `dns_nameserver_mismatch`,
+`apex_tls_handshake_failed`, and `vercel_edge_apex_tls_failed`.
+
+Code audit found no missing local metadata route: `src/app/privacy/page.tsx`,
+`src/app/support/page.tsx`, and `src/app/api/public-config/route.ts` already
+exist. The blocker is the canonical apex DNS/TLS authority path.
+
+Change:
+
+- `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` remains a
+  non-mutating planner and now emits `cloudflare_apply` with the existing
+  Cloudflare helper path, dry-run command, explicit `-ConfirmApply` command,
+  `CLOUDFLARE_API_TOKEN`, optional `CLOUDFLARE_ZONE_ID`, and
+  `mutation_requires_confirm_apply=true`.
+- `scripts/windows/write-release-go-no-go.ps1` now gives the exact dry-run and
+  apply commands in the `store-public-metadata` next action.
+- `scripts/windows/test-release-evidence-verifiers.ps1` now locks those source
+  contracts.
+
+Verification:
+
+- PowerShell parser check passed for the three touched scripts.
+- Planner probe returned `ok=true`,
+  `ready_for_public_metadata_verifier=false`,
+  `will_mutate_external_dns=false`, `apply_supported=false`, and
+  `can_apply=false`.
+- The Cloudflare helper still fails closed without a token:
+  `cloudflare_token_missing`, `will_mutate_external_dns=false`,
+  `applied=false`, `can_apply=false`.
+- Release evidence verifier regression passed `219/219` with output root
+  `.local-build/release-evidence-verifier-tests/20260701-145051`.
+- Indexing: `musu indexer sync` indexed `3701 files` / `3949 symbols`;
+  product brain ingest under `local/musu` posted `8` sources and
+  `musu-brain process` reported `processed: 8`; a final docs-only refresh
+  posted 4 updated docs and processed 4. Recall for
+  `PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01 cloudflare_apply dry_run_command CLOUDFLARE_API_TOKEN`
+  returned the new canonical report source
+  `wiki/sources/src_a45322f5bc04c444.md` as the top result.
+
+Brain handoff cross-check: `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
+and local `docs/HANDOFF-musu-integration.md` both exist. The standalone brain
+default `~/.musubrain` remains brain-native; the packaged MUSU product contract
+remains `~/.musu/brain`, outside MSIX LocalState.
+
+Product meaning: this improves the operator path and reduces manual DNS repair
+ambiguity, but does not close `store-public-metadata`. Closure still requires
+real DNS/TLS repair and a passing canonical public metadata verifier.
+
+Search terms: `wiki/1222`,
+`PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01`, `cloudflare_apply`,
+`dry_run_command`, `mutation_requires_confirm_apply`,
+`apply-musu-pro-public-metadata-cloudflare-dns.ps1`, `CLOUDFLARE_API_TOKEN`,
+`store-public-metadata NO-GO`, `HANDOFF-musu-integration`, `~/.musu/brain`.

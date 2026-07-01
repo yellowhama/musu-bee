@@ -422,6 +422,9 @@ if ($metadataVerification.parse_ok -and $metadataVerification.json -and $metadat
 
 $vercelInspect = Invoke-VercelInspect -Domain $hostName -Token $VercelToken
 $cloudflareTokenStatus = Get-CloudflareTokenStatus -Token $CloudflareApiToken
+$cloudflareApplyScriptName = "apply-musu-pro-public-metadata-cloudflare-dns.ps1"
+$cloudflareApplyDryRunCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\$cloudflareApplyScriptName -BaseUrl $BaseUrl -Json"
+$cloudflareApplyCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\$cloudflareApplyScriptName -BaseUrl $BaseUrl -ConfirmApply -Json"
 
 $needsDnsRepair = (-not $dnsPathMatchesExpected)
 $needsTlsRepair = (-not [bool]$apexTls.ok -or -not [bool]$vercelEdgeTlsOk)
@@ -438,6 +441,9 @@ if ($needsDnsRepair) {
             "Choose one DNS authority path before editing records: switch the registrar nameservers to Vercel DNS, or keep Cloudflare/third-party DNS and configure Vercel's exact external records.",
             "If switching to Vercel DNS, migrate required MX/TXT/mail records first, then set nameservers to $($expectedNs -join ', ').",
             "If keeping Cloudflare/third-party DNS, set apex A to $($expectedA -join ', '), remove conflicting apex A/AAAA/HTTPS records unless Vercel explicitly requires them, and set $wwwHost CNAME to $ExpectedWwwCname or the exact value from vercel domains inspect.",
+            "If keeping Cloudflare/third-party DNS and a scoped Cloudflare token is available, dry-run the existing helper first: $cloudflareApplyDryRunCommand",
+            "Apply only after reviewing the dry-run operations: set `$env:CLOUDFLARE_API_TOKEN and optional `$env:CLOUDFLARE_ZONE_ID, then run $cloudflareApplyCommand",
+            "The apply helper touches only apex A/AAAA/HTTPS and $wwwHost A/AAAA/CNAME records for this public metadata repair lane.",
             "Wait for DNS propagation, then rerun this planner and verify-store-public-metadata.ps1."
         )
     }) | Out-Null
@@ -518,9 +524,20 @@ $result = [ordered]@{
         token_status = $cloudflareTokenStatus
         mutation_supported = $false
     }
+    cloudflare_apply = [pscustomobject]@{
+        script = "scripts\windows\$cloudflareApplyScriptName"
+        dry_run_command = $cloudflareApplyDryRunCommand
+        apply_command = $cloudflareApplyCommand
+        requires_token_env = "CLOUDFLARE_API_TOKEN"
+        optional_zone_env = "CLOUDFLARE_ZONE_ID"
+        mutation_requires_confirm_apply = $true
+        planner_mutates_dns = $false
+        note = "Use only if keeping Cloudflare/third-party DNS instead of switching registrar nameservers to Vercel DNS."
+    }
     recommended_actions = $actions.ToArray()
     verification_commands = @(
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $BaseUrl -Json",
+        $cloudflareApplyDryRunCommand,
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-public-metadata.ps1 -BaseUrl $BaseUrl -Json",
         "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\write-release-go-no-go.ps1 -Json"
     )
