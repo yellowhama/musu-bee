@@ -24852,3 +24852,55 @@ Search terms: `wiki/1223`,
 `source_release_relay_tunnel_runtime_not_implemented`,
 `quic_relay_tunnel`, `quic_tls_1_3`,
 `relay_transport_product_verified=false`, `relay-transport NO-GO`.
+
+## wiki/1224 - 2026-07-01 Local packaged evidence refresh
+
+Canonical report:
+`docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01.md`.
+
+The current HUGH_SECOND packaged-local evidence was refreshed after the
+wiki/1223 relay design-gate commit. Clean go/no-go now reports:
+
+- `single_machine_verified=true`
+- `process_ownership_verified=true`
+- `startup_single_instance_verified=true`
+- `desktop_single_instance_verified=true`
+- `blocker_count=11`
+
+Evidence:
+
+- single-machine:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-153838-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-154029-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-154046-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-154133-HUGH_SECOND.desktop-single-instance.json`
+
+Indexing: `musu indexer sync` indexed `3711 files` / `3949 symbols`;
+product brain ingest under `local/musu` posted `11` changed
+report/wiki/evidence sources and `musu-brain process` reported
+`processed: 11`; a final docs-only refresh posted `4` updated docs and
+processed `4`. Recall for
+`wiki/1224 LOCAL_PACKAGED_EVIDENCE_REFRESH blocker_count 11 20260701-154133 desktop_single_instance_verified`
+returned the canonical report and the desktop single-instance evidence in the
+top results.
+
+Qualitative assessment: the packaged local baseline is healthy on HUGH_SECOND:
+packaged WindowsApps runtime, bridge-only local surface, one packaged bridge,
+one packaged desktop shell, startup idempotency, desktop single-instance, and
+no repo/dev helper leakage into the product runtime.
+
+Remaining NO-GO blockers: `multi-device`,
+`private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+`store-public-metadata`, `store-release`, `p2p-control-plane`,
+`design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+
+Search terms: `wiki/1224`,
+`LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01`, `20260701-153838-HUGH_SECOND`,
+`20260701-154029-HUGH_SECOND`, `20260701-154046-HUGH_SECOND`,
+`20260701-154133-HUGH_SECOND`, `single_machine_verified=true`,
+`process_ownership_verified=true`, `startup_single_instance_verified=true`,
+`desktop_single_instance_verified=true`, `blocker_count=11`.

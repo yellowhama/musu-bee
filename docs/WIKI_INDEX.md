@@ -11585,4 +11585,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_tunnel_runtime_not_implemented`,
   `quic_relay_tunnel`, `quic_tls_1_3`, and `relay-transport NO-GO`.
 
+- 2026-07-01 local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1224`: after the wiki/1223 relay design-gate
+  commit, HUGH_SECOND local packaged evidence was refreshed for
+  `single-machine`, `process-ownership`, `startup-single-instance`, and
+  `desktop-single-instance`. Evidence paths include
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-153838-HUGH_SECOND.evidence.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-154029-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-154046-HUGH_SECOND.startup-single-instance.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-154133-HUGH_SECOND.desktop-single-instance.json`.
+  Clean go/no-go at `2026-07-01T15:43:46.2307186+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  and `blocker_count=11`. Indexing: `musu indexer sync` indexed
+  `3711 files` / `3949 symbols`; product brain ingest under `local/musu`
+  posted `11` changed report/wiki/evidence sources and `musu-brain process`
+  reported `processed: 11`; a final docs-only refresh posted `4` updated docs
+  and processed `4`; recall for
+  `wiki/1224 LOCAL_PACKAGED_EVIDENCE_REFRESH blocker_count 11 20260701-154133 desktop_single_instance_verified`
+  returned the canonical report and the desktop single-instance evidence in
+  the top results. Search terms should include `wiki/1224`,
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01`, `20260701-153838-HUGH_SECOND`,
+  `20260701-154029-HUGH_SECOND`, `20260701-154046-HUGH_SECOND`,
+  `20260701-154133-HUGH_SECOND`, and `blocker_count=11`.
+
 **End of WIKI_INDEX.md.**

@@ -1,5 +1,61 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 15:43 KST local packaged evidence refresh
+
+Canonical report:
+`docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01.md`.
+
+After the relay design-gate commit, source freshness invalidated the local
+packaged evidence lanes again. This refresh records new HUGH_SECOND evidence
+for the lanes that can be proven on this computer without the second physical
+PC.
+
+Evidence:
+
+- single-machine packaged smoke:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-153838-HUGH_SECOND.evidence.json`
+- single-machine verification:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-153838-HUGH_SECOND.verification.json`
+- process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-154029-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-154046-HUGH_SECOND.startup-single-instance.json`
+- startup nested process ownership:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-154046-HUGH_SECOND.startup-single-instance.process-ownership.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-154133-HUGH_SECOND.desktop-single-instance.json`
+
+Verification:
+
+- single-machine smoke passed on packaged WindowsApps runtime with bridge-only
+  local surface `http://127.0.0.1:2533` and CLI route checked.
+- process ownership passed with `ok=true`, `fail_count=0`, one packaged runtime,
+  one packaged desktop shell, zero owned Node helpers, six owned WebView2
+  helpers, and no repo-related orphan helpers.
+- startup single-instance passed with `ok=true`, `fail_count=0`; three startup
+  invocations reused bridge PID `7312`.
+- desktop single-instance passed with `ok=true`, `fail_count=0`,
+  `git_dirty=false`; three Start menu activations kept one packaged
+  `musu-desktop.exe`.
+- Clean go/no-go at `2026-07-01T15:43:46.2307186+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, and
+  `desktop_single_instance_verified=true`.
+- Indexing: `musu indexer sync` indexed `3711 files` / `3949 symbols`;
+  product brain ingest under `local/musu` posted `11` changed
+  report/wiki/evidence sources and `musu-brain process` reported
+  `processed: 11`; a final docs-only refresh posted `4` updated docs and
+  processed `4`. Recall for
+  `wiki/1224 LOCAL_PACKAGED_EVIDENCE_REFRESH blocker_count 11 20260701-154133 desktop_single_instance_verified`
+  returned the canonical report and the desktop single-instance evidence in
+  the top results.
+
+Product meaning: local packaged runtime hygiene is healthy again on HUGH_SECOND,
+and blocker count dropped from 15 to 11. The product remains NO-GO until
+multi-device, Private Mesh packaged proof, runtime CPU evidence,
+store-public-metadata, Store release, P2P control-plane, design approval,
+relay transport, and V34 stale self-heal close.
+
 ## 2026-07-01 15:23 KST release relay transport design gate
 
 Canonical report:
